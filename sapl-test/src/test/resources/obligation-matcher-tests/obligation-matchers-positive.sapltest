@@ -1,0 +1,65 @@
+requirement "Obligation Matcher Positive Tests" {
+
+    given
+        - document "obligation-policy"
+
+    scenario "with obligation presence only"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation;
+
+    scenario "with obligation equals exact match"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation equals { "type": "audit", "action": "log", "level": 1 };
+
+    scenario "with obligation matching object type"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation matching object;
+
+    scenario "with obligation matching object with key constraint"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation matching object where { "type" is text "audit" };
+
+    scenario "with obligation containing key"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation containing key "type";
+
+    scenario "with obligation containing key action"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation containing key "action";
+
+    scenario "with obligation containing key with value text"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation containing key "type" with value matching text "audit";
+
+    scenario "with obligation containing key with value number"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation containing key "level" with value matching number 1;
+
+}
+
+requirement "Advice Matcher Positive Tests" {
+
+    given
+        - document "obligation-policy"
+
+    scenario "with advice presence only"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with advice;
+
+    scenario "with advice equals exact match"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with advice equals { "notify": "admin", "channel": "email" };
+
+    scenario "with advice matching object"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with advice matching object;
+
+    scenario "with advice containing key"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with advice containing key "notify";
+
+    scenario "with advice containing key with value"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with advice containing key "channel" with value matching text "email";
+
+}

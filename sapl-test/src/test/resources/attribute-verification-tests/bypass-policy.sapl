@@ -1,0 +1,3 @@
+policy "bypass-policy"
+permit
+    action == "bypass"

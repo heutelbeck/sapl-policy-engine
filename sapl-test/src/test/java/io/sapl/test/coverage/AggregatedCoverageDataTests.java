@@ -190,4 +190,112 @@ class AggregatedCoverageDataTests {
         val aggregatedPolicy = aggregated.getPolicyCoverageList().getFirst();
         assertThat(aggregatedPolicy.getFilePath()).isEqualTo("policies/nyarlathotep.sapl");
     }
+
+    @Test
+    @DisplayName("policy set count and hit ratio")
+    void whenPolicySets_thenCountAndRatioCalculated() {
+        val aggregated = new AggregatedCoverageData();
+
+        val coverageRecord = new TestCoverageRecord("set-test");
+        val policySet      = new PolicyCoverageData("my-set", null, "set");
+        policySet.recordTargetHit(true);
+        val policy = new PolicyCoverageData("my-policy", null, "policy");
+        policy.recordTargetHit(true);
+        coverageRecord.addPolicyCoverage(policySet);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
+
+        aggregated.merge(coverageRecord);
+
+        assertThat(aggregated.getPolicySetCount()).isOne();
+        assertThat(aggregated.getMatchedPolicySetCount()).isOne();
+        assertThat(aggregated.getPolicySetHitRatio()).isEqualTo(100.0f);
+    }
+
+    @Test
+    @DisplayName("standalone policy count and hit ratio")
+    void whenStandalonePolicies_thenCountAndRatioCalculated() {
+        val aggregated = new AggregatedCoverageData();
+
+        val coverageRecord = new TestCoverageRecord("standalone-test");
+        val policy1        = new PolicyCoverageData("policy1", null, "policy");
+        policy1.recordTargetHit(true);
+        val policy2 = new PolicyCoverageData("policy2", null, "policy");
+        policy2.recordTargetHit(false);
+        coverageRecord.addPolicyCoverage(policy1);
+        coverageRecord.addPolicyCoverage(policy2);
+        coverageRecord.recordDecision(Decision.PERMIT);
+
+        aggregated.merge(coverageRecord);
+
+        assertThat(aggregated.getStandalonePolicyCount()).isEqualTo(2);
+        assertThat(aggregated.getMatchedStandalonePolicyCount()).isOne();
+        assertThat(aggregated.getPolicyHitRatio()).isEqualTo(50.0f);
+    }
+
+    @Test
+    @DisplayName("condition hit ratio with fully covered conditions")
+    void whenConditionsFullyCovered_thenRatioIsHundred() {
+        val aggregated = new AggregatedCoverageData();
+
+        val coverageRecord = new TestCoverageRecord("condition-test");
+        val policy         = new PolicyCoverageData("cond-policy", null, "policy");
+        policy.recordTargetHit(true);
+        policy.recordConditionHit(0, 5, true);
+        policy.recordConditionHit(0, 5, false);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
+
+        aggregated.merge(coverageRecord);
+
+        assertThat(aggregated.getConditionHitRatio()).isEqualTo(100.0f);
+    }
+
+    @Test
+    @DisplayName("condition hit ratio with partially covered conditions")
+    void whenConditionsPartiallyCovered_thenRatioIsPartial() {
+        val aggregated = new AggregatedCoverageData();
+
+        val coverageRecord = new TestCoverageRecord("partial-test");
+        val policy         = new PolicyCoverageData("partial-policy", null, "policy");
+        policy.recordTargetHit(true);
+        policy.recordConditionHit(0, 5, true);
+        policy.recordConditionHit(1, 7, true);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
+
+        aggregated.merge(coverageRecord);
+
+        assertThat(aggregated.getConditionHitRatio()).isEqualTo(0.0f);
+    }
+
+    @Test
+    @DisplayName("hit ratios return 100% when no items")
+    void whenNoItems_thenRatioIsHundred() {
+        val aggregated = new AggregatedCoverageData();
+
+        assertThat(aggregated.getPolicySetHitRatio()).isEqualTo(100.0f);
+        assertThat(aggregated.getPolicyHitRatio()).isEqualTo(100.0f);
+        assertThat(aggregated.getConditionHitRatio()).isEqualTo(100.0f);
+        assertThat(aggregated.getOverallBranchCoverage()).isEqualTo(0.0);
+    }
+
+    @Test
+    @DisplayName("decision count for all decision types")
+    void whenMultipleDecisions_thenAllCounted() {
+        val aggregated = new AggregatedCoverageData();
+
+        val coverageRecord = new TestCoverageRecord("decision-test");
+        coverageRecord.recordDecision(Decision.PERMIT);
+        coverageRecord.recordDecision(Decision.DENY);
+        coverageRecord.recordDecision(Decision.NOT_APPLICABLE);
+        coverageRecord.recordDecision(Decision.INDETERMINATE);
+
+        aggregated.merge(coverageRecord);
+
+        assertThat(aggregated.getDecisionCount(Decision.PERMIT)).isOne();
+        assertThat(aggregated.getDecisionCount(Decision.DENY)).isOne();
+        assertThat(aggregated.getDecisionCount(Decision.NOT_APPLICABLE)).isOne();
+        assertThat(aggregated.getDecisionCount(Decision.INDETERMINATE)).isOne();
+    }
 }

@@ -36,6 +36,11 @@ import static io.sapl.test.Matchers.*;
 @UtilityClass
 class MatcherConverter {
 
+    private static final String ERROR_UNKNOWN_NODE_MATCHER      = "Unknown nodeMatcher type: %s.";
+    private static final String ERROR_UNKNOWN_STRING_MATCHER    = "Unknown stringMatcher type: %s.";
+    private static final String ERROR_UNKNOWN_STRING_OR_MATCHER = "Unknown stringOrStringMatcher type: %s.";
+    private static final String ERROR_UNKNOWN_VAL_MATCHER       = "Unknown valMatcher type: %s.";
+
     /**
      * Converts a valMatcher context to an ArgumentMatcher.
      *
@@ -48,7 +53,7 @@ class MatcherConverter {
         case ValueValMatcherContext valueCtx       -> eq(ValueConverter.convert(valueCtx.value()));
         case MatchingValMatcherContext matchingCtx -> convertNodeMatcher(matchingCtx.nodeMatcher());
         default                                    ->
-            throw new IllegalArgumentException("Unknown valMatcher type: " + ctx.getClass().getSimpleName());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_VAL_MATCHER.formatted(ctx.getClass().getSimpleName()));
         };
     }
 
@@ -78,7 +83,7 @@ class MatcherConverter {
         case ArrayMatcherContext arrCtx    -> convertArrayMatcher(arrCtx);
         case ObjectMatcherContext objCtx   -> convertObjectMatcher(objCtx);
         default                            ->
-            throw new IllegalArgumentException("Unknown nodeMatcher type: " + ctx.getClass().getSimpleName());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_NODE_MATCHER.formatted(ctx.getClass().getSimpleName()));
         };
     }
 
@@ -91,7 +96,7 @@ class MatcherConverter {
         }
         case ComplexStringMatcherContext complex -> convertStringMatcher(complex.stringMatcher());
         default                                  -> throw new IllegalArgumentException(
-                "Unknown stringOrStringMatcher type: " + ctx.stringOrStringMatcher().getClass().getSimpleName());
+                ERROR_UNKNOWN_STRING_OR_MATCHER.formatted(ctx.stringOrStringMatcher().getClass().getSimpleName()));
         };
     }
 
@@ -140,7 +145,7 @@ class MatcherConverter {
             yield textHasLength(length);
         }
         default                                             ->
-            throw new IllegalArgumentException("Unknown stringMatcher type: " + ctx.getClass().getSimpleName());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_STRING_MATCHER.formatted(ctx.getClass().getSimpleName()));
         };
     }
 

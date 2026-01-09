@@ -1,0 +1,48 @@
+requirement "Resource Matcher Negative Tests - Object" {
+
+    given
+        - document "resource-transform-policy"
+
+    scenario "with resource equals wrong value should fail"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource equals { "status": "wrong" };
+
+    scenario "with resource matching object with wrong key value should fail"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource matching object where { "status" is text "wrong" };
+
+    scenario "with resource matching wrong type should fail"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource matching text "something";
+
+}
+
+requirement "Resource Matcher Negative Tests - Text" {
+
+    given
+        - document "resource-text-policy"
+
+    scenario "with resource matching wrong text should fail"
+        when "user" attempts "text-transform" on "document"
+        expect decision is permit, with resource matching text "wrong-content";
+
+    scenario "with resource equals wrong text should fail"
+        when "user" attempts "text-transform" on "document"
+        expect decision is permit, with resource equals "wrong";
+
+}
+
+requirement "No Resource Tests" {
+
+    given
+        - document "no-resource-policy"
+
+    scenario "with resource when none exist should fail"
+        when "user" attempts "no-resource" on "document"
+        expect decision is permit, with resource;
+
+    scenario "with resource matching when none exist should fail"
+        when "user" attempts "no-resource" on "document"
+        expect decision is permit, with resource matching text "any";
+
+}

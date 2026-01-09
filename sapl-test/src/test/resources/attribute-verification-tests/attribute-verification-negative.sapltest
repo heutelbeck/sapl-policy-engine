@@ -1,0 +1,33 @@
+requirement "Environment Attribute Verification Failures" {
+
+    given
+        - document "location-policy"
+        - attribute "loc" <geo.location> emits { "country": "DE" }
+
+    scenario "verification fails when attribute called once but expected twice"
+        when "user" attempts "access" on "data"
+        expect permit
+        verify
+            - attribute <geo.location> is called 2 times;
+
+    scenario "verification fails when attribute called once but expected zero"
+        when "user" attempts "access" on "data"
+        expect permit
+        verify
+            - attribute <geo.location> is called 0 times;
+
+}
+
+requirement "Entity Attribute Verification Failures" {
+
+    given
+        - document "role-policy"
+        - attribute "role" any.<user.role> emits "admin"
+
+    scenario "entity verification fails when called once but expected twice"
+        when { "id": "alice" } attempts "admin" on "system"
+        expect permit
+        verify
+            - attribute any.<user.role> is called 2 times;
+
+}

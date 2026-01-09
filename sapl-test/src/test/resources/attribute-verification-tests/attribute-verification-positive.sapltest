@@ -1,0 +1,41 @@
+requirement "Environment Attribute Verification" {
+
+    given
+        - document "location-policy"
+        - attribute "loc" <geo.location> emits { "country": "DE" }
+
+    scenario "environment attribute called once"
+        when "user" attempts "read" on "data"
+        expect permit
+        verify
+            - attribute <geo.location> is called once;
+
+}
+
+requirement "Environment Attribute Not Called" {
+
+    given
+        - documents "location-policy", "bypass-policy"
+        - attribute "loc-bypass" <geo.location> emits { "country": "DE" }
+
+    scenario "environment attribute called zero times when not needed"
+        when "user" attempts "bypass" on "data"
+        expect permit
+        verify
+            - attribute <geo.location> is called 0 times;
+
+}
+
+requirement "Entity Attribute Verification" {
+
+    given
+        - document "role-policy"
+        - attribute "role" any.<user.role> emits "admin"
+
+    scenario "entity attribute called once"
+        when { "id": "alice" } attempts "admin" on "system"
+        expect permit
+        verify
+            - attribute any.<user.role> is called once;
+
+}

@@ -35,9 +35,10 @@ import static io.sapl.test.Matchers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-class MatchersTests {
+import org.junit.jupiter.api.DisplayName;
 
-    // ========== args() Tests ==========
+@DisplayName("Matchers tests")
+class MatchersTests {
 
     @Test
     void whenArgsWithNoMatchers_thenCreatesEmptyParameters() {
@@ -59,9 +60,7 @@ class MatchersTests {
         assertThat(matchers.get(2)).isInstanceOf(MockingFunctionBroker.ArgumentMatcher.Predicated.class);
     }
 
-    // ========== any() Tests ==========
-
-    @ParameterizedTest
+    @ParameterizedTest(name = "any() matches {0}")
     @MethodSource("allValueTypes")
     void whenAny_thenMatchesAllValueTypes(Value value) {
         assertThat(any().matches(value)).isTrue();
@@ -71,8 +70,6 @@ class MatchersTests {
     void whenAny_thenHasSpecificityZero() {
         assertThat(any().specificity()).isZero();
     }
-
-    // ========== eq() Tests ==========
 
     @Test
     void whenEqWithMatchingValue_thenReturnsTrue() {
@@ -98,13 +95,11 @@ class MatchersTests {
         assertThat(eq(Value.of("x")).specificity()).isEqualTo(2);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "eq({0}) matches {1}")
     @MethodSource("equalValuePairs")
     void whenEqWithEqualValues_thenMatches(Value expected, Value actual) {
         assertThat(eq(expected).matches(actual)).isTrue();
     }
-
-    // ========== matching() Tests ==========
 
     @Test
     void whenMatchingWithSatisfiedPredicate_thenReturnsTrue() {
@@ -122,8 +117,6 @@ class MatchersTests {
     void whenMatching_thenHasSpecificityOne() {
         assertThat(matching(v -> true).specificity()).isEqualTo(1);
     }
-
-    // ========== Type Matchers Tests ==========
 
     @Test
     void whenAnyText_thenMatchesOnlyTextValues() {
@@ -164,13 +157,11 @@ class MatchersTests {
         assertThat(anyArray().matches(Value.of(42))).isFalse();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0} has specificity 1")
     @MethodSource("typeMatcherSpecificities")
     void whenTypeMatcher_thenHasSpecificityOne(MockingFunctionBroker.ArgumentMatcher matcher) {
         assertThat(matcher.specificity()).isEqualTo(1);
     }
-
-    // ========== Text Matchers Tests ==========
 
     @Test
     void whenTextContaining_thenMatchesTextWithSubstring() {
@@ -211,8 +202,6 @@ class MatchersTests {
         assertThat(matcher.matches(Value.of(42))).isFalse();
         assertThat(matcher.matches(Value.TRUE)).isFalse();
     }
-
-    // ========== Number Matchers Tests ==========
 
     @Test
     void whenGreaterThan_thenMatchesLargerNumbers() {
@@ -260,8 +249,6 @@ class MatchersTests {
         assertThat(matcher.matches(Value.FALSE)).isFalse();
     }
 
-    // ========== Specificity Ordering Tests ==========
-
     @Test
     void whenComparingSpecificities_thenExactIsHigherThanPredicate() {
         assertThat(eq(Value.of("x")).specificity()).isGreaterThan(anyText().specificity());
@@ -281,8 +268,6 @@ class MatchersTests {
         assertThat(exactSpecificity).isGreaterThan(predicateSpecificity);
         assertThat(predicateSpecificity).isGreaterThan(anySpecificity);
     }
-
-    // ========== ArgumentMatchers Record Tests ==========
 
     @Test
     void whenArgumentMatchersCreatedWithOf_thenContainsMatchers() {
@@ -307,8 +292,6 @@ class MatchersTests {
         assertThat(list).isUnmodifiable();
     }
 
-    // ========== isNull() Tests ==========
-
     @Test
     void whenIsNull_thenMatchesNullValue() {
         assertThat(isNull().matches(Value.NULL)).isTrue();
@@ -320,8 +303,6 @@ class MatchersTests {
         assertThat(isNull().matches(Value.of(0))).isFalse();
         assertThat(isNull().matches(Value.TRUE)).isFalse();
     }
-
-    // ========== Combinator Matchers Tests ==========
 
     @Test
     void whenNot_thenNegatesMatcher() {
@@ -363,8 +344,6 @@ class MatchersTests {
         var matcher = anyOf();
         assertThat(matcher.matches(Value.of("anything"))).isFalse();
     }
-
-    // ========== Additional Text Matchers Tests ==========
 
     @Test
     void whenTextContainingIgnoreCase_thenMatchesCaseInsensitive() {
@@ -470,8 +449,6 @@ class MatchersTests {
         assertThat(matcher.matches(Value.of("HelloWorld"))).isFalse();
     }
 
-    // ========== Number Matchers Tests ==========
-
     @Test
     void whenNumberEqualToLong_thenMatchesExactValue() {
         assertThat(numberEqualTo(42L).matches(Value.of(42))).isTrue();
@@ -550,8 +527,6 @@ class MatchersTests {
         assertThat(matcher.matches(Value.of(9.8))).isFalse();
     }
 
-    // ========== Boolean Matchers Tests ==========
-
     @Test
     void whenBooleanEqualTo_thenMatchesExactValue() {
         assertThat(booleanEqualTo(true).matches(Value.TRUE)).isTrue();
@@ -565,8 +540,6 @@ class MatchersTests {
         assertThat(booleanEqualTo(true).matches(Value.of("true"))).isFalse();
         assertThat(booleanEqualTo(true).matches(Value.of(1))).isFalse();
     }
-
-    // ========== Object Matchers Tests ==========
 
     @Test
     void whenObjectContainingKey_thenMatchesObjectsWithKey() {
@@ -610,8 +583,6 @@ class MatchersTests {
         assertThat(objectIsEmpty().matches(emptyObj)).isTrue();
         assertThat(objectIsEmpty().matches(nonEmpty)).isFalse();
     }
-
-    // ========== Array Matchers Tests ==========
 
     @Test
     void whenArrayContaining_thenMatchesArraysWithMatchingElement() {
@@ -683,8 +654,6 @@ class MatchersTests {
         assertThat(arrayHasSize(2).matches(arr)).isFalse();
         assertThat(arrayHasSize(4).matches(arr)).isFalse();
     }
-
-    // ========== Test Data Providers ==========
 
     static Stream<Value> allValueTypes() {
         return Stream.of(Value.of("text"), Value.of(42), Value.of(3.41), Value.TRUE, Value.FALSE, Value.NULL,

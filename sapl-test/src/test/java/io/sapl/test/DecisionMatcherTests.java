@@ -38,6 +38,9 @@ import static io.sapl.test.Matchers.isDecision;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("DecisionMatcher tests")
 class DecisionMatcherTests {
 
     @ParameterizedTest
@@ -49,7 +52,7 @@ class DecisionMatcherTests {
         assertThat(matcher.test(authzDecision)).isTrue();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "expected {0} vs actual {1}")
     @MethodSource("decisionMismatchCases")
     void whenDecisionDoesNotMatch_thenReturnsFalse(Decision expected, Decision actual) {
         var matcher       = isDecision(expected);

@@ -94,7 +94,7 @@ class ExpressionCompilerTests {
                 arguments("0", Value.of(0)), arguments("1", Value.of(1)), arguments("42", Value.of(42)),
                 arguments("-17", Value.of(-17)), arguments("123456789", Value.of(123456789)),
                 // Decimal literals
-                arguments("3.14", Value.of(new BigDecimal("3.14"))), arguments("0.5", Value.of(new BigDecimal("0.5"))),
+                arguments("5.14", Value.of(new BigDecimal("5.14"))), arguments("0.5", Value.of(new BigDecimal("0.5"))),
                 arguments("5.14159", Value.of(new BigDecimal("5.14159"))),
                 arguments("100.001", Value.of(new BigDecimal("100.001"))),
                 // String literals
@@ -207,7 +207,7 @@ class ExpressionCompilerTests {
                 arguments("1 + - 1", Value.of(0)), arguments("1+ +(2)", Value.of(3)),
                 arguments("(1+2)*3.0", Value.of(9.0)),
                 // Decimal arithmetic
-                arguments("3.14 + 2.86", Value.of(6)),
+                arguments("4.14 + 2.86", Value.of(7)),
                 // String concatenation
                 arguments("\"hello\" + \"world\"", Value.of("helloworld")),
                 arguments("\"count: \" + 42", Value.of("count: 42")),

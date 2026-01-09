@@ -29,22 +29,17 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Comprehensive test suite for the ANTLR4 SAPLTest parser. Tests cover all
- * grammar rules and labeled alternatives.
- */
+@DisplayName("SAPLTest parser tests")
 class SAPLTestParserTests {
 
-    // ========================================================================
-    // CATEGORY 1: Minimal Valid Documents
-    // ========================================================================
-
     @Test
+    @DisplayName("minimal document parses without syntax errors")
     void whenParsingMinimalDocument_thenNoSyntaxErrors() {
         var document = """
                 requirement "Arkham Access Control" {
@@ -58,6 +53,7 @@ class SAPLTestParserTests {
     }
 
     @Test
+    @DisplayName("multiple requirements parse without syntax errors")
     void whenParsingMultipleRequirements_thenNoSyntaxErrors() {
         var document = """
                 requirement "R'lyeh Access" {
@@ -74,10 +70,6 @@ class SAPLTestParserTests {
         var errors   = parseAndCollectErrors(document);
         assertThat(errors).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 2: Document Specifications
-    // ========================================================================
 
     static Stream<Arguments> documentSpecifications() {
         return Stream.of(arguments("single document (unit test)", """
@@ -109,14 +101,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("documentSpecifications")
+    @DisplayName("document specifications parse without syntax errors")
     void whenParsingDocumentSpecification_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Document spec '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 3: PDP Configuration
-    // ========================================================================
 
     static Stream<Arguments> pdpConfigurations() {
         return Stream.of(arguments("variables", """
@@ -167,27 +156,16 @@ class SAPLTestParserTests {
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
                 }
-                """), arguments("environment", """
-                requirement "Test" {
-                    given
-                        - environment { "stars": "right", "moon": "full" }
-                    scenario "test"
-                        when "cultist" attempts "invoke" on "ritual"
-                        expect permit;
-                }
                 """));
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("pdpConfigurations")
+    @DisplayName("PDP configurations parse without syntax errors")
     void whenParsingPdpConfiguration_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("PDP security '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 4: Mock Definitions
-    // ========================================================================
 
     static Stream<Arguments> mockDefinitions() {
         return Stream.of(arguments("simple function mock (no params)", """
@@ -275,14 +253,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("mockDefinitions")
+    @DisplayName("mock definitions parse without syntax errors")
     void whenParsingMockDefinition_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Mock '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 6: Authorization Subscription
-    // ========================================================================
 
     static Stream<Arguments> authorizationSubscriptions() {
         return Stream.of(arguments("minimal subscription", """
@@ -344,14 +319,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("authorizationSubscriptions")
+    @DisplayName("authorization subscriptions parse without syntax errors")
     void whenParsingAuthorizationSubscription_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Subscription '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 7: Simple Expectations
-    // ========================================================================
 
     static Stream<Arguments> simpleExpectations() {
         return Stream.of(arguments("permit", """
@@ -410,14 +382,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("simpleExpectations")
+    @DisplayName("simple expectations parse without syntax errors")
     void whenParsingSimpleExpectation_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Expectation '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 8: Matcher Expectations
-    // ========================================================================
 
     static Stream<Arguments> matcherExpectations() {
         return Stream.of(arguments("any decision", """
@@ -503,14 +472,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("matcherExpectations")
+    @DisplayName("matcher expectations parse without syntax errors")
     void whenParsingMatcherExpectation_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Matcher expectation '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 9: JSON Node Matchers
-    // ========================================================================
 
     static Stream<Arguments> jsonNodeMatchers() {
         return Stream.of(arguments("null matcher", """
@@ -591,14 +557,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("jsonNodeMatchers")
+    @DisplayName("JSON node matchers parse without syntax errors")
     void whenParsingJsonNodeMatcher_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("JSON node matcher '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 10: String Matchers
-    // ========================================================================
 
     static Stream<Arguments> stringMatchers() {
         return Stream.of(arguments("string is null", """
@@ -718,14 +681,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("stringMatchers")
+    @DisplayName("string matchers parse without syntax errors")
     void whenParsingStringMatcher_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("String matcher '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 11: Stream Expectations
-    // ========================================================================
 
     static Stream<Arguments> streamExpectations() {
         return Stream.of(arguments("permit once", """
@@ -770,14 +730,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("streamExpectations")
+    @DisplayName("stream expectations parse without syntax errors")
     void whenParsingStreamExpectation_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Stream expectation '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 12: Then Blocks with Attribute Emit
-    // ========================================================================
 
     static Stream<Arguments> thenBlockExamples() {
         return Stream.of(arguments("simple then-expect sequence", """
@@ -834,14 +791,11 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("thenBlockExamples")
+    @DisplayName("then blocks parse without syntax errors")
     void whenParsingThenBlock_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Then block '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 13: Verify Block
-    // ========================================================================
 
     static Stream<Arguments> verifyBlockExamples() {
         return Stream.of(arguments("function verification (once)", """
@@ -916,16 +870,14 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("verifyBlockExamples")
+    @DisplayName("verify blocks parse without syntax errors")
     void whenParsingVerifyBlock_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
         assertThat(errors).as("Verify block '%s' should parse without errors", description).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 14: Scenario-Level Given
-    // ========================================================================
-
     @Test
+    @DisplayName("scenario-level given blocks parse without syntax errors")
     void whenParsingScenarioLevelGiven_thenNoSyntaxErrors() {
         var document = """
                 requirement "Test" {
@@ -942,11 +894,8 @@ class SAPLTestParserTests {
         assertThat(errors).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 15: Complex Combined Documents
-    // ========================================================================
-
     @Test
+    @DisplayName("complex combined document parses without syntax errors")
     void whenParsingComplexDocument_thenNoSyntaxErrors() {
         var document = """
                 requirement "Miskatonic University Access Control" {
@@ -954,7 +903,6 @@ class SAPLTestParserTests {
                         - documents "base_policy", "library_policy"
                         - variables { "institution": "Miskatonic", "founded": 1797 }
                         - deny-overrides
-                        - environment { "location": "Arkham", "state": "Massachusetts" }
                         - function library.checkAccess() maps to true
                         - attribute "statusMock" <student.status> emits "enrolled"
 
@@ -1002,11 +950,8 @@ class SAPLTestParserTests {
         assertThat(errors).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 16: Optional Given Block
-    // ========================================================================
-
     @Test
+    @DisplayName("document without given block parses without syntax errors")
     void whenParsingWithoutGivenBlock_thenNoSyntaxErrors() {
         var document = """
                 requirement "Minimal Test" {
@@ -1022,10 +967,6 @@ class SAPLTestParserTests {
         var errors   = parseAndCollectErrors(document);
         assertThat(errors).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 17: Invalid Syntax Tests
-    // ========================================================================
 
     static Stream<Arguments> invalidSyntaxSnippets() {
         return Stream.of(arguments("empty document", ""),
@@ -1075,14 +1016,13 @@ class SAPLTestParserTests {
 
     @ParameterizedTest(name = "reject: {0}")
     @MethodSource("invalidSyntaxSnippets")
+    @DisplayName("invalid syntax produces parse errors")
     void whenParsingInvalidSyntax_thenSyntaxErrorsAreReported(String description, String snippet) {
         var errors = parseAndCollectErrors(snippet);
         assertThat(errors).as("Parsing invalid SAPLTest (%s) should produce syntax errors", description).isNotEmpty();
     }
 
-    // ========================================================================
     // Helper Methods
-    // ========================================================================
 
     private List<String> parseAndCollectErrors(String input) {
         var errors      = new ArrayList<String>();

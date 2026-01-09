@@ -46,6 +46,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.never;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("MockingFunctionBroker tests")
 class MockingFunctionBrokerTests {
 
     private static final String FUNCTION_NAME  = "test.function";
@@ -59,8 +62,6 @@ class MockingFunctionBrokerTests {
         delegate = mock(FunctionBroker.class);
         broker   = new MockingFunctionBroker(delegate);
     }
-
-    // ========== Single Return Value Tests ==========
 
     @Test
     void whenMockWithSingleValue_thenAlwaysReturnsThatValue() {
@@ -103,8 +104,6 @@ class MockingFunctionBrokerTests {
                 .isEqualTo(Value.of("two"));
     }
 
-    // ========== Sequence Tests ==========
-
     @Test
     void whenMockWithMultipleValues_thenReturnsInSequence() {
         var first  = Value.of("first");
@@ -146,8 +145,6 @@ class MockingFunctionBrokerTests {
         assertThatThrownBy(() -> broker.mock(FUNCTION_NAME, argsParam)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("At least one return value");
     }
-
-    // ========== Argument Matching Tests ==========
 
     @Test
     void whenExactMatch_thenReturnsValueOnMatch() {
@@ -205,9 +202,7 @@ class MockingFunctionBrokerTests {
                 .isEqualTo(delegateResult);
     }
 
-    // ========== Arity Mismatch Tests ==========
-
-    @ParameterizedTest
+    @ParameterizedTest(name = "mock arity {0} vs invocation arity {1}")
     @MethodSource("arityMismatchCases")
     void whenArityMismatch_thenDelegates(int mockArity, int invocationArity) {
         var delegateResult = Value.of("delegate");
@@ -230,8 +225,6 @@ class MockingFunctionBrokerTests {
         return Stream.of(arguments(0, 1), arguments(0, 2), arguments(1, 0), arguments(1, 2), arguments(2, 0),
                 arguments(2, 1), arguments(2, 3));
     }
-
-    // ========== Specificity Tests ==========
 
     @Test
     void whenMultipleMocksMatch_thenMostSpecificWins() {
@@ -301,8 +294,6 @@ class MockingFunctionBrokerTests {
                 .isEqualTo(lowestResult);
     }
 
-    // ========== Different Arities Same Function Tests ==========
-
     @Test
     void whenSameFunctionDifferentArities_thenEachArityIndependent() {
         broker.mock(FUNCTION_NAME, args(), Value.of("zero"));
@@ -325,8 +316,6 @@ class MockingFunctionBrokerTests {
         assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME))).isEqualTo(Value.of("z2"));
         assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("y")))).isEqualTo(Value.of("o2"));
     }
-
-    // ========== Delegation Tests ==========
 
     @Test
     void whenNoMockRegistered_thenDelegatesToUnderlyingBroker() {
@@ -353,8 +342,6 @@ class MockingFunctionBrokerTests {
 
         assertThat(broker.getRegisteredLibraries()).isEqualTo(libraries);
     }
-
-    // ========== Utility Method Tests ==========
 
     @Test
     void whenHasMockAfterRegistration_thenReturnsTrue() {
@@ -390,8 +377,6 @@ class MockingFunctionBrokerTests {
         assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME))).isEqualTo(delegateResult);
     }
 
-    // ========== Invalid Parameters Tests ==========
-
     @Test
     void whenMockWithInvalidParameters_thenThrowsException() {
         var invalidParameters = new SaplTestFixture.Parameters() {};
@@ -400,8 +385,6 @@ class MockingFunctionBrokerTests {
         assertThatThrownBy(() -> broker.mock(FUNCTION_NAME, invalidParameters, value))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
-
-    // ========== ArgumentMatcher Tests ==========
 
     @Test
     void whenAnyMatcher_thenMatchesAllValues() {
@@ -442,8 +425,6 @@ class MockingFunctionBrokerTests {
         assertThat(anyNumber().specificity()).isEqualTo(1);
     }
 
-    // ========== Complex Scenarios ==========
-
     @Test
     void whenMockingTimeFunction_thenWorksWithRealisticScenario() {
         var monday  = Value.of("2025-01-06T10:00:00Z");
@@ -471,8 +452,6 @@ class MockingFunctionBrokerTests {
         assertThat(broker.evaluateFunction(invocation("fn.counter"))).isEqualTo(Value.of(2));
         assertThat(broker.evaluateFunction(invocation("fn.alpha"))).isEqualTo(Value.of("alpha"));
     }
-
-    // ========== Undefined Value Tests ==========
 
     @Test
     void whenMockWithUndefinedValue_thenReturnsUndefined() {
@@ -515,8 +494,6 @@ class MockingFunctionBrokerTests {
         assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME, specificArg))).isEqualTo(Value.UNDEFINED);
         assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("valid_field")))).isEqualTo(successValue);
     }
-
-    // ========== Invocation Recording Tests ==========
 
     @Test
     void whenFunctionInvoked_thenRecordsInvocation() {
@@ -601,8 +578,6 @@ class MockingFunctionBrokerTests {
 
         assertThat(broker.getInvocations()).isEmpty();
     }
-
-    // ========== Verification Tests ==========
 
     @Test
     void whenVerifyOnce_thenPassesIfCalledOnce() {
@@ -793,8 +768,6 @@ class MockingFunctionBrokerTests {
         assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, invalidParams, onceVerify))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
-
-    // ========== Helper Methods ==========
 
     private static FunctionInvocation invocation(String functionName, Value... arguments) {
         return new FunctionInvocation(functionName, List.of(arguments));

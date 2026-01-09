@@ -54,6 +54,23 @@ import io.sapl.api.model.Value;
 @RequiredArgsConstructor
 public class ScenarioInterpreter {
 
+    private static final String DEFAULT_MOCK_ATTRIBUTE_ERROR = "Mock attribute error";
+    private static final String DEFAULT_MOCK_EMIT_ERROR      = "Mock emit error";
+    private static final String DEFAULT_MOCK_FUNCTION_ERROR  = "Mock function error";
+
+    private static final String ERROR_DOCUMENT_NOT_FOUND       = "Document not found: '%s'. Available documents: %s.";
+    private static final String ERROR_UNIT_TEST_COMBINING_ALG  = "Unit tests (using 'document' singular) cannot specify a combining algorithm. "
+            + "Unit tests automatically use ONLY_ONE_APPLICABLE. "
+            + "Use 'documents' (plural) for integration tests that need a specific algorithm.";
+    private static final String ERROR_UNIT_TEST_DOC_SPEC       = "Document specification ('document') for unit tests must be in the requirement-level given block, "
+            + "not in the scenario-level given block. All scenarios in a requirement test the same document. "
+            + "For integration tests with different document combinations per scenario, use 'documents' instead.";
+    private static final String ERROR_UNKNOWN_AMOUNT_TYPE      = "Unknown amount type: %s.";
+    private static final String ERROR_UNKNOWN_COMBINING_ALG    = "Unknown combining algorithm: %s.";
+    private static final String ERROR_UNKNOWN_DECISION_MATCHER = "Unknown decision matcher type: %s.";
+    private static final String ERROR_UNKNOWN_DECISION_TYPE    = "Unknown decision type: %s.";
+    private static final String ERROR_UNKNOWN_MATCHER_TYPE     = "Unknown matcher type: %s.";
+
     private final TestConfiguration config;
 
     /**
@@ -232,8 +249,7 @@ public class ScenarioInterpreter {
     private SaplDocument findDocumentByName(String name) {
         return config.saplDocuments().stream().filter(d -> d.name().equals(name)).findFirst().orElseThrow(() -> {
             var available = config.saplDocuments().stream().map(SaplDocument::name).toList();
-            return new IllegalArgumentException(
-                    "Document not found: '" + name + "'. Available documents: " + available);
+            return new IllegalArgumentException(ERROR_DOCUMENT_NOT_FOUND.formatted(name, available));
         });
     }
 
@@ -246,10 +262,7 @@ public class ScenarioInterpreter {
             // Unit test: default is ONLY_ONE_APPLICABLE (handled by fixture)
             // Specifying an algorithm in a unit test is a validation error
             if (given.combiningAlgorithm != null) {
-                throw new TestValidationException(
-                        "Unit tests (using 'document' singular) cannot specify a combining algorithm. "
-                                + "Unit tests automatically use ONLY_ONE_APPLICABLE. "
-                                + "Use 'documents' (plural) for integration tests that need a specific algorithm.");
+                throw new TestValidationException(ERROR_UNIT_TEST_COMBINING_ALG);
             }
             return;
         }
@@ -275,33 +288,27 @@ public class ScenarioInterpreter {
         case DenyUnlessPermitAlgorithmContext ignored  -> CombiningAlgorithm.DENY_UNLESS_PERMIT;
         case PermitUnlessDenyAlgorithmContext ignored  -> CombiningAlgorithm.PERMIT_UNLESS_DENY;
         default                                        ->
-            throw new IllegalArgumentException("Unknown combining algorithm: " + ctx.getText());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_COMBINING_ALG.formatted(ctx.getText()));
         };
     }
 
     /**
      * Applies variables to the fixture.
-     * Variables from security are base; test variables override.
+     * <p>
+     * Variables are applied in order: config-level first, then test-level.
+     * Test-level variables override config-level variables with the same name.
      */
     private void applyVariables(SaplTestFixture fixture, MergedGiven given) {
-        // First apply security-level variables
+        // First apply config-level variables (from pdp.json or programmatic config)
         for (var entry : config.pdpVariables().entrySet()) {
             fixture.givenVariable(entry.getKey(), entry.getValue());
         }
 
-        // Then apply test-level variables (these will override security variables)
+        // Then apply test-level variables (these override config-level variables)
         if (given.variables != null) {
             var testVariables = ValueConverter.convertObjectToMap(given.variables.variables);
             for (var entry : testVariables.entrySet()) {
-                // The fixture throws if a variable already exists, so we need to handle
-                // override
-                // For now, we just add them - the fixture will handle duplicates
-                try {
-                    fixture.givenVariable(entry.getKey(), entry.getValue());
-                } catch (IllegalArgumentException e) {
-                    // Variable already exists - this is expected for overrides
-                    // TODO: Consider if we need to support variable override in fixture
-                }
+                fixture.givenVariable(entry.getKey(), entry.getValue());
             }
         }
     }
@@ -318,7 +325,7 @@ public class ScenarioInterpreter {
             if (returnValueOrError.isError()) {
                 // Return error Value - causes policy evaluation to result in indeterminate
                 var errorMessage = returnValueOrError.errorMessage() != null ? returnValueOrError.errorMessage()
-                        : "Mock function error";
+                        : DEFAULT_MOCK_FUNCTION_ERROR;
                 fixture.givenFunction(functionName, parameters, Value.error(errorMessage));
             } else {
                 fixture.givenFunction(functionName, parameters, returnValueOrError.value());
@@ -393,7 +400,7 @@ public class ScenarioInterpreter {
         var valueOrError = ValueConverter.convertValueOrError(ctx);
         if (valueOrError.isError()) {
             var errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
-                    : "Mock attribute error";
+                    : DEFAULT_MOCK_ATTRIBUTE_ERROR;
             return Value.error(errorMessage);
         }
         return valueOrError.value();
@@ -513,7 +520,7 @@ public class ScenarioInterpreter {
                 var valueOrError = ValueConverter.convertValueOrError(emitStep.emittedValue);
                 if (valueOrError.isError()) {
                     var errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
-                            : "Mock emit error";
+                            : DEFAULT_MOCK_EMIT_ERROR;
                     decisionResult.thenEmit(mockId, Value.error(errorMessage));
                 } else {
                     decisionResult.thenEmit(mockId, valueOrError.value());
@@ -570,30 +577,30 @@ public class ScenarioInterpreter {
             var matcher  = createBasicDecisionMatcher(decision);
             decisionResult.expectDecisionMatches(matcher);
         }
-        case HasObligationOrAdviceMatcherContext hasCtx ->
-            // with obligation|advice [equals|matching|containing key ...]
-            // Use predicate to check constraints regardless of decision type
-            // TODO: Apply extended matcher constraints from hasCtx.extendedMatcher
-            // For now, just check non-null
-            decisionResult.expectDecisionMatches(Objects::nonNull);
-        case HasResourceMatcherContext resCtx -> {
-            // with resource [equals|matching]
-            if (resCtx.defaultMatcher != null) {
-                if (resCtx.defaultMatcher instanceof ExactMatchObjectMatcherContext exactCtx) {
-                    var expected = ValueConverter.convert(exactCtx.equalTo);
-                    decisionResult.expectDecisionMatches(
-                            decision -> decision != null && expected.equals(decision.resource()));
-                } else {
-                    // Matching case - just check resource is present for now
-                    decisionResult.expectDecisionMatches(Objects::nonNull);
-                }
+        case HasObligationOrAdviceMatcherContext hasCtx -> {
+            var isObligation = "obligation".equalsIgnoreCase(hasCtx.matcherType.getText());
+            if (isObligation) {
+                decisionResult.expectDecisionMatches(decision -> decision != null
+                        && DecisionMatcherHelper.matchesObligationConstraint(decision, hasCtx.extendedMatcher));
             } else {
-                // Just "with resource" - check that resource is present
-                decisionResult.expectDecisionMatches(Objects::nonNull);
+                decisionResult.expectDecisionMatches(decision -> decision != null
+                        && DecisionMatcherHelper.matchesAdviceConstraint(decision, hasCtx.extendedMatcher));
             }
         }
-        default                               ->
-            throw new IllegalArgumentException("Unknown decision matcher type: " + ctx.getClass().getSimpleName());
+        case HasResourceMatcherContext resCtx           -> {
+            // with resource [equals|matching]
+            if (resCtx.defaultMatcher != null) {
+                decisionResult.expectDecisionMatches(decision -> decision != null
+                        && !Value.UNDEFINED.equals(decision.resource())
+                        && DecisionMatcherHelper.matchesResourceConstraint(decision.resource(), resCtx.defaultMatcher));
+            } else {
+                // Just "with resource" - check that resource is present (not UNDEFINED)
+                decisionResult.expectDecisionMatches(
+                        decision -> decision != null && !Value.UNDEFINED.equals(decision.resource()));
+            }
+        }
+        default                                         -> throw new IllegalArgumentException(
+                ERROR_UNKNOWN_DECISION_MATCHER.formatted(ctx.getClass().getSimpleName()));
         }
     }
 
@@ -635,27 +642,31 @@ public class ScenarioInterpreter {
     private boolean matchesSingleMatcher(io.sapl.api.pdp.AuthorizationDecision decision,
             AuthorizationDecisionMatcherContext ctx) {
         return switch (ctx) {
-        case AnyDecisionMatcherContext ignored           -> true;
-        case IsDecisionMatcherContext isCtx              -> {
+        case AnyDecisionMatcherContext ignored          -> true;
+        case IsDecisionMatcherContext isCtx             -> {
             var expectedDecision = parseDecisionType(isCtx.decision);
             yield decision.decision() == expectedDecision;
         }
-        case HasObligationOrAdviceMatcherContext ignored -> {
-            // TODO: Apply extended matcher constraints
-            // For now, just check that obligations/advice exist if required
-            yield true;
-        }
-        case HasResourceMatcherContext resCtx            -> {
-            if (resCtx.defaultMatcher instanceof ExactMatchObjectMatcherContext exactCtx) {
-                var expected = ValueConverter.convert(exactCtx.equalTo);
-                yield expected.equals(decision.resource());
+        case HasObligationOrAdviceMatcherContext hasCtx -> {
+            var isObligation = "obligation".equalsIgnoreCase(hasCtx.matcherType.getText());
+            if (isObligation) {
+                yield DecisionMatcherHelper.matchesObligationConstraint(decision, hasCtx.extendedMatcher);
+            } else {
+                yield DecisionMatcherHelper.matchesAdviceConstraint(decision, hasCtx.extendedMatcher);
             }
-
-            // Just check resource is present
+        }
+        case HasResourceMatcherContext resCtx           -> {
+            if (Value.UNDEFINED.equals(decision.resource())) {
+                yield false; // "with resource" requires resource to be present (not UNDEFINED)
+            }
+            if (resCtx.defaultMatcher != null) {
+                yield DecisionMatcherHelper.matchesResourceConstraint(decision.resource(), resCtx.defaultMatcher);
+            }
+            // Just "with resource" - resource is present
             yield true;
         }
-        default                                          ->
-            throw new IllegalArgumentException("Unknown matcher type: " + ctx.getClass().getSimpleName());
+        default                                         ->
+            throw new IllegalArgumentException(ERROR_UNKNOWN_MATCHER_TYPE.formatted(ctx.getClass().getSimpleName()));
         };
     }
 
@@ -681,7 +692,7 @@ public class ScenarioInterpreter {
         case IndeterminateDecisionContext ignored -> Decision.INDETERMINATE;
         case NotApplicableDecisionContext ignored -> Decision.NOT_APPLICABLE;
         default                                   ->
-            throw new IllegalArgumentException("Unknown decision type: " + ctx.getText());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_DECISION_TYPE.formatted(ctx.getText()));
         };
     }
 
@@ -693,7 +704,7 @@ public class ScenarioInterpreter {
         case OnceAmountContext ignored      -> 1;
         case MultipleAmountContext multiple -> Integer.parseInt(multiple.amount.getText());
         default                             ->
-            throw new IllegalArgumentException("Unknown amount type: " + ctx.getText());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_AMOUNT_TYPE.formatted(ctx.getText()));
         };
     }
 
@@ -703,16 +714,29 @@ public class ScenarioInterpreter {
     private void executeVerifyBlock(SaplTestFixture fixture, VerifyBlockContext verifyBlock) {
         for (var verifyStep : verifyBlock.verifyStep()) {
             switch (verifyStep) {
-            case FunctionVerificationContext funcVerify -> {
+            case FunctionVerificationContext funcVerify  -> {
                 var functionName = buildFunctionName(funcVerify.functionFullName);
                 var parameters   = buildFunctionParameters(funcVerify.functionParameters());
                 var times        = buildTimes(funcVerify.timesCalled);
                 fixture.getMockingFunctionBroker().verify(functionName, parameters, times);
             }
-            case AttributeVerificationContext ignored   -> {
-                // TODO: Implement attribute verification in MockingAttributeBroker
+            case AttributeVerificationContext attrVerify -> {
+                var attrRef = attrVerify.attributeReference();
+                var times   = buildTimes(attrVerify.timesCalled);
+
+                if (attrRef instanceof EnvironmentAttributeReferenceContext envAttr) {
+                    var attributeName = buildAttributeName(envAttr.attributeFullName);
+                    var parameters    = buildAttributeParameters(envAttr.attributeParameters());
+                    fixture.getMockingAttributeBroker().verifyEnvironmentAttribute(attributeName, parameters, times);
+                } else if (attrRef instanceof EntityAttributeReferenceContext entityAttr) {
+                    var attributeName = buildAttributeName(entityAttr.attributeFullName);
+                    var entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
+                    var parameters    = buildAttributeParameters(entityAttr.attributeParameters());
+                    fixture.getMockingAttributeBroker().verifyAttribute(attributeName, entityMatcher, parameters,
+                            times);
+                }
             }
-            default                                     -> { /* NO-OP */ }
+            default                                      -> { /* NO-OP */ }
             }
         }
     }
@@ -747,10 +771,7 @@ public class ScenarioInterpreter {
                 // at
                 // scenario level for integration tests with different document combinations.
                 if (isScenarioLevel && docItem.documentSpecification() instanceof SingleDocumentContext) {
-                    throw new TestValidationException(
-                            "Document specification ('document') for unit tests must be in the requirement-level given block, "
-                                    + "not in the scenario-level given block. All scenarios in a requirement test the same document. "
-                                    + "For integration tests with different document combinations per scenario, use 'documents' instead.");
+                    throw new TestValidationException(ERROR_UNIT_TEST_DOC_SPEC);
                 }
                 this.documentSpecification = docItem.documentSpecification();
             }

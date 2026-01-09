@@ -51,6 +51,14 @@ import java.util.function.Supplier;
  */
 public final class MockingFunctionBroker implements FunctionBroker {
 
+    private static final String ERROR_ARGUMENTS_MUST_USE_ARGS     = "Arguments must be created via args().";
+    private static final String ERROR_NO_MOCK_MATCHED_NO_DELEGATE = "No mock matched function '%s' and no delegate broker configured.";
+    private static final String ERROR_NO_RETURN_VALUES            = "At least one return value must be specified.";
+    private static final String ERROR_NULL_RETURN_VALUE           = "Return value at index %d must not be null.";
+    private static final String ERROR_VERIFICATION_FAILED         = "Function verification failed for '%s'.%n";
+    private static final String ERROR_VERIFICATION_NO_INVOCATIONS = "%nNo invocations of '%s' were recorded.";
+    private static final String ERROR_VERIFICATION_RECORDED       = "%nRecorded invocations of '%s':";
+
     private FunctionBroker                        delegate;
     private final Map<String, List<FunctionMock>> mocks           = new HashMap<>();
     private final List<FunctionInvocationRecord>  invocations     = new CopyOnWriteArrayList<>();
@@ -90,8 +98,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
         recordInvocation(invocation);
         return findMostSpecificMatch(invocation).map(FunctionMock::getReturnValue).orElseGet(() -> {
             if (delegate == null) {
-                throw new IllegalStateException("No mock matched function '%s' and no delegate broker configured."
-                        .formatted(invocation.functionName()));
+                throw new IllegalStateException(ERROR_NO_MOCK_MATCHED_NO_DELEGATE.formatted(invocation.functionName()));
             }
             return delegate.evaluateFunction(invocation);
         });
@@ -156,13 +163,13 @@ public final class MockingFunctionBroker implements FunctionBroker {
     public void mock(@NonNull String functionName, @NonNull SaplTestFixture.Parameters arguments,
             Value... returnValues) {
         if (returnValues.length == 0) {
-            throw new IllegalArgumentException("At least one return value must be specified.");
+            throw new IllegalArgumentException(ERROR_NO_RETURN_VALUES);
         }
         for (int i = 0; i < returnValues.length; i++) {
-            Objects.requireNonNull(returnValues[i], "Return value at index %d must not be null.".formatted(i));
+            Objects.requireNonNull(returnValues[i], ERROR_NULL_RETURN_VALUE.formatted(i));
         }
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
-            throw new IllegalArgumentException("Arguments must be created via args().");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
 
         Supplier<Value> valueSupplier;
@@ -251,7 +258,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
     public void verify(@NonNull String functionName, @NonNull SaplTestFixture.Parameters arguments,
             @NonNull Times times) {
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
-            throw new IllegalArgumentException("Arguments must be created via args().");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
 
         var matchingCount = countMatchingInvocations(functionName, matchers);
@@ -308,14 +315,14 @@ public final class MockingFunctionBroker implements FunctionBroker {
     private String buildVerificationMessage(String functionName, List<ArgumentMatcher> matchers, Times times,
             int actualCount) {
         var sb = new StringBuilder();
-        sb.append("Function verification failed for '%s'.%n".formatted(functionName));
+        sb.append(ERROR_VERIFICATION_FAILED.formatted(functionName));
         sb.append(times.failureMessage(actualCount));
 
         var functionInvocations = getInvocations(functionName);
         if (functionInvocations.isEmpty()) {
-            sb.append("%nNo invocations of '%s' were recorded.".formatted(functionName));
+            sb.append(ERROR_VERIFICATION_NO_INVOCATIONS.formatted(functionName));
         } else {
-            sb.append("%nRecorded invocations of '%s':".formatted(functionName));
+            sb.append(ERROR_VERIFICATION_RECORDED.formatted(functionName));
             for (var inv : functionInvocations) {
                 sb.append("\n  - ").append(inv);
             }

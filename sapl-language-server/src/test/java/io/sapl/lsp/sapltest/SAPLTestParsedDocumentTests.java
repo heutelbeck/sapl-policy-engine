@@ -17,16 +17,19 @@
  */
 package io.sapl.lsp.sapltest;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.antlr.v4.runtime.Token;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+@DisplayName("SAPLTest parsed document tests")
 class SAPLTestParsedDocumentTests {
 
     private static final String TEST_URI = "file:///test.sapltest";
 
     @Test
+    @DisplayName("valid document parses without errors")
     void whenParseValidDocument_thenNoErrors() {
         var content = """
                 requirement "Access Control" {
@@ -47,6 +50,7 @@ class SAPLTestParsedDocumentTests {
     }
 
     @Test
+    @DisplayName("document with syntax error has parse errors")
     void whenParseDocumentWithSyntaxError_thenHasParseErrors() {
         var content = """
                 requirement "Test" {
@@ -60,6 +64,7 @@ class SAPLTestParsedDocumentTests {
     }
 
     @Test
+    @DisplayName("document with mocks parses successfully")
     void whenParseDocumentWithMocks_thenParsesSuccessfully() {
         var content = """
                 requirement "Mock Test" {
@@ -79,6 +84,7 @@ class SAPLTestParsedDocumentTests {
     }
 
     @Test
+    @DisplayName("document with expectations parses successfully")
     void whenParseDocumentWithExpectations_thenParsesSuccessfully() {
         var content = """
                 requirement "Expectation Test" {
@@ -94,6 +100,7 @@ class SAPLTestParsedDocumentTests {
     }
 
     @Test
+    @DisplayName("getTokens returns all tokens")
     void whenGetTokens_thenReturnsAllTokens() {
         var content = """
                 requirement "Simple" {
@@ -111,6 +118,7 @@ class SAPLTestParsedDocumentTests {
     }
 
     @Test
+    @DisplayName("document with stream expectation parses successfully")
     void whenParseDocumentWithStreamExpectation_thenParsesSuccessfully() {
         var content = """
                 requirement "Stream Test" {

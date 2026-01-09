@@ -24,12 +24,14 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
  * Ported tests from sapl-demo-testing A_ and B_ test classes.
  * Validates the new SaplTestFixture API works correctly.
  */
+@DisplayName("Ported demo tests")
 class PortedDemoTests {
 
     // policySimple.sapl content (originally a policy set, but we test single

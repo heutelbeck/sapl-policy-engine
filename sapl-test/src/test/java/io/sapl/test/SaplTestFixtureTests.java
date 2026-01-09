@@ -21,16 +21,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static io.sapl.test.Matchers.any;
 import static io.sapl.test.Matchers.args;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for SaplTestFixture API validation and configuration methods.
@@ -39,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * evaluation
  * due to dependencies required for the SAPL compiler in test contexts.
  */
+@DisplayName("SaplTestFixture tests")
 class SaplTestFixtureTests {
 
     private static final String PERMIT_ALL_POLICY = "policy \"permit-all\" permit";
@@ -72,62 +82,35 @@ class SaplTestFixtureTests {
                 .hasMessageContaining("Single test mode only allows one policy");
     }
 
-    @Test
-    void whenSettingCombiningAlgorithmInSingleMode_thenThrowsException() {
+    @ParameterizedTest(name = "{0} not allowed in single test mode")
+    @MethodSource("singleModeDisallowedOperations")
+    void whenUsingIntegrationOnlyMethodInSingleMode_thenThrowsException(String methodName,
+            Consumer<SaplTestFixture> operation) {
         var fixture = SaplTestFixture.createSingleTest();
 
-        assertThatThrownBy(() -> fixture.withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed in single test mode");
-    }
-
-    @Test
-    void whenUsingConfigurationFromDirectoryInSingleMode_thenThrowsException() {
-        var fixture = SaplTestFixture.createSingleTest();
-
-        assertThatThrownBy(() -> fixture.withConfigurationFromDirectory("/some/path"))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed in single test mode");
-    }
-
-    @Test
-    void whenUsingConfigFileInSingleMode_thenThrowsException() {
-        var fixture = SaplTestFixture.createSingleTest();
-
-        assertThatThrownBy(() -> fixture.withConfigFile("/some/pdp.json")).isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> operation.accept(fixture)).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not allowed in single test mode");
     }
 
-    @Test
-    void whenUsingConfigFileFromResourceInSingleMode_thenThrowsException() {
-        var fixture = SaplTestFixture.createSingleTest();
-
-        assertThatThrownBy(() -> fixture.withConfigFileFromResource("/some/pdp.json"))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed in single test mode");
-    }
-
-    @Test
-    void whenUsingBundleInSingleMode_thenThrowsException() {
-        var fixture = SaplTestFixture.createSingleTest();
-
-        assertThatThrownBy(() -> fixture.withBundle("/some/bundle.saplbundle"))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed in single test mode");
-    }
-
-    @Test
-    void whenUsingBundleFromResourceInSingleMode_thenThrowsException() {
-        var fixture = SaplTestFixture.createSingleTest();
-
-        assertThatThrownBy(() -> fixture.withBundleFromResource("/some/bundle.saplbundle"))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed in single test mode");
-    }
-
-    @Test
-    void whenUsingVerifiedBundleInSingleMode_thenThrowsException() {
-        var fixture        = SaplTestFixture.createSingleTest();
+    static Stream<Arguments> singleModeDisallowedOperations() {
         var securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
                 .build();
-
-        assertThatThrownBy(() -> fixture.withVerifiedBundle("/some/bundle.saplbundle", securityPolicy))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed in single test mode");
+        return Stream.of(
+                arguments("withCombiningAlgorithm",
+                        (Consumer<SaplTestFixture>) f -> f.withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)),
+                arguments("withConfigurationFromDirectory",
+                        (Consumer<SaplTestFixture>) f -> f.withConfigurationFromDirectory("/some/path")),
+                arguments("withConfigFile", (Consumer<SaplTestFixture>) f -> f.withConfigFile("/some/pdp.json")),
+                arguments("withConfigFileFromResource",
+                        (Consumer<SaplTestFixture>) f -> f.withConfigFileFromResource("/some/pdp.json")),
+                arguments("withBundle", (Consumer<SaplTestFixture>) f -> f.withBundle("/some/bundle.saplbundle")),
+                arguments("withBundleFromResource",
+                        (Consumer<SaplTestFixture>) f -> f.withBundleFromResource("/some/bundle.saplbundle")),
+                arguments("withVerifiedBundle",
+                        (Consumer<SaplTestFixture>) f -> f.withVerifiedBundle("/some/bundle.saplbundle",
+                                securityPolicy)),
+                arguments("withConfigurationFromResources",
+                        (Consumer<SaplTestFixture>) f -> f.withConfigurationFromResources("/policies")));
     }
 
     @Test
@@ -139,11 +122,11 @@ class SaplTestFixtureTests {
     }
 
     @Test
-    void whenAddingDuplicateVariable_thenThrowsException() {
-        var fixture = SaplTestFixture.createSingleTest().givenVariable("testVar", Value.of("value1"));
-        var value2  = Value.of("value2");
-        assertThatThrownBy(() -> fixture.givenVariable("testVar", value2)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("already registered");
+    void whenAddingDuplicateVariable_thenOverrideSucceeds() {
+        var fixture = SaplTestFixture.createSingleTest().givenVariable("testVar", Value.of("value1"))
+                .givenVariable("testVar", Value.of("value2")).withPolicy(PERMIT_ALL_POLICY);
+
+        assertThat(fixture).isNotNull();
     }
 
     @Test
@@ -152,6 +135,16 @@ class SaplTestFixtureTests {
                 .givenVariable("var2", Value.of("value2")).withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
+    }
+
+    @ParameterizedTest(name = "reserved variable name ''{0}'' throws exception")
+    @ValueSource(strings = { "subject", "action", "resource", "environment" })
+    void whenAddingReservedVariableName_thenThrowsException(String reservedName) {
+        var fixture = SaplTestFixture.createSingleTest();
+        var value   = Value.of("test");
+
+        assertThatThrownBy(() -> fixture.givenVariable(reservedName, value))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("reserved");
     }
 
     @Test
@@ -235,14 +228,6 @@ class SaplTestFixtureTests {
     }
 
     @Test
-    void whenUsingConfigurationFromResourcesInSingleMode_thenThrowsException() {
-        var fixture = SaplTestFixture.createSingleTest();
-
-        assertThatThrownBy(() -> fixture.withConfigurationFromResources("/policies"))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed in single test mode");
-    }
-
-    @Test
     void whenSettingObjectMapper_thenReturnsFixtureForChaining() {
         var objectMapper = new ObjectMapper();
 
@@ -303,6 +288,50 @@ class SaplTestFixtureTests {
         var fixture = SaplTestFixture.createSingleTest().withObjectMapper(objectMapper).withClock(fixedClock)
                 .withFunctionLibrary(Object.class).withFunctionLibraryInstance(new Object())
                 .withPolicyInformationPoint(new Object()).withPolicy(PERMIT_ALL_POLICY);
+
+        assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    void whenSettingTestIdentifier_thenReturnsFixtureForChaining() {
+        var fixture = SaplTestFixture.createSingleTest().withTestIdentifier("my-test-id").withPolicy(PERMIT_ALL_POLICY);
+
+        assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    void whenSettingCoverageOutput_thenReturnsFixtureForChaining() {
+        var fixture = SaplTestFixture.createSingleTest().withCoverageOutput(Path.of("target/coverage"))
+                .withPolicy(PERMIT_ALL_POLICY);
+
+        assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    void whenDisablingCoverage_thenReturnsFixtureForChaining() {
+        var fixture = SaplTestFixture.createSingleTest().withCoverageDisabled().withPolicy(PERMIT_ALL_POLICY);
+
+        assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    void whenDisablingCoverageFileWrite_thenReturnsFixtureForChaining() {
+        var fixture = SaplTestFixture.createSingleTest().withCoverageFileWriteDisabled().withPolicy(PERMIT_ALL_POLICY);
+
+        assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    void whenAddingDefaultFunctionLibraries_thenReturnsFixtureForChaining() {
+        var fixture = SaplTestFixture.createSingleTest().withDefaultFunctionLibraries().withPolicy(PERMIT_ALL_POLICY);
+
+        assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    void whenSettingCustomBrokers_thenReturnsFixtureForChaining() {
+        var fixture = SaplTestFixture.createSingleTest().withFunctionBroker(new MockingFunctionBroker())
+                .withAttributeBroker(new MockingAttributeBroker()).withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }

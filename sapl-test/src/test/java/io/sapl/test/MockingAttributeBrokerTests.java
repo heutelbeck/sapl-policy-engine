@@ -23,8 +23,11 @@ import io.sapl.api.model.Value;
 import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -42,6 +45,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
+@DisplayName("MockingAttributeBroker tests")
+@ExtendWith(MockitoExtension.class)
 class MockingAttributeBrokerTests {
 
     private static final String   TEST_CONFIG_ID  = "test-security";
@@ -51,16 +56,14 @@ class MockingAttributeBrokerTests {
     private static final long     DEFAULT_RETRIES = 3;
     private static final boolean  DEFAULT_FRESH   = false;
 
+    @Mock
     private AttributeBroker        delegate;
     private MockingAttributeBroker broker;
 
     @BeforeEach
     void setUp() {
-        delegate = Mockito.mock(AttributeBroker.class);
-        broker   = new MockingAttributeBroker(delegate);
+        broker = new MockingAttributeBroker(delegate);
     }
-
-    // ========== Helper Methods ==========
 
     private static AttributeFinderInvocation envInvocation(String name, List<Value> arguments) {
         return new AttributeFinderInvocation(TEST_CONFIG_ID, name, arguments, Map.of(), DEFAULT_TIMEOUT, DEFAULT_POLL,
@@ -71,8 +74,6 @@ class MockingAttributeBrokerTests {
         return new AttributeFinderInvocation(TEST_CONFIG_ID, name, entity, arguments, Map.of(), DEFAULT_TIMEOUT,
                 DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH);
     }
-
-    // ========== Environment Attribute - Initial Value Tests ==========
 
     @Test
     void whenEnvironmentAttributeWithInitialValue_thenEmitsOnSubscription() {
@@ -109,8 +110,6 @@ class MockingAttributeBrokerTests {
                 .then(() -> broker.emit("streamTest", Value.of("third"))).expectNext(Value.of("third"))
                 .verifyComplete();
     }
-
-    // ========== Environment Attribute - Streaming Only Tests ==========
 
     @Test
     void whenEnvironmentAttributeStreamingOnly_thenWaitsForEmit() {
@@ -153,8 +152,6 @@ class MockingAttributeBrokerTests {
         StepVerifier.create(stream.take(1)).expectNext(Value.of("emitted-after")).verifyComplete();
     }
 
-    // ========== Environment Attribute - Arity Matching Tests ==========
-
     @Test
     void whenEnvironmentAttributeDifferentArities_thenMatchesCorrectMock() {
         broker.mockEnvironmentAttribute("multiArity0", "multi.arity", args(), Value.of("zero-args"));
@@ -174,8 +171,6 @@ class MockingAttributeBrokerTests {
         StepVerifier.create(broker.attributeStream(invocation2).take(1)).expectNext(Value.of("two-args"))
                 .verifyComplete();
     }
-
-    // ========== Regular Attribute - Entity Matching Tests ==========
 
     @Test
     void whenRegularAttributeWithEntityMatch_thenEmitsOnSubscription() {
@@ -232,8 +227,6 @@ class MockingAttributeBrokerTests {
                 .expectNext(Value.of("ACTIVE")).verifyComplete();
     }
 
-    // ========== Specificity Tests ==========
-
     @Test
     void whenMultipleMocksMatch_thenMostSpecificWins() {
         broker.mockAttribute("anyAny", "specific.test", any(), args(any()), Value.of("any-any"));
@@ -275,8 +268,6 @@ class MockingAttributeBrokerTests {
                 .verifyComplete();
     }
 
-    // ========== Delegation Tests ==========
-
     @Test
     void whenNoMockRegistered_thenDelegatesToUnderlying() {
         var delegateResponse = Value.of("from-delegate");
@@ -312,13 +303,11 @@ class MockingAttributeBrokerTests {
         assertThat(broker.getRegisteredLibraries()).isSameAs(expectedLibraries);
     }
 
-    // ========== Error Handling Tests ==========
-
     @Test
     void whenEmitToNonExistentMockId_thenThrows() {
         var value = Value.of("value");
         assertThatThrownBy(() -> broker.emit("nonexistent", value)).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("No mock registered with id 'nonexistent'");
+                .hasMessageContaining("No mock registered with ID 'nonexistent'");
     }
 
     @Test
@@ -332,7 +321,7 @@ class MockingAttributeBrokerTests {
     void whenMockIdIsBlank_thenThrows() {
         var argsParam = args();
         assertThatThrownBy(() -> broker.mockEnvironmentAttribute("  ", "test.attr", argsParam))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("MockId must not be blank");
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Mock ID must not be blank");
     }
 
     @Test
@@ -361,8 +350,6 @@ class MockingAttributeBrokerTests {
         assertThatThrownBy(() -> broker.mockAttribute("test", "test.attr", anyMatcher, invalidParams))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
-
-    // ========== Query Method Tests ==========
 
     @Test
     void whenHasMockForRegisteredId_thenReturnsTrue() {
@@ -400,8 +387,6 @@ class MockingAttributeBrokerTests {
         assertThat(broker.hasMockForAttribute("attr1")).isFalse();
         assertThat(broker.hasMockForAttribute("attr2")).isFalse();
     }
-
-    // ========== Multiple Subscription Tests ==========
 
     @Test
     void whenMultipleSubscribers_thenAllReceiveEmissions() {
@@ -470,8 +455,6 @@ class MockingAttributeBrokerTests {
         disposable2.dispose();
     }
 
-    // ========== MockId Uniqueness Tests ==========
-
     @Test
     void whenSameAttributeDifferentMockIds_thenBothEmitIndependently() {
         broker.mockEnvironmentAttribute("mondayMock", "time.dayOfWeek", args(eq(Value.of("2025-01-06"))),
@@ -505,8 +488,6 @@ class MockingAttributeBrokerTests {
         mondayDisposable.dispose();
         tuesdayDisposable.dispose();
     }
-
-    // ========== Complex Scenario Tests ==========
 
     @Test
     void whenMixedEnvironmentAndRegularAttributes_thenBothWork() {
@@ -566,8 +547,6 @@ class MockingAttributeBrokerTests {
                 .then(() -> broker.emit("longRunning", Value.of("update2"))).expectNext(Value.of("update2"))
                 .thenCancel().verify();
     }
-
-    // ========== Invocation Recording Tests ==========
 
     @Test
     void whenAttributeInvoked_thenRecordsInvocation() {
@@ -679,8 +658,6 @@ class MockingAttributeBrokerTests {
 
         assertThat(broker.getInvocations()).isEmpty();
     }
-
-    // ========== Verification Tests ==========
 
     @Test
     void whenVerifyEnvironmentAttributeOnce_thenPassesIfCalledOnce() {
@@ -845,8 +822,6 @@ class MockingAttributeBrokerTests {
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 
-    // ========== Error Value Tests ==========
-
     @Test
     void whenEnvironmentAttributeWithErrorInitialValue_thenEmitsError() {
         var errorValue = Value.error("PIP unavailable");
@@ -896,8 +871,6 @@ class MockingAttributeBrokerTests {
                 .then(() -> broker.emit("recovery", Value.of("recovered"))).expectNext(Value.of("recovered"))
                 .verifyComplete();
     }
-
-    // ========== Undefined Value Tests ==========
 
     @Test
     void whenEnvironmentAttributeWithUndefinedInitialValue_thenEmitsUndefined() {

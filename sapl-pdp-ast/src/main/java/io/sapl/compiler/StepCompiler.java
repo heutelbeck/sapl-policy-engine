@@ -587,8 +587,7 @@ public class StepCompiler {
             return e;
 
         return switch (base) {
-        case ArrayValue arr  ->
-            filterElements(arr.size(), arr::get, Value::of, constantCond, condOp, ctx, loc);
+        case ArrayValue arr  -> filterElements(arr.size(), arr::get, Value::of, constantCond, condOp, ctx, loc);
         case ObjectValue obj -> {
             var entries = obj.entrySet().stream().toList();
             yield filterElements(entries.size(), i -> entries.get(i).getValue(), i -> Value.of(entries.get(i).getKey()),

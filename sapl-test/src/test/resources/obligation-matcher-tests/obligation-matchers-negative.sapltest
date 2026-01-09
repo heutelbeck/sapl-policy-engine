@@ -1,0 +1,48 @@
+requirement "Obligation Matcher Negative Tests" {
+
+    given
+        - document "obligation-policy"
+
+    scenario "with obligation equals wrong value should fail"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation equals { "type": "wrong" };
+
+    scenario "with obligation containing nonexistent key should fail"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation containing key "nonexistent";
+
+    scenario "with obligation containing key with wrong value should fail"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation containing key "type" with value matching text "wrong";
+
+    scenario "with obligation matching object with wrong key value should fail"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with obligation matching object where { "type" is text "wrong" };
+
+}
+
+requirement "Advice Matcher Negative Tests" {
+
+    given
+        - document "obligation-policy"
+
+    scenario "with advice equals wrong value should fail"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with advice equals { "notify": "wrong" };
+
+    scenario "with advice containing nonexistent key should fail"
+        when "user" attempts "read" on "document"
+        expect decision is permit, with advice containing key "nonexistent";
+
+}
+
+requirement "No Obligation Tests" {
+
+    given
+        - document "obligation-policy"
+
+    scenario "with obligation when none exist should fail"
+        when "user" attempts "write" on "document"
+        expect decision is deny, with obligation;
+
+}

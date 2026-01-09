@@ -162,8 +162,6 @@ class BranchHitTests {
                 .isNotEqualTo(new BranchHit(2, 7, 2, 4)).isNotEqualTo(new BranchHit(2, 7, 3, 5));
     }
 
-    // ========== Policy Outcome Tests ==========
-
     @Test
     @DisplayName("forPolicyOutcome creates single-branch hit for policy without conditions")
     void whenForPolicyOutcomeWithoutConditions_thenSingleBranch() {

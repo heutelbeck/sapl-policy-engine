@@ -1,0 +1,5 @@
+policy "role-policy"
+permit
+    action == "admin"
+where
+    subject.<user.role> == "admin";

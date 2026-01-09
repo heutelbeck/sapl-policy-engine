@@ -21,17 +21,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 
+@DisplayName("SAPLTest validator tests")
 class SAPLTestValidatorTests {
 
     private final SAPLTestValidator validator = new SAPLTestValidator();
 
     @Test
+    @DisplayName("valid document produces no errors")
     void whenValidDocument_thenNoErrors() {
         var document = """
                 requirement "Cthulhu Access Control" {
@@ -47,6 +50,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("duplicate requirement names produce error")
     void whenDuplicateRequirementNames_thenError() {
         var document = """
                 requirement "Arkham Horror" {
@@ -68,6 +72,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("duplicate scenario names produce error")
     void whenDuplicateScenarioNames_thenError() {
         var document = """
                 requirement "Miskatonic University" {
@@ -87,6 +92,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("multiple amount less than two produces error")
     void whenMultipleAmountLessThanTwo_thenError() {
         var document = """
                 requirement "Function Call Count" {
@@ -107,6 +113,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("multiple amount of two produces no error")
     void whenMultipleAmountIsTwo_thenNoError() {
         var document = """
                 requirement "Function Call Count" {
@@ -126,6 +133,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("invalid regex produces error")
     void whenInvalidRegex_thenError() {
         var document = """
                 requirement "Pattern Matching" {
@@ -142,6 +150,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("valid regex produces no error")
     void whenValidRegex_thenNoError() {
         var document = """
                 requirement "Pattern Matching" {
@@ -157,6 +166,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("string length of zero produces error")
     void whenStringLengthZero_thenError() {
         var document = """
                 requirement "String Length" {
@@ -173,6 +183,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("negative string length produces error")
     void whenStringLengthNegative_thenError() {
         var document = """
                 requirement "String Length" {
@@ -189,6 +200,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("positive string length produces no error")
     void whenStringLengthPositive_thenNoError() {
         var document = """
                 requirement "String Length" {
@@ -204,17 +216,15 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("null context produces empty errors")
     void whenNullContext_thenEmptyErrors() {
         var errors = validator.validate(null);
 
         assertThat(errors).isEmpty();
     }
 
-    // ========================================================================
-    // EDGE CASES
-    // ========================================================================
-
     @Test
+    @DisplayName("multiple errors in document are all reported")
     void whenMultipleErrorsInDocument_thenAllErrorsReported() {
         var document = """
                 requirement "Eldritch Chaos" {
@@ -236,6 +246,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("duplicate scenario names across different requirements produce no error")
     void whenDuplicateScenarioNamesAcrossDifferentRequirements_thenNoError() {
         var document = """
                 requirement "First Requirement" {
@@ -256,6 +267,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("zero amount produces error")
     void whenZeroAmount_thenError() {
         var document = """
                 requirement "Zero Amount" {
@@ -276,6 +288,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("large valid amount produces no error")
     void whenLargeValidAmount_thenNoError() {
         var document = """
                 requirement "Large Amount" {
@@ -295,6 +308,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("multiple amount in expect block is validated")
     void whenMultipleAmountInExpectBlock_thenValidated() {
         var document = """
                 requirement "Expect Amount" {
@@ -312,6 +326,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("empty regex produces no error")
     void whenEmptyRegex_thenNoError() {
         var document = """
                 requirement "Empty Regex" {
@@ -327,6 +342,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("complex document with multiple requirements and scenarios runs all validations")
     void whenComplexDocumentWithMultipleRequirementsAndScenarios_thenAllValidationsRun() {
         var document = """
                 requirement "Arkham Access" {
@@ -364,6 +380,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("triple duplicate requirement names produce two errors")
     void whenTripleDuplicateRequirementNames_thenTwoErrors() {
         var document = """
                 requirement "Duplicate" {
@@ -390,6 +407,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("triple duplicate scenario names produce two errors")
     void whenTripleDuplicateScenarioNames_thenTwoErrors() {
         var document = """
                 requirement "Triple Duplicate Scenarios" {
@@ -412,6 +430,7 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("document with all new syntax produces no errors")
     void whenDocumentWithAllNewSyntax_thenNoErrors() {
         var document = """
                 requirement "New Syntax Test" {

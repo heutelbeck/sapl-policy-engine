@@ -22,6 +22,7 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
 import io.sapl.api.pdp.internal.TracedDecision;
@@ -106,6 +107,9 @@ public class SaplTestFixture {
     public static final List<Class<?>> DEFAULT_FUNCTION_LIBRARIES = List.of(StandardFunctionLibrary.class,
             TemporalFunctionLibrary.class, FilterFunctionLibrary.class, ArrayFunctionLibrary.class,
             StringFunctionLibrary.class, GraphFunctionLibrary.class);
+
+    private static final String ERROR_RESERVED_VARIABLE_NAME = "Variable name '%s' is reserved. "
+            + "Reserved identifiers (%s) refer to authorization subscription fields and cannot be used as variable names.";
 
     private final boolean singleTestMode;
 
@@ -711,16 +715,22 @@ public class SaplTestFixture {
     /**
      * Registers a variable in the evaluation context.
      * <p>
-     * Throws if a variable with the same name is already registered.
+     * If a variable with the same name already exists, it will be overwritten.
+     * This allows scenario-level variables to override requirement-level variables.
+     * <p>
+     * Variable names cannot be reserved identifiers (subject, action, resource,
+     * environment) as these refer to authorization subscription fields.
      *
      * @param name the variable name
      * @param value the variable value
      * @return this fixture for chaining
-     * @throws IllegalArgumentException if a variable with this name already exists
+     * @throws IllegalArgumentException if the variable name is a reserved
+     * identifier
      */
     public SaplTestFixture givenVariable(@NonNull String name, @NonNull Value value) {
-        if (variables.containsKey(name)) {
-            throw new IllegalArgumentException("Variable '%s' is already registered.".formatted(name));
+        if (ReservedIdentifiers.RESERVED_IDENTIFIERS.contains(name)) {
+            throw new IllegalArgumentException(
+                    ERROR_RESERVED_VARIABLE_NAME.formatted(name, ReservedIdentifiers.SUBSCRIPTION_IDENTIFIERS));
         }
         variables.put(name, value);
         return this;

@@ -32,6 +32,13 @@ package io.sapl.test.verification;
  */
 public sealed interface Times {
 
+    String ERROR_AT_LEAST_NON_NEGATIVE = "AtLeast count must be non-negative, was: %d.";
+    String ERROR_AT_MOST_NON_NEGATIVE  = "AtMost count must be non-negative, was: %d.";
+    String ERROR_BETWEEN_MAX_GE_MIN    = "Between max must be >= min, was: max=%d, min=%d.";
+    String ERROR_BETWEEN_MIN_NON_NEG   = "Between min must be non-negative, was: %d.";
+    String ERROR_TIMES_NON_NEGATIVE    = "Times count must be non-negative, was: %d.";
+    String MSG_FAILURE                 = "Expected %s but was invoked %d time(s).";
+
     /**
      * Verifies the actual count matches this expectation.
      *
@@ -54,7 +61,7 @@ public sealed interface Times {
      * @return error message describing the mismatch
      */
     default String failureMessage(int actualCount) {
-        return "Expected %s but was invoked %d time(s).".formatted(describe(), actualCount);
+        return MSG_FAILURE.formatted(describe(), actualCount);
     }
 
     /**
@@ -79,7 +86,7 @@ public sealed interface Times {
      */
     static Times times(int n) {
         if (n < 0) {
-            throw new IllegalArgumentException("Times count must be non-negative, was: " + n);
+            throw new IllegalArgumentException(ERROR_TIMES_NON_NEGATIVE.formatted(n));
         }
         return new Exactly(n);
     }
@@ -92,7 +99,7 @@ public sealed interface Times {
      */
     static Times atLeast(int n) {
         if (n < 0) {
-            throw new IllegalArgumentException("AtLeast count must be non-negative, was: " + n);
+            throw new IllegalArgumentException(ERROR_AT_LEAST_NON_NEGATIVE.formatted(n));
         }
         return new AtLeast(n);
     }
@@ -105,7 +112,7 @@ public sealed interface Times {
      */
     static Times atMost(int n) {
         if (n < 0) {
-            throw new IllegalArgumentException("AtMost count must be non-negative, was: " + n);
+            throw new IllegalArgumentException(ERROR_AT_MOST_NON_NEGATIVE.formatted(n));
         }
         return new AtMost(n);
     }
@@ -119,10 +126,10 @@ public sealed interface Times {
      */
     static Times between(int min, int max) {
         if (min < 0) {
-            throw new IllegalArgumentException("Between min must be non-negative, was: " + min);
+            throw new IllegalArgumentException(ERROR_BETWEEN_MIN_NON_NEG.formatted(min));
         }
         if (max < min) {
-            throw new IllegalArgumentException("Between max must be >= min, was: max=%d, min=%d".formatted(max, min));
+            throw new IllegalArgumentException(ERROR_BETWEEN_MAX_GE_MIN.formatted(max, min));
         }
         return new Between(min, max);
     }

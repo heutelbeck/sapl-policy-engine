@@ -60,7 +60,6 @@ givenItem
     : DASH documentSpecification  # documentGivenItem
     | DASH combiningAlgorithm     # algorithmGivenItem
     | DASH variablesDefinition    # variablesGivenItem
-    | DASH environment            # environmentGivenItem
     | DASH mockDefinition         # mockGivenItem
     ;
 
@@ -90,10 +89,6 @@ combiningAlgorithm
 // Variables definition - local test variables override security variables
 variablesDefinition
     : VARIABLES variables=objectValue
-    ;
-
-environment
-    : ENVIRONMENT env=objectValue
     ;
 
 // Mock definitions

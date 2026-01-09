@@ -156,6 +156,7 @@ class FixtureCoverageIntegrationTests {
 
         assertThat(result.passed()).isTrue();
         assertThat(result.hasCoverage()).isTrue();
+        assertThat(result.coverage()).isNotNull();
         assertThat(result.coverage().getTestIdentifier()).isEqualTo("result-test");
     }
 

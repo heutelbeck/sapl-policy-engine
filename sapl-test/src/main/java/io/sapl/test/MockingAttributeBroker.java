@@ -65,6 +65,15 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class MockingAttributeBroker implements AttributeBroker {
 
+    private static final String ERROR_ARGUMENTS_MUST_USE_ARGS     = "Arguments must be created via args().";
+    private static final String ERROR_MOCK_ID_ALREADY_REGISTERED  = "Mock ID '%s' is already registered.";
+    private static final String ERROR_MOCK_ID_BLANK               = "Mock ID must not be blank.";
+    private static final String ERROR_NO_MOCK_FOR_ID              = "No mock registered with ID '%s'.";
+    private static final String ERROR_NO_MOCK_MATCHED_NO_DELEGATE = "No mock matched attribute '%s' and no delegate broker configured.";
+    private static final String ERROR_VERIFICATION_FAILED         = "Attribute verification failed for '%s'.%n";
+    private static final String ERROR_VERIFICATION_NO_INVOCATIONS = "%nNo invocations of '%s' were recorded.";
+    private static final String ERROR_VERIFICATION_RECORDED       = "%nRecorded invocations of '%s':";
+
     private AttributeBroker                        delegate;
     private final Map<String, List<AttributeMock>> mocksByName     = new HashMap<>();
     private final Map<String, AttributeMock>       mocksById       = new HashMap<>();
@@ -107,8 +116,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
         return findMostSpecificMatch(invocation).map(mock -> getStream(mock.mockId())).orElseGet(() -> {
             if (delegate == null) {
                 // Return error Value - this causes policy evaluation to result in indeterminate
-                return Flux.just(Value.error("No mock matched attribute '%s' and no delegate broker configured."
-                        .formatted(invocation.attributeName())));
+                return Flux.just(Value.error(ERROR_NO_MOCK_MATCHED_NO_DELEGATE.formatted(invocation.attributeName())));
             }
             return delegate.attributeStream(invocation);
         });
@@ -164,7 +172,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
             @NonNull SaplTestFixture.Parameters arguments, Value initialValue) {
         validateMockId(mockId);
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
-            throw new IllegalArgumentException("Arguments must be created via args().");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
         var mock = new AttributeMock(mockId, null, matchers, true);
         addMock(attributeName, mock);
@@ -214,7 +222,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
             @NonNull SaplTestFixture.Parameters arguments, Value initialValue) {
         validateMockId(mockId);
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
-            throw new IllegalArgumentException("Arguments must be created via args().");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
         var mock = new AttributeMock(mockId, entityMatcher, matchers, false);
         addMock(attributeName, mock);
@@ -240,7 +248,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
      */
     public void emit(@NonNull String mockId, @NonNull Value value) {
         if (!mocksById.containsKey(mockId)) {
-            throw new IllegalStateException("No mock registered with id '%s'.".formatted(mockId));
+            throw new IllegalStateException(ERROR_NO_MOCK_FOR_ID.formatted(mockId));
         }
         emitToSink(mockId, value);
     }
@@ -332,7 +340,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
     public void verifyEnvironmentAttribute(@NonNull String attributeName, @NonNull SaplTestFixture.Parameters arguments,
             @NonNull Times times) {
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
-            throw new IllegalArgumentException("Arguments must be created via args().");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
 
         var matchingCount = countMatchingInvocations(attributeName, null, matchers, true);
@@ -363,7 +371,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
     public void verifyAttribute(@NonNull String attributeName, @NonNull ArgumentMatcher entityMatcher,
             @NonNull SaplTestFixture.Parameters arguments, @NonNull Times times) {
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
-            throw new IllegalArgumentException("Arguments must be created via args().");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
 
         var matchingCount = countMatchingInvocations(attributeName, entityMatcher, matchers, false);
@@ -421,14 +429,14 @@ public final class MockingAttributeBroker implements AttributeBroker {
     private String buildVerificationMessage(String attributeName, ArgumentMatcher entityMatcher,
             List<ArgumentMatcher> argMatchers, boolean isEnvironmentAttribute, Times times, int actualCount) {
         var sb = new StringBuilder();
-        sb.append("Attribute verification failed for '%s'.%n".formatted(attributeName));
+        sb.append(ERROR_VERIFICATION_FAILED.formatted(attributeName));
         sb.append(times.failureMessage(actualCount));
 
         var attributeInvocations = getInvocations(attributeName);
         if (attributeInvocations.isEmpty()) {
-            sb.append("%nNo invocations of '%s' were recorded.".formatted(attributeName));
+            sb.append(ERROR_VERIFICATION_NO_INVOCATIONS.formatted(attributeName));
         } else {
-            sb.append("%nRecorded invocations of '%s':".formatted(attributeName));
+            sb.append(ERROR_VERIFICATION_RECORDED.formatted(attributeName));
             for (var inv : attributeInvocations) {
                 sb.append("\n  - ").append(inv);
             }
@@ -438,10 +446,10 @@ public final class MockingAttributeBroker implements AttributeBroker {
 
     private void validateMockId(String mockId) {
         if (mockId.isBlank()) {
-            throw new IllegalArgumentException("MockId must not be blank.");
+            throw new IllegalArgumentException(ERROR_MOCK_ID_BLANK);
         }
         if (mocksById.containsKey(mockId)) {
-            throw new IllegalArgumentException("MockId '%s' is already registered.".formatted(mockId));
+            throw new IllegalArgumentException(ERROR_MOCK_ID_ALREADY_REGISTERED.formatted(mockId));
         }
     }
 

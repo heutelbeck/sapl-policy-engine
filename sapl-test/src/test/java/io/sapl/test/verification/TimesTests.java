@@ -17,6 +17,7 @@
  */
 package io.sapl.test.verification;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -35,9 +36,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("Times verification tests")
 class TimesTests {
-
-    // ========== Exactly Tests ==========
 
     @Test
     void onceVerifiesExactlyOne() {
@@ -57,7 +57,7 @@ class TimesTests {
         assertThat(never.verify(5)).isFalse();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "times({0}) verifies exact count")
     @ValueSource(ints = { 0, 1, 2, 5, 10, 100 })
     void timesVerifiesExactCount(int expected) {
         var times = times(expected);
@@ -73,9 +73,7 @@ class TimesTests {
                 .hasMessageContaining("non-negative");
     }
 
-    // ========== AtLeast Tests ==========
-
-    @ParameterizedTest
+    @ParameterizedTest(name = "atLeast({0}).verify({1}) = {2}")
     @MethodSource("atLeastTestCases")
     void atLeastVerifiesMinimum(int minimum, int actual, boolean expected) {
         assertThat(atLeast(minimum).verify(actual)).isEqualTo(expected);
@@ -92,9 +90,7 @@ class TimesTests {
                 .hasMessageContaining("non-negative");
     }
 
-    // ========== AtMost Tests ==========
-
-    @ParameterizedTest
+    @ParameterizedTest(name = "atMost({0}).verify({1}) = {2}")
     @MethodSource("atMostTestCases")
     void atMostVerifiesMaximum(int maximum, int actual, boolean expected) {
         assertThat(atMost(maximum).verify(actual)).isEqualTo(expected);
@@ -111,9 +107,7 @@ class TimesTests {
                 .hasMessageContaining("non-negative");
     }
 
-    // ========== Between Tests ==========
-
-    @ParameterizedTest
+    @ParameterizedTest(name = "between({0}, {1}).verify({2}) = {3}")
     @MethodSource("betweenTestCases")
     void betweenVerifiesRange(int min, int max, int actual, boolean expected) {
         assertThat(between(min, max).verify(actual)).isEqualTo(expected);
@@ -137,8 +131,6 @@ class TimesTests {
         assertThatThrownBy(() -> between(5, 3)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(">= min");
     }
-
-    // ========== Describe Tests ==========
 
     @Test
     void onceDescribesCorrectly() {
@@ -176,8 +168,6 @@ class TimesTests {
         assertThat(between(5, 10).describe()).isEqualTo("between 5 and 10 times");
     }
 
-    // ========== Failure Message Tests ==========
-
     @Test
     void failureMessageFormatsCorrectly() {
         assertThat(once().failureMessage(0)).isEqualTo("Expected exactly once but was invoked 0 time(s).");
@@ -187,8 +177,6 @@ class TimesTests {
         assertThat(between(1, 3).failureMessage(5))
                 .isEqualTo("Expected between 1 and 3 times but was invoked 5 time(s).");
     }
-
-    // ========== Record Identity Tests ==========
 
     @Test
     void exactlyRecordHasExpectedValue() {

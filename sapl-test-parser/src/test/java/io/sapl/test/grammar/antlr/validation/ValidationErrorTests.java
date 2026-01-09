@@ -21,14 +21,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser;
 
+@DisplayName("Validation error tests")
 class ValidationErrorTests {
 
     @Test
+    @DisplayName("all fields are accessible when creating validation error")
     void whenCreatingValidationError_thenAllFieldsAreAccessible() {
         var error = new ValidationError("The stars are not aligned.", 13, 42, "Cthulhu");
 
@@ -39,6 +42,7 @@ class ValidationErrorTests {
     }
 
     @Test
+    @DisplayName("toString formats correctly")
     void whenCallingToString_thenFormatsCorrectly() {
         var error = new ValidationError("Forbidden knowledge detected.", 7, 23, "necronomicon");
 
@@ -46,6 +50,7 @@ class ValidationErrorTests {
     }
 
     @Test
+    @DisplayName("creating from token extracts token information")
     void whenCreatingFromToken_thenExtractsTokenInformation() {
         var document = """
                 requirement "Arkham" {
@@ -70,6 +75,7 @@ class ValidationErrorTests {
     }
 
     @Test
+    @DisplayName("creating from context extracts context information")
     void whenCreatingFromContext_thenExtractsContextInformation() {
         var document = """
                 requirement "Miskatonic" {
@@ -94,6 +100,7 @@ class ValidationErrorTests {
     }
 
     @Test
+    @DisplayName("creating from context with null start token returns default values")
     void whenCreatingFromContextWithNullStartToken_thenReturnsDefaultValues() {
         var error = ValidationError.fromContext("Error with null context.", null);
 
@@ -104,6 +111,7 @@ class ValidationErrorTests {
     }
 
     @Test
+    @DisplayName("two errors with same values are equal")
     void whenTwoErrorsHaveSameValues_thenTheyAreEqual() {
         var error1 = new ValidationError("Eldritch error.", 5, 10, "dagon");
         var error2 = new ValidationError("Eldritch error.", 5, 10, "dagon");
@@ -112,6 +120,7 @@ class ValidationErrorTests {
     }
 
     @Test
+    @DisplayName("two errors with different values are not equal")
     void whenTwoErrorsHaveDifferentValues_thenTheyAreNotEqual() {
         var error1 = new ValidationError("Eldritch error.", 5, 10, "dagon");
         var error2 = new ValidationError("Cosmic error.", 5, 10, "dagon");

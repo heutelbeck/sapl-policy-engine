@@ -26,6 +26,8 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import lombok.val;
 
@@ -120,32 +122,19 @@ class SonarQubeCoverageReportGeneratorTests {
         assertThat(Files.readString(outputPath)).contains("<coverage version=\"1\"");
     }
 
-    @Test
-    @DisplayName("marks target line as covered when matched")
-    void whenTargetMatched_thenLine1IsCovered() throws IOException {
-        writeCoverageNdjson(
+    @ParameterizedTest(name = "target line coverage: trueHits={0}, falseHits={1} -> covered={2}")
+    @CsvSource({ "1, 0, true", "0, 1, false" })
+    void whenTargetHits_thenLine1CoverageReflectsHits(int trueHits, int falseHits, boolean covered) throws IOException {
+        writeCoverageNdjson(String.format(
                 """
-                        {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":1,"targetFalseHits":0}]}
-                        """);
+                        {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":%d,"targetFalseHits":%d}]}
+                        """,
+                trueHits, falseHits));
 
         val generator = new SonarQubeCoverageReportGenerator(tempDir);
         val xml       = generator.generate();
 
-        assertThat(xml).contains("lineNumber=\"1\" covered=\"true\"");
-    }
-
-    @Test
-    @DisplayName("marks target line as not covered when only false hits")
-    void whenTargetNotMatched_thenLine1IsNotCovered() throws IOException {
-        writeCoverageNdjson(
-                """
-                        {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":0,"targetFalseHits":1}]}
-                        """);
-
-        val generator = new SonarQubeCoverageReportGenerator(tempDir);
-        val xml       = generator.generate();
-
-        assertThat(xml).contains("lineNumber=\"1\" covered=\"false\"");
+        assertThat(xml).contains("lineNumber=\"1\" covered=\"" + covered + "\"");
     }
 
     @Test

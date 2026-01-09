@@ -277,8 +277,6 @@ class PolicyCoverageDataTests {
         assertThat(line5Info.status()).isEqualTo(LineCoverageStatus.PARTIALLY_COVERED);
     }
 
-    // ========== Policy Outcome Tests ==========
-
     @Test
     @DisplayName("records single-branch policy outcome for policy without conditions")
     void whenRecordPolicyOutcomeWithoutConditions_thenSingleBranch() {
@@ -289,7 +287,7 @@ class PolicyCoverageDataTests {
         val hits = coverage.getBranchHits();
         assertThat(hits).hasSize(1);
 
-        val hit = hits.get(0);
+        val hit = hits.getFirst();
         assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_SINGLE_BRANCH_ID);
         assertThat(hit.isSingleBranch()).isTrue();
         assertThat(hit.trueHits()).isOne();
@@ -308,7 +306,7 @@ class PolicyCoverageDataTests {
         val hits = coverage.getBranchHits();
         assertThat(hits).hasSize(1);
 
-        val hit = hits.get(0);
+        val hit = hits.getFirst();
         assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_TWO_BRANCH_ID);
         assertThat(hit.isSingleBranch()).isFalse();
         assertThat(hit.trueHits()).isOne();
@@ -330,7 +328,7 @@ class PolicyCoverageDataTests {
         val hits = coverage.getBranchHits();
         assertThat(hits).hasSize(1);
 
-        val hit = hits.get(0);
+        val hit = hits.getFirst();
         assertThat(hit.trueHits()).isOne();
         assertThat(hit.falseHits()).isOne();
         assertThat(hit.isFullyCovered()).isTrue();
@@ -377,7 +375,7 @@ class PolicyCoverageDataTests {
         coverage.recordPolicyOutcome(1, 1, 0, 10, true, false);
 
         val lineCoverage = coverage.getLineCoverage();
-        val line1Info    = lineCoverage.get(0);
+        val line1Info    = lineCoverage.getFirst();
 
         // Single-branch: 1/1 = fully covered
         assertThat(line1Info.coveredBranches()).isEqualTo(1);
@@ -395,7 +393,7 @@ class PolicyCoverageDataTests {
         coverage.recordTargetHit(true, 1, 1);
 
         val lineCoverage = coverage.getLineCoverage();
-        val line1Info    = lineCoverage.get(0);
+        val line1Info    = lineCoverage.getFirst();
 
         // Target is single-branch: hit = 1/1 covered
         assertThat(line1Info.coveredBranches()).isEqualTo(1);

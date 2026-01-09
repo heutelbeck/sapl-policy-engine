@@ -35,6 +35,9 @@ import static io.sapl.compiler.StringsUtil.unquoteString;
 @UtilityClass
 class ValueConverter {
 
+    private static final String ERROR_UNKNOWN_VALUE_OR_ERROR_TYPE = "Unknown valueOrError type: %s.";
+    private static final String ERROR_UNKNOWN_VALUE_TYPE          = "Unknown value type: %s.";
+
     /**
      * Converts a grammar value context to a SAPL Value.
      *
@@ -51,7 +54,7 @@ class ValueConverter {
         case NullValContext ignored      -> Value.NULL;
         case UndefinedValContext ignored -> Value.UNDEFINED;
         default                          ->
-            throw new IllegalArgumentException("Unknown value type: " + ctx.getClass().getSimpleName());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_VALUE_TYPE.formatted(ctx.getClass().getSimpleName()));
         };
     }
 
@@ -67,7 +70,7 @@ class ValueConverter {
             var message    = errorValue.message != null ? unquoteString(errorValue.message.getText()) : null;
             return new ValueOrError(null, true, message);
         }
-        throw new IllegalArgumentException("Unknown valueOrError type: " + ctx.getClass().getSimpleName());
+        throw new IllegalArgumentException(ERROR_UNKNOWN_VALUE_OR_ERROR_TYPE.formatted(ctx.getClass().getSimpleName()));
     }
 
     /**
