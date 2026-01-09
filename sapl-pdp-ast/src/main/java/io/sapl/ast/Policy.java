@@ -28,7 +28,7 @@ import java.util.List;
  * @param name the policy name
  * @param entitlement PERMIT or DENY
  * @param target target expression, or null if policy applies universally
- * @param body policy body statements, empty list if none
+ * @param body policy body with statements and source location
  * @param obligations obligation expressions, empty list if none
  * @param advice advice expressions, empty list if none
  * @param transformation transformation expression, or null if none
@@ -38,13 +38,12 @@ public record Policy(
         @NonNull String name,
         @NonNull Entitlement entitlement,
         Expression target,
-        @NonNull List<Statement> body,
+        @NonNull PolicyBody body,
         @NonNull List<Expression> obligations,
         @NonNull List<Expression> advice,
         Expression transformation,
         @NonNull SourceLocation location) implements PolicyElement {
     public Policy {
-        body        = List.copyOf(body);
         obligations = List.copyOf(obligations);
         advice      = List.copyOf(advice);
     }

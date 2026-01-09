@@ -22,7 +22,7 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.util.ExpressionTestUtil.Stratum;
+import io.sapl.compiler.util.Stratum;
 import io.sapl.util.SimpleFunctionLibrary;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;

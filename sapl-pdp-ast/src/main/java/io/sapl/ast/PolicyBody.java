@@ -15,16 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.internal;
+package io.sapl.ast;
 
-import io.sapl.api.SaplVersion;
 import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
+import lombok.NonNull;
 
-import java.io.Serial;
-import java.io.Serializable;
+import java.util.List;
 
-public record ConditionHit(long statementId, Value result, SourceLocation location) implements Serializable {
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+/**
+ * The body of a policy containing variable definitions and conditions.
+ *
+ * @param statements the statements in the body, never null (may be empty)
+ * @param location source location of the body
+ */
+public record PolicyBody(@NonNull List<Statement> statements, @NonNull SourceLocation location) implements AstNode {
+    public PolicyBody {
+        statements = List.copyOf(statements);
+    }
 }

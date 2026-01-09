@@ -76,6 +76,11 @@ public class LazyNaryBooleanCompiler {
 
     private CompiledExpression compile(List<Expression> operands, CompilationContext ctx, SourceLocation location,
             boolean isConjunction) {
+        val compiledOperands = operands.stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
+        return compile(compiledOperands, location, isConjunction);
+    }
+
+    CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location, boolean isConjunction) {
 
         // The value that triggers short-circuit: false for AND, true for OR
         val shortCircuitValue = !isConjunction;
@@ -85,8 +90,7 @@ public class LazyNaryBooleanCompiler {
         var pures   = new ArrayList<PureOperator>();
         var streams = new ArrayList<StreamOperator>();
 
-        for (var operand : operands) {
-            var compiled = ExpressionCompiler.compile(operand, ctx);
+        for (var compiled : operands) {
             switch (compiled) {
             case Value v          -> values.add(v);
             case PureOperator p   -> pures.add(p);

@@ -130,9 +130,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var name           = unquoteString(ctx.saplName.getText());
         var entitlement    = toEntitlement(ctx.entitlement());
         var target         = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
-        var body           = ctx.policyBody() != null
+        var bodyStatements = ctx.policyBody() != null
                 ? ctx.policyBody().statements.stream().map(s -> (Statement) visit(s)).toList()
                 : List.<Statement>of();
+        var bodyLocation   = ctx.policyBody() != null ? fromContext(ctx.policyBody()) : fromContext(ctx);
+        var body           = new PolicyBody(bodyStatements, bodyLocation);
         var obligations    = ctx.obligations.stream().map(this::expr).toList();
         var advice         = ctx.adviceExpressions.stream().map(this::expr).toList();
         var transformation = ctx.transformation != null ? expr(ctx.transformation) : null;

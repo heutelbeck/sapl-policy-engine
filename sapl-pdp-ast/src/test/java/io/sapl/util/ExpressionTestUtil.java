@@ -26,6 +26,7 @@ import io.sapl.ast.Expression;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.util.Stratum;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -401,29 +402,6 @@ public class ExpressionTestUtil {
             assertThat(tv.value()).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) tv.value()).message()).contains(messageFragment);
         });
-    }
-
-    /**
-     * Stratum levels for compiled expressions. Used to classify and verify the
-     * compile-time vs runtime nature of expressions.
-     * <ul>
-     * <li>VALUE: Compile-time constant (strata 1)</li>
-     * <li>PURE_NON_SUB: Runtime, not depending on subscription (strata 2)</li>
-     * <li>PURE_SUB: Runtime, depending on subscription (strata 3)</li>
-     * <li>STREAM: Reactive StreamOperator (strata 4)</li>
-     * </ul>
-     */
-    public enum Stratum {
-        VALUE(1),
-        PURE_NON_SUB(2),
-        PURE_SUB(3),
-        STREAM(4);
-
-        public final int level;
-
-        Stratum(int level) {
-            this.level = level;
-        }
     }
 
     /**

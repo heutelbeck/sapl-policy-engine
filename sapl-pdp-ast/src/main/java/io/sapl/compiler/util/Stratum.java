@@ -15,16 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.internal;
+package io.sapl.compiler.util;
 
-import io.sapl.api.SaplVersion;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
+/**
+ * Stratum levels for compiled expressions. Used to classify and verify the
+ * compile-time vs runtime nature of expressions.
+ * <ul>
+ * <li>VALUE: Compile-time constant (strata 1)</li>
+ * <li>PURE_NON_SUB: Runtime, not depending on subscription (strata 2)</li>
+ * <li>PURE_SUB: Runtime, depending on subscription (strata 3)</li>
+ * <li>STREAM: Reactive StreamOperator (strata 4)</li>
+ * </ul>
+ */
+public enum Stratum {
+    VALUE(1),
+    PURE_NON_SUB(2),
+    PURE_SUB(3),
+    STREAM(4);
 
-import java.io.Serial;
-import java.io.Serializable;
+    public final int level;
 
-public record ConditionHit(long statementId, Value result, SourceLocation location) implements Serializable {
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+    Stratum(int level) {
+        this.level = level;
+    }
 }

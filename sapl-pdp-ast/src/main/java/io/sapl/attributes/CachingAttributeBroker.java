@@ -44,15 +44,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @RequiredArgsConstructor
 public class CachingAttributeBroker implements AttributeBroker {
 
-    private static final String ERROR_ATTRIBUTE_COLLISION       = "Attribute collision: %s with signature %s collides with existing %s";
-    private static final String ERROR_FAILED_TO_PROCESS_METHOD  = "Failed to process method '%s' in PIP '%s': %s";
-    private static final String ERROR_FAILED_TO_PROCESS_PIP     = "Failed to process PIP class: %s";
-    private static final String ERROR_LIBRARY_ALREADY_LOADED    = "Library already loaded: %s";
-    private static final String ERROR_MISSING_PIP_ANNOTATION    = "Class must be annotated with @PolicyInformationPoint: %s";
-    private static final String ERROR_NAMESPACE_COLLISION       = "Namespace collision error. Policy Information Point with name %s already registered.";
-    private static final String ERROR_NO_ATTRIBUTE_METHODS      = "PIP '%s' must have at least one @Attribute or @EnvironmentAttribute method";
-    private static final String ERROR_PIP_NAME_BLANK            = "@PolicyInformationPoint.name() cannot be blank";
-    private static final String ERROR_PIP_NAME_COLLISION        = "PIP name collision: %s already registered";
+    private static final String ERROR_ATTRIBUTE_COLLISION      = "Attribute collision: %s with signature %s collides with existing %s";
+    private static final String ERROR_FAILED_TO_PROCESS_METHOD = "Failed to process method '%s' in PIP '%s': %s";
+    private static final String ERROR_FAILED_TO_PROCESS_PIP    = "Failed to process PIP class: %s";
+    private static final String ERROR_LIBRARY_ALREADY_LOADED   = "Library already loaded: %s";
+    private static final String ERROR_MISSING_PIP_ANNOTATION   = "Class must be annotated with @PolicyInformationPoint: %s";
+    private static final String ERROR_NAMESPACE_COLLISION      = "Namespace collision error. Policy Information Point with name %s already registered.";
+    private static final String ERROR_NO_ATTRIBUTE_METHODS     = "PIP '%s' must have at least one @Attribute or @EnvironmentAttribute method";
+    private static final String ERROR_PIP_NAME_BLANK           = "@PolicyInformationPoint.name() cannot be blank";
+    private static final String ERROR_PIP_NAME_COLLISION       = "PIP name collision: %s already registered";
 
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
