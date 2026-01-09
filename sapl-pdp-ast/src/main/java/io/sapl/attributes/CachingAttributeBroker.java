@@ -43,6 +43,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Slf4j
 @RequiredArgsConstructor
 public class CachingAttributeBroker implements AttributeBroker {
+
+    private static final String ERROR_ATTRIBUTE_COLLISION       = "Attribute collision: %s with signature %s collides with existing %s";
+    private static final String ERROR_FAILED_TO_PROCESS_METHOD  = "Failed to process method '%s' in PIP '%s': %s";
+    private static final String ERROR_FAILED_TO_PROCESS_PIP     = "Failed to process PIP class: %s";
+    private static final String ERROR_LIBRARY_ALREADY_LOADED    = "Library already loaded: %s";
+    private static final String ERROR_MISSING_PIP_ANNOTATION    = "Class must be annotated with @PolicyInformationPoint: %s";
+    private static final String ERROR_NAMESPACE_COLLISION       = "Namespace collision error. Policy Information Point with name %s already registered.";
+    private static final String ERROR_NO_ATTRIBUTE_METHODS      = "PIP '%s' must have at least one @Attribute or @EnvironmentAttribute method";
+    private static final String ERROR_PIP_NAME_BLANK            = "@PolicyInformationPoint.name() cannot be blank";
+    private static final String ERROR_PIP_NAME_COLLISION        = "PIP name collision: %s already registered";
+
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
     private final Map<AttributeFinderInvocation, List<AttributeStream>> activeStreamIndex    = new HashMap<>();
@@ -171,9 +182,7 @@ public class CachingAttributeBroker implements AttributeBroker {
             val pipSpecification = pipImplementation.specification();
             val pipName          = pipSpecification.name();
             if (pipRegistry.containsKey(pipName)) {
-                throw new AttributeBrokerException(String.format(
-                        "Namespace collision error. Policy Information Point with name %s already registered.",
-                        pipName));
+                throw new AttributeBrokerException(ERROR_NAMESPACE_COLLISION.formatted(pipName));
             }
             val varargsFindersForDelayedLoading = new ArrayList<AttributeFinderSpecification>();
 
@@ -353,7 +362,7 @@ public class CachingAttributeBroker implements AttributeBroker {
         try {
             pipImpl = processPipClass(pipInstance);
         } catch (Exception e) {
-            throw new AttributeBrokerException("Failed to process PIP class: " + e.getMessage(), e);
+            throw new AttributeBrokerException(ERROR_FAILED_TO_PROCESS_PIP.formatted(e.getMessage()), e);
         }
 
         String                            libraryName = pipImpl.specification().name();
@@ -362,19 +371,19 @@ public class CachingAttributeBroker implements AttributeBroker {
 
         // STEP 2: Fast pre-check BEFORE lock (optimization)
         if (libraryToPipNamesMap.containsKey(libraryName)) {
-            throw new AttributeBrokerException("Library already loaded: " + libraryName);
+            throw new AttributeBrokerException(ERROR_LIBRARY_ALREADY_LOADED.formatted(libraryName));
         }
 
         // STEP 3: ENTER synchronized block for collision checks + loading
         synchronized (lock) {
             // Double-check library not loaded (thread-safe)
             if (libraryToPipNamesMap.containsKey(libraryName)) {
-                throw new AttributeBrokerException("Library already loaded: " + libraryName);
+                throw new AttributeBrokerException(ERROR_LIBRARY_ALREADY_LOADED.formatted(libraryName));
             }
 
             // Check PIP name collision
             if (pipRegistry.containsKey(pipName)) {
-                throw new AttributeBrokerException("PIP name collision: " + pipName + " already registered");
+                throw new AttributeBrokerException(ERROR_PIP_NAME_COLLISION.formatted(pipName));
             }
 
             // Check ALL attribute finder name collisions
@@ -385,8 +394,8 @@ public class CachingAttributeBroker implements AttributeBroker {
                 if (existing != null) {
                     for (AttributeFinderSpecification existingSpec : existing) {
                         if (existingSpec.collidesWith(finder)) {
-                            throw new AttributeBrokerException("Attribute collision: " + attrName + " with signature "
-                                    + finder + " collides with existing " + existingSpec);
+                            throw new AttributeBrokerException(
+                                    ERROR_ATTRIBUTE_COLLISION.formatted(attrName, finder, existingSpec));
                         }
                     }
                 }
@@ -466,13 +475,12 @@ public class CachingAttributeBroker implements AttributeBroker {
         // Get @PolicyInformationPoint annotation
         PolicyInformationPoint annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
         if (annotation == null) {
-            throw new AttributeBrokerException(
-                    "Class must be annotated with @PolicyInformationPoint: " + pipClass.getName());
+            throw new AttributeBrokerException(ERROR_MISSING_PIP_ANNOTATION.formatted(pipClass.getName()));
         }
 
         String pipName = annotation.name();
         if (pipName == null || pipName.isBlank()) {
-            throw new AttributeBrokerException("@PolicyInformationPoint.name() cannot be blank");
+            throw new AttributeBrokerException(ERROR_PIP_NAME_BLANK);
         }
 
         // Process ALL @Attribute methods
@@ -489,15 +497,14 @@ public class CachingAttributeBroker implements AttributeBroker {
 
             } catch (IllegalStateException e) {
                 // Any method fails -> entire library fails
-                throw new AttributeBrokerException("Failed to process method '" + method.getName() + "' in PIP '"
-                        + pipName + "': " + e.getMessage(), e);
+                throw new AttributeBrokerException(
+                        ERROR_FAILED_TO_PROCESS_METHOD.formatted(method.getName(), pipName, e.getMessage()), e);
             }
         }
 
         // Validate: at least one attribute
         if (attributeFinders.isEmpty()) {
-            throw new AttributeBrokerException(
-                    "PIP '" + pipName + "' must have at least one @Attribute or @EnvironmentAttribute method");
+            throw new AttributeBrokerException(ERROR_NO_ATTRIBUTE_METHODS.formatted(pipName));
         }
 
         // Construct specification

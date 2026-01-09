@@ -57,12 +57,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class DefaultFunctionBroker implements FunctionBroker {
 
-    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
-    private static final String FUNCTION_COLLISION_ERROR                       = "Function collision error for '%s'. A function with the same signature already exists.";
-    private static final String NO_MATCHING_FUNCTION_FOUND_ERROR               = "No matching function found for %s.";
-    private static final String LIBRARY_CLASS_NULL_ERROR                       = "Library class must not be null.";
-    private static final String LIBRARY_INSTANCE_NULL_ERROR                    = "Library instance must not be null.";
-    private static final String INVOCATION_NULL_ERROR                          = "Function invocation must not be null.";
+    private static final String ERROR_FUNCTION_COLLISION            = "Function collision error for '%s'. A function with the same signature already exists.";
+    private static final String ERROR_INVOCATION_NULL               = "Function invocation must not be null.";
+    private static final String ERROR_LIBRARY_CLASS_NULL            = "Library class must not be null.";
+    private static final String ERROR_LIBRARY_INSTANCE_NULL         = "Library instance must not be null.";
+    private static final String ERROR_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
+    private static final String ERROR_NO_MATCHING_FUNCTION_FOUND    = "No matching function found for %s.";
 
     private final Map<String, List<FunctionSpecification>> functionIndex = new ConcurrentHashMap<>();
 
@@ -89,7 +89,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
      */
     public void loadStaticFunctionLibrary(Class<?> libraryClass) {
         if (libraryClass == null) {
-            throw new IllegalArgumentException(LIBRARY_CLASS_NULL_ERROR);
+            throw new IllegalArgumentException(ERROR_LIBRARY_CLASS_NULL);
         }
         loadLibrary(null, libraryClass);
         registeredLibraries.add(libraryClass);
@@ -116,7 +116,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
      */
     public void loadInstantiatedFunctionLibrary(Object libraryInstance) {
         if (libraryInstance == null) {
-            throw new IllegalArgumentException(LIBRARY_INSTANCE_NULL_ERROR);
+            throw new IllegalArgumentException(ERROR_LIBRARY_INSTANCE_NULL);
         }
         loadLibrary(libraryInstance, libraryInstance.getClass());
         registeredLibraries.add(libraryInstance.getClass());
@@ -126,7 +126,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
         val libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
 
         if (libAnnotation == null) {
-            throw new IllegalStateException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR);
+            throw new IllegalStateException(ERROR_NO_FUNCTION_LIBRARY_ANNOTATION);
         }
 
         var libName = libAnnotation.name();
@@ -156,7 +156,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
     private void validateNoCollision(List<FunctionSpecification> existingFunctions, FunctionSpecification newFunction) {
         for (val spec : existingFunctions) {
             if (spec.collidesWith(newFunction)) {
-                throw new IllegalArgumentException(FUNCTION_COLLISION_ERROR.formatted(newFunction.functionName()));
+                throw new IllegalArgumentException(ERROR_FUNCTION_COLLISION.formatted(newFunction.functionName()));
             }
         }
     }
@@ -185,7 +185,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
     @Override
     public Value evaluateFunction(FunctionInvocation invocation) {
         if (invocation == null) {
-            throw new IllegalArgumentException(INVOCATION_NULL_ERROR);
+            throw new IllegalArgumentException(ERROR_INVOCATION_NULL);
         }
 
         val specs = functionIndex.get(invocation.functionName());
@@ -207,7 +207,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
             }
         }
 
-        return Value.error(NO_MATCHING_FUNCTION_FOUND_ERROR, invocation);
+        return Value.error(ERROR_NO_MATCHING_FUNCTION_FOUND, invocation);
     }
 
 }

@@ -28,6 +28,15 @@ import java.util.regex.Pattern;
  */
 @UtilityClass
 public class NameValidator {
+
+    private static final String ERROR_INVALID_NAME = """
+            The fully qualified name of a Policy Information Point or function must consist of \
+            at least two Strings separated by a '.'. Each of the strings must not \
+            contain white spaces and must start with a letter. \
+            No special characters are allowed. \
+            At most ten segments are allowed. \
+            Name was: '%s'.""";
+
     private static final String            REGEX   = "[a-zA-Z][a-zA-Z0-9]*\\.[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*){0,8}";
     private static final Predicate<String> PATTERN = Pattern.compile(REGEX).asMatchPredicate();
 
@@ -38,13 +47,7 @@ public class NameValidator {
      */
     public static void requireValidName(String stringUnderTest) {
         if (!PATTERN.test(stringUnderTest)) {
-            throw new IllegalArgumentException(String.format("""
-                    The fully qualified name of a Policy Information Point or function must consist of \
-                    at least two Strings separated by a '.'. Each of the strings must not \
-                    contain white spaces and must start with a letter. \
-                    No special characters are allowed. \
-                    At most ten segments are allowed. \
-                    Name was: '%s'.""", stringUnderTest));
+            throw new IllegalArgumentException(ERROR_INVALID_NAME.formatted(stringUnderTest));
         }
     }
 }

@@ -492,7 +492,7 @@ public class PatternsFunctionLibrary {
             val result = compiledPattern.matcher(value.value()).replaceAll(replacement.value());
             return Value.of(result);
         } catch (Exception e) {
-            return Value.error(String.format(ERROR_REPLACEMENT_FAILED, e.getMessage()));
+            return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));
         }
     }
 
@@ -543,7 +543,7 @@ public class PatternsFunctionLibrary {
             }
             return result.build();
         } catch (Exception e) {
-            return Value.error(String.format(ERROR_SPLIT_FAILED, e.getMessage()));
+            return Value.error(ERROR_SPLIT_FAILED.formatted(e.getMessage()));
         }
     }
 
@@ -623,7 +623,7 @@ public class PatternsFunctionLibrary {
             val pattern = Pattern.compile(regexPattern);
             return Value.of(pattern.matcher(valueText).matches());
         } catch (PatternSyntaxException e) {
-            return Value.error(String.format(ERROR_INVALID_TEMPLATE, e.getMessage()));
+            return Value.error(ERROR_INVALID_TEMPLATE.formatted(e.getMessage()));
         }
     }
 
@@ -680,11 +680,11 @@ public class PatternsFunctionLibrary {
      */
     private static Value validateInputs(TextValue pattern, TextValue value) {
         if (pattern.value().length() > MAX_PATTERN_LENGTH) {
-            return Value.error(String.format(ERROR_PATTERN_TOO_LONG, MAX_PATTERN_LENGTH));
+            return Value.error(ERROR_PATTERN_TOO_LONG.formatted(MAX_PATTERN_LENGTH));
         }
 
         if (value.value().length() > MAX_INPUT_LENGTH) {
-            return Value.error(String.format(ERROR_INPUT_TOO_LONG, MAX_INPUT_LENGTH));
+            return Value.error(ERROR_INPUT_TOO_LONG.formatted(MAX_INPUT_LENGTH));
         }
 
         return null;
@@ -747,7 +747,7 @@ public class PatternsFunctionLibrary {
         } catch (IllegalStateException e) {
             return Value.error(e.getMessage());
         } catch (PatternSyntaxException e) {
-            return Value.error(String.format(ERROR_INVALID_GLOB, e.getMessage()));
+            return Value.error(ERROR_INVALID_GLOB.formatted(e.getMessage()));
         }
     }
 
@@ -1113,7 +1113,7 @@ public class PatternsFunctionLibrary {
 
             return matches.build();
         } catch (Exception e) {
-            return Value.error(String.format(ERROR_MATCHING_FAILED, e.getMessage()));
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         }
     }
 
@@ -1149,7 +1149,7 @@ public class PatternsFunctionLibrary {
 
             return results.build();
         } catch (Exception e) {
-            return Value.error(String.format(ERROR_MATCHING_FAILED, e.getMessage()));
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         }
     }
 
