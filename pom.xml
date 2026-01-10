@@ -533,7 +533,7 @@
 	</build>
 
 	<modules>
-		<!-- Core modules without internal dependencies -->
+		<!-- Core modules without traced dependencies -->
 		<module>sapl-code-style</module>
 		<module>sapl-api</module>
 

@@ -263,7 +263,7 @@ class PolicyDecisionPointBuilderTests {
         val externalAttributeBroker = mock(AttributeBroker.class);
 
         // These would fail if actually loaded, but external brokers should bypass
-        // internal building
+        // traced building
         val components = PolicyDecisionPointBuilder.withoutDefaults().withFunctionBroker(externalFunctionBroker)
                 .withAttributeBroker(externalAttributeBroker).withPolicyInformationPoints(List.of(new Object()))
                 .withFunctionLibraryInstances(List.of(new Object())).build();

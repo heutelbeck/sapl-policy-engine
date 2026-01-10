@@ -256,7 +256,7 @@ class ArrayValueTests {
             var invocation      = new io.sapl.api.attributes.AttributeFinderInvocation("test-security", "test.attr",
                     List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5), java.time.Duration.ofSeconds(1),
                     java.time.Duration.ofMillis(100), 3, false);
-            var attributeRecord = new io.sapl.api.pdp.internal.AttributeRecord(invocation, Value.of("result"),
+            var attributeRecord = new io.sapl.api.pdp.traced.AttributeRecord(invocation, Value.of("result"),
                     java.time.Instant.now(), null);
             var metadata        = ValueMetadata.ofAttribute(attributeRecord);
 
@@ -283,12 +283,12 @@ class ArrayValueTests {
             var invocation1      = new io.sapl.api.attributes.AttributeFinderInvocation("test-security", "test.attr1",
                     List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5), java.time.Duration.ofSeconds(1),
                     java.time.Duration.ofMillis(100), 3, false);
-            var attributeRecord1 = new io.sapl.api.pdp.internal.AttributeRecord(invocation1, Value.of("result1"),
+            var attributeRecord1 = new io.sapl.api.pdp.traced.AttributeRecord(invocation1, Value.of("result1"),
                     java.time.Instant.now(), null);
             var invocation2      = new io.sapl.api.attributes.AttributeFinderInvocation("test-security", "test.attr2",
                     List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5), java.time.Duration.ofSeconds(1),
                     java.time.Duration.ofMillis(100), 3, false);
-            var attributeRecord2 = new io.sapl.api.pdp.internal.AttributeRecord(invocation2, Value.of("result2"),
+            var attributeRecord2 = new io.sapl.api.pdp.traced.AttributeRecord(invocation2, Value.of("result2"),
                     java.time.Instant.now(), null);
 
             var containerMetadata = ValueMetadata.ofAttribute(attributeRecord1);

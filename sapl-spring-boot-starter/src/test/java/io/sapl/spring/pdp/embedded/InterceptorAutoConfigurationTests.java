@@ -18,7 +18,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
+import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;

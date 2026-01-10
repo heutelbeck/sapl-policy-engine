@@ -19,7 +19,7 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.internal.TraceFields;
+import io.sapl.api.pdp.traced.TraceFields;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.parser.DefaultSAPLParser;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -42,7 +42,7 @@ import static io.sapl.api.model.ValueJsonMarshaller.toPrettyString;
 import static io.sapl.compiler.TracedPolicyDecision.getTargetError;
 import static io.sapl.compiler.TracedPolicyDecision.hasTargetError;
 import static io.sapl.compiler.TracedPolicyDecision.isNoMatchTrace;
-import static io.sapl.api.pdp.internal.TracedPolicySetDecision.*;
+import static io.sapl.api.pdp.traced.TracedPolicySetDecision.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

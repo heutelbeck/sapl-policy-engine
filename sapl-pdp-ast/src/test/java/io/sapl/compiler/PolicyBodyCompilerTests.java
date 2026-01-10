@@ -18,10 +18,9 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.internal.ConditionHit;
+import io.sapl.api.pdp.traced.ConditionHit;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
-import io.sapl.compiler.PolicyBodyCompiler.TracedPolicyBodyResultAndCoverage;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
@@ -170,7 +169,7 @@ class PolicyBodyCompilerTests {
         var evalCtx1 = tc.variables().isEmpty() ? evaluationContext(broker1)
                 : evaluationContext(broker1, tc.variables());
 
-        val production      = PolicyBodyCompiler.compilePolicyBody(body, compCtx1);
+        val production      = PolicyBodyCompiler.compilePolicyBodyForProduction(body, compCtx1);
         val productionValue = evaluateProduction(production, evalCtx1);
         assertThat(productionValue).as("production value").isEqualTo(tc.expectedValue());
 
@@ -278,7 +277,7 @@ class PolicyBodyCompilerTests {
             var evalCtx1 = tc.variables().isEmpty() ? evaluationContext(broker1)
                     : evaluationContext(broker1, tc.variables());
 
-            val production      = PolicyBodyCompiler.compilePolicyBody(body, compCtx1);
+            val production      = PolicyBodyCompiler.compilePolicyBodyForProduction(body, compCtx1);
             val productionValue = evaluateProduction(production, evalCtx1);
             assertThat(productionValue).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
                     .asString().containsIgnoringCase(tc.expectedErrorFragment());
@@ -327,7 +326,7 @@ class PolicyBodyCompilerTests {
             var compCtx1 = compilationContext(broker1);
             var evalCtx1 = evaluationContext(broker1);
 
-            val production = PolicyBodyCompiler.compilePolicyBody(body, compCtx1);
+            val production = PolicyBodyCompiler.compilePolicyBodyForProduction(body, compCtx1);
             assertThat(production).isInstanceOf(StreamOperator.class);
 
             val                            prodStream   = ((StreamOperator) production).stream()

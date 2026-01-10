@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler.util;
 
-import io.sapl.compiler.SaplCompilerException;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;

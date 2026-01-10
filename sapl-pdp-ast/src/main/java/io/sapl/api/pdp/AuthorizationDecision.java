@@ -18,81 +18,60 @@
 package io.sapl.api.pdp;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
-import lombok.val;
-
-import java.util.List;
 
 public record AuthorizationDecision(
         @NonNull Decision decision,
-        @NonNull List<Value> obligations,
-        @NonNull List<Value> advice,
-        @NonNull Value resource) {
-    public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(),
-            Value.UNDEFINED);
-    public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY, List.of(), List.of(),
-            Value.UNDEFINED);
-    public static final AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE,
-            List.of(), List.of(), Value.UNDEFINED);
+        @NonNull ArrayValue obligations,
+        @NonNull ArrayValue advice,
+        @NonNull Value resource,
+        @NonNull Value error) implements CompiledDocument {
+    public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+            Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
+    public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY,
+            Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
+    public static final AuthorizationDecision INDETERMINATE = ofError("Unspecified failure.");
     public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE,
-            List.of(), List.of(), Value.UNDEFINED);
+            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
+
+    public static AuthorizationDecision ofError(String errorMessage) {
+        return new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                Value.error(errorMessage));
+    }
 
     /**
-     * Creates an AuthorizationDecision from a Value object.
-     * <p>
-     * The Value must be an ObjectValue with the following structure:
-     * <ul>
-     * <li>"decision" - TextValue containing "PERMIT", "DENY", "INDETERMINATE", or
-     * "NOT_APPLICABLE"</li>
-     * <li>"obligations" - ArrayValue of constraint Values</li>
-     * <li>"advice" - ArrayValue of advice Values</li>
-     * <li>"resource" - Value representing the resource transformation</li>
-     * </ul>
+     * Creates an AuthorizationDecision from an ObjectValue representation.
      *
-     * @param decisionObject
-     * the decision object value
-     *
+     * @param value the ObjectValue containing decision fields
      * @return the AuthorizationDecision
-     *
-     * @throws IllegalArgumentException
-     * if the value is not a valid decision object
+     * @throws IllegalArgumentException if the value is not a valid
+     * AuthorizationDecision
      */
-    public static AuthorizationDecision of(Value decisionObject) {
-        if (!(decisionObject instanceof ObjectValue obj)) {
-            throw new IllegalArgumentException("Decision value must be an ObjectValue, but was: " + decisionObject);
+    public static AuthorizationDecision of(Value value) {
+        if (!(value instanceof io.sapl.api.model.ObjectValue obj)) {
+            throw new IllegalArgumentException("AuthorizationDecision must be an ObjectValue");
         }
 
-        val decisionField = obj.get("decision");
-        if (!(decisionField instanceof TextValue decisionText)) {
-            throw new IllegalArgumentException("Decision field must be a TextValue, but was: " + decisionField);
+        var decisionValue = obj.get("decision");
+        if (!(decisionValue instanceof io.sapl.api.model.TextValue tv)) {
+            throw new IllegalArgumentException("Decision field must be a TextValue");
+        }
+        var decision = Decision.valueOf(tv.value());
+
+        var obligationsValue = obj.getOrDefault("obligations", Value.EMPTY_ARRAY);
+        if (!(obligationsValue instanceof ArrayValue obligations)) {
+            throw new IllegalArgumentException("Obligations field must be an ArrayValue");
         }
 
-        val decision = Decision.valueOf(decisionText.value());
-
-        var obligationsField = obj.get("obligations");
-        if (obligationsField == null) {
-            obligationsField = Value.EMPTY_ARRAY;
-        }
-        if (!(obligationsField instanceof ArrayValue obligationsArray)) {
-            throw new IllegalArgumentException("Obligations field must be an ArrayValue, but was: " + obligationsField);
+        var adviceValue = obj.getOrDefault("advice", Value.EMPTY_ARRAY);
+        if (!(adviceValue instanceof ArrayValue advice)) {
+            throw new IllegalArgumentException("Advice field must be an ArrayValue");
         }
 
-        var adviceField = obj.get("advice");
-        if (adviceField == null) {
-            adviceField = Value.EMPTY_ARRAY;
-        }
-        if (!(adviceField instanceof ArrayValue adviceArray)) {
-            throw new IllegalArgumentException("Advice field must be an ArrayValue, but was: " + adviceField);
-        }
+        var resource = obj.getOrDefault("resource", Value.UNDEFINED);
+        var error    = obj.getOrDefault("error", Value.UNDEFINED);
 
-        var resource = obj.get("resource");
-        if (resource == null) {
-            resource = Value.UNDEFINED;
-        }
-
-        return new AuthorizationDecision(decision, obligationsArray, adviceArray, resource);
+        return new AuthorizationDecision(decision, obligations, advice, resource, error);
     }
 }

@@ -21,7 +21,7 @@ import static io.sapl.compiler.StringsUtil.unquoteString;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.internal.ConditionHit;
+import io.sapl.api.pdp.traced.ConditionHit;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.functions.libraries.SchemaValidationLibrary;
 import io.sapl.grammar.antlr.SAPLParser.*;

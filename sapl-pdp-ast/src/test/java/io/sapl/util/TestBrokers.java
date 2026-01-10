@@ -23,7 +23,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.CompilationContext;
+import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;

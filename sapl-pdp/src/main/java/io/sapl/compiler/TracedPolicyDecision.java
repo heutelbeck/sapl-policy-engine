@@ -20,9 +20,9 @@ package io.sapl.compiler;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.internal.AttributeRecord;
-import io.sapl.api.pdp.internal.ConditionHit;
-import io.sapl.api.pdp.internal.TraceFields;
+import io.sapl.api.pdp.traced.AttributeRecord;
+import io.sapl.api.pdp.traced.ConditionHit;
+import io.sapl.api.pdp.traced.TraceFields;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

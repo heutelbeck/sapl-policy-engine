@@ -22,7 +22,7 @@ import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
+import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationSource;

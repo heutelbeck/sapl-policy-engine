@@ -57,7 +57,7 @@ class AuthorizationDecisionTests {
     }
 
     @Test
-    void of_shouldCreateIndeterminateDecision() {
+    void of_shouldCreateOfErrorDecision() {
         val decisionObj = ObjectValue.builder().put("decision", Value.of("INDETERMINATE"))
                 .put("obligations", Value.EMPTY_ARRAY).put("advice", Value.EMPTY_ARRAY).put("resource", Value.UNDEFINED)
                 .build();

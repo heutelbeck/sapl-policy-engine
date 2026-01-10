@@ -25,11 +25,11 @@ import java.io.Serial;
 /**
  * Exception for signaling errors during cryptographic operations. This
  * exception is used within the crypto function
- * libraries for internal error flow control. All instances are caught at the
+ * libraries for traced error flow control. All instances are caught at the
  * public API boundary and converted to
  * ErrorValue before returning to callers.
  * <p>
- * This is an internal API and should not be used outside the SAPL function
+ * This is an traced API and should not be used outside the SAPL function
  * libraries.
  */
 @StandardException

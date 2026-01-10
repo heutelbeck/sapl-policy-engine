@@ -84,7 +84,7 @@ public class ClientCredentialsView extends VerticalLayout {
         try {
             clientCredentialsWithSecret = clientCredentialsService.createBasicDefault();
         } catch (Exception e) {
-            ErrorNotificationUtils.show("The client cannot be created due to an internal error. " + e.getMessage());
+            ErrorNotificationUtils.show("The client cannot be created due to an traced error. " + e.getMessage());
             return;
         }
         showDialogForCreatedBasicClient(clientCredentialsWithSecret.getT1().getKey(),
@@ -97,7 +97,7 @@ public class ClientCredentialsView extends VerticalLayout {
         try {
             clientCredentialsWithApiKey = clientCredentialsService.createApiKeyDefault();
         } catch (Exception e) {
-            ErrorNotificationUtils.show("The client cannot be created due to an internal error. " + e.getMessage());
+            ErrorNotificationUtils.show("The client cannot be created due to an traced error. " + e.getMessage());
             return;
         }
         showDialogForCreatedApiKeyClient(clientCredentialsWithApiKey);
@@ -144,7 +144,7 @@ public class ClientCredentialsView extends VerticalLayout {
         try {
             clientCredentialsService.delete(currentClientCredential);
         } catch (Exception e) {
-            ErrorNotificationUtils.show("The client cannot be deleted due to an internal error. " + e.getMessage());
+            ErrorNotificationUtils.show("The client cannot be deleted due to an traced error. " + e.getMessage());
             return;
         }
         clientCredentialsGrid.getDataProvider().refreshAll();

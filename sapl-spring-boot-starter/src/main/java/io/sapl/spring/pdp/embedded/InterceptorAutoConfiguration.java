@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
+import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.config.BeanDefinition;

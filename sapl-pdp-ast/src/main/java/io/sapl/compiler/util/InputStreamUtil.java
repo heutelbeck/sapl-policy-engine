@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler.util;
 
-import io.sapl.compiler.SaplCompilerException;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.io.ByteOrderMark;

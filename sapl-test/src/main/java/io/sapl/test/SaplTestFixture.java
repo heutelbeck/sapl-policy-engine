@@ -25,8 +25,8 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
-import io.sapl.api.pdp.internal.TracedDecision;
-import io.sapl.api.pdp.internal.TracedPolicyDecisionPoint;
+import io.sapl.api.pdp.traced.TracedDecision;
+import io.sapl.api.pdp.traced.TracedPolicyDecisionPoint;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
@@ -866,7 +866,7 @@ public class SaplTestFixture {
                 return getSimpleClassName(className) + "::" + element.getMethodName();
             }
         }
-        // Second pass: look for any non-internal class
+        // Second pass: look for any non-traced class
         for (val element : stackTrace) {
             val className = element.getClassName();
             if (!isInternalPackage(className) && isNotAnInternalMethod(element.getMethodName())) {

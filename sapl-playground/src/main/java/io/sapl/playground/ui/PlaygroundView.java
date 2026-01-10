@@ -59,8 +59,8 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.internal.TracedDecision;
-import io.sapl.api.pdp.internal.TracedPdpDecision;
+import io.sapl.api.pdp.traced.TracedDecision;
+import io.sapl.api.pdp.traced.TracedPdpDecision;
 import io.sapl.compiler.TracedPolicyDecision;
 import io.sapl.parser.DefaultSAPLParser;
 import io.sapl.parser.SAPLParser;
@@ -774,7 +774,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /*
      * Handles changes to the follow latest decision checkbox state. Updates
-     * internal state and button tooltip.
+     * traced state and button tooltip.
      */
     private void handleFollowLatestDecisionChange(Boolean followLatest) {
         if (Boolean.TRUE.equals(followLatest)) {

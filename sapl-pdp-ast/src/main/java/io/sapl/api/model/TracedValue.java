@@ -17,7 +17,7 @@
  */
 package io.sapl.api.model;
 
-import io.sapl.api.pdp.internal.AttributeRecord;
+import io.sapl.api.pdp.traced.AttributeRecord;
 import lombok.val;
 
 import java.util.ArrayList;

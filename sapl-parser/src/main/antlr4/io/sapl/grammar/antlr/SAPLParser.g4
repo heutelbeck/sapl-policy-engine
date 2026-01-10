@@ -321,7 +321,7 @@ filterComponent
     ;
 
 filterStatement
-    : each=EACH? target=basicRelative? COLON functionIdentifier arguments?
+    : each=EACH? target=basicRelative COLON functionIdentifier arguments?
     ;
 
 signedNumber

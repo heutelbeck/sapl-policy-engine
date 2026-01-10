@@ -91,9 +91,6 @@ public class SaplJacksonModule extends SimpleModule {
         // CombiningAlgorithm (case-insensitive deserialization)
         addDeserializer(CombiningAlgorithm.class, new CombiningAlgorithmDeserializer());
 
-        // TraceLevel (case-insensitive deserialization)
-        addDeserializer(TraceLevel.class, new TraceLevelDeserializer());
-
         // PDPConfiguration
         addSerializer(PDPConfiguration.class, new PDPConfigurationSerializer());
         addDeserializer(PDPConfiguration.class, new PDPConfigurationDeserializer());

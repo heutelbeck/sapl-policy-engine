@@ -20,7 +20,7 @@ package io.sapl.pdp.interceptors;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.internal.TraceFields;
+import io.sapl.api.pdp.traced.TraceFields;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

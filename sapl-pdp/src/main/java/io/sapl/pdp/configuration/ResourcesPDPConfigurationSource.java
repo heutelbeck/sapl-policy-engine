@@ -95,7 +95,7 @@ import java.util.function.Consumer;
  * <li><b>Classpath isolation:</b> Resources are loaded exclusively from the
  * configured classpath prefix using
  * ClassGraph, preventing access to arbitrary filesystem locations.</li>
- * <li><b>Sanitized error messages:</b> Exceptions do not expose internal
+ * <li><b>Sanitized error messages:</b> Exceptions do not expose traced
  * classpath details or system paths.</li>
  * </ul>
  * <h2>Spring Integration</h2>

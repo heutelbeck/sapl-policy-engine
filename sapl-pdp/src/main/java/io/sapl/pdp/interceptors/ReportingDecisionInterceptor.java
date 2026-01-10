@@ -18,8 +18,8 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.pdp.internal.TracedDecision;
-import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
+import io.sapl.api.pdp.traced.TracedDecision;
+import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

@@ -19,7 +19,7 @@ package io.sapl.test.coverage;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.api.pdp.traced.TracedDecision;
 import lombok.Getter;
 import lombok.val;
 

@@ -191,13 +191,15 @@ class FilterCompilerTests {
 
     static Stream<Arguments> whenExtendedFilterApplied_thenProducesExpectedResult() {
         return Stream.of(
-                arguments("Extended filter with single statement", "\"test\" |- { : filter.blacken }",
+                arguments("Extended filter with single statement", "\"test\" |- { @ : filter.blacken }",
                         Value.of("XXXX")),
                 arguments("Extended filter with multiple statements",
-                        "5 |- { : simple.doubleValue, : simple.doubleValue }", Value.of(20)),
+                        "5 |- { @ : simple.doubleValue, @ : simple.doubleValue }", Value.of(20)),
                 arguments("Extended filter with arguments",
-                        "\"Hello\" |- { : simple.append(\" \"), : simple.append(\"World\") }", Value.of("Hello World")),
-                arguments("Extended filter replace value", "\"old\" |- { : filter.replace(\"new\") }", Value.of("new")),
+                        "\"Hello\" |- { @ : simple.append(\" \"), @ : simple.append(\"World\") }",
+                        Value.of("Hello World")),
+                arguments("Extended filter replace value", "\"old\" |- { @ : filter.replace(\"new\") }",
+                        Value.of("new")),
                 arguments("Extended filter with target path filters field",
                         "{ \"name\": \"secret\" } |- { @.name : filter.blacken }",
                         Value.ofObject(Map.of("name", Value.of("XXXXXX")))),
@@ -380,7 +382,7 @@ class FilterCompilerTests {
                         "Filters cannot be applied to undefined"),
                 arguments("Each on non-array returns error", "{} |- each filter.remove",
                         "Cannot use 'each' keyword with non-array"),
-                arguments("Extended filter error in parent propagates", "(10/0) |- { : filter.remove }",
+                arguments("Extended filter error in parent propagates", "(10/0) |- { @ : filter.remove }",
                         "Division by zero"),
                 arguments("Extended filter with target path on non-existent field",
                         "{ \"name\": \"test\" } |- { @.missing : filter.blacken }", "Field 'missing' not found"),

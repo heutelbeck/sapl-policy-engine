@@ -19,6 +19,7 @@ package io.sapl.api.model.jackson;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
 import lombok.val;
@@ -144,18 +145,26 @@ class SaplJacksonModuleTests {
     }
 
     static Stream<Arguments> decisionWithOptionalFieldsCases() {
-        val obligation = Value.ofObject(Map.of("type", Value.of("log")));
-        val advice     = Value.ofObject(Map.of("recommendation", Value.of("enable_2fa")));
-        val resource   = Value.ofObject(Map.of("filtered", Value.TRUE));
+        val obligation  = Value.ofObject(Map.of("type", Value.of("log")));
+        val advice      = Value.ofObject(Map.of("recommendation", Value.of("enable_2fa")));
+        val resource    = Value.ofObject(Map.of("filtered", Value.TRUE));
+        val obligations = new ArrayValue(List.of(obligation));
+        val adviceArr   = new ArrayValue(List.of(advice));
 
         return Stream.of(
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(), Value.UNDEFINED),
+                arguments(
+                        new AuthorizationDecision(
+                                Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED),
                         List.of("\"obligations\"", "\"type\":\"log\""), List.of("\"advice\"", "\"resource\"")),
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advice), Value.UNDEFINED),
+                arguments(
+                        new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArr, Value.UNDEFINED,
+                                Value.UNDEFINED),
                         List.of("\"advice\"", "\"recommendation\""), List.of("\"obligations\"", "\"resource\"")),
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), resource),
+                arguments(
+                        new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
+                                Value.UNDEFINED),
                         List.of("\"resource\"", "\"filtered\":true"), List.of("\"obligations\"", "\"advice\"")),
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(advice), resource),
+                arguments(new AuthorizationDecision(Decision.PERMIT, obligations, adviceArr, resource, Value.UNDEFINED),
                         List.of("\"obligations\"", "\"advice\"", "\"resource\""), List.of()));
     }
 
@@ -201,7 +210,8 @@ class SaplJacksonModuleTests {
         val obligation = Value.ofObject(Map.of("type", Value.of("notify"), "target", Value.of("security")));
         val advice     = Value.ofObject(Map.of("suggestion", Value.of("Review access logs")));
         val resource   = Value.ofObject(Map.of("sanitized", Value.TRUE));
-        val original   = new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(advice), resource);
+        val original   = new AuthorizationDecision(Decision.PERMIT, new ArrayValue(List.of(obligation)),
+                new ArrayValue(List.of(advice)), resource, Value.UNDEFINED);
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, AuthorizationDecision.class);
@@ -246,7 +256,8 @@ class SaplJacksonModuleTests {
 
     @Test
     void when_roundTrippingIdentifiableDecision_then_preserved() throws JsonProcessingException {
-        val decision = new AuthorizationDecision(Decision.DENY, List.of(), List.of(), Value.UNDEFINED);
+        val decision = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                Value.UNDEFINED);
         val original = new IdentifiableAuthorizationDecision("forbidden-ritual", decision);
 
         val json     = mapper.writeValueAsString(original);
@@ -317,7 +328,8 @@ class SaplJacksonModuleTests {
     @Test
     void when_roundTrippingMultiDecisionWithObligations_then_obligationsPreserved() throws JsonProcessingException {
         val obligation = Value.ofObject(Map.of("type", Value.of("log_access")));
-        val decision   = new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(), Value.UNDEFINED);
+        val decision   = new AuthorizationDecision(Decision.PERMIT, new ArrayValue(List.of(obligation)),
+                Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
 
         val original = new MultiAuthorizationDecision();
         original.setDecision("guarded-action", decision);
@@ -379,7 +391,7 @@ class SaplJacksonModuleTests {
     @Test
     void when_serializingPDPConfiguration_then_allFieldsSerialized() throws JsonProcessingException {
         val configuration = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
-                TraceLevel.STANDARD, List.of("policy access-control permit", "policy audit-log deny"),
+                List.of("policy access-control permit", "policy audit-log deny"),
                 Map.of("serverUrl", Value.of("https://miskatonic.edu"), "maxRetries", Value.of(3)));
         val json          = mapper.writeValueAsString(configuration);
 
@@ -413,7 +425,6 @@ class SaplJacksonModuleTests {
     @Test
     void when_roundTrippingPDPConfiguration_then_configurationPreserved() throws JsonProcessingException {
         val original = new PDPConfiguration("dunwich-pdp", "elder-security", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
-                TraceLevel.STANDARD,
                 List.of("policy whateley-access permit where action == \"read\"",
                         "policy stone-circles deny where subject.sanity < 50"),
                 Map.of("threshold", Value.of(42), "location", Value.of("standing stones"), "active", Value.TRUE));
@@ -530,7 +541,7 @@ class SaplJacksonModuleTests {
                     resource.classification != "restricted";
                 """;
         val original        = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
-                TraceLevel.STANDARD, List.of(multilinePolicy), Map.of());
+                List.of(multilinePolicy), Map.of());
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, PDPConfiguration.class);

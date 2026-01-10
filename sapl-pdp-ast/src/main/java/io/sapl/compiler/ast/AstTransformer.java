@@ -20,7 +20,7 @@ package io.sapl.compiler.ast;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.ast.*;
-import io.sapl.compiler.SaplCompilerException;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;

@@ -18,7 +18,7 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.internal.TraceFields;
+import io.sapl.api.pdp.traced.TraceFields;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

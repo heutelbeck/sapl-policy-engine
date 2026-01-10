@@ -18,7 +18,7 @@
 package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.pdp.internal.AttributeRecord;
+import io.sapl.api.pdp.traced.AttributeRecord;
 import lombok.NonNull;
 import lombok.val;
 

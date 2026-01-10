@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.internal.TraceFields;
+import io.sapl.api.pdp.traced.TraceFields;
 import lombok.val;
 
 @DisplayName("CoverageExtractor tests")

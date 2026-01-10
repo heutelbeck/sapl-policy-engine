@@ -61,7 +61,7 @@ public class PdpBenchmark {
     private static final String[] ACTIONS     = { "read", "write", "update", "delete", "export" };
     private static final String[] DEPARTMENTS = { "engineering", "finance", "operations", "hr" };
     private static final String[] RES_TYPES   = { "document", "dataset", "code", "image", "internal_doc" };
-    private static final String[] CLASSIFS    = { "public", "internal", "confidential", "top_secret" };
+    private static final String[] CLASSIFS    = { "public", "traced", "confidential", "top_secret" };
     private static final String[] CLEARANCES  = { "none", "confidential", "secret", "top_secret" };
 
     /**

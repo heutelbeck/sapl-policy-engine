@@ -55,7 +55,7 @@ public class SimpleFunctionLibrary {
     @Function(name = "doubleValue", docs = "Doubles a number")
     public static Value doubleValue(Value input) {
         if (!(input instanceof NumberValue number)) {
-            return Value.error("double requires number input");
+            return Value.error("double requires number input got:" + input);
         }
         return Value.of(number.value().multiply(java.math.BigDecimal.valueOf(2)));
     }

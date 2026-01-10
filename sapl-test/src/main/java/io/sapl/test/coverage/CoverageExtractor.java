@@ -19,9 +19,9 @@ package io.sapl.test.coverage;
 
 import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.internal.TraceFields;
-import io.sapl.api.pdp.internal.TracedDecision;
-import io.sapl.api.pdp.internal.TracedPdpDecision;
+import io.sapl.api.pdp.traced.TraceFields;
+import io.sapl.api.pdp.traced.TracedDecision;
+import io.sapl.api.pdp.traced.TracedPdpDecision;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

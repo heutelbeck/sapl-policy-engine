@@ -31,7 +31,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.internal.TraceFields;
+import io.sapl.api.pdp.traced.TraceFields;
 import lombok.val;
 
 @DisplayName("CoverageAccumulator tests")

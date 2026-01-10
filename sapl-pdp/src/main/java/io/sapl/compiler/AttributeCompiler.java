@@ -30,7 +30,7 @@ import io.sapl.api.model.StreamExpression;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueMetadata;
-import io.sapl.api.pdp.internal.AttributeRecord;
+import io.sapl.api.pdp.traced.AttributeRecord;
 import io.sapl.grammar.antlr.SAPLParser.ArgumentsContext;
 import io.sapl.grammar.antlr.SAPLParser.AttributeFinderStepContext;
 import io.sapl.grammar.antlr.SAPLParser.BasicEnvironmentAttributeContext;

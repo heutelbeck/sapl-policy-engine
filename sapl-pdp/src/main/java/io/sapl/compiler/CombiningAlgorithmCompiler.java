@@ -21,8 +21,8 @@ import static io.sapl.compiler.TracedPolicyDecision.*;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.internal.TracedPdpDecision;
-import io.sapl.api.pdp.internal.TracedPolicySetDecision;
+import io.sapl.api.pdp.traced.TracedPdpDecision;
+import io.sapl.api.pdp.traced.TracedPolicySetDecision;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;

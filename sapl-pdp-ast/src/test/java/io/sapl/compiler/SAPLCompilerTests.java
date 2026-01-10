@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.DocumentType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

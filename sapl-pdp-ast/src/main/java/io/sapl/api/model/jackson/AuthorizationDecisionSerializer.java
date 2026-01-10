@@ -20,6 +20,7 @@ package io.sapl.api.model.jackson;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -77,6 +78,11 @@ public class AuthorizationDecisionSerializer extends JsonSerializer<Authorizatio
         if (!(decision.resource() instanceof UndefinedValue)) {
             generator.writeFieldName("resource");
             valueSerializer.serialize(decision.resource(), generator, serializers);
+        }
+
+        if (!(decision.error() instanceof UndefinedValue) && !(decision.error() instanceof ErrorValue)) {
+            generator.writeFieldName("error");
+            valueSerializer.serialize(decision.error(), generator, serializers);
         }
 
         generator.writeEndObject();

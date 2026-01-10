@@ -19,6 +19,7 @@ package io.sapl.compiler;
 
 import io.sapl.ast.SaplDocument;
 import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Document;
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser;

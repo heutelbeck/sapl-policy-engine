@@ -21,13 +21,13 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Jackson deserializer for AuthorizationDecision.
@@ -42,10 +42,11 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
             throw new IOException("Expected START_OBJECT for AuthorizationDecision.");
         }
 
-        Decision    decision    = null;
-        List<Value> obligations = List.of();
-        List<Value> advice      = List.of();
-        Value       resource    = Value.UNDEFINED;
+        Decision   decision    = null;
+        ArrayValue obligations = Value.EMPTY_ARRAY;
+        ArrayValue advice      = Value.EMPTY_ARRAY;
+        Value      resource    = Value.UNDEFINED;
+        Value      error       = Value.UNDEFINED;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             var fieldName = parser.currentName();
@@ -53,9 +54,10 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
 
             switch (fieldName) {
             case "decision"    -> decision = Decision.valueOf(parser.getText());
-            case "obligations" -> obligations = deserializeValueList(parser, context);
-            case "advice"      -> advice = deserializeValueList(parser, context);
+            case "obligations" -> obligations = deserializeArrayValue(parser, context);
+            case "advice"      -> advice = deserializeArrayValue(parser, context);
             case "resource"    -> resource = valueDeserializer.deserialize(parser, context);
+            case "error"       -> error = valueDeserializer.deserialize(parser, context);
             default            -> parser.skipChildren();
             }
         }
@@ -64,10 +66,10 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
             throw new IOException("AuthorizationDecision requires decision field.");
         }
 
-        return new AuthorizationDecision(decision, obligations, advice, resource);
+        return new AuthorizationDecision(decision, obligations, advice, resource, error);
     }
 
-    private List<Value> deserializeValueList(JsonParser parser, DeserializationContext context) throws IOException {
+    private ArrayValue deserializeArrayValue(JsonParser parser, DeserializationContext context) throws IOException {
         if (parser.currentToken() != JsonToken.START_ARRAY) {
             throw new IOException("Expected START_ARRAY for obligations/advice.");
         }
@@ -76,6 +78,6 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
         while (parser.nextToken() != JsonToken.END_ARRAY) {
             values.add(valueDeserializer.deserialize(parser, context));
         }
-        return values;
+        return new ArrayValue(values);
     }
 }

@@ -18,12 +18,12 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.internal.AttributeRecord;
-import io.sapl.api.pdp.internal.ConditionHit;
-import io.sapl.ast.Condition;
-import io.sapl.ast.PolicyBody;
-import io.sapl.ast.Statement;
-import io.sapl.ast.VarDef;
+import io.sapl.api.pdp.traced.AttributeRecord;
+import io.sapl.api.pdp.traced.ConditionHit;
+import io.sapl.ast.*;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.ExpressionCompiler;
+import io.sapl.compiler.expressions.LazyNaryBooleanCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -39,19 +39,10 @@ public class PolicyBodyCompiler {
     public static final String ERROR_ATTEMPT_TO_REDEFINE_VARIABLE = "Policy attempted to redefine variable '%s'.";
     public static final String ERROR_CONDITION_NON_BOOLEAN        = "Condition in policy body must return a Boolean value, but got: %s.";
 
-    /**
-     * Result of policy body compilation with coverage tracking information.
-     *
-     * @param value the evaluation result
-     * @param contributingAttributes attributes that contributed to the result
-     * @param hits condition evaluation hits with indices and results
-     * @param numberOfConditions total number of conditions in the policy body
-     */
-    public record TracedPolicyBodyResultAndCoverage(
-            Value value,
-            List<AttributeRecord> contributingAttributes,
-            List<ConditionHit> hits,
-            long numberOfConditions) {}
+    public CompiledPolicyBody compilePolicyBody(PolicyBody policyBody, CompilationContext ctx) {
+        return new CompiledPolicyBody(compilePolicyBodyForProduction(policyBody, ctx),
+                compilePolicyBodyWithCoverage(policyBody, ctx));
+    }
 
     /**
      * Compiles a policy body into an executable expression.
@@ -64,7 +55,7 @@ public class PolicyBodyCompiler {
      * @param ctx the compilation context for variable and function resolution
      * @return a compiled expression that evaluates to TRUE, FALSE, or ERROR
      */
-    public CompiledExpression compilePolicyBody(PolicyBody body, CompilationContext ctx) {
+    public CompiledExpression compilePolicyBodyForProduction(PolicyBody body, CompilationContext ctx) {
         val statements = body.statements();
         if (statements.isEmpty()) {
             return Value.TRUE;
@@ -100,7 +91,8 @@ public class PolicyBodyCompiler {
     /**
      * Compiles a policy body with coverage tracking for test and analysis purposes.
      * <p>
-     * Unlike {@link #compilePolicyBody}, this method returns a reactive stream that
+     * Unlike {@link #compilePolicyBodyForProduction}, this method returns a
+     * reactive stream that
      * tracks which conditions were evaluated and their results. Evaluation follows
      * stratified ordering: Values first, then PureOperators, then StreamOperators.
      *

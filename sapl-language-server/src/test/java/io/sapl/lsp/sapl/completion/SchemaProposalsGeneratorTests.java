@@ -135,7 +135,7 @@ class SchemaProposalsGeneratorTests {
                              ]
                         }
                         """, new String[] { "[]" }),
-                arguments("resolves internal defs", List.of(), """
+                arguments("resolves traced defs", List.of(), """
                             {
                             "$id": "https://example.com/triangle.schema.json",
                             "$schema": "https://json-schema.org/draft/2020-12/schema",

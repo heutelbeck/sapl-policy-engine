@@ -26,7 +26,7 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TraceLevel;
-import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
+import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;

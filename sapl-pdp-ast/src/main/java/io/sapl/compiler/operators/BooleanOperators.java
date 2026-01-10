@@ -21,13 +21,14 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.expressions.LazyBooleanOperationCompiler;
 import lombok.experimental.UtilityClass;
 
 /**
  * Boolean operations for SAPL expression evaluation.
  * <p>
  * Note: AND and OR use cost-stratified short-circuit evaluation via
- * {@link io.sapl.compiler.LazyBooleanOperationCompiler} and are not in this
+ * {@link LazyBooleanOperationCompiler} and are not in this
  * class.
  * <p>
  * All operations return {@link ErrorValue} for type mismatches rather than

@@ -23,7 +23,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.api.pdp.traced.TracedDecision;
 import io.sapl.compiler.SaplCompilerException;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import jakarta.annotation.PreDestroy;

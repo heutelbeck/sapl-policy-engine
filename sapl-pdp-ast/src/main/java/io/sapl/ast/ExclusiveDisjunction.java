@@ -18,7 +18,7 @@
 package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
-import io.sapl.compiler.SaplCompilerException;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.NonNull;
 
 import java.util.List;
