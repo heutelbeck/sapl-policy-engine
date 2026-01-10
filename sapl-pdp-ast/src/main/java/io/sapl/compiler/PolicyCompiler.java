@@ -17,13 +17,13 @@
  */
 package io.sapl.compiler;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.CompiledDocument;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PureDocument;
+import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.traced.AttributeRecord;
 import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
@@ -33,6 +33,7 @@ import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class PolicyCompiler {
@@ -107,7 +108,15 @@ public class PolicyCompiler {
             return AuthorizationDecision.NOT_APPLICABLE;
         }
 
-        val location    = policy.location();
+        val location = policy.location();
+        val decision = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
+        val isSimple = policy.obligations().isEmpty() && policy.advice().isEmpty() && policy.transformation() == null;
+
+        if (isSimple && compiledBody instanceof PureOperator pureBody) {
+            return new SimplePurePolicy(targetExpression, new AuthorizationDecision(decision, Value.EMPTY_ARRAY,
+                    Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED), pureBody);
+        }
+
         val obligations = compileConstraintArray(policy.obligations(), location, "Obligation", ctx);
         if (obligations instanceof ErrorValue error) {
             return AuthorizationDecision.ofError(error);
@@ -133,8 +142,6 @@ public class PolicyCompiler {
             return UNIMPLEMENTED;
         }
 
-        val decision = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
-
         if (compiledBody instanceof PureOperator || obligations instanceof PureOperator
                 || advice instanceof PureOperator || resource instanceof PureOperator) {
             return new PurePolicy(targetExpression, decision, compiledBody, obligations, advice, resource, location);
@@ -157,6 +164,181 @@ public class PolicyCompiler {
             throw new SaplCompilerException(ERROR_CONSTRAINT_RELATIVE_ACCESSOR.formatted(name), location);
         }
         return ExpressionCompiler.fold(result, ctx);
+    }
+
+    record StreamPolicy(CompiledExpression targetExpression, AuthorizationDecision decision, StreamOperator body)
+            implements StreamDocument {
+        @Override
+        public Flux<TracedAuthorizationDecision> stream() {
+            return body.stream().map(tracedBodyValue -> {
+                val bodyValue              = tracedBodyValue.value();
+                val contributingAttributes = tracedBodyValue.contributingAttributes();
+                if (bodyValue instanceof ErrorValue error) {
+                    return new TracedAuthorizationDecision(AuthorizationDecision.ofError(error),
+                            contributingAttributes);
+                }
+                if (Value.FALSE.equals(bodyValue)) {
+                    return new TracedAuthorizationDecision(AuthorizationDecision.NOT_APPLICABLE,
+                            contributingAttributes);
+                }
+                return new TracedAuthorizationDecision(decision, contributingAttributes);
+            });
+        }
+    }
+
+    record StreamValuePolicy(
+            CompiledExpression targetExpression,
+            Decision decision,
+            StreamOperator body,
+            ArrayValue obligations,
+            ArrayValue advice,
+            Value resource) implements StreamDocument {
+        @Override
+        public Flux<TracedAuthorizationDecision> stream() {
+            return body.stream().map(tracedBodyValue -> {
+                val bodyValue              = tracedBodyValue.value();
+                val contributingAttributes = tracedBodyValue.contributingAttributes();
+                if (bodyValue instanceof ErrorValue error) {
+                    return new TracedAuthorizationDecision(AuthorizationDecision.ofError(error),
+                            contributingAttributes);
+                }
+                if (Value.FALSE.equals(bodyValue)) {
+                    return new TracedAuthorizationDecision(AuthorizationDecision.NOT_APPLICABLE,
+                            contributingAttributes);
+                }
+                return new TracedAuthorizationDecision(
+                        new AuthorizationDecision(decision, obligations, advice, resource, Value.UNDEFINED),
+                        contributingAttributes);
+            });
+        }
+    }
+
+    record StreamPurePolicy(
+            CompiledExpression targetExpression,
+            Decision decision,
+            StreamOperator body,
+            PureOperator obligations,
+            PureOperator advice,
+            PureOperator resource,
+            SourceLocation policyLocation) implements StreamDocument {
+        @Override
+        public Flux<TracedAuthorizationDecision> stream() {
+            return body.stream().switchMap(tracedBodyValue -> {
+                val bodyValue              = tracedBodyValue.value();
+                val contributingAttributes = tracedBodyValue.contributingAttributes();
+                if (bodyValue instanceof ErrorValue error) {
+                    return Flux.just(new TracedAuthorizationDecision(AuthorizationDecision.ofError(error),
+                            contributingAttributes));
+                }
+                if (Value.FALSE.equals(bodyValue)) {
+                    return Flux.just(new TracedAuthorizationDecision(AuthorizationDecision.NOT_APPLICABLE,
+                            contributingAttributes));
+                }
+                return Flux.deferContextual(ctxView -> {
+                    val evalCtx          = ctxView.get(EvaluationContext.class);
+                    val obligationsValue = obligations.evaluate(evalCtx);
+                    if (obligationsValue instanceof ErrorValue error) {
+                        return Flux.just(AuthorizationDecision.ofError(error));
+                    }
+                    if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
+                        return Flux.just(AuthorizationDecision.ofError(Value.errorAt(policyLocation,
+                                ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue))));
+                    }
+                    val adviceValue = advice.evaluate(evalCtx);
+                    if (adviceValue instanceof ErrorValue error) {
+                        return Flux.just(AuthorizationDecision.ofError(error));
+                    }
+                    if (!(adviceValue instanceof ArrayValue adviceArray)) {
+                        return Flux.just(AuthorizationDecision
+                                .ofError(Value.errorAt(policyLocation, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue))));
+                    }
+                    val resourceValue = resource.evaluate(evalCtx);
+                    if (resourceValue instanceof ErrorValue error) {
+                        return Flux.just(AuthorizationDecision.ofError(error));
+                    }
+                    return Flux.just(new AuthorizationDecision(decision, obligationsArray, adviceArray, resourceValue,
+                            Value.UNDEFINED));
+                }).map(d -> new TracedAuthorizationDecision(d, contributingAttributes));
+            });
+        }
+    }
+
+    record StreamStreamPolicy(
+            CompiledExpression targetExpression,
+            Decision decision,
+            StreamOperator body,
+            StreamOperator obligations,
+            StreamOperator advice,
+            StreamOperator resource,
+            SourceLocation policyLocation) implements StreamDocument {
+        @Override
+        public Flux<TracedAuthorizationDecision> stream() {
+            return body.stream().switchMap(tracedBodyValue -> {
+                val bodyValue      = tracedBodyValue.value();
+                val bodyAttributes = tracedBodyValue.contributingAttributes();
+                if (bodyValue instanceof ErrorValue error) {
+                    return Flux.just(
+                            new TracedAuthorizationDecision(AuthorizationDecision.ofError(error), bodyAttributes));
+                }
+                if (Value.FALSE.equals(bodyValue)) {
+                    return Flux.just(
+                            new TracedAuthorizationDecision(AuthorizationDecision.NOT_APPLICABLE, bodyAttributes));
+                }
+                return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(), merged -> {
+                    val tracedObligationsValue = (TracedValue) merged[0];
+                    val obligationsValue       = tracedObligationsValue.value();
+                    val contributingAttributes = new ArrayList<>(bodyAttributes);
+                    contributingAttributes.addAll(tracedObligationsValue.contributingAttributes());
+                    if (obligationsValue instanceof ErrorValue error) {
+                        return new TracedAuthorizationDecision(AuthorizationDecision.ofError(error),
+                                contributingAttributes);
+                    }
+                    if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
+                        return new TracedAuthorizationDecision(
+                                AuthorizationDecision.ofError(Value.errorAt(policyLocation,
+                                        ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue))),
+                                contributingAttributes);
+                    }
+                    val tracedAdviceValue = (TracedValue) merged[1];
+                    val adviceValue       = tracedAdviceValue.value();
+                    contributingAttributes.addAll(tracedAdviceValue.contributingAttributes());
+                    if (adviceValue instanceof ErrorValue error) {
+                        return new TracedAuthorizationDecision(AuthorizationDecision.ofError(error),
+                                contributingAttributes);
+                    }
+                    if (!(adviceValue instanceof ArrayValue adviceArray)) {
+                        return new TracedAuthorizationDecision(AuthorizationDecision.ofError(
+                                Value.errorAt(policyLocation, ERROR_ADVICE_NOT_ARRAY.formatted(obligationsValue))),
+                                contributingAttributes);
+                    }
+                    val tracedResourceValue = (TracedValue) merged[2];
+                    val resourceValue       = tracedResourceValue.value();
+                    contributingAttributes.addAll(tracedResourceValue.contributingAttributes());
+                    if (resourceValue instanceof ErrorValue error) {
+                        return new TracedAuthorizationDecision(AuthorizationDecision.ofError(error),
+                                contributingAttributes);
+                    }
+                    val actualDecision = new AuthorizationDecision(decision, obligationsArray, adviceArray,
+                            resourceValue, Value.UNDEFINED);
+                    return new TracedAuthorizationDecision(actualDecision, contributingAttributes);
+                });
+            });
+        }
+    }
+
+    record SimplePurePolicy(CompiledExpression targetExpression, AuthorizationDecision decision, PureOperator body)
+            implements PureDocument {
+        @Override
+        public AuthorizationDecision evaluateBody(EvaluationContext ctx) {
+            val bodyValue = body.evaluate(ctx);
+            if (bodyValue instanceof ErrorValue error) {
+                return AuthorizationDecision.ofError(error);
+            }
+            if (Value.FALSE.equals(bodyValue)) {
+                return AuthorizationDecision.NOT_APPLICABLE;
+            }
+            return decision;
+        }
     }
 
     record PurePolicy(

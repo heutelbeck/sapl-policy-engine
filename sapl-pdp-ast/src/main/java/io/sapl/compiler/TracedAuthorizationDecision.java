@@ -24,4 +24,8 @@ import java.util.List;
 
 public record TracedAuthorizationDecision(
         AuthorizationDecision authorizationDecision,
-        List<AttributeRecord> contributingAttributes) {}
+        List<AttributeRecord> contributingAttributes) {
+    public static TracedAuthorizationDecision of(AuthorizationDecision authorizationDecision) {
+        return new TracedAuthorizationDecision(authorizationDecision, List.of());
+    }
+}
