@@ -17,11 +17,11 @@
  */
 package io.sapl.api.pdp;
 
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
 
 public non-sealed interface PureDocument extends CompiledDocument {
-    PureOperator targetExpression();
+    CompiledExpression targetExpression();
 
     AuthorizationDecision evaluateBody(EvaluationContext ctx);
 }

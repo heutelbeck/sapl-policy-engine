@@ -18,6 +18,7 @@
 package io.sapl.api.pdp;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
 
@@ -38,6 +39,11 @@ public record AuthorizationDecision(
     public static AuthorizationDecision ofError(String errorMessage) {
         return new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 Value.error(errorMessage));
+    }
+
+    public static AuthorizationDecision ofError(ErrorValue error) {
+        return new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                error);
     }
 
     /**

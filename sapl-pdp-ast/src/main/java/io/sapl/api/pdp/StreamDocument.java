@@ -17,12 +17,12 @@
  */
 package io.sapl.api.pdp;
 
-import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.compiler.TracedAuthorizationDecision;
 import reactor.core.publisher.Flux;
 
 public non-sealed interface StreamDocument extends CompiledDocument {
-    PureOperator targetExpression();
+    CompiledExpression targetExpression();
 
     Flux<TracedAuthorizationDecision> stream();
 }
