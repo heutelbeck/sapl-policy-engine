@@ -23,7 +23,10 @@ import io.sapl.api.pdp.CompiledDocument;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PureDocument;
 import io.sapl.ast.Entitlement;
+import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
+
+import java.util.List;
 import io.sapl.compiler.expressions.ArrayCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
@@ -85,32 +88,20 @@ public class PolicyCompiler {
         if (compiledBody instanceof ErrorValue error) {
             return AuthorizationDecision.ofError(error);
         }
-
         if (Value.FALSE.equals(compiledBody)) {
             return AuthorizationDecision.NOT_APPLICABLE;
         }
+
         val location    = policy.location();
-        var obligations = ArrayCompiler.buildFromCompiled(
-                policy.obligations().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList(), location);
+        val obligations = compileConstraintArray(policy.obligations(), location, "Obligation", ctx);
         if (obligations instanceof ErrorValue error) {
             return AuthorizationDecision.ofError(error);
         }
-        if (obligations instanceof PureOperator po && !po.isDependingOnSubscription()) {
-            throw new SaplCompilerException("Obligation expression contains @ or # outside of proper context.",
-                    policy.location());
-        }
-        obligations = ExpressionCompiler.fold(obligations, ctx);
 
-        var advice = ArrayCompiler.buildFromCompiled(
-                policy.advice().stream().map(a -> ExpressionCompiler.compile(a, ctx)).toList(), location);
+        val advice = compileConstraintArray(policy.advice(), location, "Advice", ctx);
         if (advice instanceof ErrorValue error) {
             return AuthorizationDecision.ofError(error);
         }
-        if (advice instanceof PureOperator po && !po.isDependingOnSubscription()) {
-            throw new SaplCompilerException("Advice expression contains @ or # outside of proper context.",
-                    policy.location());
-        }
-        advice = ExpressionCompiler.fold(advice, ctx);
 
         var resource = policy.transformation() == null ? Value.UNDEFINED
                 : ExpressionCompiler.compile(policy.transformation(), ctx);
@@ -118,35 +109,42 @@ public class PolicyCompiler {
             return AuthorizationDecision.ofError(error);
         }
         if (resource instanceof PureOperator po && !po.isDependingOnSubscription()) {
-            throw new SaplCompilerException("Transformation expression contains @ or # outside of proper context.",
-                    policy.location());
+            throw new SaplCompilerException("Transformation contains @ or # outside of proper context.", location);
         }
         resource = ExpressionCompiler.fold(resource, ctx);
 
         if (obligations instanceof StreamOperator || advice instanceof StreamOperator
                 || resource instanceof StreamOperator) {
-            // Stream path
             return UNIMPLEMENTED;
         }
+
         val decision = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
 
         if (compiledBody instanceof PureOperator || obligations instanceof PureOperator
                 || advice instanceof PureOperator || resource instanceof PureOperator) {
-            // Pure path
-            return new PurePolicy(targetExpression, decision, compiledBody, obligations, advice, resource,
-                    policy.location());
+            return new PurePolicy(targetExpression, decision, compiledBody, obligations, advice, resource, location);
         }
-        // Here compiled Body must be Value.TRUE
-        // Fold decision
+
+        // Here compiledBody must be Value.TRUE, and obligations/advice must be
+        // ArrayValue
         if (!(obligations instanceof ArrayValue) || !(advice instanceof ArrayValue)) {
-            // Should never happen but be defensive.
             throw new SaplCompilerException(
-                    "Unexpected error: obligations or advice did not evaluate to an Array or Error. Got: obligations=%s and advice=%s. Indicates an implementation bug."
+                    "Unexpected error: obligations or advice did not evaluate to an Array. Got: obligations=%s and advice=%s. Indicates an implementation bug."
                             .formatted(obligations, advice),
-                    policy.location());
+                    location);
         }
         return new AuthorizationDecision(decision, (ArrayValue) obligations, (ArrayValue) advice, (Value) resource,
                 Value.UNDEFINED);
+    }
+
+    private static CompiledExpression compileConstraintArray(List<Expression> expressions, SourceLocation location,
+            String name, CompilationContext ctx) {
+        var result = ArrayCompiler.buildFromCompiled(
+                expressions.stream().map(e -> ExpressionCompiler.compile(e, ctx)).toList(), location);
+        if (result instanceof PureOperator po && !po.isDependingOnSubscription()) {
+            throw new SaplCompilerException(name + " contains @ or # outside of proper context.", location);
+        }
+        return ExpressionCompiler.fold(result, ctx);
     }
 
     record PurePolicy(
