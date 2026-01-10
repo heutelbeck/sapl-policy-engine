@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler;
 
+import java.util.List;
+
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.CompiledDocument;
@@ -25,8 +27,6 @@ import io.sapl.api.pdp.PureDocument;
 import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
-
-import java.util.List;
 import io.sapl.compiler.expressions.ArrayCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
@@ -37,26 +37,42 @@ import lombok.val;
 @UtilityClass
 public class PolicyCompiler {
 
+    private static final String ERROR_ADVICE_NOT_ARRAY                 = "Unexpected Error: advice must return an array, but I got: %s.";
+    private static final String ERROR_BODY_RELATIVE_ACCESSOR           = "The policy body contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.";
+    private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR     = "%s contains @ or # outside of proper context.";
+    private static final String ERROR_OBLIGATIONS_NOT_ARRAY            = "Unexpected Error: obligations must return an array, but I got: %s.";
+    private static final String ERROR_TARGET_NOT_BOOLEAN               = "Target expressions must evaluate to Boolean, but got %s.";
+    private static final String ERROR_TARGET_RELATIVE_ACCESSOR         = "The target expression contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.";
+    private static final String ERROR_TARGET_STATIC_ERROR              = "The target expression statically evaluates to an error: %s.";
+    private static final String ERROR_TARGET_STREAM_OPERATOR           = "Target expression must not contain attributes operators <>!.";
+    private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR = "Transformation contains @ or # outside of proper context.";
+    private static final String ERROR_UNEXPECTED_CONSTRAINT_TYPE       = "Unexpected error: obligations or advice did not evaluate to an Array. Got: obligations=%s and advice=%s. Indicates an implementation bug.";
+
     private static final AuthorizationDecision UNIMPLEMENTED = AuthorizationDecision.ofError("UNIMPLEMENTED!");
 
+    /**
+     * Compiles a policy AST into an executable CompiledDocument.
+     *
+     * @param policy the policy AST to compile
+     * @param ctx the compilation context for variable and function resolution
+     * @return a CompiledDocument that can evaluate the policy
+     * @throws SaplCompilerException if the policy contains static errors
+     */
     public CompiledDocument compilePolicy(Policy policy, CompilationContext ctx) {
         val compiledTarget = policy.target() == null ? Value.TRUE
                 : BooleanGuardCompiler.applyBooleanGuard(ExpressionCompiler.compile(policy.target(), ctx),
-                        policy.target().location(), "Target expressions must evaluate to Boolean, but got %s.");
+                        policy.target().location(), ERROR_TARGET_NOT_BOOLEAN);
         if (compiledTarget instanceof ErrorValue error) {
-            throw new SaplCompilerException(
-                    "The target expression statically evaluates to an error: %s.".formatted(error),
-                    policy.target().location());
+            throw new SaplCompilerException(ERROR_TARGET_STATIC_ERROR.formatted(error), policy.target().location());
         }
         return switch (compiledTarget) {
         case Value targetValue                                    ->
             compileWithConstantTarget(policy, targetValue, ctx);
-        case PureOperator po when !po.isDependingOnSubscription() -> throw new SaplCompilerException(
-                "The target expression contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.",
-                policy.target().location());
+        case PureOperator po when !po.isDependingOnSubscription() ->
+            throw new SaplCompilerException(ERROR_TARGET_RELATIVE_ACCESSOR, policy.target().location());
         case PureOperator pureTarget                              -> compilePolicyEvaluation(policy, pureTarget, ctx);
-        case StreamOperator sto                                   -> throw new SaplCompilerException(
-                "Target expression must not contain attributes operators <>!.", policy.target().location());
+        case StreamOperator sto                                   ->
+            throw new SaplCompilerException(ERROR_TARGET_STREAM_OPERATOR, policy.target().location());
         };
     }
 
@@ -74,9 +90,8 @@ public class PolicyCompiler {
         return switch (compiledBody.bodyExpression()) {
         case Value bodyValue                                      ->
             compileConstraintsAndTransform(policy, targetExpression, bodyValue, ctx);
-        case PureOperator po when !po.isDependingOnSubscription() -> throw new SaplCompilerException(
-                "The policy body contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.",
-                policy.body().location());
+        case PureOperator po when !po.isDependingOnSubscription() ->
+            throw new SaplCompilerException(ERROR_BODY_RELATIVE_ACCESSOR, policy.body().location());
         case PureOperator pureBody                                ->
             compileConstraintsAndTransform(policy, targetExpression, pureBody, ctx);
         case StreamOperator sto                                   -> UNIMPLEMENTED;
@@ -109,7 +124,7 @@ public class PolicyCompiler {
             return AuthorizationDecision.ofError(error);
         }
         if (resource instanceof PureOperator po && !po.isDependingOnSubscription()) {
-            throw new SaplCompilerException("Transformation contains @ or # outside of proper context.", location);
+            throw new SaplCompilerException(ERROR_TRANSFORMATION_RELATIVE_ACCESSOR, location);
         }
         resource = ExpressionCompiler.fold(resource, ctx);
 
@@ -128,10 +143,7 @@ public class PolicyCompiler {
         // Here compiledBody must be Value.TRUE, and obligations/advice must be
         // ArrayValue
         if (!(obligations instanceof ArrayValue) || !(advice instanceof ArrayValue)) {
-            throw new SaplCompilerException(
-                    "Unexpected error: obligations or advice did not evaluate to an Array. Got: obligations=%s and advice=%s. Indicates an implementation bug."
-                            .formatted(obligations, advice),
-                    location);
+            throw new SaplCompilerException(ERROR_UNEXPECTED_CONSTRAINT_TYPE.formatted(obligations, advice), location);
         }
         return new AuthorizationDecision(decision, (ArrayValue) obligations, (ArrayValue) advice, (Value) resource,
                 Value.UNDEFINED);
@@ -142,7 +154,7 @@ public class PolicyCompiler {
         var result = ArrayCompiler.buildFromCompiled(
                 expressions.stream().map(e -> ExpressionCompiler.compile(e, ctx)).toList(), location);
         if (result instanceof PureOperator po && !po.isDependingOnSubscription()) {
-            throw new SaplCompilerException(name + " contains @ or # outside of proper context.", location);
+            throw new SaplCompilerException(ERROR_CONSTRAINT_RELATIVE_ACCESSOR.formatted(name), location);
         }
         return ExpressionCompiler.fold(result, ctx);
     }
@@ -169,17 +181,16 @@ public class PolicyCompiler {
                 return AuthorizationDecision.ofError(error);
             }
             if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
-                return AuthorizationDecision.ofError(Value.errorAt(policyLocation,
-                        "Unexpected Error: obligations must return an array, but I got: %s."
-                                .formatted(obligationsValue)));
+                return AuthorizationDecision.ofError(
+                        Value.errorAt(policyLocation, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)));
             }
             val adviceValue = advice instanceof Value vb ? vb : ((PureOperator) advice).evaluate(ctx);
             if (adviceValue instanceof ErrorValue error) {
                 return AuthorizationDecision.ofError(error);
             }
             if (!(adviceValue instanceof ArrayValue adviceArray)) {
-                return AuthorizationDecision.ofError(Value.errorAt(policyLocation,
-                        "Unexpected Error: advice must return an array, but I got: %s.".formatted(adviceValue)));
+                return AuthorizationDecision
+                        .ofError(Value.errorAt(policyLocation, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)));
             }
             val resourceValue = resource instanceof Value vb ? vb : ((PureOperator) resource).evaluate(ctx);
             if (resourceValue instanceof ErrorValue error) {
