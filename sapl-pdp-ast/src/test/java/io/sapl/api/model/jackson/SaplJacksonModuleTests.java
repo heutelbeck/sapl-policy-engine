@@ -152,19 +152,13 @@ class SaplJacksonModuleTests {
         val adviceArr   = new ArrayValue(List.of(advice));
 
         return Stream.of(
-                arguments(
-                        new AuthorizationDecision(
-                                Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED),
+                arguments(new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED),
                         List.of("\"obligations\"", "\"type\":\"log\""), List.of("\"advice\"", "\"resource\"")),
-                arguments(
-                        new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArr, Value.UNDEFINED,
-                                Value.UNDEFINED),
+                arguments(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArr, Value.UNDEFINED),
                         List.of("\"advice\"", "\"recommendation\""), List.of("\"obligations\"", "\"resource\"")),
-                arguments(
-                        new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
-                                Value.UNDEFINED),
+                arguments(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource),
                         List.of("\"resource\"", "\"filtered\":true"), List.of("\"obligations\"", "\"advice\"")),
-                arguments(new AuthorizationDecision(Decision.PERMIT, obligations, adviceArr, resource, Value.UNDEFINED),
+                arguments(new AuthorizationDecision(Decision.PERMIT, obligations, adviceArr, resource),
                         List.of("\"obligations\"", "\"advice\"", "\"resource\""), List.of()));
     }
 
@@ -211,7 +205,7 @@ class SaplJacksonModuleTests {
         val advice     = Value.ofObject(Map.of("suggestion", Value.of("Review access logs")));
         val resource   = Value.ofObject(Map.of("sanitized", Value.TRUE));
         val original   = new AuthorizationDecision(Decision.PERMIT, new ArrayValue(List.of(obligation)),
-                new ArrayValue(List.of(advice)), resource, Value.UNDEFINED);
+                new ArrayValue(List.of(advice)), resource);
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, AuthorizationDecision.class);
@@ -256,8 +250,7 @@ class SaplJacksonModuleTests {
 
     @Test
     void when_roundTrippingIdentifiableDecision_then_preserved() throws JsonProcessingException {
-        val decision = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                Value.UNDEFINED);
+        val decision = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
         val original = new IdentifiableAuthorizationDecision("forbidden-ritual", decision);
 
         val json     = mapper.writeValueAsString(original);
@@ -329,7 +322,7 @@ class SaplJacksonModuleTests {
     void when_roundTrippingMultiDecisionWithObligations_then_obligationsPreserved() throws JsonProcessingException {
         val obligation = Value.ofObject(Map.of("type", Value.of("log_access")));
         val decision   = new AuthorizationDecision(Decision.PERMIT, new ArrayValue(List.of(obligation)),
-                Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
+                Value.EMPTY_ARRAY, Value.UNDEFINED);
 
         val original = new MultiAuthorizationDecision();
         original.setDecision("guarded-action", decision);

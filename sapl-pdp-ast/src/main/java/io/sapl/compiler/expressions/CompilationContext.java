@@ -46,13 +46,24 @@ import java.util.Set;
 @Setter
 @ToString
 public class CompilationContext {
-
+    String                                  pdpId                    = "defaultPdp";
+    String                                  configurationId          = "defaultConfiguration";
     Document                                document;
     String                                  documentSource;
     final FunctionBroker                    functionBroker;
     final AttributeBroker                   attributeBroker;
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
+
+    public CompilationContext(String pdpId,
+            String configurationId,
+            FunctionBroker functionBroker,
+            AttributeBroker attributeBroker) {
+        this.pdpId           = pdpId;
+        this.configurationId = configurationId;
+        this.functionBroker  = functionBroker;
+        this.attributeBroker = attributeBroker;
+    }
 
     /**
      * Creates a compilation context with the specified trace level.

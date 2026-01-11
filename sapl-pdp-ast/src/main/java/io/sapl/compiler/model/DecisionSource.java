@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.compiler.model;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.TracedAuthorizationDecision;
-import reactor.core.publisher.Flux;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import lombok.NonNull;
 
-public non-sealed interface StreamDocument extends CompiledDocument {
-    CompiledExpression targetExpression();
-
-    Flux<TracedAuthorizationDecision> stream();
-}
+public record DecisionSource(
+        @NonNull SourceType sourceType,
+        @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        CombiningAlgorithm combiningAlgorithm) {}

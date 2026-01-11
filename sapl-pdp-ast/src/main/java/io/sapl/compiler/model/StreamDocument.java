@@ -15,11 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.model;
 
 import io.sapl.api.model.CompiledExpression;
 import reactor.core.publisher.Flux;
 
-public record CompiledPolicyBody(
-        CompiledExpression bodyExpression,
-        Flux<TracedPolicyBodyResultAndCoverage> coverageStream) {}
+public non-sealed interface StreamDocument extends CompiledDocument {
+    CompiledExpression targetExpression();
+
+    Flux<TracedAuthorizationDecision> stream();
+}

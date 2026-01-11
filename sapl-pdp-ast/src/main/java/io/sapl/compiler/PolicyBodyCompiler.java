@@ -24,6 +24,8 @@ import io.sapl.ast.*;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.LazyNaryBooleanCompiler;
+import io.sapl.compiler.model.CompiledPolicyBody;
+import io.sapl.compiler.model.TracedPolicyBodyResultAndCoverage;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;

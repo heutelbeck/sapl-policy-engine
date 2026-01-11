@@ -46,7 +46,6 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
         ArrayValue obligations = Value.EMPTY_ARRAY;
         ArrayValue advice      = Value.EMPTY_ARRAY;
         Value      resource    = Value.UNDEFINED;
-        Value      error       = Value.UNDEFINED;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             var fieldName = parser.currentName();
@@ -57,7 +56,6 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
             case "obligations" -> obligations = deserializeArrayValue(parser, context);
             case "advice"      -> advice = deserializeArrayValue(parser, context);
             case "resource"    -> resource = valueDeserializer.deserialize(parser, context);
-            case "error"       -> error = valueDeserializer.deserialize(parser, context);
             default            -> parser.skipChildren();
             }
         }
@@ -66,7 +64,7 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
             throw new IOException("AuthorizationDecision requires decision field.");
         }
 
-        return new AuthorizationDecision(decision, obligations, advice, resource, error);
+        return new AuthorizationDecision(decision, obligations, advice, resource);
     }
 
     private ArrayValue deserializeArrayValue(JsonParser parser, DeserializationContext context) throws IOException {

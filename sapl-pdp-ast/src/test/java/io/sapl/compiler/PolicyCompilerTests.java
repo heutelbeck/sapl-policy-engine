@@ -17,36 +17,35 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.util.SaplTesting.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.Map;
-import java.util.stream.Stream;
-
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Policy;
+import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.AuditableAuthorizationDecision;
+import io.sapl.compiler.model.CompiledDocument;
+import io.sapl.compiler.model.PureDocument;
+import io.sapl.compiler.model.StreamDocument;
+import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.CompiledDocument;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PureDocument;
-import io.sapl.api.pdp.StreamDocument;
-import io.sapl.ast.Policy;
-import io.sapl.compiler.ast.AstTransformer;
-import io.sapl.compiler.expressions.CompilationContext;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
-import lombok.val;
 import reactor.test.StepVerifier;
+
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static io.sapl.util.SaplTesting.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Comprehensive tests for PolicyCompiler covering all document type
@@ -100,7 +99,8 @@ class PolicyCompilerTests {
                     permit
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isInstanceOf(AuthorizationDecision.class).isEqualTo(AuthorizationDecision.PERMIT);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) compiled).decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
@@ -111,7 +111,8 @@ class PolicyCompilerTests {
                     permit false
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isEqualTo(AuthorizationDecision.NOT_APPLICABLE);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) compiled).decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
@@ -122,7 +123,8 @@ class PolicyCompilerTests {
                     permit true
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isInstanceOf(AuthorizationDecision.class).isEqualTo(AuthorizationDecision.PERMIT);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) compiled).decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
@@ -179,7 +181,8 @@ class PolicyCompilerTests {
                     permit
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isEqualTo(AuthorizationDecision.PERMIT);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) compiled).decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
@@ -190,7 +193,8 @@ class PolicyCompilerTests {
                     deny
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isEqualTo(AuthorizationDecision.DENY);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) compiled).decision()).isEqualTo(Decision.DENY);
         }
 
         @Test
@@ -202,7 +206,8 @@ class PolicyCompilerTests {
                     where false;
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isEqualTo(AuthorizationDecision.NOT_APPLICABLE);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) compiled).decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
@@ -260,7 +265,7 @@ class PolicyCompilerTests {
                     // Value stratum only
                     arguments("Value body with value constraints yields AuthorizationDecision",
                             "permit true obligation \"follow_owner\" advice \"dont_eat_anyone\" transform \"sapient_pearwood\"",
-                            AuthorizationDecision.class, null),
+                            AuditableAuthorizationDecision.class, null),
 
                     // Pure body, no constraints -> SimplePurePolicy
                     arguments("Pure body without constraints yields SimplePurePolicy",
@@ -391,7 +396,8 @@ class PolicyCompilerTests {
             val compiled = compile(policy);
             val pureDoc  = (PureDocument) compiled;
             val decision = pureDoc.evaluateBody(rincewindContext());
-            assertThat(decision).isEqualTo(AuthorizationDecision.NOT_APPLICABLE);
+            assertThat(decision).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) decision).decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
@@ -486,8 +492,8 @@ class PolicyCompilerTests {
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision())
-                            .isEqualTo(AuthorizationDecision.NOT_APPLICABLE))
+                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE))
                     .assertNext(tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
                     .verifyComplete();
         }
@@ -592,8 +598,8 @@ class PolicyCompilerTests {
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision())
-                            .isEqualTo(AuthorizationDecision.NOT_APPLICABLE))
+                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE))
                     .verifyComplete();
         }
 
@@ -804,7 +810,7 @@ class PolicyCompilerTests {
         }
 
         @Test
-        @DisplayName("PurePolicy with object transform in decision")
+        @DisplayName("PurePolicy with object transform in applicableDecision")
         void vetinariSurveillanceAccess() {
             val policy   = """
                     policy "Patrician Surveillance Network Access"
@@ -850,9 +856,9 @@ class PolicyCompilerTests {
                     obligation "prepare_operating_table"
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isInstanceOf(AuthorizationDecision.class);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
 
-            val decision = (AuthorizationDecision) compiled;
+            val decision = (AuditableAuthorizationDecision) compiled;
             assertThat(decision.obligations()).hasSize(3);
         }
 
@@ -866,14 +872,14 @@ class PolicyCompilerTests {
                     advice "avoid_cackling"
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isInstanceOf(AuthorizationDecision.class);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
 
-            val decision = (AuthorizationDecision) compiled;
+            val decision = (AuditableAuthorizationDecision) compiled;
             assertThat(decision.advice()).hasSize(2);
         }
 
         @Test
-        @DisplayName("Empty body with constraints yields static decision with obligations")
+        @DisplayName("Empty body with constraints yields static applicableDecision with obligations")
         void whenEmptyBodyWithConstraints_thenClacksObligationsEvaluated() {
             val policy   = """
                     policy "Clacks Tower Always-On Protocol"
@@ -881,15 +887,15 @@ class PolicyCompilerTests {
                     obligation "gnu_terry_pratchett"
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isInstanceOf(AuthorizationDecision.class);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
 
-            val decision = (AuthorizationDecision) compiled;
+            val decision = (AuditableAuthorizationDecision) compiled;
             assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
             assertThat(decision.obligations()).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Complex nested object transform preserved in decision")
+        @DisplayName("Complex nested object transform preserved in applicableDecision")
         void whenComplexTransformation_thenCensusDataPreserved() {
             val policy   = """
                     policy "Ankh-Morpork Census Record"
@@ -904,9 +910,9 @@ class PolicyCompilerTests {
                     }
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isInstanceOf(AuthorizationDecision.class);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
 
-            val decision = (AuthorizationDecision) compiled;
+            val decision = (AuditableAuthorizationDecision) compiled;
             assertThat(decision.resource()).isNotNull().isNotInstanceOf(UndefinedValue.class);
         }
 
@@ -920,7 +926,8 @@ class PolicyCompilerTests {
                         false && (1/0 == 0);
                     """;
             val compiled = compile(policy);
-            assertThat(compiled).isEqualTo(AuthorizationDecision.NOT_APPLICABLE);
+            assertThat(compiled).isInstanceOf(AuditableAuthorizationDecision.class);
+            assertThat(((AuditableAuthorizationDecision) compiled).decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
@@ -993,8 +1000,8 @@ class PolicyCompilerTests {
 
             val streamDoc = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision())
-                            .isEqualTo(AuthorizationDecision.NOT_APPLICABLE))
+                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE))
                     .verifyComplete();
         }
 

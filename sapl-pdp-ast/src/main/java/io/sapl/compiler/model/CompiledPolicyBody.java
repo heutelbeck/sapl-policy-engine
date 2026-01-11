@@ -15,7 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.compiler.model;
 
-public sealed interface CompiledDocument permits AuthorizationDecision, PureDocument, StreamDocument {
-}
+import io.sapl.api.model.CompiledExpression;
+import reactor.core.publisher.Flux;
+
+public record CompiledPolicyBody(
+        CompiledExpression bodyExpression,
+        Flux<TracedPolicyBodyResultAndCoverage> coverageStream) {}

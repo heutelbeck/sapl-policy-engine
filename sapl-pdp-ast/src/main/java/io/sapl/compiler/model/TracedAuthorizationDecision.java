@@ -15,13 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.compiler.model;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.pdp.traced.AttributeRecord;
 
-public non-sealed interface PureDocument extends CompiledDocument {
-    CompiledExpression targetExpression();
+import java.util.List;
 
-    AuthorizationDecision evaluateBody(EvaluationContext ctx);
+public record TracedAuthorizationDecision(
+        AuditableAuthorizationDecision authorizationDecision,
+        List<AttributeRecord> contributingAttributes) {
+    public static TracedAuthorizationDecision of(AuditableAuthorizationDecision authorizationDecision) {
+        return new TracedAuthorizationDecision(authorizationDecision, List.of());
+    }
 }

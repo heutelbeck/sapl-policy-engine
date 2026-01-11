@@ -26,58 +26,14 @@ public record AuthorizationDecision(
         @NonNull Decision decision,
         @NonNull ArrayValue obligations,
         @NonNull ArrayValue advice,
-        @NonNull Value resource,
-        @NonNull Value error) implements CompiledDocument {
+        @NonNull Value resource) {
     public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
-            Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
+            Value.EMPTY_ARRAY, Value.UNDEFINED);
     public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY,
-            Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
-    public static final AuthorizationDecision INDETERMINATE = ofError("Unspecified failure.");
+            Value.EMPTY_ARRAY, Value.UNDEFINED);
+    public static final AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE,
+            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
     public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE,
-            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED);
+            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
 
-    public static AuthorizationDecision ofError(String errorMessage) {
-        return new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                Value.error(errorMessage));
-    }
-
-    public static AuthorizationDecision ofError(ErrorValue error) {
-        return new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                error);
-    }
-
-    /**
-     * Creates an AuthorizationDecision from an ObjectValue representation.
-     *
-     * @param value the ObjectValue containing decision fields
-     * @return the AuthorizationDecision
-     * @throws IllegalArgumentException if the value is not a valid
-     * AuthorizationDecision
-     */
-    public static AuthorizationDecision of(Value value) {
-        if (!(value instanceof io.sapl.api.model.ObjectValue obj)) {
-            throw new IllegalArgumentException("AuthorizationDecision must be an ObjectValue");
-        }
-
-        var decisionValue = obj.get("decision");
-        if (!(decisionValue instanceof io.sapl.api.model.TextValue tv)) {
-            throw new IllegalArgumentException("Decision field must be a TextValue");
-        }
-        var decision = Decision.valueOf(tv.value());
-
-        var obligationsValue = obj.getOrDefault("obligations", Value.EMPTY_ARRAY);
-        if (!(obligationsValue instanceof ArrayValue obligations)) {
-            throw new IllegalArgumentException("Obligations field must be an ArrayValue");
-        }
-
-        var adviceValue = obj.getOrDefault("advice", Value.EMPTY_ARRAY);
-        if (!(adviceValue instanceof ArrayValue advice)) {
-            throw new IllegalArgumentException("Advice field must be an ArrayValue");
-        }
-
-        var resource = obj.getOrDefault("resource", Value.UNDEFINED);
-        var error    = obj.getOrDefault("error", Value.UNDEFINED);
-
-        return new AuthorizationDecision(decision, obligations, advice, resource, error);
-    }
 }

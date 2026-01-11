@@ -22,6 +22,7 @@ import io.sapl.api.pdp.traced.ConditionHit;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
 import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.model.TracedPolicyBodyResultAndCoverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
 import org.jspecify.annotations.NonNull;
