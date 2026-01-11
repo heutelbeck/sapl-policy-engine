@@ -17,11 +17,7 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.util.TestBrokers.ERROR_ATTRIBUTE_BROKER;
-import static io.sapl.util.TestBrokers.attributeBroker;
-import static io.sapl.util.TestBrokers.compilationContext;
-import static io.sapl.util.TestBrokers.evaluationContext;
-import static io.sapl.util.TestBrokers.parseSubscription;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -74,7 +70,7 @@ class PolicyCompilerTests {
     }
 
     private static CompiledDocument compile(String policySource) {
-        return compile(policySource, compilationContext(ERROR_ATTRIBUTE_BROKER));
+        return compile(policySource, compilationContext(ATTRIBUTE_BROKER));
     }
 
     private static CompiledDocument compile(String policySource, CompilationContext ctx) {
@@ -165,7 +161,7 @@ class PolicyCompilerTests {
         @DisplayName("Target validation errors")
         void targetValidationErrors(String scenario, String policySource, String attrName, String expectedMessage) {
             val ctx = attrName != null ? compilationContext(attributeBroker(attrName, Value.of("value")))
-                    : compilationContext(ERROR_ATTRIBUTE_BROKER);
+                    : compilationContext(ATTRIBUTE_BROKER);
             assertThatThrownBy(() -> compile(policySource, ctx)).isInstanceOf(SaplCompilerException.class)
                     .hasMessageContaining(expectedMessage);
         }
@@ -334,7 +330,7 @@ class PolicyCompilerTests {
                             new Value[] { Value.of("logged") })));
                 }
             } else {
-                ctx = compilationContext(ERROR_ATTRIBUTE_BROKER);
+                ctx = compilationContext(ATTRIBUTE_BROKER);
             }
             val compiled = compile(policy, ctx);
             assertThat(compiled).isInstanceOf(expectedType);

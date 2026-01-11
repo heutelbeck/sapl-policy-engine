@@ -20,35 +20,31 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.Literal;
 import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.*;
-import static io.sapl.util.TestBrokers.DEFAULT_FUNCTION_BROKER;
-import static io.sapl.util.TestBrokers.ERROR_ATTRIBUTE_BROKER;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mockStatic;
 
+@ExtendWith(MockitoExtension.class)
 class AttributeOptionsCompilerTests {
 
-    private static final SourceLocation LOCATION = new SourceLocation("test", null, 0, 10, 1, 1);
-
+    @Mock
     private CompilationContext compilationCtx;
-
-    @BeforeEach
-    void setUp() {
-        compilationCtx = mock(CompilationContext.class);
-    }
 
     @Nested
     class CompileOptionsTests {
 
         @Test
         void when_nullOptionsExpression_then_returnsOptionsRecord() {
-            val result = AttributeOptionsCompiler.compileOptions(null, LOCATION, compilationCtx);
+            val result = AttributeOptionsCompiler.compileOptions(null, TEST_LOCATION, compilationCtx);
 
             assertThat(result).isInstanceOf(PureOperator.class);
         }
@@ -58,12 +54,12 @@ class AttributeOptionsCompilerTests {
             val allOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L))
                     .put(OPTION_POLL_INTERVAL, Value.of(60000L)).put(OPTION_BACKOFF, Value.of(2000L))
                     .put(OPTION_RETRIES, Value.of(5L)).put(OPTION_FRESH, Value.TRUE).build();
-            val expr       = new Literal(allOptions, LOCATION);
+            val expr       = new Literal(allOptions, TEST_LOCATION);
 
             try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(allOptions);
 
-                val result = AttributeOptionsCompiler.compileOptions(expr, LOCATION, compilationCtx);
+                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
 
                 assertThat(result).isSameAs(allOptions);
             }
@@ -72,12 +68,12 @@ class AttributeOptionsCompilerTests {
         @Test
         void when_objectValueWithPartialOptions_then_returnsOptionsRecord() {
             val partialOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L)).build();
-            val expr           = new Literal(partialOptions, LOCATION);
+            val expr           = new Literal(partialOptions, TEST_LOCATION);
 
             try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(partialOptions);
 
-                val result = AttributeOptionsCompiler.compileOptions(expr, LOCATION, compilationCtx);
+                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
 
                 assertThat(result).isInstanceOf(PureOperator.class);
             }
@@ -85,13 +81,13 @@ class AttributeOptionsCompilerTests {
 
         @Test
         void when_pureOperator_then_returnsOptionsRecord() {
-            val pureOp = mock(PureOperator.class);
-            val expr   = new Literal(Value.NULL, LOCATION);
+            val pureOp = new TestPureOperator(ctx -> Value.NULL);
+            val expr   = new Literal(Value.NULL, TEST_LOCATION);
 
             try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(pureOp);
 
-                val result = AttributeOptionsCompiler.compileOptions(expr, LOCATION, compilationCtx);
+                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
 
                 assertThat(result).isInstanceOf(PureOperator.class);
             }
@@ -99,13 +95,13 @@ class AttributeOptionsCompilerTests {
 
         @Test
         void when_streamOperator_then_returnsError() {
-            val streamOp = mock(StreamOperator.class);
-            val expr     = new Literal(Value.NULL, LOCATION);
+            val streamOp = new TestStreamOperator(Value.NULL);
+            val expr     = new Literal(Value.NULL, TEST_LOCATION);
 
             try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(streamOp);
 
-                val result = AttributeOptionsCompiler.compileOptions(expr, LOCATION, compilationCtx);
+                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
 
                 assertThat(result).isInstanceOf(ErrorValue.class);
                 assertThat(((ErrorValue) result).message()).contains("Attribute access not permitted");
@@ -114,12 +110,12 @@ class AttributeOptionsCompilerTests {
 
         @Test
         void when_nonObjectValue_then_returnsError() {
-            val expr = new Literal(Value.NULL, LOCATION);
+            val expr = new Literal(Value.NULL, TEST_LOCATION);
 
             try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(Value.of(123));
 
-                val result = AttributeOptionsCompiler.compileOptions(expr, LOCATION, compilationCtx);
+                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
 
                 assertThat(result).isInstanceOf(ErrorValue.class);
                 assertThat(((ErrorValue) result).message()).contains("type mismatch");
@@ -129,12 +125,12 @@ class AttributeOptionsCompilerTests {
         @Test
         void when_errorValue_then_propagatesError() {
             val error = Value.error("compilation error");
-            val expr  = new Literal(Value.NULL, LOCATION);
+            val expr  = new Literal(Value.NULL, TEST_LOCATION);
 
             try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(error);
 
-                val result = AttributeOptionsCompiler.compileOptions(expr, LOCATION, compilationCtx);
+                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
 
                 assertThat(result).isSameAs(error);
             }
@@ -144,14 +140,11 @@ class AttributeOptionsCompilerTests {
     @Nested
     class OptionsEvaluateTests {
 
-        // Helper to create real EvaluationContext with specific attribute finder
-        // options
         private EvaluationContext evalContextWith(Value attributeFinderOptions) {
             Map<String, Value> variables = attributeFinderOptions != null
                     ? Map.of(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, attributeFinderOptions)
                     : Map.of();
-            return new EvaluationContext(null, null, null, null, variables, DEFAULT_FUNCTION_BROKER,
-                    ERROR_ATTRIBUTE_BROKER, () -> "test");
+            return evaluationContext(DEFAULT_FUNCTION_BROKER, variables);
         }
 
         @Test
@@ -160,7 +153,7 @@ class AttributeOptionsCompilerTests {
             val pdpOptions    = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(1111L)).build();
             val evalCtx       = evalContextWith(pdpOptions);
 
-            val options = new AttributeOptionsCompiler.Options(policyOptions, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(policyOptions, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isInstanceOf(ObjectValue.class);
@@ -175,7 +168,7 @@ class AttributeOptionsCompilerTests {
                     .put(OPTION_RETRIES, Value.of(1L)).build();
             val evalCtx       = evalContextWith(pdpOptions);
 
-            val options = new AttributeOptionsCompiler.Options(policyOptions, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(policyOptions, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isInstanceOf(ObjectValue.class);
@@ -188,7 +181,7 @@ class AttributeOptionsCompilerTests {
         void when_noPolicyAndNoPdp_then_returnsEmptyObject() {
             val evalCtx = evalContextWith(null);
 
-            val options = new AttributeOptionsCompiler.Options(null, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(null, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isInstanceOf(ObjectValue.class);
@@ -200,7 +193,7 @@ class AttributeOptionsCompilerTests {
         void when_pdpSettingsNotObject_then_returnsError() {
             val evalCtx = evalContextWith(Value.of("invalid"));
 
-            val options = new AttributeOptionsCompiler.Options(null, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(null, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isInstanceOf(ErrorValue.class);
@@ -210,11 +203,10 @@ class AttributeOptionsCompilerTests {
         @Test
         void when_policyIsPureOperator_then_evaluatesIt() {
             val evaluatedOptions = ObjectValue.builder().put(OPTION_FRESH, Value.TRUE).build();
-            val pureOp           = mock(PureOperator.class);
+            val pureOp           = new TestPureOperator(ctx -> evaluatedOptions);
             val evalCtx          = evalContextWith(null);
-            when(pureOp.evaluate(evalCtx)).thenReturn(evaluatedOptions);
 
-            val options = new AttributeOptionsCompiler.Options(pureOp, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(pureOp, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isInstanceOf(ObjectValue.class);
@@ -225,11 +217,10 @@ class AttributeOptionsCompilerTests {
         @Test
         void when_policyPureOperatorReturnsError_then_propagatesError() {
             val error   = Value.error("evaluation failed");
-            val pureOp  = mock(PureOperator.class);
+            val pureOp  = new TestPureOperator(ctx -> error);
             val evalCtx = evalContextWith(null);
-            when(pureOp.evaluate(evalCtx)).thenReturn(error);
 
-            val options = new AttributeOptionsCompiler.Options(pureOp, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(pureOp, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isSameAs(error);
@@ -237,11 +228,10 @@ class AttributeOptionsCompilerTests {
 
         @Test
         void when_policyPureOperatorReturnsNonObject_then_returnsError() {
-            val pureOp  = mock(PureOperator.class);
+            val pureOp  = new TestPureOperator(ctx -> Value.of(42));
             val evalCtx = evalContextWith(null);
-            when(pureOp.evaluate(evalCtx)).thenReturn(Value.of(42));
 
-            val options = new AttributeOptionsCompiler.Options(pureOp, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(pureOp, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isInstanceOf(ErrorValue.class);
@@ -258,7 +248,7 @@ class AttributeOptionsCompilerTests {
                     .put(OPTION_RETRIES, Value.of(9999L)).put(OPTION_FRESH, Value.FALSE).build();
             val evalCtx       = evalContextWith(pdpOptions);
 
-            val options = new AttributeOptionsCompiler.Options(policyOptions, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(policyOptions, TEST_LOCATION);
             val result  = options.evaluate(evalCtx);
 
             assertThat(result).isInstanceOf(ObjectValue.class);
@@ -272,7 +262,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         void when_isDependingOnSubscription_then_returnsTrue() {
-            val options = new AttributeOptionsCompiler.Options(null, LOCATION);
+            val options = new AttributeOptionsCompiler.Options(null, TEST_LOCATION);
 
             assertThat(options.isDependingOnSubscription()).isTrue();
         }

@@ -17,12 +17,9 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.util.SimpleFunctionLibrary;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Value;
 import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,9 +31,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.parseExpression;
-import static io.sapl.util.TestBrokers.ERROR_ATTRIBUTE_BROKER;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -50,18 +45,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  */
 @DisplayName("Filter Expressions")
 class FilterExpressionTests {
-
-    private static CompilationContext compilationContext;
-    private static EvaluationContext  evaluationContext;
-
-    @BeforeAll
-    static void setupFunctionBroker() {
-        val broker = new DefaultFunctionBroker();
-        broker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
-        broker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-        compilationContext = new CompilationContext(broker, ERROR_ATTRIBUTE_BROKER);
-        evaluationContext  = new EvaluationContext(null, null, null, null, broker, ERROR_ATTRIBUTE_BROKER);
-    }
 
     @Nested
     @DisplayName("Basic Filter Operations")
@@ -514,18 +497,12 @@ class FilterExpressionTests {
         // @formatter:on
     }
 
-    private void assertEvaluatesTo(String expression, Value expected) {
-        val result = evaluate(expression);
-        assertThat(result).isEqualTo(expected);
+    private static void assertEvaluatesTo(String expression, Value expected) {
+        assertThat(evaluateExpression(expression)).isEqualTo(expected);
     }
 
-    private CompiledExpression evaluate(String expression) {
-        val compiled = compileExpression(expression, compilationContext);
-        return switch (compiled) {
-        case Value v         -> v;
-        case PureOperator op -> op.evaluate(evaluationContext);
-        default              -> compiled;
-        };
+    private static Value evaluate(String expression) {
+        return (Value) evaluateExpression(expression);
     }
 
 }

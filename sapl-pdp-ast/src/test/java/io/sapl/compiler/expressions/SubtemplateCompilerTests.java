@@ -22,9 +22,6 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
-import io.sapl.ast.BinaryOperator;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.ast.Literal;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,7 +30,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static io.sapl.util.ExpressionTestUtil.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -49,103 +46,56 @@ class SubtemplateCompilerTests {
     // @formatter:off
     private static Stream<Arguments> when_subtemplateExpression_then_returnsExpected() {
         return Stream.of(
-            // === Literals ===
-            // Array with @ (relative value) - basic identity
-            arguments("array with identity template", "[1, 2, 3] :: @",
-                Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-            // Array with # (relative location/index)
-            arguments("array with index only", "[10, 20, 30] :: #",
-                Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
-            // Empty array
-            arguments("empty array with @ returns empty", "[] :: @", Value.EMPTY_ARRAY),
-            arguments("empty array with # returns empty", "[] :: #", Value.EMPTY_ARRAY),
-            // Scalar (non-array) values
-            arguments("scalar with @ identity", "5 :: @", Value.of(5)),
-            arguments("scalar with # (should be 0)", "5 :: #", Value.of(0)),
+            arguments("array with identity template", "[1, 2, 3] :: @", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            arguments("array with index only", "[10, 20, 30] :: #", Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
+            arguments("empty array with @", "[] :: @", Value.EMPTY_ARRAY),
+            arguments("empty array with #", "[] :: #", Value.EMPTY_ARRAY),
+            arguments("scalar with @", "5 :: @", Value.of(5)),
+            arguments("scalar with #", "5 :: #", Value.of(0)),
             arguments("scalar string with @", "\"hello\" :: @", Value.of("hello")),
-            // Constant template (ignores @)
-            arguments("constant template on array", "[1, 2, 3] :: 99",
-                Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
+            arguments("constant template on array", "[1, 2, 3] :: 99", Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
             arguments("constant template on scalar", "5 :: 99", Value.of(99)),
-            // String operations
-            arguments("string array identity", "[\"a\", \"b\"] :: @",
-                Value.ofArray(Value.of("a"), Value.of("b"))),
-            // Null handling
-            arguments("null template result", "[1, 2] :: null", Value.ofArray(Value.NULL, Value.NULL)),
-            // Nested arrays
-            arguments("nested array identity", "[[1, 2], [3, 4]] :: @",
-                Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)))),
-
-            // === Objects ===
-            arguments("object with value identity", "{\"a\": 1, \"b\": 2} :: @",
-                Value.ofArray(Value.of(1), Value.of(2))),
-            arguments("object with key only", "{\"foo\": 1, \"bar\": 2} :: #",
-                Value.ofArray(Value.of("foo"), Value.of("bar"))),
-            arguments("empty object returns empty array", "{} :: @", Value.EMPTY_ARRAY),
-            arguments("empty object with key", "{} :: #", Value.EMPTY_ARRAY),
-
-            // === Arithmetic ===
-            arguments("array multiply each", "[1, 2, 3] :: (@ * 2)",
-                Value.ofArray(Value.of(2), Value.of(4), Value.of(6))),
-            arguments("array add constant", "[1, 2, 3] :: (@ + 10)",
-                Value.ofArray(Value.of(11), Value.of(12), Value.of(13))),
-            arguments("value plus index", "[10, 20, 30] :: (@ + #)",
-                Value.ofArray(Value.of(10), Value.of(21), Value.of(32))),
-            arguments("index times ten", "[5, 5, 5] :: (# * 10)",
-                Value.ofArray(Value.of(0), Value.of(10), Value.of(20))),
+            arguments("string array identity", "[\"a\", \"b\"] :: @", Value.ofArray(Value.of("a"), Value.of("b"))),
+            arguments("null template", "[1, 2] :: null", Value.ofArray(Value.NULL, Value.NULL)),
+            arguments("nested array identity", "[[1, 2], [3, 4]] :: @", Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)))),
+            arguments("object with value identity", "{\"a\": 1, \"b\": 2} :: @", Value.ofArray(Value.of(1), Value.of(2))),
+            arguments("object with key only", "{\"foo\": 1, \"bar\": 2} :: #", Value.ofArray(Value.of("foo"), Value.of("bar"))),
+            arguments("empty object with @", "{} :: @", Value.EMPTY_ARRAY),
+            arguments("empty object with #", "{} :: #", Value.EMPTY_ARRAY),
+            arguments("array multiply each", "[1, 2, 3] :: (@ * 2)", Value.ofArray(Value.of(2), Value.of(4), Value.of(6))),
+            arguments("array add constant", "[1, 2, 3] :: (@ + 10)", Value.ofArray(Value.of(11), Value.of(12), Value.of(13))),
+            arguments("value plus index", "[10, 20, 30] :: (@ + #)", Value.ofArray(Value.of(10), Value.of(21), Value.of(32))),
+            arguments("index times ten", "[5, 5, 5] :: (# * 10)", Value.ofArray(Value.of(0), Value.of(10), Value.of(20))),
             arguments("scalar multiply", "5 :: (@ * 3)", Value.of(15)),
             arguments("scalar with index", "100 :: (@ + #)", Value.of(100)),
-
-            // === Object Access ===
-            arguments("extract field from array of objects", "[{\"x\": 1}, {\"x\": 2}, {\"x\": 3}] :: @.x",
-                Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-            arguments("nested field access", "[{\"a\": {\"b\": 1}}, {\"a\": {\"b\": 2}}] :: @.a.b",
-                Value.ofArray(Value.of(1), Value.of(2))),
-
-            // === Nested Subtemplate ===
-            arguments("nested array transform", "[[1, 2], [3, 4]] :: (@ :: (@ * 2))",
-                Value.ofArray(Value.ofArray(Value.of(2), Value.of(4)), Value.ofArray(Value.of(6), Value.of(8)))),
-
-            // === Boolean Expressions ===
-            arguments("compare each to threshold", "[1, 5, 10] :: (@ > 3)",
-                Value.ofArray(Value.FALSE, Value.TRUE, Value.TRUE)),
-            arguments("even index check", "[10, 20, 30, 40] :: (# == 0 || # == 2)",
-                Value.ofArray(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)));
+            arguments("extract field from array of objects", "[{\"x\": 1}, {\"x\": 2}, {\"x\": 3}] :: @.x", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            arguments("nested field access", "[{\"a\": {\"b\": 1}}, {\"a\": {\"b\": 2}}] :: @.a.b", Value.ofArray(Value.of(1), Value.of(2))),
+            arguments("nested array transform", "[[1, 2], [3, 4]] :: (@ :: (@ * 2))", Value.ofArray(Value.ofArray(Value.of(2), Value.of(4)), Value.ofArray(Value.of(6), Value.of(8)))),
+            arguments("compare each to threshold", "[1, 5, 10] :: (@ > 3)", Value.ofArray(Value.FALSE, Value.TRUE, Value.TRUE)),
+            arguments("even index check", "[10, 20, 30, 40] :: (# == 0 || # == 2)", Value.ofArray(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)));
     }
     // @formatter:on
 
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_subtemplateWithSpecialValues_then_propagatesCorrectly(String description, Value left, Value right,
-            Class<?> expectedType, Value expectedValue) {
-        val compiler  = new SubtemplateCompiler();
-        val ctx       = new CompilationContext(null, null);
-        val leftExpr  = new Literal(left, TEST_LOCATION);
-        val rightExpr = new Literal(right, TEST_LOCATION);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOCATION);
-
-        val result = compiler.compile(binaryOp, ctx);
-        assertThat(result).isInstanceOf(expectedType);
-        if (expectedValue != null) {
-            assertThat(result).isEqualTo(expectedValue);
-        }
+    @Test
+    void when_undefinedParent_then_propagatesUndefined() {
+        assertCompilesTo("undefined :: 1", Value.UNDEFINED);
     }
 
-    private static Stream<Arguments> when_subtemplateWithSpecialValues_then_propagatesCorrectly() {
-        return Stream.of(
-                arguments("undefined parent propagates undefined", Value.UNDEFINED, Value.of(1), Value.class,
-                        Value.UNDEFINED),
-                arguments("error parent propagates error", Value.error("test error"), Value.of(1), ErrorValue.class,
-                        null),
-                arguments("error template propagates error", Value.of(5), Value.error("template error"),
-                        ErrorValue.class, null));
+    @Test
+    void when_errorParent_then_propagatesError() {
+        assertCompilesToError("(1/0) :: 1", "Division by zero");
+    }
+
+    @Test
+    void when_errorTemplate_then_propagatesError() {
+        assertCompilesToError("5 :: (1/0)", "Division by zero");
     }
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_applyPureTemplate_then_returnsExpected(String description, Value parent, TestPureOperator template,
             Value expected) {
-        val result = SubtemplateCompiler.applyPureTemplate(parent, template, emptyEvaluationContext());
+        val result = SubtemplateCompiler.applyPureTemplate(parent, template, evaluationContext());
         if (expected instanceof ErrorValue) {
             assertThat(result).isInstanceOf(ErrorValue.class);
         } else {
@@ -179,9 +129,8 @@ class SubtemplateCompilerTests {
         val obj      = obj("alpha", Value.of(1), "beta", Value.of(2));
         val template = new TestPureOperator(EvaluationContext::relativeLocation);
 
-        val result = SubtemplateCompiler.applyPureTemplate(obj, template, emptyEvaluationContext());
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        assertThat((ArrayValue) result).hasSize(2);
+        val result = SubtemplateCompiler.applyPureTemplate(obj, template, evaluationContext());
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, arr -> assertThat(arr).hasSize(2));
     }
 
     @MethodSource
@@ -259,7 +208,7 @@ class SubtemplateCompilerTests {
                      });
 
         val op     = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOCATION);
-        val result = op.evaluate(emptyEvaluationContext());
+        val result = op.evaluate(evaluationContext());
 
         assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(21)));
     }
@@ -270,7 +219,7 @@ class SubtemplateCompilerTests {
         val parent     = new TestPureOperator(ctx -> arrayValue);
 
         val op     = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(99), TEST_LOCATION);
-        val result = op.evaluate(emptyEvaluationContext());
+        val result = op.evaluate(evaluationContext());
 
         assertThat(result).isEqualTo(Value.ofArray(Value.of(99), Value.of(99), Value.of(99)));
     }
@@ -286,7 +235,7 @@ class SubtemplateCompilerTests {
         });
 
         val op     = new SubtemplateCompiler.SubtemplatePurePure(parent, template, TEST_LOCATION);
-        val result = op.evaluate(emptyEvaluationContext());
+        val result = op.evaluate(evaluationContext());
 
         assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(20)));
     }

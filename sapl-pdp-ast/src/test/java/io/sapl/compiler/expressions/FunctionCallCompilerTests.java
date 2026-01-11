@@ -25,9 +25,7 @@ import reactor.test.StepVerifier;
 import java.util.ArrayList;
 import java.util.Map;
 
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static io.sapl.util.TestBrokers.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FunctionCallCompilerTests {
@@ -159,7 +157,7 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withMultipleStreamArgs_then_combinesLatest() {
-        var attrBroker = multiAttributeBroker(Map.of("a.attr", Value.of("A1"), "b.attr", Value.of("B1")));
+        var attrBroker = singleValueAttributeBroker(Map.of("a.attr", Value.of("A1"), "b.attr", Value.of("B1")));
         var captured   = new ArrayList<FunctionInvocation>();
         var fnBroker   = capturingFunctionBroker(captured, args -> {
                            var a = ((TextValue) args.get(0)).value();
@@ -178,7 +176,8 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withMultipleStreams_andOneError_then_propagatesError() {
-        var attrBroker = multiAttributeBroker(Map.of("ok.attr", Value.of("ok"), "err.attr", Value.error("bad stream")));
+        var attrBroker = singleValueAttributeBroker(
+                Map.of("ok.attr", Value.of("ok"), "err.attr", Value.error("bad stream")));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
         var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
         var result     = evaluateExpression("test.fn(<ok.attr>, <err.attr>)", evalCtx);
@@ -232,7 +231,7 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withMultipleStreams_then_mergesAllContributingAttributes() {
-        var attrBroker = multiAttributeBroker(Map.of("a.attr", Value.of("A"), "b.attr", Value.of("B")));
+        var attrBroker = singleValueAttributeBroker(Map.of("a.attr", Value.of("A"), "b.attr", Value.of("B")));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("result"));
         var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
         var result     = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);

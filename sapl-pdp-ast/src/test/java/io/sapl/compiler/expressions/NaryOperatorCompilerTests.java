@@ -28,8 +28,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 import static io.sapl.api.model.Value.of;
-import static io.sapl.util.ExpressionTestUtil.*;
-import static io.sapl.util.TestBrokers.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -362,7 +361,7 @@ class NaryOperatorCompilerTests {
 
         @Test
         void when_multipleStreams_then_combineLatest() {
-            var broker   = multiAttributeBroker(Map.of("a.attr", of(5), "b.attr", of(3)));
+            var broker   = singleValueAttributeBroker(Map.of("a.attr", of(5), "b.attr", of(3)));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("<a.attr> + <b.attr>", broker);
 

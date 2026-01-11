@@ -31,9 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static io.sapl.util.TestBrokers.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LazyBooleanOperationCompilerTests {

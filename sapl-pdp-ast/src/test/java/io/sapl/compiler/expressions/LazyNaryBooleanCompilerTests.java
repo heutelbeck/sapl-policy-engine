@@ -28,8 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.sapl.api.model.Value.of;
-import static io.sapl.util.ExpressionTestUtil.*;
-import static io.sapl.util.TestBrokers.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -325,7 +324,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunction_multipleStreams_allTrue_then_true() {
-            var broker   = multiAttributeBroker(Map.of("a.attr", Value.TRUE, "b.attr", Value.TRUE));
+            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.TRUE, "b.attr", Value.TRUE));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("<a.attr> && <b.attr>", broker);
 
@@ -335,7 +334,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunction_multipleStreams_firstFalse_shortCircuits() {
-            var broker   = multiAttributeBroker(Map.of("a.attr", Value.FALSE, "b.attr", Value.TRUE));
+            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.FALSE, "b.attr", Value.TRUE));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("<a.attr> && <b.attr>", broker);
 
@@ -376,7 +375,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunction_multipleStreams_allFalse_then_false() {
-            var broker   = multiAttributeBroker(Map.of("a.attr", Value.FALSE, "b.attr", Value.FALSE));
+            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.FALSE, "b.attr", Value.FALSE));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("<a.attr> || <b.attr>", broker);
 
@@ -387,7 +386,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunction_multipleStreams_firstTrue_shortCircuits() {
-            var broker   = multiAttributeBroker(Map.of("a.attr", Value.TRUE, "b.attr", Value.FALSE));
+            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.TRUE, "b.attr", Value.FALSE));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("<a.attr> || <b.attr>", broker);
 
@@ -438,7 +437,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunction_pureShortCircuits_noStreamSubscription() {
-            var broker   = multiAttributeBroker(Map.of("test.attr", Value.TRUE));
+            var broker   = singleValueAttributeBroker(Map.of("test.attr", Value.TRUE));
             var ctx      = evaluationContext(broker, Map.of("pureVal", Value.FALSE));
             var compiled = compileExpression("pureVal && <test.attr>", broker);
 
@@ -450,7 +449,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunction_pureShortCircuits_noStreamSubscription() {
-            var broker   = multiAttributeBroker(Map.of("test.attr", Value.FALSE));
+            var broker   = singleValueAttributeBroker(Map.of("test.attr", Value.FALSE));
             var ctx      = evaluationContext(broker, Map.of("pureVal", Value.TRUE));
             var compiled = compileExpression("pureVal || <test.attr>", broker);
 

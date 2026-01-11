@@ -25,15 +25,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
-import static io.sapl.util.ExpressionTestUtil.assertIsErrorContaining;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.SaplTesting.assertIsErrorContaining;
+import static io.sapl.util.SaplTesting.evaluateExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for path navigation algorithm in ExtendedFilterCompiler.
- * Uses actual SAPL expressions with |- syntax.
- * Current sketch replaces target with "***" marker instead of calling function.
+ * Uses actual SAPL expressions with |- syntax and filter.replace("***").
  */
 class PathNavigationTests {
 
@@ -50,21 +49,21 @@ class PathNavigationTests {
             // === KeyPath (@.key): navigate into object field ===
             arguments("keyPath_replacesDirectField",
                 """
-                {"a": 1, "b": 2} |- { @.a : mock.func }
+                {"a": 1, "b": 2} |- { @.a : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***", "b": 2}
                 """)),
             arguments("keyPath_replacesNestedField",
                 """
-                {"outer": {"inner": "secret"}, "other": "visible"} |- { @.outer.inner : mock.func }
+                {"outer": {"inner": "secret"}, "other": "visible"} |- { @.outer.inner : filter.replace("***") }
                 """,
                 json("""
                 {"outer": {"inner": "***"}, "other": "visible"}
                 """)),
             arguments("keyPath_preservesFieldOrder",
                 """
-                {"first": 1, "second": 2, "third": 3} |- { @.second : mock.func }
+                {"first": 1, "second": 2, "third": 3} |- { @.second : filter.replace("***") }
                 """,
                 json("""
                 {"first": 1, "second": "***", "third": 3}
@@ -73,19 +72,19 @@ class PathNavigationTests {
             // === Blacklist semantics: type mismatches return unchanged ===
             arguments("keyPath_onNonObject_returnsUnchanged",
                 """
-                "not an object" |- { @.a : mock.func }
+                "not an object" |- { @.a : filter.replace("***") }
                 """,
                 Value.of("not an object")),
             arguments("keyPath_missingKey_returnsUnchanged",
                 """
-                {"a": 1} |- { @.nonexistent : mock.func }
+                {"a": 1} |- { @.nonexistent : filter.replace("***") }
                 """,
                 json("""
                 {"a": 1}
                 """)),
             arguments("keyPath_nestedMissingKey_returnsUnchanged",
                 """
-                {"outer": {"a": 1}} |- { @.outer.nonexistent : mock.func }
+                {"outer": {"a": 1}} |- { @.outer.nonexistent : filter.replace("***") }
                 """,
                 json("""
                 {"outer": {"a": 1}}
@@ -94,35 +93,35 @@ class PathNavigationTests {
             // === IndexPath (@[n]): navigate into array element ===
             arguments("indexPath_replacesFirstElement",
                 """
-                [1, 2, 3] |- { @[0] : mock.func }
+                [1, 2, 3] |- { @[0] : filter.replace("***") }
                 """,
                 json("""
                 ["***", 2, 3]
                 """)),
             arguments("indexPath_replacesMiddleElement",
                 """
-                [1, 2, 3] |- { @[1] : mock.func }
+                [1, 2, 3] |- { @[1] : filter.replace("***") }
                 """,
                 json("""
                 [1, "***", 3]
                 """)),
             arguments("indexPath_replacesLastElement",
                 """
-                [1, 2, 3] |- { @[2] : mock.func }
+                [1, 2, 3] |- { @[2] : filter.replace("***") }
                 """,
                 json("""
                 [1, 2, "***"]
                 """)),
             arguments("indexPath_negativeIndex_fromEnd",
                 """
-                [1, 2, 3] |- { @[-1] : mock.func }
+                [1, 2, 3] |- { @[-1] : filter.replace("***") }
                 """,
                 json("""
                 [1, 2, "***"]
                 """)),
             arguments("indexPath_negativeIndex_secondFromEnd",
                 """
-                [1, 2, 3, 4] |- { @[-2] : mock.func }
+                [1, 2, 3, 4] |- { @[-2] : filter.replace("***") }
                 """,
                 json("""
                 [1, 2, "***", 4]
@@ -131,54 +130,54 @@ class PathNavigationTests {
             // === IndexPath blacklist semantics ===
             arguments("indexPath_onNonArray_returnsUnchanged",
                 """
-                {"a": 1} |- { @[0] : mock.func }
+                {"a": 1} |- { @[0] : filter.replace("***") }
                 """,
                 json("""
                 {"a": 1}
                 """)),
             arguments("indexPath_outOfBounds_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[10] : mock.func }
+                [1, 2, 3] |- { @[10] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
             arguments("indexPath_negativeOutOfBounds_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[-10] : mock.func }
+                [1, 2, 3] |- { @[-10] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
 
             // === Combined paths: KeyPath + IndexPath ===
             arguments("keyThenIndex_replacesNestedArrayElement",
                 """
-                {"items": [1, 2, 3]} |- { @.items[1] : mock.func }
+                {"items": [1, 2, 3]} |- { @.items[1] : filter.replace("***") }
                 """,
                 json("""
                 {"items": [1, "***", 3]}
                 """)),
             arguments("indexThenKey_replacesObjectInArray",
                 """
-                [{"name": "alice"}, {"name": "bob"}] |- { @[1].name : mock.func }
+                [{"name": "alice"}, {"name": "bob"}] |- { @[1].name : filter.replace("***") }
                 """,
                 json("""
                 [{"name": "alice"}, {"name": "***"}]
                 """)),
             arguments("deepNesting_keyIndexKeyIndex",
                 """
-                {"data": [{"values": [10, 20, 30]}]} |- { @.data[0].values[1] : mock.func }
+                {"data": [{"values": [10, 20, 30]}]} |- { @.data[0].values[1] : filter.replace("***") }
                 """,
                 json("""
                 {"data": [{"values": [10, "***", 30]}]}
                 """)),
             arguments("combined_missingIntermediateKey_returnsUnchanged",
                 """
-                {"other": [1, 2]} |- { @.items[0] : mock.func }
+                {"other": [1, 2]} |- { @.items[0] : filter.replace("***") }
                 """,
                 json("""
                 {"other": [1, 2]}
                 """)),
             arguments("combined_intermediateNotArray_returnsUnchanged",
                 """
-                {"items": "not an array"} |- { @.items[0] : mock.func }
+                {"items": "not an array"} |- { @.items[0] : filter.replace("***") }
                 """,
                 json("""
                 {"items": "not an array"}
@@ -187,73 +186,73 @@ class PathNavigationTests {
             // === WildcardPath (@[*] / @.*): mark all children ===
             arguments("wildcardPath_marksAllArrayElements",
                 """
-                [1, 2, 3] |- { @[*] : mock.func }
+                [1, 2, 3] |- { @[*] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***"]
                 """)),
             arguments("wildcardPath_marksAllObjectValues",
                 """
-                {"a": 1, "b": 2} |- { @.* : mock.func }
+                {"a": 1, "b": 2} |- { @.* : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***", "b": "***"}
                 """)),
             arguments("wildcardPath_emptyArray_returnsEmptyArray",
                 """
-                [] |- { @[*] : mock.func }
+                [] |- { @[*] : filter.replace("***") }
                 """,
                 json("[]")),
             arguments("wildcardPath_emptyObject_returnsEmptyObject",
                 """
-                {} |- { @.* : mock.func }
+                {} |- { @.* : filter.replace("***") }
                 """,
                 json("{}")),
 
             // === WildcardPath blacklist semantics ===
             arguments("wildcardPath_onScalar_returnsUnchanged",
                 """
-                42 |- { @[*] : mock.func }
+                42 |- { @[*] : filter.replace("***") }
                 """,
                 Value.of(42)),
             arguments("wildcardPath_onString_returnsUnchanged",
                 """
-                "hello" |- { @.* : mock.func }
+                "hello" |- { @.* : filter.replace("***") }
                 """,
                 Value.of("hello")),
 
             // === WildcardPath + nested paths ===
             arguments("wildcardThenKey_marksFieldInAllObjects",
                 """
-                [{"name": "alice"}, {"name": "bob"}] |- { @[*].name : mock.func }
+                [{"name": "alice"}, {"name": "bob"}] |- { @[*].name : filter.replace("***") }
                 """,
                 json("""
                 [{"name": "***"}, {"name": "***"}]
                 """)),
             arguments("keyThenWildcard_marksAllInNestedArray",
                 """
-                {"items": [1, 2, 3]} |- { @.items[*] : mock.func }
+                {"items": [1, 2, 3]} |- { @.items[*] : filter.replace("***") }
                 """,
                 json("""
                 {"items": ["***", "***", "***"]}
                 """)),
             arguments("wildcardThenIndex_marksElementInAllArrays",
                 """
-                [[1, 2], [3, 4], [5, 6]] |- { @[*][0] : mock.func }
+                [[1, 2], [3, 4], [5, 6]] |- { @[*][0] : filter.replace("***") }
                 """,
                 json("""
                 [["***", 2], ["***", 4], ["***", 6]]
                 """)),
             arguments("wildcardThenKey_blacklistSkipsMissingKeys",
                 """
-                [{"name": "alice"}, {"other": "bob"}, {"name": "carol"}] |- { @[*].name : mock.func }
+                [{"name": "alice"}, {"other": "bob"}, {"name": "carol"}] |- { @[*].name : filter.replace("***") }
                 """,
                 json("""
                 [{"name": "***"}, {"other": "bob"}, {"name": "***"}]
                 """)),
             arguments("wildcardThenWildcard_marksNestedArrays",
                 """
-                [[1, 2], [3, 4]] |- { @[*][*] : mock.func }
+                [[1, 2], [3, 4]] |- { @[*][*] : filter.replace("***") }
                 """,
                 json("""
                 [["***", "***"], ["***", "***"]]
@@ -262,35 +261,35 @@ class PathNavigationTests {
             // === AttributeUnionPath (@["a","b"]): mark multiple keys ===
             arguments("attributeUnion_marksTwoKeys",
                 """
-                {"a": 1, "b": 2, "c": 3} |- { @["a","c"] : mock.func }
+                {"a": 1, "b": 2, "c": 3} |- { @["a","c"] : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***", "b": 2, "c": "***"}
                 """)),
             arguments("attributeUnion_marksThreeKeys",
                 """
-                {"x": 1, "y": 2, "z": 3, "w": 4} |- { @["x","y","z"] : mock.func }
+                {"x": 1, "y": 2, "z": 3, "w": 4} |- { @["x","y","z"] : filter.replace("***") }
                 """,
                 json("""
                 {"x": "***", "y": "***", "z": "***", "w": 4}
                 """)),
             arguments("attributeUnion_singleKey_sameAsKeyPath",
                 """
-                {"a": 1, "b": 2} |- { @["a"] : mock.func }
+                {"a": 1, "b": 2} |- { @["a"] : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***", "b": 2}
                 """)),
             arguments("attributeUnion_blacklistSkipsMissingKeys",
                 """
-                {"a": 1, "c": 3} |- { @["a","b","c"] : mock.func }
+                {"a": 1, "c": 3} |- { @["a","b","c"] : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***", "c": "***"}
                 """)),
             arguments("attributeUnion_allMissing_returnsUnchanged",
                 """
-                {"x": 1} |- { @["a","b","c"] : mock.func }
+                {"x": 1} |- { @["a","b","c"] : filter.replace("***") }
                 """,
                 json("""
                 {"x": 1}
@@ -299,70 +298,70 @@ class PathNavigationTests {
             // === IndexUnionPath (@[0,2]): mark multiple indices ===
             arguments("indexUnion_marksTwoIndices",
                 """
-                [1, 2, 3, 4, 5] |- { @[0,2] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[0,2] : filter.replace("***") }
                 """,
                 json("""
                 ["***", 2, "***", 4, 5]
                 """)),
             arguments("indexUnion_marksThreeIndices",
                 """
-                [1, 2, 3, 4, 5] |- { @[0,2,4] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[0,2,4] : filter.replace("***") }
                 """,
                 json("""
                 ["***", 2, "***", 4, "***"]
                 """)),
             arguments("indexUnion_singleIndex_sameAsIndexPath",
                 """
-                [1, 2, 3] |- { @[1] : mock.func }
+                [1, 2, 3] |- { @[1] : filter.replace("***") }
                 """,
                 json("""
                 [1, "***", 3]
                 """)),
             arguments("indexUnion_withOutOfBounds_appliesValidIndices",
                 """
-                [1, 2, 3] |- { @[0,10,2] : mock.func }
+                [1, 2, 3] |- { @[0,10,2] : filter.replace("***") }
                 """,
                 json("""
                 ["***", 2, "***"]
                 """)),
             arguments("indexUnion_allOutOfBounds_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[10,20,30] : mock.func }
+                [1, 2, 3] |- { @[10,20,30] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
 
             // === Union + nested paths ===
             arguments("attributeUnionThenKey_marksNestedInMultiple",
                 """
-                {"user": {"name": "alice"}, "admin": {"name": "bob"}} |- { @["user","admin"].name : mock.func }
+                {"user": {"name": "alice"}, "admin": {"name": "bob"}} |- { @["user","admin"].name : filter.replace("***") }
                 """,
                 json("""
                 {"user": {"name": "***"}, "admin": {"name": "***"}}
                 """)),
             arguments("indexUnionThenKey_marksNestedInMultiple",
                 """
-                [{"name": "alice"}, {"name": "bob"}, {"name": "carol"}] |- { @[0,2].name : mock.func }
+                [{"name": "alice"}, {"name": "bob"}, {"name": "carol"}] |- { @[0,2].name : filter.replace("***") }
                 """,
                 json("""
                 [{"name": "***"}, {"name": "bob"}, {"name": "***"}]
                 """)),
             arguments("keyThenAttributeUnion_marksMultipleInNested",
                 """
-                {"data": {"a": 1, "b": 2, "c": 3}} |- { @.data["a","c"] : mock.func }
+                {"data": {"a": 1, "b": 2, "c": 3}} |- { @.data["a","c"] : filter.replace("***") }
                 """,
                 json("""
                 {"data": {"a": "***", "b": 2, "c": "***"}}
                 """)),
             arguments("keyThenIndexUnion_marksMultipleInNestedArray",
                 """
-                {"items": [1, 2, 3, 4]} |- { @.items[0,3] : mock.func }
+                {"items": [1, 2, 3, 4]} |- { @.items[0,3] : filter.replace("***") }
                 """,
                 json("""
                 {"items": ["***", 2, 3, "***"]}
                 """)),
             arguments("wildcardThenAttributeUnion_marksMultipleKeysInAll",
                 """
-                [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}] |- { @[*]["a","c"] : mock.func }
+                [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}] |- { @[*]["a","c"] : filter.replace("***") }
                 """,
                 json("""
                 [{"a": "***", "b": 2, "c": "***"}, {"a": "***", "b": 5, "c": "***"}]
@@ -371,77 +370,77 @@ class PathNavigationTests {
             // === SlicePath (@[start:end:step]): mark array slices ===
             arguments("slicePath_basicRange_marksSlice",
                 """
-                [1, 2, 3, 4, 5] |- { @[1:4] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[1:4] : filter.replace("***") }
                 """,
                 json("""
                 [1, "***", "***", "***", 5]
                 """)),
             arguments("slicePath_allElements_marksAll",
                 """
-                [1, 2, 3] |- { @[:] : mock.func }
+                [1, 2, 3] |- { @[:] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***"]
                 """)),
             arguments("slicePath_fromIndex_marksFromIndexToEnd",
                 """
-                [1, 2, 3, 4, 5] |- { @[2:] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[2:] : filter.replace("***") }
                 """,
                 json("""
                 [1, 2, "***", "***", "***"]
                 """)),
             arguments("slicePath_toIndex_marksFromStartToIndex",
                 """
-                [1, 2, 3, 4, 5] |- { @[:3] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[:3] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***", 4, 5]
                 """)),
             arguments("slicePath_negativeStart_marksLastN",
                 """
-                [1, 2, 3, 4, 5] |- { @[-2:] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[-2:] : filter.replace("***") }
                 """,
                 json("""
                 [1, 2, 3, "***", "***"]
                 """)),
             arguments("slicePath_negativeEnd_marksExceptLastN",
                 """
-                [1, 2, 3, 4, 5] |- { @[:-2] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[:-2] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***", 4, 5]
                 """)),
             arguments("slicePath_withStep_marksEveryNth",
                 """
-                [1, 2, 3, 4, 5, 6] |- { @[::2] : mock.func }
+                [1, 2, 3, 4, 5, 6] |- { @[::2] : filter.replace("***") }
                 """,
                 json("""
                 ["***", 2, "***", 4, "***", 6]
                 """)),
             arguments("slicePath_fromToStep_marksRangeWithStep",
                 """
-                [1, 2, 3, 4, 5, 6, 7, 8] |- { @[1:7:2] : mock.func }
+                [1, 2, 3, 4, 5, 6, 7, 8] |- { @[1:7:2] : filter.replace("***") }
                 """,
                 json("""
                 [1, "***", 3, "***", 5, "***", 7, 8]
                 """)),
             arguments("slicePath_negativeStep_marksAllSameAsPositive",
                 """
-                [1, 2, 3, 4, 5] |- { @[::-1] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[::-1] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***", "***", "***"]
                 """)),
             arguments("slicePath_negativeStepWithBounds_marksSelectedIndices",
                 """
-                [1, 2, 3, 4, 5] |- { @[4:1:-1] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[4:1:-1] : filter.replace("***") }
                 """,
                 json("""
                 [1, 2, "***", "***", "***"]
                 """)),
             arguments("slicePath_negativeStepFromIndex_marksDownToStart",
                 """
-                [1, 2, 3, 4, 5] |- { @[3::-1] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[3::-1] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***", "***", 5]
@@ -450,59 +449,59 @@ class PathNavigationTests {
             // === SlicePath blacklist semantics ===
             arguments("slicePath_onNonArray_returnsUnchanged",
                 """
-                {"a": 1} |- { @[1:3] : mock.func }
+                {"a": 1} |- { @[1:3] : filter.replace("***") }
                 """,
                 json("""
                 {"a": 1}
                 """)),
             arguments("slicePath_emptyRange_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[2:2] : mock.func }
+                [1, 2, 3] |- { @[2:2] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
             arguments("slicePath_stepZero_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[::0] : mock.func }
+                [1, 2, 3] |- { @[::0] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
             arguments("slicePath_outOfBoundsStart_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[10:20] : mock.func }
+                [1, 2, 3] |- { @[10:20] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
 
             // === SlicePath + nested paths ===
             arguments("sliceThenKey_marksFieldInSlicedObjects",
                 """
-                [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}] |- { @[1:3].x : mock.func }
+                [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}] |- { @[1:3].x : filter.replace("***") }
                 """,
                 json("""
                 [{"x": 1}, {"x": "***"}, {"x": "***"}, {"x": 4}]
                 """)),
             arguments("keyThenSlice_marksSliceInNestedArray",
                 """
-                {"data": [1, 2, 3, 4, 5]} |- { @.data[1:4] : mock.func }
+                {"data": [1, 2, 3, 4, 5]} |- { @.data[1:4] : filter.replace("***") }
                 """,
                 json("""
                 {"data": [1, "***", "***", "***", 5]}
                 """)),
             arguments("sliceThenSlice_marksNestedSlice",
                 """
-                [[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { @[0:2][1:] : mock.func }
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { @[0:2][1:] : filter.replace("***") }
                 """,
                 json("""
                 [[1, "***", "***"], [4, "***", "***"], [7, 8, 9]]
                 """)),
             arguments("wildcardThenSlice_marksSliceInAllArrays",
                 """
-                [[1, 2, 3, 4], [5, 6, 7, 8]] |- { @[*][1:3] : mock.func }
+                [[1, 2, 3, 4], [5, 6, 7, 8]] |- { @[*][1:3] : filter.replace("***") }
                 """,
                 json("""
                 [[1, "***", "***", 4], [5, "***", "***", 8]]
                 """)),
             arguments("sliceThenWildcard_marksAllInSlicedArrays",
                 """
-                [[1, 2], [3, 4], [5, 6]] |- { @[0:2][*] : mock.func }
+                [[1, 2], [3, 4], [5, 6]] |- { @[0:2][*] : filter.replace("***") }
                 """,
                 json("""
                 [["***", "***"], ["***", "***"], [5, 6]]
@@ -511,70 +510,70 @@ class PathNavigationTests {
             // === ExpressionPath (@[(expr)]): dynamic index/key navigation ===
             arguments("expressionPath_literalIndex_redactsSensitiveItem",
                 """
-                ["public", "secret", "public"] |- { @[(1)] : mock.func }
+                ["public", "secret", "public"] |- { @[(1)] : filter.replace("***") }
                 """,
                 json("""
                 ["public", "***", "public"]
                 """)),
             arguments("expressionPath_literalKey_redactsSensitiveField",
                 """
-                {"username": "alice", "password": "secret123"} |- { @[("password")] : mock.func }
+                {"username": "alice", "password": "secret123"} |- { @[("password")] : filter.replace("***") }
                 """,
                 json("""
                 {"username": "alice", "password": "***"}
                 """)),
             arguments("expressionPath_computedIndex_redactsCalculatedPosition",
                 """
-                ["a", "b", "c", "d"] |- { @[(1+1)] : mock.func }
+                ["a", "b", "c", "d"] |- { @[(1+1)] : filter.replace("***") }
                 """,
                 json("""
                 ["a", "b", "***", "d"]
                 """)),
             arguments("expressionPath_negativeIndex_redactsFromEnd",
                 """
-                ["first", "middle", "last"] |- { @[(-1)] : mock.func }
+                ["first", "middle", "last"] |- { @[(-1)] : filter.replace("***") }
                 """,
                 json("""
                 ["first", "middle", "***"]
                 """)),
             arguments("expressionPath_atFromRoot_redactsConfiguredField",
                 """
-                {"config": {"sensitiveField": "password"}, "data": {"password": "secret", "name": "test"}} |- { @.data[(@.config.sensitiveField)] : mock.func }
+                {"config": {"sensitiveField": "password"}, "data": {"password": "secret", "name": "test"}} |- { @.data[(@.config.sensitiveField)] : filter.replace("***") }
                 """,
                 json("""
                 {"config": {"sensitiveField": "password"}, "data": {"password": "***", "name": "test"}}
                 """)),
             arguments("expressionPath_atFromRoot_redactsAtConfiguredIndex",
                 """
-                {"config": {"sensitiveIndex": 1}, "items": ["public", "secret", "public"]} |- { @.items[(@.config.sensitiveIndex)] : mock.func }
+                {"config": {"sensitiveIndex": 1}, "items": ["public", "secret", "public"]} |- { @.items[(@.config.sensitiveIndex)] : filter.replace("***") }
                 """,
                 json("""
                 {"config": {"sensitiveIndex": 1}, "items": ["public", "***", "public"]}
                 """)),
             arguments("expressionPath_atAfterWildcard_redactsPerUserSensitiveField",
                 """
-                [{"sensitiveField": "ssn", "ssn": "123", "name": "alice"}, {"sensitiveField": "phone", "phone": "555", "name": "bob"}] |- { @[*][(@.sensitiveField)] : mock.func }
+                [{"sensitiveField": "ssn", "ssn": "123", "name": "alice"}, {"sensitiveField": "phone", "phone": "555", "name": "bob"}] |- { @[*][(@.sensitiveField)] : filter.replace("***") }
                 """,
                 json("""
                 [{"sensitiveField": "ssn", "ssn": "***", "name": "alice"}, {"sensitiveField": "phone", "phone": "***", "name": "bob"}]
                 """)),
             arguments("expressionPath_atAfterWildcard_redactsAtUserSpecifiedIndex",
                 """
-                [{"redactIndex": 0, "items": ["secret", "public"]}, {"redactIndex": 1, "items": ["public", "secret"]}] |- { @[*].items[(@.redactIndex)] : mock.func }
+                [{"redactIndex": 0, "items": ["secret", "public"]}, {"redactIndex": 1, "items": ["public", "secret"]}] |- { @[*].items[(@.redactIndex)] : filter.replace("***") }
                 """,
                 json("""
                 [{"redactIndex": 0, "items": ["***", "public"]}, {"redactIndex": 1, "items": ["public", "***"]}]
                 """)),
             arguments("expressionPath_hashBinding_redactsMatchingPosition",
                 """
-                [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]] |- { @[*][(#)] : mock.func }
+                [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]] |- { @[*][(#)] : filter.replace("***") }
                 """,
                 json("""
                 [["***", "b", "c"], ["d", "***", "f"], ["g", "h", "***"]]
                 """)),
             arguments("expressionPath_hashWithComputation_redactsComputedFromPosition",
                 """
-                [["a", "b", "c"], ["d", "e", "f"]] |- { @[*][(# * 2)] : mock.func }
+                [["a", "b", "c"], ["d", "e", "f"]] |- { @[*][(# * 2)] : filter.replace("***") }
                 """,
                 json("""
                 [["***", "b", "c"], ["d", "e", "***"]]
@@ -583,17 +582,17 @@ class PathNavigationTests {
             // === ExpressionPath blacklist semantics ===
             arguments("expressionPath_invalidExprType_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[(true)] : mock.func }
+                [1, 2, 3] |- { @[(true)] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
             arguments("expressionPath_outOfBounds_returnsUnchanged",
                 """
-                [1, 2, 3] |- { @[(10)] : mock.func }
+                [1, 2, 3] |- { @[(10)] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
             arguments("expressionPath_missingKey_returnsUnchanged",
                 """
-                {"a": 1} |- { @[("nonexistent")] : mock.func }
+                {"a": 1} |- { @[("nonexistent")] : filter.replace("***") }
                 """,
                 json("""
                 {"a": 1}
@@ -602,14 +601,14 @@ class PathNavigationTests {
             // === ExpressionPath + nested paths ===
             arguments("expressionPathThenKey_redactsNestedSensitiveField",
                 """
-                {"sensitiveKey": "user2", "user1": {"data": "public"}, "user2": {"data": "secret"}} |- { @[(@.sensitiveKey)].data : mock.func }
+                {"sensitiveKey": "user2", "user1": {"data": "public"}, "user2": {"data": "secret"}} |- { @[(@.sensitiveKey)].data : filter.replace("***") }
                 """,
                 json("""
                 {"sensitiveKey": "user2", "user1": {"data": "public"}, "user2": {"data": "***"}}
                 """)),
             arguments("wildcardThenExpressionPath_redactsSecondColumnInAllRows",
                 """
-                [[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { @[*][(1)] : mock.func }
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { @[*][(1)] : filter.replace("***") }
                 """,
                 json("""
                 [[1, "***", 3], [4, "***", 6], [7, "***", 9]]
@@ -618,61 +617,61 @@ class PathNavigationTests {
             // === ConditionPath (@[?(cond)]): filter elements by condition ===
             arguments("conditionPath_literalTrue_redactsAllElements",
                 """
-                [1, 2, 3, 4] |- { @[?(true)] : mock.func }
+                [1, 2, 3, 4] |- { @[?(true)] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***", "***"]
                 """)),
             arguments("conditionPath_literalFalse_redactsNone",
                 """
-                [1, 2, 3, 4] |- { @[?(false)] : mock.func }
+                [1, 2, 3, 4] |- { @[?(false)] : filter.replace("***") }
                 """,
                 json("[1, 2, 3, 4]")),
             arguments("conditionPath_objectLiteralTrue_redactsAllValues",
                 """
-                {"a": 1, "b": 2, "c": 3} |- { @[?(true)] : mock.func }
+                {"a": 1, "b": 2, "c": 3} |- { @[?(true)] : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***", "b": "***", "c": "***"}
                 """)),
             arguments("conditionPath_atComparison_redactsHighValueItems",
                 """
-                [{"value": 10}, {"value": 100}, {"value": 50}, {"value": 200}] |- { @[?(@ .value > 50)] : mock.func }
+                [{"value": 10}, {"value": 100}, {"value": 50}, {"value": 200}] |- { @[?(@ .value > 50)] : filter.replace("***") }
                 """,
                 json("""
                 [{"value": 10}, "***", {"value": 50}, "***"]
                 """)),
             arguments("conditionPath_atEquality_redactsSensitiveRole",
                 """
-                [{"role": "user", "data": "x"}, {"role": "admin", "data": "y"}, {"role": "user", "data": "z"}] |- { @[?(@.role == "admin")] : mock.func }
+                [{"role": "user", "data": "x"}, {"role": "admin", "data": "y"}, {"role": "user", "data": "z"}] |- { @[?(@.role == "admin")] : filter.replace("***") }
                 """,
                 json("""
                 [{"role": "user", "data": "x"}, "***", {"role": "user", "data": "z"}]
                 """)),
             arguments("conditionPath_atNestedThenKey_redactsFieldInMatchingOnly",
                 """
-                [{"type": "secret", "data": {"info": "hidden"}}, {"type": "public", "data": {"info": "visible"}}] |- { @[?(@.type == "secret")].data.info : mock.func }
+                [{"type": "secret", "data": {"info": "hidden"}}, {"type": "public", "data": {"info": "visible"}}] |- { @[?(@.type == "secret")].data.info : filter.replace("***") }
                 """,
                 json("""
                 [{"type": "secret", "data": {"info": "***"}}, {"type": "public", "data": {"info": "visible"}}]
                 """)),
             arguments("conditionPath_hashComparison_redactsEvenIndices",
                 """
-                ["a", "b", "c", "d", "e"] |- { @[?(# % 2 == 0)] : mock.func }
+                ["a", "b", "c", "d", "e"] |- { @[?(# % 2 == 0)] : filter.replace("***") }
                 """,
                 json("""
                 ["***", "b", "***", "d", "***"]
                 """)),
             arguments("conditionPath_hashRange_redactsMiddleElements",
                 """
-                [1, 2, 3, 4, 5] |- { @[?(# > 0 && # < 4)] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[?(# > 0 && # < 4)] : filter.replace("***") }
                 """,
                 json("""
                 [1, "***", "***", "***", 5]
                 """)),
             arguments("conditionPath_objectHashEquality_redactsSpecificKey",
                 """
-                {"first": 1, "second": 2, "third": 3} |- { @[?(# == "second")] : mock.func }
+                {"first": 1, "second": 2, "third": 3} |- { @[?(# == "second")] : filter.replace("***") }
                 """,
                 json("""
                 {"first": 1, "second": "***", "third": 3}
@@ -681,40 +680,40 @@ class PathNavigationTests {
             // === ConditionPath blacklist semantics ===
             arguments("conditionPath_onScalar_returnsUnchanged",
                 """
-                42 |- { @[?(true)] : mock.func }
+                42 |- { @[?(true)] : filter.replace("***") }
                 """,
                 Value.of(42)),
             arguments("conditionPath_nonBooleanCondition_treatsAsFalse",
                 """
-                [1, 2, 3] |- { @[?("not a boolean")] : mock.func }
+                [1, 2, 3] |- { @[?("not a boolean")] : filter.replace("***") }
                 """,
                 json("[1, 2, 3]")),
 
             // === ConditionPath + nested paths ===
             arguments("wildcardThenConditionPath_redactsMatchingInEachArray",
                 """
-                [[1, 5, 2], [10, 3, 8]] |- { @[*][?(@ > 4)] : mock.func }
+                [[1, 5, 2], [10, 3, 8]] |- { @[*][?(@ > 4)] : filter.replace("***") }
                 """,
                 json("""
                 [[1, "***", 2], ["***", 3, "***"]]
                 """)),
             arguments("conditionPathThenWildcard_redactsAllFieldsInMatchingObjects",
                 """
-                [{"active": true, "a": 1, "b": 2}, {"active": false, "a": 3, "b": 4}] |- { @[?(@.active == true)].* : mock.func }
+                [{"active": true, "a": 1, "b": 2}, {"active": false, "a": 3, "b": 4}] |- { @[?(@.active == true)].* : filter.replace("***") }
                 """,
                 json("""
                 [{"active": "***", "a": "***", "b": "***"}, {"active": false, "a": 3, "b": 4}]
                 """)),
             arguments("conditionPathThenIndex_redactsSpecificIndexInMatchingArrays",
                 """
-                [[1, 2, 3], [10, 20, 30], [4, 5, 6]] |- { @[?(@[0] > 5)][1] : mock.func }
+                [[1, 2, 3], [10, 20, 30], [4, 5, 6]] |- { @[?(@[0] > 5)][1] : filter.replace("***") }
                 """,
                 json("""
                 [[1, 2, 3], [10, "***", 30], [4, 5, 6]]
                 """)),
             arguments("keyThenConditionPath_redactsMatchingInNestedArray",
                 """
-                {"items": [{"keep": false, "v": 1}, {"keep": true, "v": 2}, {"keep": false, "v": 3}]} |- { @.items[?(@.keep == true)] : mock.func }
+                {"items": [{"keep": false, "v": 1}, {"keep": true, "v": 2}, {"keep": false, "v": 3}]} |- { @.items[?(@.keep == true)] : filter.replace("***") }
                 """,
                 json("""
                 {"items": [{"keep": false, "v": 1}, "***", {"keep": false, "v": 3}]}
@@ -723,33 +722,33 @@ class PathNavigationTests {
             // === Additional IndexPath edge cases ===
             arguments("indexPath_outOfBoundsInPath_returnsUnchanged",
                 """
-                {"arr": [1, 2, 3]} |- { @.arr[10].field : mock.func }
+                {"arr": [1, 2, 3]} |- { @.arr[10].field : filter.replace("***") }
                 """,
                 json("""
                 {"arr": [1, 2, 3]}
                 """)),
             arguments("indexPath_negativeOutOfBoundsInPath_returnsUnchanged",
                 """
-                {"arr": [1, 2, 3]} |- { @.arr[-10].field : mock.func }
+                {"arr": [1, 2, 3]} |- { @.arr[-10].field : filter.replace("***") }
                 """,
                 json("""
                 {"arr": [1, 2, 3]}
                 """)),
             arguments("nestedIndexPath_outOfBoundsInPath_returnsUnchanged",
                 """
-                [[1, 2], [3, 4]] |- { @[0][10].field : mock.func }
+                [[1, 2], [3, 4]] |- { @[0][10].field : filter.replace("***") }
                 """,
                 json("[[1, 2], [3, 4]]")),
             arguments("wildcardThenIndexPath_outOfBoundsInSomeArrays_appliesWhereValid",
                 """
-                [[1, 2, 3], [4], [5, 6]] |- { @[*][1] : mock.func }
+                [[1, 2, 3], [4], [5, 6]] |- { @[*][1] : filter.replace("***") }
                 """,
                 json("""
                 [[1, "***", 3], [4], [5, "***"]]
                 """)),
             arguments("deepPath_intermediateOutOfBounds_returnsUnchanged",
                 """
-                {"data": [[1, 2]]} |- { @.data[0][10][0] : mock.func }
+                {"data": [[1, 2]]} |- { @.data[0][10][0] : filter.replace("***") }
                 """,
                 json("""
                 {"data": [[1, 2]]}
@@ -758,98 +757,98 @@ class PathNavigationTests {
             // === RecursiveKeyPath (@..key): find key at any depth ===
             arguments("recursiveKeyPath_singleMatch_marksIt",
                 """
-                {"a": {"b": {"target": "found"}}} |- { @..target : mock.func }
+                {"a": {"b": {"target": "found"}}} |- { @..target : filter.replace("***") }
                 """,
                 json("""
                 {"a": {"b": {"target": "***"}}}
                 """)),
             arguments("recursiveKeyPath_multipleParallelMatches_marksAll",
                 """
-                {"x": {"target": 1}, "y": {"target": 2}} |- { @..target : mock.func }
+                {"x": {"target": 1}, "y": {"target": 2}} |- { @..target : filter.replace("***") }
                 """,
                 json("""
                 {"x": {"target": "***"}, "y": {"target": "***"}}
                 """)),
             arguments("recursiveKeyPath_nestedMatch_outerConsumesInner",
                 """
-                {"target": {"target": "inner"}} |- { @..target : mock.func }
+                {"target": {"target": "inner"}} |- { @..target : filter.replace("***") }
                 """,
                 json("""
                 {"target": "***"}
                 """)),
             arguments("recursiveKeyPath_inArray_findsInAllElements",
                 """
-                [{"target": 1}, {"other": 2}, {"target": 3}] |- { @..target : mock.func }
+                [{"target": 1}, {"other": 2}, {"target": 3}] |- { @..target : filter.replace("***") }
                 """,
                 json("""
                 [{"target": "***"}, {"other": 2}, {"target": "***"}]
                 """)),
             arguments("recursiveKeyPath_deepNesting_findsAtAllDepths",
                 """
-                {"a": {"b": {"c": {"target": "deep"}}}} |- { @..target : mock.func }
+                {"a": {"b": {"c": {"target": "deep"}}}} |- { @..target : filter.replace("***") }
                 """,
                 json("""
                 {"a": {"b": {"c": {"target": "***"}}}}
                 """)),
             arguments("recursiveKeyPath_withTailPath_navigatesFurther",
                 """
-                {"items": [{"data": {"value": 1}}, {"data": {"value": 2}}]} |- { @..data.value : mock.func }
+                {"items": [{"data": {"value": 1}}, {"data": {"value": 2}}]} |- { @..data.value : filter.replace("***") }
                 """,
                 json("""
                 {"items": [{"data": {"value": "***"}}, {"data": {"value": "***"}}]}
                 """)),
             arguments("recursiveKeyPath_noMatches_returnsUnchanged",
                 """
-                {"a": 1, "b": 2} |- { @..nonexistent : mock.func }
+                {"a": 1, "b": 2} |- { @..nonexistent : filter.replace("***") }
                 """,
                 json("""
                 {"a": 1, "b": 2}
                 """)),
             arguments("recursiveKeyPath_onScalar_returnsUnchanged",
                 """
-                42 |- { @..key : mock.func }
+                42 |- { @..key : filter.replace("***") }
                 """,
                 Value.of(42)),
 
             // === RecursiveIndexPath (@..[n]): find index at any depth ===
             arguments("recursiveIndexPath_singleArray_marksIndex",
                 """
-                [1, 2, 3] |- { @..[1] : mock.func }
+                [1, 2, 3] |- { @..[1] : filter.replace("***") }
                 """,
                 json("""
                 [1, "***", 3]
                 """)),
             arguments("recursiveIndexPath_multipleArrays_marksInAll",
                 """
-                {"a": [1, 2], "b": [3, 4]} |- { @..[0] : mock.func }
+                {"a": [1, 2], "b": [3, 4]} |- { @..[0] : filter.replace("***") }
                 """,
                 json("""
                 {"a": ["***", 2], "b": ["***", 4]}
                 """)),
             arguments("recursiveIndexPath_nestedArrays_marksAtAllLevels",
                 """
-                [[1, 2], [3, 4]] |- { @..[0] : mock.func }
+                [[1, 2], [3, 4]] |- { @..[0] : filter.replace("***") }
                 """,
                 json("""
                 ["***", ["***", 4]]
                 """)),
             arguments("recursiveIndexPath_negativeIndex_marksFromEnd",
                 """
-                {"arr1": [1, 2, 3], "arr2": [4, 5]} |- { @..[-1] : mock.func }
+                {"arr1": [1, 2, 3], "arr2": [4, 5]} |- { @..[-1] : filter.replace("***") }
                 """,
                 json("""
                 {"arr1": [1, 2, "***"], "arr2": [4, "***"]}
                 """)),
             arguments("recursiveIndexPath_withTailPath_navigatesFurther",
                 """
-                {"rows": [{"name": "a"}, {"name": "b"}]} |- { @..[0].name : mock.func }
+                {"rows": [{"name": "a"}, {"name": "b"}]} |- { @..[0].name : filter.replace("***") }
                 """,
                 json("""
                 {"rows": [{"name": "***"}, {"name": "b"}]}
                 """)),
             arguments("recursiveIndexPath_outOfBounds_skipped",
                 """
-                {"short": [1], "long": [1, 2, 3]} |- { @..[2] : mock.func }
+                {"short": [1], "long": [1, 2, 3]} |- { @..[2] : filter.replace("***") }
                 """,
                 json("""
                 {"short": [1], "long": [1, 2, "***"]}
@@ -858,40 +857,40 @@ class PathNavigationTests {
             // === RecursiveWildcardPath (@..*): descend into all nested values ===
             arguments("recursiveWildcardPath_flatObject_marksAllValues",
                 """
-                {"a": 1, "b": 2} |- { @..* : mock.func }
+                {"a": 1, "b": 2} |- { @..* : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***", "b": "***"}
                 """)),
             arguments("recursiveWildcardPath_flatArray_marksAllElements",
                 """
-                [1, 2, 3] |- { @..* : mock.func }
+                [1, 2, 3] |- { @..* : filter.replace("***") }
                 """,
                 json("""
                 ["***", "***", "***"]
                 """)),
             arguments("recursiveWildcardPath_nested_depthFirstProcessing",
                 """
-                {"a": {"b": 1}} |- { @..* : mock.func }
+                {"a": {"b": 1}} |- { @..* : filter.replace("***") }
                 """,
                 json("""
                 {"a": "***"}
                 """)),
             arguments("recursiveWildcardPath_withTailPath_appliesAtAllLevels",
                 """
-                {"x": {"val": 1}, "y": {"val": 2}} |- { @..*.val : mock.func }
+                {"x": {"val": 1}, "y": {"val": 2}} |- { @..*.val : filter.replace("***") }
                 """,
                 json("""
                 {"x": {"val": "***"}, "y": {"val": "***"}}
                 """)),
             arguments("recursiveWildcardPath_onScalar_returnsUnchanged",
                 """
-                42 |- { @..* : mock.func }
+                42 |- { @..* : filter.replace("***") }
                 """,
                 Value.of(42)),
             arguments("recursiveWildcardPath_emptyContainers_returnEmpty",
                 """
-                {"arr": [], "obj": {}} |- { @..* : mock.func }
+                {"arr": [], "obj": {}} |- { @..* : filter.replace("***") }
                 """,
                 json("""
                 {"arr": "***", "obj": "***"}
@@ -913,42 +912,42 @@ class PathNavigationTests {
             // === Error short-circuit tests for ExtendedFilter ===
             arguments("conditionPath_errorInCondition_bubblesUpImmediately",
                 """
-                [1, 2, 3, 4, 5] |- { @[?(1/0 == 1)] : mock.func }
+                [1, 2, 3, 4, 5] |- { @[?(1/0 == 1)] : filter.replace("***") }
                 """,
                 "Division by zero"),
             arguments("conditionPath_errorOnSecondElement_shortCircuits",
                 """
-                [5, 0, 3] |- { @[?(10/@ > 0)] : mock.func }
+                [5, 0, 3] |- { @[?(10/@ > 0)] : filter.replace("***") }
                 """,
                 "Division by zero"),
             arguments("conditionPath_errorOnThirdElement_shortCircuits",
                 """
-                [1, 2, 0] |- { @[?(10 / @ > 0)] : mock.func }
+                [1, 2, 0] |- { @[?(10 / @ > 0)] : filter.replace("***") }
                 """,
                 "Division by zero"),
             arguments("conditionPath_objectError_bubblesUp",
                 """
-                {"a": 1, "b": 0, "c": 3} |- { @[?(10 / @ > 0)] : mock.func }
+                {"a": 1, "b": 0, "c": 3} |- { @[?(10 / @ > 0)] : filter.replace("***") }
                 """,
                 "Division by zero"),
             arguments("expressionPath_errorInExpression_bubblesUp",
                 """
-                {"items": [1, 2, 3]} |- { @.items[(1/0)] : mock.func }
+                {"items": [1, 2, 3]} |- { @.items[(1/0)] : filter.replace("***") }
                 """,
                 "Division by zero"),
             arguments("recursiveKeyPath_errorInNestedPath_shortCircuits",
                 """
-                {"a": {"items": [5, 2]}, "b": {"items": [3, 0]}} |- { @..items[?(10/@ > 0)] : mock.func }
+                {"a": {"items": [5, 2]}, "b": {"items": [3, 0]}} |- { @..items[?(10/@ > 0)] : filter.replace("***") }
                 """,
                 "Division by zero"),
             arguments("recursiveWildcard_errorInTailPath_shortCircuits",
                 """
-                {"data": [[5, 2], [3, 0]]} |- { @..*[?(10/@ > 0)] : mock.func }
+                {"data": [[5, 2], [3, 0]]} |- { @..*[?(10/@ > 0)] : filter.replace("***") }
                 """,
                 "Division by zero"),
             arguments("wildcardThenCondition_errorInDeepArray_shortCircuits",
                 """
-                [[1, 2], [3, 0], [5, 6]] |- { @[*][?(10/@ > 0)] : mock.func }
+                [[1, 2], [3, 0], [5, 6]] |- { @[*][?(10/@ > 0)] : filter.replace("***") }
                 """,
                 "Division by zero")
         );

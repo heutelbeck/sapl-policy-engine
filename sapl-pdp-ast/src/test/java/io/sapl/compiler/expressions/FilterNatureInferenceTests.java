@@ -17,96 +17,26 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.compiler.util.Stratum;
-import io.sapl.util.SimpleFunctionLibrary;
 import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.core.publisher.Flux;
 
 import java.util.stream.Stream;
 
-import static io.sapl.util.ExpressionTestUtil.assertStratum;
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.TestBrokers.attributeBroker;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive test matrix for filter expression nature/strata inference.
- * <p>
- * Tests all combinations of strata for the three sub-expression positions in
- * filter expressions:
- * <ul>
- * <li><b>Base</b>: The value being filtered ({@code BASE |- ...})</li>
- * <li><b>Path Expression</b>: Dynamic path index ({@code @[(EXPR)]})</li>
- * <li><b>Function Argument</b>: Arguments to filter function
- * ({@code func(ARG)})</li>
- * </ul>
- * <p>
- * <b>Strata Levels:</b>
- * <ol>
- * <li><b>Value</b>: Compile-time constant</li>
- * <li><b>Pure-non-sub</b>: Runtime, {@code isDependingOnSubscription()=false}
- * (uses @ or #)</li>
- * <li><b>Pure-sub</b>: Runtime, {@code isDependingOnSubscription()=true} (uses
- * subject/action/etc)</li>
- * <li><b>Stream</b>: Reactive {@code StreamOperator} (attribute access)</li>
- * </ol>
- * <p>
- * <b>Expected Output Rule (IDEAL):</b>
- * <ul>
- * <li>If all inputs are strata 1 or 2 -> output is strata 1 (constant
- * folded)</li>
- * <li>If any input is strata 3 (no strata 4) -> output is strata 3</li>
- * <li>If any input is strata 4 -> output is strata 4</li>
- * </ul>
- * <p>
- * <b>CURRENT BEHAVIOR (implementation gaps):</b>
- * <ul>
- * <li>Extended filters with ExpressionPath ALWAYS produce PureOperator (no
- * constant folding even if all values are constants)</li>
- * <li>Stream detection in path expressions happens at runtime, not compile
- * time</li>
- * <li>Simple filters and each filters DO constant-fold when all inputs are
- * Values</li>
- * </ul>
- */
 @DisplayName("Filter Nature Inference")
 class FilterNatureInferenceTests {
-
-    private static CompilationContext compilationContext;
-
-    /**
-     * Mock attribute broker that returns streams for test.* attributes.
-     */
-    private static final AttributeBroker MOCK_ATTRIBUTE_BROKER = attributeBroker(invocation -> {
-        // Return a simple flux for any test.* attribute
-        if (invocation.attributeName().startsWith("test.")) {
-            return Flux.just(Value.of(42)); // Returns a number for testing
-        }
-        return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-    });
-
-    @BeforeAll
-    static void setup() {
-        val functionBroker = new DefaultFunctionBroker();
-        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-        compilationContext = new CompilationContext(functionBroker, MOCK_ATTRIBUTE_BROKER);
-    }
 
     @Nested
     @DisplayName("Simple Filter: base |- func(arg)")
@@ -118,8 +48,7 @@ class FilterNatureInferenceTests {
                 Stratum expectedStratum) {
             var expression = argStratum == Stratum.VALUE ? baseExpr + " |- simple.doubleValue"
                     : baseExpr + " |- simple.addValue(" + argExpr + ")";
-            val compiled   = compileExpression(expression, compilationContext);
-            assertStratum(compiled, expectedStratum);
+            assertStratumOfCompiledExpression(expression, expectedStratum);
         }
 
         static Stream<Arguments> simpleFilterCombinations() {
@@ -142,45 +71,17 @@ class FilterNatureInferenceTests {
         }
     }
 
-    /**
-     * Tests for extended filters with expression paths.
-     * <p>
-     * <b>CURRENT BEHAVIOR (implementation gaps):</b>
-     * <ul>
-     * <li>Extended filters with ExpressionPath ALWAYS produce PureOperator - no
-     * constant folding even when all inputs are Values</li>
-     * <li>Stream in path expression does NOT produce compile-time error; it's
-     * detected at runtime</li>
-     * <li>isDependingOnSubscription() is based on path and args, not the base
-     * value</li>
-     * </ul>
-     * <p>
-     * <b>IDEAL BEHAVIOR:</b>
-     * <ul>
-     * <li>All strata 1+2 inputs -> Value (constant folded)</li>
-     * <li>Stream in path expression -> compile-time Error</li>
-     * </ul>
-     */
     @Nested
     @DisplayName("Extended Filter: base |- { @[(pathExpr)] : func(arg) }")
     class ExtendedFilterTests {
 
-        /**
-         * Test matrix for extended filters with expression paths.
-         * <p>
-         * Tests CURRENT behavior: ExpressionPath always produces PureOperator, with
-         * isDependingOnSubscription based on path+args (not base).
-         */
-        @ParameterizedTest(name = "base={0}, pathExpr={1}, funcArg={2} -> current={3}")
+        @ParameterizedTest(name = "base={0}, pathExpr={2}, funcArg={4} -> {6}")
         @MethodSource("extendedFilterCombinations")
-        void extendedFilter_strataMatrix_currentBehavior(String baseExpr, Stratum baseStratum, String pathExprExpr,
-                Stratum pathExprStratum, String funcArgExpr, Stratum funcArgStratum, Stratum currentExpectedStratum) {
-            // Build expression: BASE |- { @[(pathExpr)] : simple.addValue(funcArg) }
+        void extendedFilter_strataMatrix(String baseExpr, Stratum baseStratum, String pathExprExpr,
+                Stratum pathExprStratum, String funcArgExpr, Stratum funcArgStratum, Stratum expectedStratum) {
             val expression = String.format("%s |- { @[(%s)] : simple.addValue(%s) }", baseExpr, pathExprExpr,
                     funcArgExpr);
-            val compiled   = compileExpression(expression, compilationContext);
-
-            assertStratum(compiled, currentExpectedStratum);
+            assertStratumOfCompiledExpression(expression, expectedStratum);
         }
 
         static Stream<Arguments> extendedFilterCombinations() {
@@ -203,37 +104,17 @@ class FilterNatureInferenceTests {
             val baseStratum     = Stratum.valueOf(base[1]);
             val pathExprStratum = Stratum.valueOf(pathExpr[1]);
             val funcArgStratum  = Stratum.valueOf(funcArg[1]);
-
-            // CURRENT BEHAVIOR: Extended filter with ExpressionPath always yields
-            // PureOperator
-            // - If any component (base, path, arg) is STREAM -> STREAM
-            // - Otherwise -> PURE_NON_SUB or PURE_SUB based on path+args (not base!)
-            val currentExpected = computeCurrentBehavior(baseStratum, pathExprStratum, funcArgStratum);
-
-            return arguments(base[0], baseStratum, pathExpr[0], pathExprStratum, funcArg[0], funcArgStratum,
-                    currentExpected);
+            val expected        = computeExpectedStratum(baseStratum, pathExprStratum, funcArgStratum);
+            return arguments(base[0], baseStratum, pathExpr[0], pathExprStratum, funcArg[0], funcArgStratum, expected);
         }
 
-        /**
-         * Computes CURRENT implementation behavior for extended filters.
-         * <p>
-         * The new implementation:
-         * <ul>
-         * <li>Correctly detects streams in path expressions</li>
-         * <li>Checks path subscription dependency in isDependingOnSubscription()</li>
-         * <li>Constant-folds when all inputs are Values</li>
-         * </ul>
-         */
-        private static Stratum computeCurrentBehavior(Stratum base, Stratum pathExpr, Stratum funcArg) {
-            // If any is STREAM -> STREAM
+        private static Stratum computeExpectedStratum(Stratum base, Stratum pathExpr, Stratum funcArg) {
             if (base == Stratum.STREAM || pathExpr == Stratum.STREAM || funcArg == Stratum.STREAM) {
                 return Stratum.STREAM;
             }
-            // Path's subscription dependency is now correctly checked
             if (base == Stratum.PURE_SUB || funcArg == Stratum.PURE_SUB || pathExpr == Stratum.PURE_SUB) {
                 return Stratum.PURE_SUB;
             }
-            // All inputs are VALUE -> constant fold to VALUE
             if (base == Stratum.VALUE && pathExpr == Stratum.VALUE && funcArg == Stratum.VALUE) {
                 return Stratum.VALUE;
             }
@@ -243,34 +124,25 @@ class FilterNatureInferenceTests {
         @Test
         @DisplayName("Stream in path expression -> throws compile-time exception")
         void streamInPathExpr_throwsCompileException() {
-            // Stream in path is disallowed at compile time
-            assertThatThrownBy(() -> compileExpression("[1, 2, 3] |- { @[(subject.<test.index>)] : simple.identity }",
-                    compilationContext)).isInstanceOf(SaplCompilerException.class)
+            assertThatThrownBy(
+                    () -> compileExpression("[1, 2, 3] |- { @[(subject.<test.index>)] : filter.replace(\"***\") }"))
+                    .isInstanceOf(SaplCompilerException.class)
                     .hasMessageContaining("Stream operators not allowed in filter path");
         }
 
         @Test
         @DisplayName("All Value inputs are constant-folded")
         void allValueInputs_constantFolded() {
-            // All inputs are Values, so the expression is constant-folded
-            val compiled = compileExpression("[1, 2, 3] |- { @[(0)] : simple.addValue(1) }", compilationContext);
-
-            // Now correctly constant-folds to a Value
+            val compiled = compileExpression("[1, 2, 3] |- { @[(0)] : simple.addValue(1) }");
             assertThat(compiled).isInstanceOf(Value.class);
         }
 
         @Test
         @DisplayName("Path subscription dependency correctly checked in isDependingOnSubscription()")
         void pathSubscriptionDependency_correctlyChecked() {
-            // Path expression (subject.index) depends on subscription
-            val compiled = compileExpression("[1, 2, 3] |- { @[(subject.index)] : simple.addValue(1) }",
-                    compilationContext);
-
+            val compiled = compileExpression("[1, 2, 3] |- { @[(subject.index)] : simple.addValue(1) }");
             assertThat(compiled).isInstanceOf(PureOperator.class);
-            val pureOp = (PureOperator) compiled;
-
-            // Path subscription dependency is now correctly detected
-            assertThat(pureOp.isDependingOnSubscription()).isTrue();
+            assertThat(((PureOperator) compiled).isDependingOnSubscription()).isTrue();
         }
     }
 
@@ -284,8 +156,7 @@ class FilterNatureInferenceTests {
                 Stratum expectedStratum) {
             var expression = argStratum == Stratum.VALUE ? baseExpr + " |- each simple.doubleValue"
                     : baseExpr + " |- each simple.addValue(" + argExpr + ")";
-            val compiled   = compileExpression(expression, compilationContext);
-            assertStratum(compiled, expectedStratum);
+            assertStratumOfCompiledExpression(expression, expectedStratum);
         }
 
         static Stream<Arguments> eachFilterCombinations() {
@@ -310,8 +181,7 @@ class FilterNatureInferenceTests {
         @ParameterizedTest(name = "{0} -> {2}")
         @MethodSource("strataVerificationCases")
         void expression_hasExpectedStratum(String description, String expression, Stratum expectedStratum) {
-            val compiled = compileExpression(expression, compilationContext);
-            assertStratum(compiled, expectedStratum);
+            assertStratumOfCompiledExpression(expression, expectedStratum);
         }
 
         static Stream<Arguments> strataVerificationCases() {

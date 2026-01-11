@@ -35,8 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.ExpressionTestUtil.TEST_LOCATION;
-import static io.sapl.util.TestBrokers.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("PolicyBodyCompiler")
@@ -164,7 +163,7 @@ class PolicyBodyCompilerTests {
         val body = parsePolicyBody(tc.bodyContent());
 
         // Production pathway - fresh context
-        var broker1  = tc.attributes().isEmpty() ? ERROR_ATTRIBUTE_BROKER : attributeBroker(tc.attributes());
+        var broker1  = tc.attributes().isEmpty() ? ATTRIBUTE_BROKER : attributeBroker(tc.attributes());
         var compCtx1 = compilationContext(broker1);
         var evalCtx1 = tc.variables().isEmpty() ? evaluationContext(broker1)
                 : evaluationContext(broker1, tc.variables());
@@ -174,7 +173,7 @@ class PolicyBodyCompilerTests {
         assertThat(productionValue).as("production value").isEqualTo(tc.expectedValue());
 
         // Coverage pathway - separate fresh context
-        var broker2  = tc.attributes().isEmpty() ? ERROR_ATTRIBUTE_BROKER : attributeBroker(tc.attributes());
+        var broker2  = tc.attributes().isEmpty() ? ATTRIBUTE_BROKER : attributeBroker(tc.attributes());
         var compCtx2 = compilationContext(broker2);
         var evalCtx2 = tc.variables().isEmpty() ? evaluationContext(broker2)
                 : evaluationContext(broker2, tc.variables());
@@ -272,7 +271,7 @@ class PolicyBodyCompilerTests {
 
             // Production pathway - fresh context
             var broker1  = tc.attrName() != null ? errorAttributeBroker(tc.attrName(), tc.attrError())
-                    : ERROR_ATTRIBUTE_BROKER;
+                    : ATTRIBUTE_BROKER;
             var compCtx1 = compilationContext(broker1);
             var evalCtx1 = tc.variables().isEmpty() ? evaluationContext(broker1)
                     : evaluationContext(broker1, tc.variables());
@@ -284,7 +283,7 @@ class PolicyBodyCompilerTests {
 
             // Coverage pathway - separate fresh context
             var broker2  = tc.attrName() != null ? errorAttributeBroker(tc.attrName(), tc.attrError())
-                    : ERROR_ATTRIBUTE_BROKER;
+                    : ATTRIBUTE_BROKER;
             var compCtx2 = compilationContext(broker2);
             var evalCtx2 = tc.variables().isEmpty() ? evaluationContext(broker2)
                     : evaluationContext(broker2, tc.variables());

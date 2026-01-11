@@ -17,7 +17,10 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.Value;
 import io.sapl.compiler.BooleanGuardCompiler.PureBooleanTypeCheck;
 import io.sapl.compiler.BooleanGuardCompiler.StreamBooleanTypeCheck;
 import lombok.val;
@@ -27,14 +30,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.BooleanGuardCompiler.applyBooleanGuard;
-import static io.sapl.util.ExpressionTestUtil.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -113,7 +115,7 @@ class BooleanGuardCompilerTests {
         void whenEvaluatesToBoolean_thenReturnsUnchanged(String description, BooleanValue input) {
             val pureOp = new TestPureOperator(ctx -> input);
             val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
-            val result = guard.evaluate(emptyEvaluationContext());
+            val result = guard.evaluate(evaluationContext());
             assertThat(result).isEqualTo(input);
         }
 
@@ -123,7 +125,7 @@ class BooleanGuardCompilerTests {
             val error  = Value.error("inner error");
             val pureOp = new TestPureOperator(ctx -> error);
             val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
-            val result = guard.evaluate(emptyEvaluationContext());
+            val result = guard.evaluate(evaluationContext());
             assertThat(result).isSameAs(error);
         }
 
@@ -133,7 +135,7 @@ class BooleanGuardCompilerTests {
         void whenEvaluatesToNonBoolean_thenReturnsError(String description, Value nonBoolean) {
             val pureOp = new TestPureOperator(ctx -> nonBoolean);
             val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
-            val result = guard.evaluate(emptyEvaluationContext());
+            val result = guard.evaluate(evaluationContext());
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains(nonBoolean.toString());
         }
@@ -226,17 +228,4 @@ class BooleanGuardCompilerTests {
         }
     }
 
-    private record TestStreamOperator(Value... values) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.fromArray(values).map(v -> new TracedValue(v, List.of()));
-        }
-    }
-
-    private record TestStreamOperatorWithTraced(TracedValue... tracedValues) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.fromArray(tracedValues);
-        }
-    }
 }

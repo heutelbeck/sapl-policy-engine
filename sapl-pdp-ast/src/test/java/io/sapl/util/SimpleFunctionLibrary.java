@@ -80,9 +80,4 @@ public class SimpleFunctionLibrary {
         }
         return Value.of(value.add(value1));
     }
-
-    @Function(docs = "Returns the input unchanged")
-    public static Value identity(Value input) {
-        return input;
-    }
 }

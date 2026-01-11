@@ -17,21 +17,17 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.ast.BinaryOperator;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.ast.Literal;
-import lombok.val;
+import io.sapl.compiler.util.Stratum;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.ExpressionTestUtil.TEST_LOCATION;
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -39,154 +35,76 @@ class RegexCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_matchRegexPrecompiled_then_returnsExpected(String description, String input, String pattern,
-            Value expected) {
-        val matcher = java.util.regex.Pattern.compile(pattern).asMatchPredicate();
-        val actual  = RegexCompiler.matchRegex(Value.of(input), matcher);
-        assertThat(actual).isEqualTo(expected);
+    void when_literalRegexExpression_then_returnsExpected(String description, String expression, Value expected) {
+        assertCompilesTo(expression, expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_matchRegexPrecompiled_then_returnsExpected() {
+    private static Stream<Arguments> when_literalRegexExpression_then_returnsExpected() {
         return Stream.of(
-            // Exact match
-            arguments("exact match", "hello", "hello", Value.TRUE),
-            arguments("no match", "hello", "world", Value.FALSE),
-            // Regex patterns
-            arguments("starts with", "hello world", "hello.*", Value.TRUE),
-            arguments("ends with", "hello world", ".*world", Value.TRUE),
-            arguments("contains", "hello world", ".*lo wo.*", Value.TRUE),
-            arguments("character class", "abc123", "[a-z]+[0-9]+", Value.TRUE),
-            arguments("digit pattern", "12345", "\\d+", Value.TRUE),
-            arguments("word boundary", "hello", "\\w+", Value.TRUE),
-            // Empty cases
-            arguments("empty pattern matches empty", "", "", Value.TRUE),
-            arguments("empty pattern matches all", "hello", ".*", Value.TRUE),
-            arguments("non-empty pattern vs empty input", "", "hello", Value.FALSE));
+            arguments("match", "\"hello\" =~ \"hello\"", Value.TRUE),
+            arguments("no match", "\"hello\" =~ \"world\"", Value.FALSE),
+            arguments("pattern match", "\"abc123\" =~ \"[a-z]+[0-9]+\"", Value.TRUE),
+            arguments("number input", "5 =~ \".*\"", Value.FALSE),
+            arguments("boolean input", "true =~ \".*\"", Value.FALSE),
+            arguments("null input", "null =~ \".*\"", Value.FALSE),
+            arguments("array input", "[] =~ \".*\"", Value.FALSE),
+            arguments("object input", "{} =~ \".*\"", Value.FALSE));
     }
     // @formatter:on
 
     @Test
-    void when_matchRegexPrecompiled_withNonTextValue_then_returnsFalse() {
-        val matcher = java.util.regex.Pattern.compile(".*").asMatchPredicate();
+    void when_invalidRegexPattern_then_throwsException() {
+        assertThatThrownBy(() -> compileExpression("\"hello\" =~ \"[invalid\""))
+                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid regular expression");
+    }
 
-        assertThat(RegexCompiler.matchRegex(Value.of(5), matcher)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.TRUE, matcher)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.NULL, matcher)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.EMPTY_ARRAY, matcher)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.EMPTY_OBJECT, matcher)).isEqualTo(Value.FALSE);
+    @Test
+    void when_nonTextPattern_then_returnsError() {
+        assertCompilesToError("\"hello\" =~ 123", "Regular expression must be a string");
     }
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_matchRegexRuntime_then_returnsExpected(String description, String input, String pattern, Value expected) {
-        val actual = RegexCompiler.matchRegex(Value.of(input), Value.of(pattern), null);
-        assertThat(actual).isEqualTo(expected);
+    void when_regexExpression_then_hasExpectedStratum(String description, String expression, Stratum expected) {
+        assertStratumOfCompiledExpression(expression, expected);
     }
 
-    private static Stream<Arguments> when_matchRegexRuntime_then_returnsExpected() {
-        return Stream.of(arguments("exact match", "hello", "hello", Value.TRUE),
-                arguments("no match", "hello", "world", Value.FALSE),
-                arguments("regex pattern", "abc123", "[a-z]+[0-9]+", Value.TRUE),
-                arguments("partial match fails (anchored)", "hello world", "hello", Value.FALSE),
-                arguments("full match succeeds", "hello", "hello", Value.TRUE));
+    // @formatter:off
+    private static Stream<Arguments> when_regexExpression_then_hasExpectedStratum() {
+        return Stream.of(
+            arguments("literal =~ literal", "\"hello\" =~ \"hello\"", Stratum.VALUE),
+            arguments("variable =~ literal", "subject.name =~ \"hello.*\"", Stratum.PURE_SUB),
+            arguments("literal =~ variable", "\"hello\" =~ subject.pattern", Stratum.PURE_SUB),
+            arguments("variable =~ variable", "subject.name =~ subject.pattern", Stratum.PURE_SUB),
+            arguments("stream =~ literal", "subject.<test.name> =~ \"hello.*\"", Stratum.STREAM),
+            arguments("literal =~ stream", "\"hello\" =~ subject.<test.pattern>", Stratum.STREAM),
+            arguments("variable =~ stream", "subject.name =~ subject.<test.pattern>", Stratum.STREAM),
+            arguments("stream =~ variable", "subject.<test.name> =~ subject.pattern", Stratum.STREAM));
     }
+    // @formatter:on
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_pureRegexWithVariables_then_evaluatesCorrectly(String description, String expression,
+            Map<String, Value> variables, Value expected) {
+        assertPureEvaluatesTo(expression, variables, expected);
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> when_pureRegexWithVariables_then_evaluatesCorrectly() {
+        return Stream.of(
+            arguments("variable input matches", "input =~ \"hello.*\"", Map.of("input", Value.of("hello world")), Value.TRUE),
+            arguments("variable input no match", "input =~ \"hello.*\"", Map.of("input", Value.of("goodbye")), Value.FALSE),
+            arguments("variable pattern", "\"hello\" =~ pattern", Map.of("pattern", Value.of("hello")), Value.TRUE),
+            arguments("both variables", "input =~ pattern", Map.of("input", Value.of("abc"), "pattern", Value.of("abc")), Value.TRUE),
+            arguments("non-text variable input", "input =~ \".*\"", Map.of("input", Value.of(42)), Value.FALSE));
+    }
+    // @formatter:on
 
     @Test
-    void when_matchRegexRuntime_withNonTextPattern_then_returnsError() {
-        val actual = RegexCompiler.matchRegex(Value.of("hello"), Value.of(123), null);
-        assertThat(actual).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) actual).message()).contains("Regular expression must be a string");
-    }
-
-    @Test
-    void when_matchRegexRuntime_withNonTextInput_then_returnsFalse() {
-        assertThat(RegexCompiler.matchRegex(Value.of(5), Value.of(".*"), null)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.TRUE, Value.of(".*"), null)).isEqualTo(Value.FALSE);
-    }
-
-    @Test
-    void when_matchRegexRuntime_withInvalidPattern_then_returnsError() {
-        val actual = RegexCompiler.matchRegex(Value.of("hello"), Value.of("[invalid"), null);
-        assertThat(actual).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) actual).message()).contains("Invalid regular expression");
-    }
-
-    @Test
-    void when_compileRegex_withInvalidPattern_then_throwsException() {
-        val compiler = new RegexCompiler();
-        val ctx      = new CompilationContext(null, null);
-
-        // Create a BinaryOperator with an invalid regex pattern
-        val leftExpr  = new Literal(Value.of("hello"), TEST_LOCATION);
-        val rightExpr = new Literal(Value.of("[invalid"), TEST_LOCATION);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOCATION);
-
-        assertThatThrownBy(() -> compiler.compile(binaryOp, ctx)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("Invalid regular expression");
-    }
-
-    @Test
-    void when_compileRegex_withLiteralPattern_then_returnsPrecompiledResult() {
-        val compiler = new RegexCompiler();
-        val ctx      = new CompilationContext(null, null);
-
-        // Both input and pattern are literals - should return a Value directly
-        val leftExpr  = new Literal(Value.of("hello"), TEST_LOCATION);
-        val rightExpr = new Literal(Value.of("hello"), TEST_LOCATION);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOCATION);
-
-        val result = compiler.compile(binaryOp, ctx);
-        assertThat(result).isEqualTo(Value.TRUE);
-    }
-
-    @Test
-    void when_compileRegex_withNonMatchingLiteralPattern_then_returnsFalse() {
-        val compiler = new RegexCompiler();
-        val ctx      = new CompilationContext(null, null);
-
-        val leftExpr  = new Literal(Value.of("hello"), TEST_LOCATION);
-        val rightExpr = new Literal(Value.of("world"), TEST_LOCATION);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOCATION);
-
-        val result = compiler.compile(binaryOp, ctx);
-        assertThat(result).isEqualTo(Value.FALSE);
-    }
-
-    @Test
-    void when_matchRegex_withEmailPattern_then_matchesValidEmail() {
-        val emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
-        val matcher      = java.util.regex.Pattern.compile(emailPattern).asMatchPredicate();
-
-        assertThat(RegexCompiler.matchRegex(Value.of("user@example.com"), matcher)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("invalid-email"), matcher)).isEqualTo(Value.FALSE);
-    }
-
-    @Test
-    void when_matchRegex_withIpAddressPattern_then_matchesValidIp() {
-        val ipPattern = "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$";
-        val matcher   = java.util.regex.Pattern.compile(ipPattern).asMatchPredicate();
-
-        assertThat(RegexCompiler.matchRegex(Value.of("192.168.1.1"), matcher)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("256.1.1.1"), matcher)).isEqualTo(Value.FALSE);
-    }
-
-    @Test
-    void when_matchRegex_withUnicodeSupport_then_matchesUnicode() {
-        val unicodePattern = "^[\\p{L}]+$"; // Unicode letters only
-        val matcher        = java.util.regex.Pattern.compile(unicodePattern).asMatchPredicate();
-
-        assertThat(RegexCompiler.matchRegex(Value.of("Ümläütß"), matcher)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("hello123"), matcher)).isEqualTo(Value.FALSE);
-    }
-
-    @Test
-    void when_matchRegex_withCaseInsensitiveFlag_then_matchesCaseInsensitive() {
-        val pattern = java.util.regex.Pattern.compile("hello", java.util.regex.Pattern.CASE_INSENSITIVE)
-                .asMatchPredicate();
-
-        assertThat(RegexCompiler.matchRegex(Value.of("HELLO"), pattern)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("HeLLo"), pattern)).isEqualTo(Value.TRUE);
+    void when_pureRegexWithInvalidVariablePattern_then_returnsError() {
+        assertPureEvaluatesToError("\"hello\" =~ pattern", Map.of("pattern", Value.of("[invalid")));
     }
 
 }

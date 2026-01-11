@@ -190,4 +190,13 @@ public record EvaluationContext(
         }
         return new EvaluationContext(this, Map.of(identifier, value));
     }
+
+    public EvaluationContext withVariables(Map<String, Value> additionalVariables) {
+        for (String identifier : additionalVariables.keySet()) {
+            if (RESERVED_IDENTIFIERS.contains(identifier)) {
+                throw new IllegalArgumentException("Identifier '%s' is reserved.".formatted(identifier));
+            }
+        }
+        return new EvaluationContext(this, additionalVariables);
+    }
 }

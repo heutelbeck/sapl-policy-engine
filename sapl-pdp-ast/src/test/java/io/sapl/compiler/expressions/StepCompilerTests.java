@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.ExpressionTestUtil.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -96,19 +96,19 @@ class StepCompilerTests {
             @Test
             void variableKey_evaluatesCorrectly() {
                 var user = obj("name", Value.of("alice"), "age", Value.of(30));
-                assertPureEvaluatesTo("subject.name", Map.of("subject", user), Value.of("alice"));
+                assertPureEvaluatesTo("user.name", Map.of("user", user), Value.of("alice"));
             }
 
             @Test
             void chainedKeys_workAtRuntime() {
                 var user = obj("address", obj("city", Value.of("Berlin")));
-                assertPureEvaluatesTo("subject.address.city", Map.of("subject", user), Value.of("Berlin"));
+                assertPureEvaluatesTo("user.address.city", Map.of("user", user), Value.of("Berlin"));
             }
 
             @Test
             void missingKey_returnsUndefined() {
                 var user = obj("name", Value.of("alice"));
-                assertPureEvaluatesTo("subject.missing", Map.of("subject", user), Value.UNDEFINED);
+                assertPureEvaluatesTo("user.missing", Map.of("user", user), Value.UNDEFINED);
             }
 
             @Test
@@ -253,7 +253,7 @@ class StepCompilerTests {
             @Test
             void objectVariable_evaluatesCorrectly() {
                 var data   = obj("a", Value.of(1), "b", Value.of(2));
-                var result = evaluateExpression("data.*", withVariables(Map.of("data", data)));
+                var result = evaluateExpression("data.*", evaluationContext(Map.of("data", data)));
                 assertThat(result).isInstanceOf(ArrayValue.class);
                 assertThat((ArrayValue) result).containsExactlyInAnyOrder(Value.of(1), Value.of(2));
             }

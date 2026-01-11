@@ -17,57 +17,25 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.*;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.libraries.StandardFunctionLibrary;
-import io.sapl.functions.libraries.StringFunctionLibrary;
-import io.sapl.functions.libraries.TemporalFunctionLibrary;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.Value;
 import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.core.publisher.Flux;
 
-import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.util.ExpressionTestUtil.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ExpressionCompilerTests {
-
-    private static CompilationContext contextWithFunctions;
-
-    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
-        @Override
-        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
-        }
-
-        @Override
-        public List<Class<?>> getRegisteredLibraries() {
-            return List.of();
-        }
-    };
-
-    private static DefaultFunctionBroker functionBroker;
-
-    @BeforeAll
-    static void setupFunctionBroker() {
-        functionBroker = new DefaultFunctionBroker();
-        functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(StringFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-        contextWithFunctions = new CompilationContext(functionBroker, DEFAULT_ATTRIBUTE_BROKER);
-    }
 
     @Nested
     @DisplayName("Escaped String Literals")
@@ -428,7 +396,7 @@ class ExpressionCompilerTests {
         @MethodSource
         @ParameterizedTest(name = "{0}")
         void when_temporalFunction_then_constantFolds(String description, String expression, Value expected) {
-            val compiled = compileExpression(expression, contextWithFunctions);
+            val compiled = compileExpression(expression);
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(expected);
         }
 
@@ -550,7 +518,7 @@ class ExpressionCompilerTests {
         @MethodSource
         @ParameterizedTest(name = "{0}")
         void when_functionCall_then_evaluatesCorrectly(String description, String expression, Value expected) {
-            val compiled = compileExpression(expression, contextWithFunctions);
+            val compiled = compileExpression(expression);
             assertThat(compiled).isEqualTo(expected);
         }
 
@@ -592,7 +560,7 @@ class ExpressionCompilerTests {
         void when_functionInCondition_then_constantFolds() {
             val compiled = compileExpression("""
                     ["a", "ab", "abc"][?(standard.length(@) > 1)]
-                    """, contextWithFunctions);
+                    """);
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(Value.of("ab"), Value.of("abc")));
         }
     }
@@ -631,7 +599,7 @@ class ExpressionCompilerTests {
         void when_atUsedDirectly_then_returnsUndefined() {
             val compiled = compileExpression("@");
             assertThat(compiled).isInstanceOf(PureOperator.class);
-            val result = ((PureOperator) compiled).evaluate(emptyEvaluationContext());
+            val result = ((PureOperator) compiled).evaluate(evaluationContext());
             assertThat(result).isEqualTo(Value.UNDEFINED);
         }
 
@@ -640,7 +608,7 @@ class ExpressionCompilerTests {
         void when_hashUsedDirectly_then_returnsUndefined() {
             val compiled = compileExpression("#");
             assertThat(compiled).isInstanceOf(PureOperator.class);
-            val result = ((PureOperator) compiled).evaluate(emptyEvaluationContext());
+            val result = ((PureOperator) compiled).evaluate(evaluationContext());
             assertThat(result).isEqualTo(Value.UNDEFINED);
         }
     }
@@ -803,12 +771,6 @@ class ExpressionCompilerTests {
                 arguments("environment", "environment", Value.of("production")));
     }
 
-    private static EvaluationContext subscriptionContext() {
-        val subscription = new AuthorizationSubscription(Value.of("alice"), Value.of("read"), Value.of("document"),
-                Value.of("production"));
-        return new EvaluationContext(null, null, null, subscription, functionBroker, DEFAULT_ATTRIBUTE_BROKER);
-    }
-
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_compileLiteralExpression_then_returnsResult(String description, String expression, Object expected) {
@@ -955,7 +917,7 @@ class ExpressionCompilerTests {
         assertThat(compiled).as("should be PureOperator when containing variable reference")
                 .isInstanceOf(PureOperator.class);
 
-        val ctx    = withVariables(java.util.Map.of("x", varValue));
+        val ctx    = evaluationContext().withVariables(java.util.Map.of("x", varValue));
         val result = ((PureOperator) compiled).evaluate(ctx);
         assertThat(result).isEqualTo(expected);
     }
