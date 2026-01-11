@@ -17,11 +17,5 @@
  */
 package io.sapl.compiler.model;
 
-import io.sapl.api.model.CompiledExpression;
-import reactor.core.publisher.Flux;
-
-public non-sealed interface StreamDocument extends CompiledDocument {
-    CompiledExpression targetExpression();
-
-    Flux<AuditableAuthorizationDecision> stream();
+public sealed interface DecisionMaker permits AuditableAuthorizationDecision, PureDecisionMaker, StreamDecisionMaker {
 }

@@ -19,7 +19,7 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.traced.AttributeRecord;
+import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
@@ -55,14 +55,14 @@ public class PolicyCompiler {
     private static final String ERROR_UNEXPECTED_LIFT                  = "Unexpected expression type during stratum lifting: %s. Indicates an implementation bug.";
 
     /**
-     * Compiles a policy AST into an executable CompiledDocument.
+     * Compiles a policy AST into an executable DecisionMaker.
      *
      * @param policy the policy AST to compile
      * @param ctx the compilation context for variable and function resolution
-     * @return a CompiledDocument that can evaluate the policy
+     * @return a DecisionMaker that can evaluate the policy
      * @throws SaplCompilerException if the policy contains static errors
      */
-    public CompiledDocument compilePolicy(Policy policy, CompilationContext ctx) {
+    public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
         val decisionSource = new DecisionSource(SourceType.POLICY, policy.name(), ctx.getPdpId(),
                 ctx.getConfigurationId(), null);
         val compiledTarget = policy.target() == null ? Value.TRUE
@@ -71,7 +71,7 @@ public class PolicyCompiler {
         if (compiledTarget instanceof ErrorValue error) {
             throw new SaplCompilerException(ERROR_TARGET_STATIC_ERROR.formatted(error), policy.target().location());
         }
-        return switch (compiledTarget) {
+        val decisionMaker = switch (compiledTarget) {
         case Value targetValue                                    ->
             compileWithConstantTarget(policy, targetValue, decisionSource, ctx);
         case PureOperator po when !po.isDependingOnSubscription() ->
@@ -81,9 +81,14 @@ public class PolicyCompiler {
         case StreamOperator ignored                               ->
             throw new SaplCompilerException(ERROR_TARGET_STREAM_OPERATOR, policy.target().location());
         };
+        return new CompiledPolicy(compiledTarget, decisionMaker, null);
     }
 
-    private static CompiledDocument compileWithConstantTarget(Policy policy, Value targetValue,
+    private Flux<DecisionWithCoverage> assembleDecisionWithCoverage(Policy policy, CompilationContext ctx) {
+        return null;
+    }
+
+    private static DecisionMaker compileWithConstantTarget(Policy policy, Value targetValue,
             DecisionSource decisionSource, CompilationContext ctx) {
         if (Value.FALSE.equals(targetValue)) {
             return AuditableAuthorizationDecision.notApplicable(decisionSource);
@@ -91,7 +96,7 @@ public class PolicyCompiler {
         return compilePolicyEvaluation(policy, targetValue, decisionSource, ctx);
     }
 
-    private static CompiledDocument compilePolicyEvaluation(Policy policy, CompiledExpression targetExpression,
+    private static DecisionMaker compilePolicyEvaluation(Policy policy, CompiledExpression targetExpression,
             DecisionSource decisionSource, CompilationContext ctx) {
         val compiledBody = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
         return switch (compiledBody.bodyExpression()) {
@@ -106,7 +111,7 @@ public class PolicyCompiler {
         };
     }
 
-    private static CompiledDocument compileConstraintsAndTransform(Policy policy, CompiledExpression targetExpression,
+    private static DecisionMaker compileConstraintsAndTransform(Policy policy, CompiledExpression targetExpression,
             CompiledExpression compiledBody, DecisionSource decisionSource, CompilationContext ctx) {
         if (compiledBody instanceof ErrorValue error) {
             throw new SaplCompilerException(ERROR_BODY_STATIC_ERROR.formatted(error), policy.body().location());
@@ -150,7 +155,7 @@ public class PolicyCompiler {
                 (Value) c.resource(), null, decisionSource, null);
     }
 
-    private static CompiledDocument compileStreamPolicyConstraints(Policy policy, CompiledExpression targetExpression,
+    private static DecisionMaker compileStreamPolicyConstraints(Policy policy, CompiledExpression targetExpression,
             StreamOperator streamBody, DecisionSource decisionSource, CompilationContext ctx) {
         val location = policy.location();
         val decision = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
@@ -305,7 +310,7 @@ public class PolicyCompiler {
             CompiledExpression targetExpression,
             Decision decision,
             StreamOperator body,
-            DecisionSource decisionSource) implements StreamDocument {
+            DecisionSource decisionSource) implements StreamDecisionMaker {
         @Override
         public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().map(tracedBodyValue -> {
@@ -330,7 +335,7 @@ public class PolicyCompiler {
             ArrayValue obligations,
             ArrayValue advice,
             Value resource,
-            DecisionSource decisionSource) implements StreamDocument {
+            DecisionSource decisionSource) implements StreamDecisionMaker {
         @Override
         public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().map(tracedBodyValue -> {
@@ -356,7 +361,7 @@ public class PolicyCompiler {
             PureOperator advice,
             PureOperator resource,
             SourceLocation policyLocation,
-            DecisionSource decisionSource) implements StreamDocument {
+            DecisionSource decisionSource) implements StreamDecisionMaker {
         @Override
         public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().switchMap(tracedBodyValue -> {
@@ -413,7 +418,7 @@ public class PolicyCompiler {
             StreamOperator advice,
             StreamOperator resource,
             SourceLocation policyLocation,
-            DecisionSource decisionSource) implements StreamDocument {
+            DecisionSource decisionSource) implements StreamDecisionMaker {
         @Override
         public Flux<AuditableAuthorizationDecision> stream() {
             return Flux.deferContextual(ctxView -> {
@@ -440,7 +445,7 @@ public class PolicyCompiler {
             StreamOperator advice,
             StreamOperator resource,
             SourceLocation policyLocation,
-            DecisionSource decisionSource) implements StreamDocument {
+            DecisionSource decisionSource) implements StreamDecisionMaker {
         @Override
         public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().switchMap(tracedBodyValue -> {
@@ -465,7 +470,7 @@ public class PolicyCompiler {
             AuditableAuthorizationDecision applicableDecision,
             AuditableAuthorizationDecision notApplicableDecision,
             PureOperator body,
-            DecisionSource decisionSource) implements PureDocument {
+            DecisionSource decisionSource) implements PureDecisionMaker {
 
         @Override
         public AuditableAuthorizationDecision evaluateBody(EvaluationContext ctx) {
@@ -488,7 +493,7 @@ public class PolicyCompiler {
             CompiledExpression advice,
             CompiledExpression resource,
             SourceLocation policyLocation,
-            DecisionSource decisionSource) implements PureDocument {
+            DecisionSource decisionSource) implements PureDecisionMaker {
         @Override
         public AuditableAuthorizationDecision evaluateBody(EvaluationContext ctx) {
             val bodyValue = body instanceof Value vb ? vb : ((PureOperator) body).evaluate(ctx);

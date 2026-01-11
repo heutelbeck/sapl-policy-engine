@@ -15,24 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.traced;
+package io.sapl.compiler.model;
 
-import io.sapl.api.SaplVersion;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
-import lombok.NonNull;
-
-import java.io.Serial;
-import java.io.Serializable;
-import java.time.Instant;
-
-public record AttributeRecord(
-        @NonNull AttributeFinderInvocation invocation,
-        @NonNull Value attributeValue,
-        @NonNull Instant retrievedAt,
-        SourceLocation location) implements Serializable {
-
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
-}
+public record DecisionWithCoverage(AuditableAuthorizationDecision decision, Coverage.BodyCoverage bodyCoverage) {}

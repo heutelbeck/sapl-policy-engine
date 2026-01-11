@@ -18,7 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.traced.AttributeRecord;
+import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
 import lombok.val;

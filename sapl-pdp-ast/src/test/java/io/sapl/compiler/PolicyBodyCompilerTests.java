@@ -18,10 +18,10 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.traced.ConditionHit;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
 import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.TracedPolicyBodyResultAndCoverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
@@ -186,11 +186,12 @@ class PolicyBodyCompilerTests {
                 .assertNext(r -> assertThat(r).satisfies(
                         cov -> assertThat(cov.value()).as("coverage equals expected").isEqualTo(tc.expectedValue()),
                         cov -> assertThat(cov.value()).as("coverage equals production").isEqualTo(productionValue),
-                        cov -> assertThat(cov.numberOfConditions()).as("condition count")
+                        cov -> assertThat(cov.bodyCoverage().numberOfConditions()).as("condition count")
                                 .isEqualTo(tc.expectedConditionCount()),
-                        cov -> assertThat(cov.hits()).as("hit count").hasSize(tc.expectedHitCount()), cov -> {
+                        cov -> assertThat(cov.bodyCoverage().hits()).as("hit count").hasSize(tc.expectedHitCount()),
+                        cov -> {
                             if (!tc.expectedHitIndices().isEmpty()) {
-                                assertThat(cov.hits().stream().map(ConditionHit::statementId).toList())
+                                assertThat(cov.bodyCoverage().hits().stream().map(Coverage.ConditionHit::statementId).toList())
                                         .as("hit indices").isEqualTo(tc.expectedHitIndices());
                             }
                         }))
@@ -297,7 +298,7 @@ class PolicyBodyCompilerTests {
                             cov -> assertThat(cov.value()).isInstanceOf(ErrorValue.class)
                                     .extracting(v -> ((ErrorValue) v).message()).asString()
                                     .containsIgnoringCase(tc.expectedErrorFragment()),
-                            cov -> assertThat(cov.hits()).hasSize(tc.expectedHitCount())))
+                            cov -> assertThat(cov.bodyCoverage().hits()).hasSize(tc.expectedHitCount())))
                     .verifyComplete();
         }
 

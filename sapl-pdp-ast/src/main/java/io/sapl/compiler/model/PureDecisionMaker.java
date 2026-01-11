@@ -18,8 +18,10 @@
 package io.sapl.compiler.model;
 
 import io.sapl.api.model.CompiledExpression;
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.EvaluationContext;
 
-public record CompiledPolicyBody(
-        CompiledExpression bodyExpression,
-        Flux<TracedPolicyBodyResultAndCoverage> coverageStream) {}
+public non-sealed interface PureDecisionMaker extends DecisionMaker {
+    CompiledExpression targetExpression();
+
+    AuditableAuthorizationDecision evaluateBody(EvaluationContext ctx);
+}

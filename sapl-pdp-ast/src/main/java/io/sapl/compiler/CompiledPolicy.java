@@ -15,16 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.traced;
+package io.sapl.compiler;
 
-import io.sapl.api.SaplVersion;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.compiler.model.CompiledDecisionMaker;
+import io.sapl.compiler.model.DecisionMaker;
+import io.sapl.compiler.model.DecisionWithCoverage;
+import reactor.core.publisher.Flux;
 
-import java.io.Serial;
-import java.io.Serializable;
-
-public record ConditionHit(long statementId, Value result, SourceLocation location) implements Serializable {
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
-}
+public record CompiledPolicy(
+        CompiledExpression targetExpression,
+        DecisionMaker decisionMaker,
+        Flux<DecisionWithCoverage> coverageStream) implements CompiledDecisionMaker {}

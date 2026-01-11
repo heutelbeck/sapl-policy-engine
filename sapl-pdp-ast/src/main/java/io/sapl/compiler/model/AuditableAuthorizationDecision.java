@@ -21,7 +21,7 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.traced.AttributeRecord;
+import io.sapl.api.model.AttributeRecord;
 import lombok.NonNull;
 import lombok.val;
 
@@ -35,7 +35,7 @@ public record AuditableAuthorizationDecision(
         @NonNull Value resource,
         Value error,
         DecisionSource source,
-        List<AttributeRecord> contributingAttributes) implements CompiledDocument {
+        List<AttributeRecord> contributingAttributes) implements DecisionMaker {
 
     public static AuditableAuthorizationDecision simpleDecision(Decision decision, DecisionSource source) {
         return new AuditableAuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null,

@@ -18,7 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.traced.AttributeRecord;
+import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.ExclusiveDisjunction;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Product;

@@ -17,22 +17,12 @@
  */
 package io.sapl.compiler.model;
 
+import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.traced.AttributeRecord;
-import io.sapl.api.pdp.traced.ConditionHit;
 
 import java.util.List;
 
-/**
- * Result of policy body compilation with coverage tracking information.
- *
- * @param value the evaluation result
- * @param contributingAttributes attributes that contributed to the result
- * @param hits condition evaluation hits with indices and results
- * @param numberOfConditions total number of conditions in the policy body
- */
 public record TracedPolicyBodyResultAndCoverage(
         Value value,
         List<AttributeRecord> contributingAttributes,
-        List<ConditionHit> hits,
-        long numberOfConditions) {}
+        Coverage.BodyCoverage bodyCoverage) {}

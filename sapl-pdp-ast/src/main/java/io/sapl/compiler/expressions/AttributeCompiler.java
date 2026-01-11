@@ -19,7 +19,7 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.traced.AttributeRecord;
+import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.AttributeStep;
 import io.sapl.ast.EnvironmentAttribute;
 import io.sapl.ast.Expression;

@@ -15,21 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.model;
+package io.sapl.compiler;
 
-import lombok.val;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.compiler.model.TracedPolicyBodyResultAndCoverage;
+import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public record TracedValue(Value value, List<AttributeRecord> contributingAttributes) {
-    public static TracedValue of(Value value) {
-        return new TracedValue(value, List.of());
-    }
-
-    public TracedValue with(List<AttributeRecord> additionalAttributes) {
-        val contributions = new ArrayList<AttributeRecord>(additionalAttributes);
-        contributions.addAll(contributingAttributes);
-        return new TracedValue(value, contributions);
-    }
-}
+public record CompiledPolicyBody(
+        CompiledExpression bodyExpression,
+        Flux<TracedPolicyBodyResultAndCoverage> coverageStream) {}

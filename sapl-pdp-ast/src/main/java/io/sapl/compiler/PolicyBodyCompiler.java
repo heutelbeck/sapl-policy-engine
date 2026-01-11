@@ -18,8 +18,7 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.traced.AttributeRecord;
-import io.sapl.api.pdp.traced.ConditionHit;
+import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.Condition;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
@@ -27,7 +26,7 @@ import io.sapl.ast.VarDef;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.LazyNaryBooleanCompiler;
-import io.sapl.compiler.model.CompiledPolicyBody;
+import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.TracedPolicyBodyResultAndCoverage;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -119,11 +118,11 @@ public class PolicyBodyCompiler {
 
         if (compiledConditions.isEmpty()) {
             return Flux
-                    .just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, List.of(), List.of(), numberOfConditions));
+                    .just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, List.of(), new Coverage.BodyCoverage(List.of(), 0)));
         }
 
         val stratified = stratifyConditions(compiledConditions);
-        val valueHits  = new ArrayList<ConditionHit>();
+        val valueHits  = new ArrayList<Coverage.ConditionHit>();
 
         val valueShortCircuit = evaluateValuesForCoverage(stratified.values(), valueHits, numberOfConditions);
         if (valueShortCircuit != null) {
@@ -141,7 +140,7 @@ public class PolicyBodyCompiler {
                 if (!ctx.addLocalPolicyVariable(name, ExpressionCompiler.compile(value, ctx))) {
                     return Flux.just(new TracedPolicyBodyResultAndCoverage(
                             Value.errorAt(statement.location(), ERROR_ATTEMPT_TO_REDEFINE_VARIABLE, name), List.of(),
-                            List.of(), numberOfConditions));
+                            new Coverage.BodyCoverage(List.of(), numberOfConditions)));
                 }
             }
             case Condition(var expression, var location)                 -> {
@@ -171,19 +170,20 @@ public class PolicyBodyCompiler {
     }
 
     private Flux<TracedPolicyBodyResultAndCoverage> evaluateValuesForCoverage(List<IndexedCompiledCondition> values,
-            List<ConditionHit> valueHits, long numberOfConditions) {
+                                                                              List<Coverage.ConditionHit> valueHits, long numberOfConditions) {
         for (var v : values) {
             val val = (Value) v.expression();
-            valueHits.add(new ConditionHit(v.index(), val, v.location()));
+            valueHits.add(new Coverage.ConditionHit(v.index(), val, v.location()));
             if (shouldShortCircuit(val)) {
-                return Flux.just(new TracedPolicyBodyResultAndCoverage(val, List.of(), valueHits, numberOfConditions));
+                return Flux.just(new TracedPolicyBodyResultAndCoverage(val, List.of(),
+                        new Coverage.BodyCoverage(valueHits, numberOfConditions)));
             }
         }
         return null;
     }
 
     private Flux<TracedPolicyBodyResultAndCoverage> evaluatePuresAndStreamsForCoverage(StratifiedConditions stratified,
-            List<ConditionHit> valueHits, long numberOfConditions) {
+                                                                                       List<Coverage.ConditionHit> valueHits, long numberOfConditions) {
         return Flux.deferContextual(ctxView -> {
             val evalCtx = ctxView.get(EvaluationContext.class);
             val hits    = new ArrayList<>(valueHits);
@@ -192,14 +192,16 @@ public class PolicyBodyCompiler {
             for (var p : stratified.pures()) {
                 val pure = (PureOperator) p.expression();
                 val val  = pure.evaluate(evalCtx);
-                hits.add(new ConditionHit(p.index(), val, p.location()));
+                hits.add(new Coverage.ConditionHit(p.index(), val, p.location()));
                 if (shouldShortCircuit(val)) {
-                    return Flux.just(new TracedPolicyBodyResultAndCoverage(val, attrs, hits, numberOfConditions));
+                    return Flux.just(new TracedPolicyBodyResultAndCoverage(val, attrs,
+                            new Coverage.BodyCoverage(hits, numberOfConditions)));
                 }
             }
 
             if (stratified.streams().isEmpty()) {
-                return Flux.just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, attrs, hits, numberOfConditions));
+                return Flux.just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, attrs,
+                        new Coverage.BodyCoverage(hits, numberOfConditions)));
             }
 
             return chainStreamsWithCoverage(stratified.streams(), 0, hits, attrs, numberOfConditions);
@@ -211,12 +213,12 @@ public class PolicyBodyCompiler {
     }
 
     private Flux<TracedPolicyBodyResultAndCoverage> chainStreamsWithCoverage(List<IndexedCompiledCondition> streams,
-            int index, List<ConditionHit> accumulatedHits, List<AttributeRecord> accumulatedAttrs,
-            long numberOfConditions) {
+                                                                             int index, List<Coverage.ConditionHit> accumulatedHits, List<AttributeRecord> accumulatedAttrs,
+                                                                             long numberOfConditions) {
 
         if (index >= streams.size()) {
-            return Flux.just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, accumulatedAttrs, accumulatedHits,
-                    numberOfConditions));
+            return Flux.just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, accumulatedAttrs,
+                    new Coverage.BodyCoverage(accumulatedHits, numberOfConditions)));
         }
 
         val current = streams.get(index);
@@ -224,14 +226,15 @@ public class PolicyBodyCompiler {
 
         return stream.stream().switchMap(tv -> {
             val newHits = new ArrayList<>(accumulatedHits);
-            newHits.add(new ConditionHit(current.index(), tv.value(), current.location()));
+            newHits.add(new Coverage.ConditionHit(current.index(), tv.value(), current.location()));
 
             val newAttrs = new ArrayList<>(accumulatedAttrs);
             newAttrs.addAll(tv.contributingAttributes());
 
             val val = tv.value();
             if (shouldShortCircuit(val)) {
-                return Flux.just(new TracedPolicyBodyResultAndCoverage(val, newAttrs, newHits, numberOfConditions));
+                return Flux.just(new TracedPolicyBodyResultAndCoverage(val, newAttrs,
+                        new Coverage.BodyCoverage(newHits, numberOfConditions)));
             }
             return chainStreamsWithCoverage(streams, index + 1, newHits, newAttrs, numberOfConditions);
         });

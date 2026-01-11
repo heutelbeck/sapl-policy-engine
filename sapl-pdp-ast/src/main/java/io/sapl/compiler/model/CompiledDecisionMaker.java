@@ -17,11 +17,10 @@
  */
 package io.sapl.compiler.model;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
+import reactor.core.publisher.Flux;
 
-public non-sealed interface PureDocument extends CompiledDocument {
-    CompiledExpression targetExpression();
+public interface CompiledDecisionMaker {
+    DecisionMaker decisionMaker();
 
-    AuditableAuthorizationDecision evaluateBody(EvaluationContext ctx);
+    Flux<DecisionWithCoverage> coverageStream();
 }

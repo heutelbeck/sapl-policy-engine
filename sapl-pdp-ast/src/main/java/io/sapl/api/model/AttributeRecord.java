@@ -17,19 +17,20 @@
  */
 package io.sapl.api.model;
 
-import lombok.val;
+import io.sapl.api.SaplVersion;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import lombok.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.Instant;
 
-public record TracedValue(Value value, List<AttributeRecord> contributingAttributes) {
-    public static TracedValue of(Value value) {
-        return new TracedValue(value, List.of());
-    }
+public record AttributeRecord(
+        @NonNull AttributeFinderInvocation invocation,
+        @NonNull Value attributeValue,
+        @NonNull Instant retrievedAt,
+        SourceLocation location) implements Serializable {
 
-    public TracedValue with(List<AttributeRecord> additionalAttributes) {
-        val contributions = new ArrayList<AttributeRecord>(additionalAttributes);
-        contributions.addAll(contributingAttributes);
-        return new TracedValue(value, contributions);
-    }
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }
