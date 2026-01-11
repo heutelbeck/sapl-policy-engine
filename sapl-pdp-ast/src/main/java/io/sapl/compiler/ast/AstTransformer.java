@@ -61,6 +61,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private Map<String, List<String>> importMap;
 
+    /**
+     * Initializes the import map for resolving single-part function/attribute
+     * names.
+     * <p>
+     * Called by subclasses for standalone expression parsing where no imports
+     * exist.
+     *
+     * @param imports the import map (short name to fully qualified path)
+     */
+    protected void initializeImportMap(Map<String, List<String>> imports) {
+        this.importMap = imports;
+    }
+
     @Override
     public SaplDocument visitSapl(SaplContext ctx) {
         var imports = ctx.importStatement().stream().map(this::visitImportStatement).toList();

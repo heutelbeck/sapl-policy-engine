@@ -17,17 +17,23 @@
  */
 package io.sapl.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.functions.DefaultFunctionBroker;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,6 +44,11 @@ import java.util.function.Function;
  */
 @UtilityClass
 public class TestBrokers {
+
+    /**
+     * ObjectMapper configured with SAPL Jackson module for parsing subscriptions.
+     */
+    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new SaplJacksonModule());
 
     /**
      * Default function broker with no registered functions.
@@ -450,6 +461,88 @@ public class TestBrokers {
     public static EvaluationContext evaluationContext(Map<String, Value> variables) {
         return new EvaluationContext("pdp", "config", "sub", null, variables, DEFAULT_FUNCTION_BROKER,
                 ERROR_ATTRIBUTE_BROKER, () -> "test-timestamp");
+    }
+
+    /**
+     * Parses a JSON string into an AuthorizationSubscription.
+     * Uses the SAPL Jackson module for proper deserialization.
+     *
+     * @param json the JSON string representing the subscription
+     * @return the parsed AuthorizationSubscription
+     */
+    @SneakyThrows(JsonProcessingException.class)
+    public static AuthorizationSubscription parseSubscription(String json) {
+        return MAPPER.readValue(json, AuthorizationSubscription.class);
+    }
+
+    /**
+     * Extracts subscription fields as variables map.
+     *
+     * @param subscription the authorization subscription
+     * @return map with subject, action, resource, environment variables
+     */
+    public static Map<String, Value> subscriptionVariables(AuthorizationSubscription subscription) {
+        var variables = new HashMap<String, Value>();
+        if (subscription != null) {
+            variables.put("subject", subscription.subject());
+            variables.put("action", subscription.action());
+            variables.put("resource", subscription.resource());
+            variables.put("environment", subscription.environment());
+        }
+        return variables;
+    }
+
+    /**
+     * Creates an evaluation context from an AuthorizationSubscription.
+     *
+     * @param subscription the authorization subscription
+     * @return an evaluation context with subscription variables
+     */
+    public static EvaluationContext evaluationContext(AuthorizationSubscription subscription) {
+        return new EvaluationContext("pdp", "config", "sub", null, subscriptionVariables(subscription),
+                DEFAULT_FUNCTION_BROKER, ERROR_ATTRIBUTE_BROKER, () -> "test-timestamp");
+    }
+
+    /**
+     * Creates an evaluation context from an AuthorizationSubscription with
+     * attribute broker.
+     *
+     * @param subscription the authorization subscription
+     * @param attrBroker the attribute broker
+     * @return an evaluation context with subscription variables
+     */
+    public static EvaluationContext evaluationContext(AuthorizationSubscription subscription,
+            AttributeBroker attrBroker) {
+        return new EvaluationContext("pdp", "config", "sub", null, subscriptionVariables(subscription),
+                DEFAULT_FUNCTION_BROKER, attrBroker, () -> "test-timestamp");
+    }
+
+    /**
+     * Creates an evaluation context from an AuthorizationSubscription with function
+     * broker.
+     *
+     * @param subscription the authorization subscription
+     * @param fnBroker the function broker
+     * @return an evaluation context with subscription variables
+     */
+    public static EvaluationContext evaluationContext(AuthorizationSubscription subscription, FunctionBroker fnBroker) {
+        return new EvaluationContext("pdp", "config", "sub", null, subscriptionVariables(subscription), fnBroker,
+                ERROR_ATTRIBUTE_BROKER, () -> "test-timestamp");
+    }
+
+    /**
+     * Creates an evaluation context from an AuthorizationSubscription with both
+     * brokers.
+     *
+     * @param subscription the authorization subscription
+     * @param fnBroker the function broker
+     * @param attrBroker the attribute broker
+     * @return an evaluation context with subscription variables
+     */
+    public static EvaluationContext evaluationContext(AuthorizationSubscription subscription, FunctionBroker fnBroker,
+            AttributeBroker attrBroker) {
+        return new EvaluationContext("pdp", "config", "sub", null, subscriptionVariables(subscription), fnBroker,
+                attrBroker, () -> "test-timestamp");
     }
 
 }

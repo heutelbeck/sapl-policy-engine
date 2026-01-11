@@ -25,7 +25,6 @@ import io.sapl.api.model.*;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.util.Stratum;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
@@ -49,8 +48,6 @@ public class ExpressionTestUtil {
      */
     public static final SourceLocation TEST_LOCATION = new SourceLocation("test", "", 0, 0, 1, 1, 1, 1);
 
-    private static final AstTransformer TRANSFORMER = new AstTransformer();
-
     /**
      * Parses a SAPL expression string into an AST Expression.
      *
@@ -59,8 +56,7 @@ public class ExpressionTestUtil {
      * @throws IllegalArgumentException if parsing fails
      */
     public static Expression parseExpression(String source) {
-        var ctx = ParserUtil.expression(source);
-        return (Expression) TRANSFORMER.visit(ctx);
+        return CompilerUtil.parseExpression(source);
     }
 
     /**

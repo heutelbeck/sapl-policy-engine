@@ -22,93 +22,35 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
-import lombok.val;
 
-/**
- * Mock function library for testing filter compilation.
- * <p>
- * Provides utility functions for test cases, mirroring the TestFunctionLibrary
- * from sapl-lang.
- */
 @UtilityClass
 @FunctionLibrary(name = "mock", description = "Mock test functions")
 public class MockFunctionLibrary {
 
-    /**
-     * Returns null, ignoring all parameters.
-     * <p>
-     * Used in tests to verify filter behavior with null-producing functions.
-     *
-     * @param parameters
-     * ignored parameters
-     *
-     * @return null value
-     */
-    @Function(docs = "Returns null, ignoring all parameters")
+    @Function
     public static Value nil(Value... parameters) {
         return Value.NULL;
     }
 
-    /**
-     * Returns an empty string, ignoring all parameters.
-     * <p>
-     * Used in tests to verify filter replacement behavior.
-     *
-     * @param parameters
-     * ignored parameters
-     *
-     * @return empty string value
-     */
-    @Function(docs = "Returns an empty string, ignoring all parameters")
+    @Function
     public static Value emptyString(Value... parameters) {
         return Value.of("");
     }
 
-    /**
-     * Returns an error value with a test error message.
-     * <p>
-     * Used in tests to verify error propagation in filters.
-     *
-     * @param parameters
-     * ignored parameters
-     *
-     * @return error value
-     */
-    @Function(docs = "Returns an error value for testing")
+    @Function
     public static Value error(Value... parameters) {
         return Value.error("INTENTIONALLY CREATED TEST ERROR");
     }
 
-    /**
-     * Throws a runtime exception.
-     * <p>
-     * Used in tests to verify exception handling in filters.
-     *
-     * @param parameters
-     * ignored parameters
-     *
-     * @throws RuntimeException
-     * always thrown
-     */
-    @Function(docs = "Throws a runtime exception for testing")
+    @Function
     public static Value exception(Value... parameters) {
         throw new RuntimeException("INTENTIONALLY THROWN TEST EXCEPTION");
     }
 
-    /**
-     * Returns an array containing all parameters.
-     * <p>
-     * Used in tests to verify parameter passing in filters.
-     *
-     * @param parameters
-     * the parameters to collect
-     *
-     * @return array containing all parameters
-     */
-    @Function(docs = "Returns an array of all parameters")
+    @Function
     public static Value parameters(Value... parameters) {
-        val builder = ArrayValue.builder();
-        for (val param : parameters) {
+        var builder = ArrayValue.builder();
+        for (var param : parameters) {
             builder.add(param);
         }
         return builder.build();

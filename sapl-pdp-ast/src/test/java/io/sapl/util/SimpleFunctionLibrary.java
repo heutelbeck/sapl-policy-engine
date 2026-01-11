@@ -22,6 +22,8 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.val;
 
+import java.math.BigDecimal;
+
 /**
  * Simple function library for testing filter compilation.
  */
@@ -30,15 +32,15 @@ public class SimpleFunctionLibrary {
 
     @Function(docs = "Appends strings to the input string")
     public static Value append(Value input, Value... parts) {
-        if (!(input instanceof TextValue text)) {
+        if (!(input instanceof TextValue(String value))) {
             return Value.error("append requires text input");
         }
-        val builder = new StringBuilder(text.value());
+        val builder = new StringBuilder(value);
         for (val part : parts) {
-            if (!(part instanceof TextValue textPart)) {
+            if (!(part instanceof TextValue(String value1))) {
                 return Value.error("append requires text arguments");
             }
-            builder.append(textPart.value());
+            builder.append(value1);
         }
         return Value.of(builder.toString());
     }
@@ -54,29 +56,29 @@ public class SimpleFunctionLibrary {
 
     @Function(name = "doubleValue", docs = "Doubles a number")
     public static Value doubleValue(Value input) {
-        if (!(input instanceof NumberValue number)) {
+        if (!(input instanceof NumberValue(BigDecimal value))) {
             return Value.error("double requires number input got:" + input);
         }
-        return Value.of(number.value().multiply(java.math.BigDecimal.valueOf(2)));
+        return Value.of(value.multiply(BigDecimal.valueOf(2)));
     }
 
     @Function(docs = "Negates a boolean")
     public static Value negate(Value input) {
-        if (!(input instanceof BooleanValue bool)) {
+        if (!(input instanceof BooleanValue(boolean value))) {
             return Value.error("negate requires boolean input");
         }
-        return Value.of(!bool.value());
+        return Value.of(!value);
     }
 
     @Function(docs = "Adds a value to a number")
     public static Value addValue(Value input, Value addend) {
-        if (!(input instanceof NumberValue num)) {
+        if (!(input instanceof NumberValue(BigDecimal value))) {
             return Value.error("addValue requires number input");
         }
-        if (!(addend instanceof NumberValue addendNum)) {
+        if (!(addend instanceof NumberValue(BigDecimal value1))) {
             return Value.error("addValue requires number addend");
         }
-        return Value.of(num.value().add(addendNum.value()));
+        return Value.of(value.add(value1));
     }
 
     @Function(docs = "Returns the input unchanged")
