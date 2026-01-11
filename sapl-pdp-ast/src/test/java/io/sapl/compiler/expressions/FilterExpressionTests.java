@@ -31,7 +31,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.evaluateExpression;
+import static io.sapl.util.SaplTesting.parseExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

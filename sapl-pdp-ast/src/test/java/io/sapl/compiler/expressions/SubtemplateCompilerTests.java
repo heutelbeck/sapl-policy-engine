@@ -17,11 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

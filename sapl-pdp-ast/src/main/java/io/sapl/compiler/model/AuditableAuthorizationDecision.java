@@ -23,7 +23,9 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.traced.AttributeRecord;
 import lombok.NonNull;
+import lombok.val;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public record AuditableAuthorizationDecision(
@@ -40,9 +42,10 @@ public record AuditableAuthorizationDecision(
                 source, null);
     }
 
-    public static AuditableAuthorizationDecision tracedSimpleDecision(Decision decision, DecisionSource source) {
+    public static AuditableAuthorizationDecision tracedSimpleDecision(Decision decision, DecisionSource source,
+            List<AttributeRecord> contributingAttributes) {
         return new AuditableAuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null,
-                source, null);
+                source, contributingAttributes);
     }
 
     public static AuditableAuthorizationDecision ofError(ErrorValue error, DecisionSource source) {
@@ -50,9 +53,10 @@ public record AuditableAuthorizationDecision(
                 Value.UNDEFINED, error, source, null);
     }
 
-    public static AuditableAuthorizationDecision tracedError(ErrorValue error, DecisionSource source) {
+    public static AuditableAuthorizationDecision tracedError(ErrorValue error, DecisionSource source,
+            List<AttributeRecord> contributingAttributes) {
         return new AuditableAuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                Value.UNDEFINED, error, source, null);
+                Value.UNDEFINED, error, source, contributingAttributes);
     }
 
     public static AuditableAuthorizationDecision notApplicable(DecisionSource source) {
@@ -60,8 +64,21 @@ public record AuditableAuthorizationDecision(
                 Value.UNDEFINED, null, source, null);
     }
 
-    public static AuditableAuthorizationDecision tracedNotApplicable(DecisionSource source) {
+    public static AuditableAuthorizationDecision tracedNotApplicable(DecisionSource source,
+            List<AttributeRecord> contributingAttributes) {
         return new AuditableAuthorizationDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                Value.UNDEFINED, null, source, null);
+                Value.UNDEFINED, null, source, contributingAttributes);
+    }
+
+    public AuditableAuthorizationDecision with(List<AttributeRecord> moreContributingAttributes) {
+        val mergedContributingAttributes = new ArrayList<AttributeRecord>();
+        if (contributingAttributes != null) {
+            mergedContributingAttributes.addAll(contributingAttributes);
+        }
+        if (moreContributingAttributes != null) {
+            mergedContributingAttributes.addAll(moreContributingAttributes);
+        }
+        return new AuditableAuthorizationDecision(decision, obligations, advice, resource, error, source,
+                mergedContributingAttributes);
     }
 }

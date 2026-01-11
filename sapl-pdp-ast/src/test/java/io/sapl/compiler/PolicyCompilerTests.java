@@ -491,11 +491,9 @@ class PolicyCompilerTests {
             val evalContext  = evaluationContext(subscription, attrBroker);
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision())
-                            .isEqualTo(Decision.NOT_APPLICABLE))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT))
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.NOT_APPLICABLE))
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
         }
 
         @Test
@@ -520,9 +518,9 @@ class PolicyCompilerTests {
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(tad -> {
-                        assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.authorizationDecision().obligations()).isNotNull().isNotEmpty();
-                        assertThat(tad.authorizationDecision().advice()).isNotNull().isNotEmpty();
+                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
+                        assertThat(tad.obligations()).isNotNull().isNotEmpty();
+                        assertThat(tad.advice()).isNotNull().isNotEmpty();
                     }).verifyComplete();
         }
 
@@ -547,8 +545,8 @@ class PolicyCompilerTests {
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(tad -> {
-                        assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.authorizationDecision().obligations()).isNotNull().isNotEmpty();
+                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
+                        assertThat(tad.obligations()).isNotNull().isNotEmpty();
                     }).verifyComplete();
         }
 
@@ -574,8 +572,8 @@ class PolicyCompilerTests {
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(tad -> {
-                        assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.authorizationDecision().obligations()).isNotNull().isNotEmpty();
+                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
+                        assertThat(tad.obligations()).isNotNull().isNotEmpty();
                     }).verifyComplete();
         }
 
@@ -597,10 +595,8 @@ class PolicyCompilerTests {
             val evalContext  = evaluationContext(subscription, attrBroker);
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision())
-                            .isEqualTo(Decision.NOT_APPLICABLE))
-                    .verifyComplete();
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT))
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.NOT_APPLICABLE)).verifyComplete();
         }
 
         @Test
@@ -621,9 +617,7 @@ class PolicyCompilerTests {
             val evalContext  = evaluationContext(subscription, attrBroker);
             val streamDoc    = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(
-                            tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.INDETERMINATE)).verifyComplete();
         }
     }
 
@@ -976,8 +970,7 @@ class PolicyCompilerTests {
 
             val streamDoc = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
         }
 
         @Test
@@ -1000,9 +993,7 @@ class PolicyCompilerTests {
 
             val streamDoc = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.authorizationDecision().decision())
-                            .isEqualTo(Decision.NOT_APPLICABLE))
-                    .verifyComplete();
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.NOT_APPLICABLE)).verifyComplete();
         }
 
         @Test
@@ -1027,8 +1018,8 @@ class PolicyCompilerTests {
             val streamDoc = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(tad -> {
-                        assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.authorizationDecision().advice()).contains(Value.of(99));
+                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
+                        assertThat(tad.advice()).contains(Value.of(99));
                     }).verifyComplete();
         }
 
@@ -1052,9 +1043,7 @@ class PolicyCompilerTests {
 
             val streamDoc = (StreamDocument) compiled;
             StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(
-                            tad -> assertThat(tad.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.INDETERMINATE)).verifyComplete();
         }
     }
 }

@@ -23,5 +23,5 @@ import reactor.core.publisher.Flux;
 public non-sealed interface StreamDocument extends CompiledDocument {
     CompiledExpression targetExpression();
 
-    Flux<TracedAuthorizationDecision> stream();
+    Flux<AuditableAuthorizationDecision> stream();
 }

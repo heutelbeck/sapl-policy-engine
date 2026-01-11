@@ -17,11 +17,8 @@
  */
 package io.sapl.compiler;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.traced.AttributeRecord;
 import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
@@ -34,6 +31,9 @@ import io.sapl.compiler.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @UtilityClass
 public class PolicyCompiler {
@@ -157,9 +157,7 @@ public class PolicyCompiler {
         val isSimple = policy.obligations().isEmpty() && policy.advice().isEmpty() && policy.transformation() == null;
 
         if (isSimple) {
-            return new StreamPolicy(targetExpression,
-                    AuditableAuthorizationDecision.simpleDecision(decision, decisionSource),
-                    AuditableAuthorizationDecision.notApplicable(decisionSource), streamBody, decisionSource);
+            return new StreamPolicy(targetExpression, decision, streamBody, decisionSource);
         }
 
         val c = compileConstraints(policy, location, ctx);
@@ -239,44 +237,39 @@ public class PolicyCompiler {
         };
     }
 
-    private static TracedAuthorizationDecision buildFromConstraintStreams(Object[] merged, Decision decision,
+    private static AuditableAuthorizationDecision buildFromConstraintStreams(Object[] merged, Decision decision,
             List<AttributeRecord> baseAttributes, SourceLocation location, DecisionSource decisionSource) {
         val tracedObligationsValue = (TracedValue) merged[0];
         val obligationsValue       = tracedObligationsValue.value();
         val contributingAttributes = new ArrayList<>(baseAttributes);
         contributingAttributes.addAll(tracedObligationsValue.contributingAttributes());
         if (obligationsValue instanceof ErrorValue error) {
-            return new TracedAuthorizationDecision(AuditableAuthorizationDecision.ofError(error, decisionSource),
-                    contributingAttributes);
+            return AuditableAuthorizationDecision.tracedError(error, decisionSource, contributingAttributes);
         }
         if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
-            return new TracedAuthorizationDecision(AuditableAuthorizationDecision.ofError(
-                    Value.errorAt(location, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)), decisionSource),
+            return AuditableAuthorizationDecision.tracedError(
+                    Value.errorAt(location, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)), decisionSource,
                     contributingAttributes);
         }
         val tracedAdviceValue = (TracedValue) merged[1];
         val adviceValue       = tracedAdviceValue.value();
         contributingAttributes.addAll(tracedAdviceValue.contributingAttributes());
         if (adviceValue instanceof ErrorValue error) {
-            return new TracedAuthorizationDecision(AuditableAuthorizationDecision.ofError(error, decisionSource),
-                    contributingAttributes);
+            return AuditableAuthorizationDecision.tracedError(error, decisionSource, contributingAttributes);
         }
         if (!(adviceValue instanceof ArrayValue adviceArray)) {
-            return new TracedAuthorizationDecision(
-                    AuditableAuthorizationDecision.ofError(
-                            Value.errorAt(location, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)), decisionSource),
+            return AuditableAuthorizationDecision.tracedError(
+                    Value.errorAt(location, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)), decisionSource,
                     contributingAttributes);
         }
         val tracedResourceValue = (TracedValue) merged[2];
         val resourceValue       = tracedResourceValue.value();
         contributingAttributes.addAll(tracedResourceValue.contributingAttributes());
         if (resourceValue instanceof ErrorValue error) {
-            return new TracedAuthorizationDecision(AuditableAuthorizationDecision.ofError(error, decisionSource),
-                    contributingAttributes);
+            return AuditableAuthorizationDecision.tracedError(error, decisionSource, contributingAttributes);
         }
-        val actualDecision = new AuditableAuthorizationDecision(decision, obligationsArray, adviceArray, resourceValue,
-                Value.UNDEFINED, decisionSource, null);
-        return new TracedAuthorizationDecision(actualDecision, contributingAttributes);
+        return new AuditableAuthorizationDecision(decision, obligationsArray, adviceArray, resourceValue,
+                Value.UNDEFINED, decisionSource, contributingAttributes);
     }
 
     record ConstantPure(Value value, SourceLocation location) implements PureOperator {
@@ -310,23 +303,22 @@ public class PolicyCompiler {
 
     record StreamPolicy(
             CompiledExpression targetExpression,
-            AuditableAuthorizationDecision applicableDecision,
-            AuditableAuthorizationDecision notApplicableDecision,
+            Decision decision,
             StreamOperator body,
             DecisionSource decisionSource) implements StreamDocument {
         @Override
-        public Flux<TracedAuthorizationDecision> stream() {
+        public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().map(tracedBodyValue -> {
                 val bodyValue              = tracedBodyValue.value();
                 val contributingAttributes = tracedBodyValue.contributingAttributes();
                 if (bodyValue instanceof ErrorValue error) {
-                    return new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.ofError(error, decisionSource), contributingAttributes);
+                    return AuditableAuthorizationDecision.tracedError(error, decisionSource, contributingAttributes);
                 }
                 if (Value.FALSE.equals(bodyValue)) {
-                    return new TracedAuthorizationDecision(notApplicableDecision, contributingAttributes);
+                    return AuditableAuthorizationDecision.tracedNotApplicable(decisionSource, contributingAttributes);
                 }
-                return new TracedAuthorizationDecision(applicableDecision, contributingAttributes);
+                return AuditableAuthorizationDecision.tracedSimpleDecision(decision, decisionSource,
+                        contributingAttributes);
             });
         }
     }
@@ -340,20 +332,18 @@ public class PolicyCompiler {
             Value resource,
             DecisionSource decisionSource) implements StreamDocument {
         @Override
-        public Flux<TracedAuthorizationDecision> stream() {
+        public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().map(tracedBodyValue -> {
                 val bodyValue              = tracedBodyValue.value();
                 val contributingAttributes = tracedBodyValue.contributingAttributes();
                 if (bodyValue instanceof ErrorValue error) {
-                    return new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.ofError(error, decisionSource), contributingAttributes);
+                    return AuditableAuthorizationDecision.tracedError(error, decisionSource, contributingAttributes);
                 }
                 if (Value.FALSE.equals(bodyValue)) {
-                    return new TracedAuthorizationDecision(AuditableAuthorizationDecision.notApplicable(decisionSource),
-                            contributingAttributes);
+                    return AuditableAuthorizationDecision.tracedNotApplicable(decisionSource, contributingAttributes);
                 }
-                return new TracedAuthorizationDecision(new AuditableAuthorizationDecision(decision, obligations, advice,
-                        resource, Value.UNDEFINED, decisionSource, contributingAttributes), contributingAttributes);
+                return new AuditableAuthorizationDecision(decision, obligations, advice, resource, Value.UNDEFINED,
+                        decisionSource, contributingAttributes);
             });
         }
     }
@@ -368,22 +358,22 @@ public class PolicyCompiler {
             SourceLocation policyLocation,
             DecisionSource decisionSource) implements StreamDocument {
         @Override
-        public Flux<TracedAuthorizationDecision> stream() {
+        public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().switchMap(tracedBodyValue -> {
                 val bodyValue              = tracedBodyValue.value();
                 val contributingAttributes = tracedBodyValue.contributingAttributes();
                 if (bodyValue instanceof ErrorValue error) {
-                    return Flux.just(new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.ofError(error, decisionSource), contributingAttributes));
+                    return Flux.just(
+                            AuditableAuthorizationDecision.tracedError(error, decisionSource, contributingAttributes));
                 }
                 if (Value.FALSE.equals(bodyValue)) {
-                    return Flux.just(new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.notApplicable(decisionSource), contributingAttributes));
+                    return Flux.just(
+                            AuditableAuthorizationDecision.tracedNotApplicable(decisionSource, contributingAttributes));
                 }
                 return Flux
                         .deferContextual(
                                 ctxView -> evaluateConstraints(ctxView.get(EvaluationContext.class), decisionSource))
-                        .map(d -> new TracedAuthorizationDecision(d, contributingAttributes));
+                        .map(d -> d.with(contributingAttributes));
             });
         }
 
@@ -425,17 +415,15 @@ public class PolicyCompiler {
             SourceLocation policyLocation,
             DecisionSource decisionSource) implements StreamDocument {
         @Override
-        public Flux<TracedAuthorizationDecision> stream() {
+        public Flux<AuditableAuthorizationDecision> stream() {
             return Flux.deferContextual(ctxView -> {
                 val evalCtx   = ctxView.get(EvaluationContext.class);
                 val bodyValue = body.evaluate(evalCtx);
                 if (bodyValue instanceof ErrorValue error) {
-                    return Flux.just(new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.ofError(error, decisionSource), List.of()));
+                    return Flux.just(AuditableAuthorizationDecision.ofError(error, decisionSource));
                 }
                 if (Value.FALSE.equals(bodyValue)) {
-                    return Flux.just(new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.notApplicable(decisionSource), List.of()));
+                    return Flux.just(AuditableAuthorizationDecision.notApplicable(decisionSource));
                 }
                 return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
                         merged -> buildFromConstraintStreams(merged, decision, List.of(), policyLocation,
@@ -454,17 +442,16 @@ public class PolicyCompiler {
             SourceLocation policyLocation,
             DecisionSource decisionSource) implements StreamDocument {
         @Override
-        public Flux<TracedAuthorizationDecision> stream() {
+        public Flux<AuditableAuthorizationDecision> stream() {
             return body.stream().switchMap(tracedBodyValue -> {
                 val bodyValue      = tracedBodyValue.value();
                 val bodyAttributes = tracedBodyValue.contributingAttributes();
                 if (bodyValue instanceof ErrorValue error) {
-                    return Flux.just(new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.ofError(error, decisionSource), bodyAttributes));
+                    return Flux.just(AuditableAuthorizationDecision.tracedError(error, decisionSource, bodyAttributes));
                 }
                 if (Value.FALSE.equals(bodyValue)) {
-                    return Flux.just(new TracedAuthorizationDecision(
-                            AuditableAuthorizationDecision.notApplicable(decisionSource), bodyAttributes));
+                    return Flux
+                            .just(AuditableAuthorizationDecision.tracedNotApplicable(decisionSource, bodyAttributes));
                 }
                 return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
                         merged -> buildFromConstraintStreams(merged, decision, bodyAttributes, policyLocation,
