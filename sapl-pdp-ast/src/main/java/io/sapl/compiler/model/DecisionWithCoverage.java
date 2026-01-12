@@ -17,4 +17,4 @@
  */
 package io.sapl.compiler.model;
 
-public record DecisionWithCoverage(AuditableAuthorizationDecision decision, Coverage.BodyCoverage bodyCoverage) {}
+public record DecisionWithCoverage(AuditableAuthorizationDecision decision, Coverage coverage) {}

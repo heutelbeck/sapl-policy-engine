@@ -117,8 +117,8 @@ public class PolicyBodyCompiler {
         }
 
         if (compiledConditions.isEmpty()) {
-            return Flux
-                    .just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, List.of(), new Coverage.BodyCoverage(List.of(), 0)));
+            return Flux.just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, List.of(),
+                    new Coverage.BodyCoverage(List.of(), 0)));
         }
 
         val stratified = stratifyConditions(compiledConditions);
@@ -170,7 +170,7 @@ public class PolicyBodyCompiler {
     }
 
     private Flux<TracedPolicyBodyResultAndCoverage> evaluateValuesForCoverage(List<IndexedCompiledCondition> values,
-                                                                              List<Coverage.ConditionHit> valueHits, long numberOfConditions) {
+            List<Coverage.ConditionHit> valueHits, long numberOfConditions) {
         for (var v : values) {
             val val = (Value) v.expression();
             valueHits.add(new Coverage.ConditionHit(v.index(), val, v.location()));
@@ -183,7 +183,7 @@ public class PolicyBodyCompiler {
     }
 
     private Flux<TracedPolicyBodyResultAndCoverage> evaluatePuresAndStreamsForCoverage(StratifiedConditions stratified,
-                                                                                       List<Coverage.ConditionHit> valueHits, long numberOfConditions) {
+            List<Coverage.ConditionHit> valueHits, long numberOfConditions) {
         return Flux.deferContextual(ctxView -> {
             val evalCtx = ctxView.get(EvaluationContext.class);
             val hits    = new ArrayList<>(valueHits);
@@ -213,8 +213,8 @@ public class PolicyBodyCompiler {
     }
 
     private Flux<TracedPolicyBodyResultAndCoverage> chainStreamsWithCoverage(List<IndexedCompiledCondition> streams,
-                                                                             int index, List<Coverage.ConditionHit> accumulatedHits, List<AttributeRecord> accumulatedAttrs,
-                                                                             long numberOfConditions) {
+            int index, List<Coverage.ConditionHit> accumulatedHits, List<AttributeRecord> accumulatedAttrs,
+            long numberOfConditions) {
 
         if (index >= streams.size()) {
             return Flux.just(new TracedPolicyBodyResultAndCoverage(Value.TRUE, accumulatedAttrs,

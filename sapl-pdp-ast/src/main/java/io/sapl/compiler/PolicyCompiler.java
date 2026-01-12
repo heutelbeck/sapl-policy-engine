@@ -54,6 +54,11 @@ public class PolicyCompiler {
     private static final String ERROR_UNEXPECTED_CONSTRAINT_TYPE       = "Unexpected error: obligations or advice did not evaluate to an Array. Got: obligations=%s and advice=%s. Indicates an implementation bug.";
     private static final String ERROR_UNEXPECTED_LIFT                  = "Unexpected expression type during stratum lifting: %s. Indicates an implementation bug.";
 
+    private record CompiledPolicyComponents(
+            CompiledExpression target,
+            CompiledPolicyBody body,
+            CompiledConstraints constraints) {}
+
     /**
      * Compiles a policy AST into an executable DecisionMaker.
      *
@@ -71,48 +76,52 @@ public class PolicyCompiler {
         if (compiledTarget instanceof ErrorValue error) {
             throw new SaplCompilerException(ERROR_TARGET_STATIC_ERROR.formatted(error), policy.target().location());
         }
-        val decisionMaker = switch (compiledTarget) {
-        case Value targetValue                                    ->
-            compileWithConstantTarget(policy, targetValue, decisionSource, ctx);
-        case PureOperator po when !po.isDependingOnSubscription() ->
-            throw new SaplCompilerException(ERROR_TARGET_RELATIVE_ACCESSOR, policy.target().location());
-        case PureOperator pureTarget                              ->
-            compilePolicyEvaluation(policy, pureTarget, decisionSource, ctx);
-        case StreamOperator ignored                               ->
-            throw new SaplCompilerException(ERROR_TARGET_STREAM_OPERATOR, policy.target().location());
-        };
-        return new CompiledPolicy(compiledTarget, decisionMaker, null);
+        val compiledBody   = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
+        val constraints    = compileConstraints(policy, policy.location(), ctx);
+        val components     = new CompiledPolicyComponents(compiledTarget, compiledBody, constraints);
+        val decisionMaker  = switch (compiledTarget) {
+                           case Value ignored                                        ->
+                               compileWithConstantTarget(policy, components, decisionSource);
+                           case PureOperator po when !po.isDependingOnSubscription() -> throw new SaplCompilerException(
+                                   ERROR_TARGET_RELATIVE_ACCESSOR, policy.target().location());
+                           case PureOperator ignored                                 ->
+                               compilePolicyEvaluation(policy, components, decisionSource);
+                           case StreamOperator ignored                               -> throw new SaplCompilerException(
+                                   ERROR_TARGET_STREAM_OPERATOR, policy.target().location());
+                           };
+        val coverageStream = assembleDecisionWithCoverage(policy, components, ctx);
+        return new CompiledPolicy(compiledTarget, decisionMaker, coverageStream);
     }
 
-    private Flux<DecisionWithCoverage> assembleDecisionWithCoverage(Policy policy, CompilationContext ctx) {
-        return null;
+    private Flux<DecisionWithCoverage> assembleDecisionWithCoverage(Policy policy, CompiledPolicyComponents components,
+            CompilationContext ctx) {
+        return Flux.empty();
     }
 
-    private static DecisionMaker compileWithConstantTarget(Policy policy, Value targetValue,
-            DecisionSource decisionSource, CompilationContext ctx) {
-        if (Value.FALSE.equals(targetValue)) {
+    private static DecisionMaker compileWithConstantTarget(Policy policy, CompiledPolicyComponents components,
+            DecisionSource decisionSource) {
+        if (Value.FALSE.equals(components.target())) {
             return AuditableAuthorizationDecision.notApplicable(decisionSource);
         }
-        return compilePolicyEvaluation(policy, targetValue, decisionSource, ctx);
+        return compilePolicyEvaluation(policy, components, decisionSource);
     }
 
-    private static DecisionMaker compilePolicyEvaluation(Policy policy, CompiledExpression targetExpression,
-            DecisionSource decisionSource, CompilationContext ctx) {
-        val compiledBody = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
-        return switch (compiledBody.bodyExpression()) {
+    private static DecisionMaker compilePolicyEvaluation(Policy policy, CompiledPolicyComponents components,
+            DecisionSource decisionSource) {
+        return switch (components.body().bodyExpression()) {
         case Value bodyValue                                      ->
-            compileConstraintsAndTransform(policy, targetExpression, bodyValue, decisionSource, ctx);
+            compileConstraintsAndTransform(policy, components, bodyValue, decisionSource);
         case PureOperator po when !po.isDependingOnSubscription() ->
             throw new SaplCompilerException(ERROR_BODY_RELATIVE_ACCESSOR, policy.body().location());
         case PureOperator pureBody                                ->
-            compileConstraintsAndTransform(policy, targetExpression, pureBody, decisionSource, ctx);
+            compileConstraintsAndTransform(policy, components, pureBody, decisionSource);
         case StreamOperator streamBody                            ->
-            compileStreamPolicyConstraints(policy, targetExpression, streamBody, decisionSource, ctx);
+            compileStreamPolicyConstraints(policy, components, streamBody, decisionSource);
         };
     }
 
-    private static DecisionMaker compileConstraintsAndTransform(Policy policy, CompiledExpression targetExpression,
-            CompiledExpression compiledBody, DecisionSource decisionSource, CompilationContext ctx) {
+    private static DecisionMaker compileConstraintsAndTransform(Policy policy, CompiledPolicyComponents components,
+            CompiledExpression compiledBody, DecisionSource decisionSource) {
         if (compiledBody instanceof ErrorValue error) {
             throw new SaplCompilerException(ERROR_BODY_STATIC_ERROR.formatted(error), policy.body().location());
         }
@@ -120,17 +129,18 @@ public class PolicyCompiler {
             return AuditableAuthorizationDecision.notApplicable(decisionSource);
         }
 
-        val location = policy.location();
-        val decision = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
-        val isSimple = policy.obligations().isEmpty() && policy.advice().isEmpty() && policy.transformation() == null;
+        val location         = policy.location();
+        val decision         = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
+        val isSimple         = policy.obligations().isEmpty() && policy.advice().isEmpty()
+                && policy.transformation() == null;
+        val targetExpression = components.target();
+        val c                = components.constraints();
 
         if (isSimple && compiledBody instanceof PureOperator pureBody) {
             return new SimplePurePolicy(targetExpression,
                     AuditableAuthorizationDecision.simpleDecision(decision, decisionSource),
                     AuditableAuthorizationDecision.notApplicable(decisionSource), pureBody, decisionSource);
         }
-
-        val c = compileConstraints(policy, location, ctx);
 
         if (c.obligations() instanceof StreamOperator || c.advice() instanceof StreamOperator
                 || c.resource() instanceof StreamOperator) {
@@ -155,17 +165,18 @@ public class PolicyCompiler {
                 (Value) c.resource(), null, decisionSource, null);
     }
 
-    private static DecisionMaker compileStreamPolicyConstraints(Policy policy, CompiledExpression targetExpression,
-            StreamOperator streamBody, DecisionSource decisionSource, CompilationContext ctx) {
-        val location = policy.location();
-        val decision = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
-        val isSimple = policy.obligations().isEmpty() && policy.advice().isEmpty() && policy.transformation() == null;
+    private static DecisionMaker compileStreamPolicyConstraints(Policy policy, CompiledPolicyComponents components,
+            StreamOperator streamBody, DecisionSource decisionSource) {
+        val location         = policy.location();
+        val decision         = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
+        val isSimple         = policy.obligations().isEmpty() && policy.advice().isEmpty()
+                && policy.transformation() == null;
+        val targetExpression = components.target();
+        val c                = components.constraints();
 
         if (isSimple) {
             return new StreamPolicy(targetExpression, decision, streamBody, decisionSource);
         }
-
-        val c = compileConstraints(policy, location, ctx);
 
         // Determine highest stratum and lift all constraints to it
         boolean hasStream = c.obligations() instanceof StreamOperator || c.advice() instanceof StreamOperator

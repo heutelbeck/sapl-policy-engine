@@ -191,8 +191,8 @@ class PolicyBodyCompilerTests {
                         cov -> assertThat(cov.bodyCoverage().hits()).as("hit count").hasSize(tc.expectedHitCount()),
                         cov -> {
                             if (!tc.expectedHitIndices().isEmpty()) {
-                                assertThat(cov.bodyCoverage().hits().stream().map(Coverage.ConditionHit::statementId).toList())
-                                        .as("hit indices").isEqualTo(tc.expectedHitIndices());
+                                assertThat(cov.bodyCoverage().hits().stream().map(Coverage.ConditionHit::statementId)
+                                        .toList()).as("hit indices").isEqualTo(tc.expectedHitIndices());
                             }
                         }))
                 .verifyComplete();
