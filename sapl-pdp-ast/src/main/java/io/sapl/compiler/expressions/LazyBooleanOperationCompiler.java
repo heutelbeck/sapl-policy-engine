@@ -46,16 +46,17 @@ public class LazyBooleanOperationCompiler {
     public static final String ERROR_TYPE_MISMATCH = "Expected BOOLEAN but got: %s.";
 
     public static CompiledExpression compile(BinaryOperator expr, CompilationContext ctx) {
-        val op = expr.op();
+        val op       = expr.op();
         val location = expr.location();
-        val isAnd = op == BinaryOperatorType.AND;
+        val isAnd    = op == BinaryOperatorType.AND;
 
-        val left = ExpressionCompiler.compile(expr.left(), ctx);
+        val left  = ExpressionCompiler.compile(expr.left(), ctx);
         val right = ExpressionCompiler.compile(expr.right(), ctx);
-        return compile(left,right,isAnd,location,ctx);
+        return compile(left, right, isAnd, location, ctx);
     }
 
-    public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, boolean isAnd, SourceLocation location, CompilationContext ctx) {
+    public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, boolean isAnd,
+            SourceLocation location, CompilationContext ctx) {
         if (left instanceof ErrorValue) {
             return left;
         }
@@ -66,7 +67,7 @@ public class LazyBooleanOperationCompiler {
         // (LTR within stratum)
         if (left instanceof Value leftValue) {
             if (leftValue instanceof BooleanValue(var b)) {
-                boolean shortCircuits = isAnd ? !b : b; // false for AND, true for OR
+                boolean shortCircuits = isAnd != b;
                 if (shortCircuits) {
                     return b ? Value.TRUE : Value.FALSE;
                 }

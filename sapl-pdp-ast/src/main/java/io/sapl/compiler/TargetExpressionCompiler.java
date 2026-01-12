@@ -48,7 +48,11 @@ public class TargetExpressionCompiler {
             throw new SaplCompilerException(ERROR_TARGET_STREAM_OPERATOR, targetExpression.location());
         }
         if (schemaValidator != null) {
-            LazyBooleanOperationCompiler.compile(binaryOperation, ctx)
+            if (targetExpression == null) {
+                return schemaValidator;
+            }
+            return LazyBooleanOperationCompiler.compile(schemaValidator, compiledTarget, true,
+                    targetExpression.location(), ctx);
         }
 
         return compiledTarget;
