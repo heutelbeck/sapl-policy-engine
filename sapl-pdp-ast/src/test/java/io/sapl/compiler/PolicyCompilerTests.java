@@ -506,21 +506,16 @@ class PolicyCompilerTests {
                     advice "stay_polite"
                     """;
             val attrBroker = attributeBroker("patrol.active", Value.TRUE);
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
-            assertThat(compiled).isInstanceOf(PolicyCompiler.StreamValuePolicy.class);
+            assertThat(compilePolicy(policy, attrBroker)).isInstanceOf(PolicyCompiler.StreamValuePolicy.class);
 
-            val subscription = parseSubscription("""
+            val decisions = evaluatePolicy("""
                     {"subject": "Carrot", "action": "patrol", "resource": "Ankh-Morpork"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-            val streamDoc    = (StreamDecisionMaker) compiled;
-            StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> {
-                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.obligations()).isNotNull().isNotEmpty();
-                        assertThat(tad.advice()).isNotNull().isNotEmpty();
-                    }).verifyComplete();
+                    """, policy, attrBroker);
+            StepVerifier.create(decisions).assertNext(tad -> {
+                assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
+                assertThat(tad.obligations()).isNotNull().isNotEmpty();
+                assertThat(tad.advice()).isNotNull().isNotEmpty();
+            }).verifyComplete();
         }
 
         @Test
@@ -533,20 +528,15 @@ class PolicyCompilerTests {
                     obligation subject
                     """;
             val attrBroker = attributeBroker("duty.status", Value.of("on_duty"));
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
-            assertThat(compiled).isInstanceOf(PolicyCompiler.StreamPurePolicy.class);
+            assertThat(compilePolicy(policy, attrBroker)).isInstanceOf(PolicyCompiler.StreamPurePolicy.class);
 
-            val subscription = parseSubscription("""
+            val decisions = evaluatePolicy("""
                     {"subject": "Vimes", "action": "command", "resource": "City Watch"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-            val streamDoc    = (StreamDecisionMaker) compiled;
-            StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> {
-                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.obligations()).isNotNull().isNotEmpty();
-                    }).verifyComplete();
+                    """, policy, attrBroker);
+            StepVerifier.create(decisions).assertNext(tad -> {
+                assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
+                assertThat(tad.obligations()).isNotNull().isNotEmpty();
+            }).verifyComplete();
         }
 
         @Test
@@ -560,20 +550,15 @@ class PolicyCompilerTests {
                     """;
             val attrBroker = attributeBroker(Map.of("guild.active", new Value[] { Value.TRUE }, "audit.guild",
                     new Value[] { Value.of("logged") }));
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
-            assertThat(compiled).isInstanceOf(PolicyCompiler.StreamStreamPolicy.class);
+            assertThat(compilePolicy(policy, attrBroker)).isInstanceOf(PolicyCompiler.StreamStreamPolicy.class);
 
-            val subscription = parseSubscription("""
+            val decisions = evaluatePolicy("""
                     {"subject": "Moist", "action": "join", "resource": "Guild"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-            val streamDoc    = (StreamDecisionMaker) compiled;
-            StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> {
-                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.obligations()).isNotNull().isNotEmpty();
-                    }).verifyComplete();
+                    """, policy, attrBroker);
+            StepVerifier.create(decisions).assertNext(tad -> {
+                assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
+                assertThat(tad.obligations()).isNotNull().isNotEmpty();
+            }).verifyComplete();
         }
 
         @Test
@@ -585,16 +570,11 @@ class PolicyCompilerTests {
                     where subject.<access.valid> == true;
                     """;
             val attrBroker = attributeBroker("access.valid", Value.TRUE, Value.FALSE);
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
 
-            val subscription = parseSubscription("""
+            val decisions = evaluatePolicy("""
                     {"subject": "Visitor", "action": "access", "resource": "Guild Hall"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-            val streamDoc    = (StreamDecisionMaker) compiled;
-            StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT))
+                    """, policy, attrBroker);
+            StepVerifier.create(decisions).assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT))
                     .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.NOT_APPLICABLE)).verifyComplete();
         }
 
@@ -607,15 +587,11 @@ class PolicyCompilerTests {
                     where subject.<clacks.signal> == true;
                     """;
             val attrBroker = attributeBroker("clacks.signal", Value.error("GNU Terry Pratchett"));
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
 
-            val subscription = parseSubscription("""
+            val decisions = evaluatePolicy("""
                     {"subject": "operator", "action": "transmit", "resource": "Clacks Tower"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-            val streamDoc    = (StreamDecisionMaker) compiled;
-            StepVerifier.create(streamDoc.stream().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+                    """, policy, attrBroker);
+            StepVerifier.create(decisions)
                     .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.INDETERMINATE)).verifyComplete();
         }
     }

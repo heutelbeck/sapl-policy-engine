@@ -27,14 +27,24 @@ import io.sapl.api.model.*;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.ast.Expression;
+import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
+import io.sapl.compiler.PolicyCompiler;
 import io.sapl.compiler.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
+import io.sapl.compiler.CompiledPolicy;
+import io.sapl.compiler.model.AuditableAuthorizationDecision;
+import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.model.DecisionMaker;
+import io.sapl.compiler.model.DecisionWithCoverage;
 import io.sapl.compiler.model.Document;
+import io.sapl.compiler.model.PureDecisionMaker;
+import io.sapl.compiler.model.StreamDecisionMaker;
 import io.sapl.compiler.util.Stratum;
+import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.StandardFunctionLibrary;
@@ -51,6 +61,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -125,6 +136,112 @@ public class SaplTesting {
     @SneakyThrows(JsonProcessingException.class)
     public static AuthorizationSubscription parseSubscription(String json) {
         return MAPPER.readValue(json, AuthorizationSubscription.class);
+    }
+
+    public static Policy parsePolicy(String policySource) {
+        var document = COMPILER.parse(policySource);
+        var element  = document.policyElement();
+        if (element instanceof PolicyOnlyElementContext policyOnly) {
+            return (Policy) TRANSFORMER.visit(policyOnly.policy());
+        }
+        throw new IllegalArgumentException("Expected a single policy, not a policy set");
+    }
+
+    public static DecisionMaker compilePolicy(String policySource) {
+        return compilePolicy(policySource, compilationContext());
+    }
+
+    public static DecisionMaker compilePolicy(String policySource, AttributeBroker attrBroker) {
+        return compilePolicy(policySource, compilationContext(attrBroker));
+    }
+
+    public static DecisionMaker compilePolicy(String policySource, CompilationContext ctx) {
+        var policy = parsePolicy(policySource);
+        return PolicyCompiler.compilePolicy(policy, ctx).decisionMaker();
+    }
+
+    public static Flux<AuditableAuthorizationDecision> evaluatePolicy(String subscriptionJson, String policySource) {
+        return evaluatePolicy(subscriptionJson, policySource, ATTRIBUTE_BROKER);
+    }
+
+    public static Flux<AuditableAuthorizationDecision> evaluatePolicy(String subscriptionJson, String policySource,
+            AttributeBroker attrBroker) {
+        return evaluatePolicy(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
+    }
+
+    public static Flux<AuditableAuthorizationDecision> evaluatePolicy(String subscriptionJson, String policySource,
+            CompilationContext compilationCtx, AttributeBroker attrBroker) {
+        var subscription  = parseSubscription(subscriptionJson);
+        var compiled      = compilePolicy(policySource, compilationCtx);
+        var evaluationCtx = evaluationContext(subscription, attrBroker);
+        return evaluatePolicyDecisionMaker(compiled, evaluationCtx);
+    }
+
+    public static Flux<AuditableAuthorizationDecision> evaluatePolicyDecisionMaker(DecisionMaker compiled,
+            EvaluationContext evalCtx) {
+        return switch (compiled) {
+        case AuditableAuthorizationDecision decision -> Flux.just(decision);
+        case PureDecisionMaker pure                  -> Flux.just(pure.evaluateBody(evalCtx));
+        case StreamDecisionMaker stream              ->
+            stream.stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        };
+    }
+
+    public static CompiledPolicy compilePolicyFull(String policySource) {
+        return compilePolicyFull(policySource, compilationContext());
+    }
+
+    public static CompiledPolicy compilePolicyFull(String policySource, AttributeBroker attrBroker) {
+        return compilePolicyFull(policySource, compilationContext(attrBroker));
+    }
+
+    public static CompiledPolicy compilePolicyFull(String policySource, CompilationContext ctx) {
+        var policy = parsePolicy(policySource);
+        return PolicyCompiler.compilePolicy(policy, ctx);
+    }
+
+    public static Flux<DecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource) {
+        return evaluatePolicyWithCoverage(subscriptionJson, policySource, ATTRIBUTE_BROKER);
+    }
+
+    public static Flux<DecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
+            AttributeBroker attrBroker) {
+        return evaluatePolicyWithCoverage(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
+    }
+
+    public static Flux<DecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
+            CompilationContext compilationCtx, AttributeBroker attrBroker) {
+        var subscription  = parseSubscription(subscriptionJson);
+        var compiled      = compilePolicyFull(policySource, compilationCtx);
+        var evaluationCtx = evaluationContext(subscription, attrBroker);
+        return compiled.coverageStream().contextWrite(c -> c.put(EvaluationContext.class, evaluationCtx));
+    }
+
+    public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource) {
+        assertCoverageMatchesProduction(subscriptionJson, policySource, ATTRIBUTE_BROKER);
+    }
+
+    public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource,
+            AttributeBroker attrBroker) {
+        // Collect both streams to lists (blocking) to avoid timing issues
+        var prodList = evaluatePolicy(subscriptionJson, policySource, attrBroker).collectList()
+                .block(Duration.ofSeconds(5));
+        var covList  = evaluatePolicyWithCoverage(subscriptionJson, policySource, attrBroker)
+                .map(DecisionWithCoverage::decision).collectList().block(Duration.ofSeconds(5));
+
+        assertThat(covList).as("Number of emissions").hasSameSizeAs(prodList);
+        for (int i = 0; i < prodList.size(); i++) {
+            var prod = prodList.get(i);
+            var cov  = covList.get(i);
+            assertThat(decisionsEquivalent(prod, cov)).as("Emission[%d]: production=%s, coverage=%s", i, prod, cov)
+                    .isTrue();
+        }
+    }
+
+    private static boolean decisionsEquivalent(AuditableAuthorizationDecision a, AuditableAuthorizationDecision b) {
+        return a.decision() == b.decision() && java.util.Objects.equals(a.obligations(), b.obligations())
+                && java.util.Objects.equals(a.advice(), b.advice())
+                && java.util.Objects.equals(a.resource(), b.resource());
     }
 
     public static CompiledExpression compileExpression(String expressionSource) {

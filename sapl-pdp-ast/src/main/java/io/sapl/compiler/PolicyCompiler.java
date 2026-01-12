@@ -95,7 +95,53 @@ public class PolicyCompiler {
 
     private Flux<DecisionWithCoverage> assembleDecisionWithCoverage(Policy policy, CompiledPolicyComponents components,
             CompilationContext ctx) {
-        return Flux.empty();
+        val decisionSource = new DecisionSource(SourceType.POLICY, policy.name(), ctx.getPdpId(),
+                ctx.getConfigurationId(), null);
+        val bodyCoverage   = components.body().coverageStream();
+        val c              = components.constraints();
+        val decision       = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
+        val location       = policy.location();
+        val isSimple       = policy.obligations().isEmpty() && policy.advice().isEmpty()
+                && policy.transformation() == null;
+
+        // Lift all constraints to streams - no optimization needed for coverage path
+        val obligationsStream = liftToStream(c.obligations());
+        val adviceStream      = liftToStream(c.advice());
+        val resourceStream    = liftToStream(c.resource());
+
+        return bodyCoverage.switchMap(bodyResult -> {
+            val bodyValue         = bodyResult.value();
+            val bodyAttrs         = bodyResult.contributingAttributes();
+            val bodyConditionHits = bodyResult.bodyCoverage();
+
+            if (bodyValue instanceof ErrorValue error) {
+                return Flux
+                        .just(withCoverage(AuditableAuthorizationDecision.tracedError(error, decisionSource, bodyAttrs),
+                                policy, bodyConditionHits));
+            }
+            if (Value.FALSE.equals(bodyValue)) {
+                return Flux.just(
+                        withCoverage(AuditableAuthorizationDecision.tracedNotApplicable(decisionSource, bodyAttrs),
+                                policy, bodyConditionHits));
+            }
+            if (isSimple) {
+                return Flux.just(withCoverage(
+                        AuditableAuthorizationDecision.tracedSimpleDecision(decision, decisionSource, bodyAttrs),
+                        policy, bodyConditionHits));
+            }
+
+            // Body is TRUE - combine constraint streams
+            return Flux.combineLatest(obligationsStream.stream(), adviceStream.stream(), resourceStream.stream(),
+                    merged -> withCoverage(
+                            buildFromConstraintStreams(merged, decision, bodyAttrs, location, decisionSource), policy,
+                            bodyConditionHits));
+        });
+    }
+
+    private static DecisionWithCoverage withCoverage(AuditableAuthorizationDecision decision, Policy policy,
+            Coverage.BodyCoverage bodyCoverage) {
+        val policyCoverage = new Coverage.PolicyCoverage(policy.name(), null, null, null, bodyCoverage);
+        return new DecisionWithCoverage(decision, new Coverage(List.of(policyCoverage)));
     }
 
     private static DecisionMaker compileWithConstantTarget(Policy policy, CompiledPolicyComponents components,
