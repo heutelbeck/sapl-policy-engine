@@ -164,6 +164,10 @@ public record EvaluationContext(
         return get(RESOURCE);
     }
 
+    public Value environment() {
+        return get(ENVIRONMENT);
+    }
+
     public Value relativeValue() {
         return get(RELATIVE_VALUE);
     }

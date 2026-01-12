@@ -15,16 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.ast;
+package io.sapl.compiler;
 
-/**
- * Combining algorithm for policy sets.
- */
-public enum CombiningAlgorithm {
-    DENY_OVERRIDES,
-    DENY_UNLESS_PERMIT,
-    FIRST_APPLICABLE,
-    ONLY_ONE_APPLICABLE,
-    PERMIT_OVERRIDES,
-    PERMIT_UNLESS_DENY
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.compiler.expressions.CompilationContext;
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class PDPCompiler {
+    public static Object compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
+        return null;
+    }
 }

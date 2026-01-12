@@ -15,15 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.combining;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.model.CompiledDecisionMaker;
-import io.sapl.compiler.model.DecisionMaker;
-import io.sapl.compiler.model.DecisionWithCoverage;
-import reactor.core.publisher.Flux;
+import io.sapl.compiler.CompiledDocument;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.DecisionSource;
+import lombok.experimental.UtilityClass;
 
-public record CompiledPolicy(
-        CompiledExpression targetExpression,
-        DecisionMaker decisionMaker,
-        Flux<DecisionWithCoverage> coverageStream) implements CompiledDecisionMaker {}
+import java.util.List;
+
+@UtilityClass
+public class DenyUnlessPermitCompiler {
+    public static CompiledDocument compileDenyUnlessPermitSet(CompiledExpression targetExpression,
+            DecisionSource decisionSource, List<CompiledDocument> policies, CompilationContext ctx) {
+        throw new SaplCompilerException("DenyUnlessPermitCompiler not yet implemented");
+    }
+}

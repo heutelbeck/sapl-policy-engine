@@ -73,7 +73,7 @@ class PolicyCompilerTests {
 
     private static DecisionMaker compileToDecisionMaker(String policySource, CompilationContext ctx) {
         val policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, ctx).decisionMaker();
+        return PolicyCompiler.compilePolicy(policy, null, ctx).decisionMaker();
     }
 
     private static EvaluationContext rincewindContext() {

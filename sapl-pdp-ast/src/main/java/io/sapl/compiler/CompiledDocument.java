@@ -15,16 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.ast;
+package io.sapl.compiler;
 
-/**
- * Combining algorithm for policy sets.
- */
-public enum CombiningAlgorithm {
-    DENY_OVERRIDES,
-    DENY_UNLESS_PERMIT,
-    FIRST_APPLICABLE,
-    ONLY_ONE_APPLICABLE,
-    PERMIT_OVERRIDES,
-    PERMIT_UNLESS_DENY
-}
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.compiler.model.CompiledDecisionMaker;
+import io.sapl.compiler.model.DecisionMaker;
+import io.sapl.compiler.model.DecisionWithCoverage;
+import reactor.core.publisher.Flux;
+
+public record CompiledDocument(
+        CompiledExpression targetExpression,
+        DecisionMaker decisionMaker,
+        Flux<DecisionWithCoverage> coverageStream) implements CompiledDecisionMaker {}

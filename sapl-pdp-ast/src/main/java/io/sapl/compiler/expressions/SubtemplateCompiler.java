@@ -19,6 +19,7 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
@@ -45,11 +46,12 @@ import reactor.core.publisher.Flux;
  * <li>{@code 5 :: (@ * 2)} results in {@code 10}</li>
  * </ul>
  */
+@UtilityClass
 public class SubtemplateCompiler {
 
     private static final String ERROR_STREAMING_TEMPLATE = "Subtemplate cannot contain streaming expressions.";
 
-    public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
+    public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val parent   = ExpressionCompiler.compile(binaryOperation.left(), ctx);
         val template = ExpressionCompiler.compile(binaryOperation.right(), ctx);
         val loc      = binaryOperation.location();

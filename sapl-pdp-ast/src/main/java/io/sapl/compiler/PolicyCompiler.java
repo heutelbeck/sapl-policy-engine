@@ -19,7 +19,6 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
@@ -45,14 +44,11 @@ public class PolicyCompiler {
     private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR     = "%s contains @ or # outside of proper context.";
     private static final String ERROR_OBLIGATIONS_NOT_ARRAY            = "Unexpected Error: obligations must return an array, but I got: %s.";
     private static final String ERROR_OBLIGATIONS_STATIC_ERROR         = "Obligation expression statically evaluates to an error: %s.";
-    private static final String ERROR_TARGET_NOT_BOOLEAN               = "Target expressions must evaluate to Boolean, but got %s.";
-    private static final String ERROR_TARGET_RELATIVE_ACCESSOR         = "The target expression contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.";
-    private static final String ERROR_TARGET_STATIC_ERROR              = "The target expression statically evaluates to an error: %s.";
-    private static final String ERROR_TARGET_STREAM_OPERATOR           = "Target expression must not contain attributes operators <>!.";
     private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR = "Transformation contains @ or # outside of proper context.";
     private static final String ERROR_TRANSFORMATION_STATIC_ERROR      = "Transformation expression statically evaluates to an error: %s.";
     private static final String ERROR_UNEXPECTED_CONSTRAINT_TYPE       = "Unexpected error: obligations or advice did not evaluate to an Array. Got: obligations=%s and advice=%s. Indicates an implementation bug.";
     private static final String ERROR_UNEXPECTED_LIFT                  = "Unexpected expression type during stratum lifting: %s. Indicates an implementation bug.";
+    private static final String ERROR_TARGET_TYPE                      = "Target Expression. Indicates an implementation bug.";
 
     private record CompiledPolicyComponents(
             CompiledExpression target,
@@ -67,34 +63,25 @@ public class PolicyCompiler {
      * @return a DecisionMaker that can evaluate the policy
      * @throws SaplCompilerException if the policy contains static errors
      */
-    public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
+    public CompiledDocument compilePolicy(Policy policy, PureOperator schemaValidator, CompilationContext ctx) {
         val decisionSource = new DecisionSource(SourceType.POLICY, policy.name(), policy.pdpId(),
                 policy.configurationId(), policy.documentId(), null);
-        val compiledTarget = policy.target() == null ? Value.TRUE
-                : BooleanGuardCompiler.applyBooleanGuard(ExpressionCompiler.compile(policy.target(), ctx),
-                        policy.target().location(), ERROR_TARGET_NOT_BOOLEAN);
-        if (compiledTarget instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_TARGET_STATIC_ERROR.formatted(error), policy.target().location());
-        }
+        val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policy.target(), schemaValidator, ctx);
         val compiledBody   = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
         val constraints    = compileConstraints(policy, policy.location(), ctx);
         val components     = new CompiledPolicyComponents(compiledTarget, compiledBody, constraints);
         val decisionMaker  = switch (compiledTarget) {
-                           case Value ignored                                        ->
-                               compileWithConstantTarget(policy, components, decisionSource);
-                           case PureOperator po when !po.isDependingOnSubscription() -> throw new SaplCompilerException(
-                                   ERROR_TARGET_RELATIVE_ACCESSOR, policy.target().location());
-                           case PureOperator ignored                                 ->
-                               compilePolicyEvaluation(policy, components, decisionSource);
-                           case StreamOperator ignored                               -> throw new SaplCompilerException(
-                                   ERROR_TARGET_STREAM_OPERATOR, policy.target().location());
+                           case Value ignored          -> compileWithConstantTarget(policy, components, decisionSource);
+                           case PureOperator ignored   -> compilePolicyEvaluation(policy, components, decisionSource);
+                           case StreamOperator ignored ->
+                               throw new SaplCompilerException(ERROR_TARGET_TYPE, policy.location());
                            };
-        val coverageStream = assembleDecisionWithCoverage(policy, components, decisionSource, ctx);
-        return new CompiledPolicy(compiledTarget, decisionMaker, coverageStream);
+        val coverageStream = assembleDecisionWithCoverage(policy, components, decisionSource);
+        return new CompiledDocument(compiledTarget, decisionMaker, coverageStream);
     }
 
     private Flux<DecisionWithCoverage> assembleDecisionWithCoverage(Policy policy, CompiledPolicyComponents components,
-            DecisionSource decisionSource, CompilationContext ctx) {
+            DecisionSource decisionSource) {
         val bodyCoverage = components.body().coverageStream();
         val c            = components.constraints();
         val decision     = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;

@@ -18,9 +18,9 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
@@ -40,16 +40,22 @@ import java.util.ArrayList;
  * For streams, this means using switchMap instead of combineLatest to avoid
  * subscribing to the right stream when short-circuit occurs.
  */
+@UtilityClass
 public class LazyBooleanOperationCompiler {
 
-    public static final java.lang.String ERROR_TYPE_MISMATCH = "Expected BOOLEAN but got: %s.";
+    public static final String ERROR_TYPE_MISMATCH = "Expected BOOLEAN but got: %s.";
 
-    public CompiledExpression compile(BinaryOperator expr, CompilationContext ctx) {
-        val op       = expr.op();
+    public static CompiledExpression compile(BinaryOperator expr, CompilationContext ctx) {
+        val op = expr.op();
         val location = expr.location();
-        val isAnd    = op == BinaryOperatorType.AND;
+        val isAnd = op == BinaryOperatorType.AND;
 
         val left = ExpressionCompiler.compile(expr.left(), ctx);
+        val right = ExpressionCompiler.compile(expr.right(), ctx);
+        return compile(left,right,isAnd,location,ctx);
+    }
+
+    public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, boolean isAnd, SourceLocation location, CompilationContext ctx) {
         if (left instanceof ErrorValue) {
             return left;
         }
@@ -71,7 +77,6 @@ public class LazyBooleanOperationCompiler {
             }
         }
 
-        val right = ExpressionCompiler.compile(expr.right(), ctx);
         if (right instanceof ErrorValue) {
             return right;
         }

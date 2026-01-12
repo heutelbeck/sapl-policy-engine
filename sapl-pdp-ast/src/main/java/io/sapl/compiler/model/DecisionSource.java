@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler.model;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.ast.CombiningAlgorithm;
 import lombok.NonNull;
 
 public record DecisionSource(

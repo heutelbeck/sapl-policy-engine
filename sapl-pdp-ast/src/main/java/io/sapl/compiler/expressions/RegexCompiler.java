@@ -19,6 +19,7 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
@@ -36,12 +37,13 @@ import java.util.regex.PatternSyntaxException;
  * is dynamic (depends on runtime values), compilation occurs at evaluation
  * time.
  */
+@UtilityClass
 public class RegexCompiler {
 
     private static final String ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
     private static final String ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
 
-    public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
+    public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val left  = ExpressionCompiler.compile(binaryOperation.left(), ctx);
         val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
         val loc   = binaryOperation.location();

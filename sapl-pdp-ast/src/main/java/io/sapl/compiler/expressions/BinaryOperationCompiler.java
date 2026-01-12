@@ -37,10 +37,6 @@ public class BinaryOperationCompiler {
 
     private static final String ERROR_UNIMPLEMENTED_BINARY_OPERATOR = "Unimplemented binary operator: %s";
 
-    private final RegexCompiler                regexCompiler       = new RegexCompiler();
-    private final SubtemplateCompiler          subtemplateCompiler = new SubtemplateCompiler();
-    private final LazyBooleanOperationCompiler lazyBooleanCompiler = new LazyBooleanOperationCompiler();
-
     static final Map<BinaryOperatorType, BinaryOperation> BINARY_OPERATIONS = Map.ofEntries(
             // Arithmetic
             Map.entry(ADD, ArithmeticOperators::add), Map.entry(SUB, ArithmeticOperators::subtract),
@@ -58,19 +54,16 @@ public class BinaryOperationCompiler {
             Map.entry(XOR, BooleanOperators::xor));
 
     public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
-        // Special handling for REGEX with pre-compilation
         if (binaryOperation.op() == REGEX) {
-            return regexCompiler.compile(binaryOperation, ctx);
+            return RegexCompiler.compile(binaryOperation, ctx);
         }
 
-        // Special handling for SUBTEMPLATE (::) operator
         if (binaryOperation.op() == SUBTEMPLATE) {
-            return subtemplateCompiler.compile(binaryOperation, ctx);
+            return SubtemplateCompiler.compile(binaryOperation, ctx);
         }
 
-        // Special handling for lazy boolean operators (short-circuit)
         if (binaryOperation.op().isLazy()) {
-            return lazyBooleanCompiler.compile(binaryOperation, ctx);
+            return LazyBooleanOperationCompiler.compile(binaryOperation, ctx);
         }
 
         val op = BINARY_OPERATIONS.get(binaryOperation.op());

@@ -35,9 +35,8 @@ import io.sapl.compiler.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.CompiledPolicy;
+import io.sapl.compiler.CompiledDocument;
 import io.sapl.compiler.model.AuditableAuthorizationDecision;
-import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.DecisionMaker;
 import io.sapl.compiler.model.DecisionWithCoverage;
 import io.sapl.compiler.model.Document;
@@ -157,7 +156,7 @@ public class SaplTesting {
 
     public static DecisionMaker compilePolicy(String policySource, CompilationContext ctx) {
         var policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, ctx).decisionMaker();
+        return PolicyCompiler.compilePolicy(policy, null, ctx).decisionMaker();
     }
 
     public static Flux<AuditableAuthorizationDecision> evaluatePolicy(String subscriptionJson, String policySource) {
@@ -187,17 +186,17 @@ public class SaplTesting {
         };
     }
 
-    public static CompiledPolicy compilePolicyFull(String policySource) {
+    public static CompiledDocument compilePolicyFull(String policySource) {
         return compilePolicyFull(policySource, compilationContext());
     }
 
-    public static CompiledPolicy compilePolicyFull(String policySource, AttributeBroker attrBroker) {
+    public static CompiledDocument compilePolicyFull(String policySource, AttributeBroker attrBroker) {
         return compilePolicyFull(policySource, compilationContext(attrBroker));
     }
 
-    public static CompiledPolicy compilePolicyFull(String policySource, CompilationContext ctx) {
+    public static CompiledDocument compilePolicyFull(String policySource, CompilationContext ctx) {
         var policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, ctx);
+        return PolicyCompiler.compilePolicy(policy, null, ctx);
     }
 
     public static Flux<DecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource) {
