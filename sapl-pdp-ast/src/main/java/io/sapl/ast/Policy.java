@@ -26,6 +26,10 @@ import java.util.List;
  * A single policy.
  *
  * @param name the policy name
+ * @param pdpId identifier of the PDP this policy belongs to
+ * @param configurationId identifier of the configuration this policy belongs to
+ * @param documentId unique identifier for this document (derived from name if
+ * not specified)
  * @param entitlement PERMIT or DENY
  * @param target target expression, or null if policy applies universally
  * @param body policy body with statements and source location
@@ -36,6 +40,9 @@ import java.util.List;
  */
 public record Policy(
         @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        @NonNull String documentId,
         @NonNull Entitlement entitlement,
         Expression target,
         @NonNull PolicyBody body,

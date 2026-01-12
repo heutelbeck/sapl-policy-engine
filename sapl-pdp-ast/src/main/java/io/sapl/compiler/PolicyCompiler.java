@@ -68,8 +68,8 @@ public class PolicyCompiler {
      * @throws SaplCompilerException if the policy contains static errors
      */
     public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
-        val decisionSource = new DecisionSource(SourceType.POLICY, policy.name(), ctx.getPdpId(),
-                ctx.getConfigurationId(), null);
+        val decisionSource = new DecisionSource(SourceType.POLICY, policy.name(), policy.pdpId(),
+                policy.configurationId(), policy.documentId(), null);
         val compiledTarget = policy.target() == null ? Value.TRUE
                 : BooleanGuardCompiler.applyBooleanGuard(ExpressionCompiler.compile(policy.target(), ctx),
                         policy.target().location(), ERROR_TARGET_NOT_BOOLEAN);
@@ -89,19 +89,17 @@ public class PolicyCompiler {
                            case StreamOperator ignored                               -> throw new SaplCompilerException(
                                    ERROR_TARGET_STREAM_OPERATOR, policy.target().location());
                            };
-        val coverageStream = assembleDecisionWithCoverage(policy, components, ctx);
+        val coverageStream = assembleDecisionWithCoverage(policy, components, decisionSource, ctx);
         return new CompiledPolicy(compiledTarget, decisionMaker, coverageStream);
     }
 
     private Flux<DecisionWithCoverage> assembleDecisionWithCoverage(Policy policy, CompiledPolicyComponents components,
-            CompilationContext ctx) {
-        val decisionSource = new DecisionSource(SourceType.POLICY, policy.name(), ctx.getPdpId(),
-                ctx.getConfigurationId(), null);
-        val bodyCoverage   = components.body().coverageStream();
-        val c              = components.constraints();
-        val decision       = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
-        val location       = policy.location();
-        val isSimple       = policy.obligations().isEmpty() && policy.advice().isEmpty()
+            DecisionSource decisionSource, CompilationContext ctx) {
+        val bodyCoverage = components.body().coverageStream();
+        val c            = components.constraints();
+        val decision     = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
+        val location     = policy.location();
+        val isSimple     = policy.obligations().isEmpty() && policy.advice().isEmpty()
                 && policy.transformation() == null;
 
         // Lift all constraints to streams - no optimization needed for coverage path

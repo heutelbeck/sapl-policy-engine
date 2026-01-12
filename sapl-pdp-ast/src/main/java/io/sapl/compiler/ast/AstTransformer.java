@@ -59,7 +59,35 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_UNKNOWN_SUBSCRIPT_TYPE       = "Unknown subscript type: %s";
     private static final String ERROR_UNRESOLVED_REFERENCE         = "Unresolved reference '%s': not imported and not fully qualified.";
 
+    private static final String DEFAULT_PDP_ID           = "defaultPdpId";
+    private static final String DEFAULT_CONFIGURATION_ID = "defaultConfigurationId";
+
     private Map<String, List<String>> importMap;
+    private String                    pdpId           = DEFAULT_PDP_ID;
+    private String                    configurationId = DEFAULT_CONFIGURATION_ID;
+
+    /**
+     * Sets the context identifiers for document transformation.
+     *
+     * @param pdpId the PDP identifier
+     * @param configurationId the configuration identifier
+     */
+    public void setContext(String pdpId, String configurationId) {
+        this.pdpId           = pdpId != null ? pdpId : DEFAULT_PDP_ID;
+        this.configurationId = configurationId != null ? configurationId : DEFAULT_CONFIGURATION_ID;
+    }
+
+    /**
+     * Resets context to default values.
+     */
+    public void resetContext() {
+        this.pdpId           = DEFAULT_PDP_ID;
+        this.configurationId = DEFAULT_CONFIGURATION_ID;
+    }
+
+    private static String toDocumentId(String name) {
+        return name.replace(" ", "_");
+    }
 
     /**
      * Initializes the import map for resolving single-part function/attribute
@@ -130,17 +158,20 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public PolicySet visitPolicySet(PolicySetContext ctx) {
-        var name      = unquoteString(ctx.saplName.getText());
-        var algorithm = toCombiningAlgorithm(ctx.combiningAlgorithm());
-        var target    = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
-        var variables = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
-        var policies  = ctx.policy().stream().map(this::visitPolicy).toList();
-        return new PolicySet(name, algorithm, target, variables, policies, fromContext(ctx));
+        var name       = unquoteString(ctx.saplName.getText());
+        var documentId = toDocumentId(name);
+        var algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
+        var target     = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
+        var variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
+        var policies   = ctx.policy().stream().map(this::visitPolicy).toList();
+        return new PolicySet(name, pdpId, configurationId, documentId, algorithm, target, variables, policies,
+                fromContext(ctx));
     }
 
     @Override
     public Policy visitPolicy(PolicyContext ctx) {
         var name           = unquoteString(ctx.saplName.getText());
+        var documentId     = toDocumentId(name);
         var entitlement    = toEntitlement(ctx.entitlement());
         var target         = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
         var bodyStatements = ctx.policyBody() != null
@@ -151,7 +182,8 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var obligations    = ctx.obligations.stream().map(this::expr).toList();
         var advice         = ctx.adviceExpressions.stream().map(this::expr).toList();
         var transformation = ctx.transformation != null ? expr(ctx.transformation) : null;
-        return new Policy(name, entitlement, target, body, obligations, advice, transformation, fromContext(ctx));
+        return new Policy(name, pdpId, configurationId, documentId, entitlement, target, body, obligations, advice,
+                transformation, fromContext(ctx));
     }
 
     @Override

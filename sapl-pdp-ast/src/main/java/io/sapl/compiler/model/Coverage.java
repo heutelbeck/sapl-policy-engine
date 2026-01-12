@@ -30,21 +30,21 @@ public record Coverage(List<DocumentCoverage> coverage) {
 
         String documentSource();
 
-        String documentIdentifier(); // e.g., filename or DB Id
+        String documentId(); // e.g., filename or DB Id
     }
 
     public record PolicyCoverage(
             String documentName,
             TargetHit targetHit,
             String documentSource,
-            String documentIdentifier,
+            String documentId,
             BodyCoverage bodyCoverage) implements DocumentCoverage {}
 
     public record PolicySetCoverage(
             String documentName,
             TargetHit targetHit,
             String documentSource,
-            String documentIdentifier,
+            String documentId,
             List<PolicyCoverage> policyCoverages) implements DocumentCoverage {}
 
     public sealed interface TargetHit permits ConstantTarget, ConditionHit {

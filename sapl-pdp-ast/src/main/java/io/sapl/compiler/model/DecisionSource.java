@@ -25,4 +25,5 @@ public record DecisionSource(
         @NonNull String name,
         @NonNull String pdpId,
         @NonNull String configurationId,
+        String documentId, // filename or DB Id
         CombiningAlgorithm combiningAlgorithm) {}

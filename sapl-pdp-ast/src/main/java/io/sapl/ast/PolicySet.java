@@ -27,6 +27,11 @@ import java.util.List;
  * A policy set containing multiple policies.
  *
  * @param name the policy set name
+ * @param pdpId identifier of the PDP this policy set belongs to
+ * @param configurationId identifier of the configuration this policy set
+ * belongs to
+ * @param documentId unique identifier for this document (derived from name if
+ * not specified)
  * @param algorithm the combining algorithm
  * @param target target expression, or null if policy set applies universally
  * @param variables variable definitions at policy set level, empty list if none
@@ -35,6 +40,9 @@ import java.util.List;
  */
 public record PolicySet(
         @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        @NonNull String documentId,
         @NonNull CombiningAlgorithm algorithm,
         Expression target,
         @NonNull List<VarDef> variables,
