@@ -20,7 +20,6 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
-import io.sapl.compiler.model.BinaryOperation;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;

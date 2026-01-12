@@ -23,7 +23,6 @@ import io.sapl.ast.ExclusiveDisjunction;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Product;
 import io.sapl.ast.Sum;
-import io.sapl.compiler.model.BinaryOperation;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;

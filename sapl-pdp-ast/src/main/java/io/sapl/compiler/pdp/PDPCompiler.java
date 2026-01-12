@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.pdp;
 
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.compiler.expressions.CompilationContext;

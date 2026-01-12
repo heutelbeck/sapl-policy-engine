@@ -20,7 +20,6 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
-import io.sapl.compiler.model.UnaryOperation;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
