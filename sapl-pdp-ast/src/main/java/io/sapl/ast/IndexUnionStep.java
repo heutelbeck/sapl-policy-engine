@@ -28,7 +28,7 @@ import java.util.List;
  *
  * @param base the expression to access
  * @param indices the indices to select
- * @param location source location
+ * @param location metadata location
  */
 public record IndexUnionStep(@NonNull Expression base, @NonNull List<Integer> indices, @NonNull SourceLocation location)
         implements Step {

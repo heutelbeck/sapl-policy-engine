@@ -24,14 +24,14 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * Represents a location in SAPL source code with full context for error
+ * Represents a location in SAPL metadata code with full context for error
  * highlighting. Used for error reporting, debugging, and coverage tracking
  * to indicate where in a policy document an expression occurs.
  *
  * @param documentName
  * the name or identifier of the SAPL document (may be null)
  * @param documentSource
- * the full source text of the document (may be null)
+ * the full metadata text of the document (may be null)
  * @param start
  * the start character offset in the document (0-based)
  * @param end
@@ -65,7 +65,7 @@ public record SourceLocation(
      * @param documentName
      * the name or identifier of the SAPL document
      * @param documentSource
-     * the full source text of the document
+     * the full metadata text of the document
      * @param start
      * the start character offset
      * @param end
@@ -80,7 +80,7 @@ public record SourceLocation(
     }
 
     /**
-     * Returns a human-readable string representation of the source location.
+     * Returns a human-readable string representation of the metadata location.
      *
      * @return formatted location string
      */

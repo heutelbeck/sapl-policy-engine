@@ -23,6 +23,7 @@ import io.sapl.ast.UnaryOperatorType;
 import io.sapl.compiler.model.UnaryOperation;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
@@ -30,6 +31,7 @@ import java.util.Map;
 
 import static io.sapl.ast.UnaryOperatorType.*;
 
+@UtilityClass
 public class UnaryOperatorCompiler {
 
     private static final String ERROR_UNIMPLEMENTED_UNARY_OPERATOR = "Unimplemented unary operator: %s";

@@ -138,7 +138,7 @@ public class LazyNaryBooleanCompiler {
      * @param values the Value operands
      * @param shortCircuitValue the value that triggers short-circuit (false for
      * AND, true for OR)
-     * @param location source location for errors
+     * @param location metadata location for errors
      * @return short-circuit value, error, or null if all values are identity
      */
     private Value foldValues(List<Value> values, boolean shortCircuitValue, SourceLocation location) {

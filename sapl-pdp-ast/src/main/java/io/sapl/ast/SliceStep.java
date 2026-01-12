@@ -27,7 +27,7 @@ import lombok.NonNull;
  * @param from start index, or null for beginning
  * @param to end index (exclusive), or null for end
  * @param step step value, or null for 1
- * @param location source location
+ * @param location metadata location
  */
 public record SliceStep(
         @NonNull Expression base,

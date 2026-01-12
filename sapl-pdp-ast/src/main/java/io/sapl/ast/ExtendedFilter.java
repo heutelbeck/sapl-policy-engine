@@ -35,7 +35,7 @@ import java.util.List;
  * @param name the qualified name of the filter function
  * @param arguments explicit arguments to the filter function (excluding @)
  * @param each true if filter applies to each element at target
- * @param location source location
+ * @param location metadata location
  */
 public record ExtendedFilter(
         @NonNull Expression base,

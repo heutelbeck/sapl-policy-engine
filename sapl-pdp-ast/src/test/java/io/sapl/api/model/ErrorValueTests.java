@@ -196,7 +196,7 @@ class ErrorValueTests {
     }
 
     @Test
-    @DisplayName("Constructor with location creates error with source location")
+    @DisplayName("Constructor with location creates error with metadata location")
     void when_constructorWithLocationUsed_then_createsErrorWithLocation() {
         var location = new SourceLocation("test.sapl", null, 1, 10, 5, 5);
         var error    = new ErrorValue("Test error", null, location);
@@ -207,7 +207,7 @@ class ErrorValueTests {
     }
 
     @Test
-    @DisplayName("Factory with location creates error with source location")
+    @DisplayName("Factory with location creates error with metadata location")
     void when_factoryWithLocationUsed_then_createsErrorWithLocation() {
         var location = new SourceLocation("test.sapl", null, 1, 10, 5, 5);
         var error    = Value.error("Test error", location);

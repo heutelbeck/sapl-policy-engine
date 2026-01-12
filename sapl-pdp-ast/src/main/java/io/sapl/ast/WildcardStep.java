@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Wildcard: {@code base.*} or {@code base[*]}
  *
  * @param base the expression to access
- * @param location source location
+ * @param location metadata location
  */
 public record WildcardStep(@NonNull Expression base, @NonNull SourceLocation location) implements Step {}

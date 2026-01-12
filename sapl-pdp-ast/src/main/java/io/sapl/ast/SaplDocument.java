@@ -28,7 +28,7 @@ import java.util.List;
  * @param imports import statements, empty list if none
  * @param schemas schema statements, empty list if none
  * @param element the policy or policy set
- * @param location source location covering the entire document
+ * @param location metadata location covering the entire document
  */
 public record SaplDocument(
         @NonNull List<Import> imports,

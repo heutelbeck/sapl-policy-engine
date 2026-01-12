@@ -15,14 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.PureOperator;
 import io.sapl.ast.PolicySet;
+import io.sapl.compiler.ast.DocumentType;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.model.DecisionSource;
-import io.sapl.compiler.model.SourceType;
+import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.PolicyMetadata;
+import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.target.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -38,7 +41,7 @@ public class PolicySetCompiler {
 
     public static final String ERROR_NO_POLICIES = "Policy sets must contain at least one policy";
 
-    public static CompiledDocument compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
+    public static CompiledPolicy compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
             CompilationContext ctx) {
         val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator, ctx);
         val algorithm      = policySet.algorithm();
@@ -47,7 +50,7 @@ public class PolicySetCompiler {
         if (policies.isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
         }
-        val decisionSource = new DecisionSource(SourceType.SET, policySet.name(), policySet.pdpId(),
+        val decisionSource = new PolicyMetadata(DocumentType.POLICY_SET, policySet.name(), policySet.pdpId(),
                 policySet.configurationId(), policySet.documentId(), algorithm);
         return switch (algorithm) {
         case DENY_OVERRIDES      -> compileDenyOverridesSet(compiledTarget, decisionSource, policies, ctx);

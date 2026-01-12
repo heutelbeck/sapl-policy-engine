@@ -15,13 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.model;
+package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.Value;
+import io.sapl.compiler.model.Coverage;
 
-public non-sealed interface StreamDecisionMaker extends DecisionMaker {
-    CompiledExpression targetExpression();
+import java.util.List;
 
-    Flux<AuditableAuthorizationDecision> stream();
-}
+public record TracedPolicyBodyResultAndCoverage(
+        Value value,
+        List<AttributeRecord> contributingAttributes,
+        Coverage.BodyCoverage bodyCoverage) {}

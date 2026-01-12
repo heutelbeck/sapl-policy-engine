@@ -15,15 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.model;
+package io.sapl.compiler.ast;
 
-import io.sapl.ast.CombiningAlgorithm;
-import lombok.NonNull;
-
-public record DecisionSource(
-        @NonNull SourceType sourceType,
-        @NonNull String name,
-        @NonNull String pdpId,
-        @NonNull String configurationId,
-        String documentId, // filename or DB Id
-        CombiningAlgorithm combiningAlgorithm) {}
+public enum DocumentType {
+    POLICY,
+    POLICY_SET,
+    INVALID
+}

@@ -22,16 +22,16 @@ import io.sapl.api.model.SourceLocation;
 import java.io.Serializable;
 
 /**
- * Base interface for all AST nodes. Provides source location for error
+ * Base interface for all AST nodes. Provides metadata location for error
  * reporting and is serializable for caching compiled policies.
  */
 public sealed interface AstNode extends Serializable permits Expression, Statement, PolicyElement, PolicyBody,
         SaplDocument, Import, SchemaStatement, FilterPath, PathElement {
 
     /**
-     * Returns the source location of this node in the original document.
+     * Returns the metadata location of this node in the original document.
      *
-     * @return the source location, never null
+     * @return the metadata location, never null
      */
     SourceLocation location();
 

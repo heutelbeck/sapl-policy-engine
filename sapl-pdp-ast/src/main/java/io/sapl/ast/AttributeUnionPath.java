@@ -27,7 +27,7 @@ import java.util.List;
  * Attribute union path element: {@code ["key1", "key2"]}
  *
  * @param keys the attribute keys to select
- * @param location source location
+ * @param location metadata location
  */
 public record AttributeUnionPath(@NonNull List<String> keys, @NonNull SourceLocation location) implements PathElement {
     public AttributeUnionPath {

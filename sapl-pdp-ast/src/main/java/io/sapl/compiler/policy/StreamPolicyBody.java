@@ -15,7 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.model;
+package io.sapl.compiler.policy;
 
-public sealed interface DecisionMaker permits AuditableAuthorizationDecision, PureDecisionMaker, StreamDecisionMaker {
+import io.sapl.api.model.CompiledExpression;
+import reactor.core.publisher.Flux;
+
+public sealed interface StreamPolicyBody extends PolicyBody permits PolicyCompiler.StreamPolicyBody,
+        PolicyCompiler.StreamValuePolicyBody, PolicyCompiler.StreamPurePolicyBody, PolicyCompiler.PureStreamPolicyBody,
+        PolicyCompiler.StreamStreamPolicyBody {
+    CompiledExpression targetExpression();
+
+    Flux<PolicyDecision> stream();
 }

@@ -31,7 +31,7 @@ import java.util.Objects;
  * error handling.
  * <p>
  * Errors can optionally carry a {@link SourceLocation} indicating where in the
- * SAPL source code the error occurred.
+ * SAPL metadata code the error occurred.
  * This is invaluable for debugging policy evaluation failures.
  *
  * @param message
@@ -39,7 +39,7 @@ import java.util.Objects;
  * @param cause
  * the underlying exception, if any (may be null)
  * @param location
- * the source location where the error occurred (may be null)
+ * the metadata location where the error occurred (may be null)
  */
 public record ErrorValue(String message, Throwable cause, SourceLocation location) implements Value {
 

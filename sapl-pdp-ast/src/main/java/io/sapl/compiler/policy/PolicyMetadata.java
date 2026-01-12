@@ -15,15 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.model.CompiledDecisionMaker;
-import io.sapl.compiler.model.DecisionMaker;
-import io.sapl.compiler.model.DecisionWithCoverage;
-import reactor.core.publisher.Flux;
+import io.sapl.ast.CombiningAlgorithm;
+import io.sapl.compiler.ast.DocumentType;
+import lombok.NonNull;
 
-public record CompiledDocument(
-        CompiledExpression targetExpression,
-        DecisionMaker decisionMaker,
-        Flux<DecisionWithCoverage> coverageStream) implements CompiledDecisionMaker {}
+public record PolicyMetadata(
+        @NonNull DocumentType sourceType,
+        @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        String documentId, // filename or DB Id
+        CombiningAlgorithm combiningAlgorithm) {}

@@ -28,9 +28,6 @@ import java.util.Map;
 @UtilityClass
 public class ExpressionCompiler {
 
-    private static final BinaryOperationCompiler BINARY_COMPILER = new BinaryOperationCompiler();
-    private static final UnaryOperatorCompiler   UNARY_COMPILER  = new UnaryOperatorCompiler();
-
     public static final String NO_PDP_COMPILE_TIME_FOLDING = "no pdp compile-time folding";
 
     public CompiledExpression compile(Expression expression, CompilationContext ctx) {
@@ -52,8 +49,8 @@ public class ExpressionCompiler {
                                                    };
 
         // Operations
-        case BinaryOperator b -> BINARY_COMPILER.compile(b, ctx);
-        case UnaryOperator u  -> UNARY_COMPILER.compile(u, ctx);
+        case BinaryOperator b -> BinaryOperationCompiler.compile(b, ctx);
+        case UnaryOperator u  -> UnaryOperatorCompiler.compile(u, ctx);
 
         // N-ary operations
         case ArrayExpression a       -> ArrayCompiler.compile(a, ctx);

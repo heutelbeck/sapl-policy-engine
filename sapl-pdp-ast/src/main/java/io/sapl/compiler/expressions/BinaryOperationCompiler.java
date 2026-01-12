@@ -24,6 +24,7 @@ import io.sapl.compiler.model.BinaryOperation;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
@@ -33,6 +34,7 @@ import java.util.Map;
 
 import static io.sapl.ast.BinaryOperatorType.*;
 
+@UtilityClass
 public class BinaryOperationCompiler {
 
     private static final String ERROR_UNIMPLEMENTED_BINARY_OPERATOR = "Unimplemented binary operator: %s";

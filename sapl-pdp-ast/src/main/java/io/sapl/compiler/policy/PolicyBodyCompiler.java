@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.policy;
 
 import io.sapl.api.model.*;
 import io.sapl.api.model.AttributeRecord;
@@ -27,7 +27,6 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.LazyNaryBooleanCompiler;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.model.TracedPolicyBodyResultAndCoverage;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -35,7 +34,7 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.compiler.BooleanGuardCompiler.applyBooleanGuard;
+import static io.sapl.compiler.target.BooleanGuardCompiler.applyBooleanGuard;
 
 @UtilityClass
 public class PolicyBodyCompiler {

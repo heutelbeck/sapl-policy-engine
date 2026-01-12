@@ -15,12 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.ast;
 
 import io.sapl.ast.SaplDocument;
-import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.model.Document;
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -28,6 +26,7 @@ import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.grammar.antlr.validation.ValidationError;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.antlr.v4.runtime.*;
 
@@ -45,6 +44,7 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
  * This parser provides a lightweight alternative to the Xtext-based parser,
  * with no EMF or Guice dependencies.
  */
+@UtilityClass
 public class SAPLCompiler {
 
     private static final String ERROR_FAILED_TO_READ_INPUT_STREAM = "Failed to read input stream";

@@ -23,6 +23,6 @@ import lombok.NonNull;
 /**
  * Recursive descent wildcard path element: {@code ..*}
  *
- * @param location source location
+ * @param location metadata location
  */
 public record RecursiveWildcardPath(@NonNull SourceLocation location) implements PathElement {}

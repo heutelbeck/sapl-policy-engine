@@ -26,7 +26,7 @@ import lombok.NonNull;
  * @param from start index (null for default)
  * @param to end index exclusive (null for default)
  * @param step step size (null for default of 1)
- * @param location source location
+ * @param location metadata location
  */
 public record SlicePath(Integer from, Integer to, Integer step, @NonNull SourceLocation location)
         implements PathElement {}

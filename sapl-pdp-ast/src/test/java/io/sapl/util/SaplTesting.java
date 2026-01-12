@@ -30,18 +30,13 @@ import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
-import io.sapl.compiler.PolicyCompiler;
-import io.sapl.compiler.SAPLCompiler;
+import io.sapl.compiler.ast.Document;
+import io.sapl.compiler.policy.*;
+import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.CompiledDocument;
-import io.sapl.compiler.model.AuditableAuthorizationDecision;
-import io.sapl.compiler.model.DecisionMaker;
-import io.sapl.compiler.model.DecisionWithCoverage;
-import io.sapl.compiler.model.Document;
-import io.sapl.compiler.model.PureDecisionMaker;
-import io.sapl.compiler.model.StreamDecisionMaker;
+import io.sapl.compiler.policy.PolicyBody;
 import io.sapl.compiler.util.Stratum;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -63,6 +58,7 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -85,8 +81,6 @@ public class SaplTesting {
     public static final AttributeBroker ATTRIBUTE_BROKER;
 
     public static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
-
-    public static final SAPLCompiler COMPILER = new SAPLCompiler();
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new SaplJacksonModule());
 
@@ -125,11 +119,11 @@ public class SaplTesting {
     }
 
     public static Document parseDocument(String documentSource) {
-        return COMPILER.parseDocument(documentSource);
+        return SAPLCompiler.parseDocument(documentSource);
     }
 
     public static SaplDocument document(String documentSource) {
-        return COMPILER.parseDocument(documentSource).saplDocument();
+        return SAPLCompiler.parseDocument(documentSource).saplDocument();
     }
 
     @SneakyThrows(JsonProcessingException.class)
@@ -138,7 +132,7 @@ public class SaplTesting {
     }
 
     public static Policy parsePolicy(String policySource) {
-        var document = COMPILER.parse(policySource);
+        var document = SAPLCompiler.parse(policySource);
         var element  = document.policyElement();
         if (element instanceof PolicyOnlyElementContext policyOnly) {
             return (Policy) TRANSFORMER.visit(policyOnly.policy());
@@ -146,29 +140,29 @@ public class SaplTesting {
         throw new IllegalArgumentException("Expected a single policy, not a policy set");
     }
 
-    public static DecisionMaker compilePolicy(String policySource) {
+    public static PolicyBody compilePolicy(String policySource) {
         return compilePolicy(policySource, compilationContext());
     }
 
-    public static DecisionMaker compilePolicy(String policySource, AttributeBroker attrBroker) {
+    public static PolicyBody compilePolicy(String policySource, AttributeBroker attrBroker) {
         return compilePolicy(policySource, compilationContext(attrBroker));
     }
 
-    public static DecisionMaker compilePolicy(String policySource, CompilationContext ctx) {
+    public static PolicyBody compilePolicy(String policySource, CompilationContext ctx) {
         var policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, null, ctx).decisionMaker();
+        return PolicyCompiler.compilePolicy(policy, null, ctx).policyBody();
     }
 
-    public static Flux<AuditableAuthorizationDecision> evaluatePolicy(String subscriptionJson, String policySource) {
+    public static Flux<PolicyDecision> evaluatePolicy(String subscriptionJson, String policySource) {
         return evaluatePolicy(subscriptionJson, policySource, ATTRIBUTE_BROKER);
     }
 
-    public static Flux<AuditableAuthorizationDecision> evaluatePolicy(String subscriptionJson, String policySource,
+    public static Flux<PolicyDecision> evaluatePolicy(String subscriptionJson, String policySource,
             AttributeBroker attrBroker) {
         return evaluatePolicy(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
     }
 
-    public static Flux<AuditableAuthorizationDecision> evaluatePolicy(String subscriptionJson, String policySource,
+    public static Flux<PolicyDecision> evaluatePolicy(String subscriptionJson, String policySource,
             CompilationContext compilationCtx, AttributeBroker attrBroker) {
         var subscription  = parseSubscription(subscriptionJson);
         var compiled      = compilePolicy(policySource, compilationCtx);
@@ -176,25 +170,23 @@ public class SaplTesting {
         return evaluatePolicyDecisionMaker(compiled, evaluationCtx);
     }
 
-    public static Flux<AuditableAuthorizationDecision> evaluatePolicyDecisionMaker(DecisionMaker compiled,
-            EvaluationContext evalCtx) {
+    public static Flux<PolicyDecision> evaluatePolicyDecisionMaker(PolicyBody compiled, EvaluationContext evalCtx) {
         return switch (compiled) {
-        case AuditableAuthorizationDecision decision -> Flux.just(decision);
-        case PureDecisionMaker pure                  -> Flux.just(pure.evaluateBody(evalCtx));
-        case StreamDecisionMaker stream              ->
-            stream.stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        case PolicyDecision decision -> Flux.just(decision);
+        case PurePolicyBody pure     -> Flux.just(pure.evaluateBody(evalCtx));
+        case StreamPolicyBody stream -> stream.stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         };
     }
 
-    public static CompiledDocument compilePolicyFull(String policySource) {
+    public static CompiledPolicy compilePolicyFull(String policySource) {
         return compilePolicyFull(policySource, compilationContext());
     }
 
-    public static CompiledDocument compilePolicyFull(String policySource, AttributeBroker attrBroker) {
+    public static CompiledPolicy compilePolicyFull(String policySource, AttributeBroker attrBroker) {
         return compilePolicyFull(policySource, compilationContext(attrBroker));
     }
 
-    public static CompiledDocument compilePolicyFull(String policySource, CompilationContext ctx) {
+    public static CompiledPolicy compilePolicyFull(String policySource, CompilationContext ctx) {
         var policy = parsePolicy(policySource);
         return PolicyCompiler.compilePolicy(policy, null, ctx);
     }
@@ -229,15 +221,15 @@ public class SaplTesting {
                 .map(DecisionWithCoverage::decision).collectList().block(Duration.ofSeconds(5));
 
         assertThat(covList).as("Number of emissions").hasSameSizeAs(prodList);
-        for (int i = 0; i < prodList.size(); i++) {
+        for (int i = 0; i < Objects.requireNonNull(prodList).size(); i++) {
             var prod = prodList.get(i);
-            var cov  = covList.get(i);
+            var cov  = Objects.requireNonNull(covList).get(i);
             assertThat(decisionsEquivalent(prod, cov)).as("Emission[%d]: production=%s, coverage=%s", i, prod, cov)
                     .isTrue();
         }
     }
 
-    private static boolean decisionsEquivalent(AuditableAuthorizationDecision a, AuditableAuthorizationDecision b) {
+    private static boolean decisionsEquivalent(PolicyDecision a, PolicyDecision b) {
         return a.decision() == b.decision() && java.util.Objects.equals(a.obligations(), b.obligations())
                 && java.util.Objects.equals(a.advice(), b.advice())
                 && java.util.Objects.equals(a.resource(), b.resource());

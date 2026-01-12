@@ -25,7 +25,7 @@ import lombok.NonNull;
  *
  * @param base the expression to search
  * @param key the key to search for
- * @param location source location
+ * @param location metadata location
  */
 public record RecursiveKeyStep(@NonNull Expression base, @NonNull String key, @NonNull SourceLocation location)
         implements Step {}

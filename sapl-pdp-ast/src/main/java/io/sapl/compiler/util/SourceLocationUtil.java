@@ -30,17 +30,17 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
- * Utility class for extracting source location information from ANTLR parse
+ * Utility class for extracting metadata location information from ANTLR parse
  * tree nodes.
  */
 @UtilityClass
 public class SourceLocationUtil {
 
     /**
-     * Extracts the source location from an ANTLR parse tree context.
+     * Extracts the metadata location from an ANTLR parse tree context.
      *
      * @param context the parse tree context to extract location from (may be null)
-     * @return the source location, or null if the context is null or has no
+     * @return the metadata location, or null if the context is null or has no
      * location information
      */
     public static SourceLocation fromContext(ParserRuleContext context) {
@@ -70,11 +70,11 @@ public class SourceLocationUtil {
     }
 
     /**
-     * Extracts the source location from an ANTLR token.
+     * Extracts the metadata location from an ANTLR token.
      *
      * @param token the token to extract location from (may be null)
      * @param context the containing parse tree context for document information
-     * @return the source location, or null if the token is null
+     * @return the metadata location, or null if the token is null
      */
     public static SourceLocation fromToken(Token token, ParserRuleContext context) {
         if (token == null) {
@@ -94,7 +94,7 @@ public class SourceLocationUtil {
     }
 
     /**
-     * Gets the full document source from the parse tree root.
+     * Gets the full document metadata from the parse tree root.
      */
     private static String getDocumentSource(ParserRuleContext context) {
         val root = findRoot(context);

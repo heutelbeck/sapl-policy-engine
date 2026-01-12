@@ -20,7 +20,7 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.model.Document;
+import io.sapl.compiler.ast.Document;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;

@@ -28,6 +28,6 @@ import lombok.NonNull;
  * subscription.
  *
  * @param type the relative reference type
- * @param location source location
+ * @param location metadata location
  */
 public record RelativeReference(@NonNull RelativeType type, @NonNull SourceLocation location) implements Expression {}

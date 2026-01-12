@@ -15,6 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.model;
+package io.sapl.compiler.policy;
 
-public record DecisionWithCoverage(AuditableAuthorizationDecision decision, Coverage coverage) {}
+import io.sapl.api.model.CompiledExpression;
+import reactor.core.publisher.Flux;
+
+public record CompiledPolicy(
+        CompiledExpression targetExpression,
+        PolicyBody policyBody,
+        Flux<DecisionWithCoverage> coverageStream) {}

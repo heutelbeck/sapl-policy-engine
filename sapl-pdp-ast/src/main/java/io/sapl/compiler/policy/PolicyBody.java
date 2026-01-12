@@ -15,12 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.model;
+package io.sapl.compiler.policy;
 
-import reactor.core.publisher.Flux;
-
-public interface CompiledDecisionMaker {
-    DecisionMaker decisionMaker();
-
-    Flux<DecisionWithCoverage> coverageStream();
+public sealed interface PolicyBody permits PolicyDecision, PurePolicyBody, StreamPolicyBody {
 }

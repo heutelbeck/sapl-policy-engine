@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Recursive descent index path element: {@code ..[n]}
  *
  * @param index the index to search for recursively
- * @param location source location
+ * @param location metadata location
  */
 public record RecursiveIndexPath(int index, @NonNull SourceLocation location) implements PathElement {}

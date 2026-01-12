@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Grouped expression: {@code (expr)}
  *
  * @param expression the grouped expression
- * @param location source location
+ * @param location metadata location
  */
 public record Parenthesized(@NonNull Expression expression, @NonNull SourceLocation location) implements Expression {}

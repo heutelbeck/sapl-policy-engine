@@ -322,7 +322,8 @@ class AttributeStreamTests {
      * Tests PIP hot-swapping by disconnecting from one PIP and connecting to
      * another.
      * <p>
-     * Use case: Configuration update or PIP replacement where the attribute source
+     * Use case: Configuration update or PIP replacement where the attribute
+     * metadata
      * changes but the stream continues
      * operating.
      * <p>

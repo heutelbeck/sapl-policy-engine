@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.model;
+package io.sapl.compiler.policy;
 
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
 
-public non-sealed interface PureDecisionMaker extends DecisionMaker {
+public sealed interface PurePolicyBody extends PolicyBody
+        permits PolicyCompiler.SimplePurePolicyBody, PolicyCompiler.PurePolicyBody {
     CompiledExpression targetExpression();
 
-    AuditableAuthorizationDecision evaluateBody(EvaluationContext ctx);
+    PolicyDecision evaluateBody(EvaluationContext ctx);
 }

@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.policy;
 
 import io.sapl.api.model.*;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
+import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.model.TracedPolicyBodyResultAndCoverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
 import org.jspecify.annotations.NonNull;
@@ -135,8 +135,7 @@ class PolicyBodyCompilerTests {
                 where
                     %s
                 """.formatted(bodyContent);
-        val compiler     = new SAPLCompiler();
-        val document     = compiler.parse(policySource);
+        val document     = SAPLCompiler.parse(policySource);
         val element      = document.policyElement();
         if (element instanceof PolicyOnlyElementContext policyOnly) {
             val policyCtx = policyOnly.policy();

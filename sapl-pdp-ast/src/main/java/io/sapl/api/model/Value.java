@@ -347,12 +347,12 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
-     * Creates an error value with a message and source location.
+     * Creates an error value with a message and metadata location.
      *
      * @param message
      * the error message (must not be null)
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      *
      * @return an ErrorValue with location information
      */
@@ -361,10 +361,10 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
-     * Creates an error value with a formatted message and source location.
+     * Creates an error value with a formatted message and metadata location.
      *
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      * @param message
      * the format string (must not be null)
      * @param args
@@ -377,14 +377,14 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
-     * Creates an error value with a message, cause, and source location.
+     * Creates an error value with a message, cause, and metadata location.
      *
      * @param message
      * the error message (must not be null)
      * @param cause
      * the exception (may be null)
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      *
      * @return an ErrorValue with cause and location information
      */
@@ -393,12 +393,12 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
-     * Creates an error value from an exception with source location.
+     * Creates an error value from an exception with metadata location.
      *
      * @param cause
      * the exception (must not be null)
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      *
      * @return an ErrorValue with cause and location information
      */
@@ -407,24 +407,24 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
-     * Creates an ErrorValue with source location but empty metadata.
+     * Creates an ErrorValue with metadata location but empty metadata.
      *
-     * @param context the parse tree context for source location (may be null)
+     * @param context the parse tree context for metadata location (may be null)
      * @param message the error message format string
      * @param args format arguments for the message
-     * @return an ErrorValue with the formatted message and source location
+     * @return an ErrorValue with the formatted message and metadata location
      */
     static ErrorValue errorAt(ParserRuleContext context, @NonNull String message, Object... args) {
         return new ErrorValue(String.format(message, args), null, SourceLocationUtil.fromContext(context));
     }
 
     /**
-     * Creates an ErrorValue with source location but empty metadata.
+     * Creates an ErrorValue with metadata location but empty metadata.
      *
-     * @param node the AST context for source location (may be null)
+     * @param node the AST context for metadata location (may be null)
      * @param message the error message format string
      * @param args format arguments for the message
-     * @return an ErrorValue with the formatted message and source location
+     * @return an ErrorValue with the formatted message and metadata location
      */
     static ErrorValue errorAt(AstNode node, @NonNull String message, Object... args) {
         return new ErrorValue(String.format(message, args), null, node != null ? node.location() : null);

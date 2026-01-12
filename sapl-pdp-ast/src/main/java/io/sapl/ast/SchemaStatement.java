@@ -26,7 +26,7 @@ import lombok.NonNull;
  * @param element the subscription element this schema applies to
  * @param enforced true if schema is enforced (validation fails if not matched)
  * @param schema the schema expression
- * @param location source location
+ * @param location metadata location
  */
 public record SchemaStatement(
         @NonNull SubscriptionElement element,

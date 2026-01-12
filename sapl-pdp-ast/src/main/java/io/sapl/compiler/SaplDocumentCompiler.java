@@ -21,12 +21,16 @@ import io.sapl.ast.Policy;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.SaplDocument;
 import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.policyset.PolicySetCompiler;
+import io.sapl.compiler.target.SchemaValidatorCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 @UtilityClass
 public class SaplDocumentCompiler {
-    CompiledDocument compiledDocument(SaplDocument saplDocument, CompilationContext ctx) {
+    CompiledPolicy compiledDocument(SaplDocument saplDocument, CompilationContext ctx) {
         val schemaValidator = SchemaValidatorCompiler.compileValidator(saplDocument.schemas(), ctx);
         return switch (saplDocument.element()) {
         case Policy policy       -> PolicyCompiler.compilePolicy(policy, schemaValidator, ctx);

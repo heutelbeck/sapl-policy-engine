@@ -32,11 +32,11 @@ import java.util.List;
  * not specified)
  * @param entitlement PERMIT or DENY
  * @param target target expression, or null if policy applies universally
- * @param body policy body with statements and source location
+ * @param body policy body with statements and metadata location
  * @param obligations obligation expressions, empty list if none
  * @param advice advice expressions, empty list if none
  * @param transformation transformation expression, or null if none
- * @param location source location
+ * @param location metadata location
  */
 public record Policy(
         @NonNull String name,

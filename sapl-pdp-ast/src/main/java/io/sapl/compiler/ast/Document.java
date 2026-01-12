@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.model;
+package io.sapl.compiler.ast;
 
 import io.sapl.ast.SaplDocument;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -32,7 +32,7 @@ import java.util.List;
  * @param name the document name (extracted from policy/set name)
  * @param sapl the ANTLR parse tree
  * @param saplDocument optimized AST
- * @param source the original source text
+ * @param source the original metadata text
  * @param syntaxErrors list of syntax errors from parsing
  * @param validationErrors list of semantic validation errors
  * @param errorMessage combined error message if any errors exist

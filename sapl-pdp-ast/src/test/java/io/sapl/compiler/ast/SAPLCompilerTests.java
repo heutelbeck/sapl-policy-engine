@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.compiler.ast;
 
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.model.DocumentType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -38,38 +37,36 @@ import static org.mockito.Mockito.when;
 
 class SAPLCompilerTests {
 
-    private static final SAPLCompiler INTERPRETER = new SAPLCompiler();
-
     @Test
     void whenValidPolicy_thenParsesSuccessfully() {
         var policyDocument = "policy \"test\" permit";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDocument));
+        assertDoesNotThrow(() -> SAPLCompiler.parse(policyDocument));
     }
 
     @Test
     void whenLazyBooleanOperatorsInTarget_thenParsesSuccessfully() {
         // && and || are now aliases for & and | - allowed in targets
         var policyDocument = "policy \"test\" permit true && false";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDocument));
+        assertDoesNotThrow(() -> SAPLCompiler.parse(policyDocument));
     }
 
     @Test
     void whenBrokenInputStream_thenThrowsException() throws IOException {
         var brokenInputStream = mock(InputStream.class);
         when(brokenInputStream.read()).thenThrow(new IOException("Simulated IO error"));
-        assertThatThrownBy(() -> INTERPRETER.parse(brokenInputStream)).isInstanceOf(SaplCompilerException.class);
+        assertThatThrownBy(() -> SAPLCompiler.parse(brokenInputStream)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test
     void whenInvalidSyntax_thenThrowsException() {
         var policyDocument = "xyz";
-        assertThatThrownBy(() -> INTERPRETER.parse(policyDocument)).isInstanceOf(SaplCompilerException.class);
+        assertThatThrownBy(() -> SAPLCompiler.parse(policyDocument)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test
     void whenValidPolicy_thenDocumentContainsCorrectMetadata() {
         var policyDefinition = "policy \"test\" permit";
-        var document         = INTERPRETER.parseDocument(policyDefinition);
+        var document         = SAPLCompiler.parseDocument(policyDefinition);
 
         assertThat(document.isInvalid()).isFalse();
         assertThat(document.name()).isEqualTo("test");
@@ -78,7 +75,7 @@ class SAPLCompilerTests {
 
     @Test
     void whenInvalidSyntax_thenDocumentIsInvalid() {
-        assertThat(INTERPRETER.parseDocument("xyz").isInvalid()).isTrue();
+        assertThat(SAPLCompiler.parseDocument("xyz").isInvalid()).isTrue();
     }
 
     @Test
@@ -88,7 +85,7 @@ class SAPLCompilerTests {
                 deny-overrides
                 policy "inner-policy" permit
                 """;
-        var document            = INTERPRETER.parseDocument(policySetDefinition);
+        var document            = SAPLCompiler.parseDocument(policySetDefinition);
 
         assertThat(document.isInvalid()).isFalse();
         assertThat(document.name()).isEqualTo("test-set");
@@ -98,7 +95,7 @@ class SAPLCompilerTests {
     @Test
     void whenParsingSinglePolicy_thenDocumentTypeIsPolicy() {
         var policyDefinition = "policy \"single-policy\" deny";
-        var document         = INTERPRETER.parseDocument(policyDefinition);
+        var document         = SAPLCompiler.parseDocument(policyDefinition);
 
         assertThat(document.isInvalid()).isFalse();
         assertThat(document.type()).isEqualTo(DocumentType.POLICY);
@@ -109,13 +106,13 @@ class SAPLCompilerTests {
             "policy \"p\" permit where var subject = {};", "policy \"p\" permit where var action = {};",
             "policy \"p\" permit where var resource = {};", "policy \"p\" permit where var environment = {};" })
     void whenInvalidPolicyDefinitions_thenParsingThrowsException(String policyDefinition) {
-        assertThatThrownBy(() -> INTERPRETER.parse(policyDefinition)).isInstanceOf(SaplCompilerException.class);
+        assertThatThrownBy(() -> SAPLCompiler.parse(policyDefinition)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test
     void whenParsingWithId_thenDocumentContainsId() {
         var policyDefinition = "policy \"test\" permit";
-        var document         = INTERPRETER.parseDocument("custom-id", policyDefinition);
+        var document         = SAPLCompiler.parseDocument("custom-id", policyDefinition);
 
         assertThat(document.isInvalid()).isFalse();
         assertThat(document.name()).isEqualTo("test");
@@ -146,7 +143,7 @@ class SAPLCompilerTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("validPolicyDefinitions")
     void whenParsingValidPolicyVariant_thenParsesSuccessfully(String description, String policyDefinition) {
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
+        assertDoesNotThrow(() -> SAPLCompiler.parse(policyDefinition));
     }
 
 }

@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Key access path element: {@code .key} or {@code ["key"]}
  *
  * @param key the attribute key to access
- * @param location source location
+ * @param location metadata location
  */
 public record KeyPath(@NonNull String key, @NonNull SourceLocation location) implements PathElement {}

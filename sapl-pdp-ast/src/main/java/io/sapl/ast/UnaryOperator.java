@@ -25,7 +25,7 @@ import lombok.NonNull;
  *
  * @param op the unary operator
  * @param operand the operand expression
- * @param location source location
+ * @param location metadata location
  */
 public record UnaryOperator(
         @NonNull UnaryOperatorType op,

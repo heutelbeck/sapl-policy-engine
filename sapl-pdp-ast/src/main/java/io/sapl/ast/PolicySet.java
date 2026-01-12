@@ -36,7 +36,7 @@ import java.util.List;
  * @param target target expression, or null if policy set applies universally
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
- * @param location source location
+ * @param location metadata location
  */
 public record PolicySet(
         @NonNull String name,

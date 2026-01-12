@@ -18,18 +18,18 @@
 package io.sapl.compiler.combining;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.CompiledDocument;
+import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.model.DecisionSource;
+import io.sapl.compiler.policy.PolicyMetadata;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
 
 @UtilityClass
 public class PermitOverridesCompiler {
-    public static CompiledDocument compilePermitOverridesSet(CompiledExpression targetExpression,
-            DecisionSource decisionSource, List<CompiledDocument> policies, CompilationContext ctx) {
+    public static CompiledPolicy compilePermitOverridesSet(CompiledExpression targetExpression,
+            PolicyMetadata policyMetadata, List<CompiledPolicy> policies, CompilationContext ctx) {
         throw new SaplCompilerException("PermitOverridesCompiler not yet implemented");
     }
 }
