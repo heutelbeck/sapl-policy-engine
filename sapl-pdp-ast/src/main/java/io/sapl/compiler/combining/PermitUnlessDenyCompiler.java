@@ -23,7 +23,6 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPolicy;
 import io.sapl.compiler.pdp.CompiledPolicySet;
-import io.sapl.compiler.policy.PolicyMetadata;
 import io.sapl.compiler.policyset.PolicySetMetadata;
 import lombok.experimental.UtilityClass;
 

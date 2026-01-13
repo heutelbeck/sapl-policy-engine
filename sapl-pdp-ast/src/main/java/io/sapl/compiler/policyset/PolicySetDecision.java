@@ -18,12 +18,10 @@
 package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.policy.PolicyDecision;
-import io.sapl.compiler.policy.PolicyMetadata;
 import lombok.NonNull;
 import lombok.val;
 
