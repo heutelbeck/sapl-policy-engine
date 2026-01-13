@@ -18,7 +18,6 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
 import io.sapl.ast.Expression;

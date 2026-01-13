@@ -15,22 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.combining;
+package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.expressions.CompilationContext;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.CompiledPolicy;
-import io.sapl.compiler.policy.PolicyMetadata;
-import io.sapl.compiler.pdp.CompiledPolicySet;
-import lombok.experimental.UtilityClass;
+import io.sapl.compiler.policy.PolicyDecision;
+import reactor.core.publisher.Flux;
 
-import java.util.List;
+public non-sealed interface StreamPolicySetBody extends PolicySetBody {
+    CompiledExpression targetExpression();
 
-@UtilityClass
-public class DenyOverridesCompiler {
-    public static CompiledPolicySet compileDenyOverridesSet(CompiledExpression targetExpression,
-            PolicyMetadata policyMetadata, List<CompiledPolicy> policies, CompilationContext ctx) {
-        throw new SaplCompilerException("DenyOverridesCompiler not yet implemented");
-    }
+    Flux<PolicyDecision> stream();
 }

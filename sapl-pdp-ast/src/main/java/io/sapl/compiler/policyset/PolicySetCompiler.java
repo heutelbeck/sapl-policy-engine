@@ -22,9 +22,9 @@ import io.sapl.ast.PolicySet;
 import io.sapl.compiler.ast.DocumentType;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policy.PolicyMetadata;
+import io.sapl.compiler.pdp.CompiledPolicySet;
 import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.policy.PolicyMetadata;
 import io.sapl.compiler.target.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -41,7 +41,7 @@ public class PolicySetCompiler {
 
     public static final String ERROR_NO_POLICIES = "Policy sets must contain at least one policy";
 
-    public static CompiledPolicy compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
+    public static CompiledPolicySet compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
             CompilationContext ctx) {
         val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator, ctx);
         val algorithm      = policySet.algorithm();

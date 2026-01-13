@@ -19,7 +19,6 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.ast.Expression;
 import io.sapl.ast.FunctionCall;
 import lombok.experimental.UtilityClass;

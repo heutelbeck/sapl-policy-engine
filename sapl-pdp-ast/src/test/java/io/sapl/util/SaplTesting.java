@@ -31,6 +31,7 @@ import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
 import io.sapl.compiler.ast.Document;
+import io.sapl.compiler.pdp.CompiledPolicy;
 import io.sapl.compiler.policy.*;
 import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
@@ -191,17 +192,18 @@ public class SaplTesting {
         return PolicyCompiler.compilePolicy(policy, null, ctx);
     }
 
-    public static Flux<DecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource) {
+    public static Flux<PolicyDecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson,
+            String policySource) {
         return evaluatePolicyWithCoverage(subscriptionJson, policySource, ATTRIBUTE_BROKER);
     }
 
-    public static Flux<DecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
-            AttributeBroker attrBroker) {
+    public static Flux<PolicyDecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson,
+            String policySource, AttributeBroker attrBroker) {
         return evaluatePolicyWithCoverage(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
     }
 
-    public static Flux<DecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
-            CompilationContext compilationCtx, AttributeBroker attrBroker) {
+    public static Flux<PolicyDecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson,
+            String policySource, CompilationContext compilationCtx, AttributeBroker attrBroker) {
         var subscription  = parseSubscription(subscriptionJson);
         var compiled      = compilePolicyFull(policySource, compilationCtx);
         var evaluationCtx = evaluationContext(subscription, attrBroker);
@@ -218,7 +220,7 @@ public class SaplTesting {
         var prodList = evaluatePolicy(subscriptionJson, policySource, attrBroker).collectList()
                 .block(Duration.ofSeconds(5));
         var covList  = evaluatePolicyWithCoverage(subscriptionJson, policySource, attrBroker)
-                .map(DecisionWithCoverage::decision).collectList().block(Duration.ofSeconds(5));
+                .map(PolicyDecisionWithCoverage::decision).collectList().block(Duration.ofSeconds(5));
 
         assertThat(covList).as("Number of emissions").hasSameSizeAs(prodList);
         for (int i = 0; i < Objects.requireNonNull(prodList).size(); i++) {

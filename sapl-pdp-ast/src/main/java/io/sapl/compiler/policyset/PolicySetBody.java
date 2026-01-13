@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.policyset;
 
-import io.sapl.compiler.model.Coverage;
-
-public record DecisionWithCoverage(PolicyDecision decision, Coverage coverage) {}
+public sealed interface PolicySetBody permits PolicySetDecision, PurePolicySetBody, StreamPolicySetBody {
+}

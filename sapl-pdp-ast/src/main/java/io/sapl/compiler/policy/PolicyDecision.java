@@ -18,10 +18,10 @@
 package io.sapl.compiler.policy;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.model.AttributeRecord;
 import lombok.NonNull;
 import lombok.val;
 
@@ -47,7 +47,7 @@ public record PolicyDecision(
                 contributingAttributes);
     }
 
-    public static PolicyDecision ofError(ErrorValue error, PolicyMetadata source) {
+    public static PolicyDecision error(ErrorValue error, PolicyMetadata source) {
         return new PolicyDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, error,
                 source, null);
     }

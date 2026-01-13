@@ -15,12 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.CompiledExpression;
-import reactor.core.publisher.Flux;
-
-public record CompiledPolicy(
-        CompiledExpression targetExpression,
-        PolicyBody policyBody,
-        Flux<DecisionWithCoverage> coverageStream) {}
+public sealed interface CompiledDocument permits CompiledPolicy, CompiledPolicySet {
+}

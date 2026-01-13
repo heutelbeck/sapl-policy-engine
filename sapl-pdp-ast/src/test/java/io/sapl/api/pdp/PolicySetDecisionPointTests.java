@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * simple mock PDP that returns configurable
  * decisions per subscription.
  */
-class PolicyDecisionPointTests {
+class PolicySetDecisionPointTests {
 
     @Test
     void whenDecideOnce_thenReturnFirstDecision() {

@@ -18,9 +18,10 @@
 package io.sapl.compiler.combining;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.CompiledPolicy;
+import io.sapl.compiler.pdp.CompiledPolicySet;
 import io.sapl.compiler.policy.PolicyMetadata;
 import lombok.experimental.UtilityClass;
 
@@ -28,7 +29,7 @@ import java.util.List;
 
 @UtilityClass
 public class FirstApplicableCompiler {
-    public static CompiledPolicy compileFirstApplicableSet(CompiledExpression targetExpression,
+    public static CompiledPolicySet compileFirstApplicableSet(CompiledExpression targetExpression,
             PolicyMetadata policyMetadata, List<CompiledPolicy> policies, CompilationContext ctx) {
         throw new SaplCompilerException("FirstApplicableCompiler not yet implemented");
     }

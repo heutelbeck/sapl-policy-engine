@@ -23,12 +23,13 @@ import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.compiler.ast.DocumentType;
-import io.sapl.compiler.target.TargetExpressionCompiler;
 import io.sapl.compiler.expressions.ArrayCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.pdp.CompiledPolicy;
+import io.sapl.compiler.target.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -82,8 +83,8 @@ public class PolicyCompiler {
         return new CompiledPolicy(compiledTarget, decisionMaker, coverageStream);
     }
 
-    private Flux<DecisionWithCoverage> assembleDecisionWithCoverage(Policy policy, CompiledPolicyComponents components,
-            PolicyMetadata policyMetadata) {
+    private Flux<PolicyDecisionWithCoverage> assembleDecisionWithCoverage(Policy policy,
+            CompiledPolicyComponents components, PolicyMetadata policyMetadata) {
         val bodyCoverage = components.body().coverageStream();
         val c            = components.constraints();
         val decision     = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
@@ -122,10 +123,10 @@ public class PolicyCompiler {
         });
     }
 
-    private static DecisionWithCoverage withCoverage(PolicyDecision decision, Policy policy,
+    private static PolicyDecisionWithCoverage withCoverage(PolicyDecision decision, Policy policy,
             Coverage.BodyCoverage bodyCoverage) {
         val policyCoverage = new Coverage.PolicyCoverage(policy.name(), null, null, null, bodyCoverage);
-        return new DecisionWithCoverage(decision, new Coverage(List.of(policyCoverage)));
+        return new PolicyDecisionWithCoverage(decision, new Coverage(List.of(policyCoverage)));
     }
 
     private static PolicyBody compileWithConstantTarget(Policy policy, CompiledPolicyComponents components,
@@ -422,24 +423,24 @@ public class PolicyCompiler {
         private Flux<PolicyDecision> evaluateConstraints(EvaluationContext evalCtx, PolicyMetadata policyMetadata) {
             val obligationsValue = obligations.evaluate(evalCtx);
             if (obligationsValue instanceof ErrorValue error) {
-                return Flux.just(PolicyDecision.ofError(error, policyMetadata));
+                return Flux.just(PolicyDecision.error(error, policyMetadata));
             }
             if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
-                return Flux.just(PolicyDecision.ofError(
+                return Flux.just(PolicyDecision.error(
                         Value.errorAt(policyLocation, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)),
                         policyMetadata));
             }
             val adviceValue = advice.evaluate(evalCtx);
             if (adviceValue instanceof ErrorValue error) {
-                return Flux.just(PolicyDecision.ofError(error, policyMetadata));
+                return Flux.just(PolicyDecision.error(error, policyMetadata));
             }
             if (!(adviceValue instanceof ArrayValue adviceArray)) {
-                return Flux.just(PolicyDecision.ofError(
+                return Flux.just(PolicyDecision.error(
                         Value.errorAt(policyLocation, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)), policyMetadata));
             }
             val resourceValue = resource.evaluate(evalCtx);
             if (resourceValue instanceof ErrorValue error) {
-                return Flux.just(PolicyDecision.ofError(error, policyMetadata));
+                return Flux.just(PolicyDecision.error(error, policyMetadata));
             }
             return Flux.just(new PolicyDecision(decision, obligationsArray, adviceArray, resourceValue, null,
                     policyMetadata, null));
@@ -461,7 +462,7 @@ public class PolicyCompiler {
                 val evalCtx   = ctxView.get(EvaluationContext.class);
                 val bodyValue = body.evaluate(evalCtx);
                 if (bodyValue instanceof ErrorValue error) {
-                    return Flux.just(PolicyDecision.ofError(error, policyMetadata));
+                    return Flux.just(PolicyDecision.error(error, policyMetadata));
                 }
                 if (Value.FALSE.equals(bodyValue)) {
                     return Flux.just(PolicyDecision.notApplicable(policyMetadata));
@@ -511,7 +512,7 @@ public class PolicyCompiler {
         public PolicyDecision evaluateBody(EvaluationContext ctx) {
             val bodyValue = body.evaluate(ctx);
             if (bodyValue instanceof ErrorValue error) {
-                return PolicyDecision.ofError(error, policyMetadata);
+                return PolicyDecision.error(error, policyMetadata);
             }
             if (Value.FALSE.equals(bodyValue)) {
                 return notApplicableDecision;
@@ -533,31 +534,31 @@ public class PolicyCompiler {
         public PolicyDecision evaluateBody(EvaluationContext ctx) {
             val bodyValue = body instanceof Value vb ? vb : ((PureOperator) body).evaluate(ctx);
             if (bodyValue instanceof ErrorValue error) {
-                return PolicyDecision.ofError(error, policyMetadata);
+                return PolicyDecision.error(error, policyMetadata);
             }
             if (Value.FALSE.equals(bodyValue)) {
                 return PolicyDecision.notApplicable(policyMetadata);
             }
             val obligationsValue = obligations instanceof Value vb ? vb : ((PureOperator) obligations).evaluate(ctx);
             if (obligationsValue instanceof ErrorValue error) {
-                return PolicyDecision.ofError(error, policyMetadata);
+                return PolicyDecision.error(error, policyMetadata);
             }
             if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
-                return PolicyDecision.ofError(
+                return PolicyDecision.error(
                         Value.errorAt(policyLocation, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)),
                         policyMetadata);
             }
             val adviceValue = advice instanceof Value vb ? vb : ((PureOperator) advice).evaluate(ctx);
             if (adviceValue instanceof ErrorValue error) {
-                return PolicyDecision.ofError(error, policyMetadata);
+                return PolicyDecision.error(error, policyMetadata);
             }
             if (!(adviceValue instanceof ArrayValue adviceArray)) {
-                return PolicyDecision.ofError(
+                return PolicyDecision.error(
                         Value.errorAt(policyLocation, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)), policyMetadata);
             }
             val resourceValue = resource instanceof Value vb ? vb : ((PureOperator) resource).evaluate(ctx);
             if (resourceValue instanceof ErrorValue error) {
-                return PolicyDecision.ofError(error, policyMetadata);
+                return PolicyDecision.error(error, policyMetadata);
             }
             return new PolicyDecision(decision, obligationsArray, adviceArray, resourceValue, Value.UNDEFINED,
                     policyMetadata, null);
