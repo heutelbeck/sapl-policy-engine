@@ -20,21 +20,14 @@ package io.sapl.compiler.policyset;
 import io.sapl.api.model.PureOperator;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.ast.DocumentType;
+import io.sapl.compiler.combining.*;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPolicySet;
 import io.sapl.compiler.policy.PolicyCompiler;
-import io.sapl.compiler.policy.PolicyMetadata;
 import io.sapl.compiler.target.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-
-import static io.sapl.compiler.combining.DenyOverridesCompiler.compileDenyOverridesSet;
-import static io.sapl.compiler.combining.DenyUnlessPermitCompiler.compileDenyUnlessPermitSet;
-import static io.sapl.compiler.combining.FirstApplicableCompiler.compileFirstApplicableSet;
-import static io.sapl.compiler.combining.OnlyOneApplicableCompiler.compileOnlyOneApplicableSet;
-import static io.sapl.compiler.combining.PermitOverridesCompiler.compilePermitOverridesSet;
-import static io.sapl.compiler.combining.PermitUnlessDenyCompiler.compilePermitUnlessDenySet;
 
 @UtilityClass
 public class PolicySetCompiler {
@@ -50,15 +43,21 @@ public class PolicySetCompiler {
         if (policies.isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
         }
-        val decisionSource = new PolicyMetadata(DocumentType.POLICY_SET, policySet.name(), policySet.pdpId(),
+        val policySetMetadata = new PolicySetMetadata(DocumentType.POLICY_SET, policySet.name(), policySet.pdpId(),
                 policySet.configurationId(), policySet.documentId(), algorithm);
         return switch (algorithm) {
-        case DENY_OVERRIDES      -> compileDenyOverridesSet(compiledTarget, decisionSource, policies, ctx);
-        case DENY_UNLESS_PERMIT  -> compileDenyUnlessPermitSet(compiledTarget, decisionSource, policies, ctx);
-        case FIRST_APPLICABLE    -> compileFirstApplicableSet(compiledTarget, decisionSource, policies, ctx);
-        case ONLY_ONE_APPLICABLE -> compileOnlyOneApplicableSet(compiledTarget, decisionSource, policies, ctx);
-        case PERMIT_OVERRIDES    -> compilePermitOverridesSet(compiledTarget, decisionSource, policies, ctx);
-        case PERMIT_UNLESS_DENY  -> compilePermitUnlessDenySet(compiledTarget, decisionSource, policies, ctx);
+        case DENY_OVERRIDES      ->
+            DenyOverridesCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
+        case DENY_UNLESS_PERMIT  ->
+            DenyUnlessPermitCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
+        case FIRST_APPLICABLE    ->
+            FirstApplicableCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
+        case ONLY_ONE_APPLICABLE ->
+            OnlyOneApplicableCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
+        case PERMIT_OVERRIDES    ->
+            PermitOverridesCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
+        case PERMIT_UNLESS_DENY  ->
+            PermitUnlessDenyCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
         };
     }
 

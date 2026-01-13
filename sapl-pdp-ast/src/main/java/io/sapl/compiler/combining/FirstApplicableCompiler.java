@@ -17,20 +17,96 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.*;
+import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPolicy;
 import io.sapl.compiler.pdp.CompiledPolicySet;
-import io.sapl.compiler.policy.PolicyMetadata;
+import io.sapl.compiler.policy.PolicyDecision;
+import io.sapl.compiler.policyset.PolicySetBody;
+import io.sapl.compiler.policyset.PolicySetDecision;
+import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
+import io.sapl.compiler.policyset.PolicySetMetadata;
 import lombok.experimental.UtilityClass;
+import lombok.val;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Optional;
 
 @UtilityClass
 public class FirstApplicableCompiler {
-    public static CompiledPolicySet compileFirstApplicableSet(CompiledExpression targetExpression,
-            PolicyMetadata policyMetadata, List<CompiledPolicy> policies, CompilationContext ctx) {
-        throw new SaplCompilerException("FirstApplicableCompiler not yet implemented");
+    public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompiledExpression targetExpression,
+            PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies, CompilationContext ctx) {
+
+        val coverageStream = compilePolicySetCoverageStream(policySet, targetExpression, policySetMetadata, policies,
+                ctx);
+
+        val maybeShortCircuitBody = shortCircuitIfPredetermined(policySet, policySetMetadata, policies);
+        if (maybeShortCircuitBody.isPresent()) {
+            return new CompiledPolicySet(targetExpression, maybeShortCircuitBody.get(), coverageStream);
+        }
+
+        val maybePureBody = pureBodyIfPoliciesPure(policySet, policySetMetadata, policies);
+        if (maybePureBody.isPresent()) {
+            return new CompiledPolicySet(targetExpression, maybePureBody.get(), coverageStream);
+        }
+
+        return new CompiledPolicySet(targetExpression, streamBody(policySet, policySetMetadata, policies),
+                coverageStream);
     }
+
+    public static Flux<PolicySetDecisionWithCoverage> compilePolicySetCoverageStream(PolicySet policySet,
+            CompiledExpression targetExpression, PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies,
+            CompilationContext ctx) {
+        return Flux.empty();
+    }
+
+    private static Optional<PolicySetBody> pureBodyIfPoliciesPure(PolicySet policySet,
+            PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies) {
+        var hasStreams = false;
+        for (CompiledPolicy policy : policies) {
+            if (policy.targetExpression() instanceof StreamOperator) {
+                hasStreams = true;
+                break;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static PolicySetBody streamBody(PolicySet policySet, PolicySetMetadata policySetMetadata,
+            List<CompiledPolicy> policies) {
+        throw new SaplCompilerException("FirstApplicableCompiler not yet implemented");
+
+    }
+
+    private static Optional<PolicySetBody> shortCircuitIfPredetermined(PolicySet policySet,
+            PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies) {
+        PolicySetBody policySetBody = null;
+        // Detect if we have a short-circuit
+        for (CompiledPolicy policy : policies) {
+            val policyTarget = policy.targetExpression();
+            val policyBody   = policy.policyBody();
+            if (policyTarget instanceof ErrorValue error) {
+                policySetBody = PolicySetDecision.error(
+                        Value.errorAt(policySet.target().location(), "Policy target returned an error."),
+                        policySetMetadata, List.of());
+            } else if (policyTarget instanceof BooleanValue(var t)) {
+                if (t) {
+                    if (policyBody instanceof PolicyDecision decision) {
+                        policySetBody = PolicySetDecision.error(
+                                Value.errorAt(policySet.target().location(), "Policy target returned an error."),
+                                policySetMetadata, List.of());
+                    }
+                } else {
+                    continue;
+                }
+            } else {
+                break;
+            }
+        }
+        return Optional.ofNullable(policySetBody);
+    }
+
 }

@@ -56,7 +56,8 @@ public record PolicySetDecision(
                 error, source, contributingPolicyDecisions);
     }
 
-    public static PolicySetDecision notApplicable(PolicySetMetadata source, List<PolicyDecision> contributingAttributes) {
+    public static PolicySetDecision notApplicable(PolicySetMetadata source,
+            List<PolicyDecision> contributingAttributes) {
         return new PolicySetDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 null, source, contributingAttributes);
     }
