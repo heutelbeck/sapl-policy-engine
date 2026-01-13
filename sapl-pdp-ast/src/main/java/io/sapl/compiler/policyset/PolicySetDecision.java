@@ -36,27 +36,27 @@ public record PolicySetDecision(
         @NonNull ArrayValue advice,
         @NonNull Value resource,
         Value error,
-        PolicyMetadata metadata,
+        PolicySetMetadata metadata,
         List<PolicyDecision> contributingPolicyDecisions) implements PolicySetBody {
 
-    public static PolicySetDecision simpleDecision(Decision decision, PolicyMetadata source) {
+    public static PolicySetDecision simpleDecision(Decision decision, PolicySetMetadata source) {
         return new PolicySetDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null, source,
                 null);
     }
 
-    public static PolicySetDecision tracedSimpleDecision(Decision decision, PolicyMetadata source,
+    public static PolicySetDecision tracedSimpleDecision(Decision decision, PolicySetMetadata source,
             List<PolicyDecision> contributingPolicyDecisions) {
         return new PolicySetDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null, source,
                 contributingPolicyDecisions);
     }
 
-    public static PolicySetDecision error(ErrorValue error, PolicyMetadata source,
+    public static PolicySetDecision error(ErrorValue error, PolicySetMetadata source,
             List<PolicyDecision> contributingPolicyDecisions) {
         return new PolicySetDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 error, source, contributingPolicyDecisions);
     }
 
-    public static PolicySetDecision notApplicable(PolicyMetadata source, List<PolicyDecision> contributingAttributes) {
+    public static PolicySetDecision notApplicable(PolicySetMetadata source, List<PolicyDecision> contributingAttributes) {
         return new PolicySetDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 null, source, contributingAttributes);
     }
