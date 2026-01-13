@@ -320,14 +320,20 @@ public class SaplTesting {
                 () -> TEST_TIMESTAMP);
     }
 
-    public static EvaluationContext subscriptionContext(Value subject, Value action, Value resource,
-            Value environment) {
-        var subscription = new AuthorizationSubscription(subject, action, resource, environment);
+    public static EvaluationContext subscriptionContext(String subscriptionJson) {
+        var subscription = parseSubscription(subscriptionJson);
         return new EvaluationContext(null, null, null, subscription, FUNCTION_BROKER, ATTRIBUTE_BROKER);
     }
 
     public static EvaluationContext subscriptionContext() {
-        return subscriptionContext(Value.of("alice"), Value.of("read"), Value.of("document"), Value.of("production"));
+        return subscriptionContext("""
+                {
+                    "subject": "alice",
+                    "action": "read",
+                    "resource": "document",
+                    "environment": "production"
+                }
+                """);
     }
 
     public static AttributeBroker attributeBroker(String expectedName, Value... values) {

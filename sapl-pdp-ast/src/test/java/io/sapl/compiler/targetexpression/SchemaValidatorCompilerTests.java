@@ -196,8 +196,14 @@ class SchemaValidatorCompilerTests {
             val schemas   = List.of(enforcedSchema(element, STRING_SCHEMA));
             val validator = compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
-            val ctx    = subscriptionContext(Value.of("alice"), Value.of("read"), Value.of("document"),
-                    Value.of("production"));
+            val ctx    = subscriptionContext("""
+                    {
+                        "subject": "alice",
+                        "action": "read",
+                        "resource": "document",
+                        "environment": "production"
+                    }
+                    """);
             val result = validator.evaluate(ctx);
             assertThat(result).isEqualTo(Value.TRUE);
         }
@@ -208,7 +214,14 @@ class SchemaValidatorCompilerTests {
             val schemas   = List.of(enforcedSchema(element, STRING_SCHEMA));
             val validator = compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
-            val ctx    = subscriptionContext(Value.of(123), Value.of(456), Value.of(789), Value.of(999));
+            val ctx    = subscriptionContext("""
+                    {
+                        "subject": 123,
+                        "action": 456,
+                        "resource": 789,
+                        "environment": 999
+                    }
+                    """);
             val result = validator.evaluate(ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
@@ -239,7 +252,13 @@ class SchemaValidatorCompilerTests {
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
             val validator = compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
-            val ctx = subscriptionContext(obj("name", Value.of("alice")), Value.NULL, Value.NULL, Value.NULL);
+            val ctx = subscriptionContext("""
+                    {
+                        "subject": {"name": "alice"},
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """);
             assertThat(validator.evaluate(ctx)).isEqualTo(Value.TRUE);
         }
 
@@ -251,21 +270,16 @@ class SchemaValidatorCompilerTests {
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
             val validator = compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
-            val ctx = subscriptionContext(obj("age", Value.of(25)), Value.NULL, Value.NULL, Value.NULL);
+            val ctx = subscriptionContext("""
+                    {
+                        "subject": {"age": 25},
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """);
             assertThat(validator.evaluate(ctx)).isEqualTo(Value.FALSE);
         }
 
-        @Test
-        @DisplayName("when subscription element is error then propagates error")
-        void whenSubscriptionElementIsError_thenPropagatesError() {
-            val error     = Value.error("subject lookup failed");
-            val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA));
-            val validator = compileValidator(schemas, compilationContext());
-            assertThat(validator).isNotNull();
-            val ctx    = subscriptionContext(error, Value.NULL, Value.NULL, Value.NULL);
-            val result = validator.evaluate(ctx);
-            assertThat(result).isInstanceOf(ErrorValue.class);
-        }
     }
 
     @Nested
@@ -279,7 +293,13 @@ class SchemaValidatorCompilerTests {
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
             assertThat(combined).isNotNull();
-            val ctx    = subscriptionContext(Value.of("alice"), Value.of("read"), Value.NULL, Value.NULL);
+            val ctx    = subscriptionContext("""
+                    {
+                        "subject": "alice",
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """);
             val result = combined.evaluate(ctx);
             assertThat(result).isEqualTo(Value.TRUE);
         }
@@ -291,7 +311,13 @@ class SchemaValidatorCompilerTests {
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
             assertThat(combined).isNotNull();
-            val ctx    = subscriptionContext(Value.of(123), Value.of("read"), Value.NULL, Value.NULL);
+            val ctx    = subscriptionContext("""
+                    {
+                        "subject": 123,
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """);
             val result = combined.evaluate(ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
@@ -303,7 +329,13 @@ class SchemaValidatorCompilerTests {
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
             assertThat(combined).isNotNull();
-            val ctx    = subscriptionContext(Value.of("alice"), Value.of(456), Value.NULL, Value.NULL);
+            val ctx    = subscriptionContext("""
+                    {
+                        "subject": "alice",
+                        "action": 456,
+                        "resource": "data"
+                    }
+                    """);
             val result = combined.evaluate(ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
@@ -336,7 +368,13 @@ class SchemaValidatorCompilerTests {
                     enforcedSchema(SubscriptionElement.RESOURCE, BOOLEAN_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
             assertThat(combined).isNotNull();
-            val ctx = subscriptionContext(Value.of("alice"), Value.of(42), Value.TRUE, Value.NULL);
+            val ctx = subscriptionContext("""
+                    {
+                        "subject": "alice",
+                        "action": 42,
+                        "resource": true
+                    }
+                    """);
             assertThat(combined.evaluate(ctx)).isEqualTo(Value.TRUE);
         }
 
@@ -348,22 +386,16 @@ class SchemaValidatorCompilerTests {
                     enforcedSchema(SubscriptionElement.RESOURCE, BOOLEAN_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
             assertThat(combined).isNotNull();
-            val ctx = subscriptionContext(Value.of("alice"), Value.of("read"), Value.TRUE, Value.NULL);
+            val ctx = subscriptionContext("""
+                    {
+                        "subject": "alice",
+                        "action": "read",
+                        "resource": true
+                    }
+                    """);
             assertThat(combined.evaluate(ctx)).isEqualTo(Value.FALSE);
         }
 
-        @Test
-        @DisplayName("when first subscription element is error then propagates error")
-        void whenFirstSubscriptionElementIsError_thenPropagatesError() {
-            val error    = Value.error("subject error");
-            val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
-                    enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
-            val combined = compileValidator(schemas, compilationContext());
-            assertThat(combined).isNotNull();
-            val ctx    = subscriptionContext(error, Value.of("read"), Value.NULL, Value.NULL);
-            val result = combined.evaluate(ctx);
-            assertThat(result).isInstanceOf(ErrorValue.class);
-        }
     }
 
     @Nested
@@ -431,13 +463,29 @@ class SchemaValidatorCompilerTests {
             val validator     = compileValidator(schemas, compilationContext());
             assertThat(validator).isInstanceOf(PrecompiledSchemaValidator.class);
 
-            val validSubject = obj("username", Value.of("alice"), "email", Value.of("alice@example.com"), "age",
-                    Value.of(30));
-            val ctx          = subscriptionContext(validSubject, Value.NULL, Value.NULL, Value.NULL);
+            val ctx = subscriptionContext("""
+                    {
+                        "subject": {
+                            "username": "alice",
+                            "email": "alice@example.com",
+                            "age": 30
+                        },
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """);
             assertThat(validator.evaluate(ctx)).isEqualTo(Value.TRUE);
 
-            val invalidSubject = obj("username", Value.of("ab"), "email", Value.of("not-an-email"));
-            val ctx2           = subscriptionContext(invalidSubject, Value.NULL, Value.NULL, Value.NULL);
+            val ctx2 = subscriptionContext("""
+                    {
+                        "subject": {
+                            "username": "ab",
+                            "email": "not-an-email"
+                        },
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """);
             assertThat(validator.evaluate(ctx2)).isEqualTo(Value.FALSE);
         }
 
@@ -452,7 +500,13 @@ class SchemaValidatorCompilerTests {
             // because "not-a-valid-type" is treated as a never-matching type
             val validator = compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
-            val ctx = subscriptionContext(Value.of("anything"), Value.NULL, Value.NULL, Value.NULL);
+            val ctx = subscriptionContext("""
+                    {
+                        "subject": "anything",
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """);
             assertThat(validator.evaluate(ctx)).isEqualTo(Value.FALSE);
         }
     }

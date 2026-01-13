@@ -17,17 +17,27 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
-import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPolicy;
 import io.sapl.compiler.pdp.CompiledPolicySet;
-import io.sapl.compiler.policy.PolicyBody;
 import io.sapl.compiler.policy.PolicyDecision;
 import io.sapl.compiler.policy.PurePolicyBody;
 import io.sapl.compiler.policy.StreamPolicyBody;
-import io.sapl.compiler.policyset.*;
+import io.sapl.compiler.policyset.PolicySetBody;
+import io.sapl.compiler.policyset.PolicySetDecision;
+import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
+import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.policyset.PurePolicySetBody;
+import io.sapl.compiler.policyset.StreamPolicySetBody;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -37,6 +47,10 @@ import java.util.Optional;
 
 @UtilityClass
 public class FirstApplicableCompiler {
+
+    private static final String ERROR_TARGET_NOT_BOOLEAN = "Target was not Boolean. Should not happen. Indicates implementation bug.";
+    private static final String ERROR_TARGET_WAS_STREAM  = "Target was Stream. Should not happen. Indicates implementation bug.";
+
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompiledExpression targetExpression,
             PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies, CompilationContext ctx) {
 
@@ -58,6 +72,7 @@ public class FirstApplicableCompiler {
     public static Flux<PolicySetDecisionWithCoverage> compilePolicySetCoverageStream(PolicySet policySet,
             CompiledExpression targetExpression, PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies,
             CompilationContext ctx) {
+        // TODO: Implement
         return Flux.empty();
     }
 
@@ -94,7 +109,7 @@ public class FirstApplicableCompiler {
                     } else if (body instanceof PurePolicyBody purePolicyBody) {
                         decision = purePolicyBody.evaluateBody(ctx);
                     }
-                    if (decision != null) {
+                    if (decision != null && decision.decision() != Decision.NOT_APPLICABLE) {
                         return new PolicySetDecision(decision.decision(), decision.obligations(), decision.advice(),
                                 decision.resource(), null, policySetMetadata, List.of());
                     }
@@ -110,40 +125,34 @@ public class FirstApplicableCompiler {
         for (var i = policies.size() - 1; i >= 0; i--) {
             val policy                  = policies.get(i);
             val policyTargetExpression  = policy.targetExpression();
-            val nextBodyStream          = policyBodyToStream(policy.policyBody());
+            val nextBodyStream          = policy.policyBody().toStream();
             val finalPreviousBodyStream = bodyStream;
             bodyStream = Flux.deferContextual(ctxView -> {
                 val evalCtx = ctxView.get(EvaluationContext.class);
                 var match   = switch (policyTargetExpression) {
                             case Value matchValue                  -> matchValue;
                             case PureOperator pureTargetExpression -> pureTargetExpression.evaluate(evalCtx);
-                            case StreamOperator ignored            ->
-                                Value.error("Target was Stream. Should not happen. Indicates implementation bug.");
+                            case StreamOperator ignored            -> Value.error(ERROR_TARGET_WAS_STREAM);
                             };
                 return switch (match) {
                 case BooleanValue(var b) when !b     -> finalPreviousBodyStream;
-                case BooleanValue forSureTrueIgnored ->
-                    nextBodyStream.map(decision -> new PolicySetDecision(decision.decision(), decision.obligations(),
-                            decision.advice(), decision.resource(), null, policySetMetadata, List.of(decision)));
+                case BooleanValue forSureTrueIgnored -> nextBodyStream.switchMap(decision -> {
+                                                     if (decision.decision() == Decision.NOT_APPLICABLE) {
+                                                         return finalPreviousBodyStream;
+                                                     }
+                                                     return Flux.just(new PolicySetDecision(decision.decision(),
+                                                             decision.obligations(), decision.advice(),
+                                                             decision.resource(), null, policySetMetadata,
+                                                             List.of(decision)));
+                                                 });
                 case ErrorValue error                ->
                     Flux.just(PolicySetDecision.error(error, policySetMetadata, List.of()));
-                default                              -> Flux.just(PolicySetDecision.error(
-                        Value.error("Target was not Boolean should not happen. Indicates implementation bug."),
-                        policySetMetadata, List.of()));
+                default                              -> Flux.just(
+                        PolicySetDecision.error(Value.error(ERROR_TARGET_NOT_BOOLEAN), policySetMetadata, List.of()));
                 };
             });
         }
         return new StreamPolicySetBody(targetExpression, bodyStream);
-
-    }
-
-    private Flux<PolicyDecision> policyBodyToStream(PolicyBody policyBody) {
-        return switch (policyBody) {
-        case PolicyDecision policyDecision     -> Flux.just(policyDecision);
-        case PurePolicyBody purePolicyBody     -> Flux.deferContextual(
-                ctxView -> Flux.just(purePolicyBody.evaluateBody(ctxView.get(EvaluationContext.class))));
-        case StreamPolicyBody streamPolicyBody -> streamPolicyBody.stream();
-        };
     }
 
     private static Optional<PolicySetBody> shortCircuitIfPredetermined(PolicySetMetadata policySetMetadata,
