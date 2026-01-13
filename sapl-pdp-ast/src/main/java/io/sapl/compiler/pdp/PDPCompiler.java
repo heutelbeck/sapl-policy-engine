@@ -24,7 +24,7 @@ import io.sapl.ast.SaplDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policyset.PolicySetCompiler;
-import io.sapl.compiler.target.SchemaValidatorCompiler;
+import io.sapl.compiler.targetexpression.SchemaValidatorCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

@@ -33,7 +33,7 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.compiler.target.BooleanGuardCompiler.applyBooleanGuard;
+import static io.sapl.compiler.targetexpression.BooleanGuardCompiler.applyBooleanGuard;
 
 @UtilityClass
 public class PolicyBodyCompiler {

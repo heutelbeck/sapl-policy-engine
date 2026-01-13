@@ -29,7 +29,7 @@ import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.CompiledPolicy;
-import io.sapl.compiler.target.TargetExpressionCompiler;
+import io.sapl.compiler.targetexpression.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;

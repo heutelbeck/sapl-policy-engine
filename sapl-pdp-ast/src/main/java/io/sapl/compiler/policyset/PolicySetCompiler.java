@@ -25,7 +25,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPolicySet;
 import io.sapl.compiler.policy.PolicyCompiler;
-import io.sapl.compiler.target.TargetExpressionCompiler;
+import io.sapl.compiler.targetexpression.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
