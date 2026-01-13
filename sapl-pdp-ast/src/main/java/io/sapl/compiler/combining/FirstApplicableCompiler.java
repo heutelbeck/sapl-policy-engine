@@ -23,11 +23,11 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPolicy;
 import io.sapl.compiler.pdp.CompiledPolicySet;
+import io.sapl.compiler.policy.PolicyBody;
 import io.sapl.compiler.policy.PolicyDecision;
-import io.sapl.compiler.policyset.PolicySetBody;
-import io.sapl.compiler.policyset.PolicySetDecision;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
-import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.policy.PurePolicyBody;
+import io.sapl.compiler.policy.StreamPolicyBody;
+import io.sapl.compiler.policyset.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -43,18 +43,16 @@ public class FirstApplicableCompiler {
         val coverageStream = compilePolicySetCoverageStream(policySet, targetExpression, policySetMetadata, policies,
                 ctx);
 
-        val maybeShortCircuitBody = shortCircuitIfPredetermined(policySet, policySetMetadata, policies);
+        val maybeShortCircuitBody = shortCircuitIfPredetermined(policySetMetadata, policies);
         if (maybeShortCircuitBody.isPresent()) {
             return new CompiledPolicySet(targetExpression, maybeShortCircuitBody.get(), coverageStream);
         }
 
-        val maybePureBody = pureBodyIfPoliciesPure(policySet, policySetMetadata, policies);
-        if (maybePureBody.isPresent()) {
-            return new CompiledPolicySet(targetExpression, maybePureBody.get(), coverageStream);
-        }
-
-        return new CompiledPolicySet(targetExpression, streamBody(policySet, policySetMetadata, policies),
-                coverageStream);
+        val maybePureBody = pureBodyIfPoliciesPure(targetExpression, policySetMetadata, policies);
+        return maybePureBody
+                .map(policySetBody -> new CompiledPolicySet(targetExpression, policySetBody, coverageStream))
+                .orElseGet(() -> new CompiledPolicySet(targetExpression,
+                        streamBody(targetExpression, policySetMetadata, policies), coverageStream));
     }
 
     public static Flux<PolicySetDecisionWithCoverage> compilePolicySetCoverageStream(PolicySet policySet,
@@ -63,50 +61,111 @@ public class FirstApplicableCompiler {
         return Flux.empty();
     }
 
-    private static Optional<PolicySetBody> pureBodyIfPoliciesPure(PolicySet policySet,
+    private static Optional<PolicySetBody> pureBodyIfPoliciesPure(CompiledExpression targetExpression,
             PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies) {
-        var hasStreams = false;
         for (CompiledPolicy policy : policies) {
-            if (policy.targetExpression() instanceof StreamOperator) {
-                hasStreams = true;
-                break;
+            if (policy.policyBody() instanceof StreamPolicyBody) {
+                return Optional.empty();
             }
         }
-        return Optional.empty();
+        return Optional.of(new PureFirstApplicablePolicySetBody(policySetMetadata, targetExpression, policies));
     }
 
-    private static PolicySetBody streamBody(PolicySet policySet, PolicySetMetadata policySetMetadata,
+    record PureFirstApplicablePolicySetBody(
+            PolicySetMetadata policySetMetadata,
+            CompiledExpression targetExpression,
+            List<CompiledPolicy> policies) implements PurePolicySetBody {
+        @Override
+        public PolicySetDecision evaluateBody(EvaluationContext ctx) {
+            for (val policy : policies) {
+                Value match = null;
+                if (policy.targetExpression() instanceof Value matchValue) {
+                    match = matchValue;
+                } else if (policy.targetExpression() instanceof PureOperator pureTargetExpression) {
+                    match = pureTargetExpression.evaluate(ctx);
+                }
+                if (match instanceof ErrorValue error) {
+                    return PolicySetDecision.error(error, policySetMetadata, List.of());
+                } else if (match instanceof BooleanValue(var matches) && matches) {
+                    val            body     = policy.policyBody();
+                    PolicyDecision decision = null;
+                    if (body instanceof PolicyDecision policyDecision) {
+                        decision = policyDecision;
+                    } else if (body instanceof PurePolicyBody purePolicyBody) {
+                        decision = purePolicyBody.evaluateBody(ctx);
+                    }
+                    if (decision != null) {
+                        return new PolicySetDecision(decision.decision(), decision.obligations(), decision.advice(),
+                                decision.resource(), null, policySetMetadata, List.of());
+                    }
+                }
+            }
+            return PolicySetDecision.notApplicable(policySetMetadata, List.of());
+        }
+    }
+
+    private static PolicySetBody streamBody(CompiledExpression targetExpression, PolicySetMetadata policySetMetadata,
             List<CompiledPolicy> policies) {
-        throw new SaplCompilerException("FirstApplicableCompiler not yet implemented");
+        var bodyStream = Flux.just(PolicySetDecision.notApplicable(policySetMetadata, List.of()));
+        for (var i = policies.size() - 1; i >= 0; i--) {
+            val policy                  = policies.get(i);
+            val policyTargetExpression  = policy.targetExpression();
+            val nextBodyStream          = policyBodyToStream(policy.policyBody());
+            val finalPreviousBodyStream = bodyStream;
+            bodyStream = Flux.deferContextual(ctxView -> {
+                val evalCtx = ctxView.get(EvaluationContext.class);
+                var match   = switch (policyTargetExpression) {
+                            case Value matchValue                  -> matchValue;
+                            case PureOperator pureTargetExpression -> pureTargetExpression.evaluate(evalCtx);
+                            case StreamOperator ignored            ->
+                                Value.error("Target was Stream. Should not happen. Indicates implementation bug.");
+                            };
+                return switch (match) {
+                case BooleanValue(var b) when !b     -> finalPreviousBodyStream;
+                case BooleanValue forSureTrueIgnored ->
+                    nextBodyStream.map(decision -> new PolicySetDecision(decision.decision(), decision.obligations(),
+                            decision.advice(), decision.resource(), null, policySetMetadata, List.of(decision)));
+                case ErrorValue error                ->
+                    Flux.just(PolicySetDecision.error(error, policySetMetadata, List.of()));
+                default                              -> Flux.just(PolicySetDecision.error(
+                        Value.error("Target was not Boolean should not happen. Indicates implementation bug."),
+                        policySetMetadata, List.of()));
+                };
+            });
+        }
+        return new StreamPolicySetBody(targetExpression, bodyStream);
 
     }
 
-    private static Optional<PolicySetBody> shortCircuitIfPredetermined(PolicySet policySet,
-            PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies) {
-        PolicySetBody policySetBody = null;
+    private Flux<PolicyDecision> policyBodyToStream(PolicyBody policyBody) {
+        return switch (policyBody) {
+        case PolicyDecision policyDecision     -> Flux.just(policyDecision);
+        case PurePolicyBody purePolicyBody     -> Flux.deferContextual(
+                ctxView -> Flux.just(purePolicyBody.evaluateBody(ctxView.get(EvaluationContext.class))));
+        case StreamPolicyBody streamPolicyBody -> streamPolicyBody.stream();
+        };
+    }
+
+    private static Optional<PolicySetBody> shortCircuitIfPredetermined(PolicySetMetadata policySetMetadata,
+            List<CompiledPolicy> policies) {
         // Detect if we have a short-circuit
         for (CompiledPolicy policy : policies) {
             val policyTarget = policy.targetExpression();
             val policyBody   = policy.policyBody();
-            if (policyTarget instanceof ErrorValue error) {
-                policySetBody = PolicySetDecision.error(
-                        Value.errorAt(policySet.target().location(), "Policy target returned an error."),
-                        policySetMetadata, List.of());
-            } else if (policyTarget instanceof BooleanValue(var t)) {
-                if (t) {
-                    if (policyBody instanceof PolicyDecision decision) {
-                        policySetBody = PolicySetDecision.error(
-                                Value.errorAt(policySet.target().location(), "Policy target returned an error."),
-                                policySetMetadata, List.of());
-                    }
-                } else {
-                    continue;
-                }
-            } else {
-                break;
+            switch (policyTarget) {
+            case ErrorValue error                                                            -> {
+                return Optional.of(PolicySetDecision.error(error, policySetMetadata, List.of()));
+            }
+            case BooleanValue(var t) when t && policyBody instanceof PolicyDecision decision -> {
+                return Optional.of(new PolicySetDecision(decision.decision(), decision.obligations(), decision.advice(),
+                        decision.resource(), null, policySetMetadata, List.of(decision)));
+            }
+            default                                                                          -> {
+                return Optional.empty();
+            }
             }
         }
-        return Optional.ofNullable(policySetBody);
+        return Optional.empty();
     }
 
 }

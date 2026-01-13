@@ -21,8 +21,5 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.compiler.policy.PolicyDecision;
 import reactor.core.publisher.Flux;
 
-public non-sealed interface StreamPolicySetBody extends PolicySetBody {
-    CompiledExpression targetExpression();
-
-    Flux<PolicyDecision> stream();
-}
+public record StreamPolicySetBody(CompiledExpression targetExpression, Flux<PolicySetDecision> stream)
+        implements PolicySetBody {}

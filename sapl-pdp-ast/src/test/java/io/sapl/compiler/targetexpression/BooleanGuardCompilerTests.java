@@ -55,8 +55,6 @@ class BooleanGuardCompilerTests {
         return Stream.of(true, false);
     }
 
-    // --- applyBooleanGuard tests ---
-
     @ParameterizedTest
     @MethodSource("booleanValues")
     @DisplayName("applyBooleanGuard: when input is boolean then returns unchanged")
@@ -149,8 +147,6 @@ class BooleanGuardCompilerTests {
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, flag, ERROR_TEMPLATE);
         assertThat(guard.isDependingOnSubscription()).isEqualTo(flag);
     }
-
-    // --- StreamBooleanTypeCheck tests ---
 
     @ParameterizedTest
     @MethodSource("booleanValues")

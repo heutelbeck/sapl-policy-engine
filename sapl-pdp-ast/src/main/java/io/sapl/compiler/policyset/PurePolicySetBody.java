@@ -24,5 +24,5 @@ import io.sapl.compiler.policy.PolicyDecision;
 public non-sealed interface PurePolicySetBody extends PolicySetBody {
     CompiledExpression targetExpression();
 
-    PolicyDecision evaluateBody(EvaluationContext ctx);
+    PolicySetDecision evaluateBody(EvaluationContext ctx);
 }
