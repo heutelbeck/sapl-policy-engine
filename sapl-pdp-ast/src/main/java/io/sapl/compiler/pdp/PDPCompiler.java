@@ -35,6 +35,7 @@ public class PDPCompiler {
     }
 
     public CompiledDocument compileDocument(SaplDocument saplDocument, CompilationContext ctx) {
+        ctx.resetForNextDocument();
         val schemaValidator = SchemaValidatorCompiler.compileValidator(saplDocument.schemas(), ctx);
         return switch (saplDocument.element()) {
         case Policy policy       -> PolicyCompiler.compilePolicy(policy, schemaValidator, ctx);

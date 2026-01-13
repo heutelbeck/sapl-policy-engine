@@ -67,6 +67,7 @@ public class PolicyCompiler {
      * @throws SaplCompilerException if the policy contains static errors
      */
     public CompiledPolicy compilePolicy(Policy policy, PureOperator schemaValidator, CompilationContext ctx) {
+        ctx.resetForNextPolicy();
         val decisionSource = new PolicyMetadata(DocumentType.POLICY, policy.name(), policy.pdpId(),
                 policy.configurationId(), policy.documentId(), null);
         val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policy.target(), schemaValidator, ctx);

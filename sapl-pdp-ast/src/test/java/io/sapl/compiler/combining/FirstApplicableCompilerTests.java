@@ -91,6 +91,25 @@ class FirstApplicableCompilerTests {
                 }
                 """, Decision.PERMIT, PolicySetDecision.class),
 
+                new PureTestCase("short-circuit: first policy body NOT_APPLICABLE, continues to next", """
+                        set "test"
+                        first-applicable
+
+                        policy "body-not-applicable"
+                        permit
+                        where
+                          false;
+
+                        policy "fallback-deny"
+                        deny
+                        """, """
+                        {
+                            "subject": "alice",
+                            "action": "read",
+                            "resource": "data"
+                        }
+                        """, Decision.DENY, PolicySetDecision.class),
+
                 new PureTestCase("first policy target false, second applies", """
                         set "guild-access"
                         first-applicable

@@ -18,10 +18,13 @@
 package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.ast.PolicySet;
+import io.sapl.ast.VarDef;
 import io.sapl.compiler.ast.DocumentType;
 import io.sapl.compiler.combining.*;
 import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPolicySet;
 import io.sapl.compiler.policy.PolicyCompiler;
@@ -36,6 +39,7 @@ public class PolicySetCompiler {
 
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
             CompilationContext ctx) {
+        compilePolicySetVariables(policySet, ctx);
         val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator, ctx);
         val algorithm      = policySet.algorithm();
         val policies       = policySet.policies().stream().map(p -> PolicyCompiler.compilePolicy(p, null, ctx))
@@ -59,6 +63,19 @@ public class PolicySetCompiler {
         case PERMIT_UNLESS_DENY  ->
             PermitUnlessDenyCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
         };
+    }
+
+    private static void compilePolicySetVariables(PolicySet policySet, CompilationContext ctx) {
+        for(VarDef variableDefinition: policySet.variables()) {
+            val name = variableDefinition.name();
+            if(ReservedIdentifiers.RESERVED_IDENTIFIERS.contains(name)) {
+                throw new SaplCompilerException("Redefinition of variable %s not permitted.".formatted(name), variableDefinition.location());
+            }
+            val compiledVariable = ExpressionCompiler.compile(variableDefinition.value(), ctx);
+            if(!ctx.addGlobalPolicySetVariable(variableDefinition.name(), compiledVariable)) {
+                throw new SaplCompilerException("Redefinition of variable %s not permitted.".formatted(name), variableDefinition.location());
+            }
+        }
     }
 
 }

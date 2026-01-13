@@ -70,18 +70,43 @@ public class FirstApplicableCompiler {
     }
 
     public static Flux<PolicySetDecisionWithCoverage> compilePolicySetCoverageStream(PolicySet policySet,
-            CompiledExpression targetExpression, PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies,
-            CompilationContext ctx) {
+                                                                                     CompiledExpression targetExpression, PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies,
+                                                                                     CompilationContext ctx) {
+        Flux.deferContextual(ctxView -> {
+            val evalCtx = ctxView.get(EvaluationContext.class);
+            return Flux.empty();
+        });
         // TODO: Implement
         return Flux.empty();
     }
 
+    private  PolicySetDecision evaluateBody(PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies, EvaluationContext ctx) {
+        for (val policy : policies) {
+            val match = switch (policy.targetExpression()) {
+                case Value value               -> value;
+                case PureOperator pureOperator -> pureOperator.evaluate(ctx);
+                default                        -> null;
+            };
+            if (match instanceof ErrorValue error) {
+                return PolicySetDecision.error(error, policySetMetadata, List.of());
+            } else if (match instanceof BooleanValue(var matches) && matches) {
+                val decision = switch (policy.policyBody()) {
+                    case PolicyDecision policyDecision -> policyDecision;
+                    case PurePolicyBody purePolicyBody -> purePolicyBody.evaluateBody(ctx);
+                    default                            -> null;
+                };
+                if (decision != null && decision.decision() != Decision.NOT_APPLICABLE) {
+                    return new PolicySetDecision(decision.decision(), decision.obligations(), decision.advice(),
+                            decision.resource(), null, policySetMetadata, List.of());
+                }
+            }
+        }
+        return PolicySetDecision.notApplicable(policySetMetadata, List.of());
+    }
     private static Optional<PolicySetBody> pureBodyIfPoliciesPure(CompiledExpression targetExpression,
             PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies) {
-        for (CompiledPolicy policy : policies) {
-            if (policy.policyBody() instanceof StreamPolicyBody) {
-                return Optional.empty();
-            }
+        if (policies.stream().anyMatch(p -> p.policyBody() instanceof StreamPolicyBody)) {
+            return Optional.empty();
         }
         return Optional.of(new PureFirstApplicablePolicySetBody(policySetMetadata, targetExpression, policies));
     }
@@ -93,22 +118,19 @@ public class FirstApplicableCompiler {
         @Override
         public PolicySetDecision evaluateBody(EvaluationContext ctx) {
             for (val policy : policies) {
-                Value match = null;
-                if (policy.targetExpression() instanceof Value matchValue) {
-                    match = matchValue;
-                } else if (policy.targetExpression() instanceof PureOperator pureTargetExpression) {
-                    match = pureTargetExpression.evaluate(ctx);
-                }
+                val match = switch (policy.targetExpression()) {
+                case Value value               -> value;
+                case PureOperator pureOperator -> pureOperator.evaluate(ctx);
+                default                        -> null;
+                };
                 if (match instanceof ErrorValue error) {
                     return PolicySetDecision.error(error, policySetMetadata, List.of());
                 } else if (match instanceof BooleanValue(var matches) && matches) {
-                    val            body     = policy.policyBody();
-                    PolicyDecision decision = null;
-                    if (body instanceof PolicyDecision policyDecision) {
-                        decision = policyDecision;
-                    } else if (body instanceof PurePolicyBody purePolicyBody) {
-                        decision = purePolicyBody.evaluateBody(ctx);
-                    }
+                    val decision = switch (policy.policyBody()) {
+                    case PolicyDecision policyDecision -> policyDecision;
+                    case PurePolicyBody purePolicyBody -> purePolicyBody.evaluateBody(ctx);
+                    default                            -> null;
+                    };
                     if (decision != null && decision.decision() != Decision.NOT_APPLICABLE) {
                         return new PolicySetDecision(decision.decision(), decision.obligations(), decision.advice(),
                                 decision.resource(), null, policySetMetadata, List.of());
@@ -166,8 +188,12 @@ public class FirstApplicableCompiler {
                 return Optional.of(PolicySetDecision.error(error, policySetMetadata, List.of()));
             }
             case BooleanValue(var t) when t && policyBody instanceof PolicyDecision decision -> {
-                return Optional.of(new PolicySetDecision(decision.decision(), decision.obligations(), decision.advice(),
-                        decision.resource(), null, policySetMetadata, List.of(decision)));
+                // DO NOT MERGE WITH GUARD! That would completely change the logic! This is the
+                // simple version already.
+                if (decision.decision() != Decision.NOT_APPLICABLE) {
+                    return Optional.of(new PolicySetDecision(decision.decision(), decision.obligations(),
+                            decision.advice(), decision.resource(), null, policySetMetadata, List.of(decision)));
+                }
             }
             default                                                                          -> {
                 return Optional.empty();
