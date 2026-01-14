@@ -534,14 +534,17 @@
 	</build>
 
 	<modules>
-		<!-- Core modules without traced dependencies -->
 		<module>sapl-code-style</module>
-		<module>sapl-api</module>
 
-		<!-- Language modules (in dependency order) -->
+		<!-- Core modules -->
+		<module>sapl-api-ast</module>
+		<module>sapl-parser-ast</module>
+		<module>sapl-pdp-ast</module>
+
+		<!-- Legacy modules -->	
+		<module>sapl-api</module>
 		<module>sapl-parser</module>
 		<module>sapl-pdp</module>
-		<module>sapl-pdp-ast</module>
 
 		<!-- PDP extensions (depend on sapl-api) -->
 		<module>pdp-extensions/geo-functions</module>

@@ -1,0 +1,25 @@
+set "mqttPipPolicySet"
+first-applicable
+
+policy "mqttPolicyWithoutParams"
+permit
+  action == "actionWithoutParams"
+where
+  subject == "subjectName";
+  resource.topic.<mqtt.messages> == "message";
+
+policy "mqttPolicyWithQos"
+permit
+  action == "actionWithQos"
+where
+  subject == "subjectName";
+  resource.topic.<mqtt.messages(0)> == "message";
+
+policy "mqttPolicyWithQosAndConfig"
+permit
+  action == "actionNameWithQosAndConfig"
+where
+  subject == "subjectName";
+  var config = {"brokerAddress": "localhost", "brokerPort": 1883, "clientId": mqtt_pip, "defaultResponse": "undefined"};
+  resource.topic.<mqtt.messages(0, config)> == "message";
+

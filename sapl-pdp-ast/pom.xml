@@ -64,14 +64,14 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
-        <!--<dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>sapl-api</artifactId>
+            <artifactId>sapl-api-ast</artifactId>
             <version>${project.version}</version>
-        </dependency>-->
+        </dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-parser</artifactId>
+			<artifactId>sapl-parser-ast</artifactId>
 			<version>${project.version}</version>
 		</dependency>
         <dependency>

@@ -1,0 +1,18 @@
+/*
+ * This policy set uses the 'permit-unless-deny' combining algorithm. 
+ * This means that access is permitted unless a policy in the set 
+ * explicitly denied access.
+ */
+set "filter_set"
+permit-unless-deny
+
+/*
+ * This policy black-lists GET requests to the requestURI '/secret' for all
+ * unauthenticated users. 
+ */
+policy "deny_secret"
+deny
+    action.method == "GET"
+where 
+    "ROLE_ANONYMOUS" in subject..authority;
+    resource.requestedURI == "/secret";
