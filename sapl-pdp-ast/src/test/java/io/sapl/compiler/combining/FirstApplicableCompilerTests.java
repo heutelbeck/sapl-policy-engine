@@ -593,7 +593,14 @@ class FirstApplicableCompilerTests {
         val ctx          = evaluationContext(subscription, attrBroker);
 
         StepVerifier.create(streamBody.stream().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                .assertNext(decision -> assertThat(decision.decision()).isEqualTo(testCase.expectedDecision()))
+                .assertNext(result -> {
+                    assertDecisionHasAllTheseContributing(result, testCase.contributingPolicies());
+                    assertThat(result.decision()).isEqualTo(testCase.expectedDecision());
+                }).verifyComplete();
+
+        StepVerifier.create(compiled.coverageStream().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                .assertNext(resultWithCoverage -> assertThat(resultWithCoverage.decision().decision())
+                        .isEqualTo(testCase.expectedDecision()))
                 .verifyComplete();
     }
 

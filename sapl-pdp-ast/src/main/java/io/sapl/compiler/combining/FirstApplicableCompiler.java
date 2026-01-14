@@ -56,7 +56,7 @@ public class FirstApplicableCompiler {
         return maybePureBody
                 .map(policySetBody -> new CompiledPolicySet(targetExpression, policySetBody, coverageStream))
                 .orElseGet(() -> new CompiledPolicySet(targetExpression,
-                        streamBody(targetExpression, policySetMetadata, policies), coverageStream));
+                        streamBody(targetExpression, policySetMetadata, policies, policySet), coverageStream));
     }
 
     private Value evaluateTarget(CompiledExpression currentPolicyTargetExpression, EvaluationContext ctx) {
@@ -186,10 +186,11 @@ public class FirstApplicableCompiler {
     }
 
     private static PolicySetBody streamBody(CompiledExpression targetExpression, PolicySetMetadata policySetMetadata,
-            List<CompiledPolicy> policies) {
+            List<CompiledPolicy> policies, PolicySet policySet) {
         var bodyStream = Flux.just(PolicySetDecision.notApplicable(policySetMetadata, List.of()));
         for (var i = policies.size() - 1; i >= 0; i--) {
             val policy                  = policies.get(i);
+            val policyMetadata          = policySet.policies().get(i).metadata();
             val nextBodyStream          = policy.policyBody().toStream();
             val finalPreviousBodyStream = bodyStream;
             bodyStream = Flux.deferContextual(ctxView -> {
@@ -205,10 +206,15 @@ public class FirstApplicableCompiler {
                                                          decision.obligations(), decision.advice(), decision.resource(),
                                                          null, policySetMetadata, List.of(decision)));
                                              });
-                case ErrorValue error            ->
-                    Flux.just(PolicySetDecision.error(error, policySetMetadata, List.of()));
-                default                          -> Flux.just(
-                        PolicySetDecision.error(Value.error(ERROR_TARGET_NOT_BOOLEAN), policySetMetadata, List.of()));
+                case ErrorValue error            -> {
+                    val policyDecision = PolicyDecision.error(error, policyMetadata);
+                    yield Flux.just(PolicySetDecision.error(error, policySetMetadata, List.of(policyDecision)));
+                }
+                default                          -> {
+                    val error          = Value.error(ERROR_TARGET_NOT_BOOLEAN);
+                    val policyDecision = PolicyDecision.error(error, policyMetadata);
+                    yield Flux.just(PolicySetDecision.error(error, policySetMetadata, List.of(policyDecision)));
+                }
                 };
             });
         }
