@@ -80,7 +80,7 @@ public class PolicyBodyCompiler {
             return Value.TRUE;
         }
 
-        return LazyNaryBooleanCompiler.compile(conditions, body.location(), true);
+        return LazyNaryBooleanCompiler.compile(conditions, body.location(), Value.FALSE, Value.TRUE);
     }
 
     record IndexedCompiledCondition(int index, SourceLocation location, CompiledExpression expression) {}

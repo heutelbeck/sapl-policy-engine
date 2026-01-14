@@ -20,341 +20,226 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
-import io.sapl.ast.Expression;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
  * Compiles N-ary lazy boolean operators: Conjunction ({@code &&}) and
  * Disjunction ({@code ||}).
  * <p>
- * These operators short-circuit:
+ * Both operators use the same compilation strategy, parameterized by:
  * <ul>
- * <li>Conjunction: short-circuit on first {@code false}</li>
- * <li>Disjunction: short-circuit on first {@code true}</li>
+ * <li>shortCircuitValue: FALSE for AND, TRUE for OR</li>
+ * <li>identityValue: TRUE for AND, FALSE for OR</li>
  * </ul>
  * <p>
- * Cost-stratified evaluation (same pattern as {@link NaryOperatorCompiler}):
+ * Compilation strategy:
  * <ol>
- * <li>Compile all operands, categorize by strata (Value, Pure, Stream)</li>
- * <li>Fold all Values at compile time - if any short-circuits, return
- * immediately</li>
- * <li>If Values all pass (identity values), they're folded away</li>
- * <li>Pures evaluated before Streams at runtime, with short-circuit</li>
- * <li>Streams chained with switchMap for lazy subscription</li>
+ * <li>Compile all operands, fold Values at compile time</li>
+ * <li>Sort remaining operands by stratum: Pures first, then Streams</li>
+ * <li>If all Pures: return {@link NaryLazyBooleanPure} (simple loop at
+ * runtime)</li>
+ * <li>If any Streams: pre-build Flux chain at compile time, return
+ * {@link NaryLazyBooleanStream}</li>
  * </ol>
  * <p>
- * Key insight: AND/OR are still associative, so we CAN reorder by strata.
- * {@code a && stream && false} is equivalent to {@code false && a && stream} =
- * {@code false}.
+ * Key insight: AND/OR are commutative, so operands can be reordered by cost
+ * stratum without changing semantics.
  */
 @UtilityClass
 public class LazyNaryBooleanCompiler {
 
-    private static final String ERROR_TYPE_MISMATCH = "Expected BOOLEAN but got: %s.";
+    private static final String ERROR_TYPE_MISMATCH             = "Expected BOOLEAN but got: %s.";
+    public static final String  ERROR_UNEXPECTED_OPERAND_TYPE_S = "Unexpected operand type: %s";
 
     /**
-     * Compiles a Conjunction ({@code a && b && c && ...}).
-     * Short-circuits on first {@code false}.
+     * Compiles a Conjunction ({@code a && b && c && ...}). Short-circuits on first
+     * {@code false}.
      */
     public CompiledExpression compileConjunction(Conjunction c, CompilationContext ctx) {
-        return compile(c.operands(), ctx, c.location(), true);
+        val compiled = c.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
+        return compile(compiled, c.location(), Value.FALSE, Value.TRUE);
     }
 
     /**
-     * Compiles a Disjunction ({@code a || b || c || ...}).
-     * Short-circuits on first {@code true}.
+     * Compiles a Disjunction ({@code a || b || c || ...}). Short-circuits on first
+     * {@code true}.
      */
     public CompiledExpression compileDisjunction(Disjunction d, CompilationContext ctx) {
-        return compile(d.operands(), ctx, d.location(), false);
-    }
-
-    private CompiledExpression compile(List<Expression> operands, CompilationContext ctx, SourceLocation location,
-            boolean isConjunction) {
-        val compiledOperands = operands.stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
-        return compile(compiledOperands, location, isConjunction);
-    }
-
-    public CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
-            boolean isConjunction) {
-
-        // The value that triggers short-circuit: false for AND, true for OR
-        val shortCircuitValue = !isConjunction;
-
-        // Compile all operands and categorize by strata
-        var values  = new ArrayList<Value>();
-        var pures   = new ArrayList<PureOperator>();
-        var streams = new ArrayList<StreamOperator>();
-
-        for (var compiled : operands) {
-            switch (compiled) {
-            case Value v          -> values.add(v);
-            case PureOperator p   -> pures.add(p);
-            case StreamOperator s -> streams.add(s);
-            }
-        }
-
-        // Fold values at compile time (cheapest stratum)
-        Value valueResult = foldValues(values, shortCircuitValue, location);
-        if (valueResult instanceof ErrorValue) {
-            return valueResult; // Compile-time error
-        }
-        if (valueResult instanceof BooleanValue(var b) && b == shortCircuitValue) {
-            return valueResult; // Compile-time short-circuit!
-        }
-
-        // Determine return type based on remaining strata
-        if (pures.isEmpty() && streams.isEmpty()) {
-            // All values - return folded result (all were identity values)
-            return isConjunction ? Value.TRUE : Value.FALSE;
-        }
-
-        if (streams.isEmpty()) {
-            // Values + Pures only: return PureOperator
-            boolean dependsOnSubscription = pures.stream().anyMatch(PureOperator::isDependingOnSubscription);
-            return isConjunction ? new NaryConjunctionPure(pures, location, dependsOnSubscription)
-                    : new NaryDisjunctionPure(pures, location, dependsOnSubscription);
-        }
-
-        // Has streams: return StreamOperator
-        return isConjunction ? new NaryConjunctionStream(pures, streams, location)
-                : new NaryDisjunctionStream(pures, streams, location);
+        val compiled = d.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
+        return compile(compiled, d.location(), Value.TRUE, Value.FALSE);
     }
 
     /**
-     * Fold all Value operands at compile time.
-     * <p>
-     * For conjunction: any false returns FALSE (short-circuit), any error returns
-     * error.
-     * For disjunction: any true returns TRUE (short-circuit), any error returns
-     * error.
-     * Otherwise: all values are identity elements, return null (fold away)
+     * Unified compilation for both conjunction and disjunction.
      *
-     * @param values the Value operands
-     * @param shortCircuitValue the value that triggers short-circuit (false for
-     * AND, true for OR)
-     * @param location metadata location for errors
-     * @return short-circuit value, error, or null if all values are identity
+     * @param operands compiled operands
+     * @param location source location for error messages
+     * @param shortCircuitValue value that triggers short-circuit (FALSE for AND,
+     * TRUE for OR)
+     * @param identityValue value returned when all operands pass (TRUE for AND,
+     * FALSE for OR)
+     * @return compiled expression of appropriate stratum
      */
-    private Value foldValues(List<Value> values, boolean shortCircuitValue, SourceLocation location) {
-        for (var v : values) {
-            if (v instanceof ErrorValue) {
-                return v;
+    public CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
+            Value shortCircuitValue, Value identityValue) {
+
+        // 1. Fold values at compile time
+        val remaining = new ArrayList<CompiledExpression>();
+        for (var op : operands) {
+            switch (op) {
+            case ErrorValue e                                    -> {
+                return e;
             }
-            if (v instanceof BooleanValue(var b)) {
-                if (b == shortCircuitValue) {
-                    return b ? Value.TRUE : Value.FALSE; // Short-circuit
-                }
-                // Identity value - continue checking
-            } else {
+            case BooleanValue b when shortCircuitValue.equals(b) -> {
+                return shortCircuitValue;
+            }
+            case BooleanValue ignored                            -> { /* identity - fold away */ }
+            case Value v                                         -> {
                 return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
             }
-        }
-        return null; // All values were identity elements (folded away)
-    }
-
-    /**
-     * N-ary Conjunction with only Pure operands.
-     * Evaluates left-to-right, short-circuiting on first false.
-     */
-    record NaryConjunctionPure(List<PureOperator> operands, SourceLocation location, boolean isDependingOnSubscription)
-            implements PureOperator {
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            for (var operand : operands) {
-                var v = operand.evaluate(ctx);
-                if (v instanceof ErrorValue) {
-                    return v;
-                }
-                if (v instanceof BooleanValue(var b)) {
-                    if (!b) {
-                        return Value.FALSE; // Short-circuit
-                    }
-                    // true - continue to next operand
-                } else {
-                    return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
-                }
+            default                                              -> remaining.add(op);
             }
-            return Value.TRUE; // All operands were true
         }
+
+        if (remaining.isEmpty()) {
+            return identityValue;
+        }
+
+        // 2. Sort by stratum: pures first, then streams
+        remaining.sort(Comparator.comparing(op -> op instanceof StreamOperator ? 1 : 0));
+
+        // 3. Return appropriate type
+        if (remaining.getLast() instanceof StreamOperator) {
+            return new NaryLazyBooleanStream(buildChain(remaining, shortCircuitValue, identityValue, location));
+        }
+
+        val dependsOnSubscription = remaining.stream().anyMatch(op -> ((PureOperator) op).isDependingOnSubscription());
+        return new NaryLazyBooleanPure(remaining, shortCircuitValue, identityValue, location, dependsOnSubscription);
     }
 
     /**
-     * N-ary Disjunction with only Pure operands.
-     * Evaluates left-to-right, short-circuiting on first true.
+     * Pre-builds the Flux chain at compile time. Iterates backwards, building
+     * nested switchMap/deferContextual structure. No runtime recursion.
      */
-    record NaryDisjunctionPure(List<PureOperator> operands, SourceLocation location, boolean isDependingOnSubscription)
-            implements PureOperator {
+    private Flux<TracedValue> buildChain(List<CompiledExpression> operands, Value shortCircuitValue,
+            Value identityValue, SourceLocation location) {
 
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            for (var operand : operands) {
-                var v = operand.evaluate(ctx);
-                if (v instanceof ErrorValue) {
-                    return v;
-                }
-                if (v instanceof BooleanValue(var b)) {
-                    if (b) {
-                        return Value.TRUE; // Short-circuit
-                    }
-                    // false - continue to next operand
-                } else {
-                    return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
-                }
-            }
-            return Value.FALSE; // All operands were false
+        Flux<TracedValue> chain = Flux.just(new TracedValue(identityValue, List.of()));
+
+        for (int i = operands.size() - 1; i >= 0; i--) {
+            val operand = operands.get(i);
+            val next    = chain;
+
+            chain = switch (operand) {
+            case PureOperator pure     -> buildPureLink(pure, next, shortCircuitValue, location);
+            case StreamOperator stream -> buildStreamLink(stream, next, shortCircuitValue, location);
+            default                    -> throw new SaplCompilerException(
+                    ERROR_UNEXPECTED_OPERAND_TYPE_S.formatted(operand.getClass().getSimpleName()), location);
+            };
         }
+
+        return chain;
     }
 
-    /**
-     * N-ary Conjunction with Stream operands.
-     * <p>
-     * Strategy:
-     * <ol>
-     * <li>Evaluate all Pures first (before any stream subscription)</li>
-     * <li>If any Pure is false, return false without subscribing to streams</li>
-     * <li>If any Pure is error/non-boolean, return error</li>
-     * <li>Chain streams with switchMap for lazy subscription</li>
-     * </ol>
-     */
-    record NaryConjunctionStream(List<PureOperator> pures, List<StreamOperator> streams, SourceLocation location)
-            implements StreamOperator {
+    private Flux<TracedValue> buildPureLink(PureOperator pure, Flux<TracedValue> next, Value shortCircuitValue,
+            SourceLocation location) {
+        return Flux.deferContextual(ctxView -> {
+            val ctx = ctxView.get(EvaluationContext.class);
+            val v   = pure.evaluate(ctx);
 
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val evalCtx = ctx.get(EvaluationContext.class);
-
-                // Evaluate all pures first
-                for (var pure : pures) {
-                    var v = pure.evaluate(evalCtx);
-                    if (v instanceof ErrorValue) {
-                        return Flux.just(new TracedValue(v, List.of()));
-                    }
-                    if (v instanceof BooleanValue(var b)) {
-                        if (!b) {
-                            return Flux.just(new TracedValue(Value.FALSE, List.of()));
-                        }
-                    } else {
-                        return Flux.just(new TracedValue(
-                                Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), List.of()));
-                    }
-                }
-
-                // All pures were true, now chain streams with switchMap
-                return chainConjunctionStreams(streams, 0, new ArrayList<>(), location);
-            });
-        }
-    }
-
-    /**
-     * N-ary Disjunction with Stream operands.
-     * <p>
-     * Strategy:
-     * <ol>
-     * <li>Evaluate all Pures first (before any stream subscription)</li>
-     * <li>If any Pure is true, return true without subscribing to streams</li>
-     * <li>If any Pure is error/non-boolean, return error</li>
-     * <li>Chain streams with switchMap for lazy subscription</li>
-     * </ol>
-     */
-    record NaryDisjunctionStream(List<PureOperator> pures, List<StreamOperator> streams, SourceLocation location)
-            implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val evalCtx = ctx.get(EvaluationContext.class);
-
-                // Evaluate all pures first
-                for (var pure : pures) {
-                    var v = pure.evaluate(evalCtx);
-                    if (v instanceof ErrorValue) {
-                        return Flux.just(new TracedValue(v, List.of()));
-                    }
-                    if (v instanceof BooleanValue(var b)) {
-                        if (b) {
-                            return Flux.just(new TracedValue(Value.TRUE, List.of()));
-                        }
-                    } else {
-                        return Flux.just(new TracedValue(
-                                Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), List.of()));
-                    }
-                }
-
-                // All pures were false, now chain streams with switchMap
-                return chainDisjunctionStreams(streams, 0, new ArrayList<>(), location);
-            });
-        }
-    }
-
-    /**
-     * Recursively chains conjunction streams using switchMap.
-     * Each stream is only subscribed to if all previous streams emitted true.
-     */
-    private static Flux<TracedValue> chainConjunctionStreams(List<StreamOperator> streams, int index,
-            List<AttributeRecord> accumulatedAttributes, SourceLocation location) {
-
-        if (index >= streams.size()) {
-            // All streams emitted true
-            return Flux.just(new TracedValue(Value.TRUE, accumulatedAttributes));
-        }
-
-        return streams.get(index).stream().switchMap(tv -> {
-            var combinedAttributes = new ArrayList<>(accumulatedAttributes);
-            combinedAttributes.addAll(tv.contributingAttributes());
-
-            var v = tv.value();
             if (v instanceof ErrorValue) {
-                return Flux.just(new TracedValue(v, combinedAttributes));
+                return Flux.just(new TracedValue(v, List.of()));
             }
-            if (v instanceof BooleanValue(var b)) {
-                if (!b) {
-                    return Flux.just(new TracedValue(Value.FALSE, combinedAttributes));
-                }
-                // true - continue to next stream
-                return chainConjunctionStreams(streams, index + 1, combinedAttributes, location);
+            if (!(v instanceof BooleanValue)) {
+                return Flux.just(new TracedValue(
+                        Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), List.of()));
             }
-            return Flux.just(new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()),
-                    combinedAttributes));
+            if (shortCircuitValue.equals(v)) {
+                return Flux.just(new TracedValue(shortCircuitValue, List.of()));
+            }
+            return next;
         });
     }
 
-    /**
-     * Recursively chains disjunction streams using switchMap.
-     * Each stream is only subscribed to if all previous streams emitted false.
-     */
-    private static Flux<TracedValue> chainDisjunctionStreams(List<StreamOperator> streams, int index,
-            List<AttributeRecord> accumulatedAttributes, SourceLocation location) {
+    private Flux<TracedValue> buildStreamLink(StreamOperator stream, Flux<TracedValue> next, Value shortCircuitValue,
+            SourceLocation location) {
+        return stream.stream().switchMap(tv -> {
+            val v     = tv.value();
+            val attrs = tv.contributingAttributes();
 
-        if (index >= streams.size()) {
-            // All streams emitted false
-            return Flux.just(new TracedValue(Value.FALSE, accumulatedAttributes));
-        }
-
-        return streams.get(index).stream().switchMap(tv -> {
-            var combinedAttributes = new ArrayList<>(accumulatedAttributes);
-            combinedAttributes.addAll(tv.contributingAttributes());
-
-            var v = tv.value();
             if (v instanceof ErrorValue) {
-                return Flux.just(new TracedValue(v, combinedAttributes));
+                return Flux.just(tv);
             }
-            if (v instanceof BooleanValue(var b)) {
-                if (b) {
-                    return Flux.just(new TracedValue(Value.TRUE, combinedAttributes));
-                }
-                // false - continue to next stream
-                return chainDisjunctionStreams(streams, index + 1, combinedAttributes, location);
+            if (!(v instanceof BooleanValue)) {
+                return Flux.just(new TracedValue(
+                        Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), attrs));
             }
-            return Flux.just(new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()),
-                    combinedAttributes));
+            if (shortCircuitValue.equals(v)) {
+                return Flux.just(tv);
+            }
+            return next.map(nextTv -> mergeAttributes(attrs, nextTv));
         });
+    }
+
+    private TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
+        val subsequentAttrs = subsequent.contributingAttributes();
+        if (preceding.isEmpty()) {
+            return subsequent;
+        }
+        if (subsequentAttrs.isEmpty()) {
+            return new TracedValue(subsequent.value(), preceding);
+        }
+        val merged = new ArrayList<AttributeRecord>(preceding.size() + subsequentAttrs.size());
+        merged.addAll(preceding);
+        merged.addAll(subsequentAttrs);
+        return new TracedValue(subsequent.value(), merged);
+    }
+
+    /**
+     * N-ary lazy boolean with only Pure operands. Simple loop at runtime,
+     * short-circuits on shortCircuitValue.
+     */
+    record NaryLazyBooleanPure(
+            List<CompiledExpression> operands,
+            Value shortCircuitValue,
+            Value identityValue,
+            SourceLocation location,
+            boolean isDependingOnSubscription) implements PureOperator {
+
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            for (var op : operands) {
+                val v = ((PureOperator) op).evaluate(ctx);
+                if (v instanceof ErrorValue) {
+                    return v;
+                }
+                if (!(v instanceof BooleanValue)) {
+                    return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+                }
+                if (shortCircuitValue.equals(v)) {
+                    return shortCircuitValue;
+                }
+            }
+            return identityValue;
+        }
+    }
+
+    /**
+     * N-ary lazy boolean with Stream operands. Flux chain is pre-built at compile
+     * time - no runtime recursion.
+     */
+    record NaryLazyBooleanStream(Flux<TracedValue> chain) implements StreamOperator {
+
+        @Override
+        public Flux<TracedValue> stream() {
+            return chain;
+        }
     }
 
 }

@@ -52,7 +52,7 @@ public class TargetExpressionCompiler {
                 return schemaValidator;
             }
             return LazyBooleanOperationCompiler.compile(schemaValidator, compiledTarget, true,
-                    targetExpression.location(), ctx);
+                    targetExpression.location());
         }
 
         return compiledTarget;

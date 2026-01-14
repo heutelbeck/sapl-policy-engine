@@ -52,11 +52,11 @@ public class LazyBooleanOperationCompiler {
 
         val left  = ExpressionCompiler.compile(expr.left(), ctx);
         val right = ExpressionCompiler.compile(expr.right(), ctx);
-        return compile(left, right, isAnd, location, ctx);
+        return compile(left, right, isAnd, location);
     }
 
     public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, boolean isAnd,
-            SourceLocation location, CompilationContext ctx) {
+            SourceLocation location) {
         if (left instanceof ErrorValue) {
             return left;
         }
