@@ -168,7 +168,7 @@ class PolicyBodyCompilerTests {
         var evalCtx1 = tc.variables().isEmpty() ? evaluationContext(broker1)
                 : evaluationContext(broker1, tc.variables());
 
-        val production      = PolicyBodyCompiler.compilePolicyBodyForProduction(body, compCtx1);
+        val production      = PolicyBodyCompiler.compilePolicyBodyExpression(body, compCtx1);
         val productionValue = evaluateProduction(production, evalCtx1);
         assertThat(productionValue).as("production value").isEqualTo(tc.expectedValue());
 
@@ -181,20 +181,17 @@ class PolicyBodyCompilerTests {
         val coverageFlux = PolicyBodyCompiler.compilePolicyBodyWithCoverage(body, compCtx2)
                 .contextWrite(c -> c.put(EvaluationContext.class, evalCtx2));
 
-        StepVerifier.create(coverageFlux)
-                .assertNext(r -> assertThat(r).satisfies(
-                        cov -> assertThat(cov.value()).as("coverage equals expected").isEqualTo(tc.expectedValue()),
-                        cov -> assertThat(cov.value()).as("coverage equals production").isEqualTo(productionValue),
-                        cov -> assertThat(cov.bodyCoverage().numberOfConditions()).as("condition count")
-                                .isEqualTo(tc.expectedConditionCount()),
-                        cov -> assertThat(cov.bodyCoverage().hits()).as("hit count").hasSize(tc.expectedHitCount()),
-                        cov -> {
-                            if (!tc.expectedHitIndices().isEmpty()) {
-                                assertThat(cov.bodyCoverage().hits().stream().map(Coverage.ConditionHit::statementId)
-                                        .toList()).as("hit indices").isEqualTo(tc.expectedHitIndices());
-                            }
-                        }))
-                .verifyComplete();
+        StepVerifier.create(coverageFlux).assertNext(r -> assertThat(r).satisfies(
+                cov -> assertThat(cov.value().value()).as("coverage equals expected").isEqualTo(tc.expectedValue()),
+                cov -> assertThat(cov.value().value()).as("coverage equals production").isEqualTo(productionValue),
+                cov -> assertThat(cov.bodyCoverage().numberOfConditions()).as("condition count")
+                        .isEqualTo(tc.expectedConditionCount()),
+                cov -> assertThat(cov.bodyCoverage().hits()).as("hit count").hasSize(tc.expectedHitCount()), cov -> {
+                    if (!tc.expectedHitIndices().isEmpty()) {
+                        assertThat(cov.bodyCoverage().hits().stream().map(Coverage.ConditionHit::statementId).toList())
+                                .as("hit indices").isEqualTo(tc.expectedHitIndices());
+                    }
+                })).verifyComplete();
     }
 
     @Nested
@@ -277,7 +274,7 @@ class PolicyBodyCompilerTests {
             var evalCtx1 = tc.variables().isEmpty() ? evaluationContext(broker1)
                     : evaluationContext(broker1, tc.variables());
 
-            val production      = PolicyBodyCompiler.compilePolicyBodyForProduction(body, compCtx1);
+            val production      = PolicyBodyCompiler.compilePolicyBodyExpression(body, compCtx1);
             val productionValue = evaluateProduction(production, evalCtx1);
             assertThat(productionValue).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
                     .asString().containsIgnoringCase(tc.expectedErrorFragment());
@@ -294,7 +291,7 @@ class PolicyBodyCompilerTests {
 
             StepVerifier.create(coverageFlux)
                     .assertNext(r -> assertThat(r).satisfies(
-                            cov -> assertThat(cov.value()).isInstanceOf(ErrorValue.class)
+                            cov -> assertThat(cov.value().value()).isInstanceOf(ErrorValue.class)
                                     .extracting(v -> ((ErrorValue) v).message()).asString()
                                     .containsIgnoringCase(tc.expectedErrorFragment()),
                             cov -> assertThat(cov.bodyCoverage().hits()).hasSize(tc.expectedHitCount())))
@@ -326,7 +323,7 @@ class PolicyBodyCompilerTests {
             var compCtx1 = compilationContext(broker1);
             var evalCtx1 = evaluationContext(broker1);
 
-            val production = PolicyBodyCompiler.compilePolicyBodyForProduction(body, compCtx1);
+            val production = PolicyBodyCompiler.compilePolicyBodyExpression(body, compCtx1);
             assertThat(production).isInstanceOf(StreamOperator.class);
 
             val                            prodStream   = ((StreamOperator) production).stream()
@@ -347,7 +344,7 @@ class PolicyBodyCompilerTests {
                     .contextWrite(c -> c.put(EvaluationContext.class, evalCtx2));
             StepVerifier.Step<TracedPolicyBodyResultAndCoverage> covVerifier  = StepVerifier.create(coverageFlux);
             for (var expected : tc.expectedSequence()) {
-                covVerifier = covVerifier.assertNext(r -> assertThat(r.value()).isEqualTo(expected));
+                covVerifier = covVerifier.assertNext(r -> assertThat(r.value().value()).isEqualTo(expected));
             }
             covVerifier.verifyComplete();
         }

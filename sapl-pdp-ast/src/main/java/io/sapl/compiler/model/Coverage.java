@@ -29,36 +29,27 @@ import java.util.List;
 public record Coverage(List<DocumentCoverage> coverage) {
 
     public sealed interface DocumentCoverage permits PolicyCoverage, PolicySetCoverage {
-        TargetHit targetHit();
     }
 
-    public record PolicyCoverage(PolicyMetadata metadata, TargetHit targetHit, BodyCoverage bodyCoverage)
+    public record PolicyCoverage(PolicyMetadata metadata, BodyCoverage bodyCoverage) implements DocumentCoverage {}
+
+    public record PolicySetCoverage(PolicySetMetadata metadata, List<PolicyCoverage> policyCoverages)
             implements DocumentCoverage {
-        public PolicyCoverage withHit(TargetHit newHit) {
-            return new PolicyCoverage(metadata, newHit, bodyCoverage);
-        }
-
-    }
-
-    public record PolicySetCoverage(
-            PolicySetMetadata metadata,
-            TargetHit targetHit,
-            List<PolicyCoverage> policyCoverages) implements DocumentCoverage {
         public PolicySetCoverage with(PolicyCoverage newCoverage) {
             val aggregatedPolicyCoverage = new ArrayList<PolicyCoverage>(policyCoverages);
             aggregatedPolicyCoverage.add(newCoverage);
-            return new PolicySetCoverage(metadata, targetHit, aggregatedPolicyCoverage);
+            return new PolicySetCoverage(metadata, aggregatedPolicyCoverage);
         }
     }
 
-    public sealed interface TargetHit permits BlankTargetHit, TargetResult {
+    public record BodyCoverage(List<ConditionHit> hits, long numberOfConditions) {
+        public BodyCoverage with(ConditionHit newHit) {
+            val merged = new ArrayList<ConditionHit>(hits.size() + 1);
+            merged.addAll(hits);
+            merged.add(newHit);
+            return new BodyCoverage(merged, numberOfConditions);
+        }
     }
 
-    public record BlankTargetHit() implements TargetHit {}
-
-    public record TargetResult(Value match, SourceLocation location) implements TargetHit {}
-
-    public record BodyCoverage(List<ConditionHit> hits, long numberOfConditions) {}
-
-    public record ConditionHit(long statementId, Value result, SourceLocation location) {}
+    public record ConditionHit(Value result, SourceLocation location, long statementId) {}
 }

@@ -15,17 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.targetexpression;
+package io.sapl.compiler.policy;
 
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Identifier;
 import io.sapl.ast.Literal;
 import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
-import io.sapl.compiler.targetexpression.SchemaValidatorCompiler.CombinedSchemaValidator;
-import io.sapl.compiler.targetexpression.SchemaValidatorCompiler.PrecompiledSchemaValidator;
+import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedSchemaValidator;
+import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -39,7 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.targetexpression.SchemaValidatorCompiler.compileValidator;
+import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

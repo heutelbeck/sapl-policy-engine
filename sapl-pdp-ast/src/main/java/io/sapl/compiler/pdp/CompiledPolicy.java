@@ -18,11 +18,13 @@
 package io.sapl.compiler.pdp;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.policy.PolicyBody;
-import io.sapl.compiler.policy.PolicyDecisionWithCoverage;
+import io.sapl.ast.Entitlement;
+import io.sapl.compiler.policy.*;
 import reactor.core.publisher.Flux;
 
 public record CompiledPolicy(
-        CompiledExpression targetExpression,
-        PolicyBody policyBody,
-        Flux<PolicyDecisionWithCoverage> coverageStream) implements CompiledDocument {}
+        Entitlement entitlement,
+        CompiledPolicyBody policyBody,
+        PolicyCompiler.CompiledConstraints constraints,
+        Flux<PolicyDecisionWithCoverage> coverageStream,
+        PolicyMetadata metadata) implements CompiledDocument {}

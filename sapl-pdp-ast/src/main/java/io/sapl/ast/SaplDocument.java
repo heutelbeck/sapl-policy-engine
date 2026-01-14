@@ -18,41 +18,28 @@
 package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
-import lombok.NonNull;
 
 import java.util.List;
 
 /**
- * Root node of a SAPL document AST.
- *
- * @param imports import statements, empty list if none
- * @param schemas schema statements, empty list if none
- * @param element the policy or policy set
- * @param location metadata location covering the entire document
+ * Root interface for a SAPL document AST.
+ * <p>
+ * A SAPL document is either a single {@link Policy} or a {@link PolicySet}.
  */
-public record SaplDocument(
-        @NonNull List<Import> imports,
-        @NonNull List<SchemaStatement> schemas,
-        @NonNull PolicyElement element,
-        @NonNull SourceLocation location) implements AstNode {
-
-    public SaplDocument {
-        imports = List.copyOf(imports);
-        schemas = List.copyOf(schemas);
-    }
+public sealed interface SaplDocument extends AstNode permits Policy, PolicySet {
 
     /**
-     * @return the name of the contained policy or policy set
+     * @return the import statements, empty list if none
      */
-    public String name() {
-        return element.name();
-    }
+    List<Import> imports();
 
     /**
-     * @return true if this document contains a policy set, false if single policy
+     * @return the source location covering the entire document
      */
-    public boolean isPolicySet() {
-        return element instanceof PolicySet;
-    }
+    SourceLocation location();
 
+    /**
+     * @return the name of the policy or policy set
+     */
+    String name();
 }

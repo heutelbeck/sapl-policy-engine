@@ -68,6 +68,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private String                    pdpId           = DEFAULT_PDP_ID;
     private String                    configurationId = DEFAULT_CONFIGURATION_ID;
 
+    // Document-level state for current transformation
+    private List<Import>          currentImports;
+    private List<SchemaStatement> currentSchemas;
+    private SourceLocation        schemaBlockLocation;
+    private boolean               inPolicySet;
+
     /**
      * Sets the context identifiers for document transformation.
      *
@@ -106,11 +112,37 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public SaplDocument visitSapl(SaplContext ctx) {
+        // Parse imports and build import map
         var imports = ctx.importStatement().stream().map(this::visitImportStatement).toList();
-        this.importMap = buildImportMap(imports);
+        this.importMap      = buildImportMap(imports);
+        this.currentImports = imports;
+
+        // Parse schemas
         var schemas = ctx.schemaStatement().stream().map(this::visitSchemaStatement).toList();
-        var element = (PolicyElement) visit(ctx.policyElement());
-        return new SaplDocument(imports, schemas, element, fromContext(ctx));
+        this.currentSchemas = schemas;
+
+        // Compute schema block location (spanning all schema statements, or null if
+        // none)
+        if (!schemas.isEmpty()) {
+            var firstSchema = ctx.schemaStatement().getFirst();
+            var lastSchema  = ctx.schemaStatement().getLast();
+            this.schemaBlockLocation = SourceLocation.spanning(fromContext(firstSchema), fromContext(lastSchema));
+        } else {
+            this.schemaBlockLocation = null;
+        }
+
+        this.inPolicySet = false;
+
+        // Visit the policy element (returns Policy or PolicySet, both implement
+        // SaplDocument)
+        var document = (SaplDocument) visit(ctx.policyElement());
+
+        // Clear state for safety if transformer is reused
+        this.currentImports      = null;
+        this.currentSchemas      = null;
+        this.schemaBlockLocation = null;
+
+        return document;
     }
 
     private Map<String, List<String>> buildImportMap(List<Import> imports) {
@@ -142,10 +174,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public SchemaStatement visitSchemaStatement(SchemaStatementContext ctx) {
-        var element  = toSubscriptionElement(ctx.subscriptionElement);
-        var enforced = ctx.enforced != null;
-        var schema   = expr(ctx.schemaExpression);
-        return new SchemaStatement(element, enforced, schema, fromContext(ctx));
+        var element = toSubscriptionElement(ctx.subscriptionElement);
+        var schema  = expr(ctx.schemaExpression);
+        return new SchemaStatement(element, schema, fromContext(ctx));
     }
 
     @Override
@@ -164,28 +195,52 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var documentId = toDocumentId(name);
         var algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
         var metadata   = new PolicySetMetadata(name, pdpId, configurationId, documentId, algorithm);
-        var target     = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
         var variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
-        var policies   = ctx.policy().stream().map(this::visitPolicy).toList();
-        return new PolicySet(metadata, target, variables, policies, fromContext(ctx));
+
+        // Save document-level imports for the PolicySet
+        var policySetImports = currentImports;
+
+        // Inner policies don't carry imports (they're at PolicySet level)
+        this.currentImports = List.of();
+        this.inPolicySet    = true;
+
+        var policies = ctx.policy().stream().map(this::visitPolicy).toList();
+
+        this.inPolicySet = false;
+
+        return new PolicySet(policySetImports, metadata, variables, policies, fromContext(ctx));
     }
 
     @Override
     public Policy visitPolicy(PolicyContext ctx) {
-        var name           = unquoteString(ctx.saplName.getText());
-        var documentId     = toDocumentId(name);
-        var metadata       = new PolicyMetadata(name, pdpId, configurationId, documentId);
-        var entitlement    = toEntitlement(ctx.entitlement());
-        var target         = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
-        var bodyStatements = ctx.policyBody() != null
-                ? ctx.policyBody().statements.stream().map(s -> (Statement) visit(s)).toList()
-                : List.<Statement>of();
-        var bodyLocation   = ctx.policyBody() != null ? fromContext(ctx.policyBody()) : fromContext(ctx);
-        var body           = new PolicyBody(bodyStatements, bodyLocation);
+        var name        = unquoteString(ctx.saplName.getText());
+        var documentId  = toDocumentId(name);
+        var metadata    = new PolicyMetadata(name, pdpId, configurationId, documentId);
+        var entitlement = toEntitlement(ctx.entitlement());
+
+        // Build body statements, prepending SchemaCondition if there are schemas
+        var bodyStatements = new ArrayList<Statement>();
+
+        if (currentSchemas != null && !currentSchemas.isEmpty()) {
+            bodyStatements.add(new SchemaCondition(currentSchemas, schemaBlockLocation));
+        }
+
+        if (ctx.policyBody() != null) {
+            ctx.policyBody().statements.stream().map(s -> (Statement) visit(s)).forEach(bodyStatements::add);
+        }
+
+        var bodyLocation = ctx.policyBody() != null ? fromContext(ctx.policyBody()) : fromContext(ctx);
+        var body         = new PolicyBody(bodyStatements, bodyLocation);
+
         var obligations    = ctx.obligations.stream().map(this::expr).toList();
         var advice         = ctx.adviceExpressions.stream().map(this::expr).toList();
         var transformation = ctx.transformation != null ? expr(ctx.transformation) : null;
-        return new Policy(metadata, entitlement, target, body, obligations, advice, transformation, fromContext(ctx));
+
+        // Use currentImports (empty if inside PolicySet, actual imports if standalone)
+        var policyImports = currentImports != null ? currentImports : List.<Import>of();
+
+        return new Policy(policyImports, metadata, entitlement, body, obligations, advice, transformation,
+                fromContext(ctx));
     }
 
     @Override

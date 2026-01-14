@@ -25,8 +25,8 @@ import java.io.Serializable;
  * Base interface for all AST nodes. Provides metadata location for error
  * reporting and is serializable for caching compiled policies.
  */
-public sealed interface AstNode extends Serializable permits Expression, Statement, PolicyElement, PolicyBody,
-        SaplDocument, Import, SchemaStatement, FilterPath, PathElement {
+public sealed interface AstNode extends Serializable
+        permits Expression, Statement, PolicyBody, SaplDocument, Import, SchemaStatement, FilterPath, PathElement {
 
     /**
      * Returns the metadata location of this node in the original document.

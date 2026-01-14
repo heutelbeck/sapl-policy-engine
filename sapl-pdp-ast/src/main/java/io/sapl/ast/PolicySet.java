@@ -25,22 +25,24 @@ import lombok.NonNull;
 import java.util.List;
 
 /**
- * A policy set containing multiple policies.
+ * A policy set document containing multiple policies.
  *
+ * @param imports import statements, empty list if none
  * @param metadata policy set identification metadata (name, pdpId,
  * configurationId, documentId, combiningAlgorithm)
- * @param target target expression, or null if policy set applies universally
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
  * @param location metadata location
  */
 public record PolicySet(
+        @NonNull List<Import> imports,
         @NonNull PolicySetMetadata metadata,
-        Expression target,
         @NonNull List<VarDef> variables,
         @NonNull List<Policy> policies,
-        @NonNull SourceLocation location) implements PolicyElement {
+        @NonNull SourceLocation location) implements SaplDocument {
+
     public PolicySet {
+        imports   = List.copyOf(imports);
         variables = List.copyOf(variables);
         policies  = List.copyOf(policies);
         if (policies.isEmpty()) {

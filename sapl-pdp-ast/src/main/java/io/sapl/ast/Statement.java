@@ -20,5 +20,5 @@ package io.sapl.ast;
 /**
  * Base interface for statements in a policy body.
  */
-public sealed interface Statement extends AstNode permits VarDef, Condition {
+public sealed interface Statement extends AstNode permits VarDef, Condition, SchemaCondition {
 }

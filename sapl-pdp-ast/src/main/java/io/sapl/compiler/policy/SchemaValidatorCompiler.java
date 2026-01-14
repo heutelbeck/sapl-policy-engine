@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.targetexpression;
+package io.sapl.compiler.policy;
 
 import com.networknt.schema.JsonMetaSchema;
 import com.networknt.schema.JsonSchema;
@@ -73,18 +73,11 @@ public class SchemaValidatorCompiler {
             .metaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri()).build();
 
     public static PureOperator compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
-        val enforcedSchemas = schemas.stream().filter(SchemaStatement::enforced).toList();
 
-        if (enforcedSchemas.isEmpty()) {
-            return null;
-        }
-
-        val validators = enforcedSchemas.stream().map(schema -> compileSchemaValidator(schema, ctx)).toList();
-
+        val validators = schemas.stream().map(schema -> compileSchemaValidator(schema, ctx)).toList();
         if (validators.size() == 1) {
             return validators.getFirst();
         }
-
         return new CombinedSchemaValidator(validators);
     }
 

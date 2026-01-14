@@ -17,13 +17,10 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
 import reactor.core.publisher.Flux;
 
-public sealed interface StreamPolicyBody extends PolicyBody permits PolicyCompiler.StreamPolicyBody,
-        PolicyCompiler.StreamValuePolicyBody, PolicyCompiler.StreamPurePolicyBody, PolicyCompiler.PureStreamPolicyBody,
-        PolicyCompiler.StreamStreamPolicyBody {
-    CompiledExpression targetExpression();
-
+public sealed interface StreamPolicyBody extends PolicyBody permits PolicyCompiler.StreamPolicyBodyPolicy,
+        PolicyCompiler.StreamValuePolicyBodyPolicy, PolicyCompiler.StreamPurePolicyBody, PolicyCompiler.PureStreamPolicyBody,
+        PolicyCompiler.StreamStreamPolicyBodyPolicy {
     Flux<PolicyDecision> stream();
 }

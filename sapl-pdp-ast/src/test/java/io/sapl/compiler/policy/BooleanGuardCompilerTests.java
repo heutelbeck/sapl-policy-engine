@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.targetexpression;
+package io.sapl.compiler.policy;
 
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.targetexpression.BooleanGuardCompiler.PureBooleanTypeCheck;
-import io.sapl.compiler.targetexpression.BooleanGuardCompiler.StreamBooleanTypeCheck;
+import io.sapl.compiler.policy.BooleanGuardCompiler.PureBooleanTypeCheck;
+import io.sapl.compiler.policy.BooleanGuardCompiler.StreamBooleanTypeCheck;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.targetexpression.BooleanGuardCompiler.applyBooleanGuard;
+import static io.sapl.compiler.policy.BooleanGuardCompiler.applyBooleanGuard;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 

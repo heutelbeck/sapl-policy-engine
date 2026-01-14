@@ -24,7 +24,7 @@ import io.sapl.ast.SaplDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policyset.PolicySetCompiler;
-import io.sapl.compiler.targetexpression.SchemaValidatorCompiler;
+import io.sapl.compiler.policy.SchemaValidatorCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -36,10 +36,9 @@ public class PDPCompiler {
 
     public CompiledDocument compileDocument(SaplDocument saplDocument, CompilationContext ctx) {
         ctx.resetForNextDocument();
-        val schemaValidator = SchemaValidatorCompiler.compileValidator(saplDocument.schemas(), ctx);
-        return switch (saplDocument.element()) {
-        case Policy policy       -> PolicyCompiler.compilePolicy(policy, schemaValidator, ctx);
-        case PolicySet policySet -> PolicySetCompiler.compilePolicySet(policySet, schemaValidator, ctx);
+        return switch (saplDocument) {
+        case Policy policy       -> PolicyCompiler.compilePolicy(policy, ctx);
+        case PolicySet policySet -> PolicySetCompiler.compilePolicySet(policySet, ctx);
         };
     }
 }

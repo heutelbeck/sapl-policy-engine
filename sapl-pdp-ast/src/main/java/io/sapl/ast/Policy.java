@@ -24,12 +24,12 @@ import lombok.NonNull;
 import java.util.List;
 
 /**
- * A single policy.
+ * A single policy document.
  *
+ * @param imports import statements, empty list if none
  * @param metadata policy identification metadata (name, pdpId, configurationId,
  * documentId)
  * @param entitlement PERMIT or DENY
- * @param target target expression, or null if policy applies universally
  * @param body policy body with statements and metadata location
  * @param obligations obligation expressions, empty list if none
  * @param advice advice expressions, empty list if none
@@ -37,15 +37,17 @@ import java.util.List;
  * @param location metadata location
  */
 public record Policy(
+        @NonNull List<Import> imports,
         @NonNull PolicyMetadata metadata,
         @NonNull Entitlement entitlement,
-        Expression target,
         @NonNull PolicyBody body,
         @NonNull List<Expression> obligations,
         @NonNull List<Expression> advice,
         Expression transformation,
-        @NonNull SourceLocation location) implements PolicyElement {
+        @NonNull SourceLocation location) implements SaplDocument {
+
     public Policy {
+        imports     = List.copyOf(imports);
         obligations = List.copyOf(obligations);
         advice      = List.copyOf(advice);
     }

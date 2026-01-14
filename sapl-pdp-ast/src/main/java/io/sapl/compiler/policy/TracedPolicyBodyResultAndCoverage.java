@@ -18,12 +18,10 @@
 package io.sapl.compiler.policy;
 
 import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.model.Coverage;
 
 import java.util.List;
 
-public record TracedPolicyBodyResultAndCoverage(
-        Value value,
-        List<AttributeRecord> contributingAttributes,
-        Coverage.BodyCoverage bodyCoverage) {}
+public record TracedPolicyBodyResultAndCoverage(TracedValue value, Coverage.BodyCoverage bodyCoverage) {}

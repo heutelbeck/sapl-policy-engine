@@ -224,23 +224,11 @@ public class FirstApplicableCompiler {
     private static Optional<PolicySetBody> shortCircuitIfPredetermined(PolicySetMetadata policySetMetadata,
             List<CompiledPolicy> policies) {
         for (CompiledPolicy policy : policies) {
-            val policyTarget = policy.targetExpression();
             val policyBody   = policy.policyBody();
-            switch (policyTarget) {
-            case ErrorValue error                                                            -> {
-                return Optional.of(PolicySetDecision.error(error, policySetMetadata, List.of()));
-            }
-            case BooleanValue(var t) when t && policyBody instanceof PolicyDecision decision -> {
-                // DO NOT MERGE WITH GUARD! That would completely change the logic! This is the
-                // simple version already.
-                if (decision.decision() != Decision.NOT_APPLICABLE) {
+            if(policyBody instanceof PolicyDecision decision && decision.decision() != Decision.NOT_APPLICABLE) {
                     return Optional.of(new PolicySetDecision(decision.decision(), decision.obligations(),
                             decision.advice(), decision.resource(), null, policySetMetadata, List.of(decision)));
                 }
-            }
-            default                                                                          -> {
-                return Optional.empty();
-            }
             }
         }
         return Optional.empty();

@@ -17,14 +17,24 @@
  */
 package io.sapl.ast;
 
+import io.sapl.api.model.SourceLocation;
+import lombok.NonNull;
+
+import java.util.List;
+
 /**
- * Base interface for policy elements (Policy or PolicySet).
+ * Schema condition statement: schema validations that must pass.
+ * <p>
+ * This statement is automatically generated from schema declarations
+ * and inserted as the first statement in a policy body.
+ *
+ * @param schemas the schema statements
+ * @param location metadata location covering the schema block
  */
-public sealed interface PolicyElement extends AstNode permits Policy, PolicySet {
+public record SchemaCondition(@NonNull List<SchemaStatement> schemas, @NonNull SourceLocation location)
+        implements Statement {
 
-    /**
-     * @return the name of the policy or policy set
-     */
-    String name();
-
+    public SchemaCondition {
+        schemas = List.copyOf(schemas);
+    }
 }

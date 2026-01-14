@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.targetexpression;
+package io.sapl.compiler.policy;
 
 import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;

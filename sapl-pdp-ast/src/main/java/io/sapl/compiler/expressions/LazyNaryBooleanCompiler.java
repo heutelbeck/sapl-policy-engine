@@ -187,7 +187,7 @@ public class LazyNaryBooleanCompiler {
         });
     }
 
-    private TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
+    public TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
         val subsequentAttrs = subsequent.contributingAttributes();
         if (preceding.isEmpty()) {
             return subsequent;

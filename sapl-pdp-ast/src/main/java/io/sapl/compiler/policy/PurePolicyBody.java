@@ -17,12 +17,9 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
 
 public sealed interface PurePolicyBody extends PolicyBody
-        permits PolicyCompiler.SimplePurePolicyBody, PolicyCompiler.PurePolicyBody {
-    CompiledExpression targetExpression();
-
+        permits PolicyCompiler.SimplePurePolicyBodyPolicy, PolicyCompiler.PurePolicyBodyPolicy {
     PolicyDecision evaluateBody(EvaluationContext ctx);
 }

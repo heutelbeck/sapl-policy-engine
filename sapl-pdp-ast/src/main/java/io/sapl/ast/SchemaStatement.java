@@ -21,15 +21,13 @@ import io.sapl.api.model.SourceLocation;
 import lombok.NonNull;
 
 /**
- * Schema statement: {@code subject enforced? schema expression}
+ * Schema statement: {@code subject schema expression}
  *
  * @param element the subscription element this schema applies to
- * @param enforced true if schema is enforced (validation fails if not matched)
  * @param schema the schema expression
  * @param location metadata location
  */
 public record SchemaStatement(
         @NonNull SubscriptionElement element,
-        boolean enforced,
         @NonNull Expression schema,
         @NonNull SourceLocation location) implements AstNode {}
