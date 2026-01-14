@@ -19,40 +19,46 @@ package io.sapl.compiler.model;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.policy.PolicyMetadata;
+import io.sapl.compiler.policyset.PolicySetMetadata;
+import lombok.val;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public record Coverage(List<DocumentCoverage> coverage) {
+
     public sealed interface DocumentCoverage permits PolicyCoverage, PolicySetCoverage {
-        String documentName();
-
         TargetHit targetHit();
-
-        String documentSource();
-
-        String documentId(); // e.g., filename or DB Id
     }
 
-    public record PolicyCoverage(
-            String documentName,
-            TargetHit targetHit,
-            String documentSource,
-            String documentId,
-            BodyCoverage bodyCoverage) implements DocumentCoverage {}
+    public record PolicyCoverage(PolicyMetadata metadata, TargetHit targetHit, BodyCoverage bodyCoverage)
+            implements DocumentCoverage {
+        public PolicyCoverage withHit(TargetHit newHit) {
+            return new PolicyCoverage(metadata, newHit, bodyCoverage);
+        }
+
+    }
 
     public record PolicySetCoverage(
-            String documentName,
+            PolicySetMetadata metadata,
             TargetHit targetHit,
-            String documentSource,
-            String documentId,
-            List<PolicyCoverage> policyCoverages) implements DocumentCoverage {}
-
-    public sealed interface TargetHit permits ConstantTarget, ConditionHit {
+            List<PolicyCoverage> policyCoverages) implements DocumentCoverage {
+        public PolicySetCoverage with(PolicyCoverage newCoverage) {
+            val aggregatedPolicyCoverage = new ArrayList<PolicyCoverage>(policyCoverages);
+            aggregatedPolicyCoverage.add(newCoverage);
+            return new PolicySetCoverage(metadata, targetHit, aggregatedPolicyCoverage);
+        }
     }
 
-    public record ConstantTarget() implements TargetHit {}
+    public sealed interface TargetHit permits BlankTargetHit, TargetResult {
+    }
+
+    public record BlankTargetHit() implements TargetHit {}
+
+    public record TargetResult(Value match, SourceLocation location) implements TargetHit {}
 
     public record BodyCoverage(List<ConditionHit> hits, long numberOfConditions) {}
 
-    public record ConditionHit(long statementId, Value result, SourceLocation location) implements TargetHit {}
+    public record ConditionHit(long statementId, Value result, SourceLocation location) {}
 }

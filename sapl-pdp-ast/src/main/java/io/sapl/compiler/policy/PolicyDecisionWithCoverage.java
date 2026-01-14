@@ -19,4 +19,4 @@ package io.sapl.compiler.policy;
 
 import io.sapl.compiler.model.Coverage;
 
-public record PolicyDecisionWithCoverage(PolicyDecision decision, Coverage coverage) {}
+public record PolicyDecisionWithCoverage(PolicyDecision decision, Coverage.PolicyCoverage coverage) {}

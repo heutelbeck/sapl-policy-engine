@@ -22,7 +22,12 @@ import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VarDef;
 import io.sapl.compiler.ast.DocumentType;
-import io.sapl.compiler.combining.*;
+import io.sapl.compiler.combining.DenyOverridesCompiler;
+import io.sapl.compiler.combining.DenyUnlessPermitCompiler;
+import io.sapl.compiler.combining.FirstApplicableCompiler;
+import io.sapl.compiler.combining.OnlyOneApplicableCompiler;
+import io.sapl.compiler.combining.PermitOverridesCompiler;
+import io.sapl.compiler.combining.PermitUnlessDenyCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -35,7 +40,8 @@ import lombok.val;
 @UtilityClass
 public class PolicySetCompiler {
 
-    public static final String ERROR_NO_POLICIES = "Policy sets must contain at least one policy";
+    public static final String ERROR_NO_POLICIES           = "Policy sets must contain at least one policy";
+    public static final String ERROR_VARIABLE_REDEFINITION = "Redefinition of variable %s not permitted.";
 
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
             CompilationContext ctx) {
@@ -47,15 +53,15 @@ public class PolicySetCompiler {
         if (policies.isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
         }
-        val policySetMetadata = new PolicySetMetadata(DocumentType.POLICY_SET, policySet.name(), policySet.pdpId(),
-                policySet.configurationId(), policySet.documentId(), algorithm);
+        val policySetMetadata = new PolicySetMetadata(policySet.name(), policySet.pdpId(), policySet.configurationId(),
+                policySet.documentId(), algorithm);
         return switch (algorithm) {
         case DENY_OVERRIDES      ->
             DenyOverridesCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
         case DENY_UNLESS_PERMIT  ->
             DenyUnlessPermitCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
         case FIRST_APPLICABLE    ->
-            FirstApplicableCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
+            FirstApplicableCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies);
         case ONLY_ONE_APPLICABLE ->
             OnlyOneApplicableCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
         case PERMIT_OVERRIDES    ->
@@ -66,14 +72,16 @@ public class PolicySetCompiler {
     }
 
     private static void compilePolicySetVariables(PolicySet policySet, CompilationContext ctx) {
-        for(VarDef variableDefinition: policySet.variables()) {
+        for (VarDef variableDefinition : policySet.variables()) {
             val name = variableDefinition.name();
-            if(ReservedIdentifiers.RESERVED_IDENTIFIERS.contains(name)) {
-                throw new SaplCompilerException("Redefinition of variable %s not permitted.".formatted(name), variableDefinition.location());
+            if (ReservedIdentifiers.RESERVED_IDENTIFIERS.contains(name)) {
+                throw new SaplCompilerException(ERROR_VARIABLE_REDEFINITION.formatted(name),
+                        variableDefinition.location());
             }
             val compiledVariable = ExpressionCompiler.compile(variableDefinition.value(), ctx);
-            if(!ctx.addGlobalPolicySetVariable(variableDefinition.name(), compiledVariable)) {
-                throw new SaplCompilerException("Redefinition of variable %s not permitted.".formatted(name), variableDefinition.location());
+            if (!ctx.addGlobalPolicySetVariable(variableDefinition.name(), compiledVariable)) {
+                throw new SaplCompilerException(ERROR_VARIABLE_REDEFINITION.formatted(name),
+                        variableDefinition.location());
             }
         }
     }

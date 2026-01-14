@@ -38,7 +38,8 @@ public record PolicyDecision(
         List<AttributeRecord> contributingAttributes) implements PolicyBody {
 
     public static PolicyDecision simpleDecision(Decision decision, PolicyMetadata source) {
-        return new PolicyDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null, source, null);
+        return new PolicyDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null, source,
+                List.of());
     }
 
     public static PolicyDecision tracedSimpleDecision(Decision decision, PolicyMetadata source,
@@ -49,7 +50,7 @@ public record PolicyDecision(
 
     public static PolicyDecision error(ErrorValue error, PolicyMetadata source) {
         return new PolicyDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, error,
-                source, null);
+                source, List.of());
     }
 
     public static PolicyDecision tracedError(ErrorValue error, PolicyMetadata source,
@@ -60,7 +61,7 @@ public record PolicyDecision(
 
     public static PolicyDecision notApplicable(PolicyMetadata source) {
         return new PolicyDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null,
-                source, null);
+                source, List.of());
     }
 
     public static PolicyDecision tracedNotApplicable(PolicyMetadata source,

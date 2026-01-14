@@ -22,7 +22,6 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
-import io.sapl.compiler.ast.DocumentType;
 import io.sapl.compiler.expressions.ArrayCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
@@ -68,19 +67,19 @@ public class PolicyCompiler {
      */
     public CompiledPolicy compilePolicy(Policy policy, PureOperator schemaValidator, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val decisionSource = new PolicyMetadata(DocumentType.POLICY, policy.name(), policy.pdpId(),
-                policy.configurationId(), policy.documentId(), null);
+        val policyMetadata = new PolicyMetadata(policy.name(), policy.pdpId(), policy.configurationId(),
+                policy.documentId());
         val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policy.target(), schemaValidator, ctx);
         val compiledBody   = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
         val constraints    = compileConstraints(policy, policy.location(), ctx);
         val components     = new CompiledPolicyComponents(compiledTarget, compiledBody, constraints);
         val decisionMaker  = switch (compiledTarget) {
-                           case Value ignored          -> compileWithConstantTarget(policy, components, decisionSource);
-                           case PureOperator ignored   -> compilePolicyEvaluation(policy, components, decisionSource);
+                           case Value ignored          -> compileWithConstantTarget(policy, components, policyMetadata);
+                           case PureOperator ignored   -> compilePolicyEvaluation(policy, components, policyMetadata);
                            case StreamOperator ignored ->
                                throw new SaplCompilerException(ERROR_TARGET_TYPE, policy.location());
                            };
-        val coverageStream = assembleDecisionWithCoverage(policy, components, decisionSource);
+        val coverageStream = assembleDecisionWithCoverage(policy, components, policyMetadata);
         return new CompiledPolicy(compiledTarget, decisionMaker, coverageStream);
     }
 
@@ -104,30 +103,30 @@ public class PolicyCompiler {
             val bodyConditionHits = bodyResult.bodyCoverage();
 
             if (bodyValue instanceof ErrorValue error) {
-                return Flux.just(withCoverage(PolicyDecision.tracedError(error, policyMetadata, bodyAttrs), policy,
-                        bodyConditionHits));
+                return Flux.just(withCoverage(PolicyDecision.tracedError(error, policyMetadata, bodyAttrs),
+                        policyMetadata, bodyConditionHits));
             }
             if (Value.FALSE.equals(bodyValue)) {
-                return Flux.just(withCoverage(PolicyDecision.tracedNotApplicable(policyMetadata, bodyAttrs), policy,
-                        bodyConditionHits));
+                return Flux.just(withCoverage(PolicyDecision.tracedNotApplicable(policyMetadata, bodyAttrs),
+                        policyMetadata, bodyConditionHits));
             }
             if (isSimple) {
                 return Flux.just(withCoverage(PolicyDecision.tracedSimpleDecision(decision, policyMetadata, bodyAttrs),
-                        policy, bodyConditionHits));
+                        policyMetadata, bodyConditionHits));
             }
 
             // Body is TRUE - combine constraint streams
             return Flux.combineLatest(obligationsStream.stream(), adviceStream.stream(), resourceStream.stream(),
                     merged -> withCoverage(
-                            buildFromConstraintStreams(merged, decision, bodyAttrs, location, policyMetadata), policy,
-                            bodyConditionHits));
+                            buildFromConstraintStreams(merged, decision, bodyAttrs, location, policyMetadata),
+                            policyMetadata, bodyConditionHits));
         });
     }
 
-    private static PolicyDecisionWithCoverage withCoverage(PolicyDecision decision, Policy policy,
+    private static PolicyDecisionWithCoverage withCoverage(PolicyDecision decision, PolicyMetadata decisionSource,
             Coverage.BodyCoverage bodyCoverage) {
-        val policyCoverage = new Coverage.PolicyCoverage(policy.name(), null, null, null, bodyCoverage);
-        return new PolicyDecisionWithCoverage(decision, new Coverage(List.of(policyCoverage)));
+        val policyCoverage = new Coverage.PolicyCoverage(decisionSource, null, bodyCoverage);
+        return new PolicyDecisionWithCoverage(decision, policyCoverage);
     }
 
     private static PolicyBody compileWithConstantTarget(Policy policy, CompiledPolicyComponents components,
@@ -193,7 +192,7 @@ public class PolicyCompiler {
                     location);
         }
         return new PolicyDecision(decision, (ArrayValue) c.obligations(), (ArrayValue) c.advice(), (Value) c.resource(),
-                null, policyMetadata, null);
+                null, policyMetadata, List.of());
     }
 
     private static PolicyBody compileStreamPolicyConstraints(Policy policy, CompiledPolicyComponents components,
@@ -562,7 +561,7 @@ public class PolicyCompiler {
                 return PolicyDecision.error(error, policyMetadata);
             }
             return new PolicyDecision(decision, obligationsArray, adviceArray, resourceValue, Value.UNDEFINED,
-                    policyMetadata, null);
+                    policyMetadata, List.of());
         }
     }
 

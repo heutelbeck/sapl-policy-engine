@@ -22,7 +22,6 @@ import io.sapl.compiler.ast.DocumentType;
 import lombok.NonNull;
 
 public record PolicySetMetadata(
-        @NonNull DocumentType sourceType,
         @NonNull String name,
         @NonNull String pdpId,
         @NonNull String configurationId,

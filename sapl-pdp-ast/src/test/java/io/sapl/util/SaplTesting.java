@@ -32,12 +32,18 @@ import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
 import io.sapl.compiler.ast.Document;
 import io.sapl.compiler.pdp.CompiledPolicy;
+import io.sapl.compiler.pdp.CompiledPolicySet;
+import io.sapl.compiler.pdp.PDPCompiler;
 import io.sapl.compiler.policy.*;
+import io.sapl.compiler.policyset.PolicySetDecision;
+import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
+import io.sapl.compiler.policyset.PurePolicySetBody;
 import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.policy.PolicyBody;
+import io.sapl.compiler.policyset.StreamPolicySetBody;
 import io.sapl.compiler.util.Stratum;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -177,6 +183,36 @@ public class SaplTesting {
         case PurePolicyBody pure     -> Flux.just(pure.evaluateBody(evalCtx));
         case StreamPolicyBody stream -> stream.stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         };
+    }
+
+    public static CompiledPolicySet compilePolicySet(String source) {
+        var document = document(source);
+        var compiled = PDPCompiler.compileDocument(document, compilationContext());
+        assertThat(compiled).isInstanceOf(CompiledPolicySet.class);
+        return (CompiledPolicySet) compiled;
+    }
+
+    public static CompiledPolicySet compilePolicySet(String source, AttributeBroker attrBroker) {
+        var document = document(source);
+        var compiled = PDPCompiler.compileDocument(document, compilationContext(attrBroker));
+        assertThat(compiled).isInstanceOf(CompiledPolicySet.class);
+        return (CompiledPolicySet) compiled;
+    }
+
+    public static PolicySetDecision evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
+        var body = compiled.policies();
+        return switch (body) {
+        case PolicySetDecision decision -> decision;
+        case PurePolicySetBody pure     -> pure.evaluateBody(ctx);
+        case StreamPolicySetBody stream ->
+            stream.stream().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+        };
+    }
+
+    public static PolicySetDecisionWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled,
+            EvaluationContext ctx) {
+        return compiled.coverageStream().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx))
+                .blockFirst();
     }
 
     public static CompiledPolicy compilePolicyFull(String policySource) {
