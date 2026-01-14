@@ -21,6 +21,8 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.ast.*;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.policy.PolicyMetadata;
+import io.sapl.compiler.policyset.PolicySetMetadata;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;
@@ -161,17 +163,18 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var name       = unquoteString(ctx.saplName.getText());
         var documentId = toDocumentId(name);
         var algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
+        var metadata   = new PolicySetMetadata(name, pdpId, configurationId, documentId, algorithm);
         var target     = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
         var variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
         var policies   = ctx.policy().stream().map(this::visitPolicy).toList();
-        return new PolicySet(name, pdpId, configurationId, documentId, algorithm, target, variables, policies,
-                fromContext(ctx));
+        return new PolicySet(metadata, target, variables, policies, fromContext(ctx));
     }
 
     @Override
     public Policy visitPolicy(PolicyContext ctx) {
         var name           = unquoteString(ctx.saplName.getText());
         var documentId     = toDocumentId(name);
+        var metadata       = new PolicyMetadata(name, pdpId, configurationId, documentId);
         var entitlement    = toEntitlement(ctx.entitlement());
         var target         = ctx.targetExpression != null ? expr(ctx.targetExpression) : null;
         var bodyStatements = ctx.policyBody() != null
@@ -182,8 +185,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var obligations    = ctx.obligations.stream().map(this::expr).toList();
         var advice         = ctx.adviceExpressions.stream().map(this::expr).toList();
         var transformation = ctx.transformation != null ? expr(ctx.transformation) : null;
-        return new Policy(name, pdpId, configurationId, documentId, entitlement, target, body, obligations, advice,
-                transformation, fromContext(ctx));
+        return new Policy(metadata, entitlement, target, body, obligations, advice, transformation, fromContext(ctx));
     }
 
     @Override

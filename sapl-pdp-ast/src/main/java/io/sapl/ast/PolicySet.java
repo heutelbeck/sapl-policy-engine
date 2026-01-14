@@ -19,6 +19,7 @@ package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.policyset.PolicySetMetadata;
 import lombok.NonNull;
 
 import java.util.List;
@@ -26,24 +27,15 @@ import java.util.List;
 /**
  * A policy set containing multiple policies.
  *
- * @param name the policy set name
- * @param pdpId identifier of the PDP this policy set belongs to
- * @param configurationId identifier of the configuration this policy set
- * belongs to
- * @param documentId unique identifier for this document (derived from name if
- * not specified)
- * @param algorithm the combining algorithm
+ * @param metadata policy set identification metadata (name, pdpId,
+ * configurationId, documentId, combiningAlgorithm)
  * @param target target expression, or null if policy set applies universally
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
  * @param location metadata location
  */
 public record PolicySet(
-        @NonNull String name,
-        @NonNull String pdpId,
-        @NonNull String configurationId,
-        @NonNull String documentId,
-        @NonNull CombiningAlgorithm algorithm,
+        @NonNull PolicySetMetadata metadata,
         Expression target,
         @NonNull List<VarDef> variables,
         @NonNull List<Policy> policies,
@@ -54,5 +46,14 @@ public record PolicySet(
         if (policies.isEmpty()) {
             throw new SaplCompilerException("Policy set must contain at least one policy", location);
         }
+    }
+
+    @Override
+    public String name() {
+        return metadata.name();
+    }
+
+    public CombiningAlgorithm algorithm() {
+        return metadata.combiningAlgorithm();
     }
 }

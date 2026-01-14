@@ -46,16 +46,15 @@ public class PolicySetCompiler {
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
             CompilationContext ctx) {
         compilePolicySetVariables(policySet, ctx);
-        val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator, ctx);
-        val algorithm      = policySet.algorithm();
-        val policies       = policySet.policies().stream().map(p -> PolicyCompiler.compilePolicy(p, null, ctx))
+        val compiledTarget    = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
+                ctx);
+        val policySetMetadata = policySet.metadata();
+        val policies          = policySet.policies().stream().map(p -> PolicyCompiler.compilePolicy(p, null, ctx))
                 .toList();
         if (policies.isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
         }
-        val policySetMetadata = new PolicySetMetadata(policySet.name(), policySet.pdpId(), policySet.configurationId(),
-                policySet.documentId(), algorithm);
-        return switch (algorithm) {
+        return switch (policySetMetadata.combiningAlgorithm()) {
         case DENY_OVERRIDES      ->
             DenyOverridesCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
         case DENY_UNLESS_PERMIT  ->

@@ -67,8 +67,7 @@ public class PolicyCompiler {
      */
     public CompiledPolicy compilePolicy(Policy policy, PureOperator schemaValidator, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val policyMetadata = new PolicyMetadata(policy.name(), policy.pdpId(), policy.configurationId(),
-                policy.documentId());
+        val policyMetadata = policy.metadata();
         val compiledTarget = TargetExpressionCompiler.compileTargetExpression(policy.target(), schemaValidator, ctx);
         val compiledBody   = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
         val constraints    = compileConstraints(policy, policy.location(), ctx);

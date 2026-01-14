@@ -18,6 +18,7 @@
 package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
+import io.sapl.compiler.policy.PolicyMetadata;
 import lombok.NonNull;
 
 import java.util.List;
@@ -25,11 +26,8 @@ import java.util.List;
 /**
  * A single policy.
  *
- * @param name the policy name
- * @param pdpId identifier of the PDP this policy belongs to
- * @param configurationId identifier of the configuration this policy belongs to
- * @param documentId unique identifier for this document (derived from name if
- * not specified)
+ * @param metadata policy identification metadata (name, pdpId, configurationId,
+ * documentId)
  * @param entitlement PERMIT or DENY
  * @param target target expression, or null if policy applies universally
  * @param body policy body with statements and metadata location
@@ -39,10 +37,7 @@ import java.util.List;
  * @param location metadata location
  */
 public record Policy(
-        @NonNull String name,
-        @NonNull String pdpId,
-        @NonNull String configurationId,
-        @NonNull String documentId,
+        @NonNull PolicyMetadata metadata,
         @NonNull Entitlement entitlement,
         Expression target,
         @NonNull PolicyBody body,
@@ -53,5 +48,10 @@ public record Policy(
     public Policy {
         obligations = List.copyOf(obligations);
         advice      = List.copyOf(advice);
+    }
+
+    @Override
+    public String name() {
+        return metadata.name();
     }
 }

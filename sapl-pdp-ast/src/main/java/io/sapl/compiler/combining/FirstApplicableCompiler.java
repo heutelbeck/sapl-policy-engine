@@ -61,74 +61,83 @@ public class FirstApplicableCompiler {
 
     private Value evaluateTarget(CompiledExpression currentPolicyTargetExpression, EvaluationContext ctx) {
         return switch (currentPolicyTargetExpression) {
-            case Value matchValue                  -> matchValue;
-            case PureOperator pureTargetExpression -> pureTargetExpression.evaluate(ctx);
-            case StreamOperator ignored            -> Value.error(ERROR_TARGET_WAS_STREAM);
+        case Value matchValue                  -> matchValue;
+        case PureOperator pureTargetExpression -> pureTargetExpression.evaluate(ctx);
+        case StreamOperator ignored            -> Value.error(ERROR_TARGET_WAS_STREAM);
         };
     }
+
     public static Flux<PolicySetDecisionWithCoverage> compilePolicySetCoverageStream(PolicySet policySet,
-                                                                                     final PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies) {
-        Function<Coverage.PolicySetCoverage, Flux<PolicySetDecisionWithCoverage>> bodyStreamMap =
-                coverage -> Flux.just(
-                    new PolicySetDecisionWithCoverage(
-                        PolicySetDecision.notApplicable(policySetMetadata, List.of()),
-                        coverage)
-                );
+            final PolicySetMetadata policySetMetadata, List<CompiledPolicy> policies) {
+        Function<Coverage.PolicySetCoverage, Flux<PolicySetDecisionWithCoverage>> bodyStreamMap = coverage -> Flux
+                .just(new PolicySetDecisionWithCoverage(PolicySetDecision.notApplicable(policySetMetadata, List.of()),
+                        coverage));
         for (var i = policies.size() - 1; i >= 0; i--) {
-            val currentPolicy                   = policies.get(i);
-            val currentPolicyInAst = policySet.policies().get(i);
-            val policyMetadata = new PolicyMetadata(currentPolicyInAst.name(),currentPolicyInAst.pdpId(),currentPolicyInAst.configurationId(),currentPolicyInAst.documentId());
-            val nextNextPoliciesBodyStreamMap   = bodyStreamMap; // Final lift for Lambda
+            val currentPolicy                 = policies.get(i);
+            val currentPolicyInAst            = policySet.policies().get(i);
+            val policyMetadata                = currentPolicyInAst.metadata();
+            val nextNextPoliciesBodyStreamMap = bodyStreamMap; // Final lift for Lambda
             bodyStreamMap = previousAggregatedCoverage -> Flux.deferContextual(ctxView -> {
-                val evalCtx = ctxView.get(EvaluationContext.class);
-                Coverage.TargetHit targetHit = new Coverage.BlankTargetHit();
-                var currentMatch = switch (currentPolicy.targetExpression()) {
-                    case Value matchValue                  -> matchValue;
-                    case PureOperator pureTargetExpression -> {
-                        val match = pureTargetExpression.evaluate(evalCtx);
-                        val currentTargetLocation =  currentPolicyInAst.target().location();
-                        targetHit = new Coverage.TargetResult(match, currentTargetLocation);
-                        yield match;
-                    }
-                    case StreamOperator ignored            -> Value.error(ERROR_TARGET_WAS_STREAM);
-                };
-                final Coverage.PolicyCoverage policyCoverage = new Coverage.PolicyCoverage(
-                        new PolicyMetadata(currentPolicyInAst.name(), currentPolicyInAst.pdpId(), currentPolicyInAst.configurationId(), currentPolicyInAst.documentId()),
-                        targetHit, null);
-                val currentTargetHit = targetHit; // Final lift for Lambda
+                val                           evalCtx          = ctxView.get(EvaluationContext.class);
+                Coverage.TargetHit            targetHit        = new Coverage.BlankTargetHit();
+                var                           currentMatch     = switch (currentPolicy.targetExpression()) {
+                                                               case Value matchValue                  -> matchValue;
+                                                               case PureOperator pureTargetExpression -> {
+                                                                   val match                 = pureTargetExpression
+                                                                           .evaluate(evalCtx);
+                                                                   val currentTargetLocation = currentPolicyInAst
+                                                                           .target().location();
+                                                                   targetHit = new Coverage.TargetResult(match,
+                                                                           currentTargetLocation);
+                                                                   yield match;
+                                                               }
+                                                               case StreamOperator ignored            ->
+                                                                   Value.error(ERROR_TARGET_WAS_STREAM);
+                                                               };
+                final Coverage.PolicyCoverage policyCoverage   = new Coverage.PolicyCoverage(
+                        currentPolicyInAst.metadata(), targetHit, null);
+                val                           currentTargetHit = targetHit; // Final lift for Lambda
                 return switch (currentMatch) {
-                    // Target FALSE -> evaluate next policy in order
-                    case BooleanValue(var b) when !b -> {
-                        val newCoverage = previousAggregatedCoverage.with(policyCoverage);
-                        yield nextNextPoliciesBodyStreamMap.apply(newCoverage);
-                    }
-                    case BooleanValue trueIgnored ->
-                        currentPolicy.coverageStream().switchMap(currentPoliciesDecisionWithCoverage -> {
-                            val currentPolicyDecision = currentPoliciesDecisionWithCoverage.decision();
-                            val decision = currentPolicyDecision.decision();
-                            val policyCoverageWithHit = currentPoliciesDecisionWithCoverage.coverage().withHit(currentTargetHit);
-                            val currentAggregatedCoverage = previousAggregatedCoverage.with(policyCoverageWithHit);
-                            if (decision == Decision.NOT_APPLICABLE) {
-                                return nextNextPoliciesBodyStreamMap.apply(currentAggregatedCoverage);
-                            }
-                            val setDecision = new PolicySetDecision(currentPolicyDecision.decision(),
-                                    currentPolicyDecision.obligations(), currentPolicyDecision.advice(), currentPolicyDecision.resource(),
-                                    null, policySetMetadata, List.of(currentPolicyDecision));
-                            return Flux.just(new PolicySetDecisionWithCoverage(setDecision, currentAggregatedCoverage));
-                        });
-                    case ErrorValue error -> {
-                        val policyDecision = PolicyDecision.error(error, policyMetadata);
-                        val newCoverage = previousAggregatedCoverage.with(policyCoverage);
-                        val newDecision = PolicySetDecision.error(error, policySetMetadata, List.of(policyDecision));
-                        yield Flux.just(new PolicySetDecisionWithCoverage(newDecision, newCoverage));
-                    }
-                    default -> {
-                        val error = Value.error(ERROR_TARGET_NOT_BOOLEAN);
-                        val policyDecision = PolicyDecision.error(error, policyMetadata);
-                        val newCoverage = previousAggregatedCoverage.with(policyCoverage);
-                        val newDecision = PolicySetDecision.error(error, policySetMetadata, List.of(policyDecision));
-                        yield Flux.just(new PolicySetDecisionWithCoverage(newDecision, newCoverage));
-                    }
+                // Target FALSE -> evaluate next policy in order
+                case BooleanValue(var b) when !b -> {
+                    val newCoverage = previousAggregatedCoverage.with(policyCoverage);
+                    yield nextNextPoliciesBodyStreamMap.apply(newCoverage);
+                }
+                case BooleanValue trueIgnored    ->
+                    currentPolicy.coverageStream().switchMap(currentPoliciesDecisionWithCoverage -> {
+                                                     val currentPolicyDecision     = currentPoliciesDecisionWithCoverage
+                                                             .decision();
+                                                     val decision                  = currentPolicyDecision.decision();
+                                                     val policyCoverageWithHit     = currentPoliciesDecisionWithCoverage
+                                                             .coverage().withHit(currentTargetHit);
+                                                     val currentAggregatedCoverage = previousAggregatedCoverage
+                                                             .with(policyCoverageWithHit);
+                                                     if (decision == Decision.NOT_APPLICABLE) {
+                                                         return nextNextPoliciesBodyStreamMap
+                                                                 .apply(currentAggregatedCoverage);
+                                                     }
+                                                     val setDecision = new PolicySetDecision(
+                                                             currentPolicyDecision.decision(),
+                                                             currentPolicyDecision.obligations(),
+                                                             currentPolicyDecision.advice(),
+                                                             currentPolicyDecision.resource(), null, policySetMetadata,
+                                                             List.of(currentPolicyDecision));
+                                                     return Flux.just(new PolicySetDecisionWithCoverage(setDecision,
+                                                             currentAggregatedCoverage));
+                                                 });
+                case ErrorValue error            -> {
+                    val policyDecision = PolicyDecision.error(error, policyMetadata);
+                    val newCoverage    = previousAggregatedCoverage.with(policyCoverage);
+                    val newDecision    = PolicySetDecision.error(error, policySetMetadata, List.of(policyDecision));
+                    yield Flux.just(new PolicySetDecisionWithCoverage(newDecision, newCoverage));
+                }
+                default                          -> {
+                    val error          = Value.error(ERROR_TARGET_NOT_BOOLEAN);
+                    val policyDecision = PolicyDecision.error(error, policyMetadata);
+                    val newCoverage    = previousAggregatedCoverage.with(policyCoverage);
+                    val newDecision    = PolicySetDecision.error(error, policySetMetadata, List.of(policyDecision));
+                    yield Flux.just(new PolicySetDecisionWithCoverage(newDecision, newCoverage));
+                }
                 };
             });
         }
@@ -141,22 +150,24 @@ public class FirstApplicableCompiler {
         if (policies.stream().anyMatch(p -> p.policyBody() instanceof StreamPolicyBody)) {
             return Optional.empty();
         }
-        return Optional.of(new PureFirstApplicablePolicySetBody(policySetMetadata, targetExpression, policies, policySet));
+        return Optional
+                .of(new PureFirstApplicablePolicySetBody(policySetMetadata, targetExpression, policies, policySet));
     }
 
     record PureFirstApplicablePolicySetBody(
             PolicySetMetadata policySetMetadata,
             CompiledExpression targetExpression,
-            List<CompiledPolicy> policies, PolicySet policySet) implements PurePolicySetBody {
+            List<CompiledPolicy> policies,
+            PolicySet policySet) implements PurePolicySetBody {
         @Override
         public PolicySetDecision evaluateBody(EvaluationContext ctx) {
-            for (var i = 0; i< policies.size(); i++) {
-                val policy = policies.get(i);
-                val policyInAst = policySet.policies().get(i);
-                val policyMetadata = new PolicyMetadata(policyInAst.name(),policyInAst.pdpId(),policyInAst.configurationId(),policyInAst.documentId());
-                val match = evaluateTarget(policy.targetExpression(), ctx);
+            for (var i = 0; i < policies.size(); i++) {
+                val policy         = policies.get(i);
+                val policyInAst    = policySet.policies().get(i);
+                val policyMetadata = policyInAst.metadata();
+                val match          = evaluateTarget(policy.targetExpression(), ctx);
                 if (match instanceof ErrorValue error) {
-                    val policyDecision = PolicyDecision.error(error, policyMetadata );
+                    val policyDecision = PolicyDecision.error(error, policyMetadata);
                     return PolicySetDecision.error(error, policySetMetadata, List.of(policyDecision));
                 } else if (match instanceof BooleanValue(var matches) && matches) {
                     val decision = switch (policy.policyBody()) {
