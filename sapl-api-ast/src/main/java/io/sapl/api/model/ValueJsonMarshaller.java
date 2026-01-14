@@ -184,9 +184,6 @@ public class ValueJsonMarshaller {
     }
 
     private static String formatObject(ObjectValue object, int indent) {
-        if (object.isSecret()) {
-            return "<<SECRET>>";
-        }
         if (object.isEmpty()) {
             return "{}";
         }
@@ -269,15 +266,15 @@ public class ValueJsonMarshaller {
     private static JsonNode toJsonNode(Value value, int depth) {
         checkDepthForMarshalling(depth);
         return switch (value) {
-        case NullValue n                                        -> FACTORY.nullNode();
-        case BooleanValue(boolean b, ValueMetadata ignored)     -> FACTORY.booleanNode(b);
-        case NumberValue(BigDecimal num, ValueMetadata ignored) -> FACTORY.numberNode(num);
-        case TextValue(String text, ValueMetadata ignored)      -> FACTORY.textNode(text);
-        case ArrayValue array                                   -> toJsonArray(array, depth + 1);
-        case ObjectValue object                                 -> toJsonObject(object, depth + 1);
-        case UndefinedValue u                                   ->
+        case NullValue ignored           -> FACTORY.nullNode();
+        case BooleanValue(boolean b)     -> FACTORY.booleanNode(b);
+        case NumberValue(BigDecimal num) -> FACTORY.numberNode(num);
+        case TextValue(String text)      -> FACTORY.textNode(text);
+        case ArrayValue array            -> toJsonArray(array, depth + 1);
+        case ObjectValue object          -> toJsonObject(object, depth + 1);
+        case UndefinedValue ignored      ->
             throw new IllegalArgumentException("Cannot marshall UndefinedValue to JSON.");
-        case ErrorValue e                                       ->
+        case ErrorValue e                ->
             throw new IllegalArgumentException("Cannot marshall ErrorValue to JSON: " + e.message() + ".");
         };
     }

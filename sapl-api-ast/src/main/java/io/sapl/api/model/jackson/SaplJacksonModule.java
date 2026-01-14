@@ -20,15 +20,7 @@ package io.sapl.api.model.jackson;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.TraceLevel;
+import io.sapl.api.pdp.*;
 
 import java.io.Serial;
 
@@ -98,9 +90,6 @@ public class SaplJacksonModule extends SimpleModule {
 
         // CombiningAlgorithm (case-insensitive deserialization)
         addDeserializer(CombiningAlgorithm.class, new CombiningAlgorithmDeserializer());
-
-        // TraceLevel (case-insensitive deserialization)
-        addDeserializer(TraceLevel.class, new TraceLevelDeserializer());
 
         // PDPConfiguration
         addSerializer(PDPConfiguration.class, new PDPConfigurationSerializer());

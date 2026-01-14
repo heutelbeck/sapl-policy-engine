@@ -1,12 +1,11 @@
 set "classified documents"
 first-applicable
 
-for action.java.name == "getDocuments"
-
 policy "Clearance (1/3)"
 permit
 where
-  time.secondOf(<time.now>) < 20; 
+  action.java.name == "getDocuments";
+  time.secondOf(<time.now>) < 20;
 obligation
 	{
 		"type" 		: "filterClassifiedDocuments",
@@ -16,7 +15,8 @@ obligation
 policy "Clearance (2/3)"
 permit
 where
-  time.secondOf(<time.now>) < 40; 
+  action.java.name == "getDocuments";
+  time.secondOf(<time.now>) < 40;
 obligation
 	{
 		"type" 		: "filterClassifiedDocuments",
@@ -25,6 +25,8 @@ obligation
 
 policy "Clearance (3/3)"
 permit
+where
+  action.java.name == "getDocuments";
 obligation
 	{
 		"type" 		: "filterClassifiedDocuments",

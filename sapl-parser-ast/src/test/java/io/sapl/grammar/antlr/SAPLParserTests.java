@@ -67,40 +67,43 @@ class SAPLParserTests {
     static Stream<Arguments> simplePolicies() {
         return Stream.of(arguments("simple write denial", """
                 policy "policy 2"
-                deny action == "write"
+                deny
+                where
+                    action == "write";
                 """), arguments("simple read permit", """
                 policy "policy read"
                 permit
-                    action == "read"
+                where
+                    action == "read";
                 """), arguments("apple eating permit", """
                 policy "policy1"
                 permit
-                    action == "eat"
                 where
+                    action == "eat";
                     resource == "apple";
                 """), arguments("read with variable comparison", """
                 policy "policy read"
                 permit
-                    action == "read"
                 where
+                    action == "read";
                     test == 1;
                 """), arguments("read for subject willi", """
                 policy "policySimple"
                 permit
-                    action == "read"
                 where
+                    action == "read";
                     subject == "willi";
                 """), arguments("deny foo for WILLI", """
                 policy "policy_A"
                 deny
-                    resource == "foo"
                 where
+                    resource == "foo";
                     "WILLI" == subject;
                 """), arguments("permit foo for WILLI", """
                 policy "policy_B"
                 permit
-                    resource == "foo"
                 where
+                    resource == "foo";
                     "WILLI" == subject;
                 """), arguments("empty permit", """
                 policy "test policy"
@@ -108,18 +111,26 @@ class SAPLParserTests {
                 """), arguments("empty deny", """
                 policy "test policy"
                 deny
-                """), arguments("target with regex", """
+                """), arguments("body with regex", """
                 policy "test policy"
-                deny action =~ "some regex"
-                """), arguments("complex boolean target with conjunction", """
+                deny
+                where
+                    action =~ "some regex";
+                """), arguments("complex boolean body with conjunction", """
                 policy "test policy"
-                permit (subject == "aSubject" & target == "aTarget")
-                """), arguments("disjunction target", """
+                permit
+                where
+                    subject == "aSubject" & target == "aTarget";
+                """), arguments("disjunction in body", """
                 policy "test policy"
-                permit ((subject == "aSubject") | (target == "aTarget"))
-                """), arguments("negation in target", """
+                permit
+                where
+                    (subject == "aSubject") | (target == "aTarget");
+                """), arguments("negation in body", """
                 policy "test policy"
-                permit !(subject == "aSubject" | target == "aTarget")
+                permit
+                where
+                    !(subject == "aSubject" | target == "aTarget");
                 """), arguments("variable definition in body", """
                 policy "test policy"
                 permit
@@ -146,8 +157,8 @@ class SAPLParserTests {
                 """
                         policy "policyWithSimpleFunction"
                         permit
-                            action == "read"
                         where
+                            action == "read";
                             time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
                         """));
     }
@@ -167,57 +178,57 @@ class SAPLParserTests {
         return Stream.of(arguments("upper case subject and time PIP", """
                 policy "policy 1"
                 permit
-                    action == "read"
                 where
+                    action == "read";
                     subject.<test.upper> == "WILLI";
                     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
                 """), arguments("upper case subject with variable", """
                 policy "policy 1"
                 permit
-                    action == "read"
                 where
+                    action == "read";
                     subject.<test.upper> == "WILLI";
                     var test = 1;
                     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
                 """), arguments("eat icecream with PIPs", """
                 policy "policy eat icecream"
                 permit
-                    action == "eat" & resource == "icecream"
                 where
+                    action == "eat" & resource == "icecream";
                     subject.<test.upper> == "WILLI";
                     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
                 """), arguments("environment attribute", """
                 policy "policyWithEnvironmentAttribute"
                 permit
-                    action == "write"
                 where
+                    action == "write";
                     <org.emergencyLevel> == 0;
                 """), arguments("simple upper case PIP", """
                 policy "policyWithSimplePIP"
                 permit
-                    action == "read"
                 where
+                    action == "read";
                     subject.<test.upper> == "WILLI";
                 """), arguments("multiple functions and PIPs", """
                 policy "policyWithMultipleFunctionsOrPIPs"
                 permit
-                    action == "read"
                 where
+                    action == "read";
                     subject.<test.upper> == "WILLI";
                     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
                 """), arguments("streaming time attribute", """
                 policy "policyStreaming"
                 permit
-                  resource == "heartBeatData"
                 where
+                  resource == "heartBeatData";
                   subject == "ROLE_DOCTOR";
                   var interval = 2;
                   time.secondOf(<time.now(interval)>) > 4;
                 """), arguments("streaming time attribute variant", """
                 policy "policyStreaming"
                 permit
-                  resource == "bar"
                 where
+                  resource == "bar";
                   subject == "WILLI";
                   var interval = 2;
                   time.secondOf(<time.now(interval)>) >= 4;
@@ -274,17 +285,18 @@ class SAPLParserTests {
                 """), arguments("streaming with obligation A", """
                 policy "policy 1"
                 permit
-                     action == "read"
                 where
+                     action == "read";
                      subject == "WILLI";
-                     time.secondOf(<time.now>) < 20; obligation "A"
+                     time.secondOf(<time.now>) < 20;
+                obligation "A"
                 """),
                 arguments("obligation and transform with blacken",
                         """
                                 policy "policyWithObligationAndResource"
                                 permit
-                                    action.java.name == "findById"
                                 where
+                                    action.java.name == "findById";
                                     "ROLE_ADMIN" in subject..authority;
                                 obligation
                                     {
@@ -371,13 +383,15 @@ class SAPLParserTests {
                 }
                 policy "test"
                 permit
-                """), arguments("schema enforcement with target", """
+                """), arguments("schema enforcement with body", """
                 subject enforced schema {
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
                     "type": "string"
                 }
                 policy "test"
-                permit true
+                permit
+                where
+                    true;
                 """), arguments("multiple schemas", """
                 subject enforced schema {
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -432,13 +446,9 @@ class SAPLParserTests {
                 """), arguments("policy set with deny policy", """
                 set "tests" deny-overrides
                 policy "testp" deny
-                """), arguments("policy set with target mismatch", """
+                """), arguments("policy set with body condition", """
                 set "tests" deny-overrides
-                policy "testp" deny subject == "non-matching"
-                """), arguments("policy set with for clause", """
-                set "tests" deny-overrides
-                for true
-                policy "testp" deny subject == "non-matching"
+                policy "testp" deny where subject == "non-matching";
                 """), arguments("policy set with multiple policies", """
                 set "tests" deny-overrides
                 policy "testp1" permit
@@ -451,7 +461,7 @@ class SAPLParserTests {
                 """), arguments("policy set with set-level variables", """
                 set "tests" deny-overrides
                 var var1 = true;
-                policy "testp1" permit var1 == true
+                policy "testp1" permit where var1 == true;
                 """), arguments("policy set with policy-level variables", """
                 set "tests" deny-overrides
                 var var1 = true;
@@ -463,17 +473,17 @@ class SAPLParserTests {
                 policy "permit policy" permit
                 """), arguments("deny-unless-permit algorithm", """
                 set "test" deny-unless-permit
-                policy "not applicable" permit subject == "non-matching"
+                policy "not applicable" permit where subject == "non-matching";
                 """), arguments("permit-unless-deny algorithm", """
                 set "test" permit-unless-deny
-                policy "not applicable" deny subject == "non-matching"
+                policy "not applicable" deny where subject == "non-matching";
                 """), arguments("only-one-applicable algorithm", """
                 set "test" only-one-applicable
                 policy "permit policy" permit
                 policy "deny policy" deny
                 """), arguments("first-applicable algorithm", """
                 set "test" first-applicable
-                policy "not applicable" permit subject == "non-matching"
+                policy "not applicable" permit where subject == "non-matching";
                 policy "permit policy" permit
                 policy "deny policy" deny
                 """), arguments("policy set with obligation", """
@@ -514,25 +524,27 @@ class SAPLParserTests {
                         """
                                 policy "api_filter_jwt:untrusted_issuer"
                                 deny
-                                    !(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"])
+                                where
+                                    !(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"]);
                                 """),
                 arguments("JWT no authorities denial", """
                         policy "api_filter_jwt:nothing_allow_none"
                         deny
-                            jwt.payload(subject).authorities == []
+                        where
+                            jwt.payload(subject).authorities == [];
                         """), arguments("JWT admin allow all", """
                         policy "api_filter_jwt:admin_allow_all"
                         permit
-                            "ROLE_ADMIN" in jwt.payload(subject).authorities
                         where
+                            "ROLE_ADMIN" in jwt.payload(subject).authorities;
                             "ROLE_ADMIN" in subject.<jwt.payload>.authorities;
                         """), arguments("JWT client blacken print object", """
                         policy "api_filter_jwt:client_blacken_printobject"
                         permit
-                            "GET" == action.method
-                          & action.path.requestPath =~ "^/api/production-plans/.*/print-objects"
-                          & "ROLE_CLIENT" in jwt.payload(subject).authorities
                         where
+                            "GET" == action.method;
+                            action.path.requestPath =~ "^/api/production-plans/.*/print-objects";
+                            "ROLE_CLIENT" in jwt.payload(subject).authorities;
                             "ROLE_CLIENT" in subject.<jwt.payload>.authorities;
                         transform
                             resource |- {@..customerName : blacken}
@@ -555,7 +567,9 @@ class SAPLParserTests {
                 policy "SimplePolicy1"
                 /* Any subject with an e-mail name in the med.example.com
                    domain can perform any action on any resource. */
-                permit subject =~ "(?i).*@med\\\\.example\\\\.com"
+                permit
+                where
+                    subject =~ "(?i).*@med\\\\.example\\\\.com";
                 """), arguments("XACML rule 1 patient read record", """
                 policy "rule_1"
                 /* A person may read any medical record in the
@@ -563,10 +577,10 @@ class SAPLParserTests {
                     for which he or she is the designated patient */
 
                 permit
-                    resource._type == "urn:example:med:schemas:record" &
-                    string.starts_with(resource._selector, "@") &
-                    action == "read"
                 where
+                    resource._type == "urn:example:med:schemas:record";
+                    string.starts_with(resource._selector, "@");
+                    action == "read";
                     subject.role == "patient";
                     subject.patient_number == resource._content.patient.patient_number;
                 """),
@@ -579,10 +593,10 @@ class SAPLParserTests {
                                     and for which the patient is under 16 years of age */
 
                                 permit
-                                    resource._type == "urn:example:med:schemas:record" &
-                                    string.starts_with(resource._selector, "@") &
-                                    action == "read"
                                 where
+                                    resource._type == "urn:example:med:schemas:record";
+                                    string.starts_with(resource._selector, "@");
+                                    action == "read";
                                     subject.role == "parent_guardian";
                                     subject.parent_guardian_id == resource._content.patient.patient_number.<patient.profile>.parentGuardian.id;
                                     date.diff("years", environment.current_date, resource._content.patient.dob) < 16;
@@ -594,10 +608,10 @@ class SAPLParserTests {
                             physician, provided an email is sent to the patient */
 
                         permit
-                            subject.role == "physician" &
-                            string.starts_with(resource._selector, "@.medical") &
-                            action == "write"
                         where
+                            subject.role == "physician";
+                            string.starts_with(resource._selector, "@.medical");
+                            action == "write";
                             subject.physician_id == resource._content.primaryCarePhysician.registrationID;
                         obligation
                             {
@@ -703,7 +717,7 @@ class SAPLParserTests {
                         // Single line comment
                         /* Multi-line comment */
                         policy "comments" // inline comment
-                        permit /* block */ action == "test"
+                        permit /* block */ where action == "test";
                         """),
 
                 // --- Reserved Identifiers as Field Names ---
@@ -856,17 +870,14 @@ class SAPLParserTests {
 
     static Stream<Arguments> syntacticallyValidButSemanticallyInvalidPolicies() {
         return Stream.of(
-                // Lazy operator in target (semantic error, not syntax)
-                arguments("lazy AND in target", "policy \"test\" permit a == b && c == d"),
-                arguments("lazy OR in target", "policy \"test\" permit a == b || c == d"),
-                // Attribute finders in target (semantic error, not syntax)
-                arguments("attribute finder in target", "policy \"test\" permit subject.<pip.test> == \"test\""),
-                arguments("environment attribute in target", "policy \"test\" permit <time.now> != undefined"),
-                // Division by zero in target (runtime error, not syntax)
-                arguments("division by zero in target", "policy \"test\" permit 17 / 0"),
-                // JSON object comparison in target (runtime behavior, not syntax)
-                arguments("JSON object comparison in target",
-                        "policy \"test\" permit { \"key\" : \"value\" } == { \"key\": \"value\" }"));
+                // Attribute finders in schema (semantic error, not syntax)
+                arguments("attribute finder in schema", "subject schema subject.<pip.test> policy \"test\" permit"),
+                arguments("environment attribute in schema", "subject schema <time.now> policy \"test\" permit"),
+                // Division by zero in body (runtime error, not syntax)
+                arguments("division by zero in body", "policy \"test\" permit where 17 / 0;"),
+                // JSON object comparison in body (runtime behavior, not syntax)
+                arguments("JSON object comparison in body",
+                        "policy \"test\" permit where { \"key\" : \"value\" } == { \"key\": \"value\" };"));
     }
 
     @ParameterizedTest(name = "syntactically valid: {0}")

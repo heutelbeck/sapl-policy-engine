@@ -38,8 +38,8 @@ package io.sapl.api.coverage;
  * </ul>
  *
  * @param statementId the 0-based index of the statement in the policy body
- * @param startLine the 1-based source line where this condition starts
- * @param endLine the 1-based source line where this condition ends
+ * @param startLine the 1-based metadata line where this condition starts
+ * @param endLine the 1-based metadata line where this condition ends
  * @param startChar character offset within the start line (0-based)
  * @param endChar character offset within the end line (0-based)
  * @param trueHits count of evaluations resulting in true
@@ -72,7 +72,7 @@ public record BranchHit(
      * Backwards-compatible constructor for legacy code that only has line number.
      *
      * @param statementId the statement index
-     * @param line the source line
+     * @param line the metadata line
      * @param trueHits count of true evaluations
      * @param falseHits count of false evaluations
      */
@@ -94,7 +94,7 @@ public record BranchHit(
      * version).
      *
      * @param statementId the statement index
-     * @param line the source line
+     * @param line the metadata line
      * @param result the evaluation result (true increments trueHits, false
      * increments falseHits)
      * @return a new BranchHit with one hit recorded
@@ -184,7 +184,7 @@ public record BranchHit(
      * Merges another BranchHit into this one by start line only.
      * <p>
      * This method is used when merging coverage from different policies that
-     * share the same source file (e.g., inner policies within a policy set).
+     * share the same metadata file (e.g., inner policies within a policy set).
      * The statementId is ignored since it's only unique within each policy.
      * Position data is preserved from the first hit.
      *

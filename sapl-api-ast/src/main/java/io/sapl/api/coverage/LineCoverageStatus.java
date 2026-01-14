@@ -18,7 +18,7 @@
 package io.sapl.api.coverage;
 
 /**
- * Coverage status for a single source line in a policy document.
+ * Coverage status for a single metadata line in a policy document.
  */
 public enum LineCoverageStatus {
 

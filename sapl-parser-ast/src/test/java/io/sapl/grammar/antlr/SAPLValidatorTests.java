@@ -40,84 +40,6 @@ import io.sapl.grammar.antlr.validation.ValidationError;
  */
 class SAPLValidatorTests {
 
-    // Boolean Operators in Target Expression Tests
-    // Note: Both & and && (| and ||) are now treated identically.
-    // The only restriction in targets is: no attribute finders.
-    // Was illegal in 3.0
-
-    @Test
-    void whenLazyOperatorsInTarget_thenNoValidationError() {
-        // && and || are now allowed in target expressions (aliases for & and |)
-        var policy = """
-                policy "test"
-                permit subject == "admin" && action == "read" || resource == "public"
-                """;
-
-        var errors = validatePolicy(policy);
-        assertThat(errors).as("&& and || are now allowed in target").isEmpty();
-    }
-
-    @Test
-    void whenEagerOperatorsInTarget_thenNoValidationError() {
-        var policy = """
-                policy "test"
-                permit subject == "admin" & action == "read" | resource == "public"
-                """;
-        var errors = validatePolicy(policy);
-        assertThat(errors).as("& and | are allowed in target").isEmpty();
-    }
-
-    @Test
-    void whenMixedOperatorsInTarget_thenNoValidationError() {
-        // Both forms work identically
-        var policy = """
-                policy "test"
-                permit subject == "admin" && action == "read" | resource == "public"
-                """;
-        var errors = validatePolicy(policy);
-        assertThat(errors).as("Mixed && and | are allowed in target").isEmpty();
-    }
-
-    // Attribute Finders in Target Expression Tests
-
-    static Stream<Arguments> attributesInTarget() {
-        return Stream.of(arguments("environment attribute in policy target", """
-                policy "test"
-                permit <time.now> != undefined
-                """), arguments("head environment attribute in policy target", """
-                policy "test"
-                permit |<clock.ticker> != undefined
-                """), arguments("attribute finder step in policy target", """
-                policy "test"
-                permit subject.<pip.attribute> == "value"
-                """), arguments("head attribute finder step in policy target", """
-                policy "test"
-                permit subject.|<pip.stream> == "value"
-                """), arguments("environment attribute in policy set target", """
-                set "test" deny-overrides
-                for <time.now> != undefined
-                policy "p" permit
-                """), arguments("nested attribute in target", """
-                policy "test"
-                permit subject.name == "admin" & resource.<acl.check> == true
-                """), arguments("attribute with arguments in target", """
-                policy "test"
-                permit subject.<pip.lookup("param")> == "value"
-                """), arguments("attribute with options in target", """
-                policy "test"
-                permit subject.<pip.lookup[{"timeout": 5000}]> == "value"
-                """));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("attributesInTarget")
-    void whenAttributeInTarget_thenValidationError(String description, String policy) {
-        var errors = validatePolicy(policy);
-
-        assertThat(errors).as("Should detect attribute in target: %s", description).isNotEmpty()
-                .anyMatch(e -> e.message().contains("Attribute access is forbidden in target"));
-    }
-
     @Test
     void whenAttributeInPolicyBody_thenNoValidationError() {
         var policy = """
@@ -220,10 +142,7 @@ class SAPLValidatorTests {
     static Stream<Arguments> validPolicies() {
         return Stream.of(arguments("simple permit policy", """
                 policy "test" permit
-                """), arguments("policy with eager operator in target", """
-                policy "test"
-                permit subject == "admin" & action == "read" | resource == "public"
-                """), arguments("policy with lazy operator in body", """
+                """), arguments("policy with operators in body", """
                 policy "test"
                 permit
                 where
@@ -237,10 +156,9 @@ class SAPLValidatorTests {
                     subject.<pip.profile>.role == "admin";
                 """), arguments("policy set with valid structure", """
                 set "test" deny-overrides
-                for subject != null
                 var globalVar = "value";
-                policy "p1" permit subject == "admin"
-                policy "p2" deny resource == "secret"
+                policy "p1" permit where subject == "admin";
+                policy "p2" deny where resource == "secret";
                 """), arguments("policy with static schemas", """
                 subject schema { "type": "object" }
                 action enforced schema { "type": "string" }
@@ -254,10 +172,12 @@ class SAPLValidatorTests {
                 subject enforced schema { "type": "object", "required": ["id"] }
 
                 policy "complex"
-                permit subject.role == "admin" & action == "read"
+                permit
                 where
                     var userId = subject.id;
                     userId != null;
+                    subject.role == "admin";
+                    action == "read";
                     <time.now> != undefined;
                     subject.<acl.check(resource.id)> == true;
                 obligation
@@ -277,79 +197,13 @@ class SAPLValidatorTests {
         assertThat(errors).as("Valid policy '%s' should have no validation errors", description).isEmpty();
     }
 
-    // Edge Cases
-
-    @Test
-    void whenMultipleAttributesInTarget_thenAllAreReported() {
-        var policy = """
-                policy "test"
-                permit <time.now> != undefined && subject.<pip.profile> == "admin"
-                """;
-
-        var errors = validatePolicy(policy);
-
-        // Should detect both attribute finders in target
-        assertThat(errors).as("Should report all validation errors").hasSize(2);
-    }
-
-    @Test
-    void whenLazyOperatorDeeplyNestedInTarget_thenNoValidationError() {
-        // && is now allowed in target (alias for &)
-        var policy = """
-                policy "test"
-                permit (((subject == "admin" && action == "read")))
-                """;
-
-        var errors = validatePolicy(policy);
-
-        assertThat(errors).as("&& is allowed in target").isEmpty();
-    }
-
-    @Test
-    void whenAttributeDeeplyNestedInTarget_thenValidationError() {
-        var policy = """
-                policy "test"
-                permit (subject.profile.permissions[0].<acl.check> == true)
-                """;
-
-        var errors = validatePolicy(policy);
-
-        assertThat(errors).isNotEmpty().anyMatch(e -> e.message().contains("Attribute access is forbidden in target"));
-    }
-
-    @Test
-    void whenLazyOperatorInNestedPolicyOfSet_thenNoValidationError() {
-        // && is now allowed in target (alias for &)
-        var policy = """
-                set "test" deny-overrides
-                policy "p1" permit
-                policy "p2" deny subject == "admin" && action == "delete"
-                """;
-
-        var errors = validatePolicy(policy);
-
-        assertThat(errors).as("&& is allowed in nested policy target").isEmpty();
-    }
-
-    @Test
-    void whenAttributeInTargetWithComplexPath_thenValidationError() {
-        var policy = """
-                policy "test"
-                permit subject.roles[0].permissions.<acl.expandPermissions>[*].name == "admin"
-                """;
-
-        var errors = validatePolicy(policy);
-
-        assertThat(errors).isNotEmpty().anyMatch(e -> e.message().contains("Attribute access is forbidden in target"));
-    }
-
     // Validation Error Details Tests
 
     @Test
     void whenValidationError_thenErrorContainsLineAndColumn() {
         var policy = """
-                policy "test"
-                permit <time.now> != undefined
+                subject schema <time.now>
+                policy "test" permit
                 """;
 
         var errors = validatePolicy(policy);
@@ -364,8 +218,8 @@ class SAPLValidatorTests {
     @Test
     void whenValidationError_thenToStringFormatsCorrectly() {
         var policy = """
-                policy "test"
-                permit <time.now> != undefined
+                subject schema <time.now>
+                policy "test" permit
                 """;
 
         var errors = validatePolicy(policy);

@@ -18,7 +18,6 @@
 package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
-import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serial;
@@ -26,24 +25,14 @@ import java.io.Serial;
 /**
  * Null value implementation.
  */
-public record NullValue(@NonNull ValueMetadata metadata) implements Value {
+public record NullValue() implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    /**
-     * Singleton for secret null value.
-     */
-    public static final Value SECRET_NULL = new NullValue(ValueMetadata.SECRET_EMPTY);
-
-    @Override
-    public Value withMetadata(ValueMetadata newMetadata) {
-        return new NullValue(newMetadata);
-    }
-
     @Override
     public @NotNull String toString() {
-        return isSecret() ? SECRET_PLACEHOLDER : "null";
+        return "null";
     }
 
     @Override

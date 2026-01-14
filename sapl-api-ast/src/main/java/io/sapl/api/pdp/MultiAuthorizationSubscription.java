@@ -214,7 +214,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     }
 
     @Override
-    public Iterator<IdentifiableAuthorizationSubscription> iterator() {
+    public @NonNull Iterator<IdentifiableAuthorizationSubscription> iterator() {
         var entryIterator = subscriptions.entrySet().iterator();
         return new Iterator<>() {
             @Override

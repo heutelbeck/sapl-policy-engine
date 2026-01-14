@@ -21,7 +21,6 @@ lexer grammar SAPLLexer;
 IMPORT      : 'import';
 AS          : 'as';
 SET         : 'set';
-FOR         : 'for';
 POLICY      : 'policy';
 PERMIT      : 'permit';
 DENY        : 'deny';

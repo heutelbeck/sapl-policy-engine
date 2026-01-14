@@ -12,7 +12,7 @@ permit-unless-deny
  */
 policy "deny_secret"
 deny
-    action.method == "GET"
-where 
+where
+    action.method == "GET";
     "ROLE_ANONYMOUS" in subject..authority;
     resource.requestedURI == "/secret";

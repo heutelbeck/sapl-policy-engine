@@ -23,31 +23,63 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * Represents a location in SAPL source code with full context for error
+ * Represents a location in SAPL metadata code with full context for error
  * highlighting. Used for error reporting, debugging, and coverage tracking
  * to indicate where in a policy document an expression occurs.
  *
  * @param documentName
  * the name or identifier of the SAPL document (may be null)
  * @param documentSource
- * the full source text of the document (may be null)
+ * the full metadata text of the document (may be null)
  * @param start
  * the start character offset in the document (0-based)
  * @param end
  * the end character offset in the document (exclusive)
  * @param line
  * the start line number (1-based)
+ * @param column
+ * the start column number (1-based)
  * @param endLine
  * the end line number (1-based), same as line for single-line expressions
+ * @param endColumn
+ * the end column number (1-based, exclusive)
  */
-public record SourceLocation(String documentName, String documentSource, int start, int end, int line, int endLine)
-        implements Serializable {
+public record SourceLocation(
+        String documentName,
+        String documentSource,
+        int start,
+        int end,
+        int line,
+        int column,
+        int endLine,
+        int endColumn) implements Serializable {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Returns a human-readable string representation of the source location.
+     * Creates a SourceLocation without column information (for backwards
+     * compatibility).
+     *
+     * @param documentName
+     * the name or identifier of the SAPL document
+     * @param documentSource
+     * the full metadata text of the document
+     * @param start
+     * the start character offset
+     * @param end
+     * the end character offset
+     * @param line
+     * the start line number
+     * @param endLine
+     * the end line number
+     */
+    public SourceLocation(String documentName, String documentSource, int start, int end, int line, int endLine) {
+        this(documentName, documentSource, start, end, line, 0, endLine, 0);
+    }
+
+    /**
+     * Returns a human-readable string representation of the metadata location.
      *
      * @return formatted location string
      */

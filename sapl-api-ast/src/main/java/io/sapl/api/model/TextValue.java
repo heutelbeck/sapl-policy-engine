@@ -27,28 +27,23 @@ import java.util.Objects;
 /**
  * Text value implementation.
  */
-public record TextValue(@NonNull String value, @NonNull ValueMetadata metadata) implements Value {
+public record TextValue(@NonNull String value) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @Override
-    public Value withMetadata(ValueMetadata newMetadata) {
-        return new TextValue(value, newMetadata);
-    }
-
-    @Override
     public @NotNull String toString() {
-        return isSecret() ? SECRET_PLACEHOLDER : "\"" + value + "\"";
+        return "\"" + value + "\"";
     }
 
     @Override
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        if (!(that instanceof TextValue thatText))
+        if (!(that instanceof TextValue(String thatValue)))
             return false;
-        return Objects.equals(value, thatText.value);
+        return Objects.equals(value, thatValue);
     }
 
     @Override

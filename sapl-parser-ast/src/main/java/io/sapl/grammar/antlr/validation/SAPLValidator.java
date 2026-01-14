@@ -43,7 +43,6 @@ import io.sapl.grammar.antlr.SAPLParserBaseListener;
  */
 public class SAPLValidator {
 
-    public static final String VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_TARGET = "Attribute access is forbidden in target expressions.";
     public static final String VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA = "Attribute access is forbidden in schema expressions.";
 
     /**
@@ -74,10 +73,6 @@ public class SAPLValidator {
     }
 
     private void validatePolicy(PolicyContext policy, Consumer<ValidationError> errorConsumer) {
-        if (policy.targetExpression != null) {
-            validateTargetExpression(policy.targetExpression, errorConsumer);
-        }
-
         var body = policy.policyBody();
         if (body != null) {
             for (var statement : body.statements) {
@@ -89,10 +84,6 @@ public class SAPLValidator {
     }
 
     private void validatePolicySet(PolicySetContext policySet, Consumer<ValidationError> errorConsumer) {
-        if (policySet.targetExpression != null) {
-            validateTargetExpression(policySet.targetExpression, errorConsumer);
-        }
-
         policySet.valueDefinition().forEach(valueDef -> validateValueDefinition(valueDef, errorConsumer));
         policySet.policy().forEach(policy -> validatePolicy(policy, errorConsumer));
     }
@@ -102,10 +93,6 @@ public class SAPLValidator {
         for (var schemaExpression : valueDefinition.schemaVarExpression) {
             validateNoAttributes(schemaExpression, VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA, errorConsumer);
         }
-    }
-
-    private void validateTargetExpression(ParserRuleContext expression, Consumer<ValidationError> errorConsumer) {
-        validateNoAttributes(expression, VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_TARGET, errorConsumer);
     }
 
     private void validateNoAttributes(ParserRuleContext expression, String errorMessage,

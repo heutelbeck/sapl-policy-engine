@@ -29,7 +29,6 @@ public record PDPConfiguration(
         String pdpId,
         String configurationId,
         CombiningAlgorithm combiningAlgorithm,
-        TraceLevel traceLevel,
         List<String> saplDocuments,
         Map<String, Value> variables) implements Serializable {
     @Serial

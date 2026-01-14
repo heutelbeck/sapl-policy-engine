@@ -39,7 +39,6 @@ policyElement
 
 policySet
     : SET saplName=STRING combiningAlgorithm
-      (FOR targetExpression=expression)?
       (valueDefinition SEMI)*
       policy+
     ;
@@ -54,7 +53,7 @@ combiningAlgorithm
     ;
 
 policy
-    : POLICY saplName=STRING entitlement targetExpression=expression?
+    : POLICY saplName=STRING entitlement
       policyBody?
       (OBLIGATION obligations+=expression)*
       (ADVICE adviceExpressions+=expression)*

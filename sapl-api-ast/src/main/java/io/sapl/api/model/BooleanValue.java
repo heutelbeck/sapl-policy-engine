@@ -18,7 +18,6 @@
 package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
-import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serial;
@@ -26,36 +25,21 @@ import java.io.Serial;
 /**
  * Boolean value implementation.
  */
-public record BooleanValue(boolean value, @NonNull ValueMetadata metadata) implements Value {
+public record BooleanValue(boolean value) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    /**
-     * Singleton for secret true value.
-     */
-    public static final BooleanValue SECRET_TRUE = new BooleanValue(true, ValueMetadata.SECRET_EMPTY);
-
-    /**
-     * Singleton for secret false value.
-     */
-    public static final BooleanValue SECRET_FALSE = new BooleanValue(false, ValueMetadata.SECRET_EMPTY);
-
-    @Override
-    public Value withMetadata(ValueMetadata newMetadata) {
-        return new BooleanValue(value, newMetadata);
-    }
-
     @Override
     public @NotNull String toString() {
-        return isSecret() ? SECRET_PLACEHOLDER : String.valueOf(value);
+        return String.valueOf(value);
     }
 
     @Override
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        if (!(that instanceof BooleanValue(boolean thatValue, ValueMetadata ignored)))
+        if (!(that instanceof BooleanValue(boolean thatValue)))
             return false;
         return value == thatValue;
     }
