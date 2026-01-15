@@ -17,44 +17,159 @@
  */
 package io.sapl.compiler.combining;
 
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.SourceLocation;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.DecisionMaker;
+import io.sapl.compiler.pdp.PDPDecision;
+import io.sapl.compiler.pdp.PureDecisionMaker;
+import io.sapl.compiler.pdp.StreamDecisionMaker;
 import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.policy.PolicyDecision;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
-import io.sapl.compiler.policyset.CompiledPolicySet;
-import io.sapl.compiler.policyset.PolicySetDecision;
-import io.sapl.compiler.policyset.PolicySetMetadata;
-import io.sapl.compiler.policyset.TargetExpressionCompiler;
+import io.sapl.compiler.policyset.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @UtilityClass
 public class FirstApplicableCompiler {
 
+    public static final String ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET = "No remainingPolicies were found in the policySet";
+    public static final String ERROR_STREAM_IN_PURE_CONTEXT                   = "Stream decision maker in pure context. This indicates an implementation bug in the combining algorithm.";
+
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
         val metadata         = policySet.metadata();
+        val location         = policySet.location();
         val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
                 .toList();
         if (compiledPolicies.isEmpty()) {
-            throw new SaplCompilerException("No policies were found in the policySet", policySet.location());
+            throw new SaplCompilerException(ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET, location);
         }
-        val decisionOnly    = compileDecisionMaker(compiledPolicies, metadata);
-        val schemaValidator = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
-        val isApplicable    = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
-                ctx);
-        return new CompiledPolicySet(isApplicable, decisionOnly, null, Flux.empty(), metadata);
+        val decisionOnly             = compileDecisionMaker(compiledPolicies, metadata, location);
+        val schemaValidator          = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
+        val isApplicable             = TargetExpressionCompiler.compileTargetExpression(policySet.target(),
+                schemaValidator, ctx);
+        val applicabilityAndDecision = ApplicabilityChainCompiler.compileApplicabilityAndDecision(isApplicable,
+                decisionOnly, metadata);
+        return new CompiledPolicySet(isApplicable, decisionOnly, applicabilityAndDecision, Flux.empty(), metadata);
     }
 
-    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> policies, PolicySetMetadata metadata) {
-        val fallbackDecision = PolicySetDecision.notApplicable(metadata, List.of());
-        return null;
+    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> policies, PolicySetMetadata metadata,
+            SourceLocation location) {
+        // 1. Short-circuit: collect static decisions, return first non-NOT_APPLICABLE
+        val contributingDecisions = new ArrayList<PolicyDecision>();
+        int firstNonStatic        = 0;
+        for (var policy : policies) {
+            if (!(policy.applicabilityAndDecision() instanceof PolicyDecision decision)) {
+                break; // non-static, stop short-circuit scan
+            }
+            contributingDecisions.add(decision);
+            if (decision.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
+                return wrapPolicyDecision(decision, contributingDecisions, metadata);
+            }
+            firstNonStatic++;
+        }
+
+        // All remainingPolicies were static NOT_APPLICABLE
+        if (firstNonStatic == policies.size()) {
+            return PolicySetDecision.notApplicable(metadata, contributingDecisions);
+        }
+
+        // Trim leading static NOT_APPLICABLE for remaining evaluation
+        val remainingPolicies = policies.subList(firstNonStatic, policies.size());
+
+        // 2. Check if all remaining remainingPolicies are pure/static (no streams)
+        val allPure = remainingPolicies.stream().map(CompiledPolicy::applicabilityAndDecision)
+                .noneMatch(StreamDecisionMaker.class::isInstance);
+        if (allPure) {
+            return new FirstApplicablePurePolicySet(contributingDecisions, remainingPolicies, metadata, location);
+        }
+
+        // 3. Stream fallback - build reverse chain for lazy evaluation
+        return new FirstApplicableStreamPolicySet(
+                buildReverseChain(remainingPolicies, contributingDecisions, metadata));
     }
 
+    private static Flux<PDPDecision> buildReverseChain(List<CompiledPolicy> policies,
+            List<PolicyDecision> staticDecisions, PolicySetMetadata metadata) {
+        Flux<PDPDecision> chain = Flux.just(PolicySetDecision.notApplicable(metadata, staticDecisions));
+        for (int i = policies.size() - 1; i >= 0; i--) {
+            val policy       = policies.get(i);
+            val continuation = chain;
+            chain = toStream(policy.applicabilityAndDecision(), List.of()).switchMap(decision -> {
+                if (decision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                    return continuation;
+                }
+                val contributingDecisions = new ArrayList<>(staticDecisions);
+                contributingDecisions.add(decision);
+                return Flux.just(wrapPolicyDecision(decision, contributingDecisions, metadata));
+            });
+        }
+        return chain;
+    }
+
+    private static PolicySetDecision wrapPolicyDecision(PolicyDecision decision,
+            List<PolicyDecision> contributingDecisions, PolicySetMetadata metadata) {
+        val authz = decision.authorizationDecision();
+        return PolicySetDecision.decision(authz.decision(), authz.obligations(), authz.advice(), authz.resource(),
+                metadata, contributingDecisions);
+    }
+
+    private static PolicyDecision evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes,
+            EvaluationContext ctx, SourceLocation location) {
+        return switch (policy.applicabilityAndDecision()) {
+        case PDPDecision d               -> (PolicyDecision) d;
+        case PureDecisionMaker p         -> (PolicyDecision) p.decide(priorAttributes, ctx);
+        case StreamDecisionMaker ignored ->
+            PolicyDecision.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.metadata());
+        };
+    }
+
+    private static Flux<PolicyDecision> toStream(DecisionMaker dm, List<AttributeRecord> priorAttributes) {
+        return switch (dm) {
+        case PDPDecision d         -> Flux.just((PolicyDecision) d);
+        case PureDecisionMaker p   -> Flux.deferContextual(ctxView -> {
+                                   val ctx = ctxView.get(EvaluationContext.class);
+                                   return Flux.just((PolicyDecision) p.decide(priorAttributes, ctx));
+                               });
+        case StreamDecisionMaker s -> s.decide(priorAttributes).map(d -> (PolicyDecision) d);
+        };
+    }
+
+    record FirstApplicablePurePolicySet(
+            List<PolicyDecision> staticDecisions,
+            List<CompiledPolicy> policies,
+            PolicySetMetadata metadata,
+            SourceLocation location) implements PureDecisionMaker {
+
+        @Override
+        public PDPDecision decide(List<AttributeRecord> priorAttributes, EvaluationContext ctx) {
+            val allDecisions = new ArrayList<>(staticDecisions);
+            for (var policy : policies) {
+                val decision = evaluatePure(policy, priorAttributes, ctx, location);
+                allDecisions.add(decision);
+                if (decision.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
+                    return wrapPolicyDecision(decision, allDecisions, metadata);
+                }
+            }
+            return PolicySetDecision.notApplicable(metadata, allDecisions);
+        }
+    }
+
+    record FirstApplicableStreamPolicySet(Flux<PDPDecision> chain) implements StreamDecisionMaker {
+        @Override
+        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
+            return chain.map(decision -> ((PolicySetDecision) decision).with(knownContributions));
+        }
+    }
 }

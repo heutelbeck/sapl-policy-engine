@@ -23,5 +23,5 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 public non-sealed interface StreamDecisionMaker extends DecisionMaker {
-    Flux<PDPDecision> decide(List<AttributeRecord> bodyContributions);
+    Flux<PDPDecision> decide(List<AttributeRecord> knownContributions);
 }

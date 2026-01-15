@@ -361,9 +361,9 @@ public class PolicyCompiler {
             PolicyMetadata metadata) implements StreamDecisionMaker {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> bodyContributions) {
+        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
             return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
-                    merged -> buildFromConstraintStreams(merged, decision, bodyContributions, metadata));
+                    merged -> buildFromConstraintStreams(merged, decision, knownContributions, metadata));
         }
     }
 
@@ -410,7 +410,7 @@ public class PolicyCompiler {
             PolicyMetadata metadata) implements StreamDecisionMaker {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> bodyContributions) {
+        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
             return isApplicable.stream().switchMap(tracedApplicability -> {
                 val applicabilityValue = tracedApplicability.value();
                 if (applicabilityValue instanceof ErrorValue error) {
@@ -420,8 +420,8 @@ public class PolicyCompiler {
                     return switch (decisionMaker) {
                     case PDPDecision pd          -> Flux.just(pd);
                     case PureDecisionMaker pdm   -> Flux.deferContextual(
-                            ctxView -> Flux.just(pdm.decide(bodyContributions, ctxView.get(EvaluationContext.class))));
-                    case StreamDecisionMaker sdm -> sdm.decide(bodyContributions);
+                            ctxView -> Flux.just(pdm.decide(knownContributions, ctxView.get(EvaluationContext.class))));
+                    case StreamDecisionMaker sdm -> sdm.decide(knownContributions);
                     };
                 }
                 return Flux.just(PolicyDecision.notApplicable(metadata));
@@ -442,7 +442,7 @@ public class PolicyCompiler {
             PolicyMetadata metadata) implements StreamDecisionMaker {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> bodyContributions) {
+        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
             return Flux.deferContextual(ctxView -> {
                 val ctx                 = ctxView.get(EvaluationContext.class);
                 val applicabilityResult = isApplicable.evaluate(ctx);
@@ -450,7 +450,7 @@ public class PolicyCompiler {
                     return Flux.just(PolicyDecision.error(error, metadata));
                 }
                 if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamDecisionMaker.decide(bodyContributions);
+                    return streamDecisionMaker.decide(knownContributions);
                 }
                 return Flux.just(PolicyDecision.notApplicable(metadata));
             });
