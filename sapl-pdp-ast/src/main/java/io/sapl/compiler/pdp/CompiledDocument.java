@@ -17,7 +17,28 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.model.CompiledExpression;
 
+/**
+ * A compiled SAPL document (policy or policy set) with multiple evaluation
+ * entry points.
+ */
 public interface CompiledDocument {
+
+    /**
+     * @return expression for applicability checking only
+     */
+    CompiledExpression isApplicable();
+
+    /**
+     * @return decision maker assuming applicability (used by PDP after determining
+     * applicability)
+     */
+    DecisionMaker decisionOnly();
+
+    /**
+     * @return decision maker with combined applicability and constraint evaluation
+     * (used by policy sets)
+     */
+    DecisionMaker applicabilityAndDecision();
 }

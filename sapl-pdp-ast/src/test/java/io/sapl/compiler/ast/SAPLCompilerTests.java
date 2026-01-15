@@ -43,12 +43,13 @@ class SAPLCompilerTests {
         assertDoesNotThrow(() -> SAPLCompiler.parse(policyDocument));
     }
 
-    @Test
-    void whenLazyBooleanOperatorsInTarget_thenParsesSuccessfully() {
-        // && and || are now aliases for & and | - allowed in targets
-        var policyDocument = "policy \"test\" permit true && false";
-        assertDoesNotThrow(() -> SAPLCompiler.parse(policyDocument));
-    }
+    // TODO: Target expressions removed from policies - test no longer applicable
+//    @Test
+//    void whenLazyBooleanOperatorsInTarget_thenParsesSuccessfully() {
+//        // && and || are now aliases for & and | - allowed in targets
+//        var policyDocument = "policy \"test\" permit true && false";
+//        assertDoesNotThrow(() -> SAPLCompiler.parse(policyDocument));
+//    }
 
     @Test
     void whenBrokenInputStream_thenThrowsException() throws IOException {
@@ -129,8 +130,9 @@ class SAPLCompilerTests {
                         "import simple.length import simple.append policy \"test\" permit"),
                 arguments("policy with complex expression", """
                         policy "complex"
-                        permit resource.type == "document"
+                        permit
                         where
+                            resource.type == "document";
                             var owner = resource.owner;
                             subject.id == owner;
                         """),

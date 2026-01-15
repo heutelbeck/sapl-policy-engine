@@ -17,12 +17,24 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.compiler.policy.PolicyDecision;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.Value;
+import io.sapl.compiler.pdp.DecisionMetadata;
 
-public non-sealed interface PurePolicySetBody extends PolicySetBody {
-    CompiledExpression targetExpression();
+import java.util.List;
 
-    PolicySetDecision evaluateBody(EvaluationContext ctx);
+/**
+ * Placeholder metadata for policy set decisions. Tracing not yet implemented.
+ */
+public record PolicySetDecisionMetadata() implements DecisionMetadata {
+    @Override
+    public Value error() {
+        return null;
+    }
+
+    @Override
+    public List<AttributeRecord> contributingAttributes() {
+        return List.of();
+    }
+
 }

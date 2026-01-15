@@ -144,12 +144,13 @@ public class PolicyBodyCompiler {
             CompilationContext ctx) {
         val conditions  = new ArrayList<IndexedCompiledCondition>(statements.size());
         var statementId = 0;
-        if (statements.getFirst() instanceof SchemaCondition) {
+        if (!statements.isEmpty() && statements.getFirst() instanceof SchemaCondition) {
             statementId = -1;
         }
         for (Statement statement : statements) {
             switch (statement) {
             case VarDef(var name, var value, var ignored, var location) -> {
+                // Do not add as guard !
                 if (!ctx.addLocalPolicyVariable(name, ExpressionCompiler.compile(value, ctx))) {
                     throw new SaplCompilerException(ERROR_ATTEMPT_TO_REDEFINE_VARIABLE_S.formatted(name), location);
                 }
@@ -158,13 +159,14 @@ public class PolicyBodyCompiler {
                 val conditionExpression = applyBooleanGuard(ExpressionCompiler.compile(expression, ctx), location,
                         ERROR_CONDITION_NON_BOOLEAN);
                 conditions.add(new IndexedCompiledCondition(conditionExpression, statement.location(), statementId));
+                statementId++;
             }
             case SchemaCondition(var schemas, var ignored)              -> {
                 val conditionExpression = SchemaValidatorCompiler.compileValidator(schemas, ctx);
                 conditions.add(new IndexedCompiledCondition(conditionExpression, statement.location(), statementId));
+                statementId++;
             }
             }
-            statementId++;
         }
         return conditions;
     }

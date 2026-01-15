@@ -15,13 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.pdp;
 
 import io.sapl.api.model.AttributeRecord;
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.compiler.policy.PolicyMetadata;
 
 import java.util.List;
 
-public non-sealed interface StreamDecisionMaker extends DecisionMaker {
-    Flux<PolicyDecision> decide(List<AttributeRecord> bodyContributions);
-}
+/**
+ * Metadata for a single policy decision.
+ *
+ * @param source the policy that produced this decision
+ * @param contributingAttributes see
+ * {@link DecisionMetadata#contributingAttributes()}
+ * @param error see {@link DecisionMetadata#error()}
+ */
+public record PolicyDecisionMetadata(
+        PolicyMetadata source,
+        List<AttributeRecord> contributingAttributes,
+        ErrorValue error) implements DecisionMetadata {}

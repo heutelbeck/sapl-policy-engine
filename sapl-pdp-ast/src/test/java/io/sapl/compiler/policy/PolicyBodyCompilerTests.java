@@ -23,6 +23,7 @@ import io.sapl.ast.Statement;
 import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
 import io.sapl.compiler.policy.policybody.TracedPolicyBodyResultAndCoverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -30,6 +31,7 @@ import lombok.val;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
@@ -40,6 +42,7 @@ import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PolicyBodyCompiler")
 class PolicyBodyCompilerTests {
@@ -301,12 +304,21 @@ class PolicyBodyCompilerTests {
         }
 
         static Stream<ErrorTestCase> errorCases() {
-            return Stream.of(ErrorTestCase.simple("VarDef redefinition", "var x = 1; var x = 2;", "redefine", 0),
-                    ErrorTestCase.simple("non-boolean condition", "42;", "boolean", 1),
+            // Note: VarDef redefinition is a compile-time exception, tested separately
+            return Stream.of(ErrorTestCase.simple("non-boolean condition", "42;", "boolean", 1),
                     ErrorTestCase.withVars("pure evaluates to error", "brokenVar;",
                             Map.of("brokenVar", Value.error("intentional")), "intentional", 1),
                     ErrorTestCase.withErrorAttr("stream emits error", "<test.attr>;", "test.attr", "stream failure",
                             "stream failure", 1));
+        }
+
+        @Test
+        @DisplayName("VarDef redefinition throws at compile time")
+        void whenVarDefRedefinition_thenCompileTimeException() {
+            val body    = parsePolicyBody("var x = 1; var x = 2;");
+            val compCtx = compilationContext(ATTRIBUTE_BROKER);
+            assertThatThrownBy(() -> PolicyBodyCompiler.compilePolicyBodyExpression(body, compCtx))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("redefine");
         }
     }
 

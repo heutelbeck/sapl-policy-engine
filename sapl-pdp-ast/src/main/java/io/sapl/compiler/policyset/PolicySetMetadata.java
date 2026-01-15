@@ -18,7 +18,6 @@
 package io.sapl.compiler.policyset;
 
 import io.sapl.ast.CombiningAlgorithm;
-import io.sapl.compiler.ast.DocumentType;
 import lombok.NonNull;
 
 public record PolicySetMetadata(

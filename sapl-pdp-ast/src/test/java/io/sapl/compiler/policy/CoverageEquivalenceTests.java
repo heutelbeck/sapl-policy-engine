@@ -28,7 +28,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.assertCoverageMatchesProduction;
+import static io.sapl.util.SaplTesting.attributeBroker;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("Coverage Path Equivalence")
@@ -38,13 +39,9 @@ class CoverageEquivalenceTests {
             {"subject": "alice", "action": "read", "resource": "document"}
             """;
 
-    // Note: Coverage path does NOT evaluate target expressions (done at PDP/set
-    // level)
-    // So we only test policies where target is TRUE or absent
     static Stream<Arguments> staticPolicies() {
         return Stream.of(arguments("empty permit", "policy \"test\" permit"),
                 arguments("empty deny", "policy \"test\" deny"),
-                arguments("constant true target", "policy \"test\" permit true"),
                 arguments("true body condition", "policy \"test\" permit where true;"),
                 arguments("false body condition", "policy \"test\" permit where false;"));
     }
@@ -61,8 +58,10 @@ class CoverageEquivalenceTests {
         return Stream.of(arguments("pure body matches", "policy \"test\" permit where subject == \"alice\";"),
                 arguments("pure body fails", "policy \"test\" permit where subject == \"bob\";"),
                 arguments("pure target and body (target true)", """
-                        policy "test" permit subject == "alice"
-                        where action == "read";
+                        policy "test" permit
+                        where
+                        subject == "alice";
+                        action == "read";
                         """), arguments("multiple conditions all true", """
                         policy "test" permit
                         where subject == "alice";
@@ -78,8 +77,8 @@ class CoverageEquivalenceTests {
                         """));
     }
 
-    @ParameterizedTest(name = "{0}")
     @MethodSource("purePolicies")
+    @ParameterizedTest(name = "{0}")
     @DisplayName("Pure policies: coverage matches production")
     void purePoliciesCoverageMatches(String name, String policy) {
         assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy);
@@ -132,8 +131,8 @@ class CoverageEquivalenceTests {
                 arguments("short circuit true", "policy \"test\" permit where true || subject.a.b.c;"));
     }
 
-    @ParameterizedTest(name = "{0}")
     @MethodSource("errorCases")
+    @ParameterizedTest(name = "{0}")
     @DisplayName("Error cases: coverage matches production")
     void errorCasesCoverageMatches(String name, String policy) {
         assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy);

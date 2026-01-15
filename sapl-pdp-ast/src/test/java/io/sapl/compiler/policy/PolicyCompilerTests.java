@@ -26,6 +26,9 @@ import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.DecisionMaker;
+import io.sapl.compiler.pdp.PureDecisionMaker;
+import io.sapl.compiler.pdp.StreamDecisionMaker;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -70,8 +73,9 @@ class PolicyCompilerTests {
     }
 
     private static DecisionMaker compileToDecisionMaker(String policySource, CompilationContext ctx) {
-        val policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndDecision();
+        val policy         = parsePolicy(policySource);
+        val compiledPolicy = PolicyCompiler.compilePolicy(policy, ctx);
+        return compiledPolicy.applicabilityAndDecision();
     }
 
     private static EvaluationContext rincewindContext() {
@@ -90,80 +94,61 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("No target yields static PERMIT")
-        void whenNoTarget_thenUnseenUniversityPermitsAll() {
-            val policy   = """
+        void whenNoTarget_thenStaticPermit() {
+            val policy        = """
                     policy "Unseen University Open Door"
                     permit
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) compiled).decision()).isEqualTo(Decision.PERMIT);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
-        @DisplayName("False target yields static NOT_APPLICABLE")
-        void whenTargetIsFalse_thenPatricianPalaceGatesClosed() {
-            val policy   = """
+        @DisplayName("False body yields static NOT_APPLICABLE")
+        void whenBodyIsFalse_thenStaticNotApplicable() {
+            val policy        = """
                     policy "Patrician Palace Sealed"
-                    permit false
+                    permit
+                    where false;
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) compiled).decision()).isEqualTo(Decision.NOT_APPLICABLE);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
-        @DisplayName("True target yields static PERMIT")
-        void whenTargetIsTrue_thenMendedDrumOpen() {
-            val policy   = """
+        @DisplayName("True body yields static PERMIT")
+        void whenBodyIsTrue_thenMendedDrumOpen() {
+            val policy        = """
                     policy "Mended Drum Open Hours"
-                    permit true
+                    permit
+                    where true;
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) compiled).decision()).isEqualTo(Decision.PERMIT);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
-        @DisplayName("Pure target with pure body yields PurePolicyBodyDecisionMaker")
-        void whenPureTargetWithBody_thenWizardGuildCheckProducesPureDocument() {
+        @DisplayName("Pure body yields PureDecisionMaker")
+        void whenPureBody_thenPureDecisionMaker() {
             val policy   = """
                     policy "Wizard Guild Verification"
-                    permit subject.guild == "wizard"
-                    where subject.level > 5;
+                    permit
+                    where subject.guild == "wizard";
+                          subject.level > 5;
                     """;
             val compiled = compileToDecisionMaker(policy);
             assertThat(compiled).isInstanceOf(PureDecisionMaker.class);
         }
 
-        static Stream<Arguments> targetValidationErrorCases() {
-            return Stream.of(arguments("Attribute in target throws SaplCompilerException", """
-                    policy "History Monks Temporal Gate"
-                    permit <time.now> != undefined
-                    """, "time.now", "Attribute access is forbidden in target expressions"),
-                    arguments("Relative accessor in target throws SaplCompilerException", """
-                            policy "Auditor Invalid Query"
-                            permit @.name == "Death"
-                            """, null, "relative value accessor"),
-                    arguments("Static error in target throws SaplCompilerException", """
-                            policy "Hex Malfunction"
-                            permit 1/0 == 0
-                            """, null, "statically evaluates to an error"),
-                    arguments("Non-boolean target throws SaplCompilerException", """
-                            policy "Luggage Confused State"
-                            permit "not a boolean"
-                            """, null, "must evaluate to Boolean"));
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @MethodSource("targetValidationErrorCases")
-        @DisplayName("Target validation errors")
-        void targetValidationErrors(String scenario, String policySource, String attrName, String expectedMessage) {
-            val ctx = attrName != null ? compilationContext(attributeBroker(attrName, Value.of("value")))
-                    : compilationContext(ATTRIBUTE_BROKER);
-            assertThatThrownBy(() -> compileToDecisionMaker(policySource, ctx))
-                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedMessage);
-        }
+        // Note: Target expressions removed from policies - conditions are in where
+        // clause
+        // Static errors in body become INDETERMINATE at compile time
     }
 
     @Nested
@@ -172,51 +157,54 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Empty body permit yields static PERMIT")
-        void whenEmptyBodyPermit_thenCityWatchPatrolApproved() {
-            val policy   = """
+        void whenEmptyBodyPermit_thenStaticPermit() {
+            val policy        = """
                     policy "City Watch Patrol Authorization"
                     permit
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) compiled).decision()).isEqualTo(Decision.PERMIT);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
         @DisplayName("Empty body deny yields static DENY")
         void whenEmptyBodyDeny_thenAssassinsContractDenied() {
-            val policy   = """
+            val policy        = """
                     policy "Assassins Guild Contract Rejection"
                     deny
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) compiled).decision()).isEqualTo(Decision.DENY);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.DENY);
         }
 
         @Test
         @DisplayName("False body yields static NOT_APPLICABLE")
-        void whenBodyFalse_thenThievesGuildMembershipFailed() {
-            val policy   = """
+        void whenBodyFalse_thenStaticNotApplicable() {
+            val policy        = """
                     policy "Thieves Guild Membership Verification"
                     permit
                     where false;
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) compiled).decision()).isEqualTo(Decision.NOT_APPLICABLE);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
-        @DisplayName("Pure body without constraints yields SimplePurePolicyBodyDecisionMaker")
-        void whenPureCondition_thenLibrarianCheckProducesSimplePurePolicy() {
+        @DisplayName("Pure body without constraints yields PureDecisionMaker")
+        void whenPureCondition_thenPureDecisionMaker() {
             val policy   = """
                     policy "Librarian Species Verification"
                     permit
                     where subject.species == "orangutan";
                     """;
             val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyCompiler.SimplePureDecisionMaker.class);
+            assertThat(compiled).isInstanceOf(PureDecisionMaker.class);
         }
 
         @Test
@@ -232,24 +220,18 @@ class PolicyCompilerTests {
             assertThat(compiled).isInstanceOf(StreamDecisionMaker.class);
         }
 
-        static Stream<Arguments> bodyValidationErrorCases() {
-            return Stream.of(arguments("Relative accessor in body throws SaplCompilerException", """
-                    policy "Auditor Invalid Inspection"
-                    permit
-                    where @.valid == true;
-                    """, "relative value accessor"), arguments("Static error in body throws SaplCompilerException", """
+        @Test
+        @DisplayName("Static error in body yields static INDETERMINATE")
+        void whenStaticErrorInBody_thenStaticIndeterminate() {
+            val policy        = """
                     policy "Hex Arithmetic Failure"
                     permit
                     where 1/0 == 0;
-                    """, "statically evaluates to an error"));
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @MethodSource("bodyValidationErrorCases")
-        @DisplayName("Body validation errors")
-        void bodyValidationErrors(String scenario, String policySource, String expectedMessage) {
-            assertThatThrownBy(() -> compileToDecisionMaker(policySource)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining(expectedMessage);
+                    """;
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
         }
     }
 
@@ -261,13 +243,13 @@ class PolicyCompilerTests {
             return Stream.of(
                     // Value stratum only
                     arguments("Value body with value constraints yields AuthorizationDecision",
-                            "permit true obligation \"follow_owner\" advice \"dont_eat_anyone\" transform \"sapient_pearwood\"",
+                            "permit where true; obligation \"follow_owner\" advice \"dont_eat_anyone\" transform \"sapient_pearwood\"",
                             PolicyDecision.class, null),
 
-                    // Pure body, no constraints -> SimplePurePolicyBodyDecisionMaker
-                    arguments("Pure body without constraints yields SimplePurePolicyBodyDecisionMaker",
-                            "permit where subject.hasHeadology == true;", PolicyCompiler.SimplePureDecisionMaker.class,
-                            null),
+                    // Pure body, no constraints -> PureDecisionMaker
+                    // (ApplicabilityCheckingPureDecisionMaker)
+                    arguments("Pure body without constraints yields PureDecisionMaker",
+                            "permit where subject.hasHeadology == true;", PureDecisionMaker.class, null),
 
                     // Value body, Pure obligation -> PurePolicyBodyDecisionMaker
                     arguments("Value body with pure obligation yields PurePolicyBodyDecisionMaker",
@@ -365,54 +347,57 @@ class PolicyCompilerTests {
     class PureDocumentEvaluationTests {
 
         @Test
-        @DisplayName("SimplePurePolicyBodyDecisionMaker evaluates to PERMIT when body condition matches")
-        void whenRincewindFleeing_thenFlightPermitted() {
-            val policy   = """
+        @DisplayName("PureDecisionMaker evaluates to PERMIT when body condition matches")
+        void whenBodyConditionMatches_thenPermit() {
+            val policy        = """
                     policy "Rincewind Emergency Escape Protocol"
                     permit
                     where subject == "Rincewind";
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyCompiler.SimplePureDecisionMaker.class);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PureDecisionMaker.class);
 
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), rincewindContext());
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), rincewindContext());
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
         @DisplayName("SimplePurePolicyBodyDecisionMaker evaluates to NOT_APPLICABLE when body condition fails")
-        void whenNotTwoflower_thenTouristVisaDenied() {
-            val policy   = """
+        void whenBodyConditionFails_thenNotApplicable() {
+            val policy                = """
                     policy "Twoflower Tourist Visa Check"
                     permit
                     where subject == "Twoflower";
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), rincewindContext());
-            assertThat(decision).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) decision).decision()).isEqualTo(Decision.NOT_APPLICABLE);
+            val decisionMaker         = compileToDecisionMaker(policy);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), rincewindContext());
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(pdpDecision).isInstanceOf(PolicyDecision.class);
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
         @DisplayName("Undefined field access in body evaluates to NOT_APPLICABLE")
-        void whenUndefinedFieldAccess_thenLuggageInventoryNotApplicable() {
-            val policy   = """
+        void whenUndefinedFieldAccess_thenNotApplicable() {
+            val policy                = """
                     policy "Luggage Inventory Check"
                     permit
                     where subject.nonexistent.compartment == true;
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), rincewindContext());
-            assertThat(decision.decision()).isEqualTo(Decision.NOT_APPLICABLE);
+            val decisionMaker         = compileToDecisionMaker(policy);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), rincewindContext());
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
         @DisplayName("PurePolicyBodyDecisionMaker evaluates obligation, advice, and transform correctly")
-        void whenVetinariWithConstraints_thenAllEvaluated() {
-            val policy   = """
+        void whenPureConstraints_thenAllEvaluated() {
+            val policy        = """
                     policy "Lord Vetinari Executive Order"
                     permit
                     where subject == "Rincewind";
@@ -420,46 +405,49 @@ class PolicyCompilerTests {
                     advice "avoid_politics"
                     transform "classified"
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PureDecisionMaker.class);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PureDecisionMaker.class);
 
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), rincewindContext());
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), rincewindContext());
+            val authorizationDecision = pdpDecision.authorizationDecision();
 
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.obligations()).isNotNull().isNotEmpty();
-            assertThat(decision.advice()).isNotNull().isNotEmpty();
-            assertThat(decision.resource()).isEqualTo(Value.of("classified"));
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
+            assertThat(authorizationDecision.obligations()).isNotNull().isNotEmpty();
+            assertThat(authorizationDecision.advice()).isNotNull().isNotEmpty();
+            assertThat(authorizationDecision.resource()).isEqualTo(Value.of("classified"));
         }
 
         @Test
         @DisplayName("Deny policy evaluates to DENY when body condition matches")
-        void whenForbiddenSection_thenRincewindDenied() {
-            val policy   = """
+        void whenDenyPolicyBodyMatches_thenDeny() {
+            val policy                = """
                     policy "Forbidden Octavo Section"
                     deny
                     where subject == "Rincewind";
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), rincewindContext());
-            assertThat(decision.decision()).isEqualTo(Decision.DENY);
+            val decisionMaker         = compileToDecisionMaker(policy);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), rincewindContext());
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.DENY);
         }
 
         @Test
         @DisplayName("Single obligation wrapped in array")
         void whenSingleStringObligation_thenWrappedInArray() {
-            val policy   = """
+            val policy                = """
                     policy "Clacks Tower Duty Roster"
                     permit
                     where subject == "Rincewind";
                     obligation "send_overhead"
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), rincewindContext());
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.obligations()).hasSize(1);
+            val decisionMaker         = compileToDecisionMaker(policy);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), rincewindContext());
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
+            assertThat(authorizationDecision.obligations()).hasSize(1);
         }
     }
 
@@ -469,27 +457,32 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("StreamPolicyBodyPolicy emits decisions on attribute state changes")
-        void whenLuggageProximity_thenEmitsOnChanges() {
-            val policy     = """
+        void whenStreamAttribute_thenEmitsOnChanges() {
+            val policy        = """
                     policy "Luggage Proximity Alert"
                     permit
                     where subject.<luggage.nearby> == true;
                     """;
-            val attrBroker = attributeBroker("luggage.nearby", Value.TRUE, Value.FALSE, Value.TRUE);
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
-            assertThat(compiled).isInstanceOf(StreamDecisionMaker.class);
+            val attrBroker    = attributeBroker("luggage.nearby", Value.TRUE, Value.FALSE, Value.TRUE);
+            val ctx           = compilationContext(attrBroker);
+            val decisionMaker = compileToDecisionMaker(policy, ctx);
+            assertThat(decisionMaker).isInstanceOf(StreamDecisionMaker.class);
 
-            val subscription = parseSubscription("""
+            val subscription        = parseSubscription("""
                     {"subject": "Rincewind", "action": "flee", "resource": "Luggage"}
                     """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-            val streamDoc    = (StreamDecisionMaker) compiled;
+            val evalContext         = evaluationContext(subscription, attrBroker);
+            val streamDecisionMaker = (StreamDecisionMaker) decisionMaker;
             StepVerifier
-                    .create(streamDoc.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.NOT_APPLICABLE))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
+                    .create(streamDecisionMaker.decide(List.of())
+                            .contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.PERMIT))
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE))
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.PERMIT))
+                    .verifyComplete();
         }
 
         @Test
@@ -508,16 +501,17 @@ class PolicyCompilerTests {
             val decisions = evaluatePolicy("""
                     {"subject": "Carrot", "action": "patrol", "resource": "Ankh-Morpork"}
                     """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(tad -> {
-                assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
-                assertThat(tad.obligations()).isNotNull().isNotEmpty();
-                assertThat(tad.advice()).isNotNull().isNotEmpty();
+            StepVerifier.create(decisions).assertNext(pdpDecision -> {
+                val authzDecision = pdpDecision.authorizationDecision();
+                assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
+                assertThat(authzDecision.obligations()).isNotNull().isNotEmpty();
+                assertThat(authzDecision.advice()).isNotNull().isNotEmpty();
             }).verifyComplete();
         }
 
         @Test
         @DisplayName("StreamPurePolicyBody evaluates pure constraints per emission")
-        void whenVimesDutyStatus_thenPureConstraintsEvaluatedPerEmission() {
+        void whenStreamBodyPureConstraints_thenConstraintsEvaluatedPerEmission() {
             val policy     = """
                     policy "Commander Vimes Duty Protocol"
                     permit
@@ -530,15 +524,16 @@ class PolicyCompilerTests {
             val decisions = evaluatePolicy("""
                     {"subject": "Vimes", "action": "command", "resource": "City Watch"}
                     """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(tad -> {
-                assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
-                assertThat(tad.obligations()).isNotNull().isNotEmpty();
+            StepVerifier.create(decisions).assertNext(pdpDecision -> {
+                val authzDecision = pdpDecision.authorizationDecision();
+                assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
+                assertThat(authzDecision.obligations()).isNotNull().isNotEmpty();
             }).verifyComplete();
         }
 
         @Test
         @DisplayName("StreamStreamPolicyBodyPolicy combines body and constraint streams")
-        void whenGuildMembership_thenAllStreamsCombined() {
+        void whenStreamBodyAndStreamConstraints_thenAllStreamsCombined() {
             val policy     = """
                     policy "Guild Membership Continuous Verification"
                     permit
@@ -552,9 +547,10 @@ class PolicyCompilerTests {
             val decisions = evaluatePolicy("""
                     {"subject": "Moist", "action": "join", "resource": "Guild"}
                     """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(tad -> {
-                assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
-                assertThat(tad.obligations()).isNotNull().isNotEmpty();
+            StepVerifier.create(decisions).assertNext(pdpDecision -> {
+                val authzDecision = pdpDecision.authorizationDecision();
+                assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
+                assertThat(authzDecision.obligations()).isNotNull().isNotEmpty();
             }).verifyComplete();
         }
 
@@ -571,8 +567,12 @@ class PolicyCompilerTests {
             val decisions = evaluatePolicy("""
                     {"subject": "Visitor", "action": "access", "resource": "Guild Hall"}
                     """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.NOT_APPLICABLE)).verifyComplete();
+            StepVerifier.create(decisions)
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.PERMIT))
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE))
+                    .verifyComplete();
         }
 
         @Test
@@ -589,7 +589,9 @@ class PolicyCompilerTests {
                     {"subject": "operator", "action": "transmit", "resource": "Clacks Tower"}
                     """, policy, attrBroker);
             StepVerifier.create(decisions)
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.INDETERMINATE)).verifyComplete();
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.INDETERMINATE))
+                    .verifyComplete();
         }
     }
 
@@ -625,58 +627,25 @@ class PolicyCompilerTests {
         }
     }
 
-    // TODO: Re-enable after PureDecisionMaker.targetExpression() API is restored
-    // @Nested
-    // @DisplayName("Target Expression Evaluation in Documents")
-    // class TargetExpressionEvaluationTests {
-    //
-    // @Test
-    // @DisplayName("PurePolicyBodyDecisionMaker exposes target expression")
-    // void whenPureTarget_thenAccessibleFromDocument() {
-    // val policy = """
-    // policy "Thieves Guild Membership Check"
-    // permit subject.guild == "thieves"
-    // where subject.level > 1;
-    // """;
-    // val compiled = compileToDecisionMaker(policy);
-    // assertThat(compiled).isInstanceOf(PureDecisionMaker.class);
-    //
-    // val pureDoc = (PureDecisionMaker) compiled;
-    // assertThat(pureDoc.targetExpression()).isNotNull();
-    // }
-    //
-    // @Test
-    // @DisplayName("Constant true target stored as Value.TRUE in document")
-    // void whenConstantTrueTarget_thenStoredAsValueTrue() {
-    // val policy = """
-    // policy "Universal Disc Access"
-    // permit true
-    // where subject == "Rincewind";
-    // """;
-    // val compiled = compileToDecisionMaker(policy);
-    // val pureDoc = (PureDecisionMaker) compiled;
-    // assertThat(pureDoc.targetExpression()).isEqualTo(Value.TRUE);
-    // }
-    // }
-
     @Nested
-    @DisplayName("Discworld Lore-Accurate Scenarios")
-    class DiscworldLoreAccurateScenariosTests {
+    @DisplayName("PureDecisionMaker Runtime Evaluation")
+    class PurePDPDecisionMakerRuntimeEvaluationTests {
 
         @Test
-        @DisplayName("PurePolicyBodyDecisionMaker with target, body, and constraints evaluates correctly")
-        void librarianGrantsBookAccess() {
-            val policy   = """
+        @DisplayName("multiple body conditions with obligation and advice yields PERMIT with constraints")
+        void whenMultipleBodyConditionsMatch_thenPermitWithObligationAndAdvice() {
+            val policy        = """
                     policy "Unseen University Library Access Control"
-                    permit subject.title == "Librarian"
+                    permit
                     where
+                        subject.title == "Librarian";
                         subject.species == "orangutan";
                         subject.hasLibraryCard == true;
                     obligation "stamp_return_date"
                     advice "ook"
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PureDecisionMaker.class);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PureDecisionMaker.class);
 
             val subscription = parseSubscription("""
                     {
@@ -691,25 +660,27 @@ class PolicyCompilerTests {
                     """);
             val ctx          = evaluationContext(subscription);
 
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), ctx);
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.obligations()).isNotEmpty();
-            assertThat(decision.advice()).isNotEmpty();
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), ctx);
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
+            assertThat(authorizationDecision.obligations()).isNotEmpty();
+            assertThat(authorizationDecision.advice()).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Deny policy with target and body evaluates to DENY")
-        void vimesDeniesShadePatrol() {
-            val policy   = """
+        @DisplayName("deny entitlement with matching body conditions yields DENY with advice")
+        void whenDenyPolicyBodyMatches_thenDenyWithAdvice() {
+            val policy        = """
                     policy "City Watch Commander Patrol Restriction"
-                    deny subject.rank == "Commander"
+                    deny
                     where
+                        subject.rank == "Commander";
                         subject.onDuty == true;
                         subject.patrolArea == "Shades";
                     advice "bring_entire_watch"
                     """;
-            val compiled = compileToDecisionMaker(policy);
+            val decisionMaker = compileToDecisionMaker(policy);
 
             val subscription = parseSubscription("""
                     {
@@ -724,14 +695,15 @@ class PolicyCompilerTests {
                     """);
             val ctx          = evaluationContext(subscription);
 
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), ctx);
-            assertThat(decision.decision()).isEqualTo(Decision.DENY);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), ctx);
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.DENY);
         }
 
         @Test
-        @DisplayName("StreamStreamPolicyBodyPolicy with stream body and stream constraints compiles correctly")
-        void assassinsGuildContractMonitoring() {
+        @DisplayName("stream attribute in body with stream obligation compiles to StreamDecisionMaker")
+        void whenStreamBodyAndStreamObligation_thenStreamDecisionMaker() {
             val policy   = """
                     policy "Assassins Guild Active Contract Protocol"
                     permit
@@ -748,16 +720,17 @@ class PolicyCompilerTests {
         }
 
         @Test
-        @DisplayName("PurePolicyBodyDecisionMaker with undefined check in body evaluates correctly")
-        void deathVerifiesDutyAssignment() {
-            val policy   = """
+        @DisplayName("body condition with undefined comparison evaluates correctly")
+        void whenBodyChecksNotUndefined_thenEvaluatesCorrectly() {
+            val policy        = """
                     policy "DEATH Duty Verification Protocol"
-                    permit subject.name == "DEATH"
+                    permit
                     where
+                        subject.name == "DEATH";
                         subject.currentTask != undefined;
                     obligation "update_lifetimers"
                     """;
-            val compiled = compileToDecisionMaker(policy);
+            val decisionMaker = compileToDecisionMaker(policy);
 
             val subscription = parseSubscription("""
                     {
@@ -771,15 +744,16 @@ class PolicyCompilerTests {
                     """);
             val ctx          = evaluationContext(subscription);
 
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), ctx);
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), ctx);
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
-        @DisplayName("PurePolicyBodyDecisionMaker with object transform in applicableDecision")
-        void vetinariSurveillanceAccess() {
-            val policy   = """
+        @DisplayName("object literal transform yields non-undefined resource in decision")
+        void whenObjectLiteralTransform_thenResourceIsObject() {
+            val policy        = """
                     policy "Patrician Surveillance Network Access"
                     permit
                     where
@@ -790,7 +764,7 @@ class PolicyCompilerTests {
                         "clearance": "absolute"
                     }
                     """;
-            val compiled = compileToDecisionMaker(policy);
+            val decisionMaker = compileToDecisionMaker(policy);
 
             val subscription = parseSubscription("""
                     {
@@ -801,10 +775,11 @@ class PolicyCompilerTests {
                     """);
             val ctx          = evaluationContext(subscription);
 
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), ctx);
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.resource()).isNotNull().isNotInstanceOf(UndefinedValue.class);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), ctx);
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
+            assertThat(authorizationDecision.resource()).isNotNull().isNotInstanceOf(UndefinedValue.class);
         }
     }
 
@@ -814,57 +789,60 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Multiple obligations combined into array")
-        void whenMultipleObligations_thenIgorCombinesInArray() {
-            val policy   = """
+        void whenMultipleObligations_thenCombinedInArray() {
+            val policy        = """
                     policy "Igor Medical Procedure Checklist"
                     permit
                     obligation "sterilize_tools"
                     obligation "check_lightning_rod"
                     obligation "prepare_operating_table"
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
 
-            val decision = (PolicyDecision) compiled;
-            assertThat(decision.obligations()).hasSize(3);
+            val pdpDecision           = (PolicyDecision) decisionMaker;
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.obligations()).hasSize(3);
         }
 
         @Test
         @DisplayName("Multiple advice combined into array")
         void whenMultipleAdvice_thenWitchesCombineCorrectly() {
-            val policy   = """
+            val policy        = """
                     policy "Witch Coven Guidance Protocol"
                     permit
                     advice "trust_headology"
                     advice "avoid_cackling"
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
 
-            val decision = (PolicyDecision) compiled;
-            assertThat(decision.advice()).hasSize(2);
+            val pdpDecision           = (PolicyDecision) decisionMaker;
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.advice()).hasSize(2);
         }
 
         @Test
         @DisplayName("Empty body with constraints yields static applicableDecision with obligations")
         void whenEmptyBodyWithConstraints_thenClacksObligationsEvaluated() {
-            val policy   = """
+            val policy        = """
                     policy "Clacks Tower Always-On Protocol"
                     permit
                     obligation "gnu_terry_pratchett"
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
 
-            val decision = (PolicyDecision) compiled;
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.obligations()).isNotEmpty();
+            val pdpDecision           = (PolicyDecision) decisionMaker;
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
+            assertThat(authorizationDecision.obligations()).isNotEmpty();
         }
 
         @Test
         @DisplayName("Complex nested object transform preserved in applicableDecision")
         void whenComplexTransformation_thenCensusDataPreserved() {
-            val policy   = """
+            val policy        = """
                     policy "Ankh-Morpork Census Record"
                     permit
                     transform {
@@ -876,151 +854,163 @@ class PolicyCompilerTests {
                         }
                     }
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
 
-            val decision = (PolicyDecision) compiled;
-            assertThat(decision.resource()).isNotNull().isNotInstanceOf(UndefinedValue.class);
+            val pdpDecision           = (PolicyDecision) decisionMaker;
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.resource()).isNotNull().isNotInstanceOf(UndefinedValue.class);
         }
 
         @Test
         @DisplayName("Boolean short-circuit prevents evaluation error in body")
-        void whenShortCircuit_thenHexOverflowPrevented() {
-            val policy   = """
+        void whenShortCircuit_thenErrorPrevented() {
+            val policy        = """
                     policy "Hex Safety Short-Circuit"
                     permit
                     where
                         false && (1/0 == 0);
                     """;
-            val compiled = compileToDecisionMaker(policy);
-            assertThat(compiled).isInstanceOf(PolicyDecision.class);
-            assertThat(((PolicyDecision) compiled).decision()).isEqualTo(Decision.NOT_APPLICABLE);
+            val decisionMaker = compileToDecisionMaker(policy);
+            assertThat(decisionMaker).isInstanceOf(PolicyDecision.class);
+            val pdpDecision = (PolicyDecision) decisionMaker;
+            assertThat(pdpDecision.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
         @Test
         @DisplayName("Undefined field comparison with undefined evaluates to PERMIT")
         void whenUndefinedField_thenHandledGracefully() {
-            val policy   = """
+            val policy        = """
                     policy "Morporkian Citizen Records"
                     permit
                     where subject.taxRecord == undefined;
                     """;
-            val compiled = compileToDecisionMaker(policy);
+            val decisionMaker = compileToDecisionMaker(policy);
 
             val subscription = parseSubscription("""
                     {"subject": {"name": "Nobby"}, "action": "verify", "resource": "citizenship"}
                     """);
             val ctx          = evaluationContext(subscription);
 
-            val pureDoc  = (PureDecisionMaker) compiled;
-            val decision = pureDoc.decide(List.of(), ctx);
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
+            val pureDecisionMaker     = (PureDecisionMaker) decisionMaker;
+            val pdpDecision           = pureDecisionMaker.decide(List.of(), ctx);
+            val authorizationDecision = pdpDecision.authorizationDecision();
+            assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
         }
     }
 
     @Nested
     @DisplayName("PureStreamPolicyBody Specific Behaviors")
-    class PureStreamDecisionMakerDecisionMakerSpecificBehaviorsTests {
+    class PureStreamDecisionMakerPDPDecisionMakerSpecificBehaviorsTests {
 
         @Test
         @DisplayName("PureStreamPolicyBody evaluates pure body with stream constraints")
         void whenHistoryMonksStreaming_thenPureBodyEvaluated() {
-            val policy     = """
+            val policy        = """
                     policy "History Monks Time Stream Monitoring"
                     permit
                     where subject.name == "Lu-Tze";
                     obligation <temporal.audit>
                     """;
-            val attrBroker = attributeBroker("temporal.audit", Value.of("time_recorded"));
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
-            assertThat(compiled).isInstanceOf(StreamDecisionMaker.class);
+            val attrBroker    = attributeBroker("temporal.audit", Value.of("time_recorded"));
+            val ctx           = compilationContext(attrBroker);
+            val decisionMaker = compileToDecisionMaker(policy, ctx);
+            assertThat(decisionMaker).isInstanceOf(StreamDecisionMaker.class);
 
             val subscription = parseSubscription("""
                     {"subject": {"name": "Lu-Tze"}, "action": "sweep", "resource": "time stream"}
                     """);
             val evalContext  = evaluationContext(subscription, attrBroker);
 
-            val streamDoc = (StreamDecisionMaker) compiled;
+            val streamDecisionMaker = (StreamDecisionMaker) decisionMaker;
             StepVerifier
-                    .create(streamDoc.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
+                    .create(streamDecisionMaker.decide(List.of())
+                            .contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.PERMIT))
+                    .verifyComplete();
         }
 
         @Test
         @DisplayName("PureStreamPolicyBody returns NOT_APPLICABLE when pure body is false")
         void whenPureBodyFalse_thenSusanDenied() {
-            val policy     = """
+            val policy        = """
                     policy "Susan Sto Helit Death Duty Check"
                     permit
                     where subject.name == "DEATH";
                     obligation <death.audit>
                     """;
-            val attrBroker = attributeBroker("death.audit", Value.of("logged"));
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
+            val attrBroker    = attributeBroker("death.audit", Value.of("logged"));
+            val ctx           = compilationContext(attrBroker);
+            val decisionMaker = compileToDecisionMaker(policy, ctx);
 
             val subscription = parseSubscription("""
                     {"subject": {"name": "Susan"}, "action": "substitute", "resource": "Death Duty"}
                     """);
             val evalContext  = evaluationContext(subscription, attrBroker);
 
-            val streamDoc = (StreamDecisionMaker) compiled;
+            val streamDecisionMaker = (StreamDecisionMaker) decisionMaker;
             StepVerifier
-                    .create(streamDoc.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.NOT_APPLICABLE)).verifyComplete();
+                    .create(streamDecisionMaker.decide(List.of())
+                            .contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE))
+                    .verifyComplete();
         }
 
         @Test
         @DisplayName("PureStreamPolicyBody includes pure advice in stream emissions")
         void whenPureAdviceWithStreamObligation_thenLiftedViaPathOfPureToStream() {
-            val policy     = """
+            val policy        = """
                     policy "Granny Weatherwax Mixed Constraint Protocol"
                     permit
                     obligation <coven.audit>
                     advice subject.headologyLevel
                     """;
-            val attrBroker = attributeBroker("coven.audit", Value.of("recorded"));
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
-            assertThat(compiled).isInstanceOf(StreamDecisionMaker.class);
+            val attrBroker    = attributeBroker("coven.audit", Value.of("recorded"));
+            val ctx           = compilationContext(attrBroker);
+            val decisionMaker = compileToDecisionMaker(policy, ctx);
+            assertThat(decisionMaker).isInstanceOf(StreamDecisionMaker.class);
 
             val subscription = parseSubscription("""
                     {"subject": {"headologyLevel": 99}, "action": "use", "resource": "headology"}
                     """);
             val evalContext  = evaluationContext(subscription, attrBroker);
 
-            val streamDoc = (StreamDecisionMaker) compiled;
-            StepVerifier
-                    .create(streamDoc.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> {
-                        assertThat(tad.decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(tad.advice()).contains(Value.of(99));
+            val streamDecisionMaker = (StreamDecisionMaker) decisionMaker;
+            StepVerifier.create(streamDecisionMaker.decide(List.of())
+                    .contextWrite(c -> c.put(EvaluationContext.class, evalContext))).assertNext(pdpDecision -> {
+                        val authzDecision = pdpDecision.authorizationDecision();
+                        assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
+                        assertThat(authzDecision.advice()).contains(Value.of(99));
                     }).verifyComplete();
         }
 
         @Test
         @DisplayName("PureStreamPolicyBody returns INDETERMINATE on pure body evaluation error")
-        void whenPureBodyError_thenRincewindMagicFails() {
-            val policy     = """
+        void whenPureBodyError_thenIndeterminate() {
+            val policy        = """
                     policy "Rincewind Spell Attempt"
                     permit
                     where 1/subject.magicPower == 1;
                     obligation <spell.audit>
                     """;
-            val attrBroker = attributeBroker("spell.audit", Value.of("recorded"));
-            val ctx        = compilationContext(attrBroker);
-            val compiled   = compileToDecisionMaker(policy, ctx);
+            val attrBroker    = attributeBroker("spell.audit", Value.of("recorded"));
+            val ctx           = compilationContext(attrBroker);
+            val decisionMaker = compileToDecisionMaker(policy, ctx);
 
             val subscription = parseSubscription("""
                     {"subject": {"magicPower": 0}, "action": "cast", "resource": "spell"}
                     """);
             val evalContext  = evaluationContext(subscription, attrBroker);
 
-            val streamDoc = (StreamDecisionMaker) compiled;
+            val streamDecisionMaker = (StreamDecisionMaker) decisionMaker;
             StepVerifier
-                    .create(streamDoc.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(tad -> assertThat(tad.decision()).isEqualTo(Decision.INDETERMINATE)).verifyComplete();
+                    .create(streamDecisionMaker.decide(List.of())
+                            .contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+                    .assertNext(pdpDecision -> assertThat(pdpDecision.authorizationDecision().decision())
+                            .isEqualTo(Decision.INDETERMINATE))
+                    .verifyComplete();
         }
     }
 }

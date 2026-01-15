@@ -15,13 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.EvaluationContext;
-
-import java.util.List;
-
-public non-sealed interface PureDecisionMaker extends DecisionMaker {
-    PolicyDecision decide(List<AttributeRecord> bodyContributions, EvaluationContext ctx);
+public sealed interface DecisionMaker permits PDPDecision, PureDecisionMaker, StreamDecisionMaker {
 }

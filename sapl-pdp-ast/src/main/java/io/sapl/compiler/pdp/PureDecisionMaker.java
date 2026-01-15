@@ -15,24 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policyset;
+package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.pdp.PDPDecision;
-import io.sapl.compiler.pdp.PolicyDecisionMetadata;
-import io.sapl.compiler.policy.PolicyDecision;
-import lombok.NonNull;
-import lombok.val;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.EvaluationContext;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public record PolicySetDecision(
-        @NonNull AuthorizationDecision authorizationDecision,
-        PolicySetDecisionMetadata metadata) implements PDPDecision {
-
+public non-sealed interface PureDecisionMaker extends DecisionMaker {
+    PDPDecision decide(List<AttributeRecord> bodyContributions, EvaluationContext ctx);
 }

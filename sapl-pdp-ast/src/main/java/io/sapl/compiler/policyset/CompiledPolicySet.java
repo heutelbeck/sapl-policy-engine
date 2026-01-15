@@ -17,5 +17,14 @@
  */
 package io.sapl.compiler.policyset;
 
-public class CompiledPolicySet {
-}
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.compiler.pdp.CompiledDocument;
+import io.sapl.compiler.pdp.DecisionMaker;
+import reactor.core.publisher.Flux;
+
+public record CompiledPolicySet(
+        CompiledExpression isApplicable,
+        DecisionMaker decisionOnly,
+        DecisionMaker applicabilityAndDecision,
+        Flux<PolicySetDecisionWithCoverage> coverage,
+        PolicySetMetadata metadata) implements CompiledDocument {}

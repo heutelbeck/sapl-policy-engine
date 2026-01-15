@@ -15,7 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policyset;
+package io.sapl.compiler.pdp;
 
-public sealed interface PolicySetBody permits PolicySetDecision, PurePolicySetBody, StreamPolicySetBody {
+import io.sapl.api.pdp.AuthorizationDecision;
+
+/**
+ * A fully evaluated decision from a policy or policy set.
+ */
+public non-sealed interface PDPDecision extends DecisionMaker {
+
+    /**
+     * @return the authorization decision (PERMIT, DENY, INDETERMINATE,
+     * NOT_APPLICABLE) with constraints
+     */
+    AuthorizationDecision authorizationDecision();
+
+    /**
+     * @return tracing metadata (source, contributing attributes, errors)
+     */
+    DecisionMetadata metadata();
 }

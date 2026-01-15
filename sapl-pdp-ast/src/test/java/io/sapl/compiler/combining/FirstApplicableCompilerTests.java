@@ -21,9 +21,8 @@ package io.sapl.compiler.combining;
 // import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.policyset.PolicySetBody;
+import io.sapl.compiler.pdp.PDPDecision;
 import io.sapl.compiler.policyset.PolicySetDecision;
-import io.sapl.compiler.policyset.PurePolicySetBody;
 // TODO: Re-enable after PolicySet refactoring is complete
 // import io.sapl.compiler.policyset.StreamPolicySetBody;
 // import lombok.val;
@@ -54,7 +53,7 @@ class FirstApplicableCompilerTests {
             String policySet,
             String subscription,
             Decision expectedDecision,
-            Class<? extends PolicySetBody> expectedStratum,
+            Class<? extends PolicySetDecision> expectedStratum,
             List<String> contributingPolicies) {
 
         @Override
@@ -129,7 +128,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.DENY, PurePolicySetBody.class, List.of("always-deny")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("always-deny")),
 
                 new PureTestCase("runtime target: first policy matches", """
                         set "watch-duties"
@@ -146,7 +145,7 @@ class FirstApplicableCompilerTests {
                             "action": "patrol",
                             "resource": "city"
                         }
-                        """, Decision.PERMIT, PurePolicySetBody.class, List.of("captain-only")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("captain-only")),
 
                 new PureTestCase("runtime target: second policy matches", """
                         set "watch-duties"
@@ -166,7 +165,7 @@ class FirstApplicableCompilerTests {
                             "action": "patrol",
                             "resource": "city"
                         }
-                        """, Decision.PERMIT, PurePolicySetBody.class, List.of("sergeant-fallback")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("sergeant-fallback")),
 
                 new PureTestCase("runtime target: no policy matches, falls through to default", """
                         set "watch-duties"
@@ -186,7 +185,7 @@ class FirstApplicableCompilerTests {
                             "action": "patrol",
                             "resource": "city"
                         }
-                        """, Decision.DENY, PurePolicySetBody.class, List.of("default-deny")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("default-deny")),
 
                 new PureTestCase("body condition matches", """
                         set "library-access"
@@ -205,7 +204,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "book"
                         }
-                        """, Decision.PERMIT, PurePolicySetBody.class, List.of("wizards-reading")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("wizards-reading")),
 
                 new PureTestCase("target matches but body fails, continues to next policy", """
                         set "library-access"
@@ -224,7 +223,7 @@ class FirstApplicableCompilerTests {
                             "action": "run",
                             "resource": "away"
                         }
-                        """, Decision.DENY, PurePolicySetBody.class, List.of("default-deny")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("default-deny")),
 
                 // --- Policy set variable tests ---
 
@@ -264,7 +263,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.PERMIT, PurePolicySetBody.class, List.of("managers-permit")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("managers-permit")),
 
                 new PureTestCase("set variable: subscription-dependent, condition false", """
                         set "employee-access"
@@ -283,7 +282,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.DENY, PurePolicySetBody.class, List.of("fallback")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("fallback")),
 
                 new PureTestCase("set variable: multiple vars used across policies", """
                         set "multi-var"
@@ -306,7 +305,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": { "department": "engineering" }
                         }
-                        """, Decision.PERMIT, PurePolicySetBody.class, List.of("same-department")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("same-department")),
 
                 new PureTestCase("set variable: used in policy body condition", """
                         set "body-var"
@@ -327,7 +326,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.PERMIT, PurePolicySetBody.class, List.of("level-check")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("level-check")),
 
                 new PureTestCase("set variable: body condition fails, falls through", """
                         set "body-var"
@@ -348,7 +347,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.DENY, PurePolicySetBody.class, List.of("fallback")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("fallback")),
 
                 // --- Error and edge case tests ---
 
@@ -367,7 +366,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.NOT_APPLICABLE, PurePolicySetBody.class, List.of()),
+                        """, Decision.NOT_APPLICABLE, PolicySetDecision.class, List.of()),
 
                 new PureTestCase("error in target expression propagates as INDETERMINATE", """
                         set "error-target"
@@ -384,7 +383,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.INDETERMINATE, PurePolicySetBody.class, List.of("error-policy")),
+                        """, Decision.INDETERMINATE, PolicySetDecision.class, List.of("error-policy")),
 
                 new PureTestCase("short-circuit loop completion: all policies have target=true but body=NOT_APPLICABLE",
                         """
@@ -406,7 +405,7 @@ class FirstApplicableCompilerTests {
                                     "action": "read",
                                     "resource": "data"
                                 }
-                                """, Decision.NOT_APPLICABLE, PurePolicySetBody.class, List.of()));
+                                """, Decision.NOT_APPLICABLE, PolicySetDecision.class, List.of()));
     }
 
     // --- Stream evaluation test cases ---

@@ -15,7 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.pdp;
 
-public sealed interface DecisionMaker permits PolicyDecision, PureDecisionMaker, StreamDecisionMaker {
+import io.sapl.api.model.AttributeRecord;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+
+public non-sealed interface StreamDecisionMaker extends DecisionMaker {
+    Flux<PDPDecision> decide(List<AttributeRecord> bodyContributions);
 }

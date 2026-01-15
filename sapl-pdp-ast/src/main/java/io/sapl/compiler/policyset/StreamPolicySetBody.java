@@ -18,8 +18,6 @@
 package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.policy.PolicyDecision;
 import reactor.core.publisher.Flux;
 
-public record StreamPolicySetBody(CompiledExpression targetExpression, Flux<PolicySetDecision> stream)
-        implements PolicySetBody {}
+public record StreamPolicySetBody(CompiledExpression targetExpression, Flux<PolicySetDecision> stream) {}

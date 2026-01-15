@@ -80,19 +80,20 @@ class SchemaValidatorCompilerTests {
     class CompileValidatorTests {
 
         @Test
-        @DisplayName("when schema list is empty then returns null")
-        void whenEmptySchemaList_thenReturnsNull() {
+        @DisplayName("when schema list is empty then returns CombinedSchemaValidator with empty validators")
+        void whenEmptySchemaList_thenReturnsCombinedSchemaValidatorWithEmptyValidators() {
             val result = compileValidator(List.of(), compilationContext());
-            assertThat(result).isNull();
+            assertThat(result).isInstanceOf(CombinedSchemaValidator.class);
+            assertThat(((CombinedSchemaValidator) result).validators()).isEmpty();
         }
 
         @Test
-        @DisplayName("when only non-enforced schemas then returns null")
-        void whenOnlyNonEnforcedSchemas_thenReturnsNull() {
+        @DisplayName("when only non-enforced schemas then returns CombinedSchemaValidator")
+        void whenOnlyNonEnforcedSchemas_thenReturnsCombinedSchemaValidator() {
             val schemas = List.of(nonEnforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     nonEnforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
-            assertThat(result).isNull();
+            assertThat(result).isInstanceOf(CombinedSchemaValidator.class);
         }
 
         @Test
@@ -113,13 +114,13 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when mixed enforced and non-enforced then only enforced are compiled")
-        void whenMixedEnforcedAndNonEnforced_thenOnlyEnforcedCompiled() {
+        @DisplayName("when mixed enforced and non-enforced then all are compiled into CombinedSchemaValidator")
+        void whenMixedEnforcedAndNonEnforced_thenAllCompiledIntoCombinedSchemaValidator() {
             val schemas = List.of(nonEnforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA),
                     nonEnforcedSchema(SubscriptionElement.RESOURCE, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
-            assertThat(result).isInstanceOf(PrecompiledSchemaValidator.class);
+            assertThat(result).isInstanceOf(CombinedSchemaValidator.class);
         }
     }
 

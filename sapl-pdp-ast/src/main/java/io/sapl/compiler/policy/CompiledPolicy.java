@@ -18,13 +18,24 @@
 package io.sapl.compiler.policy;
 
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.compiler.pdp.CompiledDocument;
+import io.sapl.compiler.pdp.DecisionMaker;
 import reactor.core.publisher.Flux;
 
+/**
+ * A compiled policy extending {@link CompiledDocument} with coverage tracking
+ * and metadata.
+ *
+ * @param isApplicable see {@link CompiledDocument#isApplicable()}
+ * @param decisionOnly see {@link CompiledDocument#decisionOnly()}
+ * @param applicabilityAndDecision see
+ * {@link CompiledDocument#applicabilityAndDecision()}
+ * @param coverage stream emitting decisions with coverage data for testing
+ * @param metadata policy name, location, and entitlement for tracing
+ */
 public record CompiledPolicy(
         CompiledExpression isApplicable,
         DecisionMaker decisionOnly,
         DecisionMaker applicabilityAndDecision,
         Flux<PolicyDecisionWithCoverage> coverage,
-        PolicyMetadata metadata) {
-
-}
+        PolicyMetadata metadata) implements CompiledDocument {}

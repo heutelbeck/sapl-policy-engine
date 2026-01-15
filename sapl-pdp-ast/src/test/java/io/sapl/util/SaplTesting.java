@@ -35,14 +35,13 @@ import io.sapl.compiler.ast.Document;
 import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-// TODO: Re-enable after PolicySet refactoring is complete
-// import io.sapl.compiler.pdp.PDPCompiler;
-import io.sapl.compiler.policy.*;
-// TODO: Re-enable after PolicySet refactoring is complete
-// import io.sapl.compiler.policyset.PolicySetDecision;
-// import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
-// import io.sapl.compiler.policyset.PurePolicySetBody;
-// import io.sapl.compiler.policyset.StreamPolicySetBody;
+import io.sapl.compiler.pdp.DecisionMaker;
+import io.sapl.compiler.pdp.PDPDecision;
+import io.sapl.compiler.pdp.PureDecisionMaker;
+import io.sapl.compiler.pdp.StreamDecisionMaker;
+import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.policy.PolicyDecisionWithCoverage;
 import io.sapl.compiler.util.Stratum;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
@@ -159,16 +158,16 @@ public class SaplTesting {
         return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndDecision();
     }
 
-    public static Flux<PolicyDecision> evaluatePolicy(String subscriptionJson, String policySource) {
+    public static Flux<PDPDecision> evaluatePolicy(String subscriptionJson, String policySource) {
         return evaluatePolicy(subscriptionJson, policySource, ATTRIBUTE_BROKER);
     }
 
-    public static Flux<PolicyDecision> evaluatePolicy(String subscriptionJson, String policySource,
+    public static Flux<PDPDecision> evaluatePolicy(String subscriptionJson, String policySource,
             AttributeBroker attrBroker) {
         return evaluatePolicy(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
     }
 
-    public static Flux<PolicyDecision> evaluatePolicy(String subscriptionJson, String policySource,
+    public static Flux<PDPDecision> evaluatePolicy(String subscriptionJson, String policySource,
             CompilationContext compilationCtx, AttributeBroker attrBroker) {
         var subscription  = parseSubscription(subscriptionJson);
         var compiled      = compilePolicy(policySource, compilationCtx);
@@ -176,9 +175,9 @@ public class SaplTesting {
         return evaluatePolicyDecisionMaker(compiled, evaluationCtx);
     }
 
-    public static Flux<PolicyDecision> evaluatePolicyDecisionMaker(DecisionMaker compiled, EvaluationContext evalCtx) {
+    public static Flux<PDPDecision> evaluatePolicyDecisionMaker(DecisionMaker compiled, EvaluationContext evalCtx) {
         return switch (compiled) {
-        case PolicyDecision decision    -> Flux.just(decision);
+        case PDPDecision decision       -> Flux.just(decision);
         case PureDecisionMaker pure     -> Flux.just(pure.decide(List.of(), evalCtx));
         case StreamDecisionMaker stream ->
             stream.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
@@ -274,9 +273,12 @@ public class SaplTesting {
         }
     }
 
-    private static boolean decisionsEquivalent(PolicyDecision a, PolicyDecision b) {
-        return a.decision() == b.decision() && Objects.equals(a.obligations(), b.obligations())
-                && Objects.equals(a.advice(), b.advice()) && Objects.equals(a.resource(), b.resource());
+    private static boolean decisionsEquivalent(PDPDecision a, PDPDecision b) {
+        var authzA = a.authorizationDecision();
+        var authzB = b.authorizationDecision();
+        return authzA.decision() == authzB.decision() && Objects.equals(authzA.obligations(), authzB.obligations())
+                && Objects.equals(authzA.advice(), authzB.advice())
+                && Objects.equals(authzA.resource(), authzB.resource());
     }
 
     public static CompiledExpression compileExpression(String expressionSource) {
