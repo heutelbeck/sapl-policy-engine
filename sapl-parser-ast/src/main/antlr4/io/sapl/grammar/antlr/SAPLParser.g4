@@ -39,6 +39,7 @@ policyElement
 
 policySet
     : SET saplName=STRING combiningAlgorithm
+      (FOR target=expression)?
       (valueDefinition SEMI)*
       policy+
     ;

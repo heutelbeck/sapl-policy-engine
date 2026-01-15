@@ -15,12 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.policy.policybody;
 
+import io.sapl.api.model.CompiledExpression;
 import reactor.core.publisher.Flux;
 
-public sealed interface StreamPolicyBody extends PolicyBody permits PolicyCompiler.StreamPolicyBodyPolicy,
-        PolicyCompiler.StreamValuePolicyBodyPolicy, PolicyCompiler.StreamPurePolicyBody, PolicyCompiler.PureStreamPolicyBody,
-        PolicyCompiler.StreamStreamPolicyBodyPolicy {
-    Flux<PolicyDecision> stream();
-}
+public record CompiledPolicyBody(
+        CompiledExpression bodyExpression,
+        Flux<TracedPolicyBodyResultAndCoverage> coverageStream) {}

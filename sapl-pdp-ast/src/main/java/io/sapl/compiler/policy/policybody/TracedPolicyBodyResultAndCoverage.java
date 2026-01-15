@@ -15,16 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.pdp;
+package io.sapl.compiler.policy.policybody;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.ast.Entitlement;
-import io.sapl.compiler.policy.*;
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.TracedValue;
+import io.sapl.compiler.model.Coverage;
 
-public record CompiledPolicy(
-        Entitlement entitlement,
-        CompiledPolicyBody policyBody,
-        PolicyCompiler.CompiledConstraints constraints,
-        Flux<PolicyDecisionWithCoverage> coverageStream,
-        PolicyMetadata metadata) implements CompiledDocument {}
+public record TracedPolicyBodyResultAndCoverage(TracedValue value, Coverage.BodyCoverage bodyCoverage) {}

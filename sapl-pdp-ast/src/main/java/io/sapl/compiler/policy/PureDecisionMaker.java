@@ -17,9 +17,11 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.EvaluationContext;
 
-public record CompiledPolicyBody(
-        CompiledExpression bodyExpression,
-        Flux<TracedPolicyBodyResultAndCoverage> coverageStream) {}
+import java.util.List;
+
+public non-sealed interface PureDecisionMaker extends DecisionMaker {
+    PolicyDecision decide(List<AttributeRecord> bodyContributions, EvaluationContext ctx);
+}

@@ -23,6 +23,8 @@ import io.sapl.ast.Statement;
 import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
+import io.sapl.compiler.policy.policybody.TracedPolicyBodyResultAndCoverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
 import org.jspecify.annotations.NonNull;

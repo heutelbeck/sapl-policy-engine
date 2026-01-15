@@ -15,14 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.pdp;
+package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.policyset.PolicySetBody;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
+import io.sapl.api.model.AttributeRecord;
 import reactor.core.publisher.Flux;
 
-public record CompiledPolicySet(
-        CompiledExpression targetExpression,
-        PolicySetBody policies,
-        Flux<PolicySetDecisionWithCoverage> coverageStream) implements CompiledDocument {}
+import java.util.List;
+
+public non-sealed interface StreamDecisionMaker extends DecisionMaker {
+    Flux<PolicyDecision> decide(List<AttributeRecord> bodyContributions);
+}

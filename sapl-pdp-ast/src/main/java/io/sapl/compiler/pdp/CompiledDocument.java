@@ -17,5 +17,7 @@
  */
 package io.sapl.compiler.pdp;
 
-public sealed interface CompiledDocument permits CompiledPolicy, CompiledPolicySet {
+import io.sapl.api.pdp.AuthorizationDecision;
+
+public interface CompiledDocument {
 }

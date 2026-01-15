@@ -21,6 +21,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policyset.PolicySetMetadata;
 import lombok.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ import java.util.List;
  * @param imports import statements, empty list if none
  * @param metadata policy set identification metadata (name, pdpId,
  * configurationId, documentId, combiningAlgorithm)
+ * @param target optional target expression (the 'for' clause), null if none
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
  * @param location metadata location
@@ -37,6 +39,7 @@ import java.util.List;
 public record PolicySet(
         @NonNull List<Import> imports,
         @NonNull PolicySetMetadata metadata,
+        @Nullable Expression target,
         @NonNull List<VarDef> variables,
         @NonNull List<Policy> policies,
         @NonNull SourceLocation location) implements SaplDocument {

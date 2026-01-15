@@ -17,11 +17,5 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
-import io.sapl.compiler.model.Coverage;
-
-import java.util.List;
-
-public record TracedPolicyBodyResultAndCoverage(TracedValue value, Coverage.BodyCoverage bodyCoverage) {}
+public sealed interface DecisionMaker permits PolicyDecision, PureDecisionMaker, StreamDecisionMaker {
+}

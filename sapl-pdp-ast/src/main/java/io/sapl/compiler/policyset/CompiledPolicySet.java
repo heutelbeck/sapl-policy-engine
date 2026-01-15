@@ -15,20 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.EvaluationContext;
-import reactor.core.publisher.Flux;
-
-public sealed interface PolicyBody permits PolicyDecision, PurePolicyBody, StreamPolicyBody {
-
-    default Flux<PolicyDecision> toStream() {
-        return switch (this) {
-        case PolicyDecision policyDecision     -> Flux.just(policyDecision);
-        case PurePolicyBody purePolicyBody     -> Flux.deferContextual(
-                ctxView -> Flux.just(purePolicyBody.evaluateBody(ctxView.get(EvaluationContext.class))));
-        case StreamPolicyBody streamPolicyBody -> streamPolicyBody.stream();
-        };
-    }
-
+public class CompiledPolicySet {
 }

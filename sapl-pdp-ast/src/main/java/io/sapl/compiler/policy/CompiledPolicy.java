@@ -17,9 +17,14 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.CompiledExpression;
+import reactor.core.publisher.Flux;
 
-public sealed interface PurePolicyBody extends PolicyBody
-        permits PolicyCompiler.SimplePurePolicyBodyPolicy, PolicyCompiler.PurePolicyBodyPolicy {
-    PolicyDecision evaluateBody(EvaluationContext ctx);
+public record CompiledPolicy(
+        CompiledExpression isApplicable,
+        DecisionMaker decisionOnly,
+        DecisionMaker applicabilityAndDecision,
+        Flux<PolicyDecisionWithCoverage> coverage,
+        PolicyMetadata metadata) {
+
 }

@@ -35,17 +35,22 @@ public record PolicyDecision(
         @NonNull Value resource,
         Value error,
         PolicyMetadata metadata,
-        List<AttributeRecord> contributingAttributes) implements PolicyBody {
+        List<AttributeRecord> contributingAttributes) implements DecisionMaker {
 
     public static PolicyDecision simpleDecision(Decision decision, PolicyMetadata source) {
-        return new PolicyDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null, source,
-                List.of());
+        return new PolicyDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED,
+                source, List.of());
+    }
+
+    public static PolicyDecision decision(Decision decision, ArrayValue obligations, ArrayValue advice, Value resource,
+            PolicyMetadata metadata) {
+        return new PolicyDecision(decision, obligations, advice, resource, Value.UNDEFINED, metadata, List.of());
     }
 
     public static PolicyDecision tracedSimpleDecision(Decision decision, PolicyMetadata source,
             List<AttributeRecord> contributingAttributes) {
-        return new PolicyDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null, source,
-                contributingAttributes);
+        return new PolicyDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, Value.UNDEFINED,
+                source, contributingAttributes);
     }
 
     public static PolicyDecision error(ErrorValue error, PolicyMetadata source) {
@@ -60,14 +65,14 @@ public record PolicyDecision(
     }
 
     public static PolicyDecision notApplicable(PolicyMetadata source) {
-        return new PolicyDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null,
-                source, List.of());
+        return new PolicyDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                Value.UNDEFINED, source, List.of());
     }
 
     public static PolicyDecision tracedNotApplicable(PolicyMetadata source,
             List<AttributeRecord> contributingAttributes) {
-        return new PolicyDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, null,
-                source, contributingAttributes);
+        return new PolicyDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                Value.UNDEFINED, source, contributingAttributes);
     }
 
     public PolicyDecision with(List<AttributeRecord> moreContributingAttributes) {

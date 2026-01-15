@@ -37,6 +37,7 @@ NULL        : 'null';
 UNDEFINED   : 'undefined';
 IN          : 'in';
 EACH        : 'each';
+FOR         : 'for';
 
 // Reserved Identifiers (also valid as identifiers)
 SUBJECT     : 'subject';

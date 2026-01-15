@@ -79,6 +79,19 @@ public record SourceLocation(
     }
 
     /**
+     * Creates a SourceLocation spanning from the start of the first location to the
+     * end of the second location.
+     *
+     * @param first the starting location
+     * @param last the ending location
+     * @return a new SourceLocation spanning from first to last
+     */
+    public static SourceLocation spanning(SourceLocation first, SourceLocation last) {
+        return new SourceLocation(first.documentName(), first.documentSource(), first.start(), last.end(), first.line(),
+                first.column(), last.endLine(), last.endColumn());
+    }
+
+    /**
      * Returns a human-readable string representation of the metadata location.
      *
      * @return formatted location string

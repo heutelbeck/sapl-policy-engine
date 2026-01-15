@@ -195,6 +195,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var documentId = toDocumentId(name);
         var algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
         var metadata   = new PolicySetMetadata(name, pdpId, configurationId, documentId, algorithm);
+        var target     = ctx.target != null ? expr(ctx.target) : null;
         var variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
 
         // Save document-level imports for the PolicySet
@@ -208,7 +209,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
         this.inPolicySet = false;
 
-        return new PolicySet(policySetImports, metadata, variables, policies, fromContext(ctx));
+        return new PolicySet(policySetImports, metadata, target, variables, policies, fromContext(ctx));
     }
 
     @Override

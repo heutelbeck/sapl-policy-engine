@@ -64,15 +64,15 @@ class SchemaValidatorCompilerTests {
     }
 
     private static SchemaStatement enforcedSchema(SubscriptionElement element, Value schema) {
-        return new SchemaStatement(element, true, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
+        return new SchemaStatement(element, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
     }
 
     private static SchemaStatement enforcedVariableSchema(SubscriptionElement element, String variableName) {
-        return new SchemaStatement(element, true, new Identifier(variableName, TEST_LOCATION), TEST_LOCATION);
+        return new SchemaStatement(element, new Identifier(variableName, TEST_LOCATION), TEST_LOCATION);
     }
 
     private static SchemaStatement nonEnforcedSchema(SubscriptionElement element, Value schema) {
-        return new SchemaStatement(element, false, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
+        return new SchemaStatement(element, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
     }
 
     @Nested

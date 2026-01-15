@@ -19,7 +19,6 @@ package io.sapl.compiler.policy;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.compiler.expressions.ArrayCompiler;
@@ -27,7 +26,8 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.pdp.CompiledPolicy;
+import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
+import io.sapl.compiler.policy.policybody.TracedPolicyBodyResultAndCoverage;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -35,53 +35,110 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.compiler.policy.OperatorLiftUtil.liftToPure;
-import static io.sapl.compiler.policy.OperatorLiftUtil.liftToStream;
-
 @UtilityClass
 public class PolicyCompiler {
 
-    private static final String ERROR_ADVICE_NOT_ARRAY                 = "Unexpected Error: advice must return an array, but I got: %s.";
     private static final String ERROR_ADVICE_STATIC_ERROR              = "Advice expression statically evaluates to an error: %s.";
-    private static final String ERROR_BODY_STATIC_ERROR                = "Policy body statically evaluates to an error: %s.";
     private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR     = "%s contains @ or # outside of proper context.";
-    private static final String ERROR_OBLIGATIONS_NOT_ARRAY            = "Unexpected Error: obligations must return an array, but I got: %s.";
     private static final String ERROR_OBLIGATIONS_STATIC_ERROR         = "Obligation expression statically evaluates to an error: %s.";
     private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR = "Transformation contains @ or # outside of proper context.";
     private static final String ERROR_TRANSFORMATION_STATIC_ERROR      = "Transformation expression statically evaluates to an error: %s.";
-    private static final String ERROR_UNEXPECTED_CONSTRAINT_TYPE       = "Unexpected error: obligations or advice did not evaluate to an Array. Got: obligations=%s and advice=%s. Indicates an implementation bug.";
-
-    private record CompiledPolicyComponents(CompiledPolicyBody body, CompiledConstraints constraints) {}
+    private static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE    = "Unexpected isApplicable type. Indicates implementation bug.";
 
     public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val policyMetadata = policy.metadata();
-        val compiledBody   = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
-        val constraints    = compileConstraints(policy, policy.location(), ctx);
-        val components = new CompiledPolicyComponents(compiledBody, constraints);
-        val coverageStream = assembleDecisionWithCoverage(policy, components, policyMetadata);
-        return new CompiledPolicy(policy.entitlement(), compiledBody, constraints, coverageStream, policyMetadata);
+        val metadata                 = policy.metadata();
+        val compiledBody             = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
+        val isApplicable             = compiledBody.bodyExpression();
+        val decisionMaker            = compileDecisionMaker(policy, metadata, ctx);
+        val coverage                 = assembleDecisionWithCoverage(compiledBody.coverageStream(), decisionMaker,
+                metadata);
+        val applicabilityAndDecision = compileApplicabilityAndDecision(isApplicable, decisionMaker, metadata);
+        return new CompiledPolicy(isApplicable, decisionMaker, applicabilityAndDecision, coverage, metadata);
     }
 
-    private Flux<PolicyDecisionWithCoverage> assembleDecisionWithCoverage(Policy policy,
-            CompiledPolicyComponents components, PolicyMetadata policyMetadata) {
-        val bodyCoverage = components.body().coverageStream();
-        val c            = components.constraints();
-        val decision     = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
-        val location     = policy.location();
-        val isSimple     = policy.obligations().isEmpty() && policy.advice().isEmpty()
-                && policy.transformation() == null;
+    private DecisionMaker compileApplicabilityAndDecision(CompiledExpression isApplicable, DecisionMaker decision,
+            PolicyMetadata metadata) {
+        return switch (isApplicable) {
+        case ErrorValue error           -> PolicyDecision.error(error, metadata);
+        case BooleanValue(var b) when b -> decision;
+        case BooleanValue ignored       -> PolicyDecision.notApplicable(metadata);
+        case PureOperator po            -> PolicyDecision.error(Value.error("Unimplemented"), metadata);
+        case StreamOperator so          -> PolicyDecision.error(Value.error("Unimplemented"), metadata);
+        default                         ->
+            PolicyDecision.error(Value.error(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), metadata);
+        };
+    }
 
-        // Lift all constraints to streams - no optimization needed for coverage path
-        val obligationsStream = liftToStream(c.obligations());
-        val adviceStream      = liftToStream(c.advice());
-        val resourceStream    = liftToStream(c.resource());
+    private static DecisionMaker compileDecisionMaker(Policy policy, PolicyMetadata metadata, CompilationContext ctx) {
+        val constraints = compileConstraints(policy, policy.location(), ctx);
+        val decision    = policy.entitlement().decision();
+        return switch (constraints.nature()) {
+        case CONSTANT -> new PolicyDecision(decision, (ArrayValue) constraints.obligations(),
+                (ArrayValue) constraints.advice(), (Value) constraints.resource(), null, metadata, List.of());
+        case PURE     -> new SimplePureDecisionMaker(decision, constraints.obligations(), constraints.advice(),
+                constraints.resource(), metadata);
+        case STREAM   ->
+            new SimpleStreamDecisionMaker(decision, OperatorLiftUtil.liftToStream(constraints.obligations()),
+                    OperatorLiftUtil.liftToStream(constraints.advice()),
+                    OperatorLiftUtil.liftToStream(constraints.resource()), metadata);
+        };
+    }
 
+    public record SimplePureDecisionMaker(
+            Decision decision,
+            CompiledExpression obligations,
+            CompiledExpression PureOperator,
+            CompiledExpression resource,
+            PolicyMetadata metadata) implements PureDecisionMaker {
+        @Override
+        public PolicyDecision decide(List<AttributeRecord> bodyContributions, EvaluationContext ctx) {
+            val obligationsArray = evaluate(obligations, ctx);
+            if (obligationsArray instanceof ErrorValue error) {
+                return PolicyDecision.error(error, metadata);
+            }
+            val adviceArray = evaluate(obligations, ctx);
+            if (adviceArray instanceof ErrorValue error) {
+                return PolicyDecision.error(error, metadata);
+            }
+            val resourceValue = evaluate(resource, ctx);
+            if (resourceValue instanceof ErrorValue error) {
+                return PolicyDecision.error(error, metadata);
+            }
+            return new PolicyDecision(decision, (ArrayValue) obligationsArray, (ArrayValue) adviceArray, resourceValue,
+                    Value.UNDEFINED, metadata, bodyContributions);
+        }
+
+        private Value evaluate(CompiledExpression expression, EvaluationContext ctx) {
+            if (expression instanceof Value v) {
+                return v;
+            } else {
+                return ((PureOperator) expression).evaluate(ctx);
+            }
+        }
+    }
+
+    public record SimpleStreamDecisionMaker(
+            Decision decision,
+            StreamOperator obligations,
+            StreamOperator advice,
+            StreamOperator resource,
+            PolicyMetadata metadata) implements StreamDecisionMaker {
+        @Override
+        public Flux<PolicyDecision> decide(List<AttributeRecord> bodyContributions) {
+            return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
+                    merged -> buildFromConstraintStreams(merged, decision, bodyContributions, metadata));
+        }
+    }
+
+    private static Flux<PolicyDecisionWithCoverage> assembleDecisionWithCoverage(
+            Flux<TracedPolicyBodyResultAndCoverage> bodyCoverage, DecisionMaker decisionMaker,
+            PolicyMetadata policyMetadata) {
         return bodyCoverage.switchMap(bodyResult -> {
             val bodyValue         = bodyResult.value().value();
             val bodyAttrs         = bodyResult.value().contributingAttributes();
             val bodyConditionHits = bodyResult.bodyCoverage();
-
+            val policyCoverage    = new Coverage.PolicyCoverage(policyMetadata, bodyConditionHits);
             if (bodyValue instanceof ErrorValue error) {
                 return Flux.just(withCoverage(PolicyDecision.tracedError(error, policyMetadata, bodyAttrs),
                         policyMetadata, bodyConditionHits));
@@ -90,16 +147,13 @@ public class PolicyCompiler {
                 return Flux.just(withCoverage(PolicyDecision.tracedNotApplicable(policyMetadata, bodyAttrs),
                         policyMetadata, bodyConditionHits));
             }
-            if (isSimple) {
-                return Flux.just(withCoverage(PolicyDecision.tracedSimpleDecision(decision, policyMetadata, bodyAttrs),
-                        policyMetadata, bodyConditionHits));
-            }
-
-            // Body is TRUE - combine constraint streams
-            return Flux.combineLatest(obligationsStream.stream(), adviceStream.stream(), resourceStream.stream(),
-                    merged -> withCoverage(
-                            buildFromConstraintStreams(merged, decision, bodyAttrs, location, policyMetadata),
-                            policyMetadata, bodyConditionHits));
+            return switch (decisionMaker) {
+            case PolicyDecision pd       -> Flux.just(new PolicyDecisionWithCoverage(pd, policyCoverage));
+            case PureDecisionMaker pdm   -> Flux.deferContextual(ctxView -> Flux.just(new PolicyDecisionWithCoverage(
+                    pdm.decide(bodyAttrs, ctxView.get(EvaluationContext.class)), policyCoverage)));
+            case StreamDecisionMaker sdm -> sdm.decide(bodyAttrs)
+                    .map(policyDecision -> new PolicyDecisionWithCoverage(policyDecision, policyCoverage));
+            };
         });
     }
 
@@ -107,84 +161,6 @@ public class PolicyCompiler {
             Coverage.BodyCoverage bodyCoverage) {
         val policyCoverage = new Coverage.PolicyCoverage(decisionSource, bodyCoverage);
         return new PolicyDecisionWithCoverage(decision, policyCoverage);
-    }
-
-    private static PolicyBody compileConstraintsAndTransform(Policy policy, CompiledPolicyComponents components,
-            CompiledExpression compiledBody, PolicyMetadata policyMetadata) {
-        if (compiledBody instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_BODY_STATIC_ERROR.formatted(error), policy.body().location());
-        }
-        if (Value.FALSE.equals(compiledBody)) {
-            return PolicyDecision.notApplicable(policyMetadata);
-        }
-
-        val location = policy.location();
-        val decision = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
-        val isSimple = policy.obligations().isEmpty() && policy.advice().isEmpty() && policy.transformation() == null;
-        val c        = components.constraints();
-
-        if (isSimple && compiledBody instanceof PureOperator pureBody) {
-            return new SimplePurePolicyBodyPolicy(PolicyDecision.simpleDecision(decision, policyMetadata),
-                    PolicyDecision.notApplicable(policyMetadata), pureBody, policyMetadata);
-        }
-
-        if (c.obligations() instanceof StreamOperator || c.advice() instanceof StreamOperator
-                || c.resource() instanceof StreamOperator) {
-            val pureBody = liftToPure(compiledBody, location);
-            return new PureStreamPolicyBody(decision, pureBody, liftToStream(c.obligations()),
-                    liftToStream(c.advice()), liftToStream(c.resource()), location, policyMetadata);
-        }
-
-        if (compiledBody instanceof PureOperator || c.obligations() instanceof PureOperator
-                || c.advice() instanceof PureOperator || c.resource() instanceof PureOperator) {
-            return new PurePolicyBodyPolicy(decision, compiledBody, c.obligations(), c.advice(),
-                    c.resource(), location, policyMetadata);
-        }
-
-        // Here compiledBody must be Value.TRUE, and obligations/advice must be
-        // ArrayValue
-        if (!(c.obligations() instanceof ArrayValue) || !(c.advice() instanceof ArrayValue)) {
-            throw new SaplCompilerException(ERROR_UNEXPECTED_CONSTRAINT_TYPE.formatted(c.obligations(), c.advice()),
-                    location);
-        }
-        return new PolicyDecision(decision, (ArrayValue) c.obligations(), (ArrayValue) c.advice(), (Value) c.resource(),
-                null, policyMetadata, List.of());
-    }
-
-    private static PolicyBody compileStreamPolicyConstraints(Policy policy, CompiledPolicyComponents components,
-            StreamOperator streamBody, PolicyMetadata policyMetadata) {
-        val location         = policy.location();
-        val decision         = policy.entitlement() == Entitlement.PERMIT ? Decision.PERMIT : Decision.DENY;
-        val isSimple         = policy.obligations().isEmpty() && policy.advice().isEmpty()
-                && policy.transformation() == null;
-        val c                = components.constraints();
-
-        if (isSimple) {
-            return new StreamPolicyBodyPolicy(decision, streamBody, policyMetadata);
-        }
-
-        // Determine highest stratum and lift all constraints to it
-        boolean hasStream = c.obligations() instanceof StreamOperator || c.advice() instanceof StreamOperator
-                || c.resource() instanceof StreamOperator;
-        boolean hasPure   = c.obligations() instanceof PureOperator || c.advice() instanceof PureOperator
-                || c.resource() instanceof PureOperator;
-
-        if (hasStream) {
-            return new StreamStreamPolicyBodyPolicy(decision, streamBody, liftToStream(c.obligations()),
-                    liftToStream(c.advice()), liftToStream(c.resource()), location, policyMetadata);
-        }
-        if (hasPure) {
-            return new StreamPurePolicyBody(decision, streamBody,
-                    liftToPure(c.obligations(), location), liftToPure(c.advice(), location),
-                    liftToPure(c.resource(), location), location, policyMetadata);
-        }
-        // All constraints are Values
-        if (!(c.obligations() instanceof ArrayValue) || !(c.advice() instanceof ArrayValue)) {
-            throw new SaplCompilerException(ERROR_UNEXPECTED_CONSTRAINT_TYPE.formatted(c.obligations(), c.advice()),
-                    location);
-        }
-        return new StreamValuePolicyBodyPolicy(decision, streamBody, (ArrayValue) c.obligations(),
-                (ArrayValue) c.advice(), (Value) c.resource(), policyMetadata);
     }
 
     private static CompiledExpression compileConstraintArray(List<Expression> expressions, SourceLocation location,
@@ -197,7 +173,14 @@ public class PolicyCompiler {
         return ExpressionCompiler.fold(result, ctx);
     }
 
+    public enum Nature {
+        CONSTANT,
+        PURE,
+        STREAM
+    }
+
     public record CompiledConstraints(
+            Nature nature,
             CompiledExpression obligations,
             CompiledExpression advice,
             CompiledExpression resource) {}
@@ -220,11 +203,19 @@ public class PolicyCompiler {
         if (resource instanceof PureOperator po && !po.isDependingOnSubscription()) {
             throw new SaplCompilerException(ERROR_TRANSFORMATION_RELATIVE_ACCESSOR, location);
         }
-        return new CompiledConstraints(obligations, advice, ExpressionCompiler.fold(resource, ctx));
+        var nature = Nature.CONSTANT;
+        if (obligations instanceof StreamOperator || advice instanceof StreamOperator
+                || resource instanceof StreamOperator) {
+            nature = Nature.STREAM;
+        } else if (obligations instanceof PureOperator || advice instanceof PureOperator
+                || resource instanceof PureOperator) {
+            nature = Nature.PURE;
+        }
+        return new CompiledConstraints(nature, obligations, advice, ExpressionCompiler.fold(resource, ctx));
     }
 
     private static PolicyDecision buildFromConstraintStreams(Object[] merged, Decision decision,
-            List<AttributeRecord> baseAttributes, SourceLocation location, PolicyMetadata policyMetadata) {
+            List<AttributeRecord> baseAttributes, PolicyMetadata policyMetadata) {
         val tracedObligationsValue = (TracedValue) merged[0];
         val obligationsValue       = tracedObligationsValue.value();
         val contributingAttributes = new ArrayList<>(baseAttributes);
@@ -232,20 +223,11 @@ public class PolicyCompiler {
         if (obligationsValue instanceof ErrorValue error) {
             return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
         }
-        if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
-            return PolicyDecision.tracedError(
-                    Value.errorAt(location, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)), policyMetadata,
-                    contributingAttributes);
-        }
         val tracedAdviceValue = (TracedValue) merged[1];
         val adviceValue       = tracedAdviceValue.value();
         contributingAttributes.addAll(tracedAdviceValue.contributingAttributes());
         if (adviceValue instanceof ErrorValue error) {
             return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
-        }
-        if (!(adviceValue instanceof ArrayValue adviceArray)) {
-            return PolicyDecision.tracedError(Value.errorAt(location, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)),
-                    policyMetadata, contributingAttributes);
         }
         val tracedResourceValue = (TracedValue) merged[2];
         val resourceValue       = tracedResourceValue.value();
@@ -253,218 +235,7 @@ public class PolicyCompiler {
         if (resourceValue instanceof ErrorValue error) {
             return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
         }
-        return new PolicyDecision(decision, obligationsArray, adviceArray, resourceValue, Value.UNDEFINED,
-                policyMetadata, contributingAttributes);
+        return new PolicyDecision(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue, resourceValue,
+                Value.UNDEFINED, policyMetadata, contributingAttributes);
     }
-
-    record StreamPolicyBodyPolicy(
-            Decision decision,
-            StreamOperator body,
-            PolicyMetadata policyMetadata) implements StreamPolicyBody {
-        @Override
-        public Flux<PolicyDecision> stream() {
-            return body.stream().map(tracedBodyValue -> {
-                val bodyValue              = tracedBodyValue.value();
-                val contributingAttributes = tracedBodyValue.contributingAttributes();
-                if (bodyValue instanceof ErrorValue error) {
-                    return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
-                }
-                if (Value.FALSE.equals(bodyValue)) {
-                    return PolicyDecision.tracedNotApplicable(policyMetadata, contributingAttributes);
-                }
-                return PolicyDecision.tracedSimpleDecision(decision, policyMetadata, contributingAttributes);
-            });
-        }
-    }
-
-    record StreamValuePolicyBodyPolicy(
-            Decision decision,
-            StreamOperator body,
-            ArrayValue obligations,
-            ArrayValue advice,
-            Value resource,
-            PolicyMetadata policyMetadata) implements StreamPolicyBody {
-        @Override
-        public Flux<PolicyDecision> stream() {
-            return body.stream().map(tracedBodyValue -> {
-                val bodyValue              = tracedBodyValue.value();
-                val contributingAttributes = tracedBodyValue.contributingAttributes();
-                if (bodyValue instanceof ErrorValue error) {
-                    return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
-                }
-                if (Value.FALSE.equals(bodyValue)) {
-                    return PolicyDecision.tracedNotApplicable(policyMetadata, contributingAttributes);
-                }
-                return new PolicyDecision(decision, obligations, advice, resource, Value.UNDEFINED, policyMetadata,
-                        contributingAttributes);
-            });
-        }
-    }
-
-    record StreamPurePolicyBody(
-            Decision decision,
-            StreamOperator body,
-            PureOperator obligations,
-            PureOperator advice,
-            PureOperator resource,
-            SourceLocation policyLocation,
-            PolicyMetadata policyMetadata) implements StreamPolicyBody {
-        @Override
-        public Flux<PolicyDecision> stream() {
-            return body.stream().switchMap(tracedBodyValue -> {
-                val bodyValue              = tracedBodyValue.value();
-                val contributingAttributes = tracedBodyValue.contributingAttributes();
-                if (bodyValue instanceof ErrorValue error) {
-                    return Flux.just(PolicyDecision.tracedError(error, policyMetadata, contributingAttributes));
-                }
-                if (Value.FALSE.equals(bodyValue)) {
-                    return Flux.just(PolicyDecision.tracedNotApplicable(policyMetadata, contributingAttributes));
-                }
-                return Flux
-                        .deferContextual(
-                                ctxView -> evaluateConstraints(ctxView.get(EvaluationContext.class), policyMetadata))
-                        .map(d -> d.with(contributingAttributes));
-            });
-        }
-
-        private Flux<PolicyDecision> evaluateConstraints(EvaluationContext evalCtx, PolicyMetadata policyMetadata) {
-            val obligationsValue = obligations.evaluate(evalCtx);
-            if (obligationsValue instanceof ErrorValue error) {
-                return Flux.just(PolicyDecision.error(error, policyMetadata));
-            }
-            if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
-                return Flux.just(PolicyDecision.error(
-                        Value.errorAt(policyLocation, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)),
-                        policyMetadata));
-            }
-            val adviceValue = advice.evaluate(evalCtx);
-            if (adviceValue instanceof ErrorValue error) {
-                return Flux.just(PolicyDecision.error(error, policyMetadata));
-            }
-            if (!(adviceValue instanceof ArrayValue adviceArray)) {
-                return Flux.just(PolicyDecision.error(
-                        Value.errorAt(policyLocation, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)), policyMetadata));
-            }
-            val resourceValue = resource.evaluate(evalCtx);
-            if (resourceValue instanceof ErrorValue error) {
-                return Flux.just(PolicyDecision.error(error, policyMetadata));
-            }
-            return Flux.just(new PolicyDecision(decision, obligationsArray, adviceArray, resourceValue, null,
-                    policyMetadata, null));
-        }
-    }
-
-    record PureStreamPolicyBody(
-            Decision decision,
-            PureOperator body,
-            StreamOperator obligations,
-            StreamOperator advice,
-            StreamOperator resource,
-            SourceLocation policyLocation,
-            PolicyMetadata policyMetadata) implements StreamPolicyBody {
-        @Override
-        public Flux<PolicyDecision> stream() {
-            return Flux.deferContextual(ctxView -> {
-                val evalCtx   = ctxView.get(EvaluationContext.class);
-                val bodyValue = body.evaluate(evalCtx);
-                if (bodyValue instanceof ErrorValue error) {
-                    return Flux.just(PolicyDecision.error(error, policyMetadata));
-                }
-                if (Value.FALSE.equals(bodyValue)) {
-                    return Flux.just(PolicyDecision.notApplicable(policyMetadata));
-                }
-                return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
-                        merged -> buildFromConstraintStreams(merged, decision, List.of(), policyLocation,
-                                policyMetadata));
-            });
-        }
-    }
-
-    record StreamStreamPolicyBodyPolicy(
-            Decision decision,
-            StreamOperator body,
-            StreamOperator obligations,
-            StreamOperator advice,
-            StreamOperator resource,
-            SourceLocation policyLocation,
-            PolicyMetadata policyMetadata) implements StreamPolicyBody {
-        @Override
-        public Flux<PolicyDecision> stream() {
-            return body.stream().switchMap(tracedBodyValue -> {
-                val bodyValue      = tracedBodyValue.value();
-                val bodyAttributes = tracedBodyValue.contributingAttributes();
-                if (bodyValue instanceof ErrorValue error) {
-                    return Flux.just(PolicyDecision.tracedError(error, policyMetadata, bodyAttributes));
-                }
-                if (Value.FALSE.equals(bodyValue)) {
-                    return Flux.just(PolicyDecision.tracedNotApplicable(policyMetadata, bodyAttributes));
-                }
-                return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
-                        merged -> buildFromConstraintStreams(merged, decision, bodyAttributes, policyLocation,
-                                policyMetadata));
-            });
-        }
-    }
-
-    record SimplePurePolicyBodyPolicy(
-            PolicyDecision applicableDecision,
-            PolicyDecision notApplicableDecision,
-            PureOperator body,
-            PolicyMetadata policyMetadata) implements PurePolicyBody {
-        @Override
-        public PolicyDecision evaluateBody(EvaluationContext ctx) {
-            val bodyValue = body.evaluate(ctx);
-            if (bodyValue instanceof ErrorValue error) {
-                return PolicyDecision.error(error, policyMetadata);
-            }
-            if (Value.FALSE.equals(bodyValue)) {
-                return notApplicableDecision;
-            }
-            return applicableDecision;
-        }
-    }
-
-    record PurePolicyBodyPolicy(
-            Decision decision,
-            CompiledExpression body,
-            CompiledExpression obligations,
-            CompiledExpression advice,
-            CompiledExpression resource,
-            SourceLocation policyLocation,
-            PolicyMetadata policyMetadata) implements PurePolicyBody {
-        @Override
-        public PolicyDecision evaluateBody(EvaluationContext ctx) {
-            val bodyValue = body instanceof Value vb ? vb : ((PureOperator) body).evaluate(ctx);
-            if (bodyValue instanceof ErrorValue error) {
-                return PolicyDecision.error(error, policyMetadata);
-            }
-            if (Value.FALSE.equals(bodyValue)) {
-                return PolicyDecision.notApplicable(policyMetadata);
-            }
-            val obligationsValue = obligations instanceof Value vb ? vb : ((PureOperator) obligations).evaluate(ctx);
-            if (obligationsValue instanceof ErrorValue error) {
-                return PolicyDecision.error(error, policyMetadata);
-            }
-            if (!(obligationsValue instanceof ArrayValue obligationsArray)) {
-                return PolicyDecision.error(
-                        Value.errorAt(policyLocation, ERROR_OBLIGATIONS_NOT_ARRAY.formatted(obligationsValue)),
-                        policyMetadata);
-            }
-            val adviceValue = advice instanceof Value vb ? vb : ((PureOperator) advice).evaluate(ctx);
-            if (adviceValue instanceof ErrorValue error) {
-                return PolicyDecision.error(error, policyMetadata);
-            }
-            if (!(adviceValue instanceof ArrayValue adviceArray)) {
-                return PolicyDecision.error(
-                        Value.errorAt(policyLocation, ERROR_ADVICE_NOT_ARRAY.formatted(adviceValue)), policyMetadata);
-            }
-            val resourceValue = resource instanceof Value vb ? vb : ((PureOperator) resource).evaluate(ctx);
-            if (resourceValue instanceof ErrorValue error) {
-                return PolicyDecision.error(error, policyMetadata);
-            }
-            return new PolicyDecision(decision, obligationsArray, adviceArray, resourceValue, Value.UNDEFINED,
-                    policyMetadata, List.of());
-        }
-    }
-
 }

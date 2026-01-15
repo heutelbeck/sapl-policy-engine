@@ -17,11 +17,9 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VarDef;
-import io.sapl.compiler.ast.DocumentType;
 import io.sapl.compiler.combining.DenyOverridesCompiler;
 import io.sapl.compiler.combining.DenyUnlessPermitCompiler;
 import io.sapl.compiler.combining.FirstApplicableCompiler;
@@ -31,9 +29,7 @@ import io.sapl.compiler.combining.PermitUnlessDenyCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.CompiledPolicySet;
 import io.sapl.compiler.policy.PolicyCompiler;
-import io.sapl.compiler.targetexpression.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -43,30 +39,18 @@ public class PolicySetCompiler {
     public static final String ERROR_NO_POLICIES           = "Policy sets must contain at least one policy";
     public static final String ERROR_VARIABLE_REDEFINITION = "Redefinition of variable %s not permitted.";
 
-    public static CompiledPolicySet compilePolicySet(PolicySet policySet, PureOperator schemaValidator,
-            CompilationContext ctx) {
+    public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
         compilePolicySetVariables(policySet, ctx);
-        val compiledTarget    = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
-                ctx);
-        val policySetMetadata = policySet.metadata();
-        val policies          = policySet.policies().stream().map(p -> PolicyCompiler.compilePolicy(p, null, ctx))
-                .toList();
-        if (policies.isEmpty()) {
+        if (policySet.policies().isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
         }
-        return switch (policySetMetadata.combiningAlgorithm()) {
-        case DENY_OVERRIDES      ->
-            DenyOverridesCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
-        case DENY_UNLESS_PERMIT  ->
-            DenyUnlessPermitCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
-        case FIRST_APPLICABLE    ->
-            FirstApplicableCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies);
-        case ONLY_ONE_APPLICABLE ->
-            OnlyOneApplicableCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
-        case PERMIT_OVERRIDES    ->
-            PermitOverridesCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
-        case PERMIT_UNLESS_DENY  ->
-            PermitUnlessDenyCompiler.compilePolicySet(policySet, compiledTarget, policySetMetadata, policies, ctx);
+        return switch (policySet.algorithm()) {
+        case DENY_OVERRIDES      -> DenyOverridesCompiler.compilePolicySet(policySet, ctx);
+        case DENY_UNLESS_PERMIT  -> DenyUnlessPermitCompiler.compilePolicySet(policySet, ctx);
+        case FIRST_APPLICABLE    -> FirstApplicableCompiler.compilePolicySet(policySet, ctx);
+        case ONLY_ONE_APPLICABLE -> OnlyOneApplicableCompiler.compilePolicySet(policySet, ctx);
+        case PERMIT_OVERRIDES    -> PermitOverridesCompiler.compilePolicySet(policySet, ctx);
+        case PERMIT_UNLESS_DENY  -> PermitUnlessDenyCompiler.compilePolicySet(policySet, ctx);
         };
     }
 

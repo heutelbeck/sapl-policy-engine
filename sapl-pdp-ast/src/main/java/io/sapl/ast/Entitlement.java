@@ -17,10 +17,19 @@
  */
 package io.sapl.ast;
 
+import io.sapl.api.pdp.Decision;
+
 /**
  * Policy entitlement: the decision returned when the policy matches.
  */
 public enum Entitlement {
     PERMIT,
-    DENY
+    DENY;
+
+    public Decision decision() {
+        return switch (this) {
+        case PERMIT -> Decision.PERMIT;
+        case DENY   -> Decision.DENY;
+        };
+    }
 }
