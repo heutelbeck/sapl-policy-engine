@@ -42,6 +42,10 @@ import io.sapl.compiler.pdp.StreamDecisionMaker;
 import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.PolicyDecisionWithCoverage;
+import io.sapl.compiler.policyset.CompiledPolicySet;
+import io.sapl.compiler.policyset.PolicySetCompiler;
+import io.sapl.compiler.policyset.PolicySetDecision;
+import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
 import io.sapl.compiler.util.Stratum;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
@@ -184,42 +188,36 @@ public class SaplTesting {
         };
     }
 
-    // TODO: Re-enable after PolicySet refactoring is complete
-    // public static CompiledPolicySet compilePolicySet(String source) {
-    // var document = document(source);
-    // var compiled = PDPCompiler.compileDocument(document, compilationContext());
-    // assertThat(compiled).isInstanceOf(CompiledPolicySet.class);
-    // return (CompiledPolicySet) compiled;
-    // }
-    //
-    // public static CompiledPolicySet compilePolicySet(String source,
-    // AttributeBroker attrBroker) {
-    // var document = document(source);
-    // var compiled = PDPCompiler.compileDocument(document,
-    // compilationContext(attrBroker));
-    // assertThat(compiled).isInstanceOf(CompiledPolicySet.class);
-    // return (CompiledPolicySet) compiled;
-    // }
-    //
-    // public static PolicySetDecision evaluatePolicySet(CompiledPolicySet compiled,
-    // EvaluationContext ctx) {
-    // var body = compiled.policies();
-    // return switch (body) {
-    // case PolicySetDecision decision -> decision;
-    // case PurePolicySetBody pure -> pure.evaluateBody(ctx);
-    // case StreamPolicySetBody stream ->
-    // stream.stream().contextWrite(ctxView -> ctxView.put(EvaluationContext.class,
-    // ctx)).blockFirst();
-    // };
-    // }
-    //
-    // public static PolicySetDecisionWithCoverage
-    // evaluatePolicySetWithCoverage(CompiledPolicySet compiled,
-    // EvaluationContext ctx) {
-    // return compiled.coverageStream().contextWrite(ctxView ->
-    // ctxView.put(EvaluationContext.class, ctx))
-    // .blockFirst();
-    // }
+    public static CompiledPolicySet compilePolicySet(String source) {
+        return compilePolicySet(source, compilationContext());
+    }
+
+    public static CompiledPolicySet compilePolicySet(String source, AttributeBroker attrBroker) {
+        return compilePolicySet(source, compilationContext(attrBroker));
+    }
+
+    public static CompiledPolicySet compilePolicySet(String source, CompilationContext ctx) {
+        var document = document(source);
+        if (!(document instanceof io.sapl.ast.PolicySet policySet)) {
+            throw new IllegalArgumentException("Expected a policy set document");
+        }
+        return PolicySetCompiler.compilePolicySet(policySet, ctx);
+    }
+
+    public static PolicySetDecision evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
+        var decisionMaker = compiled.applicabilityAndDecision();
+        return (PolicySetDecision) switch (decisionMaker) {
+        case PDPDecision decision       -> decision;
+        case PureDecisionMaker pure     -> pure.decide(List.of(), ctx);
+        case StreamDecisionMaker stream ->
+            stream.decide(List.of()).contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+        };
+    }
+
+    public static PolicySetDecisionWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled,
+            EvaluationContext ctx) {
+        return compiled.coverage().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+    }
 
     public static CompiledPolicy compilePolicyFull(String policySource) {
         return compilePolicyFull(policySource, compilationContext());

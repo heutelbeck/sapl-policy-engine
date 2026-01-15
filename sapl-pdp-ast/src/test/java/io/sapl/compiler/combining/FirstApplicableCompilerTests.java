@@ -17,29 +17,25 @@
  */
 package io.sapl.compiler.combining;
 
-// TODO: Re-enable after PolicySet refactoring is complete
-// import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.pdp.PDPDecision;
+import io.sapl.compiler.pdp.StreamDecisionMaker;
 import io.sapl.compiler.policyset.PolicySetDecision;
-// TODO: Re-enable after PolicySet refactoring is complete
-// import io.sapl.compiler.policyset.StreamPolicySetBody;
-// import lombok.val;
+import lombok.val;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
-// TODO: Re-enable after PolicySet refactoring is complete
-// import org.junit.jupiter.params.ParameterizedTest;
-// import org.junit.jupiter.params.provider.MethodSource;
-// import reactor.test.StepVerifier;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-// TODO: Re-enable after PolicySet refactoring is complete
-// import static io.sapl.util.SaplTesting.*;
-// import static org.assertj.core.api.Assertions.assertThat;
+import static io.sapl.util.SaplTesting.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for FirstApplicableCompiler covering short-circuit optimization,
@@ -111,14 +107,16 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.DENY, PolicySetDecision.class, List.of("fallback-deny")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("body-not-applicable", "fallback-deny")),
 
                 new PureTestCase("first policy target false, second applies", """
                         set "guild-access"
                         first-applicable
 
                         policy "never-matches"
-                        permit false
+                        permit
+                        where
+                          false;
 
                         policy "always-deny"
                         deny
@@ -128,14 +126,16 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.DENY, PolicySetDecision.class, List.of("always-deny")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("never-matches", "always-deny")),
 
                 new PureTestCase("runtime target: first policy matches", """
                         set "watch-duties"
                         first-applicable
 
                         policy "captain-only"
-                        permit subject == "Vimes"
+                        permit
+                        where
+                          subject == "Vimes";
 
                         policy "default-deny"
                         deny
@@ -152,10 +152,14 @@ class FirstApplicableCompilerTests {
                         first-applicable
 
                         policy "captain-only"
-                        permit subject == "Vimes"
+                        permit
+                        where
+                          subject == "Vimes";
 
                         policy "sergeant-fallback"
-                        permit subject == "Colon"
+                        permit
+                        where
+                          subject == "Colon";
 
                         policy "default-deny"
                         deny
@@ -165,17 +169,21 @@ class FirstApplicableCompilerTests {
                             "action": "patrol",
                             "resource": "city"
                         }
-                        """, Decision.PERMIT, PolicySetDecision.class, List.of("sergeant-fallback")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("captain-only", "sergeant-fallback")),
 
                 new PureTestCase("runtime target: no policy matches, falls through to default", """
                         set "watch-duties"
                         first-applicable
 
                         policy "captain-only"
-                        permit subject == "Vimes"
+                        permit
+                        where
+                          subject == "Vimes";
 
                         policy "sergeant-fallback"
-                        permit subject == "Colon"
+                        permit
+                        where
+                          subject == "Colon";
 
                         policy "default-deny"
                         deny
@@ -185,15 +193,17 @@ class FirstApplicableCompilerTests {
                             "action": "patrol",
                             "resource": "city"
                         }
-                        """, Decision.DENY, PolicySetDecision.class, List.of("default-deny")),
+                        """, Decision.DENY, PolicySetDecision.class,
+                        List.of("captain-only", "sergeant-fallback", "default-deny")),
 
                 new PureTestCase("body condition matches", """
                         set "library-access"
                         first-applicable
 
                         policy "wizards-reading"
-                        permit subject == "Rincewind"
+                        permit
                         where
+                          subject == "Rincewind";
                           action == "read";
 
                         policy "default-deny"
@@ -211,8 +221,9 @@ class FirstApplicableCompilerTests {
                         first-applicable
 
                         policy "wizards-reading"
-                        permit subject == "Rincewind"
+                        permit
                         where
+                          subject == "Rincewind";
                           action == "read";
 
                         policy "default-deny"
@@ -223,7 +234,7 @@ class FirstApplicableCompilerTests {
                             "action": "run",
                             "resource": "away"
                         }
-                        """, Decision.DENY, PolicySetDecision.class, List.of("default-deny")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("wizards-reading", "default-deny")),
 
                 // --- Policy set variable tests ---
 
@@ -234,7 +245,9 @@ class FirstApplicableCompilerTests {
                         var allowed = true;
 
                         policy "check-allowed"
-                        permit allowed
+                        permit
+                        where
+                          allowed;
 
                         policy "fallback"
                         deny
@@ -253,7 +266,9 @@ class FirstApplicableCompilerTests {
                         var isManager = subject.role == "manager";
 
                         policy "managers-permit"
-                        permit isManager
+                        permit
+                        where
+                          isManager;
 
                         policy "fallback"
                         deny
@@ -272,7 +287,9 @@ class FirstApplicableCompilerTests {
                         var isManager = subject.role == "manager";
 
                         policy "managers-permit"
-                        permit isManager
+                        permit
+                        where
+                          isManager;
 
                         policy "fallback"
                         deny
@@ -282,7 +299,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.DENY, PolicySetDecision.class, List.of("fallback")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("managers-permit", "fallback")),
 
                 new PureTestCase("set variable: multiple vars used across policies", """
                         set "multi-var"
@@ -292,10 +309,14 @@ class FirstApplicableCompilerTests {
                         var isAdmin = subject.role == "admin";
 
                         policy "admin-access"
-                        permit isAdmin
+                        permit
+                        where
+                          isAdmin;
 
                         policy "same-department"
-                        permit dept == resource.department
+                        permit
+                        where
+                          dept == resource.department;
 
                         policy "fallback"
                         deny
@@ -305,7 +326,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": { "department": "engineering" }
                         }
-                        """, Decision.PERMIT, PolicySetDecision.class, List.of("same-department")),
+                        """, Decision.PERMIT, PolicySetDecision.class, List.of("admin-access", "same-department")),
 
                 new PureTestCase("set variable: used in policy body condition", """
                         set "body-var"
@@ -347,7 +368,7 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.DENY, PolicySetDecision.class, List.of("fallback")),
+                        """, Decision.DENY, PolicySetDecision.class, List.of("level-check", "fallback")),
 
                 // --- Error and edge case tests ---
 
@@ -356,24 +377,31 @@ class FirstApplicableCompilerTests {
                         first-applicable
 
                         policy "never-matches-1"
-                        permit subject == "nobody"
+                        permit
+                        where
+                          subject == "nobody";
 
                         policy "never-matches-2"
-                        permit subject == "ghost"
+                        permit
+                        where
+                          subject == "ghost";
                         """, """
                         {
                             "subject": "alice",
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Decision.NOT_APPLICABLE, PolicySetDecision.class, List.of()),
+                        """, Decision.NOT_APPLICABLE, PolicySetDecision.class,
+                        List.of("never-matches-1", "never-matches-2")),
 
                 new PureTestCase("error in target expression propagates as INDETERMINATE", """
                         set "error-target"
                         first-applicable
 
                         policy "error-policy"
-                        permit subject.missing.deeply.nested
+                        permit
+                        where
+                          subject.missing.deeply.nested;
 
                         policy "fallback"
                         deny
@@ -405,7 +433,7 @@ class FirstApplicableCompilerTests {
                                     "action": "read",
                                     "resource": "data"
                                 }
-                                """, Decision.NOT_APPLICABLE, PolicySetDecision.class, List.of()));
+                                """, Decision.NOT_APPLICABLE, PolicySetDecision.class, List.of("first", "second")));
     }
 
     // --- Stream evaluation test cases ---
@@ -435,8 +463,9 @@ class FirstApplicableCompilerTests {
                         first-applicable
 
                         policy "wizards-reading"
-                        permit subject == "Rincewind"
+                        permit
                         where
+                          subject == "Rincewind";
                           <test.action> == "read";
 
                         policy "default-deny"
@@ -503,7 +532,9 @@ class FirstApplicableCompilerTests {
                         first-applicable
 
                         policy "never-matches"
-                        permit false
+                        permit
+                        where
+                          false;
 
                         policy "fallback"
                         deny
@@ -515,15 +546,17 @@ class FirstApplicableCompilerTests {
                             "action": "read",
                             "resource": "data"
                         }
-                        """, Map.of("test.attr", new Value[] { Value.TRUE }), Decision.DENY, List.of("fallback")),
+                        """, Map.of("test.attr", new Value[] { Value.TRUE }), Decision.DENY,
+                        List.of("never-matches", "fallback")),
 
                 new StreamTestCase("stream path: error in target expression propagates as INDETERMINATE", """
                         set "error-target-stream"
                         first-applicable
 
                         policy "error-policy"
-                        permit subject.missing.deeply.nested
+                        permit
                         where
+                          subject.missing.deeply.nested;
                           <test.attr>;
 
                         policy "fallback"
@@ -543,8 +576,9 @@ class FirstApplicableCompilerTests {
                                 first-applicable
 
                                 policy "number-target"
-                                permit subject
+                                permit
                                 where
+                                  subject;
                                   <test.attr>;
 
                                 policy "fallback"
@@ -559,63 +593,57 @@ class FirstApplicableCompilerTests {
                         List.of("number-target")));
     }
 
-    // TODO: Re-enable after PolicySet refactoring is complete
-    // @ParameterizedTest(name = "{0}")
-    // @MethodSource("pureTestCases")
-    // @DisplayName("Pure evaluation")
-    // void pureEvaluation(PureTestCase testCase) {
-    // val compiled = compilePolicySet(testCase.policySet());
-    //
-    // assertThat(compiled.policies()).as("Expected
-    // stratum").isInstanceOf(testCase.expectedStratum());
-    //
-    // val ctx = subscriptionContext(testCase.subscription());
-    // val result = evaluatePolicySet(compiled, ctx);
-    // assertDecisionHasAllTheseContributing(result,
-    // testCase.contributingPolicies());
-    // assertThat(result.decision()).isEqualTo(testCase.expectedDecision());
-    //
-    // val resultWithCoverage = evaluatePolicySetWithCoverage(compiled, ctx);
-    // assertThat(resultWithCoverage.decision()).isEqualTo(result);
-    // }
-    //
-    // void assertDecisionHasAllTheseContributing(PolicySetDecision decision,
-    // List<String> expectedNames) {
-    // val actual = decision.contributingPolicyDecisions().stream().map(contribution
-    // -> contribution.metadata().name())
-    // .toList();
-    // assertThat(actual).containsExactlyInAnyOrder(expectedNames.toArray(new
-    // String[0]));
-    // }
-    //
-    // @ParameterizedTest(name = "{0}")
-    // @MethodSource("streamTestCases")
-    // @DisplayName("Stream evaluation")
-    // void streamEvaluation(StreamTestCase testCase) {
-    // val attrBroker = attributeBroker(testCase.attributes());
-    // val compiled = compilePolicySet(testCase.policySet(), attrBroker);
-    //
-    // assertThat(compiled.policies()).as("Expected stream
-    // stratum").isInstanceOf(StreamPolicySetBody.class);
-    //
-    // val streamBody = (StreamPolicySetBody) compiled.policies();
-    // val subscription = parseSubscription(testCase.subscription());
-    // val ctx = evaluationContext(subscription, attrBroker);
-    //
-    // StepVerifier.create(streamBody.stream().contextWrite(c ->
-    // c.put(EvaluationContext.class, ctx)))
-    // .assertNext(result -> {
-    // assertDecisionHasAllTheseContributing(result,
-    // testCase.contributingPolicies());
-    // assertThat(result.decision()).isEqualTo(testCase.expectedDecision());
-    // }).verifyComplete();
-    //
-    // StepVerifier.create(compiled.coverageStream().contextWrite(c ->
-    // c.put(EvaluationContext.class, ctx)))
-    // .assertNext(resultWithCoverage ->
-    // assertThat(resultWithCoverage.decision().decision())
-    // .isEqualTo(testCase.expectedDecision()))
-    // .verifyComplete();
-    // }
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("pureTestCases")
+    @DisplayName("Pure evaluation")
+    void pureEvaluation(PureTestCase testCase) {
+        val compiled = compilePolicySet(testCase.policySet());
+
+        val ctx    = subscriptionContext(testCase.subscription());
+        val result = evaluatePolicySet(compiled, ctx);
+        assertDecisionHasAllTheseContributing(result, testCase.contributingPolicies());
+        assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
+
+        // TODO: Re-enable coverage check once coverage stream is implemented
+        // val resultWithCoverage = evaluatePolicySetWithCoverage(compiled, ctx);
+        // assertThat(resultWithCoverage.decision()).isEqualTo(result);
+    }
+
+    void assertDecisionHasAllTheseContributing(PolicySetDecision decision, List<String> expectedNames) {
+        val actual = decision.metadata().contributingPolicyDecisions().stream()
+                .map(contribution -> contribution.metadata().source().name()).toList();
+        assertThat(actual).containsExactlyInAnyOrder(expectedNames.toArray(new String[0]));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("streamTestCases")
+    @DisplayName("Stream evaluation")
+    void streamEvaluation(StreamTestCase testCase) {
+        val attrBroker = attributeBroker(testCase.attributes());
+        val compiled   = compilePolicySet(testCase.policySet(), attrBroker);
+
+        assertThat(compiled.applicabilityAndDecision()).as("Expected stream stratum")
+                .isInstanceOf(StreamDecisionMaker.class);
+
+        val streamDecisionMaker = (StreamDecisionMaker) compiled.applicabilityAndDecision();
+        val subscription        = parseSubscription(testCase.subscription());
+        val ctx                 = evaluationContext(subscription, attrBroker);
+
+        StepVerifier
+                .create(streamDecisionMaker.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                .assertNext(pdpDecision -> {
+                    val result = (PolicySetDecision) pdpDecision;
+                    assertDecisionHasAllTheseContributing(result, testCase.contributingPolicies());
+                    assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
+                }).verifyComplete();
+
+        // TODO: Re-enable coverage check once coverage stream is implemented
+        // StepVerifier.create(compiled.coverage().contextWrite(c ->
+        // c.put(EvaluationContext.class, ctx)))
+        // .assertNext(resultWithCoverage ->
+        // assertThat(resultWithCoverage.decision().authorizationDecision().decision())
+        // .isEqualTo(testCase.expectedDecision()))
+        // .verifyComplete();
+    }
 
 }
