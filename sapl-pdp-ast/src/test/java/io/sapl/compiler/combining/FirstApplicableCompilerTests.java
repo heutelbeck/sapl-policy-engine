@@ -477,7 +477,7 @@ class FirstApplicableCompilerTests {
                             "resource": "away"
                         }
                         """, Map.of("test.action", new Value[] { Value.of("run") }), Decision.DENY,
-                        List.of("default-deny")),
+                        List.of("wizards-reading", "default-deny")),
 
                 // --- Policy set variable with attribute (streaming) ---
                 // Note: streaming variables can only be used in policy body (where), not in
@@ -525,7 +525,7 @@ class FirstApplicableCompilerTests {
                             "resource": "data"
                         }
                         """, Map.of("test.time", new Value[] { Value.of("night") }), Decision.DENY,
-                        List.of("fallback")),
+                        List.of("time-check", "fallback")),
 
                 new StreamTestCase("stream path: first policy target false, falls through to second", """
                         set "stream-target-false"
@@ -604,9 +604,10 @@ class FirstApplicableCompilerTests {
         assertDecisionHasAllTheseContributing(result, testCase.contributingPolicies());
         assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
 
-        // TODO: Re-enable coverage check once coverage stream is implemented
-        // val resultWithCoverage = evaluatePolicySetWithCoverage(compiled, ctx);
-        // assertThat(resultWithCoverage.decision()).isEqualTo(result);
+        val resultWithCoverage = evaluatePolicySetWithCoverage(compiled, ctx);
+        assertThat(resultWithCoverage.decision().authorizationDecision().decision())
+                .isEqualTo(testCase.expectedDecision());
+        assertThat(resultWithCoverage.coverage().policyCoverages()).hasSize(testCase.contributingPolicies().size());
     }
 
     void assertDecisionHasAllTheseContributing(PolicySetDecision decision, List<String> expectedNames) {
@@ -637,13 +638,13 @@ class FirstApplicableCompilerTests {
                     assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
                 }).verifyComplete();
 
-        // TODO: Re-enable coverage check once coverage stream is implemented
-        // StepVerifier.create(compiled.coverage().contextWrite(c ->
-        // c.put(EvaluationContext.class, ctx)))
-        // .assertNext(resultWithCoverage ->
-        // assertThat(resultWithCoverage.decision().authorizationDecision().decision())
-        // .isEqualTo(testCase.expectedDecision()))
-        // .verifyComplete();
+        StepVerifier.create(compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                .assertNext(resultWithCoverage -> {
+                    assertThat(resultWithCoverage.decision().authorizationDecision().decision())
+                            .isEqualTo(testCase.expectedDecision());
+                    assertThat(resultWithCoverage.coverage().policyCoverages())
+                            .hasSize(testCase.contributingPolicies().size());
+                }).verifyComplete();
     }
 
 }

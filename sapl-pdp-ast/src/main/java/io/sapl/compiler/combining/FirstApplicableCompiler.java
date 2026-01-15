@@ -25,6 +25,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.pdp.PDPDecision;
 import io.sapl.compiler.pdp.PureDecisionMaker;
@@ -61,7 +62,40 @@ public class FirstApplicableCompiler {
                 schemaValidator, ctx);
         val applicabilityAndDecision = ApplicabilityChainCompiler.compileApplicabilityAndDecision(isApplicable,
                 decisionOnly, metadata);
-        return new CompiledPolicySet(isApplicable, decisionOnly, applicabilityAndDecision, Flux.empty(), metadata);
+        val coverage                 = compileCoverageStream(compiledPolicies, metadata);
+        return new CompiledPolicySet(isApplicable, decisionOnly, applicabilityAndDecision, coverage, metadata);
+    }
+
+    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(List<CompiledPolicy> policies,
+            PolicySetMetadata metadata) {
+        return evaluatePoliciesForCoverage(policies, 0,
+                new Coverage.PolicySetCoverage(metadata, Coverage.NO_TARGET_HIT, List.of()), new ArrayList<>(),
+                metadata);
+    }
+
+    private static Flux<PolicySetDecisionWithCoverage> evaluatePoliciesForCoverage(List<CompiledPolicy> policies,
+            int index, Coverage.PolicySetCoverage accumulatedCoverage, List<PolicyDecision> contributingDecisions,
+            PolicySetMetadata metadata) {
+
+        if (index >= policies.size()) {
+            val decision = PolicySetDecision.notApplicable(metadata, contributingDecisions);
+            return Flux.just(new PolicySetDecisionWithCoverage(decision, accumulatedCoverage));
+        }
+
+        return policies.get(index).coverage().switchMap(policyResult -> {
+            val decision        = policyResult.decision();
+            val policyCoverage  = policyResult.coverage();
+            val newCoverage     = accumulatedCoverage.with(policyCoverage);
+            val newContributing = new ArrayList<>(contributingDecisions);
+            newContributing.add(decision);
+
+            if (decision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                return evaluatePoliciesForCoverage(policies, index + 1, newCoverage, newContributing, metadata);
+            }
+
+            val setDecision = PolicySetDecision.decision(decision.authorizationDecision(), newContributing, metadata);
+            return Flux.just(new PolicySetDecisionWithCoverage(setDecision, newCoverage));
+        });
     }
 
     private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> policies, PolicySetMetadata metadata,
@@ -75,7 +109,7 @@ public class FirstApplicableCompiler {
             }
             contributingDecisions.add(decision);
             if (decision.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
-                return wrapPolicyDecision(decision, contributingDecisions, metadata);
+                return PolicySetDecision.decision(decision.authorizationDecision(), contributingDecisions, metadata);
             }
             firstNonStatic++;
         }
@@ -102,27 +136,22 @@ public class FirstApplicableCompiler {
 
     private static Flux<PDPDecision> buildReverseChain(List<CompiledPolicy> policies,
             List<PolicyDecision> staticDecisions, PolicySetMetadata metadata) {
-        Flux<PDPDecision> chain = Flux.just(PolicySetDecision.notApplicable(metadata, staticDecisions));
+        Flux<PDPDecision> decisionChain = Flux.just(PolicySetDecision.notApplicable(metadata, staticDecisions));
         for (int i = policies.size() - 1; i >= 0; i--) {
-            val policy       = policies.get(i);
-            val continuation = chain;
-            chain = toStream(policy.applicabilityAndDecision(), List.of()).switchMap(decision -> {
-                if (decision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
-                    return continuation;
-                }
+            val policy            = policies.get(i);
+            val decisionChainTail = decisionChain;
+            decisionChain = toStream(policy.applicabilityAndDecision(), List.of()).switchMap(currentDecision -> {
                 val contributingDecisions = new ArrayList<>(staticDecisions);
-                contributingDecisions.add(decision);
-                return Flux.just(wrapPolicyDecision(decision, contributingDecisions, metadata));
+                contributingDecisions.add(currentDecision);
+                if (currentDecision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                    return decisionChainTail
+                            .map(decisionAtTail -> ((PolicySetDecision) decisionAtTail).with(currentDecision));
+                }
+                return Flux.just(PolicySetDecision.decision(currentDecision.authorizationDecision(),
+                        contributingDecisions, metadata));
             });
         }
-        return chain;
-    }
-
-    private static PolicySetDecision wrapPolicyDecision(PolicyDecision decision,
-            List<PolicyDecision> contributingDecisions, PolicySetMetadata metadata) {
-        val authz = decision.authorizationDecision();
-        return PolicySetDecision.decision(authz.decision(), authz.obligations(), authz.advice(), authz.resource(),
-                metadata, contributingDecisions);
+        return decisionChain;
     }
 
     private static PolicyDecision evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes,
@@ -159,7 +188,7 @@ public class FirstApplicableCompiler {
                 val decision = evaluatePure(policy, priorAttributes, ctx, location);
                 allDecisions.add(decision);
                 if (decision.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
-                    return wrapPolicyDecision(decision, allDecisions, metadata);
+                    return PolicySetDecision.decision(decision.authorizationDecision(), allDecisions, metadata);
                 }
             }
             return PolicySetDecision.notApplicable(metadata, allDecisions);

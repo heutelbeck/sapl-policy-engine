@@ -21,6 +21,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.policy.PolicyMetadata;
 import io.sapl.compiler.policyset.PolicySetMetadata;
+import lombok.NonNull;
 import lombok.val;
 
 import java.util.ArrayList;
@@ -28,17 +29,22 @@ import java.util.List;
 
 public record Coverage(List<DocumentCoverage> coverage) {
 
+    public static TargetHit NO_TARGET_HIT = new Coverage.NoTargetHit();
+    public static TargetHit BLANK_TARGET_HIT = new Coverage.BlankTargetHit();
+
     public sealed interface DocumentCoverage permits PolicyCoverage, PolicySetCoverage {
     }
 
     public record PolicyCoverage(PolicyMetadata metadata, BodyCoverage bodyCoverage) implements DocumentCoverage {}
 
-    public record PolicySetCoverage(PolicySetMetadata metadata, List<PolicyCoverage> policyCoverages)
-            implements DocumentCoverage {
+    public record PolicySetCoverage(
+            @NonNull PolicySetMetadata metadata,
+            @NonNull TargetHit targetHit,
+            @NonNull List<PolicyCoverage> policyCoverages) implements DocumentCoverage {
         public PolicySetCoverage with(PolicyCoverage newCoverage) {
             val aggregatedPolicyCoverage = new ArrayList<PolicyCoverage>(policyCoverages);
             aggregatedPolicyCoverage.add(newCoverage);
-            return new PolicySetCoverage(metadata, aggregatedPolicyCoverage);
+            return new PolicySetCoverage(metadata, targetHit, aggregatedPolicyCoverage);
         }
     }
 
@@ -50,6 +56,15 @@ public record Coverage(List<DocumentCoverage> coverage) {
             return new BodyCoverage(merged, numberOfConditions);
         }
     }
+
+    public sealed interface TargetHit permits BlankTargetHit, NoTargetHit, TargetResult {
+    }
+
+    public record NoTargetHit() implements TargetHit {}
+
+    public record BlankTargetHit() implements TargetHit {}
+
+    public record TargetResult(Value match, SourceLocation location) implements TargetHit {}
 
     public record ConditionHit(Value result, SourceLocation location, long statementId) {}
 }

@@ -22,6 +22,10 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.compiler.pdp.DecisionMetadata;
 import io.sapl.compiler.policy.PolicyDecision;
 
+import lombok.NonNull;
+import lombok.val;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,7 +39,29 @@ import java.util.List;
  * @param error see {@link DecisionMetadata#error()}
  */
 public record PolicySetDecisionMetadata(
-        PolicySetMetadata source,
-        List<PolicyDecision> contributingPolicyDecisions,
-        List<AttributeRecord> contributingAttributes,
-        ErrorValue error) implements DecisionMetadata {}
+        @NonNull PolicySetMetadata source,
+        @NonNull List<PolicyDecision> contributingPolicyDecisions,
+        @NonNull List<AttributeRecord> contributingAttributes,
+        ErrorValue error) implements DecisionMetadata {
+
+    /**
+     * Returns a new instance with the decision added and its contributing
+     * attributes merged.
+     */
+    public PolicySetDecisionMetadata with(PolicyDecision decision) {
+        val newDecisions  = new ArrayList<>(contributingPolicyDecisions);
+        val newAttributes = new ArrayList<>(contributingAttributes);
+        newDecisions.add(decision);
+        newAttributes.addAll(decision.metadata().contributingAttributes());
+        return new PolicySetDecisionMetadata(source, newDecisions, newAttributes, error);
+    }
+
+    /**
+     * Returns a new instance with additional contributing attributes merged.
+     */
+    public PolicySetDecisionMetadata with(List<AttributeRecord> additionalContributingAttributes) {
+        val newAttributes = new ArrayList<>(contributingAttributes);
+        newAttributes.addAll(additionalContributingAttributes);
+        return new PolicySetDecisionMetadata(source, contributingPolicyDecisions, newAttributes, error);
+    }
+}
