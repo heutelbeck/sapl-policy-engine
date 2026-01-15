@@ -17,17 +17,44 @@
  */
 package io.sapl.compiler.combining;
 
+import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.DecisionMaker;
+import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.policy.SchemaValidatorCompiler;
 import io.sapl.compiler.policyset.CompiledPolicySet;
+import io.sapl.compiler.policyset.PolicySetDecision;
+import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.policyset.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
+import lombok.val;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 @UtilityClass
 public class FirstApplicableCompiler {
 
-    public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext compilationContext) {
-        throw new SaplCompilerException("not yet implemented");
+    public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
+        val metadata         = policySet.metadata();
+        val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
+                .toList();
+        if (compiledPolicies.isEmpty()) {
+            throw new SaplCompilerException("No policies were found in the policySet", policySet.location());
+        }
+        val decisionOnly    = compileDecisionMaker(compiledPolicies, metadata);
+        val schemaValidator = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
+        val isApplicable    = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
+                ctx);
+        return new CompiledPolicySet(isApplicable, decisionOnly, null, Flux.empty(), metadata);
+    }
+
+    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> policies, PolicySetMetadata metadata) {
+        val fallbackDecision = PolicySetDecision.notApplicable(metadata, List.of());
+        return null;
     }
 
 }

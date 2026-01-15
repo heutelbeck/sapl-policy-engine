@@ -209,7 +209,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
         this.inPolicySet = false;
 
-        return new PolicySet(policySetImports, metadata, target, variables, policies, fromContext(ctx));
+        var match = (currentSchemas != null && !currentSchemas.isEmpty())
+                ? new SchemaCondition(currentSchemas, schemaBlockLocation)
+                : null;
+
+        return new PolicySet(policySetImports, metadata, target, match, variables, policies, fromContext(ctx));
     }
 
     @Override
@@ -220,9 +224,10 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var entitlement = toEntitlement(ctx.entitlement());
 
         // Build body statements, prepending SchemaCondition if there are schemas
+        // (only for standalone policies, not when inside a policy set)
         var bodyStatements = new ArrayList<Statement>();
 
-        if (currentSchemas != null && !currentSchemas.isEmpty()) {
+        if (!inPolicySet && currentSchemas != null && !currentSchemas.isEmpty()) {
             bodyStatements.add(new SchemaCondition(currentSchemas, schemaBlockLocation));
         }
 

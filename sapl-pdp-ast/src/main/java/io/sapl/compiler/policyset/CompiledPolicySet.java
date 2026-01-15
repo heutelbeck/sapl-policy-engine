@@ -24,7 +24,7 @@ import reactor.core.publisher.Flux;
 
 public record CompiledPolicySet(
         CompiledExpression isApplicable,
-        DecisionMaker decisionOnly,
+        DecisionMaker decisionMaker,
         DecisionMaker applicabilityAndDecision,
         Flux<PolicySetDecisionWithCoverage> coverage,
         PolicySetMetadata metadata) implements CompiledDocument {}

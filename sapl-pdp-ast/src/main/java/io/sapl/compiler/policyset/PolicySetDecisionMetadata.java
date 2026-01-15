@@ -18,23 +18,24 @@
 package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.compiler.pdp.DecisionMetadata;
+import io.sapl.compiler.policy.PolicyDecision;
 
 import java.util.List;
 
 /**
- * Placeholder metadata for policy set decisions. Tracing not yet implemented.
+ * Metadata for a policy set decision.
+ *
+ * @param source the policy set that produced this decision
+ * @param contributingPolicyDecisions decisions from contained policies that
+ * contributed to the result
+ * @param contributingAttributes see
+ * {@link DecisionMetadata#contributingAttributes()}
+ * @param error see {@link DecisionMetadata#error()}
  */
-public record PolicySetDecisionMetadata() implements DecisionMetadata {
-    @Override
-    public Value error() {
-        return null;
-    }
-
-    @Override
-    public List<AttributeRecord> contributingAttributes() {
-        return List.of();
-    }
-
-}
+public record PolicySetDecisionMetadata(
+        PolicySetMetadata source,
+        List<PolicyDecision> contributingPolicyDecisions,
+        List<AttributeRecord> contributingAttributes,
+        ErrorValue error) implements DecisionMetadata {}

@@ -32,6 +32,7 @@ import java.util.List;
  * @param metadata policy set identification metadata (name, pdpId,
  * configurationId, documentId, combiningAlgorithm)
  * @param target optional target expression (the 'for' clause), null if none
+ * @param match optional schema condition for matching, null if none
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
  * @param location metadata location
@@ -40,6 +41,7 @@ public record PolicySet(
         @NonNull List<Import> imports,
         @NonNull PolicySetMetadata metadata,
         @Nullable Expression target,
+        @Nullable SchemaCondition match,
         @NonNull List<VarDef> variables,
         @NonNull List<Policy> policies,
         @NonNull SourceLocation location) implements SaplDocument {

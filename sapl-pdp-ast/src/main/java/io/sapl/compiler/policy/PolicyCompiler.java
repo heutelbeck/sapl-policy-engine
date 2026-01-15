@@ -45,6 +45,7 @@ import io.sapl.compiler.pdp.PureDecisionMaker;
 import io.sapl.compiler.pdp.StreamDecisionMaker;
 import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
 import io.sapl.compiler.policy.policybody.TracedPolicyBodyResultAndCoverage;
+import io.sapl.compiler.util.Nature;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -56,7 +57,7 @@ import reactor.core.publisher.Flux;
  * <ul>
  * <li>{@code isApplicable} - Evaluates only the policy body for applicability
  * checking.</li>
- * <li>{@code decisionOnly} - Evaluates constraints assuming applicability
+ * <li>{@code decisionMaker} - Evaluates constraints assuming applicability
  * (e.g., the PDP after determining applicability).</li>
  * <li>{@code applicabilityAndDecision} - Combined applicability and constraint
  * evaluation (e.g., in policy sets walking the contained polices).</li>
@@ -283,18 +284,6 @@ public class PolicyCompiler {
         }
         return PolicyDecision.tracedDecision(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue,
                 resourceValue, policyMetadata, contributingAttributes);
-    }
-
-    /**
-     * Classification of constraint expression complexity.
-     */
-    public enum Nature {
-        /** All constraints are compile-time constants. */
-        CONSTANT,
-        /** At least one constraint requires runtime evaluation. */
-        PURE,
-        /** At least one constraint involves streaming attributes. */
-        STREAM
     }
 
     /**

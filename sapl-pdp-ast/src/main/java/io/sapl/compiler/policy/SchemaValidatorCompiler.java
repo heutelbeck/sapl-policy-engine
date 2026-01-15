@@ -22,6 +22,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
 import io.sapl.api.model.*;
+import io.sapl.ast.SchemaCondition;
 import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -30,6 +31,7 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -72,8 +74,12 @@ public class SchemaValidatorCompiler {
     private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory.builder()
             .metaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri()).build();
 
-    public static PureOperator compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
+    public static PureOperator compileValidator(@Nullable SchemaCondition match, CompilationContext ctx) {
+        val schemas = match == null ? List.<SchemaStatement>of() : match.schemas();
+        return compileValidator(schemas, ctx);
+    }
 
+    public static PureOperator compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
         val validators = schemas.stream().map(schema -> compileSchemaValidator(schema, ctx)).toList();
         if (validators.size() == 1) {
             return validators.getFirst();

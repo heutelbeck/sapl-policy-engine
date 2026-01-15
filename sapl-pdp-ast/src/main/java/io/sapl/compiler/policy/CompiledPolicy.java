@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
  * and metadata.
  *
  * @param isApplicable see {@link CompiledDocument#isApplicable()}
- * @param decisionOnly see {@link CompiledDocument#decisionOnly()}
+ * @param decisionMaker see {@link CompiledDocument#decisionMaker()}
  * @param applicabilityAndDecision see
  * {@link CompiledDocument#applicabilityAndDecision()}
  * @param coverage stream emitting decisions with coverage data for testing
@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
  */
 public record CompiledPolicy(
         CompiledExpression isApplicable,
-        DecisionMaker decisionOnly,
+        DecisionMaker decisionMaker,
         DecisionMaker applicabilityAndDecision,
         Flux<PolicyDecisionWithCoverage> coverage,
         PolicyMetadata metadata) implements CompiledDocument {}
