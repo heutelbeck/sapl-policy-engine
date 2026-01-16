@@ -17,10 +17,7 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -34,20 +31,50 @@ import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.PolicyDecision;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
-import io.sapl.compiler.policyset.*;
+import io.sapl.compiler.policyset.CompiledPolicySet;
+import io.sapl.compiler.policyset.PolicySetDecision;
+import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
+import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.policyset.PolicySetUtil;
+import io.sapl.compiler.policyset.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
+/**
+ * Compiles policy sets using the first-applicable combining algorithm.
+ * <p>
+ * The first-applicable algorithm evaluates policies in order until one returns
+ * a decision other than NOT_APPLICABLE. That decision becomes the final result.
+ * If all policies return NOT_APPLICABLE, the set returns NOT_APPLICABLE.
+ * <p>
+ * The compiler produces three evaluation strata based on policy complexity:
+ * <ul>
+ * <li><b>Static short-circuit:</b> Leading policies with constant decisions are
+ * evaluated at compile time. Returns immediately if any yields
+ * non-NOT_APPLICABLE.</li>
+ * <li><b>Pure evaluation:</b> When remaining policies require only subscription
+ * data (no streaming attributes), produces a synchronous decision maker.</li>
+ * <li><b>Stream evaluation:</b> When any policy requires streaming attributes,
+ * builds a reverse-chained flux for lazy reactive evaluation.</li>
+ * </ul>
+ */
 @UtilityClass
 public class FirstApplicableCompiler {
 
     public static final String ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET = "No remainingPolicies were found in the policySet";
-    public static final String ERROR_STREAM_IN_PURE_CONTEXT                   = "Stream decision maker in pure context. This indicates an implementation bug in the combining algorithm.";
 
+    /**
+     * Compiles a policy set AST into an executable compiled policy set.
+     *
+     * @param policySet the policy set AST node
+     * @param ctx the compilation context
+     * @return the compiled policy set with decision makers and coverage streams
+     */
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
         val metadata         = policySet.metadata();
         val location         = policySet.location();
@@ -60,19 +87,37 @@ public class FirstApplicableCompiler {
         val schemaValidator          = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
         val isApplicable             = TargetExpressionCompiler.compileTargetExpression(policySet.target(),
                 schemaValidator, ctx);
-        val applicabilityAndDecision = ApplicabilityChainCompiler.compileApplicabilityAndDecision(isApplicable,
-                decisionOnly, metadata);
-        val coverage                 = compileCoverageStream(compiledPolicies, metadata);
+        val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable, decisionOnly,
+                metadata);
+        val coverage                 = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
         return new CompiledPolicySet(isApplicable, decisionOnly, applicabilityAndDecision, coverage, metadata);
     }
 
-    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(List<CompiledPolicy> policies,
-            PolicySetMetadata metadata) {
-        return evaluatePoliciesForCoverage(policies, 0,
-                new Coverage.PolicySetCoverage(metadata, Coverage.NO_TARGET_HIT, List.of()), new ArrayList<>(),
-                metadata);
+    /**
+     * Compiles the coverage stream for the policy set.
+     * Delegates target evaluation to {@link PolicySetUtil} and provides a
+     * first-applicable body factory.
+     */
+    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
+            CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata) {
+        val bodyFactory = bodyCoverageFactory(compiledPolicies, metadata);
+        return PolicySetUtil.compileCoverageStream(policySet, isApplicable, bodyFactory);
     }
 
+    /**
+     * Creates a factory for body coverage evaluation using first-applicable
+     * semantics.
+     */
+    private Function<Coverage.TargetHit, Flux<PolicySetDecisionWithCoverage>> bodyCoverageFactory(
+            List<CompiledPolicy> policies, PolicySetMetadata metadata) {
+        return targetHit -> evaluatePoliciesForCoverage(policies, 0,
+                new Coverage.PolicySetCoverage(metadata, targetHit, List.of()), new ArrayList<>(), metadata);
+    }
+
+    /**
+     * Recursively evaluates policies for coverage, accumulating results.
+     * Stops at first non-NOT_APPLICABLE decision (first-applicable semantics).
+     */
     private static Flux<PolicySetDecisionWithCoverage> evaluatePoliciesForCoverage(List<CompiledPolicy> policies,
             int index, Coverage.PolicySetCoverage accumulatedCoverage, List<PolicyDecision> contributingDecisions,
             PolicySetMetadata metadata) {
@@ -98,6 +143,16 @@ public class FirstApplicableCompiler {
         });
     }
 
+    /**
+     * Compiles policies into a decision maker using stratified evaluation.
+     * <p>
+     * Applies three optimization levels:
+     * <ol>
+     * <li>Static short-circuit for leading constant policies</li>
+     * <li>Pure decision maker when all remaining policies are non-streaming</li>
+     * <li>Stream decision maker with reverse-chained flux otherwise</li>
+     * </ol>
+     */
     private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> policies, PolicySetMetadata metadata,
             SourceLocation location) {
         // 1. Short-circuit: collect static decisions, return first non-NOT_APPLICABLE
@@ -134,47 +189,46 @@ public class FirstApplicableCompiler {
                 buildReverseChain(remainingPolicies, contributingDecisions, metadata));
     }
 
+    /**
+     * Builds a reverse-chained flux for lazy streaming evaluation.
+     * <p>
+     * Constructs the chain from last to first policy. Each policy's flux
+     * switches to the tail chain on NOT_APPLICABLE, enabling lazy evaluation
+     * that stops at the first applicable policy.
+     */
     private static Flux<PDPDecision> buildReverseChain(List<CompiledPolicy> policies,
             List<PolicyDecision> staticDecisions, PolicySetMetadata metadata) {
         Flux<PDPDecision> decisionChain = Flux.just(PolicySetDecision.notApplicable(metadata, staticDecisions));
         for (int i = policies.size() - 1; i >= 0; i--) {
             val policy            = policies.get(i);
             val decisionChainTail = decisionChain;
-            decisionChain = toStream(policy.applicabilityAndDecision(), List.of()).switchMap(currentDecision -> {
-                val contributingDecisions = new ArrayList<>(staticDecisions);
-                contributingDecisions.add(currentDecision);
-                if (currentDecision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
-                    return decisionChainTail
-                            .map(decisionAtTail -> ((PolicySetDecision) decisionAtTail).with(currentDecision));
-                }
-                return Flux.just(PolicySetDecision.decision(currentDecision.authorizationDecision(),
-                        contributingDecisions, metadata));
-            });
+            decisionChain = PolicySetUtil.toStream(policy.applicabilityAndDecision(), List.of())
+                    .switchMap(currentDecision -> {
+                        val contributingDecisions = new ArrayList<>(staticDecisions);
+                        contributingDecisions.add(currentDecision);
+                        if (currentDecision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                            return decisionChainTail
+                                    .map(decisionAtTail -> ((PolicySetDecision) decisionAtTail).with(currentDecision));
+                        }
+                        return Flux.just(PolicySetDecision.decision(currentDecision.authorizationDecision(),
+                                contributingDecisions, metadata));
+                    });
         }
         return decisionChain;
     }
 
-    private static PolicyDecision evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes,
-            EvaluationContext ctx, SourceLocation location) {
-        return switch (policy.applicabilityAndDecision()) {
-        case PDPDecision d               -> (PolicyDecision) d;
-        case PureDecisionMaker p         -> (PolicyDecision) p.decide(priorAttributes, ctx);
-        case StreamDecisionMaker ignored ->
-            PolicyDecision.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.metadata());
-        };
-    }
-
-    private static Flux<PolicyDecision> toStream(DecisionMaker dm, List<AttributeRecord> priorAttributes) {
-        return switch (dm) {
-        case PDPDecision d         -> Flux.just((PolicyDecision) d);
-        case PureDecisionMaker p   -> Flux.deferContextual(ctxView -> {
-                                   val ctx = ctxView.get(EvaluationContext.class);
-                                   return Flux.just((PolicyDecision) p.decide(priorAttributes, ctx));
-                               });
-        case StreamDecisionMaker s -> s.decide(priorAttributes).map(d -> (PolicyDecision) d);
-        };
-    }
-
+    /**
+     * Pure decision maker for first-applicable evaluation without streaming
+     * policies.
+     * <p>
+     * Evaluates policies sequentially at runtime, returning the first
+     * non-NOT_APPLICABLE decision.
+     *
+     * @param staticDecisions leading static NOT_APPLICABLE decisions
+     * @param policies remaining policies requiring runtime evaluation
+     * @param metadata the policy set metadata
+     * @param location source location for error reporting
+     */
     record FirstApplicablePurePolicySet(
             List<PolicyDecision> staticDecisions,
             List<CompiledPolicy> policies,
@@ -185,7 +239,7 @@ public class FirstApplicableCompiler {
         public PDPDecision decide(List<AttributeRecord> priorAttributes, EvaluationContext ctx) {
             val allDecisions = new ArrayList<>(staticDecisions);
             for (var policy : policies) {
-                val decision = evaluatePure(policy, priorAttributes, ctx, location);
+                val decision = PolicySetUtil.evaluatePure(policy, priorAttributes, ctx, location);
                 allDecisions.add(decision);
                 if (decision.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
                     return PolicySetDecision.decision(decision.authorizationDecision(), allDecisions, metadata);
@@ -195,6 +249,15 @@ public class FirstApplicableCompiler {
         }
     }
 
+    /**
+     * Stream decision maker wrapping a pre-built reverse chain.
+     * <p>
+     * The chain is constructed at compile time; this record provides the
+     * {@link StreamDecisionMaker} interface and merges known attribute
+     * contributions into the result.
+     *
+     * @param chain the pre-built reverse-chained flux
+     */
     record FirstApplicableStreamPolicySet(Flux<PDPDecision> chain) implements StreamDecisionMaker {
         @Override
         public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {

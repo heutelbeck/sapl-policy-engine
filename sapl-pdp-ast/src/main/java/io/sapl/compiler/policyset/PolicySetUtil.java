@@ -23,30 +23,44 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
+import io.sapl.ast.PolicySet;
+import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.pdp.PDPDecision;
 import io.sapl.compiler.pdp.PureDecisionMaker;
 import io.sapl.compiler.pdp.StreamDecisionMaker;
+import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.PolicyDecision;
+import io.sapl.compiler.policy.PolicyMetadata;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
- * Chains applicability checking with decision makers for policy sets.
+ * Shared utilities for policy set compilation.
  * <p>
- * This compiler wraps a decision maker (produced by a combining algorithm) with
- * applicability checking based on the target expression type. The resulting
- * {@link DecisionMaker} first evaluates applicability, then delegates to the
- * underlying decision maker if applicable.
+ * Provides common building blocks used by combining algorithm compilers:
+ * <ul>
+ * <li><b>Applicability chaining:</b> Wraps decision makers with target
+ * expression evaluation.</li>
+ * <li><b>Coverage stream building:</b> Chains target evaluation with body
+ * coverage for testing.</li>
+ * <li><b>Decision maker lifting:</b> Converts any decision maker type to
+ * streams or evaluates in pure context.</li>
+ * </ul>
  */
 @UtilityClass
-public class ApplicabilityChainCompiler {
+public class PolicySetUtil {
 
     public static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE = "Unexpected isApplicable type. Indicates implementation bug.";
     public static final String ERROR_STREAM_IN_PURE_CONTEXT        = "Stream decision maker in pure context. Indicates implementation bug.";
+    public static final String ERROR_UNEXPECTED_STREAM_IN_TARGET   = "Unexpected Stream Operator in target expression. Indicates implementation bug.";
 
     /**
      * Wraps a decision maker with applicability checking based on the target
@@ -73,6 +87,103 @@ public class ApplicabilityChainCompiler {
             new ApplicabilityCheckingStreamPolicySet(so, decisionMaker, metadata);
         default                                                                    ->
             PolicySetDecision.error(new ErrorValue(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), metadata, List.of());
+        };
+    }
+
+    /**
+     * Compiles a coverage stream by chaining target evaluation with body coverage.
+     * <p>
+     * Handles target expression types analogously to
+     * {@link #compileApplicabilityAndDecision}: static values short-circuit,
+     * pure operators defer evaluation, and stream operators in targets are errors.
+     *
+     * @param policySet the policy set being compiled
+     * @param isApplicable the compiled target expression
+     * @param bodyFactory factory producing coverage stream when target matches
+     * @return flux emitting decisions with coverage information
+     */
+    public static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
+            CompiledExpression isApplicable,
+            Function<Coverage.TargetHit, Flux<PolicySetDecisionWithCoverage>> bodyFactory) {
+        if (policySet.target() == null) {
+            return bodyFactory.apply(Coverage.BLANK_TARGET_HIT);
+        }
+        val targetLocation = policySet.target().location();
+        switch (isApplicable) {
+        case Value match             -> {
+            return coverageStreamFromMatch(policySet, bodyFactory, match, targetLocation);
+        }
+        case StreamOperator ignored  -> {
+            var coverage = new Coverage.PolicySetCoverage(policySet.metadata(), Coverage.NO_TARGET_HIT, List.of());
+            var decision = PolicySetDecision.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), policySet.metadata(),
+                    List.of());
+            return Flux.just(new PolicySetDecisionWithCoverage(decision, coverage));
+        }
+        case PureOperator pureTarget -> {
+            return Flux.deferContextual(ctxView -> coverageStreamFromMatch(policySet, bodyFactory,
+                    pureTarget.evaluate(ctxView.get(EvaluationContext.class)), targetLocation));
+        }
+        }
+    }
+
+    /**
+     * Produces coverage stream from a resolved target match value.
+     * <p>
+     * TRUE continues to body evaluation, FALSE yields NOT_APPLICABLE,
+     * errors yield INDETERMINATE. All cases record the target hit for coverage.
+     */
+    private static Flux<PolicySetDecisionWithCoverage> coverageStreamFromMatch(PolicySet policySet,
+            Function<Coverage.TargetHit, Flux<PolicySetDecisionWithCoverage>> bodyFactory, Value match,
+            SourceLocation targetLocation) {
+        var targetHit = new Coverage.TargetResult(match, targetLocation);
+        if (Value.TRUE.equals(match)) {
+            return bodyFactory.apply(targetHit);
+        } else {
+            var               coverage = new Coverage.PolicySetCoverage(policySet.metadata(), targetHit, List.of());
+            PolicySetDecision decision;
+            if (Value.FALSE.equals(match)) {
+                decision = PolicySetDecision.notApplicable(policySet.metadata(), List.of());
+            } else {
+                decision = PolicySetDecision.error((ErrorValue) match, policySet.metadata(), List.of());
+            }
+            return Flux.just(new PolicySetDecisionWithCoverage(decision, coverage));
+        }
+    }
+
+    /**
+     * Lifts any decision maker type to a flux for uniform stream handling.
+     *
+     * @param dm the decision maker to lift
+     * @param priorAttributes attributes from prior evaluation
+     * @return flux emitting policy decisions
+     */
+    public static Flux<PolicyDecision> toStream(DecisionMaker dm, List<AttributeRecord> priorAttributes) {
+        return switch (dm) {
+        case PDPDecision d         -> Flux.just((PolicyDecision) d);
+        case PureDecisionMaker p   -> Flux.deferContextual(ctxView -> {
+                                   val ctx = ctxView.get(EvaluationContext.class);
+                                   return Flux.just((PolicyDecision) p.decide(priorAttributes, ctx));
+                               });
+        case StreamDecisionMaker s -> s.decide(priorAttributes).map(d -> (PolicyDecision) d);
+        };
+    }
+
+    /**
+     * Evaluates a policy in pure context, expecting non-streaming decision maker.
+     *
+     * @param policy the compiled policy to evaluate
+     * @param priorAttributes attributes from prior evaluation
+     * @param ctx the evaluation context
+     * @param location source location for error reporting
+     * @return the policy decision
+     */
+    public static PolicyDecision evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes,
+            EvaluationContext ctx, SourceLocation location) {
+        return switch (policy.applicabilityAndDecision()) {
+        case PDPDecision d               -> (PolicyDecision) d;
+        case PureDecisionMaker p         -> (PolicyDecision) p.decide(priorAttributes, ctx);
+        case StreamDecisionMaker ignored ->
+            PolicyDecision.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.metadata());
         };
     }
 
