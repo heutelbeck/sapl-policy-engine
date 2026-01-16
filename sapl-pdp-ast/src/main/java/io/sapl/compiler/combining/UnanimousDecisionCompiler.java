@@ -19,6 +19,8 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.SourceLocation;
+import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
+import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.DecisionMaker;
@@ -35,22 +37,26 @@ import java.util.List;
 public class UnanimousDecisionCompiler {
 
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
-            CompiledExpression isApplicable, PolicySetMetadata metadata) {
-        val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());
-        val coverage      = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
+            CompiledExpression isApplicable, PolicySetMetadata metadata, DefaultDecision defaultDecision,
+            ErrorHandling errorHandling) {
+        val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location(), defaultDecision,
+                errorHandling);
+        val coverage      = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata, defaultDecision,
+                errorHandling);
         return new DecisionMakerAndCoverage(decisionMaker, coverage);
     }
 
     private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
-            CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata) {
-        throw new SaplCompilerException(
-                "Unimplemented %s, %s, %s, %s".formatted(policySet, isApplicable, compiledPolicies, metadata));
+            CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata,
+            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s".formatted(policySet, isApplicable,
+                compiledPolicies, metadata, defaultDecision, errorHandling));
     }
 
     private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata,
-            @NonNull SourceLocation location) {
-        throw new SaplCompilerException(
-                "Unimplemented %s, %s, %s, %s".formatted(compiledPolicies, compiledPolicies, metadata, location));
+            @NonNull SourceLocation location, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s".formatted(compiledPolicies, metadata,
+                location, defaultDecision, errorHandling));
     }
 
 }

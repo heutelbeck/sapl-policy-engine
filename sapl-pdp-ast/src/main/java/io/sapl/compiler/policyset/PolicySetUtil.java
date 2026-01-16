@@ -26,6 +26,8 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.DecisionMaker;
@@ -184,6 +186,26 @@ public class PolicySetUtil {
         case PureDecisionMaker p         -> (PolicyDecision) p.decide(priorAttributes, ctx);
         case StreamDecisionMaker ignored ->
             PolicyDecision.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.metadata());
+        };
+    }
+
+    /**
+     * Creates the fallback decision based on the default decision setting.
+     * <p>
+     * Used when all policies are NOT_APPLICABLE (clean exhaustion, no errors).
+     *
+     * @param contributingDecisions the policy decisions that contributed to this
+     * result
+     * @param metadata the policy set metadata
+     * @param defaultDecision the configured default decision
+     * @return the fallback policy set decision
+     */
+    public static PolicySetDecision getFallbackDecision(List<PolicyDecision> contributingDecisions,
+            PolicySetMetadata metadata, DefaultDecision defaultDecision) {
+        return switch (defaultDecision) {
+        case ABSTAIN -> PolicySetDecision.notApplicable(metadata, contributingDecisions);
+        case DENY    -> PolicySetDecision.tracedDecision(AuthorizationDecision.DENY, metadata, contributingDecisions);
+        case PERMIT  -> PolicySetDecision.tracedDecision(AuthorizationDecision.PERMIT, metadata, contributingDecisions);
         };
     }
 

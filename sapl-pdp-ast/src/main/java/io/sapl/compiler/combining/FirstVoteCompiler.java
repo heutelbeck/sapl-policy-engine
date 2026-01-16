@@ -34,7 +34,6 @@ import io.sapl.compiler.policy.PolicyDecision;
 import io.sapl.compiler.policyset.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import org.jspecify.annotations.NonNull;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
@@ -44,6 +43,7 @@ import java.util.function.Function;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 import static io.sapl.ast.CombiningAlgorithm.ErrorHandling.ABSTAIN;
+import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackDecision;
 
 /**
  * Compiles policy sets using the first-vote combining algorithm.
@@ -233,15 +233,6 @@ public class FirstVoteCompiler {
                     });
         }
         return decisionChain;
-    }
-
-    private static @NonNull PolicySetDecision getFallbackDecision(List<PolicyDecision> contributingDecisions,
-            PolicySetMetadata metadata, CombiningAlgorithm.DefaultDecision defaultDecision) {
-        return switch (defaultDecision) {
-        case ABSTAIN -> PolicySetDecision.notApplicable(metadata, contributingDecisions);
-        case DENY    -> PolicySetDecision.tracedDecision(AuthorizationDecision.DENY, metadata, contributingDecisions);
-        case PERMIT  -> PolicySetDecision.tracedDecision(AuthorizationDecision.PERMIT, metadata, contributingDecisions);
-        };
     }
 
     /**
