@@ -132,7 +132,15 @@ public class SaplTesting {
     }
 
     public static SaplDocument document(String documentSource) {
-        return SAPLCompiler.parseDocument(documentSource).saplDocument();
+        var parsed = SAPLCompiler.parseDocument(documentSource);
+        if (!parsed.syntaxErrors().isEmpty()) {
+            throw new IllegalArgumentException("Syntax error(s): " + String.join("; ", parsed.syntaxErrors()));
+        }
+        if (!parsed.validationErrors().isEmpty()) {
+            throw new IllegalArgumentException("Validation error(s): " + parsed.validationErrors().stream()
+                    .map(Object::toString).collect(java.util.stream.Collectors.joining("; ")));
+        }
+        return parsed.saplDocument();
     }
 
     @SneakyThrows(JsonProcessingException.class)
@@ -197,9 +205,15 @@ public class SaplTesting {
     }
 
     public static CompiledPolicySet compilePolicySet(String source, CompilationContext ctx) {
-        var document = document(source);
+        var parsed = SAPLCompiler.parseDocument(source);
+        if (!parsed.syntaxErrors().isEmpty()) {
+            var errors = String.join("; ", parsed.syntaxErrors());
+            throw new IllegalArgumentException("Syntax error(s) in policy set: " + errors);
+        }
+        var document = parsed.saplDocument();
         if (!(document instanceof io.sapl.ast.PolicySet policySet)) {
-            throw new IllegalArgumentException("Expected a policy set document");
+            throw new IllegalArgumentException("Expected a policy set document, got: "
+                    + (document == null ? "null" : document.getClass().getSimpleName()));
         }
         return PolicySetCompiler.compilePolicySet(policySet, ctx);
     }

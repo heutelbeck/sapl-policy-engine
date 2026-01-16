@@ -82,13 +82,12 @@ class FirstApplicableCompilerTests {
     class EdgeCases {
 
         @Test
-        @DisplayName("empty policy set throws IllegalArgumentException from parser")
+        @DisplayName("empty policy set throws IllegalArgumentException with syntax error")
         void emptyPolicySetThrows() {
             assertThatThrownBy(() -> compilePolicySet("""
                     set "empty"
                     first-applicable
-                    """)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Expected a policy set document");
+                    """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Syntax error");
         }
 
         @Test

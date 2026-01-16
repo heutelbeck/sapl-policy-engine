@@ -17,40 +17,72 @@
  */
 package io.sapl.compiler.policyset;
 
-import org.junit.jupiter.api.DisplayName;
+import static io.sapl.util.SaplTesting.compilePolicySet;
+import static io.sapl.util.SaplTesting.evaluatePolicySet;
+import static io.sapl.util.SaplTesting.subscriptionContext;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// TODO: Re-enable when policy set compilation is complete
-//import io.sapl.compiler.expressions.SaplCompilerException;
-//import org.junit.jupiter.api.Test;
-//import static io.sapl.util.SaplTesting.compilePolicySet;
-//import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.pdp.Decision;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import lombok.val;
 
 /**
- * Tests for PolicySetCompiler error paths including variable definition errors.
- * Note: Reserved identifiers (subject, action, resource, environment) are
- * rejected at the parser level, so they don't reach the compiler's variable
- * validation.
+ * Tests for PolicySetCompiler covering variable compilation and combining
+ * algorithm delegation.
  */
 @DisplayName("PolicySetCompiler")
 class PolicySetCompilerTests {
 
-    // TODO: Re-enable when policy set compilation is complete
-//    @Test
-//    @DisplayName("duplicate variable definition throws error")
-//    void duplicateVariableDefinitionThrowsError() {
-//        var policySet = """
-//                set "test"
-//                first-applicable
-//
-//                var myVar = 1;
-//                var myVar = 2;
-//
-//                policy "test"
-//                permit
-//                """;
-//
-//        assertThatThrownBy(() -> compilePolicySet(policySet)).isInstanceOf(SaplCompilerException.class)
-//                .hasMessageContaining("Redefinition of variable myVar not permitted");
-//    }
+    @Nested
+    @DisplayName("Variable definition errors")
+    class VariableDefinitionErrors {
 
+        @Test
+        @DisplayName("duplicate variable definition throws SaplCompilerException")
+        void duplicateVariableDefinitionThrows() {
+            assertThatThrownBy(() -> compilePolicySet("""
+                    set "test"
+                    first-applicable
+
+                    var myVar = 1;
+                    var myVar = 2;
+
+                    policy "test"
+                    permit
+                    """)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageContaining("Redefinition of variable myVar");
+        }
+
+    }
+
+    @Nested
+    @DisplayName("First-applicable algorithm")
+    class FirstApplicableAlgorithm {
+
+        @Test
+        @DisplayName("delegates to FirstApplicableCompiler")
+        void delegatesToFirstApplicableCompiler() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first-applicable
+
+                    policy "first"
+                    permit
+
+                    policy "second"
+                    deny
+                    """);
+            val ctx      = subscriptionContext("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+        }
+    }
 }

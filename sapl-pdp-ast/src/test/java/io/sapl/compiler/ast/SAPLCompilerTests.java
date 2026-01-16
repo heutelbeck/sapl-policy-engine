@@ -43,14 +43,6 @@ class SAPLCompilerTests {
         assertDoesNotThrow(() -> SAPLCompiler.parse(policyDocument));
     }
 
-    // TODO: Target expressions removed from policies - test no longer applicable
-//    @Test
-//    void whenLazyBooleanOperatorsInTarget_thenParsesSuccessfully() {
-//        // && and || are now aliases for & and | - allowed in targets
-//        var policyDocument = "policy \"test\" permit true && false";
-//        assertDoesNotThrow(() -> SAPLCompiler.parse(policyDocument));
-//    }
-
     @Test
     void whenBrokenInputStream_thenThrowsException() throws IOException {
         var brokenInputStream = mock(InputStream.class);
