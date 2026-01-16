@@ -139,7 +139,7 @@ class SanitizationFunctionLibraryTests {
     }
 
     private static Stream<Arguments> balancedModeLegitimateInputs() {
-        return Stream.of(arguments("Abdul Alhazred", "Lovecraftian scholar name"),
+        return Stream.of(arguments("Abdul Alhazred", "Scholar name"),
                 arguments("O'Brien", "Irish surname with apostrophe"),
                 arguments("D'Angelo", "Italian surname with apostrophe"),
                 arguments("N'Gai", "African name with apostrophe"),

@@ -35,11 +35,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive test suite for BitwiseFunctionLibrary. Tests are primarily
- * parameterized to ensure comprehensive
- * coverage of edge cases and maintain consistency across similar operations.
- */
 class BitwiseFunctionLibraryTests {
     @Test
     void when_loadedIntoBroker_then_noError() {
@@ -47,8 +42,6 @@ class BitwiseFunctionLibraryTests {
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(BitwiseFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
-
-    /* Core Operations Tests */
 
     @ParameterizedTest
     @MethodSource("provideBitwiseAndTestCases")
@@ -384,8 +377,6 @@ class BitwiseFunctionLibraryTests {
         assertThat(isBitCleared).isInstanceOf(BooleanValue.class).isEqualTo(Value.FALSE);
         assertThat(withBitCleared).isInstanceOf(NumberValue.class).isEqualTo(Value.of(42L));
     }
-
-    /* Identity and Property Tests */
 
     @ParameterizedTest
     @MethodSource("provideBitwiseIdentityProperties")

@@ -33,11 +33,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.grammar.antlr.validation.ValidationError;
 
-/**
- * Comprehensive test suite for SAPL semantic validation.
- * Tests derived from sapl-lang SAPLValidatorTests to ensure
- * compatibility with the Xtext-based validator.
- */
 class SAPLValidatorTests {
 
     // Boolean Operators in Target Expression Tests

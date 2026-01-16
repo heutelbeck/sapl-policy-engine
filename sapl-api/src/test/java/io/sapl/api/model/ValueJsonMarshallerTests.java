@@ -32,27 +32,17 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive test suite for ValueJsonMarshaller. Tests cover round-trip
- * conversion, edge cases, error handling, and
- * depth protection.
- */
 class ValueJsonMarshallerTests {
 
     private static final JsonNodeFactory FACTORY         = JsonNodeFactory.instance;
     private static final int             MALICIOUS_DEPTH = ValueJsonMarshaller.MAX_DEPTH + 2;
 
-    // Lovecraftian test data
     private static final String ENTITY_CTHULHU      = "Cthulhu";
     private static final String ENTITY_AZATHOTH     = "Azathoth";
     private static final String ENTITY_NYARLATHOTEP = "Nyarlathotep";
     private static final String LOCATION_RLYEH      = "R'lyeh";
     private static final int    SANITY_THRESHOLD    = 42;
     private static final int    HORROR_LEVEL_MAX    = 100;
-
-    // ============================================================
-    // Round-trip Conversion Tests - Primitives
-    // ============================================================
 
     @ParameterizedTest(name = "round-trip null: {0}")
     @MethodSource("nullValues")
@@ -147,10 +137,6 @@ class ValueJsonMarshallerTests {
         assertThat(result.isSecret()).isFalse();
     }
 
-    // ============================================================
-    // Round-trip Conversion Tests - Collections
-    // ============================================================
-
     @ParameterizedTest(name = "round-trip empty: {0}")
     @MethodSource("emptyCollections")
     void when_roundTripEmptyCollection_then_preservesValue(String description, Value original, Class<?> expectedType) {
@@ -243,10 +229,6 @@ class ValueJsonMarshallerTests {
         assertThat(result).isEqualTo(original);
     }
 
-    // ============================================================
-    // Error Handling Tests
-    // ============================================================
-
     @Test
     void when_toJsonNodeWithNull_then_rejectsNull() {
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonNode(null)).isInstanceOf(IllegalArgumentException.class)
@@ -314,10 +296,6 @@ class ValueJsonMarshallerTests {
                 arguments("pojo", FACTORY.pojoNode(new Object())));
     }
 
-    // ============================================================
-    // JSON Compatibility Tests
-    // ============================================================
-
     @ParameterizedTest(name = "isJsonCompatible true for: {0}")
     @MethodSource("jsonCompatibleValues")
     void when_isJsonCompatibleWithCompatibleValue_then_returnsTrue(String description, Value value) {
@@ -365,10 +343,6 @@ class ValueJsonMarshallerTests {
         assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(null)).doesNotThrowAnyException();
     }
 
-    // ============================================================
-    // Depth Protection Tests
-    // ============================================================
-
     @ParameterizedTest(name = "toJsonNode rejects excessive depth: {0}")
     @MethodSource("excessivelyDeepValueStructures")
     void when_toJsonNodeWithExcessiveDepth_then_rejects(String description, Value deepStructure) {
@@ -410,10 +384,6 @@ class ValueJsonMarshallerTests {
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
-
-    // ============================================================
-    // ofJson Tests
-    // ============================================================
 
     @ParameterizedTest(name = "ofJson parses: {0}")
     @MethodSource("validJsonStrings")
@@ -466,10 +436,6 @@ class ValueJsonMarshallerTests {
         assertThat(((ErrorValue) result).message()).contains("Unknown JsonNode type: MISSING");
     }
 
-    // ============================================================
-    // toJsonString Tests
-    // ============================================================
-
     @ParameterizedTest(name = "toJsonString serializes: {0}")
     @MethodSource("valuesToJsonStrings")
     void whenValue_thenToJsonStringReturnsExpectedJson(String description, Value value, String expectedJson) {
@@ -507,10 +473,6 @@ class ValueJsonMarshallerTests {
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonString(error)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("ErrorValue").hasMessageContaining("Eldritch horror");
     }
-
-    // ============================================================
-    // Edge Cases
-    // ============================================================
 
     @ParameterizedTest(name = "round-trip edge case: {0}")
     @MethodSource("edgeCaseStructures")
@@ -572,10 +534,6 @@ class ValueJsonMarshallerTests {
         assertThat(result.toString()).isNotEqualTo(original.toString());
     }
 
-    // ============================================================
-    // Helper Methods for Creating Deep Structures
-    // ============================================================
-
     private static Value createDeeplyNestedArray(int depth) {
         Value current = Value.of(SANITY_THRESHOLD);
         for (int i = 0; i < depth - 1; i++) {
@@ -632,10 +590,6 @@ class ValueJsonMarshallerTests {
         return Value
                 .ofObject(Map.of("subject", current, "action", Value.of("exploit"), "resource", Value.of("system")));
     }
-
-    // ============================================================
-    // Pretty Printing Tests
-    // ============================================================
 
     @ParameterizedTest(name = "toPrettyString primitive: {0}")
     @MethodSource("primitivePrettyStringCases")

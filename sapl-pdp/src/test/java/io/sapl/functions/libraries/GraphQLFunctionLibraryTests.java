@@ -42,12 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive test suite for GraphQLFunctionLibrary.
- * <p/>
- * Tests cover query parsing, validation, security analysis, and edge cases
- * using Lovecraftian-themed test data.
- */
 class GraphQLFunctionLibraryTests {
 
     @Test

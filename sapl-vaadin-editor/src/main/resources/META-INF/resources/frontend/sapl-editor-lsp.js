@@ -697,7 +697,7 @@ class SaplEditorLsp extends LitElement {
         }
     }
 
-    // --- LSP WebSocket Connection ---
+    // LSP WebSocket Connection
 
     _connectLsp() {
         if (!this.wsUrl || this._ws) return;
@@ -1164,7 +1164,7 @@ class SaplEditorLsp extends LitElement {
         return html;
     }
 
-    // --- Utility Methods ---
+    // Utility Methods
 
     _positionToOffset(pos) {
         if (!this._editor) return 0;
@@ -1217,7 +1217,7 @@ class SaplEditorLsp extends LitElement {
         return kinds[kind] || 'text';
     }
 
-    // --- Coverage API ---
+    // Coverage API
 
     _clearCoverageInternal() {
         this._lastCoveragePayload = null;
@@ -1275,7 +1275,7 @@ class SaplEditorLsp extends LitElement {
         });
     }
 
-    // --- Public API (called from Vaadin) ---
+    // Public API (called from Vaadin)
 
     setEditorDocument(element, doc) {
         if (this.document === doc) return;

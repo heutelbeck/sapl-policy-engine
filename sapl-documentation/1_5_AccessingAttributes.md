@@ -116,7 +116,7 @@ Traditional access control systems make one-time decisions. SAPL maintains conti
 
 ### Built-in and Custom PIPs
 
-The examples above use built-in PIPs like `time.now` and `time.localTimeIsBetween`. SAPL includes a comprehensive library of built-in PIPs for common authorization needs: time and date functions, string manipulation, filtering, JSON processing, and more.
+The examples above use built-in PIPs like `time.now` and `time.localTimeIsBetween`. SAPL includes a library of built-in PIPs for common authorization needs: time and date functions, string manipulation, filtering, JSON processing, and more.
 
 **SAPL's plugin architecture enables domain-specific authorization.** Organizations can implement custom PIPs as plugins to integrate their domain-specific data sources and business logic into authorization policies:
 

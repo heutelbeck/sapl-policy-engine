@@ -177,8 +177,7 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
      * using the pure evaluation path.
      * <p>
      * This method combines the performance benefits of the pure evaluation path
-     * with comprehensive tracing for
-     * debugging and auditing.
+     * with tracing for debugging and auditing.
      *
      * @param authorizationSubscription
      * the authorization request

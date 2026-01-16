@@ -338,7 +338,7 @@ public class GraphQLFunctionLibrary {
     /**
      * Parses and validates a GraphQL query against a schema.
      * <p/>
-     * Returns a comprehensive object containing all security metrics and validation
+     * Returns a object containing all security metrics and validation
      * results. Parsing and validation
      * happen in a single pass for optimal performance.
      *
@@ -402,7 +402,7 @@ public class GraphQLFunctionLibrary {
     /**
      * Parses a GraphQL query without schema validation.
      * <p/>
-     * Returns the same comprehensive metrics as validateQuery() except for
+     * Returns the same metrics as validateQuery() except for
      * validation results. Use this when you need
      * query analysis but don't have the schema available or want to analyze
      * structure without enforcing schema

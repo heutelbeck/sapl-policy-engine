@@ -33,18 +33,12 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive test suite for ValueJsonMarshaller. Tests cover round-trip
- * conversion, edge cases, error handling, and
- * depth protection.
- */
 @DisplayName("ValueJsonMarshaller Tests")
 class ValueJsonMarshallerTests {
 
     private static final JsonNodeFactory FACTORY         = JsonNodeFactory.instance;
     private static final int             MALICIOUS_DEPTH = ValueJsonMarshaller.MAX_DEPTH + 2;
 
-    // Lovecraftian test data
     private static final String ENTITY_CTHULHU      = "Cthulhu";
     private static final String ENTITY_AZATHOTH     = "Azathoth";
     private static final String ENTITY_NYARLATHOTEP = "Nyarlathotep";

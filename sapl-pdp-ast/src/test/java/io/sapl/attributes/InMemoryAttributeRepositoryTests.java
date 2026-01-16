@@ -54,14 +54,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive tests for InMemoryAttributeRepository using scenarios from the
- * world of Elric of Melniboné.
- * <p>
- * Test scenarios are based on the authorization requirements of the Dreaming
- * City and the balance between Law and
- * Chaos.
- */
 @Timeout(30)
 class InMemoryAttributeRepositoryTests {
 

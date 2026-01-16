@@ -35,9 +35,6 @@ import static io.sapl.util.CombiningAlgorithmTestUtil.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive tests for the first-applicable combining algorithm.
- */
 class FirstApplicableTests {
 
     @ParameterizedTest(name = "{0}")

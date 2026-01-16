@@ -48,12 +48,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive tests for PolicyCompiler covering all document type
- * permutations and evaluation behaviors. Test scenarios are themed around Terry
- * Pratchett's Discworld universe featuring the Ankh-Morpork guilds, Unseen
- * University, the City Watch, and various denizens of the Disc.
- */
 @DisplayName("PolicyCompiler")
 class PolicyCompilerTests {
 

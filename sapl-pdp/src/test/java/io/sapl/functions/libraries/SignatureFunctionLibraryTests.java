@@ -56,7 +56,6 @@ class SignatureFunctionLibraryTests {
     private static KeyPair ecP521KeyPair;
     private static KeyPair ed25519KeyPair;
 
-    // Lovecraftian test messages
     private static final String NECRONOMICON_EXCERPT = "That is not dead which can eternal lie, and with strange aeons even death may die.";
     private static final String CULTIST_INVOCATION   = "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn";
     private static final String FORBIDDEN_KNOWLEDGE  = "The Elder Things dwelt in their cities beneath the Antarctic ice, and their knowledge was vast.";
@@ -68,7 +67,6 @@ class SignatureFunctionLibraryTests {
     private static final String MISKATONIC_RECORDS   = "The Miskatonic University archives contain fragments too terrible for human comprehension.";
     private static final String DUNWICH_HORROR       = "The hills of Dunwich concealed secrets that should have remained forever buried.";
 
-    // Multilingual Lovecraftian references
     private static final String CTHULHU_MULTILINGUAL = "Cthulhu 克苏鲁 Κθούλου 크툴루 クトゥルフ كثولو"; // Cthulhu in English,
                                                                                               // Chinese, Greek, Korean,
                                                                                               // Japanese, Arabic

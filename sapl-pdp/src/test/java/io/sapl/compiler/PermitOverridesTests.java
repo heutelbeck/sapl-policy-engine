@@ -176,7 +176,8 @@ class PermitOverridesTests {
     }
 
     /*
-     * ========== Transformation Uncertainty Tests ========== When multiple policies
+     * Transformation Uncertainty Tests
+     * When multiple policies
      * provide transformations, the result
      * should be INDETERMINATE due to transformation uncertainty.
      */
@@ -239,10 +240,6 @@ class PermitOverridesTests {
                         policy "permit" permit transform { "source": "permit" }
                         """, Decision.INDETERMINATE, null, null));
     }
-
-    /*
-     * ========== Comprehensive Constraint Merging Tests ==========
-     */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource

@@ -253,7 +253,7 @@ class DenyOverridesTests {
     }
 
     /*
-     * ========== Comprehensive Constraint Merging Tests ========== Verify that
+     * Verify that
      * constraints from all policies of the
      * winning decision type are properly merged.
      */

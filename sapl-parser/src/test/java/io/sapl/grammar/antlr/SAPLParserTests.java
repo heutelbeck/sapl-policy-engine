@@ -34,18 +34,9 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive test suite for the ANTLR4 SAPL parser.
- * Tests derived from sapl-lang and sapl-pdp test suites to ensure
- * 100% syntax compatibility with the Xtext-based parser.
- */
 class SAPLParserTests {
 
     private static final Path VALID_POLICIES_DIR = Path.of("src/test/resources/policies/valid");
-
-    // ========================================================================
-    // CATEGORY 1: File-based Policy Tests
-    // ========================================================================
 
     static Stream<Path> validPolicyFiles() throws IOException {
         return Files.list(VALID_POLICIES_DIR).filter(path -> path.toString().endsWith(".sapl")).sorted();
@@ -59,10 +50,6 @@ class SAPLParserTests {
 
         assertThat(errors).as("Parsing '%s' should produce no syntax errors", policyPath.getFileName()).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 2: Simple Policy Syntax Tests (from LegacyPolicyTests)
-    // ========================================================================
 
     static Stream<Arguments> simplePolicies() {
         return Stream.of(arguments("simple write denial", """
@@ -137,10 +124,6 @@ class SAPLParserTests {
         assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 3: Policies with Functions (from LegacyPolicyTests)
-    // ========================================================================
-
     static Stream<Arguments> policiesWithFunctions() {
         return Stream.of(arguments("day of week function check",
                 """
@@ -158,10 +141,6 @@ class SAPLParserTests {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 4: Policies with PIPs/Attributes (from LegacyPolicyTests)
-    // ========================================================================
 
     static Stream<Arguments> policiesWithAttributes() {
         return Stream.of(arguments("upper case subject and time PIP", """
@@ -241,10 +220,6 @@ class SAPLParserTests {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 5: Policies with Obligations, Advice and Transforms
-    // ========================================================================
 
     static Stream<Arguments> policiesWithObligationsAdviceTransform() {
         return Stream.of(arguments("mongo query manipulation with obligation", """
@@ -359,10 +334,6 @@ class SAPLParserTests {
         assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 6: Schema Syntax Tests
-    // ========================================================================
-
     static Stream<Arguments> policiesWithSchemas() {
         return Stream.of(arguments("basic schema enforcement", """
                 subject enforced schema {
@@ -420,10 +391,6 @@ class SAPLParserTests {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 7: Policy Set Syntax Tests (from LegacyPolicySetTests)
-    // ========================================================================
 
     static Stream<Arguments> policySets() {
         return Stream.of(arguments("policy set with permit policy", """
@@ -504,10 +471,6 @@ class SAPLParserTests {
         assertThat(errors).as("Policy set '%s' should parse without errors", description).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 8: JWT API Filter Policies (from LegacyPolicyTests)
-    // ========================================================================
-
     static Stream<Arguments> jwtPolicies() {
         return Stream.of(
                 arguments("JWT untrusted issuer denial",
@@ -545,10 +508,6 @@ class SAPLParserTests {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("JWT policy '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 9: XACML-Style Policies (from LegacyPolicyTests)
-    // ========================================================================
 
     static Stream<Arguments> xacmlStylePolicies() {
         return Stream.of(arguments("XACML simple policy with email domain", """
@@ -615,14 +574,9 @@ class SAPLParserTests {
         assertThat(errors).as("XACML-style policy '%s' should parse without errors", description).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 10: Language Feature Syntax Tests
-    // Consolidated tests for imports, operator, steps, filters, JSON, comments
-    // ========================================================================
-
     static Stream<Arguments> languageFeatureSyntax() {
         return Stream.of(
-                // --- Imports ---
+                // Imports
                 arguments("simple import", "import simple.append policy \"test\" permit"),
                 arguments("import with alias", "import simple.append as concat policy \"test\" permit"),
                 arguments("multiple imports", "import simple.length import simple.append policy \"test\" permit"),
@@ -634,7 +588,7 @@ class SAPLParserTests {
                         policy "imports" permit
                         """),
 
-                // --- Operators ---
+                // Operators
                 arguments("all operator", """
                         policy "operator" permit
                         where
@@ -645,7 +599,7 @@ class SAPLParserTests {
                             !false; -1; +1;
                         """),
 
-                // --- Combining Algorithms ---
+                // Combining Algorithms
                 arguments("deny-overrides algorithm", "set \"test\" deny-overrides policy \"p\" permit"),
                 arguments("permit-overrides algorithm", "set \"test\" permit-overrides policy \"p\" permit"),
                 arguments("first-applicable algorithm", "set \"test\" first-applicable policy \"p\" permit"),
@@ -653,7 +607,7 @@ class SAPLParserTests {
                 arguments("deny-unless-permit algorithm", "set \"test\" deny-unless-permit policy \"p\" permit"),
                 arguments("permit-unless-deny algorithm", "set \"test\" permit-unless-deny policy \"p\" permit"),
 
-                // --- Steps and Path Expressions ---
+                // Steps and Path Expressions
                 arguments("all step types", """
                         policy "steps" permit
                         where
@@ -669,7 +623,7 @@ class SAPLParserTests {
                             resource..customerName == "test";
                         """),
 
-                // --- Filters and Subtemplates ---
+                // Filters and Subtemplates
                 arguments("simple filter", """
                         policy "filters" permit transform resource |- blacken
                         """), arguments("filter with arguments", """
@@ -683,7 +637,7 @@ class SAPLParserTests {
                         policy "subtemplate" permit transform resource :: { "filtered": @ }
                         """),
 
-                // --- JSON Values ---
+                // JSON Values
                 arguments("json values",
                         """
                                 policy "json values" permit
@@ -698,7 +652,7 @@ class SAPLParserTests {
                         policy "identifier keys" permit where var obj = { key: "value", anotherKey: 42 };
                         """),
 
-                // --- Comments ---
+                // Comments
                 arguments("comments", """
                         // Single line comment
                         /* Multi-line comment */
@@ -706,7 +660,7 @@ class SAPLParserTests {
                         permit /* block */ action == "test"
                         """),
 
-                // --- Reserved Identifiers as Field Names ---
+                // Reserved Identifiers as Field Names
                 arguments("reserved identifiers as field names", """
                         policy "reserved identifiers" permit
                         where
@@ -720,12 +674,6 @@ class SAPLParserTests {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("Language feature '%s' should parse without errors", description).isEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 11: Array Slicing with :: Token Disambiguation
-    // Verifies that [::-1] parses correctly without whitespace (using SUBTEMPLATE
-    // token)
-    // ========================================================================
 
     static Stream<Arguments> arraySlicingWithDoubleColon() {
         return Stream.of(
@@ -790,10 +738,6 @@ class SAPLParserTests {
         assertThat(errors).as("Array slicing '%s' should parse without errors", description).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 12: Invalid Syntax Tests (should produce errors)
-    // ========================================================================
-
     static Stream<Arguments> invalidSyntaxSnippets() {
         return Stream.of(
                 // From SAPLSyntaxErrorMessageProviderTests
@@ -836,10 +780,6 @@ class SAPLParserTests {
         assertThat(errors).as("Parsing invalid SAPL (%s) should produce syntax errors", description).isNotEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 13: Reserved Words as Variable Names (from DefaultSAPLParserTests)
-    // ========================================================================
-
     @ParameterizedTest
     @ValueSource(strings = { "policy \"p\" permit where var subject = {};",
             "policy \"p\" permit where var action = {};", "policy \"p\" permit where var resource = {};",
@@ -848,11 +788,6 @@ class SAPLParserTests {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("Using reserved word as variable name should produce syntax error").isNotEmpty();
     }
-
-    // ========================================================================
-    // CATEGORY 14: Syntactically Valid but Semantically Invalid Policies
-    // These should parse without syntax errors (semantic validation is separate)
-    // ========================================================================
 
     static Stream<Arguments> syntacticallyValidButSemanticallyInvalidPolicies() {
         return Stream.of(
@@ -878,10 +813,6 @@ class SAPLParserTests {
                 .as("Policy '%s' is syntactically valid (semantic errors are checked separately)", description)
                 .isEmpty();
     }
-
-    // ========================================================================
-    // Helper Methods
-    // ========================================================================
 
     private List<String> parseAndCollectErrors(String input) {
         var errors      = new ArrayList<String>();

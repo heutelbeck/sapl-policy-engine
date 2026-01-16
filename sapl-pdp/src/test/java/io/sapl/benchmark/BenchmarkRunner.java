@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 /**
  * Programmatic runner for SAPL PDP benchmarks using JMH. Executes benchmarks
- * and generates comprehensive reports.
+ * and generates reports.
  *
  * <pre>
  *   mvn test-compile exec:java -Dexec.mainClass="io.sapl.benchmark.BenchmarkRunner" \
@@ -130,7 +130,7 @@ public final class BenchmarkRunner {
     }
 
     /**
-     * Generates a comprehensive Markdown report from benchmark results.
+     * Generates a Markdown report from benchmark results.
      */
     public void generateReport(Collection<RunResult> results) throws IOException {
         var reportPath = outputDirectory.resolve("benchmark-report-" + timestamp + ".md");

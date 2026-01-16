@@ -42,8 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * Comprehensive test suite for AttributeStream reactive streaming system.
- * <p>
  * Tests cover the complete lifecycle and behavior of attribute streams in the
  * SAPL Policy Engine's attribute broker,
  * including:

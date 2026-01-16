@@ -98,7 +98,7 @@ class BooleanGuardCompilerTests {
         assertThat(result).isInstanceOf(StreamBooleanTypeCheck.class);
     }
 
-    // --- PureBooleanTypeCheck tests ---
+    // PureBooleanTypeCheck tests
 
     @ParameterizedTest
     @MethodSource("booleanValues")

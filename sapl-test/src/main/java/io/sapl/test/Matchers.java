@@ -45,8 +45,6 @@ import java.util.function.Predicate;
 @UtilityClass
 public class Matchers {
 
-    // ========== Argument List Builders ==========
-
     /**
      * Creates argument matchers for a function mock.
      *
@@ -56,8 +54,6 @@ public class Matchers {
     public static SaplTestFixture.Parameters args(ArgumentMatcher... matchers) {
         return ArgumentMatchers.of(matchers);
     }
-
-    // ========== Core Matchers ==========
 
     /**
      * Matches any value.
@@ -90,8 +86,6 @@ public class Matchers {
     public static ArgumentMatcher isNull() {
         return matching(NullValue.class::isInstance);
     }
-
-    // ========== Combinator Matchers ==========
 
     /**
      * Negates a matcher. Matches when the wrapped matcher does not match.
@@ -134,8 +128,6 @@ public class Matchers {
         });
     }
 
-    // ========== Type Matchers ==========
-
     /**
      * Matches any text value.
      */
@@ -170,8 +162,6 @@ public class Matchers {
     public static ArgumentMatcher anyArray() {
         return matching(ArrayValue.class::isInstance);
     }
-
-    // ========== Text Matchers ==========
 
     /**
      * Matches text values containing the specified substring (case-sensitive).
@@ -316,8 +306,6 @@ public class Matchers {
         return s.trim().replaceAll("\\s+", " ");
     }
 
-    // ========== Number Matchers ==========
-
     /**
      * Matches number values equal to the specified value.
      *
@@ -460,8 +448,6 @@ public class Matchers {
         return matching(v -> v instanceof NumberValue n && Math.abs(n.value().doubleValue() - expected) <= delta);
     }
 
-    // ========== Boolean Matchers ==========
-
     /**
      * Matches boolean values equal to the specified value.
      *
@@ -470,8 +456,6 @@ public class Matchers {
     public static ArgumentMatcher booleanEqualTo(boolean expected) {
         return matching(v -> v instanceof BooleanValue b && b.value() == expected);
     }
-
-    // ========== Object Matchers ==========
 
     /**
      * Matches object values containing the specified key.
@@ -527,8 +511,6 @@ public class Matchers {
     public static ArgumentMatcher objectIsEmpty() {
         return matching(v -> v instanceof ObjectValue obj && obj.isEmpty());
     }
-
-    // ========== Array Matchers ==========
 
     /**
      * Matches array values containing an element that matches the given matcher.

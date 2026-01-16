@@ -151,7 +151,7 @@ class FirstApplicableCompilerTests {
 
         static Stream<PureTestCase> pureTestCases() {
             return Stream.of(
-                    // --- No policy set target (BLANK_TARGET_HIT) ---
+                    // No policy set target (BLANK_TARGET_HIT)
 
                     new PureTestCase("short-circuit: first policy permits", """
                             set "guild-access"
@@ -315,7 +315,7 @@ class FirstApplicableCompilerTests {
                             }
                             """, Decision.DENY, BLANK, List.of("wizards-reading", "default-deny")),
 
-                    // --- Policy set variable tests ---
+                    // Policy set variable tests
 
                     new PureTestCase("set variable: constant folds to short-circuit", """
                             set "constant-var"
@@ -449,7 +449,7 @@ class FirstApplicableCompilerTests {
                             }
                             """, Decision.DENY, BLANK, List.of("level-check", "fallback")),
 
-                    // --- Error and edge case tests ---
+                    // Error and edge case tests
 
                     new PureTestCase("all policies NOT_APPLICABLE returns NOT_APPLICABLE", """
                             set "no-match"
@@ -513,7 +513,7 @@ class FirstApplicableCompilerTests {
                                     }
                                     """, Decision.NOT_APPLICABLE, BLANK, List.of("first", "second")),
 
-                    // --- Policy set target tests (TargetResult) ---
+                    // Policy set target tests (TargetResult)
 
                     new PureTestCase("set target: static true, policies evaluated", """
                             set "static-target-true"
@@ -645,7 +645,7 @@ class FirstApplicableCompilerTests {
 
         static Stream<StreamTestCase> streamTestCases() {
             return Stream.of(
-                    // --- No policy set target (BLANK_TARGET_HIT) ---
+                    // No policy set target (BLANK_TARGET_HIT)
 
                     new StreamTestCase("attribute in body permits", """
                             set "time-based-access"
@@ -688,7 +688,7 @@ class FirstApplicableCompilerTests {
                             """, Map.of("test.action", new Value[] { Value.of("run") }), Decision.DENY, BLANK,
                             List.of("wizards-reading", "default-deny")),
 
-                    // --- Policy set variable with attribute (streaming) ---
+                    // Policy set variable with attribute (streaming)
 
                     new StreamTestCase("set variable: attribute in body makes set streaming", """
                             set "streaming-var"
@@ -798,7 +798,7 @@ class FirstApplicableCompilerTests {
                             """, Map.of("test.attr", new Value[] { Value.TRUE }), Decision.INDETERMINATE, BLANK,
                             List.of("number-target")),
 
-                    // --- Policy set target with streaming policies (TargetResult) ---
+                    // Policy set target with streaming policies (TargetResult)
 
                     new StreamTestCase("set target: runtime true with streaming policy", """
                             set "target-with-stream"

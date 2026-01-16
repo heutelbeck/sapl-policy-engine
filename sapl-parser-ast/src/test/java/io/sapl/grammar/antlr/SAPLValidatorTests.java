@@ -33,30 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.grammar.antlr.validation.ValidationError;
 
-/**
- * Comprehensive test suite for SAPL semantic validation.
- * Tests derived from sapl-lang SAPLValidatorTests to ensure
- * compatibility with the Xtext-based validator.
- */
 class SAPLValidatorTests {
-
-    @Test
-    void whenAttributeInPolicyBody_thenNoValidationError() {
-        var policy = """
-                policy "test"
-                permit
-                where
-                    <time.now> != undefined;
-                    subject.<pip.attribute> == "value";
-                    |<clock.ticker> != undefined;
-                    subject.|<pip.stream> == "value";
-                """;
-
-        var errors = validatePolicy(policy);
-        assertThat(errors).as("Attributes are allowed in policy body").isEmpty();
-    }
-
-    // Attribute Finders in Schema Expression Tests
 
     static Stream<Arguments> attributesInSchema() {
         return Stream.of(arguments("environment attribute in schema", """
@@ -84,60 +61,11 @@ class SAPLValidatorTests {
                 .anyMatch(e -> e.message().contains("Attribute access is forbidden in schema"));
     }
 
-    @Test
-    void whenStaticSchemaExpression_thenNoValidationError() {
-        var policy = """
-                subject schema { "type": "object" }
-                action enforced schema { "type": "string" }
-                resource schema { "required": ["id"] }
-                environment schema { "type": "object" }
-
-                policy "test" permit
-                where
-                    var x = 123 schema { "type": "number" };
-                """;
-
-        var errors = validatePolicy(policy);
-        assertThat(errors).as("Static schema expressions are valid").isEmpty();
-    }
-
-    // Variable Name Tests
+    // Valid Policy Tests (no validation errors expected)
     // Note: Reserved words as variable names (subject, action, resource,
     // environment) are caught at SYNTAX level (see
     // SAPLParserTests.whenUsingReservedWordAsVariableName)
     // because the grammar uses ID token which doesn't match reserved word tokens.
-
-    @Test
-    void whenNormalVariableName_thenNoValidationError() {
-        var policy = """
-                policy "test" permit
-                where
-                    var mySubject = subject;
-                    var actionName = action;
-                    var resourceId = resource.id;
-                    var envValue = environment.value;
-                """;
-
-        var errors = validatePolicy(policy);
-        assertThat(errors).as("Normal variable names should be allowed").isEmpty();
-    }
-
-    @Test
-    void whenReservedWordAsFieldAccess_thenNoValidationError() {
-        var policy = """
-                policy "test" permit
-                where
-                    subject.subject == "value";
-                    action.action == "read";
-                    resource.resource == "data";
-                    environment.environment == "prod";
-                """;
-
-        var errors = validatePolicy(policy);
-        assertThat(errors).as("Reserved words as field names should be allowed").isEmpty();
-    }
-
-    // Valid Policy Tests (no validation errors expected)
 
     static Stream<Arguments> validPolicies() {
         return Stream.of(arguments("simple permit policy", """
@@ -148,24 +76,42 @@ class SAPLValidatorTests {
                 where
                     subject == "admin" && action == "read";
                     subject == "user" || subject == "guest";
-                """), arguments("policy with attributes in body", """
+                """), arguments("attributes in policy body", """
                 policy "test"
                 permit
                 where
                     <time.now> != undefined;
-                    subject.<pip.profile>.role == "admin";
+                    subject.<pip.attribute> == "value";
+                    |<clock.ticker> != undefined;
+                    subject.|<pip.stream> == "value";
                 """), arguments("policy set with valid structure", """
                 set "test" deny-overrides
                 var globalVar = "value";
                 policy "p1" permit where subject == "admin";
                 policy "p2" deny where resource == "secret";
-                """), arguments("policy with static schemas", """
+                """), arguments("static schema expressions", """
                 subject schema { "type": "object" }
                 action enforced schema { "type": "string" }
+                resource schema { "required": ["id"] }
+                environment schema { "type": "object" }
 
                 policy "test" permit
                 where
                     var x = 123 schema { "type": "number" };
+                """), arguments("normal variable names", """
+                policy "test" permit
+                where
+                    var mySubject = subject;
+                    var actionName = action;
+                    var resourceId = resource.id;
+                    var envValue = environment.value;
+                """), arguments("reserved words as field access", """
+                policy "test" permit
+                where
+                    subject.subject == "value";
+                    action.action == "read";
+                    resource.resource == "data";
+                    environment.environment == "prod";
                 """), arguments("complex policy with all features", """
                 import filter.blacken
 

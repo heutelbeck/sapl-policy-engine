@@ -54,10 +54,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive tests for ExpressionCompiler covering constant folding, pure
- * expression compilation, step operations, and streaming attribute finders.
- */
 class ExpressionCompilerTests {
 
     private static final CompilationContext CONTEXT = new CompilationContext(null, null);

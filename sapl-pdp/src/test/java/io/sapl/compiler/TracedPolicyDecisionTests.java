@@ -1415,9 +1415,6 @@ class TracedPolicyDecisionTests {
         }
     }
 
-    /**
-     * Test Policy Information Point with Lovecraftian/Miskatonic theme.
-     */
     @PolicyInformationPoint(name = "miskatonic")
     public static class MiskatonicPip {
 

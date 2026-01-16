@@ -37,11 +37,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive test suite for all legacy SAPL policies found across modules.
- * Tests that existing policies compile
- * successfully with the new compiler.
- */
 class LegacyPolicyTests {
     private static final SAPLParser PARSER = new DefaultSAPLParser();
     private CompilationContext      context;
@@ -90,7 +85,7 @@ class LegacyPolicyTests {
 
     static Stream<Arguments> validPolicies() {
         return Stream.of(
-                // CATEGORY 1: SIMPLE POLICIES (Basic Logic Only)
+                // 1: SIMPLE POLICIES (Basic Logic Only)
                 arguments("simple write denial", """
                         policy "policy 2"
                         deny action == "write"
@@ -155,7 +150,7 @@ class LegacyPolicyTests {
                             action =~ "HTTP.GET";
                         """),
 
-                // CATEGORY 2: POLICIES WITH FUNCTIONS
+                // 2: POLICIES WITH FUNCTIONS
                 arguments("day of week function check",
                         """
                                 policy "policyWithSimpleFunction"
@@ -165,7 +160,7 @@ class LegacyPolicyTests {
                                     time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
                                 """),
 
-                // CATEGORY 3: POLICIES WITH PIPS/ATTRIBUTES
+                // 3: POLICIES WITH PIPS/ATTRIBUTES
                 arguments("upper case subject and time PIP",
                         """
                                 policy "policy 1"
@@ -234,7 +229,7 @@ class LegacyPolicyTests {
                           time.secondOf(<time.now(interval)>) >= 4;
                         """),
 
-                // CATEGORY 4: POLICIES WITH COMPLEX FEATURES
+                // 4: POLICIES WITH COMPLEX FEATURES
                 arguments("mongo query manipulation with obligation", """
                         policy "permit query method (1)"
                         permit
@@ -440,7 +435,7 @@ class LegacyPolicyTests {
                         permit
                         """),
 
-                // CATEGORY 5: JWT API FILTER POLICIES
+                // 5: JWT API FILTER POLICIES
                 arguments("JWT untrusted issuer denial",
                         """
                                 policy "api_filter_jwt:untrusted_issuer"
@@ -565,7 +560,7 @@ class LegacyPolicyTests {
                             "VALID" == subject.<jwt.validity>;
                         """),
 
-                // CATEGORY 6: XACML-STYLE POLICIES
+                // 6: XACML-STYLE POLICIES
                 arguments("XACML simple policy with email domain", """
                         policy "SimplePolicy1"
                         /* Any subject with an e-mail name in the med.example.com
