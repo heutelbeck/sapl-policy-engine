@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.combining;
 
-import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
-
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
@@ -35,12 +33,7 @@ import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.PolicyDecision;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
-import io.sapl.compiler.policyset.CompiledPolicySet;
-import io.sapl.compiler.policyset.PolicySetDecision;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
-import io.sapl.compiler.policyset.PolicySetMetadata;
-import io.sapl.compiler.policyset.PolicySetUtil;
-import io.sapl.compiler.policyset.TargetExpressionCompiler;
+import io.sapl.compiler.policyset.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -48,6 +41,8 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+
+import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 
 /**
  * Compiles policy sets using the first-applicable combining algorithm.

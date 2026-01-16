@@ -17,15 +17,11 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policyset.CompiledPolicySet;
-import io.sapl.compiler.policyset.PolicySetMetadata;
 import lombok.experimental.UtilityClass;
-
-import java.util.List;
 
 @UtilityClass
 public class PermitOverridesCompiler {
