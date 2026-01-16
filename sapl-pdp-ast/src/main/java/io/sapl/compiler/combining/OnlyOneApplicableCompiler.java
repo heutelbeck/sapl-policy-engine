@@ -26,7 +26,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class OnlyOneApplicableCompiler {
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext compilationContext) {
-        throw new SaplCompilerException("not yet implemented");
+        throw new SaplCompilerException("not yet implemented for %s and %s".formatted(policySet,  compilationContext));
     }
 
 }
