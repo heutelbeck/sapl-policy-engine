@@ -22,6 +22,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.CompiledDocument;
 import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policyset.CompiledPolicySet;
@@ -37,18 +38,22 @@ import java.util.List;
 @UtilityClass
 public class DenyUnlessPermitCompiler {
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
-                                                            CompiledExpression isApplicable, PolicySetMetadata metadata) {
+            CompiledExpression isApplicable, PolicySetMetadata metadata) {
         val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());
         val coverage      = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
         return new DecisionMakerAndCoverage(decisionMaker, coverage);
     }
 
-    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s".formatted(policySet, isApplicable, compiledPolicies, metadata));
+    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
+            CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata) {
+        throw new SaplCompilerException(
+                "Unimplemented %s, %s, %s, %s".formatted(policySet, isApplicable, compiledPolicies, metadata));
     }
 
-    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata, @NonNull SourceLocation location) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s".formatted(compiledPolicies, compiledPolicies, metadata, location));
+    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata,
+            @NonNull SourceLocation location) {
+        throw new SaplCompilerException(
+                "Unimplemented %s, %s, %s, %s".formatted(compiledPolicies, compiledPolicies, metadata, location));
     }
 
 

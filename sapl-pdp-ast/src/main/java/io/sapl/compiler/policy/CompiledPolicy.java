@@ -32,10 +32,13 @@ import reactor.core.publisher.Flux;
  * {@link CompiledDocument#applicabilityAndDecision()}
  * @param coverage stream emitting decisions with coverage data for testing
  * @param metadata policy name, location, and entitlement for tracing
+ * @param hasConstraints true if the policy has obligations, advice, or a
+ * transformation
  */
 public record CompiledPolicy(
         CompiledExpression isApplicable,
         DecisionMaker decisionMaker,
         DecisionMaker applicabilityAndDecision,
         Flux<PolicyDecisionWithCoverage> coverage,
-        PolicyMetadata metadata) implements CompiledDocument {}
+        PolicyMetadata metadata,
+        boolean hasConstraints) implements CompiledDocument {}

@@ -41,4 +41,9 @@ public interface CompiledDocument {
      * (used by policy sets)
      */
     DecisionMaker applicabilityAndDecision();
+
+    /**
+     * @return true if the document has obligations, advice, or a transformation
+     */
+    boolean hasConstraints();
 }

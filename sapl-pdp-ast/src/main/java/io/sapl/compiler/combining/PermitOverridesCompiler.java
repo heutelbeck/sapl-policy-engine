@@ -37,18 +37,22 @@ import java.util.List;
 @UtilityClass
 public class PermitOverridesCompiler {
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
-                                                            CompiledExpression isApplicable, PolicySetMetadata metadata) {
+            CompiledExpression isApplicable, PolicySetMetadata metadata) {
         val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());
         val coverage      = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
         return new DecisionMakerAndCoverage(decisionMaker, coverage);
     }
 
-    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s".formatted(policySet, isApplicable, compiledPolicies, metadata));
+    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
+            CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata) {
+        throw new SaplCompilerException(
+                "Unimplemented %s, %s, %s, %s".formatted(policySet, isApplicable, compiledPolicies, metadata));
     }
 
-    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata, @NonNull SourceLocation location) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s".formatted(compiledPolicies, compiledPolicies, metadata, location));
+    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata,
+            @NonNull SourceLocation location) {
+        throw new SaplCompilerException(
+                "Unimplemented %s, %s, %s, %s".formatted(compiledPolicies, compiledPolicies, metadata, location));
     }
 
 }

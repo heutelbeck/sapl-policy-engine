@@ -90,8 +90,17 @@ public class PolicyCompiler {
         val decisionMaker            = compileDecisionMaker(policy, metadata, ctx);
         val coverage                 = assembleDecisionWithCoverage(compiledBody.coverageStream(), decisionMaker,
                 metadata);
+        val hasConstraints           = hasConstraints(policy);
         val applicabilityAndDecision = compileApplicabilityAndDecision(isApplicable, decisionMaker, metadata);
-        return new CompiledPolicy(isApplicable, decisionMaker, applicabilityAndDecision, coverage, metadata);
+        return new CompiledPolicy(isApplicable, decisionMaker, applicabilityAndDecision, coverage, metadata,
+                hasConstraints);
+    }
+
+    /**
+     * @return true if the policy has obligations, advice, or a transformation
+     */
+    private static boolean hasConstraints(Policy policy) {
+        return !policy.obligations().isEmpty() || !policy.advice().isEmpty() || policy.transformation() != null;
     }
 
     /**

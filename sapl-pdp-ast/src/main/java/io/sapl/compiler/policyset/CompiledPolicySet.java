@@ -22,9 +22,22 @@ import io.sapl.compiler.pdp.CompiledDocument;
 import io.sapl.compiler.pdp.DecisionMaker;
 import reactor.core.publisher.Flux;
 
+/**
+ * A compiled policy set.
+ *
+ * @param isApplicable see {@link CompiledDocument#isApplicable()}
+ * @param decisionMaker see {@link CompiledDocument#decisionMaker()}
+ * @param applicabilityAndDecision see
+ * {@link CompiledDocument#applicabilityAndDecision()}
+ * @param coverage stream emitting decisions with coverage data for testing
+ * @param metadata policy set name and location for tracing
+ * @param hasConstraints true if any contained policy has obligations, advice,
+ * or a transformation
+ */
 public record CompiledPolicySet(
         CompiledExpression isApplicable,
         DecisionMaker decisionMaker,
         DecisionMaker applicabilityAndDecision,
         Flux<PolicySetDecisionWithCoverage> coverage,
-        PolicySetMetadata metadata) implements CompiledDocument {}
+        PolicySetMetadata metadata,
+        boolean hasConstraints) implements CompiledDocument {}

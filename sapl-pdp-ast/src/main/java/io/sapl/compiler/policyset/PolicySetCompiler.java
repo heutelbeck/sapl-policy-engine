@@ -30,12 +30,11 @@ import io.sapl.compiler.combining.PermitUnlessDenyCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.DecisionMaker;
+import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class PolicySetCompiler {
@@ -72,8 +71,9 @@ public class PolicySetCompiler {
 
         val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable,
                 decisionMakerAndCoverage.decisionMaker(), metadata);
+        val hasConstraints           = compiledPolicies.stream().anyMatch(CompiledPolicy::hasConstraints);
         return new CompiledPolicySet(isApplicable, decisionMakerAndCoverage.decisionMaker(), applicabilityAndDecision,
-                decisionMakerAndCoverage.coverage(), metadata);
+                decisionMakerAndCoverage.coverage(), metadata, hasConstraints);
     }
 
     private static void compilePolicySetVariables(PolicySet policySet, CompilationContext ctx) {
