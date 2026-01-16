@@ -29,8 +29,8 @@ import java.util.List;
 
 public record Coverage(List<DocumentCoverage> coverage) {
 
-    public static TargetHit NO_TARGET_HIT = new Coverage.NoTargetHit();
-    public static TargetHit BLANK_TARGET_HIT = new Coverage.BlankTargetHit();
+    public static final TargetHit NO_TARGET_HIT = new Coverage.NoTargetHit();
+    public static final TargetHit BLANK_TARGET_HIT = new Coverage.BlankTargetHit();
 
     public sealed interface DocumentCoverage permits PolicyCoverage, PolicySetCoverage {
     }
