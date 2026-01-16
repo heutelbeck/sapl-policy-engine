@@ -41,6 +41,11 @@ import java.util.List;
 public record PolicyDecision(@NonNull AuthorizationDecision authorizationDecision, PolicyDecisionMetadata metadata)
         implements PDPDecision {
 
+    /** Returns the decision enum for concise comparisons. */
+    public Decision decision() {
+        return authorizationDecision.decision();
+    }
+
     /** Creates a decision with constraints. */
     public static PolicyDecision decision(Decision decision, ArrayValue obligations, ArrayValue advice, Value resource,
             PolicyMetadata source) {

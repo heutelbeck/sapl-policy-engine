@@ -17,8 +17,12 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.*;
-import io.sapl.api.pdp.Decision;
+import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
+
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -66,7 +70,7 @@ import java.util.function.Function;
 @UtilityClass
 public class FirstApplicableCompiler {
 
-    public static final String ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET = "No remainingPolicies were found in the policySet";
+    public static final String ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET = "No policies were found in the policy set";
 
     /**
      * Compiles a policy set AST into an executable compiled policy set.
@@ -74,6 +78,7 @@ public class FirstApplicableCompiler {
      * @param policySet the policy set AST node
      * @param ctx the compilation context
      * @return the compiled policy set with decision makers and coverage streams
+     * @throws SaplCompilerException if no policies found in the policy set
      */
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
         val metadata         = policySet.metadata();
@@ -83,14 +88,14 @@ public class FirstApplicableCompiler {
         if (compiledPolicies.isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET, location);
         }
-        val decisionOnly             = compileDecisionMaker(compiledPolicies, metadata, location);
+        val decisionMaker            = compileDecisionMaker(compiledPolicies, metadata, location);
         val schemaValidator          = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
         val isApplicable             = TargetExpressionCompiler.compileTargetExpression(policySet.target(),
                 schemaValidator, ctx);
-        val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable, decisionOnly,
+        val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable, decisionMaker,
                 metadata);
         val coverage                 = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
-        return new CompiledPolicySet(isApplicable, decisionOnly, applicabilityAndDecision, coverage, metadata);
+        return new CompiledPolicySet(isApplicable, decisionMaker, applicabilityAndDecision, coverage, metadata);
     }
 
     /**
@@ -128,17 +133,18 @@ public class FirstApplicableCompiler {
         }
 
         return policies.get(index).coverage().switchMap(policyResult -> {
-            val decision        = policyResult.decision();
+            val policyDecision  = policyResult.decision();
             val policyCoverage  = policyResult.coverage();
             val newCoverage     = accumulatedCoverage.with(policyCoverage);
             val newContributing = new ArrayList<>(contributingDecisions);
-            newContributing.add(decision);
+            newContributing.add(policyDecision);
 
-            if (decision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+            if (policyDecision.decision() == NOT_APPLICABLE) {
                 return evaluatePoliciesForCoverage(policies, index + 1, newCoverage, newContributing, metadata);
             }
 
-            val setDecision = PolicySetDecision.decision(decision.authorizationDecision(), newContributing, metadata);
+            val setDecision = PolicySetDecision.decision(policyDecision.authorizationDecision(), newContributing,
+                    metadata);
             return Flux.just(new PolicySetDecisionWithCoverage(setDecision, newCoverage));
         });
     }
@@ -159,17 +165,18 @@ public class FirstApplicableCompiler {
         val contributingDecisions = new ArrayList<PolicyDecision>();
         int firstNonStatic        = 0;
         for (var policy : policies) {
-            if (!(policy.applicabilityAndDecision() instanceof PolicyDecision decision)) {
+            if (!(policy.applicabilityAndDecision() instanceof PolicyDecision policyDecision)) {
                 break; // non-static, stop short-circuit scan
             }
-            contributingDecisions.add(decision);
-            if (decision.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
-                return PolicySetDecision.decision(decision.authorizationDecision(), contributingDecisions, metadata);
+            contributingDecisions.add(policyDecision);
+            if (policyDecision.decision() != NOT_APPLICABLE) {
+                return PolicySetDecision.decision(policyDecision.authorizationDecision(), contributingDecisions,
+                        metadata);
             }
             firstNonStatic++;
         }
 
-        // All remainingPolicies were static NOT_APPLICABLE
+        // All policies were static NOT_APPLICABLE
         if (firstNonStatic == policies.size()) {
             return PolicySetDecision.notApplicable(metadata, contributingDecisions);
         }
@@ -177,7 +184,7 @@ public class FirstApplicableCompiler {
         // Trim leading static NOT_APPLICABLE for remaining evaluation
         val remainingPolicies = policies.subList(firstNonStatic, policies.size());
 
-        // 2. Check if all remaining remainingPolicies are pure/static (no streams)
+        // 2. Check if all remaining policies are pure/static (no streams)
         val allPure = remainingPolicies.stream().map(CompiledPolicy::applicabilityAndDecision)
                 .noneMatch(StreamDecisionMaker.class::isInstance);
         if (allPure) {
@@ -197,21 +204,21 @@ public class FirstApplicableCompiler {
      * that stops at the first applicable policy.
      */
     private static Flux<PDPDecision> buildReverseChain(List<CompiledPolicy> policies,
-            List<PolicyDecision> staticDecisions, PolicySetMetadata metadata) {
-        Flux<PDPDecision> decisionChain = Flux.just(PolicySetDecision.notApplicable(metadata, staticDecisions));
+            List<PolicyDecision> contributingDecisions, PolicySetMetadata metadata) {
+        Flux<PDPDecision> decisionChain = Flux.just(PolicySetDecision.notApplicable(metadata, contributingDecisions));
         for (int i = policies.size() - 1; i >= 0; i--) {
             val policy            = policies.get(i);
             val decisionChainTail = decisionChain;
             decisionChain = PolicySetUtil.toStream(policy.applicabilityAndDecision(), List.of())
                     .switchMap(currentDecision -> {
-                        val contributingDecisions = new ArrayList<>(staticDecisions);
-                        contributingDecisions.add(currentDecision);
-                        if (currentDecision.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                        if (currentDecision.decision() == NOT_APPLICABLE) {
                             return decisionChainTail
                                     .map(decisionAtTail -> ((PolicySetDecision) decisionAtTail).with(currentDecision));
                         }
+                        val allDecisions = new ArrayList<>(contributingDecisions);
+                        allDecisions.add(currentDecision);
                         return Flux.just(PolicySetDecision.decision(currentDecision.authorizationDecision(),
-                                contributingDecisions, metadata));
+                                allDecisions, metadata));
                     });
         }
         return decisionChain;
@@ -224,25 +231,25 @@ public class FirstApplicableCompiler {
      * Evaluates policies sequentially at runtime, returning the first
      * non-NOT_APPLICABLE decision.
      *
-     * @param staticDecisions leading static NOT_APPLICABLE decisions
+     * @param contributingDecisions leading static NOT_APPLICABLE decisions
      * @param policies remaining policies requiring runtime evaluation
      * @param metadata the policy set metadata
      * @param location source location for error reporting
      */
     record FirstApplicablePurePolicySet(
-            List<PolicyDecision> staticDecisions,
+            List<PolicyDecision> contributingDecisions,
             List<CompiledPolicy> policies,
             PolicySetMetadata metadata,
             SourceLocation location) implements PureDecisionMaker {
 
         @Override
         public PDPDecision decide(List<AttributeRecord> priorAttributes, EvaluationContext ctx) {
-            val allDecisions = new ArrayList<>(staticDecisions);
+            val allDecisions = new ArrayList<>(contributingDecisions);
             for (var policy : policies) {
-                val decision = PolicySetUtil.evaluatePure(policy, priorAttributes, ctx, location);
-                allDecisions.add(decision);
-                if (decision.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
-                    return PolicySetDecision.decision(decision.authorizationDecision(), allDecisions, metadata);
+                val policyDecision = PolicySetUtil.evaluatePure(policy, priorAttributes, ctx, location);
+                allDecisions.add(policyDecision);
+                if (policyDecision.decision() != NOT_APPLICABLE) {
+                    return PolicySetDecision.decision(policyDecision.authorizationDecision(), allDecisions, metadata);
                 }
             }
             return PolicySetDecision.notApplicable(metadata, allDecisions);
