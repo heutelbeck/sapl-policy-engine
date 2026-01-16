@@ -17,16 +17,23 @@
  */
 package io.sapl.compiler.combining;
 
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policyset.CompiledPolicySet;
+import io.sapl.compiler.policyset.PolicySetMetadata;
 import lombok.experimental.UtilityClass;
+
+import java.util.List;
 
 @UtilityClass
 public class OnlyOneApplicableCompiler {
-    public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext compilationContext) {
-        throw new SaplCompilerException("not yet implemented for %s and %s".formatted(policySet,  compilationContext));
+    public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
+            CompiledExpression isApplicable, PolicySetMetadata metadata) {
+        throw new SaplCompilerException(
+                "Unimplemented %s, %s, %s, %s".formatted(policySet, compiledPolicies, isApplicable, metadata));
     }
 
 }

@@ -22,17 +22,13 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.PolicySet;
-import io.sapl.compiler.expressions.CompilationContext;
-import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.pdp.PDPDecision;
 import io.sapl.compiler.pdp.PureDecisionMaker;
 import io.sapl.compiler.pdp.StreamDecisionMaker;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.PolicyDecision;
-import io.sapl.compiler.policy.SchemaValidatorCompiler;
 import io.sapl.compiler.policyset.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -65,32 +61,11 @@ import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 @UtilityClass
 public class FirstApplicableCompiler {
 
-    public static final String ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET = "No policies were found in the policy set";
-
-    /**
-     * Compiles a policy set AST into an executable compiled policy set.
-     *
-     * @param policySet the policy set AST node
-     * @param ctx the compilation context
-     * @return the compiled policy set with decision makers and coverage streams
-     * @throws SaplCompilerException if no policies found in the policy set
-     */
-    public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
-        val metadata         = policySet.metadata();
-        val location         = policySet.location();
-        val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
-                .toList();
-        if (compiledPolicies.isEmpty()) {
-            throw new SaplCompilerException(ERROR_NO_POLICIES_WERE_FOUND_IN_THE_POLICY_SET, location);
-        }
-        val decisionMaker            = compileDecisionMaker(compiledPolicies, metadata, location);
-        val schemaValidator          = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
-        val isApplicable             = TargetExpressionCompiler.compileTargetExpression(policySet.target(),
-                schemaValidator, ctx);
-        val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable, decisionMaker,
-                metadata);
-        val coverage                 = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
-        return new CompiledPolicySet(isApplicable, decisionMaker, applicabilityAndDecision, coverage, metadata);
+    public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
+            CompiledExpression isApplicable, PolicySetMetadata metadata) {
+        val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());
+        val coverage      = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
+        return new DecisionMakerAndCoverage(decisionMaker, coverage);
     }
 
     /**
