@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @UtilityClass
-public class PermitUnlessDenyCompiler {
+public class UniqueDecisionCompiler {
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
             CompiledExpression isApplicable, PolicySetMetadata metadata) {
         val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());

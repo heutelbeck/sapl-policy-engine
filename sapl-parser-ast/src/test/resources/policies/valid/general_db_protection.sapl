@@ -1,5 +1,5 @@
 set "general_db_protection"
-first-applicable
+first-vote or abstain errors propagate
 
 policy "permit_test"
 permit

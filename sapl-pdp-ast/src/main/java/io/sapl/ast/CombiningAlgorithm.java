@@ -18,13 +18,31 @@
 package io.sapl.ast;
 
 /**
- * Combining algorithm for policy sets.
+ * Combining algorithm for policy sets, composed of voting mode, default
+ * decision, and error handling strategy.
+ *
+ * @param votingMode how policy decisions are combined
+ * @param defaultDecision the decision when no policy applies
+ * @param errorHandling how errors are handled during combination
  */
-public enum CombiningAlgorithm {
-    DENY_OVERRIDES,
-    DENY_UNLESS_PERMIT,
-    FIRST_APPLICABLE,
-    ONLY_ONE_APPLICABLE,
-    PERMIT_OVERRIDES,
-    PERMIT_UNLESS_DENY
+public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+
+    public enum VotingMode {
+        DENY_WINS,
+        FIRST_VOTE,
+        PERMIT_WINS,
+        UNANIMOUS_DECISION,
+        UNIQUE_DECISION
+    }
+
+    public enum DefaultDecision {
+        DENY,
+        ABSTAIN,
+        PERMIT
+    }
+
+    public enum ErrorHandling {
+        ABSTAIN,
+        PROPAGATE
+    }
 }

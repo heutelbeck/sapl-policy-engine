@@ -75,7 +75,7 @@ class SAPLCompilerTests {
     void whenParsingPolicySet_thenDocumentContainsCorrectMetadata() {
         var policySetDefinition = """
                 set "test-set"
-                deny-overrides
+                deny-wins or abstain errors propagate
                 policy "inner-policy" permit
                 """;
         var document            = SAPLCompiler.parseDocument(policySetDefinition);

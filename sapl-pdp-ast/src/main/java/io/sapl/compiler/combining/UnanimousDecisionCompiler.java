@@ -20,14 +20,10 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.PolicySet;
-import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.CompiledDocument;
 import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policyset.CompiledPolicySet;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
-import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.policyset.*;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -36,7 +32,8 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @UtilityClass
-public class DenyUnlessPermitCompiler {
+public class UnanimousDecisionCompiler {
+
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
             CompiledExpression isApplicable, PolicySetMetadata metadata) {
         val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());
@@ -55,6 +52,5 @@ public class DenyUnlessPermitCompiler {
         throw new SaplCompilerException(
                 "Unimplemented %s, %s, %s, %s".formatted(compiledPolicies, compiledPolicies, metadata, location));
     }
-
 
 }

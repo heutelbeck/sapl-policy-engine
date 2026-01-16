@@ -45,12 +45,26 @@ policySet
     ;
 
 combiningAlgorithm
-    : DENY_OVERRIDES       # denyOverridesAlgorithm
-    | PERMIT_OVERRIDES     # permitOverridesAlgorithm
-    | FIRST_APPLICABLE     # firstApplicableAlgorithm
-    | ONLY_ONE_APPLICABLE  # onlyOneApplicableAlgorithm
-    | DENY_UNLESS_PERMIT   # denyUnlessPermitAlgorithm
-    | PERMIT_UNLESS_DENY   # permitUnlessDenyAlgorithm
+    : votingMode KW_OR defaultDecision (COMMA? ERRORS errorHandling)? DOT?
+    ;
+
+votingMode
+    : DENY_WINS          # denyWins
+    | FIRST_VOTE         # firstVote
+    | PERMIT_WINS        # permitWins
+    | UNANIMOUS_DECISION # unanimousDecision
+    | UNIQUE_DECISION    # uniqueDecision
+    ;
+
+defaultDecision
+    : DENY    # denyDefault
+    | ABSTAIN # abstainDefault
+    | PERMIT  # permitDefault
+    ;
+
+errorHandling
+    : ABSTAIN   # abstainErrors
+    | PROPAGATE # propagateErrors
     ;
 
 policy

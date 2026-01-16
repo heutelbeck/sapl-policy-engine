@@ -47,7 +47,7 @@ class PolicySetCompilerTests {
         void duplicateVariableDefinitionThrows() {
             assertThatThrownBy(() -> compilePolicySet("""
                     set "test"
-                    first-applicable
+                    first-vote or abstain errors propagate
 
                     var myVar = 1;
                     var myVar = 2;
@@ -61,7 +61,7 @@ class PolicySetCompilerTests {
     }
 
     @Nested
-    @DisplayName("First-applicable algorithm")
+    @DisplayName("first-vote or abstain errors propagate algorithm")
     class FirstApplicableAlgorithm {
 
         @Test
@@ -69,7 +69,7 @@ class PolicySetCompilerTests {
         void delegatesToFirstApplicableCompiler() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-applicable
+                    first-vote or abstain errors propagate
 
                     policy "first"
                     permit

@@ -20,6 +20,9 @@ package io.sapl.compiler.ast;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.ast.*;
+import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
+import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
+import io.sapl.ast.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.PolicyMetadata;
 import io.sapl.compiler.policyset.PolicySetMetadata;
@@ -49,7 +52,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_ATTRIBUTE_IN_FILTER_TARGET   = "Attribute finder steps not allowed in filter targets";
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
-    private static final String ERROR_UNKNOWN_COMBINING_ALGORITHM  = "Unknown combining algorithm.";
     private static final String ERROR_UNKNOWN_ENTITLEMENT          = "Unknown entitlement.";
     private static final String ERROR_UNKNOWN_FILTER_TYPE          = "Unknown filter type: %s";
     private static final String ERROR_UNKNOWN_PAIR_KEY_TYPE        = "Unknown pair key type.";
@@ -761,15 +763,41 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private CombiningAlgorithm toCombiningAlgorithm(CombiningAlgorithmContext ctx) {
+        var votingMode      = toVotingMode(ctx.votingMode());
+        var defaultDecision = toDefaultDecision(ctx.defaultDecision());
+        var errorHandling   = ctx.errorHandling() != null ? toErrorHandling(ctx.errorHandling())
+                : ErrorHandling.ABSTAIN;
+        return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);
+    }
+
+    private VotingMode toVotingMode(VotingModeContext ctx) {
         return switch (ctx) {
-        case DenyOverridesAlgorithmContext ignored     -> CombiningAlgorithm.DENY_OVERRIDES;
-        case PermitOverridesAlgorithmContext ignored   -> CombiningAlgorithm.PERMIT_OVERRIDES;
-        case FirstApplicableAlgorithmContext ignored   -> CombiningAlgorithm.FIRST_APPLICABLE;
-        case OnlyOneApplicableAlgorithmContext ignored -> CombiningAlgorithm.ONLY_ONE_APPLICABLE;
-        case DenyUnlessPermitAlgorithmContext ignored  -> CombiningAlgorithm.DENY_UNLESS_PERMIT;
-        case PermitUnlessDenyAlgorithmContext ignored  -> CombiningAlgorithm.PERMIT_UNLESS_DENY;
-        default                                        ->
-            throw new SaplCompilerException(ERROR_UNKNOWN_COMBINING_ALGORITHM, fromContext(ctx));
+        case DenyWinsContext ignored          -> VotingMode.DENY_WINS;
+        case FirstVoteContext ignored         -> VotingMode.FIRST_VOTE;
+        case PermitWinsContext ignored        -> VotingMode.PERMIT_WINS;
+        case UnanimousDecisionContext ignored -> VotingMode.UNANIMOUS_DECISION;
+        case UniqueDecisionContext ignored    -> VotingMode.UNIQUE_DECISION;
+        default                               ->
+            throw new SaplCompilerException("Unknown voting mode", fromContext(ctx));
+        };
+    }
+
+    private DefaultDecision toDefaultDecision(DefaultDecisionContext ctx) {
+        return switch (ctx) {
+        case DenyDefaultContext ignored    -> DefaultDecision.DENY;
+        case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
+        case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
+        default                            ->
+            throw new SaplCompilerException("Unknown default decision", fromContext(ctx));
+        };
+    }
+
+    private ErrorHandling toErrorHandling(ErrorHandlingContext ctx) {
+        return switch (ctx) {
+        case AbstainErrorsContext ignored   -> ErrorHandling.ABSTAIN;
+        case PropagateErrorsContext ignored -> ErrorHandling.PROPAGATE;
+        default                             ->
+            throw new SaplCompilerException("Unknown error handling", fromContext(ctx));
         };
     }
 

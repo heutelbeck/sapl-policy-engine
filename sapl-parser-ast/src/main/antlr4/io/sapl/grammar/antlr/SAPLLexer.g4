@@ -45,13 +45,16 @@ ACTION      : 'action';
 RESOURCE    : 'resource';
 ENVIRONMENT : 'environment';
 
-// Combining Algorithms
-DENY_OVERRIDES      : 'deny-overrides';
-PERMIT_OVERRIDES    : 'permit-overrides';
-FIRST_APPLICABLE    : 'first-applicable';
-ONLY_ONE_APPLICABLE : 'only-one-applicable';
-DENY_UNLESS_PERMIT  : 'deny-unless-permit';
-PERMIT_UNLESS_DENY  : 'permit-unless-deny';
+// Combining Algorithm Components
+KW_OR               : 'or';
+ERRORS              : 'errors';
+ABSTAIN             : 'abstain';
+PROPAGATE           : 'propagate';
+DENY_WINS           : 'deny-wins';
+FIRST_VOTE          : 'first-vote';
+PERMIT_WINS         : 'permit-wins';
+UNANIMOUS_DECISION  : 'unanimous-decision';
+UNIQUE_DECISION     : 'unique-decision';
 
 // Operators
 FILTER      : '|-';

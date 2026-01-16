@@ -41,9 +41,9 @@ import java.util.function.Function;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 
 /**
- * Compiles policy sets using the first-applicable combining algorithm.
+ * Compiles policy sets using the first-vote combining algorithm.
  * <p>
- * The first-applicable algorithm evaluates policies in order until one returns
+ * The first-vote algorithm evaluates policies in order until one returns
  * a decision other than NOT_APPLICABLE. That decision becomes the final result.
  * If all policies return NOT_APPLICABLE, the set returns NOT_APPLICABLE.
  * <p>
@@ -59,7 +59,7 @@ import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
  * </ul>
  */
 @UtilityClass
-public class FirstApplicableCompiler {
+public class FirstVoteCompiler {
 
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
             CompiledExpression isApplicable, PolicySetMetadata metadata) {
@@ -71,7 +71,7 @@ public class FirstApplicableCompiler {
     /**
      * Compiles the coverage stream for the policy set.
      * Delegates target evaluation to {@link PolicySetUtil} and provides a
-     * first-applicable body factory.
+     * first-vote body factory.
      */
     private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
             CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata) {
@@ -80,7 +80,7 @@ public class FirstApplicableCompiler {
     }
 
     /**
-     * Creates a factory for body coverage evaluation using first-applicable
+     * Creates a factory for body coverage evaluation using first-vote
      * semantics.
      */
     private Function<Coverage.TargetHit, Flux<PolicySetDecisionWithCoverage>> bodyCoverageFactory(
@@ -91,7 +91,7 @@ public class FirstApplicableCompiler {
 
     /**
      * Recursively evaluates policies for coverage, accumulating results.
-     * Stops at first non-NOT_APPLICABLE decision (first-applicable semantics).
+     * Stops at first non-NOT_APPLICABLE decision (first-vote semantics).
      */
     private static Flux<PolicySetDecisionWithCoverage> evaluatePoliciesForCoverage(List<CompiledPolicy> policies,
             int index, Coverage.PolicySetCoverage accumulatedCoverage, List<PolicyDecision> contributingDecisions,
@@ -158,12 +158,11 @@ public class FirstApplicableCompiler {
         val allPure = remainingPolicies.stream().map(CompiledPolicy::applicabilityAndDecision)
                 .noneMatch(StreamDecisionMaker.class::isInstance);
         if (allPure) {
-            return new FirstApplicablePurePolicySet(contributingDecisions, remainingPolicies, metadata, location);
+            return new FirstVotePurePolicySet(contributingDecisions, remainingPolicies, metadata, location);
         }
 
         // 3. Stream fallback - build reverse chain for lazy evaluation
-        return new FirstApplicableStreamPolicySet(
-                buildReverseChain(remainingPolicies, contributingDecisions, metadata));
+        return new FirstVoteStreamPolicySet(buildReverseChain(remainingPolicies, contributingDecisions, metadata));
     }
 
     /**
@@ -195,7 +194,7 @@ public class FirstApplicableCompiler {
     }
 
     /**
-     * Pure decision maker for first-applicable evaluation without streaming
+     * Pure decision maker for first-vote evaluation without streaming
      * policies.
      * <p>
      * Evaluates policies sequentially at runtime, returning the first
@@ -206,7 +205,7 @@ public class FirstApplicableCompiler {
      * @param metadata the policy set metadata
      * @param location source location for error reporting
      */
-    record FirstApplicablePurePolicySet(
+    record FirstVotePurePolicySet(
             List<PolicyDecision> contributingDecisions,
             List<CompiledPolicy> policies,
             PolicySetMetadata metadata,
@@ -235,7 +234,7 @@ public class FirstApplicableCompiler {
      *
      * @param chain the pre-built reverse-chained flux
      */
-    record FirstApplicableStreamPolicySet(Flux<PDPDecision> chain) implements StreamDecisionMaker {
+    record FirstVoteStreamPolicySet(Flux<PDPDecision> chain) implements StreamDecisionMaker {
         @Override
         public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
             return chain.map(decision -> ((PolicySetDecision) decision).with(knownContributions));

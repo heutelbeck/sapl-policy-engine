@@ -1,5 +1,5 @@
 set "demo set"
-first-applicable
+first-vote or abstain errors propagate
 
 
 policy "Change Resource Example"

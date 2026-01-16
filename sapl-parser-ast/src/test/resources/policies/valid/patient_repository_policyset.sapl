@@ -3,12 +3,12 @@ import filter.blacken
 set "PatientRepository"
 
 /*
- * The 'first-applicable' combination algorithm is used here in oder to avoid 'transformation uncertainty',
+ * The 'first-vote' combination algorithm is used here in oder to avoid 'transformation uncertainty',
  * i.e., multiple policies which return PERMIT but do not agree about transformation of the resource.
  * This algorithm evaluates policies from top to bottom in the document and stops as soon as one policy
  * yields an applicable result or errors.
  */
-first-applicable
+first-vote or abstain errors propagate
 
 /*
  * All doctors and nurses have full read access on all patient records.

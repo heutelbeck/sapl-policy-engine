@@ -21,12 +21,11 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VarDef;
-import io.sapl.compiler.combining.DenyOverridesCompiler;
-import io.sapl.compiler.combining.DenyUnlessPermitCompiler;
-import io.sapl.compiler.combining.FirstApplicableCompiler;
-import io.sapl.compiler.combining.OnlyOneApplicableCompiler;
-import io.sapl.compiler.combining.PermitOverridesCompiler;
-import io.sapl.compiler.combining.PermitUnlessDenyCompiler;
+import io.sapl.compiler.combining.DenyWinsCompiler;
+import io.sapl.compiler.combining.FirstVoteCompiler;
+import io.sapl.compiler.combining.PermitWinsCompiler;
+import io.sapl.compiler.combining.UnanimousDecisionCompiler;
+import io.sapl.compiler.combining.UniqueDecisionCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -54,19 +53,17 @@ public class PolicySetCompiler {
         val isApplicable     = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
                 ctx);
 
-        val decisionMakerAndCoverage = switch (policySet.algorithm()) {
-        case DENY_OVERRIDES      ->
-            DenyOverridesCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case DENY_UNLESS_PERMIT  ->
-            DenyUnlessPermitCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case FIRST_APPLICABLE    ->
-            FirstApplicableCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case ONLY_ONE_APPLICABLE ->
-            OnlyOneApplicableCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case PERMIT_OVERRIDES    ->
-            PermitOverridesCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case PERMIT_UNLESS_DENY  ->
-            PermitUnlessDenyCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
+        val decisionMakerAndCoverage = switch (policySet.algorithm().votingMode()) {
+        case DENY_WINS          ->
+            DenyWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
+        case PERMIT_WINS        ->
+            PermitWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
+        case FIRST_VOTE         ->
+            FirstVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
+        case UNIQUE_DECISION    ->
+            UniqueDecisionCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
+        case UNANIMOUS_DECISION ->
+            UnanimousDecisionCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
         };
 
         val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable,

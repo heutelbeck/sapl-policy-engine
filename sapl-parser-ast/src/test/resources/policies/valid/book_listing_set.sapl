@@ -1,6 +1,6 @@
 set "List and filter books - query modification with PreEnforce Example"
 
-first-applicable
+first-vote or abstain errors propagate
 
 policy "deny if scope null"
 deny

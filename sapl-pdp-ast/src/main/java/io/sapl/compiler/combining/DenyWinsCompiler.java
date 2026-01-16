@@ -24,9 +24,9 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policyset.CompiledPolicySet;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
-import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.policy.SchemaValidatorCompiler;
+import io.sapl.compiler.policyset.*;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -35,7 +35,8 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @UtilityClass
-public class OnlyOneApplicableCompiler {
+public class DenyWinsCompiler {
+
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
             CompiledExpression isApplicable, PolicySetMetadata metadata) {
         val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());

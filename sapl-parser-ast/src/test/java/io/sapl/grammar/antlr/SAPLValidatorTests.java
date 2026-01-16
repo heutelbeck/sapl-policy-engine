@@ -85,7 +85,7 @@ class SAPLValidatorTests {
                     |<clock.ticker> != undefined;
                     subject.|<pip.stream> == "value";
                 """), arguments("policy set with valid structure", """
-                set "test" deny-overrides
+                set "test" deny-wins or abstain errors propagate
                 var globalVar = "value";
                 policy "p1" permit where subject == "admin";
                 policy "p2" deny where resource == "secret";
