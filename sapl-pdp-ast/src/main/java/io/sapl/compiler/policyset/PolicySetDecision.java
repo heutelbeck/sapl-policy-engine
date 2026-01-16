@@ -20,11 +20,13 @@ package io.sapl.compiler.policyset;
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.pdp.PDPDecision;
 import io.sapl.compiler.policy.PolicyDecision;
 import lombok.NonNull;
 import lombok.val;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -80,6 +82,14 @@ public record PolicySetDecision(
             List<PolicyDecision> contributingPolicyDecisions, List<AttributeRecord> contributingAttributes) {
         val metadata = new PolicySetDecisionMetadata(source, contributingPolicyDecisions, contributingAttributes, null);
         return new PolicySetDecision(AuthorizationDecision.NOT_APPLICABLE, metadata);
+    }
+
+    public static PolicySetDecision tracedDecision(AuthorizationDecision decision, PolicySetMetadata metadata,
+            List<PolicyDecision> contributingDecisions) {
+        val contributingAttributes = new ArrayList<AttributeRecord>();
+        contributingDecisions.forEach(contributingDecision -> contributingAttributes
+                .addAll(contributingDecision.metadata().contributingAttributes()));
+        return tracedDecision(decision, metadata, contributingDecisions, contributingAttributes);
     }
 
     /**

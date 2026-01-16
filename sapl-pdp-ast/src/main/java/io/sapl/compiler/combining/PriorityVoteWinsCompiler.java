@@ -19,12 +19,11 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.SourceLocation;
+import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
-import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.DecisionMaker;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policyset.CompiledPolicySet;
 import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
 import io.sapl.compiler.policyset.PolicySetMetadata;
 import lombok.NonNull;
@@ -35,9 +34,9 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @UtilityClass
-public class PermitWinsCompiler {
+public class PriorityVoteWinsCompiler {
     public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
-            CompiledExpression isApplicable, PolicySetMetadata metadata) {
+            CompiledExpression isApplicable, PolicySetMetadata metadata, Decision priorityDecision) {
         val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location());
         val coverage      = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata);
         return new DecisionMakerAndCoverage(decisionMaker, coverage);

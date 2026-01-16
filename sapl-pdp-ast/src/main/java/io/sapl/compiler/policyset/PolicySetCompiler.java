@@ -17,13 +17,12 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ReservedIdentifiers;
+import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VarDef;
-import io.sapl.compiler.combining.DenyWinsCompiler;
 import io.sapl.compiler.combining.FirstVoteCompiler;
-import io.sapl.compiler.combining.PermitWinsCompiler;
+import io.sapl.compiler.combining.PriorityVoteWinsCompiler;
 import io.sapl.compiler.combining.UnanimousDecisionCompiler;
 import io.sapl.compiler.combining.UniqueDecisionCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -46,25 +45,26 @@ public class PolicySetCompiler {
         if (policySet.policies().isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
         }
-        val metadata         = policySet.metadata();
-        val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
-                .toList();
-        val schemaValidator  = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
-        val isApplicable     = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
-                ctx);
-
-        val decisionMakerAndCoverage = switch (policySet.algorithm().votingMode()) {
-        case DENY_WINS          ->
-            DenyWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case PERMIT_WINS        ->
-            PermitWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case FIRST_VOTE         ->
-            FirstVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case UNIQUE_DECISION    ->
-            UniqueDecisionCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        case UNANIMOUS_DECISION ->
-            UnanimousDecisionCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable, metadata);
-        };
+        val metadata                 = policySet.metadata();
+        val compiledPolicies         = policySet.policies().stream()
+                .map(policy -> PolicyCompiler.compilePolicy(policy, ctx)).toList();
+        val schemaValidator          = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
+        val isApplicable             = TargetExpressionCompiler.compileTargetExpression(policySet.target(),
+                schemaValidator, ctx);
+        val combiningAlgorithm       = policySet.algorithm();
+        val decisionMakerAndCoverage = switch (combiningAlgorithm.votingMode()) {
+                                     case DENY_WINS          -> PriorityVoteWinsCompiler.compilePolicySet(policySet,
+                                             compiledPolicies, isApplicable, metadata, Decision.DENY);
+                                     case PERMIT_WINS        -> PriorityVoteWinsCompiler.compilePolicySet(policySet,
+                                             compiledPolicies, isApplicable, metadata, Decision.PERMIT);
+                                     case FIRST_VOTE         -> FirstVoteCompiler.compilePolicySet(policySet,
+                                             compiledPolicies, isApplicable, metadata,
+                                             combiningAlgorithm.defaultDecision(), combiningAlgorithm.errorHandling());
+                                     case UNIQUE_DECISION    -> UniqueDecisionCompiler.compilePolicySet(policySet,
+                                             compiledPolicies, isApplicable, metadata);
+                                     case UNANIMOUS_DECISION -> UnanimousDecisionCompiler.compilePolicySet(policySet,
+                                             compiledPolicies, isApplicable, metadata);
+                                     };
 
         val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable,
                 decisionMakerAndCoverage.decisionMaker(), metadata);
