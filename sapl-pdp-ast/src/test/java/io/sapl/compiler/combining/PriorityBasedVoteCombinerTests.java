@@ -244,7 +244,7 @@ class PriorityBasedVoteCombinerTests {
                 Value expectedResource) {
 
             @Override
-            public String toString() {
+            public @NonNull String toString() {
                 return description;
             }
         }

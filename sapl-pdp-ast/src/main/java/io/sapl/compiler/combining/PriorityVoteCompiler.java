@@ -36,7 +36,7 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @UtilityClass
-public class PriorityVoteWinsCompiler {
+public class PriorityVoteCompiler {
     public static VoterAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
             CompiledExpression isApplicable, VoterMetadata voterMetadata, Decision priorityDecision,
             DefaultDecision defaultDecision, ErrorHandling errorHandling) {

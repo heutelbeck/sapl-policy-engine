@@ -22,7 +22,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VarDef;
 import io.sapl.compiler.combining.FirstVoteCompiler;
-import io.sapl.compiler.combining.PriorityVoteWinsCompiler;
+import io.sapl.compiler.combining.PriorityVoteCompiler;
 import io.sapl.compiler.combining.UnanimousDecisionCompiler;
 import io.sapl.compiler.combining.UniqueDecisionCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -56,10 +56,10 @@ public class PolicySetCompiler {
         val errorHandling    = algorithm.errorHandling();
         val voterAndCoverage = switch (algorithm.votingMode()) {
                              case DENY_WINS          ->
-                                 PriorityVoteWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
+                                 PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
                                          metadata, Decision.DENY, defaultDecision, errorHandling);
                              case PERMIT_WINS        ->
-                                 PriorityVoteWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
+                                 PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
                                          metadata, Decision.PERMIT, defaultDecision, errorHandling);
                              case FIRST_VOTE         -> FirstVoteCompiler.compilePolicySet(policySet, compiledPolicies,
                                      isApplicable, metadata, defaultDecision, errorHandling);

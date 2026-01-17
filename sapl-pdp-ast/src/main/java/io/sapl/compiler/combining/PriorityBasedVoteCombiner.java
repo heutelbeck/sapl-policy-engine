@@ -29,9 +29,38 @@ import lombok.val;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Combines multiple policy votes into a single authorization decision using
+ * priority-based logic.
+ * <p>
+ * Decision priority cascade:
+ * <ol>
+ * <li>INDETERMINATE always wins (secure-by-default: errors invalidate all other
+ * decisions)</li>
+ * <li>Any definitive decision (PERMIT/DENY) wins over NOT_APPLICABLE</li>
+ * <li>Same decisions (PERMIT/PERMIT or DENY/DENY) merge their constraints</li>
+ * <li>Conflicting decisions (PERMIT vs DENY) resolve by the configured priority
+ * decision</li>
+ * </ol>
+ * <p>
+ * Transformation uncertainty: If multiple votes define resource
+ * transformations, the result
+ * is INDETERMINATE since the correct transformation cannot be determined.
+ */
 @UtilityClass
 public class PriorityBasedVoteCombiner {
 
+    /**
+     * Combines multiple votes into a single vote using priority-based logic.
+     * <p>
+     * Short-circuits on INDETERMINATE to avoid unnecessary evaluation.
+     *
+     * @param foldableVotes the votes to combine (may be empty)
+     * @param priorityDecision the decision that wins when PERMIT conflicts with
+     * DENY
+     * @param voterMetadata metadata for the combined vote
+     * @return combined vote, or abstain if input is empty
+     */
     public static Vote combineMultipleVotes(ArrayList<Vote> foldableVotes, Decision priorityDecision,
             VoterMetadata voterMetadata) {
         if (foldableVotes.isEmpty()) {
@@ -48,13 +77,29 @@ public class PriorityBasedVoteCombiner {
         return accumulatorVote;
     }
 
+    /**
+     * Wraps a single vote as an accumulator for fold operations.
+     * <p>
+     * The original vote becomes the sole entry in the contributing votes list.
+     *
+     * @param vote the vote to wrap
+     * @param voterMetadata metadata for the accumulator
+     * @return accumulator vote containing the original as a contributing vote
+     */
     public Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        // If there is only one vote, we propagate this vote and the only contributing
-        // vote is the vote itself.
         return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
                 voterMetadata);
     }
 
+    /**
+     * Combines two votes according to priority-based rules.
+     *
+     * @param accumulatorVote the accumulated result so far
+     * @param newVote the new vote to incorporate
+     * @param priorityDecision the decision that wins on PERMIT vs DENY conflict
+     * @param voterMetadata metadata for the combined result
+     * @return the combined vote
+     */
     public static Vote combineVotes(Vote accumulatorVote, Vote newVote, Decision priorityDecision,
             VoterMetadata voterMetadata) {
         val accumulatorAuthorizationDecision = accumulatorVote.authorizationDecision();

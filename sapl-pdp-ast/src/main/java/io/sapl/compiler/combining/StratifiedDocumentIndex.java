@@ -65,7 +65,8 @@ public record StratifiedDocumentIndex(
         List<CompiledPolicy> pureWithConstraints,
         List<CompiledPolicy> pureWithoutConstraints,
         List<CompiledPolicy> streamWithConstraints,
-        List<CompiledPolicy> streamWithoutConstraints) {
+        List<CompiledPolicy> streamWithoutConstraints,
+        int runtimePolicyCount) {
 
     /**
      * Creates a stratified index from a list of compiled policies.
@@ -129,11 +130,12 @@ public record StratifiedDocumentIndex(
         }
 
         // Fold constant stratum
-        val foldedConstant = PriorityBasedVoteCombiner.combineMultipleVotes(foldableVotes, priority, voterMetadata);
+        val foldedConstant     = PriorityBasedVoteCombiner.combineMultipleVotes(foldableVotes, priority, voterMetadata);
+        val runtimePolicyCount = pureWithConstraints.size() + pureWithoutConstraints.size()
+                + streamWithConstraints.size() + streamWithoutConstraints.size();
 
-        return new StratifiedDocumentIndex(foldedConstant, List.copyOf(pureWithConstraints),
-                List.copyOf(pureWithoutConstraints), List.copyOf(streamWithConstraints),
-                List.copyOf(streamWithoutConstraints));
+        return new StratifiedDocumentIndex(foldedConstant, pureWithConstraints, pureWithoutConstraints,
+                streamWithConstraints, streamWithoutConstraints, runtimePolicyCount);
     }
 
     private static void addToStratum(CompiledPolicy policy, List<CompiledPolicy> withConstraints,
@@ -164,14 +166,6 @@ public record StratifiedDocumentIndex(
      */
     public boolean hasRuntimeConstraints() {
         return !pureWithConstraints.isEmpty() || !streamWithConstraints.isEmpty();
-    }
-
-    /**
-     * @return total number of runtime policies (pure + stream)
-     */
-    public int runtimePolicyCount() {
-        return pureWithConstraints.size() + pureWithoutConstraints.size() + streamWithConstraints.size()
-                + streamWithoutConstraints.size();
     }
 
     /**
