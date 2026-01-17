@@ -31,54 +31,52 @@ import java.util.Optional;
 
 public record Vote(
         AuthorizationDecision authorizationDecision,
-        Optional<ErrorValue> error,
+        List<ErrorValue> errors,
         List<AttributeRecord> contributingAttributes,
         List<Vote> contributingVotes,
         VoterMetadata voter) implements Voter {
 
     public static Vote combinedVote(AuthorizationDecision authorizationDecision, VoterMetadata voter,
             List<Vote> contributingVotes) {
-        return new Vote(authorizationDecision, Optional.empty(), List.of(), contributingVotes, voter);
+        return new Vote(authorizationDecision, List.of(), List.of(), contributingVotes, voter);
     }
 
     public static Vote tracedVote(Decision decision, ArrayValue obligations, ArrayValue advice, Value resource,
             VoterMetadata voter, List<AttributeRecord> contributingAttributes) {
-        return new Vote(new AuthorizationDecision(decision, obligations, advice, resource), Optional.empty(),
+        return new Vote(new AuthorizationDecision(decision, obligations, advice, resource), List.of(),
                 contributingAttributes, List.of(), voter);
     }
 
     public static Vote error(ErrorValue error, VoterMetadata voter) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, Optional.of(error), List.of(), List.of(), voter);
+        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), List.of(), List.of(), voter);
     }
 
     public static Vote tracedError(ErrorValue error, VoterMetadata voter,
             List<AttributeRecord> contributingAttributes) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, Optional.of(error), contributingAttributes, List.of(),
-                voter);
+        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), contributingAttributes, List.of(), voter);
     }
 
     public static Vote abstain(VoterMetadata voter) {
-        return new Vote(AuthorizationDecision.NOT_APPLICABLE, Optional.empty(), List.of(), List.of(), voter);
+        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), List.of(), voter);
     }
 
     public static Vote tracedAbstain(VoterMetadata voter, List<AttributeRecord> contributingAttributes) {
-        return new Vote(AuthorizationDecision.NOT_APPLICABLE, Optional.empty(), contributingAttributes, List.of(),
-                voter);
+        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), contributingAttributes, List.of(), voter);
     }
 
     public static Vote abstain(VoterMetadata voter, List<Vote> contributingVotes) {
-        return new Vote(AuthorizationDecision.NOT_APPLICABLE, Optional.empty(), List.of(), contributingVotes, voter);
+        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), contributingVotes, voter);
     }
 
     public Vote withVote(Vote newVote) {
         val mergedVotes = new ArrayList<>(contributingVotes);
         mergedVotes.add(newVote);
-        return new Vote(authorizationDecision, error, contributingAttributes, mergedVotes, voter);
+        return new Vote(authorizationDecision, errors, contributingAttributes, mergedVotes, voter);
     }
 
     public Vote withAttributes(List<AttributeRecord> newAttributes) {
         val mergedAttributes = new ArrayList<>(contributingAttributes);
         mergedAttributes.addAll(newAttributes);
-        return new Vote(authorizationDecision, error, mergedAttributes, contributingVotes, voter);
+        return new Vote(authorizationDecision, errors, mergedAttributes, contributingVotes, voter);
     }
 }

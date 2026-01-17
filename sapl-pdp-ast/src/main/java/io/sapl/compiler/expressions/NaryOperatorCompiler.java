@@ -84,7 +84,7 @@ public class NaryOperatorCompiler {
         // Fold values at compile time (cheapest stratum)
         Value valueResult = foldValues(values, op, location);
         if (valueResult instanceof ErrorValue) {
-            return valueResult; // Compile-time error - no need to evaluate anything else
+            return valueResult; // Compile-time errors - no need to evaluate anything else
         }
 
         // Determine return type based on remaining strata
@@ -107,7 +107,7 @@ public class NaryOperatorCompiler {
      * Fold all Value operands at compile time.
      *
      * @return null if values is empty, the folded result otherwise.
-     * Returns ErrorValue if any value is an error or type mismatch occurs.
+     * Returns ErrorValue if any value is an errors or type mismatch occurs.
      */
     private Value foldValues(List<Value> values, BinaryOperation op, SourceLocation location) {
         if (values.isEmpty()) {
@@ -180,7 +180,7 @@ public class NaryOperatorCompiler {
      * N-ary operation with only Value and Pure operands (no streams).
      * <p>
      * At runtime: evaluates all pures, folding with the pre-computed valueResult.
-     * Returns early on any error (type mismatch or propagated error).
+     * Returns early on any errors (type mismatch or propagated errors).
      */
     record NaryPure(
             BinaryOperation op,
@@ -200,7 +200,7 @@ public class NaryOperatorCompiler {
      * <p>
      * At runtime:
      * 1. Evaluates all pures first (before subscribing to any streams)
-     * 2. If pure evaluation fails, returns error without stream subscription
+     * 2. If pure evaluation fails, returns errors without stream subscription
      * 3. Subscribes to all streams with combineLatest
      * 4. Folds stream values with the pre-combined result from values+pures
      */

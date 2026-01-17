@@ -282,11 +282,11 @@ class FilterExpressionTests {
 
         static Stream<Arguments> when_errorCondition_then_producesError() {
             return Stream.of(arguments("Error propagates from parent", "(10/0) |- filter.remove", "division by zero"),
-                    arguments("Extended filter error in parent propagates", "(10/0) |- { @ : filter.remove }",
+                    arguments("Extended filter errors in parent propagates", "(10/0) |- { @ : filter.remove }",
                             "division by zero"));
         }
 
-        // Blacklist semantics: path type mismatches return unchanged, not error
+        // Blacklist semantics: path type mismatches return unchanged, not errors
         @ParameterizedTest(name = "{0}")
         @MethodSource
         void when_pathTypeMismatch_then_returnsUnchanged(String description, String expression, String expected) {
@@ -322,9 +322,9 @@ class FilterExpressionTests {
     class EachFilterErrorShortCircuit {
 
         @Test
-        @DisplayName("Each filter short-circuits on first type error in array")
+        @DisplayName("Each filter short-circuits on first type errors in array")
         void when_eachFilterEncountersTypeError_then_shortCircuitsAndReturnsError() {
-            // doubleValue requires number, "string" causes type error - should
+            // doubleValue requires number, "string" causes type errors - should
             // short-circuit
             val result = evaluate("""
                     [1, 2, "string", 4] |- each simple.doubleValue
@@ -334,9 +334,9 @@ class FilterExpressionTests {
         }
 
         @Test
-        @DisplayName("Each filter returns error on first bad element not last")
+        @DisplayName("Each filter returns errors on first bad element not last")
         void when_eachFilterErrorOnFirstElement_then_returnsErrorImmediately() {
-            // First element is a string, should error immediately without processing rest
+            // First element is a string, should errors immediately without processing rest
             val result = evaluate("""
                     ["bad", 2, 3, 4] |- each simple.doubleValue
                     """);
@@ -360,7 +360,7 @@ class FilterExpressionTests {
         @Test
         @DisplayName("Negate filter short-circuits on non-boolean in array")
         void when_negateFilterEncountersNonBoolean_then_shortCircuits() {
-            // negate requires boolean, number causes error
+            // negate requires boolean, number causes errors
             val result = evaluate("[true, false, 42, true] |- each simple.negate");
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains("boolean");
@@ -369,7 +369,7 @@ class FilterExpressionTests {
         @Test
         @DisplayName("Length filter short-circuits on invalid type")
         void when_lengthFilterEncountersInvalidType_then_shortCircuits() {
-            // length requires text or array, number causes error
+            // length requires text or array, number causes errors
             val result = evaluate("[[1,2], \"hello\", 42, [3,4]] |- each simple.length");
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains("text or array");
@@ -484,12 +484,12 @@ class FilterExpressionTests {
         // @formatter:off
         static Stream<Arguments> when_subtemplateWithError_then_producesError() {
             return Stream.of(
-                arguments("Subtemplate error propagates from parent",
+                arguments("Subtemplate errors propagates from parent",
                     """
                     (10/0) :: { "value": @ }
                     """,
                     "division by zero"),
-                arguments("Subtemplate propagates division by zero error",
+                arguments("Subtemplate propagates division by zero errors",
                     """
                     (10/0) :: { "name": "foo" }
                     """,

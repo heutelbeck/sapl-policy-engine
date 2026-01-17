@@ -216,7 +216,7 @@ class PolicyCompilerTests {
         }
 
         @Test
-        @DisplayName("Static error in body yields static INDETERMINATE")
+        @DisplayName("Static errors in body yields static INDETERMINATE")
         void whenStaticErrorInBody_thenStaticIndeterminate() {
             val policy = """
                     policy "Hex Arithmetic Failure"
@@ -567,7 +567,7 @@ class PolicyCompilerTests {
         }
 
         @Test
-        @DisplayName("Attribute error in body produces INDETERMINATE")
+        @DisplayName("Attribute errors in body produces INDETERMINATE")
         void whenAttributeError_thenIndeterminateDecision() {
             val policy     = """
                     policy "Clacks Network Error Handling"
@@ -590,11 +590,11 @@ class PolicyCompilerTests {
     class ConstraintErrorHandlingTests {
 
         static Stream<Arguments> constraintErrorCases() {
-            return Stream.of(arguments("Static error in transform throws SaplCompilerException", """
+            return Stream.of(arguments("Static errors in transform throws SaplCompilerException", """
                     policy "Hex Overflow Error"
                     permit
                     transform 1/0
-                    """, "Transformation", "statically evaluates to an error"),
+                    """, "Transformation", "statically evaluates to an errors"),
                     arguments("Relative accessor in obligation throws SaplCompilerException", """
                             policy "Igor Organ Tracking Error"
                             permit
@@ -853,7 +853,7 @@ class PolicyCompilerTests {
         }
 
         @Test
-        @DisplayName("Boolean short-circuit prevents evaluation error in body")
+        @DisplayName("Boolean short-circuit prevents evaluation errors in body")
         void whenShortCircuit_thenErrorPrevented() {
             val policy = """
                     policy "Hex Safety Short-Circuit"
@@ -975,7 +975,7 @@ class PolicyCompilerTests {
         }
 
         @Test
-        @DisplayName("PureStreamPolicyBody returns INDETERMINATE on pure body evaluation error")
+        @DisplayName("PureStreamPolicyBody returns INDETERMINATE on pure body evaluation errors")
         void whenPureBodyError_thenIndeterminate() {
             val policy     = """
                     policy "Rincewind Spell Attempt"

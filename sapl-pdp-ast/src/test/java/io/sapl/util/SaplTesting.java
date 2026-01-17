@@ -131,10 +131,10 @@ public class SaplTesting {
     public static SaplDocument document(String documentSource) {
         var parsed = SAPLCompiler.parseDocument(documentSource);
         if (!parsed.syntaxErrors().isEmpty()) {
-            throw new IllegalArgumentException("Syntax error(s): " + String.join("; ", parsed.syntaxErrors()));
+            throw new IllegalArgumentException("Syntax errors(s): " + String.join("; ", parsed.syntaxErrors()));
         }
         if (!parsed.validationErrors().isEmpty()) {
-            throw new IllegalArgumentException("Validation error(s): " + parsed.validationErrors().stream()
+            throw new IllegalArgumentException("Validation errors(s): " + parsed.validationErrors().stream()
                     .map(Object::toString).collect(java.util.stream.Collectors.joining("; ")));
         }
         return parsed.saplDocument();
@@ -203,7 +203,7 @@ public class SaplTesting {
         var parsed = SAPLCompiler.parseDocument(source);
         if (!parsed.syntaxErrors().isEmpty()) {
             var errors = String.join("; ", parsed.syntaxErrors());
-            throw new IllegalArgumentException("Syntax error(s) in policy set: " + errors);
+            throw new IllegalArgumentException("Syntax errors(s) in policy set: " + errors);
         }
         var document = parsed.saplDocument();
         if (!(document instanceof io.sapl.ast.PolicySet policySet)) {

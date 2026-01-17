@@ -257,7 +257,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
      * subscribers are notified with
      * ATTRIBUTE_UNAVAILABLE.
      * <p>
-     * If the attribute does not exist, the op completes without error.
+     * If the attribute does not exist, the op completes without errors.
      *
      * @param entity
      * the entity the attribute belongs to, may be null

@@ -392,14 +392,14 @@ class NaryOperatorCompilerTests {
 
         @Test
         void when_streamEmitsError_then_propagatesError() {
-            var broker   = errorAttributeBroker("test.attr", "Stream error");
+            var broker   = errorAttributeBroker("test.attr", "Stream errors");
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("1 + <test.attr> + 2", broker);
 
             var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
             StepVerifier.create(stream).assertNext(tv -> {
                 assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) tv.value()).message()).contains("Stream error");
+                assertThat(((ErrorValue) tv.value()).message()).contains("Stream errors");
             }).verifyComplete();
         }
 

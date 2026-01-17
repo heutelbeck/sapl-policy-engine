@@ -25,7 +25,7 @@ import java.util.List;
 
 /**
  * N-ary lazy conjunction (AND) for 3+ operands.
- * Enables pure-first evaluation and error absorption optimizations.
+ * Enables pure-first evaluation and errors absorption optimizations.
  *
  * @param operands list of operands (at least 3)
  * @param location voterMetadata location spanning all operands

@@ -272,6 +272,27 @@ public final class ArrayValue implements Value, List<Value> {
     }
 
     /**
+     * Appends another array to this array, returning a new ArrayValue containing
+     * all elements from both arrays.
+     * <p>
+     * This operation is optimized for identity returns when either array is empty:
+     * appending to an empty array returns the argument unchanged, and appending an
+     * empty array returns this array unchanged.
+     *
+     * @param other the array to append (must not be null)
+     * @return a new ArrayValue containing all elements from this array followed by
+     * all elements from the other array, or one of the original arrays if
+     * the other is empty
+     */
+    public ArrayValue append(ArrayValue other) {
+        if (this.isEmpty())
+            return other;
+        if (other.isEmpty())
+            return this;
+        return builder().addAll(this).addAll(other).build();
+    }
+
+    /**
      * Methods excluded from Lombok delegation to preserve Value semantics. These
      * methods require custom implementations
      * for error handling.

@@ -99,11 +99,11 @@ class ArithmeticOperatorsTests {
     private static Stream<Arguments> when_binaryOp_withInvalidInput_then_returnsError() {
         return Stream.of(
             arguments("add number + text", ADD, Value.of(5), Value.of("text"), "Numeric op"),
-            arguments("subtract type error", SUB, Value.of(5), Value.of("text"), "Numeric op"),
-            arguments("multiply type error", MUL, Value.of(5), Value.of("text"), "Numeric op"),
-            arguments("divide type error", DIV, Value.of(5), Value.of("text"), "Numeric op"),
+            arguments("subtract type errors", SUB, Value.of(5), Value.of("text"), "Numeric op"),
+            arguments("multiply type errors", MUL, Value.of(5), Value.of("text"), "Numeric op"),
+            arguments("divide type errors", DIV, Value.of(5), Value.of("text"), "Numeric op"),
             arguments("divide by zero", DIV, Value.of(5), Value.of(0), "Division by zero"),
-            arguments("modulo type error", MOD, Value.of(5), Value.of("text"), "Numeric op"),
+            arguments("modulo type errors", MOD, Value.of(5), Value.of("text"), "Numeric op"),
             arguments("modulo by zero", MOD, Value.of(5), Value.of(0), "Division by zero"),
             arguments("add with null", ADD, Value.of(5), Value.NULL, "Numeric op"),
             arguments("add with undefined", ADD, Value.of(5), Value.UNDEFINED, "Numeric op"),

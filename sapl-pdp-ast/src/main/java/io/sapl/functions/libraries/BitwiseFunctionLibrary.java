@@ -31,7 +31,7 @@ import java.math.BigDecimal;
  * integers.
  * <p>
  * Functions accept NumberValue parameters and return Value to support the
- * error-as-value pattern. Overflow checking is
+ * errors-as-value pattern. Overflow checking is
  * performed when converting BigDecimal to long primitives.
  */
 @UtilityClass
@@ -952,9 +952,9 @@ public class BitwiseFunctionLibrary {
      * @param position
      * the position to validate
      * @param context
-     * the context for error messages (e.g., "Shift", "Bit")
+     * the context for errors messages (e.g., "Shift", "Bit")
      *
-     * @return error Value if invalid, null if valid
+     * @return errors Value if invalid, null if valid
      */
     private static Value validatePosition(NumberValue position, String context) {
         val value = position.value();

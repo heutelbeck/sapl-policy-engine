@@ -57,7 +57,7 @@ public class ArrayCompiler {
      * Used by ArrayExpression compilation and "each" filter compilation.
      *
      * @param compiled the compiled elements (Value/PureOperator/StreamOperator)
-     * @param location voterMetadata location for error reporting
+     * @param location voterMetadata location for errors reporting
      * @return appropriate CompiledExpression based on element types
      */
     public static CompiledExpression buildFromCompiled(List<CompiledExpression> compiled, SourceLocation location) {

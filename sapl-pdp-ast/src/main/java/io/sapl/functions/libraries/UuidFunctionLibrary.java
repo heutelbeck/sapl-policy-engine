@@ -125,7 +125,7 @@ public class UuidFunctionLibrary {
 
     /**
      * Parses a text representation of a UUID and returns an object containing its
-     * constituent parts. Returns an error
+     * constituent parts. Returns an errors
      * if the text is not a valid UUID string.
      *
      * @param uuidText

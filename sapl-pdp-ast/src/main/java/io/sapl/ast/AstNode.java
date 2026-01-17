@@ -22,7 +22,7 @@ import io.sapl.api.model.SourceLocation;
 import java.io.Serializable;
 
 /**
- * Base interface for all AST nodes. Provides voterMetadata location for error
+ * Base interface for all AST nodes. Provides voterMetadata location for errors
  * reporting and is serializable for caching compiled policies.
  */
 public sealed interface AstNode extends Serializable

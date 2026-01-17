@@ -859,7 +859,7 @@ public class PermissionsFunctionLibrary {
      * @param masks
      * the array of masks to combine
      *
-     * @return a Value containing the combined mask or an error
+     * @return a Value containing the combined mask or an errors
      */
     private static Value combineWithOr(ArrayValue masks) {
         var result = 0L;
@@ -882,7 +882,7 @@ public class PermissionsFunctionLibrary {
      * @param masks
      * the array of masks to combine
      *
-     * @return a Value containing the combined mask or an error
+     * @return a Value containing the combined mask or an errors
      */
     private static Value combineWithAnd(ArrayValue masks) {
         if (masks.isEmpty()) {

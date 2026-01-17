@@ -255,7 +255,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunction_evaluatesLeftToRight_pure() {
-            // First pure is false, second would cause error but shouldn't be reached
+            // First pure is false, second would cause errors but shouldn't be reached
             var ctx    = evaluationContext(Map.of("first", Value.FALSE, "second", Value.error("should not see this")));
             var result = evaluateExpression("first && second && true", ctx);
             assertThat(result).isEqualTo(Value.FALSE);
@@ -263,7 +263,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunction_evaluatesLeftToRight_pure() {
-            // First pure is true, second would cause error but shouldn't be reached
+            // First pure is true, second would cause errors but shouldn't be reached
             var ctx    = evaluationContext(Map.of("first", Value.TRUE, "second", Value.error("should not see this")));
             var result = evaluateExpression("first || second || false", ctx);
             assertThat(result).isEqualTo(Value.TRUE);
@@ -398,27 +398,27 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunction_streamEmitsError_then_propagatesError() {
-            var broker   = errorAttributeBroker("test.attr", "Stream error");
+            var broker   = errorAttributeBroker("test.attr", "Stream errors");
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("true && <test.attr> && true", broker);
 
             var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
             StepVerifier.create(stream)
                     .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream error"))
+                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream errors"))
                     .verifyComplete();
         }
 
         @Test
         void disjunction_streamEmitsError_then_propagatesError() {
-            var broker   = errorAttributeBroker("test.attr", "Stream error");
+            var broker   = errorAttributeBroker("test.attr", "Stream errors");
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("false || <test.attr> || false", broker);
 
             var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
             StepVerifier.create(stream)
                     .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream error"))
+                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream errors"))
                     .verifyComplete();
         }
 
@@ -737,7 +737,7 @@ class LazyNaryBooleanCompilerTests {
         @CsvSource({ "conjunction,false,first && second,false", "disjunction,true,first || second,true" })
         void errorAfterShortCircuit_notReached(String description, boolean shortCircuitValue, String expr,
                 boolean expected) {
-            // Should short-circuit before reaching the error
+            // Should short-circuit before reaching the errors
             var first  = shortCircuitValue ? Value.TRUE : Value.FALSE;
             var ctx    = evaluationContext(Map.of("first", first, "second", Value.error("should not see")));
             var result = evaluateExpression(expr, ctx);

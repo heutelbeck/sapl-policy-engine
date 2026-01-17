@@ -306,9 +306,9 @@ class PolicyBodyCompilerTests {
         static Stream<ErrorTestCase> errorCases() {
             // Note: VarDef redefinition is a compile-time exception, tested separately
             return Stream.of(ErrorTestCase.simple("non-boolean condition", "42;", "boolean", 1),
-                    ErrorTestCase.withVars("pure evaluates to error", "brokenVar;",
+                    ErrorTestCase.withVars("pure evaluates to errors", "brokenVar;",
                             Map.of("brokenVar", Value.error("intentional")), "intentional", 1),
-                    ErrorTestCase.withErrorAttr("stream emits error", "<test.attr>;", "test.attr", "stream failure",
+                    ErrorTestCase.withErrorAttr("stream emits errors", "<test.attr>;", "test.attr", "stream failure",
                             "stream failure", 1));
         }
 

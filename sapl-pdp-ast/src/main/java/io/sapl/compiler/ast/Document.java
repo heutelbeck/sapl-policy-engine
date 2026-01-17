@@ -35,7 +35,7 @@ import java.util.List;
  * @param source the original voterMetadata text
  * @param syntaxErrors list of syntax errors from parsing
  * @param validationErrors list of semantic validation errors
- * @param errorMessage combined error message if any errors exist
+ * @param errorMessage combined errors message if any errors exist
  */
 public record Document(
         String id,

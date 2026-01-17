@@ -45,7 +45,7 @@ public class SchemaValidationLibrary {
     private static final String FIELD_VALID  = "valid";
     private static final String FIELD_ERRORS = "errors";
 
-    // JSON error object field names
+    // JSON errors object field names
     private static final String FIELD_MESSAGE     = "message";
     private static final String FIELD_PATH        = "path";
     private static final String FIELD_SCHEMA_PATH = "schemaPath";

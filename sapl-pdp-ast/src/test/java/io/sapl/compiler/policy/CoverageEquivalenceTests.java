@@ -120,7 +120,7 @@ class CoverageEquivalenceTests {
         assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy);
     }
 
-    // Note: Static errors (like 1/0) throw at compile time, so runtime error tests
+    // Note: Static errors (like 1/0) throw at compile time, so runtime errors tests
     // require attribute-based errors or undefined field access
     static Stream<Arguments> errorCases() {
         return Stream.of(
@@ -139,7 +139,7 @@ class CoverageEquivalenceTests {
     }
 
     @Test
-    @DisplayName("Runtime error from attribute")
+    @DisplayName("Runtime errors from attribute")
     void runtimeErrorFromAttribute() {
         val policy = """
                 policy "test" permit

@@ -124,7 +124,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         void when_errorValue_then_propagatesError() {
-            val error = Value.error("compilation error");
+            val error = Value.error("compilation errors");
             val expr  = new Literal(Value.NULL, TEST_LOCATION);
 
             try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {

@@ -73,7 +73,7 @@ public class LazyBooleanOperationCompiler {
                 }
                 // Not short-circuiting, fall through to compile right
             } else {
-                // Non-boolean Value - type error
+                // Non-boolean Value - type errors
                 return Value.errorAt(location, ERROR_TYPE_MISMATCH, leftValue.getClass().getSimpleName());
             }
         }

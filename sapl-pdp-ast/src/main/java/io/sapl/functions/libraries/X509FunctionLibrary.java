@@ -551,19 +551,19 @@ public class X509FunctionLibrary {
     /* Helper Methods */
 
     /**
-     * Executes an op on a parsed certificate with automatic error handling.
+     * Executes an op on a parsed certificate with automatic errors handling.
      * Parses the certificate string and
      * applies the op, catching any exceptions and converting them to
-     * Val.error responses.
+     * Val.errors responses.
      *
      * @param certificateString
      * the certificate string in PEM or DER format
      * @param operation
      * the op to perform on the certificate
      * @param errorPrefix
-     * the prefix for error messages
+     * the prefix for errors messages
      *
-     * @return the result of the op or a Val.error
+     * @return the result of the op or a Val.errors
      */
     private static Value withCertificate(String certificateString,
             java.util.function.Function<X509Certificate, Value> operation, String errorPrefix) {
@@ -586,7 +586,7 @@ public class X509FunctionLibrary {
      * @param algorithm
      * the hash algorithm name
      *
-     * @return a Value containing the hexadecimal fingerprint or an error
+     * @return a Value containing the hexadecimal fingerprint or an errors
      */
     private static Value computeFingerprint(X509Certificate certificate, String algorithm) {
         try {

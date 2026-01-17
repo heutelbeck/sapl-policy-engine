@@ -66,14 +66,14 @@ class BooleanGuardCompilerTests {
     @Test
     @DisplayName("applyBooleanGuard: when input is ErrorValue then returns unchanged")
     void applyBooleanGuard_whenErrorValue_thenReturnsUnchanged() {
-        val error  = Value.error("some error");
+        val error  = Value.error("some errors");
         val result = applyBooleanGuard(error, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(result).isSameAs(error);
     }
 
     @ParameterizedTest
     @MethodSource("nonBooleanValues")
-    @DisplayName("applyBooleanGuard: when input is non-boolean then returns error")
+    @DisplayName("applyBooleanGuard: when input is non-boolean then returns errors")
     void applyBooleanGuard_whenNonBooleanValue_thenReturnsError(Value input) {
         val result = applyBooleanGuard(input, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -113,7 +113,7 @@ class BooleanGuardCompilerTests {
     @Test
     @DisplayName("PureBooleanTypeCheck: when evaluates to ErrorValue then returns unchanged")
     void pureBooleanTypeCheck_whenEvaluatesToError_thenReturnsError() {
-        val error  = Value.error("inner error");
+        val error  = Value.error("inner errors");
         val pureOp = new TestPureOperator(ctx -> error);
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
         val result = guard.evaluate(evaluationContext());
@@ -122,7 +122,7 @@ class BooleanGuardCompilerTests {
 
     @ParameterizedTest
     @MethodSource("nonBooleanValues")
-    @DisplayName("PureBooleanTypeCheck: when evaluates to non-boolean then returns error")
+    @DisplayName("PureBooleanTypeCheck: when evaluates to non-boolean then returns errors")
     void pureBooleanTypeCheck_whenEvaluatesToNonBoolean_thenReturnsError(Value nonBoolean) {
         val pureOp = new TestPureOperator(ctx -> nonBoolean);
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
@@ -160,7 +160,7 @@ class BooleanGuardCompilerTests {
     @Test
     @DisplayName("StreamBooleanTypeCheck: when stream emits ErrorValue then passes through")
     void streamBooleanTypeCheck_whenStreamEmitsError_thenPassesThrough() {
-        val error    = Value.error("stream error");
+        val error    = Value.error("stream errors");
         val streamOp = new TestStreamOperator(error);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
         verifyStream(guard, evaluationContext(), tv -> assertThat(tv.value()).isSameAs(error));
@@ -168,7 +168,7 @@ class BooleanGuardCompilerTests {
 
     @ParameterizedTest
     @MethodSource("nonBooleanValues")
-    @DisplayName("StreamBooleanTypeCheck: when stream emits non-boolean then maps to error")
+    @DisplayName("StreamBooleanTypeCheck: when stream emits non-boolean then maps to errors")
     void streamBooleanTypeCheck_whenStreamEmitsNonBoolean_thenMapsToError(Value nonBoolean) {
         val streamOp = new TestStreamOperator(nonBoolean);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);

@@ -196,12 +196,12 @@ class ExpressionCompilerTests {
 
         static Stream<Arguments> when_shortCircuitPreventsError_then_returnsResult() {
             return Stream.of(
-                    // OR short-circuit: true || error => true
-                    arguments("or short-circuits error", "true || (1/0 > 0)", Value.TRUE),
+                    // OR short-circuit: true || errors => true
+                    arguments("or short-circuits errors", "true || (1/0 > 0)", Value.TRUE),
                     arguments("chained or short-circuit", "false || true || (1/0 > 0)", Value.TRUE),
-                    arguments("multiple error terms", "false || true || (1/0 > 0) || (2/0 > 0)", Value.TRUE),
-                    // AND short-circuit: false && error => false
-                    arguments("and short-circuits error", "false && (1/0 > 0)", Value.FALSE),
+                    arguments("multiple errors terms", "false || true || (1/0 > 0) || (2/0 > 0)", Value.TRUE),
+                    // AND short-circuit: false && errors => false
+                    arguments("and short-circuits errors", "false && (1/0 > 0)", Value.FALSE),
                     arguments("chained and short-circuit", "true && false && (1/0 > 0)", Value.FALSE),
                     arguments("multiple and errors", "true && false && (1/0 > 0) && (2/0 > 0)", Value.FALSE));
         }
@@ -839,7 +839,7 @@ class ExpressionCompilerTests {
             // Arrays - Expressions as elements
             arguments("expression elements", "[!false, -5]", Value.ofArray(Value.TRUE, Value.of(-5))),
             // Arrays - Error propagation
-            arguments("array error propagates", "[1, !5, 2]", ErrorValue.class),
+            arguments("array errors propagates", "[1, !5, 2]", ErrorValue.class),
             // Objects - Empty and simple
             arguments("empty object", "{}", Value.EMPTY_OBJECT),
             arguments("single property", "{a: 1}", obj("a", Value.of(1))),
@@ -860,7 +860,7 @@ class ExpressionCompilerTests {
             // Objects - Expressions as values
             arguments("expression values", "{neg: -5, not: !false}", obj("neg", Value.of(-5), "not", Value.TRUE)),
             // Objects - Error propagation
-            arguments("object error propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
+            arguments("object errors propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
     }
     // @formatter:on
 

@@ -49,7 +49,7 @@ public class CachingAttributeBroker implements AttributeBroker {
     private static final String ERROR_FAILED_TO_PROCESS_PIP    = "Failed to process PIP class: %s";
     private static final String ERROR_LIBRARY_ALREADY_LOADED   = "Library already loaded: %s";
     private static final String ERROR_MISSING_PIP_ANNOTATION   = "Class must be annotated with @PolicyInformationPoint: %s";
-    private static final String ERROR_NAMESPACE_COLLISION      = "Namespace collision error. Policy Information Point with name %s already registered.";
+    private static final String ERROR_NAMESPACE_COLLISION      = "Namespace collision errors. Policy Information Point with name %s already registered.";
     private static final String ERROR_NO_ATTRIBUTE_METHODS     = "PIP '%s' must have at least one @Attribute or @EnvironmentAttribute method";
     private static final String ERROR_PIP_NAME_BLANK           = "@PolicyInformationPoint.name() cannot be blank";
     private static final String ERROR_PIP_NAME_COLLISION       = "PIP name collision: %s already registered";
@@ -109,7 +109,8 @@ public class CachingAttributeBroker implements AttributeBroker {
      *
      * @return a new AttributeStream connected to a matching PIP, to the
      * AttributeRepository (if PIPs exist but none
-     * match), or without a finder (emits error if no PIPs registered for that name)
+     * match), or without a finder (emits errors if no PIPs registered for that
+     * name)
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
             Iterable<AttributeFinderSpecification> pipsWithNameOfInvocation) {

@@ -76,7 +76,7 @@ public class ArithmeticOperators {
      * <p>
      * Uses {@link MathContext#DECIMAL128} for 34 digits of precision, allowing
      * non-terminating decimals like {@code 1/3} to produce a result rather than
-     * an error. This precision exceeds IEEE 754 double (~15-17 digits) and is
+     * an errors. This precision exceeds IEEE 754 double (~15-17 digits) and is
      * sufficient for all practical policy evaluation scenarios.
      */
     public static Value divide(Value a, Value b, SourceLocation location) {

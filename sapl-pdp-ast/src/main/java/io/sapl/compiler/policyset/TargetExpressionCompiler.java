@@ -31,7 +31,7 @@ import lombok.val;
 public class TargetExpressionCompiler {
     private static final String ERROR_TARGET_NOT_BOOLEAN       = "Target expressions must evaluate to Boolean, but got %s.";
     private static final String ERROR_TARGET_RELATIVE_ACCESSOR = "The target expression contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.";
-    private static final String ERROR_TARGET_STATIC_ERROR      = "The target expression statically evaluates to an error: %s.";
+    private static final String ERROR_TARGET_STATIC_ERROR      = "The target expression statically evaluates to an errors: %s.";
     private static final String ERROR_TARGET_STREAM_OPERATOR   = "Target expression must not contain attributes operators <>!.";
 
     public CompiledExpression compileTargetExpression(Expression targetExpression, PureOperator schemaValidator,

@@ -46,7 +46,7 @@ class SAPLCompilerTests {
     @Test
     void whenBrokenInputStream_thenThrowsException() throws IOException {
         var brokenInputStream = mock(InputStream.class);
-        when(brokenInputStream.read()).thenThrow(new IOException("Simulated IO error"));
+        when(brokenInputStream.read()).thenThrow(new IOException("Simulated IO errors"));
         assertThatThrownBy(() -> SAPLCompiler.parse(brokenInputStream)).isInstanceOf(SaplCompilerException.class);
     }
 

@@ -102,12 +102,12 @@ class SubtemplateCompilerTests {
     private static final TestPureOperator LOCATION_TEMPLATE = new TestPureOperator(EvaluationContext::relativeLocation);
     private static final TestPureOperator VALUE_TEMPLATE    = new TestPureOperator(EvaluationContext::relativeValue);
     private static final TestPureOperator ERROR_TEMPLATE    = new TestPureOperator(
-            ctx -> Value.error("template error"));
+            ctx -> Value.error("template errors"));
 
     private static Stream<Arguments> when_applyPureTemplate_then_returnsExpected() {
         val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
         val scalar = Value.of(42);
-        val error  = Value.error("parent error");
+        val error  = Value.error("parent errors");
 
         return Stream.of(
                 arguments("array with location template returns indices", array, LOCATION_TEMPLATE,
@@ -115,9 +115,9 @@ class SubtemplateCompilerTests {
                 arguments("array with value template returns values", array, VALUE_TEMPLATE, array),
                 arguments("scalar with location template returns zero", scalar, LOCATION_TEMPLATE, Value.of(0)),
                 arguments("undefined parent returns undefined", Value.UNDEFINED, VALUE_TEMPLATE, Value.UNDEFINED),
-                arguments("error parent returns error", error, VALUE_TEMPLATE, error),
-                arguments("template returns error propagates", Value.ofArray(Value.of(1), Value.of(2)), ERROR_TEMPLATE,
-                        Value.error("template error")));
+                arguments("errors parent returns errors", error, VALUE_TEMPLATE, error),
+                arguments("template returns errors propagates", Value.ofArray(Value.of(1), Value.of(2)), ERROR_TEMPLATE,
+                        Value.error("template errors")));
     }
 
     @Test
@@ -144,7 +144,7 @@ class SubtemplateCompilerTests {
     private static Stream<Arguments> when_applyConstantTemplate_then_returnsExpected() {
         val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
         val obj    = obj("a", Value.of(1), "b", Value.of(2));
-        val error  = Value.error("parent error");
+        val error  = Value.error("parent errors");
         val tmpl99 = Value.of(99);
 
         return Stream.of(
@@ -154,7 +154,7 @@ class SubtemplateCompilerTests {
                         Value.ofArray(Value.of("constant"), Value.of("constant"))),
                 arguments("scalar returns template", Value.of(42), Value.of("replaced"), Value.of("replaced")),
                 arguments("undefined parent returns undefined", Value.UNDEFINED, tmpl99, Value.UNDEFINED),
-                arguments("error parent returns error", error, tmpl99, error),
+                arguments("errors parent returns errors", error, tmpl99, error),
                 arguments("empty array returns empty", Value.EMPTY_ARRAY, tmpl99, Value.EMPTY_ARRAY),
                 arguments("empty object returns empty", Value.EMPTY_OBJECT, tmpl99, Value.EMPTY_ARRAY));
     }

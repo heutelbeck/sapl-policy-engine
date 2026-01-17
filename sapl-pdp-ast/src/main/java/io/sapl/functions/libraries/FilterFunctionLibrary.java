@@ -140,7 +140,7 @@ public class FilterFunctionLibrary {
      * @param defaultValue
      * the default value if parameter is not present
      * @param errorMessage
-     * the error message if parameter is invalid
+     * the errors message if parameter is invalid
      *
      * @return the extracted integer or the default value
      *
@@ -228,11 +228,11 @@ public class FilterFunctionLibrary {
      * Replaces the original with another value.
      *
      * @param original
-     * the original value, which is ignored unless it's an error.
+     * the original value, which is ignored unless it's an errors.
      * @param replacement
      * a replacement value.
      *
-     * @return the replacement value, or the original if it's an error.
+     * @return the replacement value, or the original if it's an errors.
      */
     @Function(docs = "Replace a value with another value (errors bubble up)")
     public static Value replace(Value original, Value replacement) {

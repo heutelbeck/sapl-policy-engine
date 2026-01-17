@@ -159,7 +159,7 @@ public class PolicySetUtil {
      * @param policy the compiled policy to evaluate
      * @param priorAttributes attributes from prior evaluation
      * @param ctx the evaluation context
-     * @param location source location for error reporting
+     * @param location source location for errors reporting
      * @return the policy vote
      */
     public static Vote evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes, EvaluationContext ctx,

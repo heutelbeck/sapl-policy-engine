@@ -54,7 +54,7 @@ class AttributeCompilerTests {
 
     @Test
     void when_environmentAttribute_withErrorBroker_then_returnsErrorWithTrace() {
-        // When using a broker that returns errors, the error is returned with a trace
+        // When using a broker that returns errors, the errors is returned with a trace
         var ctx    = evaluationContext(ATTRIBUTE_BROKER);
         var result = evaluateExpression("<test.attr>", ctx);
 

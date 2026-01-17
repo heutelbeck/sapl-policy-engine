@@ -65,7 +65,7 @@ public class ObjectCompiler {
      *
      * @param keys the keys for each entry
      * @param compiled the compiled values (Value/PureOperator/StreamOperator)
-     * @param location voterMetadata location for error reporting
+     * @param location voterMetadata location for errors reporting
      * @return appropriate CompiledExpression based on value types
      */
     static CompiledExpression buildFromCompiled(List<String> keys, List<CompiledExpression> compiled,

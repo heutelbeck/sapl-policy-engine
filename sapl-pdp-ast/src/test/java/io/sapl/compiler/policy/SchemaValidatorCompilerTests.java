@@ -175,7 +175,7 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when schema expression evaluates to error then throws SaplCompilerException")
+        @DisplayName("when schema expression evaluates to errors then throws SaplCompilerException")
         void whenSchemaExpressionEvaluatesToError_thenThrowsCompilerException() {
             val errorValue = Value.error("schema lookup failed");
             val schemas    = List.of(enforcedSchema(SubscriptionElement.SUBJECT, errorValue));

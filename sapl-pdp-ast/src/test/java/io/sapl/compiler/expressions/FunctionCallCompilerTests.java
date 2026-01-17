@@ -87,21 +87,21 @@ class FunctionCallCompilerTests {
     @Test
     void when_functionCall_withPureArg_andErrorFromPure_then_propagatesError() {
         var broker  = functionBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx = evaluationContext(broker, Map.of("x", Value.error("pure error")));
+        var evalCtx = evaluationContext(broker, Map.of("x", Value.error("pure errors")));
         var result  = evaluateExpression("test.fn(x)", evalCtx);
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
-                .contains("pure error");
+                .contains("pure errors");
     }
 
     @Test
     void when_functionCall_returnsError_then_propagatesError() {
-        var broker  = functionBroker("test.fn", args -> Value.error("function error"));
+        var broker  = functionBroker("test.fn", args -> Value.error("function errors"));
         var evalCtx = evaluationContext(broker, Map.of());
         var result  = evaluateExpression("test.fn()", evalCtx);
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
-                .contains("function error");
+                .contains("function errors");
     }
 
     @Test
@@ -142,7 +142,7 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withStreamArgError_then_propagatesError() {
-        var attrBroker = attributeBroker("err.attr", Value.error("stream error"));
+        var attrBroker = attributeBroker("err.attr", Value.error("stream errors"));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
         var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
         var result     = evaluateExpression("test.fn(<err.attr>)", evalCtx);
@@ -151,7 +151,7 @@ class FunctionCallCompilerTests {
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream)
                 .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                        .extracting(v -> ((ErrorValue) v).message()).asString().contains("stream error"))
+                        .extracting(v -> ((ErrorValue) v).message()).asString().contains("stream errors"))
                 .verifyComplete();
     }
 

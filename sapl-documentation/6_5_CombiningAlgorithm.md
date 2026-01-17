@@ -34,11 +34,11 @@ SAPL's notation makes behavior explicit by separating three orthogonal concerns:
 <voting> or <default> [errors <error-handling>]
 ```
 
-| Concern | Description | Options |
-|---------|-------------|---------|
-| **Voting** | How competing votes resolve | `deny-wins`, `permit-wins`, `first-vote`, `unanimous`, `unique-decision` |
-| **Default** | Result when no policy votes | `permit`, `deny`, `abstain` |
-| **Error handling** | How errors are treated | `errors abstain` (default), `errors propagate` |
+| Concern            | Description                 | Options                                                                  |
+|--------------------|-----------------------------|--------------------------------------------------------------------------|
+| **Voting**         | How competing votes resolve | `deny-wins`, `permit-wins`, `first-vote`, `unanimous`, `unique-decision` |
+| **Default**        | Result when no policy votes | `permit`, `deny`, `abstain`                                              |
+| **Error handling** | How errors are treated      | `errors abstain` (default), `errors propagate`                           |
 
 The error handling clause is optional. When omitted, `errors abstain` applies.
 
@@ -58,10 +58,10 @@ When multiple policies vote `PERMIT`, the combining algorithm must merge these c
 
 How transformation uncertainty is handled depends on the error handling setting:
 
-| Error Handling | Transformation Uncertainty Result |
-|----------------|-----------------------------------|
-| `errors abstain` | `DENY` |
-| `errors propagate` | `INDETERMINATE` |
+| Error Handling     | Transformation Uncertainty Result |
+|--------------------|-----------------------------------|
+| `errors abstain`   | `DENY`                            |
+| `errors propagate` | `INDETERMINATE`                   |
 
 Algorithms where only one policy can contribute a permit vote (`unique-decision`, `first-vote`) cannot encounter transformation uncertainty.
 
@@ -69,27 +69,27 @@ Algorithms where only one policy can contribute a permit vote (`unique-decision`
 
 #### Voting Styles
 
-| Style | Meaning |
-|-------|---------|
-| `deny-wins` | Any deny vote results in deny; permits only win if no deny exists |
-| `permit-wins` | Any permit vote results in permit; denies only win if no permit exists |
-| `first-vote` | Policies vote in order; the first non-abstain vote wins |
-| `unanimous` | All policies must agree |
-| `unique-decision` | Exactly one policy must vote; multiple matches cause an error |
+| Style             | Meaning                                                                |
+|-------------------|------------------------------------------------------------------------|
+| `deny-wins`       | Any deny vote results in deny; permits only win if no deny exists      |
+| `permit-wins`     | Any permit vote results in permit; denies only win if no permit exists |
+| `first-vote`      | Policies vote in order; the first non-abstain vote wins                |
+| `unanimous`       | All policies must agree                                                |
+| `unique-decision` | Exactly one policy must vote; multiple matches cause an error          |
 
 #### Default Decisions
 
-| Default | Meaning |
-|---------|---------|
-| `permit` | Grant access when no policy votes |
-| `deny` | Deny access when no policy votes |
+| Default   | Meaning                                    |
+|-----------|--------------------------------------------|
+| `permit`  | Grant access when no policy votes          |
+| `deny`    | Deny access when no policy votes           |
 | `abstain` | Return not-applicable when no policy votes |
 
 #### Error Handling
 
-| Handling | Meaning |
-|----------|---------|
-| `errors abstain` | Treat errors as abstain; they do not influence the outcome (default) |
+| Handling           | Meaning                                                                              |
+|--------------------|--------------------------------------------------------------------------------------|
+| `errors abstain`   | Treat errors as abstain; they do not influence the outcome (default)                 |
 | `errors propagate` | Errors bubble up; if any policy votes `INDETERMINATE`, the result is `INDETERMINATE` |
 
 ### Available Algorithms
@@ -348,10 +348,10 @@ A variant that preserves error information and stops evaluation on errors.
 
 Combining algorithms apply at both levels, with one restriction:
 
-| Level | Available Algorithms |
-|-------|---------------------|
-| Policy Set | All algorithms |
-| PDP | All except `first-vote` |
+| Level      | Available Algorithms    |
+|------------|-------------------------|
+| Policy Set | All algorithms          |
+| PDP        | All except `first-vote` |
 
 The `first-vote` voting style requires a defined evaluation order. Within a policy set, the declaration order establishes this sequence. At the PDP level, the order of policy documents is undefined, making `first-vote` inapplicable.
 
@@ -368,13 +368,13 @@ SAPL 3.0.0 adopted the short form of these identifiers (e.g., `deny-overrides`, 
 
 SAPL 4.0.0 introduces a new notation that makes algorithm behavior explicit:
 
-| XACML 3.0 Identifier | SAPL 3.0.0 | SAPL 4.0.0 |
-|----------------------|------------|------------|
-| `urn:...:deny-overrides` | `deny-overrides` | `deny-wins or abstain errors propagate` |
-| `urn:...:permit-overrides` | `permit-overrides` | `permit-wins or abstain errors propagate` |
-| `urn:...:permit-unless-deny` | `permit-unless-deny` | `deny-wins or permit` |
-| `urn:...:deny-unless-permit` | `deny-unless-permit` | `permit-wins or deny` |
-| `urn:...:first-applicable` | `first-applicable` | `first-vote or abstain errors propagate` |
+| XACML 3.0 Identifier          | SAPL 3.0.0            | SAPL 4.0.0                                    |
+|-------------------------------|-----------------------|-----------------------------------------------|
+| `urn:...:deny-overrides`      | `deny-overrides`      | `deny-wins or abstain errors propagate`       |
+| `urn:...:permit-overrides`    | `permit-overrides`    | `permit-wins or abstain errors propagate`     |
+| `urn:...:permit-unless-deny`  | `permit-unless-deny`  | `deny-wins or permit`                         |
+| `urn:...:deny-unless-permit`  | `deny-unless-permit`  | `permit-wins or deny`                         |
+| `urn:...:first-applicable`    | `first-applicable`    | `first-vote or abstain errors propagate`      |
 | `urn:...:only-one-applicable` | `only-one-applicable` | `unique-decision or abstain errors propagate` |
 
 **Why a new notation?**
@@ -388,11 +388,11 @@ Additionally, XACML's naming conflates multiple orthogonal concerns:
 
 These names are difficult to reason about:
 
-| XACML Name | What Users Expect | Actual Behavior |
-|------------|-------------------|-----------------|
-| `permit-unless-deny` | "Permit, unless there's a deny" | Correct, but hides that errors become abstain |
-| `deny-unless-permit` | "Deny, unless there's a permit" | Correct, but hides that errors become abstain |
-| `deny-overrides` | "Deny overrides permit" | Correct, but hides default and error propagation |
+| XACML Name           | What Users Expect               | Actual Behavior                                  |
+|----------------------|---------------------------------|--------------------------------------------------|
+| `permit-unless-deny` | "Permit, unless there's a deny" | Correct, but hides that errors become abstain    |
+| `deny-unless-permit` | "Deny, unless there's a permit" | Correct, but hides that errors become abstain    |
+| `deny-overrides`     | "Deny overrides permit"         | Correct, but hides default and error propagation |
 
 SAPL 4.0.0 separates these concerns explicitly:
 

@@ -1029,12 +1029,12 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Creates an error result object with default values.
+     * Creates an errors result object with default values.
      *
      * @param errorMessage
-     * the error message to include
+     * the errors message to include
      *
-     * @return Value containing error result
+     * @return Value containing errors result
      */
     private static Value createErrorResult(String errorMessage) {
         val result = ObjectValue.builder();
@@ -1047,14 +1047,14 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Handles parsing and validation exceptions with consistent error messages.
+     * Handles parsing and validation exceptions with consistent errors messages.
      *
      * @param exception
      * the exception that occurred
      * @param context
      * the context describing what op failed
      *
-     * @return Value containing error result
+     * @return Value containing errors result
      */
     private static Value handleParseException(Exception exception, String context) {
         return createErrorResult(context + ": " + exception.getMessage());

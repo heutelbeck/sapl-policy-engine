@@ -136,7 +136,7 @@ class StepCompilerTests {
 
         @ParameterizedTest
         @ValueSource(strings = { "[1, 2, 3][3]", "[1, 2, 3][10]", "[1, 2, 3][-4]", "[1, 2, 3][-10]", "[][0]" })
-        @DisplayName("out of bounds returns error")
+        @DisplayName("out of bounds returns errors")
         void outOfBounds_returnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -145,7 +145,7 @@ class StepCompilerTests {
 
         @ParameterizedTest
         @ValueSource(strings = { "{\"a\": 1}[0]", "42[0]", "\"hello\"[0]", "null[0]", "true[0]" })
-        @DisplayName("index on non-array returns error")
+        @DisplayName("index on non-array returns errors")
         void nonArray_returnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -228,7 +228,7 @@ class StepCompilerTests {
 
         @ParameterizedTest
         @ValueSource(strings = { "42.*", "\"hello\".*", "true.*", "null.*" })
-        @DisplayName("wildcard on non-collection returns error")
+        @DisplayName("wildcard on non-collection returns errors")
         void nonCollection_returnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -284,7 +284,7 @@ class StepCompilerTests {
 
         @ParameterizedTest
         @ValueSource(strings = { "{\"a\": 1}[0, 1]", "42[0, 1]", "\"hello\"[0, 1]", "true[0, 1]", "null[0, 1]" })
-        @DisplayName("index union on non-array returns error")
+        @DisplayName("index union on non-array returns errors")
         void nonArray_returnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -339,7 +339,7 @@ class StepCompilerTests {
         @ParameterizedTest
         @ValueSource(strings = { "[1, 2, 3][\"a\", \"b\"]", "42[\"a\", \"b\"]", "\"hello\"[\"a\", \"b\"]",
                 "true[\"a\", \"b\"]", "null[\"a\", \"b\"]" })
-        @DisplayName("attribute union on non-object returns error")
+        @DisplayName("attribute union on non-object returns errors")
         void nonObject_returnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -430,7 +430,7 @@ class StepCompilerTests {
         // @formatter:on
 
         @Test
-        @DisplayName("step zero returns error")
+        @DisplayName("step zero returns errors")
         void stepZero_returnsError() {
             var result = compileExpression("[1, 2, 3][::0]");
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -439,7 +439,7 @@ class StepCompilerTests {
 
         @ParameterizedTest
         @ValueSource(strings = { "{\"a\": 1}[1:3]", "42[1:3]", "\"hello\"[1:3]", "true[1:3]", "null[1:3]" })
-        @DisplayName("slice on non-array returns error")
+        @DisplayName("slice on non-array returns errors")
         void nonArray_returnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -486,7 +486,7 @@ class StepCompilerTests {
         }
 
         @Test
-        @DisplayName("invalid type returns error")
+        @DisplayName("invalid type returns errors")
         void invalidType_returnsError() {
             var result = compileExpression("[1, 2, 3][(true)]");
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -543,7 +543,7 @@ class StepCompilerTests {
         }
 
         @Test
-        @DisplayName("condition on scalar returns error")
+        @DisplayName("condition on scalar returns errors")
         void onScalar_returnsError() {
             var result = compileExpression("42[?(@ > 0)]");
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -715,14 +715,14 @@ class StepCompilerTests {
     @DisplayName("Error Propagation")
     class ErrorPropagationTests {
 
-        private static final Value ERROR = Value.error("test error");
+        private static final Value ERROR = Value.error("test errors");
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        @DisplayName("step on error propagates error")
+        @DisplayName("step on errors propagates errors")
         void stepOnError_propagatesError(String description, Value result) {
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
-                    .isEqualTo("test error");
+                    .isEqualTo("test errors");
         }
 
         static Stream<Arguments> stepOnError_propagatesError() {

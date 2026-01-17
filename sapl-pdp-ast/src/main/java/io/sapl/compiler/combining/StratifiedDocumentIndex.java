@@ -21,15 +21,14 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.pdp.PureVoter;
-import io.sapl.compiler.pdp.VoterMetadata;
 import io.sapl.compiler.pdp.StreamVoter;
 import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.pdp.VoterMetadata;
 import io.sapl.compiler.policy.CompiledPolicy;
 import lombok.val;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Pre-compiled index organizing policies into evaluation strata for priority
@@ -53,7 +52,7 @@ import java.util.Optional;
  * <b>Elimination:</b> Policies with constant FALSE isApplicable are eliminated
  * entirely - they can never match.
  *
- * @param foldedConstant pre-folded constant stratum result with full
+ * @param accumulatorVote pre-folded constant stratum result with full
  * voterMetadata
  * @param pureWithConstraints pure evaluation with constraints (evaluated first)
  * @param pureWithoutConstraints pure evaluation without constraints
@@ -62,7 +61,7 @@ import java.util.Optional;
  * @param streamWithoutConstraints streaming evaluation without constraints
  */
 public record StratifiedDocumentIndex(
-        Optional<Vote> foldedConstant,
+        Vote accumulatorVote,
         List<CompiledPolicy> pureWithConstraints,
         List<CompiledPolicy> pureWithoutConstraints,
         List<CompiledPolicy> streamWithConstraints,
@@ -80,7 +79,7 @@ public record StratifiedDocumentIndex(
      * <li>voter stream OR isApplicable stream: stream stratum</li>
      * </ul>
      * <p>
-     * Note: Default vote and error handling are NOT applied here. They are
+     * Note: Default vote and errors handling are NOT applied here. They are
      * final transformations applied by the combining algorithm after all strata
      * are combined at runtime.
      *
@@ -92,7 +91,7 @@ public record StratifiedDocumentIndex(
     public static StratifiedDocumentIndex of(List<CompiledPolicy> policies, Decision priority,
             VoterMetadata voterMetadata) {
 
-        var foldableDecisions        = new ArrayList<Vote>();
+        var foldableVotes            = new ArrayList<Vote>();
         var pureWithConstraints      = new ArrayList<CompiledPolicy>();
         var pureWithoutConstraints   = new ArrayList<CompiledPolicy>();
         var streamWithConstraints    = new ArrayList<CompiledPolicy>();
@@ -112,7 +111,7 @@ public record StratifiedDocumentIndex(
                 // Constant TRUE or ERROR - check voter
                 if (voter instanceof Vote decision) {
                     // Constant + constant - fold
-                    foldableDecisions.add(decision);
+                    foldableVotes.add(decision);
                 } else if (voter instanceof PureVoter) {
                     // Constant TRUE + pure - pure stratum
                     addToStratum(policy, pureWithConstraints, pureWithoutConstraints);
@@ -130,7 +129,7 @@ public record StratifiedDocumentIndex(
         }
 
         // Fold constant stratum
-        val foldedConstant = DecisionCombiner.fold(foldableDecisions, priority, voterMetadata);
+        val foldedConstant = PriorityBasedVoteCombiner.combineMultipleVotes(foldableVotes, priority, voterMetadata);
 
         return new StratifiedDocumentIndex(foldedConstant, List.copyOf(pureWithConstraints),
                 List.copyOf(pureWithoutConstraints), List.copyOf(streamWithConstraints),
@@ -144,24 +143,6 @@ public record StratifiedDocumentIndex(
         } else {
             withoutConstraints.add(policy);
         }
-    }
-
-    /**
-     * @return true if the constant stratum yielded a decisive result
-     */
-    public boolean hasConstantDecisiveResult() {
-        return foldedConstant.map(d -> {
-            val decision = d.authorizationDecision().decision();
-            return decision == Decision.PERMIT || decision == Decision.DENY;
-        }).orElse(false);
-    }
-
-    /**
-     * @param priority the priority vote type (PERMIT or DENY)
-     * @return true if constant stratum has a vote matching the priority
-     */
-    public boolean hasConstantPriorityDecision(Decision priority) {
-        return foldedConstant.map(d -> d.authorizationDecision().decision() == priority).orElse(false);
     }
 
     /**

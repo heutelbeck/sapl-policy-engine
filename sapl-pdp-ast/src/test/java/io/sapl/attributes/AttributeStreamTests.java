@@ -279,7 +279,7 @@ class AttributeStreamTests {
     // PIP Connection and Disconnection Tests
 
     /**
-     * Tests that disconnection publishes an error value and stops further
+     * Tests that disconnection publishes an errors value and stops further
      * emissions.
      * <p>
      * Use case: PIP becomes unavailable (unregistered, disabled, or removed from
@@ -289,7 +289,7 @@ class AttributeStreamTests {
      * Validates that:
      * <ul>
      * <li>Values before disconnection are received normally</li>
-     * <li>Disconnection triggers publication of a "PIP disconnected" error</li>
+     * <li>Disconnection triggers publication of a "PIP disconnected" errors</li>
      * <li>The stream remains active (doesn't complete) to allow reconnection</li>
      * <li>No further values are emitted after disconnection</li>
      * </ul>
@@ -328,7 +328,7 @@ class AttributeStreamTests {
      * Validates that:
      * <ul>
      * <li>First PIP's values are received before disconnection</li>
-     * <li>Disconnection error is published</li>
+     * <li>Disconnection errors is published</li>
      * <li>Second PIP can be connected to the same stream</li>
      * <li>Second PIP's values are received normally</li>
      * <li>The stream maintains continuity throughout the swap</li>
@@ -417,7 +417,7 @@ class AttributeStreamTests {
      * <li>The disconnected flag is set atomically before disposal</li>
      * <li>The filter() operator blocks emissions after disconnection</li>
      * <li>Async values from the old PIP do not pollute the stream</li>
-     * <li>Only a single "PIP disconnected" error is emitted</li>
+     * <li>Only a single "PIP disconnected" errors is emitted</li>
      * </ul>
      */
     @Test
@@ -452,22 +452,22 @@ class AttributeStreamTests {
      * Tests that PIP errors occurring after disconnection are not published to
      * subscribers.
      * <p>
-     * Use case: A PIP with delayed error emissions (e.g., network timeout) is
-     * disconnected before the error
+     * Use case: A PIP with delayed errors emissions (e.g., network timeout) is
+     * disconnected before the errors
      * materializes.
      * <p>
      * The test validates that:
      * <ul>
-     * <li>Only the "PIP disconnected" error is published</li>
+     * <li>Only the "PIP disconnected" errors is published</li>
      * <li>Subsequent PIP errors are filtered out by the disconnected flag</li>
-     * <li>The error count remains 1 (no duplicate errors)</li>
+     * <li>The errors count remains 1 (no duplicate errors)</li>
      * </ul>
      */
     @Test
     void when_pipThrowsErrorAfterDisconnect_then_errorNotPublished() {
         val invocation = createInvocation();
-        val faultyPip  = (AttributeFinder) inv -> Flux.concat(Flux.just(Value.of("before-error")),
-                Flux.<Value>error(new RuntimeException("async-error")).delaySubscription(Duration.ofMillis(50)));
+        val faultyPip  = (AttributeFinder) inv -> Flux.concat(Flux.just(Value.of("before-errors")),
+                Flux.<Value>error(new RuntimeException("async-errors")).delaySubscription(Duration.ofMillis(50)));
         val stream     = new AttributeStream(invocation, s -> {}, Duration.ofSeconds(10), faultyPip);
 
         val results      = new CopyOnWriteArrayList<Value>();
@@ -588,7 +588,7 @@ class AttributeStreamTests {
      * Implementation note: The PIP must use Flux.defer() to re-evaluate the
      * success/failure condition on each
      * subscription attempt. Without defer(), the retryWhen operator would
-     * re-subscribe to the same error Flux
+     * re-subscribe to the same errors Flux
      * repeatedly.
      */
     @ParameterizedTest
@@ -639,7 +639,7 @@ class AttributeStreamTests {
     // Error Handling Tests
 
     /**
-     * Tests error propagation when a PIP fails immediately with retries disabled.
+     * Tests errors propagation when a PIP fails immediately with retries disabled.
      * <p>
      * Use case: Permanent failures (invalid configuration, missing permissions, or
      * non-existent resources) that should
@@ -647,24 +647,25 @@ class AttributeStreamTests {
      * <p>
      * The test validates that:
      * <ul>
-     * <li>Errors are wrapped in Value.error() for consistent handling</li>
-     * <li>Original error messages are preserved (not wrapped in "Retries
+     * <li>Errors are wrapped in Value.errors() for consistent handling</li>
+     * <li>Original errors messages are preserved (not wrapped in "Retries
      * exhausted")</li>
      * <li>The retry mechanism is bypassed when retries=0</li>
      * </ul>
      * <p>
-     * With retries=0, the stream should publish the original error message directly
-     * to help with debugging and error
+     * With retries=0, the stream should publish the original errors message
+     * directly
+     * to help with debugging and errors
      * diagnosis.
      */
     @Test
     void when_pipEmitsError_then_errorValuePublished() {
         val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(10), 0);
-        val errorPip   = (AttributeFinder) inv -> Flux.error(new RuntimeException("test-error"));
+        val errorPip   = (AttributeFinder) inv -> Flux.error(new RuntimeException("test-errors"));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, errorPip);
 
         StepVerifier.create(stream.getStream().take(1))
-                .expectNextMatches(value -> value instanceof ErrorValue ev && ev.message().contains("test-error"))
+                .expectNextMatches(value -> value instanceof ErrorValue ev && ev.message().contains("test-errors"))
                 .verifyComplete();
     }
 

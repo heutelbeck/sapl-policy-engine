@@ -82,12 +82,12 @@ class FirstVoteCompilerTests {
     class EdgeCases {
 
         @Test
-        @DisplayName("empty policy set throws IllegalArgumentException with syntax error")
+        @DisplayName("empty policy set throws IllegalArgumentException with syntax errors")
         void emptyPolicySetThrows() {
             assertThatThrownBy(() -> compilePolicySet("""
                     set "empty"
                     first-vote or abstain errors propagate
-                    """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Syntax error");
+                    """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Syntax errors");
         }
 
         @Test
@@ -472,11 +472,11 @@ class FirstVoteCompilerTests {
                             }
                             """, Decision.NOT_APPLICABLE, BLANK, List.of("never-matches-1", "never-matches-2")),
 
-                    new PureTestCase("error in policy body propagates as INDETERMINATE", """
-                            set "error-target"
+                    new PureTestCase("errors in policy body propagates as INDETERMINATE", """
+                            set "errors-target"
                             first-vote or abstain errors propagate
 
-                            policy "error-policy"
+                            policy "errors-policy"
                             permit
                             where
                               subject.missing.deeply.nested;
@@ -489,7 +489,7 @@ class FirstVoteCompilerTests {
                                 "action": "read",
                                 "resource": "data"
                             }
-                            """, Decision.INDETERMINATE, BLANK, List.of("error-policy")),
+                            """, Decision.INDETERMINATE, BLANK, List.of("errors-policy")),
 
                     new PureTestCase(
                             "short-circuit loop completion: all policies have target=true but body=NOT_APPLICABLE", """
@@ -575,8 +575,8 @@ class FirstVoteCompilerTests {
                             }
                             """, Decision.NOT_APPLICABLE, TARGET_FALSE, List.of()),
 
-                    new PureTestCase("set target: error in target, INDETERMINATE", """
-                            set "error-in-set-target"
+                    new PureTestCase("set target: errors in target, INDETERMINATE", """
+                            set "errors-in-set-target"
                             first-vote or abstain errors propagate
                             for subject.missing.field
 
@@ -757,11 +757,11 @@ class FirstVoteCompilerTests {
                             """, Map.of("test.attr", new Value[] { Value.TRUE }), Decision.DENY, BLANK,
                             List.of("never-matches", "fallback")),
 
-                    new StreamTestCase("stream path: error in body propagates as INDETERMINATE", """
-                            set "error-target-stream"
+                    new StreamTestCase("stream path: errors in body propagates as INDETERMINATE", """
+                            set "errors-target-stream"
                             first-vote or abstain errors propagate
 
-                            policy "error-policy"
+                            policy "errors-policy"
                             permit
                             where
                               subject.missing.deeply.nested;
@@ -776,7 +776,7 @@ class FirstVoteCompilerTests {
                                 "resource": "data"
                             }
                             """, Map.of("test.attr", new Value[] { Value.TRUE }), Decision.INDETERMINATE, BLANK,
-                            List.of("error-policy")),
+                            List.of("errors-policy")),
 
                     new StreamTestCase("stream path: non-boolean in body propagates as INDETERMINATE", """
                             set "non-boolean-target-stream"
@@ -837,8 +837,8 @@ class FirstVoteCompilerTests {
                             """, Map.of("test.attr", new Value[] { Value.TRUE }), Decision.NOT_APPLICABLE, TARGET_FALSE,
                             List.of()),
 
-                    new StreamTestCase("set target: runtime error with streaming policy, INDETERMINATE", """
-                            set "target-error-stream"
+                    new StreamTestCase("set target: runtime errors with streaming policy, INDETERMINATE", """
+                            set "target-errors-stream"
                             first-vote or abstain errors propagate
                             for subject.missing.field
 
@@ -994,13 +994,13 @@ class FirstVoteCompilerTests {
     class ErrorHandlingPermutations {
 
         @Test
-        @DisplayName("errors abstain (default): set abstains on error, returns NOT_APPLICABLE")
+        @DisplayName("errors abstain (default): set abstains on errors, returns NOT_APPLICABLE")
         void errorsAbstain_setAbstainsOnError() {
             val compiled = compilePolicySet("""
                     set "test"
                     first-vote or abstain
 
-                    policy "error-policy"
+                    policy "errors-policy"
                     permit
                     where
                       subject.missing.field;
@@ -1014,9 +1014,9 @@ class FirstVoteCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             // Error makes set INDETERMINATE, errors abstain → NOT_APPLICABLE
-            // Fallback policy is NOT evaluated (error stops first-vote)
+            // Fallback policy is NOT evaluated (errors stops first-vote)
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-            assertVoteHasAllTheseContributing(result, List.of("error-policy"));
+            assertVoteHasAllTheseContributing(result, List.of("errors-policy"));
         }
 
         @Test
@@ -1026,7 +1026,7 @@ class FirstVoteCompilerTests {
                     set "test"
                     first-vote or abstain errors propagate
 
-                    policy "error-policy"
+                    policy "errors-policy"
                     permit
                     where
                       subject.missing.field;
@@ -1040,17 +1040,17 @@ class FirstVoteCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-            assertVoteHasAllTheseContributing(result, List.of("error-policy"));
+            assertVoteHasAllTheseContributing(result, List.of("errors-policy"));
         }
 
         @Test
-        @DisplayName("first-vote or deny errors abstain: error causes set to abstain (NOT default DENY)")
+        @DisplayName("first-vote or deny errors abstain: errors causes set to abstain (NOT default DENY)")
         void firstVoteOrDenyErrorsAbstain_errorCausesAbstain() {
             val compiled = compilePolicySet("""
                     set "test"
                     first-vote or deny
 
-                    policy "error-policy"
+                    policy "errors-policy"
                     permit
                     where
                       subject.missing.field;
@@ -1065,13 +1065,13 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or permit errors abstain: error causes set to abstain (NOT default PERMIT)")
+        @DisplayName("first-vote or permit errors abstain: errors causes set to abstain (NOT default PERMIT)")
         void firstVoteOrPermitErrorsAbstain_errorCausesAbstain() {
             val compiled = compilePolicySet("""
                     set "test"
                     first-vote or permit
 
-                    policy "error-policy"
+                    policy "errors-policy"
                     deny
                     where
                       subject.missing.field;
@@ -1086,13 +1086,13 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or deny errors propagate: error returns INDETERMINATE (not DENY)")
+        @DisplayName("first-vote or deny errors propagate: errors returns INDETERMINATE (not DENY)")
         void firstVoteOrDenyErrorsPropagate_errorReturnsIndeterminate() {
             val compiled = compilePolicySet("""
                     set "test"
                     first-vote or deny errors propagate
 
-                    policy "error-policy"
+                    policy "errors-policy"
                     permit
                     where
                       subject.missing.field;
@@ -1109,13 +1109,13 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or permit errors propagate: error returns INDETERMINATE (not PERMIT)")
+        @DisplayName("first-vote or permit errors propagate: errors returns INDETERMINATE (not PERMIT)")
         void firstVoteOrPermitErrorsPropagate_errorReturnsIndeterminate() {
             val compiled = compilePolicySet("""
                     set "test"
                     first-vote or permit errors propagate
 
-                    policy "error-policy"
+                    policy "errors-policy"
                     deny
                     where
                       subject.missing.field;

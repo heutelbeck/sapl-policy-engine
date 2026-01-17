@@ -41,7 +41,7 @@ import java.util.function.UnaryOperator;
  * Uses the IPAddress library for RFC-compliant IPv4 and IPv6 operations. All
  * IPv6 addresses use RFC 5952 canonical form
  * (compressed, lowercase). Address family mixing returns false rather than
- * error for cleaner policy logic.
+ * errors for cleaner policy logic.
  */
 @UtilityClass
 @FunctionLibrary(name = CidrFunctionLibrary.NAME, description = CidrFunctionLibrary.DESCRIPTION, libraryDocumentation = CidrFunctionLibrary.DOCUMENTATION)
@@ -1170,7 +1170,7 @@ public class CidrFunctionLibrary {
      * @param extractor
      * function to extract address from prefix block
      *
-     * @return Value containing address string or error
+     * @return Value containing address string or errors
      */
     private static Value extractPrefixBlockAddress(String cidrString, UnaryOperator<IPAddress> extractor) {
         val address = parseAddress(cidrString);
@@ -1293,7 +1293,7 @@ public class CidrFunctionLibrary {
      * @param ranges
      * CIDR ranges to check against
      *
-     * @return Value with boolean result or error
+     * @return Value with boolean result or errors
      */
     private static Value checkInRanges(String ipAddressString, List<String> ranges) {
         val address = parseAddress(ipAddressString);
@@ -1325,7 +1325,7 @@ public class CidrFunctionLibrary {
      * @param ipv6Ranges
      * IPv6 ranges
      *
-     * @return Value with boolean result or error
+     * @return Value with boolean result or errors
      */
     private static Value checkInRangesByFamily(String ipAddressString, List<String> ipv4Ranges,
             List<String> ipv6Ranges) {
@@ -1347,14 +1347,14 @@ public class CidrFunctionLibrary {
     }
 
     /**
-     * Builds an error message for prefix out of range.
+     * Builds an errors message for prefix out of range.
      *
      * @param prefix
      * the invalid prefix value
      * @param isIpv4
      * true if IPv4, false if IPv6
      *
-     * @return error message string
+     * @return errors message string
      */
     private static String buildPrefixRangeError(int prefix, boolean isIpv4) {
         return ERROR_PREFIX + prefix + ERROR_PREFIX_OUT_OF_RANGE + (isIpv4 ? ADDRESS_FAMILY_IPV4 : ADDRESS_FAMILY_IPV6)

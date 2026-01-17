@@ -299,6 +299,72 @@ class ArrayValueTests {
         }
     }
 
+    @Nested
+    @DisplayName("Append")
+    class AppendTests {
+
+        @Test
+        @DisplayName("append() combines two non-empty arrays")
+        void when_appendTwoNonEmptyArrays_then_combinedInOrder() {
+            var first  = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).build();
+            var second = ArrayValue.builder().add(Value.of(3)).add(Value.of(4)).build();
+
+            var result = first.append(second);
+
+            assertThat(result).containsExactly(Value.of(1), Value.of(2), Value.of(3), Value.of(4));
+        }
+
+        @Test
+        @DisplayName("append() to empty array returns the other array unchanged")
+        void when_appendToEmptyArray_then_returnsOtherArrayIdentity() {
+            var other = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).build();
+
+            var result = Value.EMPTY_ARRAY.append(other);
+
+            assertThat(result).isSameAs(other);
+        }
+
+        @Test
+        @DisplayName("append() empty array returns this array unchanged")
+        void when_appendEmptyArray_then_returnsThisArrayIdentity() {
+            var first = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).build();
+
+            var result = first.append(Value.EMPTY_ARRAY);
+
+            assertThat(result).isSameAs(first);
+        }
+
+        @Test
+        @DisplayName("append() two empty arrays returns empty array")
+        void when_appendTwoEmptyArrays_then_returnsEmptyArray() {
+            var result = Value.EMPTY_ARRAY.append(Value.EMPTY_ARRAY);
+
+            assertThat(result).isSameAs(Value.EMPTY_ARRAY);
+        }
+
+        @Test
+        @DisplayName("append() preserves element order")
+        void when_append_then_preservesElementOrder() {
+            var first  = ArrayValue.builder().add(Value.of("a")).add(Value.of("b")).build();
+            var second = ArrayValue.builder().add(Value.of("c")).add(Value.of("d")).build();
+
+            var result = first.append(second);
+
+            assertThat(result).containsExactly(Value.of("a"), Value.of("b"), Value.of("c"), Value.of("d"));
+        }
+
+        @Test
+        @DisplayName("append() with single element arrays")
+        void when_appendSingleElementArrays_then_combinesCorrectly() {
+            var first  = ArrayValue.builder().add(Value.of(1)).build();
+            var second = ArrayValue.builder().add(Value.of(2)).build();
+
+            var result = first.append(second);
+
+            assertThat(result).containsExactly(Value.of(1), Value.of(2));
+        }
+    }
+
     static Stream<Arguments> provideBuilderCases() {
         var expected = List.of(Value.of(1), Value.of(2), Value.of(3));
         return Stream.of(arguments("add()", expected), arguments("addAll(varargs)", expected),

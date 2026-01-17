@@ -57,7 +57,7 @@ class BooleanOperatorsTests {
                 arguments("not null", Value.NULL),
                 // Error propagation happens in compiler, not in operators
                 // Operators only do type checking - ErrorValue is not a BooleanValue
-                arguments("not error", Value.error("original error")));
+                arguments("not errors", Value.error("original errors")));
     }
 
     // Note: AND and OR tests are in LazyBooleanOperationCompilerTests
