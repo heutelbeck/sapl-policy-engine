@@ -26,6 +26,6 @@ import lombok.NonNull;
  * The expression evaluates to either a string (key) or number (index).
  *
  * @param expression the expression that determines the key or index
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record ExpressionPath(@NonNull Expression expression, @NonNull SourceLocation location) implements PathElement {}

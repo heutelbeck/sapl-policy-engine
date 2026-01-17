@@ -28,7 +28,7 @@ import java.util.List;
  * Enables constant folding across non-constant expressions.
  *
  * @param operands list of operands (at least 3)
- * @param location metadata location spanning all operands
+ * @param location voterMetadata location spanning all operands
  */
 public record Sum(@NonNull List<Expression> operands, @NonNull SourceLocation location) implements Expression {
 

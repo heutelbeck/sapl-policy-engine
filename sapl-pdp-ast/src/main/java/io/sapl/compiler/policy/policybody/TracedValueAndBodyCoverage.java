@@ -15,13 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.pdp;
+package io.sapl.compiler.policy.policybody;
 
-import io.sapl.api.model.AttributeRecord;
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.TracedValue;
+import io.sapl.compiler.model.Coverage;
 
-import java.util.List;
-
-public non-sealed interface StreamDecisionMaker extends DecisionMaker {
-    Flux<PDPDecision> decide(List<AttributeRecord> knownContributions);
-}
+public record TracedValueAndBodyCoverage(TracedValue value, Coverage.BodyCoverage bodyCoverage) {}

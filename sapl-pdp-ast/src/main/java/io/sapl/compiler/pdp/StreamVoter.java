@@ -15,8 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policyset;
+package io.sapl.compiler.pdp;
 
-import io.sapl.compiler.model.Coverage;
+import io.sapl.api.model.AttributeRecord;
+import reactor.core.publisher.Flux;
 
-public record PolicySetDecisionWithCoverage(PolicySetDecision decision, Coverage.PolicySetCoverage coverage) {}
+import java.util.List;
+
+public non-sealed interface StreamVoter extends Voter {
+    Flux<Vote> vote(List<AttributeRecord> knownContributions);
+}

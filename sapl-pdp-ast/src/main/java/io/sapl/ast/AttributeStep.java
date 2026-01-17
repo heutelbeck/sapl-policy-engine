@@ -30,7 +30,7 @@ import java.util.List;
  * @param arguments attribute arguments, empty list if none
  * @param options attribute finder options expression, or null if none
  * @param head true for head attribute finder
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record AttributeStep(
         @NonNull Expression base,

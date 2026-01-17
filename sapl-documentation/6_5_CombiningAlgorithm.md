@@ -402,39 +402,3 @@ SAPL 4.0.0 separates these concerns explicitly:
 
 Each component is visible. The algorithm `deny-wins or permit` reads naturally: "deny wins, or permit by default." The algorithm `deny-wins or abstain errors propagate` makes clear that errors are not swallowed.
 
-### Design Rationale: Why No Quorum or Majority Algorithms?
-
-Users familiar with voting systems might expect algorithms such as:
-
-- `majority or deny`: permit if more permits than denies
-- `quorum(3) or deny`: permit if at least three policies permit
-
-**These algorithms are intentionally excluded.**
-
-Scenarios that appear to require quorum or majority are typically attribute-level concerns, not policy-combining concerns:
-
-| Scenario | Apparent Need | Actual Solution |
-|----------|---------------|-----------------|
-| Four-eyes principle | `permit(2) or deny` | `permit where approvals.size >= 2` |
-| Committee approval | `majority or deny` | `permit where votes.yes > votes.no` |
-| Dual control | `permit(2) or deny` | `permit where signatories.size >= 2` |
-
-**The distinction:**
-
-| Level | Question |
-|-------|----------|
-| Combining algorithm | "Which policy wins when multiple vote?" |
-| Attribute condition | "What facts must be true to permit?" |
-
-Approval counts, votes, and sign-offs are facts about the request, i.e., attributes evaluated within a single policy. Combining algorithms resolve conflicts between independent policy sources (e.g., different departments, regulatory frameworks, or security layers).
-
-For these real policy-combining scenarios, the existing algorithms suffice:
-
-| Need | Algorithm |
-|------|-----------|
-| Any policy can block | `deny-wins or ...` |
-| Any policy can grant | `permit-wins or ...` |
-| Priority ordering | `first-vote or ...` |
-| Full consensus required | `unanimous or ...` |
-
-Including quorum or majority algorithms would invite misuse, encouraging users to model workflow logic at the wrong abstraction level.

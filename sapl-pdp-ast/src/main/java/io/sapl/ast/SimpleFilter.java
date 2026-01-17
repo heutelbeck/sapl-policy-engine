@@ -34,7 +34,7 @@ import java.util.List;
  * @param name the qualified name of the filter function
  * @param arguments explicit arguments to the filter function (excluding @)
  * @param each true if filter applies to each element of target array/object
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record SimpleFilter(
         @NonNull Expression base,

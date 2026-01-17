@@ -17,5 +17,5 @@
  */
 package io.sapl.compiler.pdp;
 
-public sealed interface DecisionMaker permits PDPDecision, PureDecisionMaker, StreamDecisionMaker {
+public sealed interface Voter permits Vote, PureVoter, StreamVoter {
 }

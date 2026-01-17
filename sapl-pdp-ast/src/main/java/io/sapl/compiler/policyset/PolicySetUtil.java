@@ -17,26 +17,13 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.pdp.DecisionMaker;
-import io.sapl.compiler.pdp.PDPDecision;
-import io.sapl.compiler.pdp.PureDecisionMaker;
-import io.sapl.compiler.pdp.StreamDecisionMaker;
+import io.sapl.compiler.pdp.*;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policy.PolicyDecision;
-import io.sapl.compiler.policy.PolicyMetadata;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -49,11 +36,11 @@ import java.util.function.Function;
  * <p>
  * Provides common building blocks used by combining algorithm compilers:
  * <ul>
- * <li><b>Applicability chaining:</b> Wraps decision makers with target
+ * <li><b>Applicability chaining:</b> Wraps vote makers with target
  * expression evaluation.</li>
  * <li><b>Coverage stream building:</b> Chains target evaluation with body
  * coverage for testing.</li>
- * <li><b>Decision maker lifting:</b> Converts any decision maker type to
+ * <li><b>Decision maker lifting:</b> Converts any vote maker type to
  * streams or evaluates in pure context.</li>
  * </ul>
  */
@@ -61,34 +48,32 @@ import java.util.function.Function;
 public class PolicySetUtil {
 
     public static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE = "Unexpected isApplicable type. Indicates implementation bug.";
-    public static final String ERROR_STREAM_IN_PURE_CONTEXT        = "Stream decision maker in pure context. Indicates implementation bug.";
+    public static final String ERROR_STREAM_IN_PURE_CONTEXT        = "Stream vote maker in pure context. Indicates implementation bug.";
     public static final String ERROR_UNEXPECTED_STREAM_IN_TARGET   = "Unexpected Stream Operator in target expression. Indicates implementation bug.";
 
     /**
-     * Wraps a decision maker with applicability checking based on the target
+     * Wraps a vote maker with applicability checking based on the target
      * expression type.
      *
      * @param isApplicable the compiled target expression determining applicability
-     * @param decisionMaker the decision maker from the combining algorithm
-     * @param metadata the policy set metadata
-     * @return a decision maker that combines applicability and decision evaluation
+     * @param voter the vote maker from the combining algorithm
+     * @param voterMetadata the policy set voterMetadata
+     * @return a vote maker that combines applicability and vote evaluation
      */
-    public static DecisionMaker compileApplicabilityAndDecision(CompiledExpression isApplicable,
-            DecisionMaker decisionMaker, PolicySetMetadata metadata) {
+    public static Voter compileApplicabilityAndDecision(CompiledExpression isApplicable, Voter voter,
+            VoterMetadata voterMetadata) {
         return switch (isApplicable) {
-        case ErrorValue error                                                      ->
-            PolicySetDecision.error(error, metadata, List.of());
-        case BooleanValue(var b) when b                                            -> decisionMaker;
-        case BooleanValue ignored                                                  ->
-            PolicySetDecision.notApplicable(metadata, List.of());
-        case PureOperator po when decisionMaker instanceof StreamDecisionMaker sdm ->
-            new PureApplicabilityStreamPolicySet(po, sdm, metadata);
-        case PureOperator po                                                       ->
-            new ApplicabilityCheckingPurePolicySet(po, decisionMaker, metadata);
-        case StreamOperator so                                                     ->
-            new ApplicabilityCheckingStreamPolicySet(so, decisionMaker, metadata);
-        default                                                                    ->
-            PolicySetDecision.error(new ErrorValue(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), metadata, List.of());
+        case ErrorValue error                                      -> Vote.error(error, voterMetadata);
+        case BooleanValue(var b) when b                            -> voter;
+        case BooleanValue ignored                                  -> Vote.abstain(voterMetadata);
+        case PureOperator po when voter instanceof StreamVoter sdm ->
+            new PureApplicabilityStreamPolicySet(po, sdm, voterMetadata);
+        case PureOperator po                                       ->
+            new ApplicabilityCheckingPurePolicySet(po, voter, voterMetadata);
+        case StreamOperator so                                     ->
+            new ApplicabilityCheckingStreamPolicySet(so, voter, voterMetadata);
+        default                                                    ->
+            Vote.error(new ErrorValue(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), voterMetadata);
         };
     }
 
@@ -104,9 +89,8 @@ public class PolicySetUtil {
      * @param bodyFactory factory producing coverage stream when target matches
      * @return flux emitting decisions with coverage information
      */
-    public static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
-            CompiledExpression isApplicable,
-            Function<Coverage.TargetHit, Flux<PolicySetDecisionWithCoverage>> bodyFactory) {
+    public static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
+            Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory) {
         if (policySet.target() == null) {
             return bodyFactory.apply(Coverage.BLANK_TARGET_HIT);
         }
@@ -117,9 +101,8 @@ public class PolicySetUtil {
         }
         case StreamOperator ignored  -> {
             var coverage = new Coverage.PolicySetCoverage(policySet.metadata(), Coverage.NO_TARGET_HIT, List.of());
-            var decision = PolicySetDecision.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), policySet.metadata(),
-                    List.of());
-            return Flux.just(new PolicySetDecisionWithCoverage(decision, coverage));
+            var decision = Vote.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), policySet.metadata());
+            return Flux.just(new VoteWithCoverage(decision, coverage));
         }
         case PureOperator pureTarget -> {
             return Flux.deferContextual(ctxView -> coverageStreamFromMatch(policySet, bodyFactory,
@@ -134,108 +117,105 @@ public class PolicySetUtil {
      * TRUE continues to body evaluation, FALSE yields NOT_APPLICABLE,
      * errors yield INDETERMINATE. All cases record the target hit for coverage.
      */
-    private static Flux<PolicySetDecisionWithCoverage> coverageStreamFromMatch(PolicySet policySet,
-            Function<Coverage.TargetHit, Flux<PolicySetDecisionWithCoverage>> bodyFactory, Value match,
+    private static Flux<VoteWithCoverage> coverageStreamFromMatch(PolicySet policySet,
+            Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory, Value match,
             SourceLocation targetLocation) {
         var targetHit = new Coverage.TargetResult(match, targetLocation);
         if (Value.TRUE.equals(match)) {
             return bodyFactory.apply(targetHit);
         } else {
-            var               coverage = new Coverage.PolicySetCoverage(policySet.metadata(), targetHit, List.of());
-            PolicySetDecision decision;
+            var  coverage = new Coverage.PolicySetCoverage(policySet.metadata(), targetHit, List.of());
+            Vote vote;
             if (Value.FALSE.equals(match)) {
-                decision = PolicySetDecision.notApplicable(policySet.metadata(), List.of());
+                vote = Vote.abstain(policySet.metadata());
             } else {
-                decision = PolicySetDecision.error((ErrorValue) match, policySet.metadata(), List.of());
+                vote = Vote.error((ErrorValue) match, policySet.metadata());
             }
-            return Flux.just(new PolicySetDecisionWithCoverage(decision, coverage));
+            return Flux.just(new VoteWithCoverage(vote, coverage));
         }
     }
 
     /**
-     * Lifts any decision maker type to a flux for uniform stream handling.
+     * Lifts any vote maker type to a flux for uniform stream handling.
      *
-     * @param dm the decision maker to lift
+     * @param voter the vote maker to lift
      * @param priorAttributes attributes from prior evaluation
      * @return flux emitting policy decisions
      */
-    public static Flux<PolicyDecision> toStream(DecisionMaker dm, List<AttributeRecord> priorAttributes) {
-        return switch (dm) {
-        case PDPDecision d         -> Flux.just((PolicyDecision) d);
-        case PureDecisionMaker p   -> Flux.deferContextual(ctxView -> {
-                                   val ctx = ctxView.get(EvaluationContext.class);
-                                   return Flux.just((PolicyDecision) p.decide(priorAttributes, ctx));
-                               });
-        case StreamDecisionMaker s -> s.decide(priorAttributes).map(d -> (PolicyDecision) d);
+    public static Flux<Vote> toStream(Voter voter, List<AttributeRecord> priorAttributes) {
+        return switch (voter) {
+        case Vote d        -> Flux.just(d);
+        case PureVoter p   -> Flux.deferContextual(ctxView -> {
+                           val ctx = ctxView.get(EvaluationContext.class);
+                           return Flux.just(p.vote(priorAttributes, ctx));
+                       });
+        case StreamVoter s -> s.vote(priorAttributes);
         };
     }
 
     /**
-     * Evaluates a policy in pure context, expecting non-streaming decision maker.
+     * Evaluates a policy in pure context, expecting non-streaming vote maker.
      *
      * @param policy the compiled policy to evaluate
      * @param priorAttributes attributes from prior evaluation
      * @param ctx the evaluation context
      * @param location source location for error reporting
-     * @return the policy decision
+     * @return the policy vote
      */
-    public static PolicyDecision evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes,
-            EvaluationContext ctx, SourceLocation location) {
-        return switch (policy.applicabilityAndDecision()) {
-        case PDPDecision d               -> (PolicyDecision) d;
-        case PureDecisionMaker p         -> (PolicyDecision) p.decide(priorAttributes, ctx);
-        case StreamDecisionMaker ignored ->
-            PolicyDecision.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.metadata());
+    public static Vote evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes, EvaluationContext ctx,
+            SourceLocation location) {
+        return switch (policy.applicabilityAndVote()) {
+        case Vote d              -> d;
+        case PureVoter p         -> p.vote(priorAttributes, ctx);
+        case StreamVoter ignored ->
+            Vote.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.voterMetadata());
         };
     }
 
     /**
-     * Creates the fallback decision based on the default decision setting.
+     * Creates the fallback vote based on the default vote setting.
      * <p>
      * Used when all policies are NOT_APPLICABLE (clean exhaustion, no errors).
      *
      * @param contributingDecisions the policy decisions that contributed to this
      * result
-     * @param metadata the policy set metadata
-     * @param defaultDecision the configured default decision
-     * @return the fallback policy set decision
+     * @param voterMetadata the policy set voterMetadata
+     * @param defaultDecision the configured default vote
+     * @return the fallback policy set vote
      */
-    public static PolicySetDecision getFallbackDecision(List<PolicyDecision> contributingDecisions,
-            PolicySetMetadata metadata, DefaultDecision defaultDecision) {
+    public static Vote getFallbackDecision(List<Vote> contributingDecisions, VoterMetadata voterMetadata,
+            DefaultDecision defaultDecision) {
         return switch (defaultDecision) {
-        case ABSTAIN -> PolicySetDecision.notApplicable(metadata, contributingDecisions);
-        case DENY    -> PolicySetDecision.tracedDecision(AuthorizationDecision.DENY, metadata, contributingDecisions);
-        case PERMIT  -> PolicySetDecision.tracedDecision(AuthorizationDecision.PERMIT, metadata, contributingDecisions);
+        case ABSTAIN -> Vote.abstain(voterMetadata, contributingDecisions);
+        case DENY    -> Vote.combinedVote(AuthorizationDecision.DENY, voterMetadata, contributingDecisions);
+        case PERMIT  -> Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingDecisions);
         };
     }
 
     /**
-     * Decision maker for pure applicability check with non-streaming decision.
+     * Decision maker for pure applicability check with non-streaming vote.
      *
      * @param isApplicable the pure operator for applicability evaluation
-     * @param decisionMaker the underlying decision maker
-     * @param metadata the policy set metadata
+     * @param voter the underlying vote maker
+     * @param voterMetadata the policy set voterMetadata
      */
-    record ApplicabilityCheckingPurePolicySet(
-            PureOperator isApplicable,
-            DecisionMaker decisionMaker,
-            PolicySetMetadata metadata) implements PureDecisionMaker {
+    record ApplicabilityCheckingPurePolicySet(PureOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
+            implements PureVoter {
 
         @Override
-        public PDPDecision decide(List<AttributeRecord> knownContributions, EvaluationContext ctx) {
+        public Vote vote(List<AttributeRecord> knownContributions, EvaluationContext ctx) {
             val applicabilityResult = isApplicable.evaluate(ctx);
             if (applicabilityResult instanceof ErrorValue error) {
-                return PolicySetDecision.error(error, metadata, List.of());
+                return Vote.error(error, voterMetadata);
             }
             if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                return switch (decisionMaker) {
-                case PDPDecision pd              -> pd;
-                case PureDecisionMaker pdm       -> pdm.decide(knownContributions, ctx);
-                case StreamDecisionMaker ignored ->
-                    PolicySetDecision.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT), metadata, List.of());
+                return switch (voter) {
+                case Vote pd             -> pd;
+                case PureVoter pdm       -> pdm.vote(knownContributions, ctx);
+                case StreamVoter ignored -> Vote.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT), voterMetadata);
                 };
             }
-            return PolicySetDecision.notApplicable(metadata, List.of());
+            return Vote.abstain(voterMetadata);
         }
     }
 
@@ -243,58 +223,56 @@ public class PolicySetUtil {
      * Decision maker for streaming applicability check.
      *
      * @param isApplicable the stream operator for applicability evaluation
-     * @param decisionMaker the underlying decision maker
-     * @param metadata the policy set metadata
+     * @param voter the underlying vote maker
+     * @param voterMetadata the policy set voterMetadata
      */
-    record ApplicabilityCheckingStreamPolicySet(
-            StreamOperator isApplicable,
-            DecisionMaker decisionMaker,
-            PolicySetMetadata metadata) implements StreamDecisionMaker {
+    record ApplicabilityCheckingStreamPolicySet(StreamOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
+            implements StreamVoter {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
             return isApplicable.stream().switchMap(tracedApplicability -> {
                 val applicabilityValue = tracedApplicability.value();
                 if (applicabilityValue instanceof ErrorValue error) {
-                    return Flux.just(PolicySetDecision.error(error, metadata, List.of()));
+                    return Flux.just(Vote.error(error, voterMetadata));
                 }
                 if (applicabilityValue instanceof BooleanValue(var b) && b) {
-                    return switch (decisionMaker) {
-                    case PDPDecision pd          -> Flux.just(pd);
-                    case PureDecisionMaker pdm   -> Flux.deferContextual(
-                            ctxView -> Flux.just(pdm.decide(knownContributions, ctxView.get(EvaluationContext.class))));
-                    case StreamDecisionMaker sdm -> sdm.decide(knownContributions);
+                    return switch (voter) {
+                    case Vote pd         -> Flux.just(pd);
+                    case PureVoter pdm   -> Flux.deferContextual(
+                            ctxView -> Flux.just(pdm.vote(knownContributions, ctxView.get(EvaluationContext.class))));
+                    case StreamVoter sdm -> sdm.vote(knownContributions);
                     };
                 }
-                return Flux.just(PolicySetDecision.notApplicable(metadata, List.of()));
+                return Flux.just(Vote.abstain(voterMetadata, List.of()));
             });
         }
     }
 
     /**
-     * Decision maker for pure applicability check with streaming decision.
+     * Decision maker for pure applicability check with streaming vote.
      *
      * @param isApplicable the pure operator for applicability evaluation
-     * @param streamDecisionMaker the streaming decision maker
-     * @param metadata the policy set metadata
+     * @param streamDecisionMaker the streaming vote maker
+     * @param voterMetadata the policy set voterMetadata
      */
     record PureApplicabilityStreamPolicySet(
             PureOperator isApplicable,
-            StreamDecisionMaker streamDecisionMaker,
-            PolicySetMetadata metadata) implements StreamDecisionMaker {
+            StreamVoter streamDecisionMaker,
+            VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
             return Flux.deferContextual(ctxView -> {
                 val ctx                 = ctxView.get(EvaluationContext.class);
                 val applicabilityResult = isApplicable.evaluate(ctx);
                 if (applicabilityResult instanceof ErrorValue error) {
-                    return Flux.just(PolicySetDecision.error(error, metadata, List.of()));
+                    return Flux.just(Vote.error(error, voterMetadata));
                 }
                 if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamDecisionMaker.decide(knownContributions);
+                    return streamDecisionMaker.vote(knownContributions);
                 }
-                return Flux.just(PolicySetDecision.notApplicable(metadata, List.of()));
+                return Flux.just(Vote.abstain(voterMetadata));
             });
         }
     }

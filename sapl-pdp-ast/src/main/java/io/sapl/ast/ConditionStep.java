@@ -25,7 +25,7 @@ import lombok.NonNull;
  *
  * @param base the expression to filter
  * @param condition the condition expression
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record ConditionStep(@NonNull Expression base, @NonNull Expression condition, @NonNull SourceLocation location)
         implements Step {

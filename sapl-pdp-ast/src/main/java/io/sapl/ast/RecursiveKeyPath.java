@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Recursive descent key path element: {@code ..key}
  *
  * @param key the key to search for recursively
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record RecursiveKeyPath(@NonNull String key, @NonNull SourceLocation location) implements PathElement {}

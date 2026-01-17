@@ -20,7 +20,7 @@ package io.sapl.ast;
 import io.sapl.api.pdp.Decision;
 
 /**
- * Policy entitlement: the decision returned when the policy matches.
+ * Policy entitlement: the vote returned when the policy matches.
  */
 public enum Entitlement {
     PERMIT,

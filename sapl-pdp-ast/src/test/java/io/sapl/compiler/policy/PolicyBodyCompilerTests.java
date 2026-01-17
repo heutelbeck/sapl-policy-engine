@@ -25,7 +25,7 @@ import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
-import io.sapl.compiler.policy.policybody.TracedPolicyBodyResultAndCoverage;
+import io.sapl.compiler.policy.policybody.TracedValueAndBodyCoverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
 import org.jspecify.annotations.NonNull;
@@ -353,10 +353,10 @@ class PolicyBodyCompilerTests {
             var compCtx2 = compilationContext(broker2);
             var evalCtx2 = evaluationContext(broker2);
 
-            val                                                  coverageFlux = PolicyBodyCompiler
+            val                                           coverageFlux = PolicyBodyCompiler
                     .compilePolicyBodyWithCoverage(body, compCtx2)
                     .contextWrite(c -> c.put(EvaluationContext.class, evalCtx2));
-            StepVerifier.Step<TracedPolicyBodyResultAndCoverage> covVerifier  = StepVerifier.create(coverageFlux);
+            StepVerifier.Step<TracedValueAndBodyCoverage> covVerifier  = StepVerifier.create(coverageFlux);
             for (var expected : tc.expectedSequence()) {
                 covVerifier = covVerifier.assertNext(r -> assertThat(r.value().value()).isEqualTo(expected));
             }

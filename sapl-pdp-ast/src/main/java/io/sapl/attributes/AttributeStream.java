@@ -52,7 +52,7 @@ import java.util.function.Consumer;
  * subscribers receive last value</li>
  * <li>Grace period: keeps stream alive briefly after last subscriber cancels to
  * avoid reconnection overhead</li>
- * <li>PIP hot-swapping: can replace data metadata without recreating the
+ * <li>PIP hot-swapping: can replace data voterMetadata without recreating the
  * stream</li>
  * <li>Bounded backpressure buffering: buffers up to 128 values to handle
  * synchronous multi-value emissions and

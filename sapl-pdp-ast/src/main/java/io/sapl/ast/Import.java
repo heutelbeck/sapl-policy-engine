@@ -28,7 +28,7 @@ import java.util.List;
  * @param libraryPath the library path components
  * @param functionName the function name to import
  * @param alias the alias to use, or null if no alias
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record Import(
         @NonNull List<String> libraryPath,

@@ -18,7 +18,7 @@
 package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
-import io.sapl.compiler.policy.PolicyMetadata;
+import io.sapl.compiler.pdp.VoterMetadata;
 import lombok.NonNull;
 
 import java.util.List;
@@ -27,30 +27,25 @@ import java.util.List;
  * A single policy document.
  *
  * @param imports import statements, empty list if none
- * @param metadata policy identification metadata (name, pdpId, configurationId,
+ * @param metadata policy identification voterMetadata (name, pdpId,
+ * configurationId,
  * documentId)
  * @param entitlement PERMIT or DENY
- * @param body policy body with statements and metadata location
+ * @param body policy body with statements and voterMetadata location
  * @param obligations obligation expressions, empty list if none
  * @param advice advice expressions, empty list if none
  * @param transformation transformation expression, or null if none
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record Policy(
         @NonNull List<Import> imports,
-        @NonNull PolicyMetadata metadata,
+        @NonNull VoterMetadata metadata,
         @NonNull Entitlement entitlement,
         @NonNull PolicyBody body,
         @NonNull List<Expression> obligations,
         @NonNull List<Expression> advice,
         Expression transformation,
         @NonNull SourceLocation location) implements SaplDocument {
-
-    public Policy {
-        imports     = List.copyOf(imports);
-        obligations = List.copyOf(obligations);
-        advice      = List.copyOf(advice);
-    }
 
     @Override
     public String name() {

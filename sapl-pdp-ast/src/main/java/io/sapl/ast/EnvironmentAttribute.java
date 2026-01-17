@@ -34,7 +34,7 @@ import java.util.List;
  * @param options attribute finder options expression, or null if none
  * @param head true for head attribute finder ({@code |<}), false for normal
  * ({@code <})
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record EnvironmentAttribute(
         @NonNull QualifiedName name,

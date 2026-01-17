@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Recursive wildcard: {@code base..*} or {@code base..[*]}
  *
  * @param base the expression to search
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record RecursiveWildcardStep(@NonNull Expression base, @NonNull SourceLocation location) implements Step {}

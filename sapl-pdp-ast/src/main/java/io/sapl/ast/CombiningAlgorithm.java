@@ -19,10 +19,10 @@ package io.sapl.ast;
 
 /**
  * Combining algorithm for policy sets, composed of voting mode, default
- * decision, and error handling strategy.
+ * vote, and error handling strategy.
  *
  * @param votingMode how policy decisions are combined
- * @param defaultDecision the decision when no policy applies
+ * @param defaultDecision the vote when no policy applies
  * @param errorHandling how errors are handled during combination
  */
 public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultDecision, ErrorHandling errorHandling) {

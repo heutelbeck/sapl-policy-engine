@@ -22,9 +22,10 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetHit;
-import io.sapl.compiler.pdp.StreamDecisionMaker;
-import io.sapl.compiler.policyset.PolicySetDecision;
+import io.sapl.compiler.pdp.StreamVoter;
+import io.sapl.compiler.pdp.Vote;
 import lombok.val;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
@@ -59,9 +60,8 @@ class FirstVoteCompilerTests {
     static final TargetHit TARGET_FALSE = new Coverage.TargetResult(Value.FALSE, null);
     static final TargetHit TARGET_ERROR = new Coverage.TargetResult(Value.error(""), null);
 
-    void assertDecisionHasAllTheseContributing(PolicySetDecision decision, List<String> expectedNames) {
-        val actual = decision.metadata().contributingPolicyDecisions().stream()
-                .map(contribution -> contribution.metadata().source().name()).toList();
+    void assertDecisionHasAllTheseContributing(Vote decision, List<String> expectedNames) {
+        val actual = decision.contributingVotes().stream().map(d -> d.voter().name()).toList();
         assertThat(actual).containsExactlyInAnyOrder(expectedNames.toArray(new String[0]));
     }
 
@@ -617,10 +617,11 @@ class FirstVoteCompilerTests {
             assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
             assertDecisionHasAllTheseContributing(result, testCase.contributingPolicies());
 
-            assertThat(resultWithCoverage.decision().authorizationDecision().decision())
+            assertThat(resultWithCoverage.vote().authorizationDecision().decision())
                     .isEqualTo(testCase.expectedDecision());
-            assertThat(resultWithCoverage.coverage().policyCoverages()).hasSize(testCase.contributingPolicies().size());
-            assertTargetHitMatches(resultWithCoverage.coverage().targetHit(), testCase.expectedTargetHit());
+            val psCoverage = (PolicySetCoverage) resultWithCoverage.coverage();
+            assertThat(psCoverage.policyCoverages()).hasSize(testCase.contributingPolicies().size());
+            assertTargetHitMatches(psCoverage.targetHit(), testCase.expectedTargetHit());
         }
     }
 
@@ -860,34 +861,32 @@ class FirstVoteCompilerTests {
         void streamTestCases(StreamTestCase testCase) {
             val attrBroker          = attributeBroker(testCase.attributes());
             val compiled            = compilePolicySet(testCase.policySet(), attrBroker);
-            val streamDecisionMaker = (StreamDecisionMaker) compiled.applicabilityAndDecision();
+            val streamDecisionMaker = (StreamVoter) compiled.applicabilityAndVote();
             val subscription        = parseSubscription(testCase.subscription());
             val ctx                 = evaluationContext(subscription, attrBroker);
 
-            assertThat(compiled.applicabilityAndDecision()).as("Expected stream stratum")
-                    .isInstanceOf(StreamDecisionMaker.class);
+            assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            StepVerifier.create(
-                    streamDecisionMaker.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(pdpDecision -> {
-                        val result = (PolicySetDecision) pdpDecision;
-                        assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
-                        assertDecisionHasAllTheseContributing(result, testCase.contributingPolicies());
+            StepVerifier
+                    .create(streamDecisionMaker.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(pdpVote -> {
+                        assertThat(pdpVote.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
+                        assertDecisionHasAllTheseContributing(pdpVote, testCase.contributingPolicies());
                     }).expectComplete().verify(TIMEOUT);
 
             StepVerifier.create(compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
                     .assertNext(resultWithCoverage -> {
-                        assertThat(resultWithCoverage.decision().authorizationDecision().decision())
+                        assertThat(resultWithCoverage.vote().authorizationDecision().decision())
                                 .isEqualTo(testCase.expectedDecision());
-                        assertThat(resultWithCoverage.coverage().policyCoverages())
-                                .hasSize(testCase.contributingPolicies().size());
-                        assertTargetHitMatches(resultWithCoverage.coverage().targetHit(), testCase.expectedTargetHit());
+                        val psCoverage = (PolicySetCoverage) resultWithCoverage.coverage();
+                        assertThat(psCoverage.policyCoverages()).hasSize(testCase.contributingPolicies().size());
+                        assertTargetHitMatches(psCoverage.targetHit(), testCase.expectedTargetHit());
                     }).expectComplete().verify(TIMEOUT);
         }
     }
 
     @Nested
-    @DisplayName("Default decision permutations")
+    @DisplayName("Default vote permutations")
     class DefaultDecisionPermutations {
 
         @Test
@@ -1062,7 +1061,7 @@ class FirstVoteCompilerTests {
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            // Error handling (abstain) takes precedence over default decision (deny)
+            // Error handling (abstain) takes precedence over default vote (deny)
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
@@ -1083,7 +1082,7 @@ class FirstVoteCompilerTests {
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            // Error handling (abstain) takes precedence over default decision (permit)
+            // Error handling (abstain) takes precedence over default vote (permit)
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 

@@ -19,7 +19,7 @@ package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.pdp.PolicySetVoterMetadata;
 import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -29,17 +29,17 @@ import java.util.List;
  * A policy set document containing multiple policies.
  *
  * @param imports import statements, empty list if none
- * @param metadata policy set identification metadata (name, pdpId,
+ * @param metadata policy set identification voterMetadata (name, pdpId,
  * configurationId, documentId, combiningAlgorithm)
  * @param target optional target expression (the 'for' clause), null if none
  * @param match optional schema condition for matching, null if none
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record PolicySet(
         @NonNull List<Import> imports,
-        @NonNull PolicySetMetadata metadata,
+        @NonNull PolicySetVoterMetadata metadata,
         @Nullable Expression target,
         @Nullable SchemaCondition match,
         @NonNull List<VarDef> variables,

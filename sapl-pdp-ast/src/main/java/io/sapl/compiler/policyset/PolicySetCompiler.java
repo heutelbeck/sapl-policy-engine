@@ -70,9 +70,9 @@ public class PolicySetCompiler {
                                      };
 
         val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable,
-                decisionMakerAndCoverage.decisionMaker(), metadata);
+                decisionMakerAndCoverage.voter(), metadata);
         val hasConstraints           = compiledPolicies.stream().anyMatch(CompiledPolicy::hasConstraints);
-        return new CompiledPolicySet(isApplicable, decisionMakerAndCoverage.decisionMaker(), applicabilityAndDecision,
+        return new CompiledPolicySet(isApplicable, decisionMakerAndCoverage.voter(), applicabilityAndDecision,
                 decisionMakerAndCoverage.coverage(), metadata, hasConstraints);
     }
 

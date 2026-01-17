@@ -17,21 +17,11 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.EvaluationContext;
 
-/**
- * A fully evaluated decision from a policy or policy set.
- */
-public non-sealed interface PDPDecision extends DecisionMaker {
+import java.util.List;
 
-    /**
-     * @return the authorization decision (PERMIT, DENY, INDETERMINATE,
-     * NOT_APPLICABLE) with constraints
-     */
-    AuthorizationDecision authorizationDecision();
-
-    /**
-     * @return tracing metadata (source, contributing attributes, errors)
-     */
-    DecisionMetadata metadata();
+public non-sealed interface PureVoter extends Voter {
+    Vote vote(List<AttributeRecord> bodyContributions, EvaluationContext ctx);
 }

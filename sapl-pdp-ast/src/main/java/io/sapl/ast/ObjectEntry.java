@@ -25,6 +25,6 @@ import lombok.NonNull;
  *
  * @param key the key (string)
  * @param value the value expression
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record ObjectEntry(@NonNull String key, @NonNull Expression value, @NonNull SourceLocation location) {}

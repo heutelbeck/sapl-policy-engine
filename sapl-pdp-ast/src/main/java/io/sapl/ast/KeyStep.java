@@ -25,7 +25,7 @@ import lombok.NonNull;
  *
  * @param base the expression to access
  * @param key the key name
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record KeyStep(@NonNull Expression base, @NonNull String key, @NonNull SourceLocation location)
         implements Step {}

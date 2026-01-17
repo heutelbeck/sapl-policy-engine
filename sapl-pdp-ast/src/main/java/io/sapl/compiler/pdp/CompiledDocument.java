@@ -31,16 +31,16 @@ public interface CompiledDocument {
     CompiledExpression isApplicable();
 
     /**
-     * @return decision maker assuming applicability (used by PDP after determining
+     * @return vote maker assuming applicability (used by PDP after determining
      * applicability)
      */
-    DecisionMaker decisionMaker();
+    Voter voter();
 
     /**
-     * @return decision maker with combined applicability and constraint evaluation
+     * @return vote maker with combined applicability and constraint evaluation
      * (used by policy sets)
      */
-    DecisionMaker applicabilityAndDecision();
+    Voter applicabilityAndVote();
 
     /**
      * @return true if the document has obligations, advice, or a transformation

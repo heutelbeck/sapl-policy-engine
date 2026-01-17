@@ -34,7 +34,7 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 /**
  * Utilities for working with cryptographic keys. Provides methods for parsing
  * public keys from PEM format and
- * extracting key metadata.
+ * extracting key voterMetadata.
  */
 @UtilityClass
 public class KeyUtils {

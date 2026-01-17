@@ -26,6 +26,6 @@ import lombok.NonNull;
  * Selects elements where condition evaluates to true.
  *
  * @param condition the condition expression
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record ConditionPath(@NonNull Expression condition, @NonNull SourceLocation location) implements PathElement {}

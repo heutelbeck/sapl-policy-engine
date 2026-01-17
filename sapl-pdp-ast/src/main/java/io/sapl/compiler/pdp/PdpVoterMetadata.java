@@ -17,11 +17,11 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.EvaluationContext;
+import io.sapl.ast.CombiningAlgorithm;
+import lombok.NonNull;
 
-import java.util.List;
-
-public non-sealed interface PureDecisionMaker extends DecisionMaker {
-    PDPDecision decide(List<AttributeRecord> bodyContributions, EvaluationContext ctx);
-}
+public record PdpVoterMetadata(
+        @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        CombiningAlgorithm combiningAlgorithm) implements VoterMetadata {}

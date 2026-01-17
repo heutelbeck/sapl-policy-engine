@@ -28,7 +28,7 @@ import java.util.List;
  * All operands are always evaluated.
  *
  * @param operands list of operands (at least 3)
- * @param location metadata location spanning all operands
+ * @param location voterMetadata location spanning all operands
  */
 public record ExclusiveDisjunction(@NonNull List<Expression> operands, @NonNull SourceLocation location)
         implements Expression {

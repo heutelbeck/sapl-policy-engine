@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Index access path element: {@code [n]}
  *
  * @param index the array index (may be negative for end-relative)
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record IndexPath(int index, @NonNull SourceLocation location) implements PathElement {}

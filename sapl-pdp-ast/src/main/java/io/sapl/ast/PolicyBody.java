@@ -26,7 +26,7 @@ import java.util.List;
  * The body of a policy containing variable definitions and conditions.
  *
  * @param statements the statements in the body, never null (may be empty)
- * @param location metadata location of the body
+ * @param location voterMetadata location of the body
  */
 public record PolicyBody(@NonNull List<Statement> statements, @NonNull SourceLocation location) implements AstNode {
     public PolicyBody {

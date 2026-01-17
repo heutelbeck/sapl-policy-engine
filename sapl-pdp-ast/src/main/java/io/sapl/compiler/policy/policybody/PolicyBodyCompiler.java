@@ -55,12 +55,11 @@ public class PolicyBodyCompiler {
 
     record IndexedCompiledCondition(CompiledExpression expression, SourceLocation location, long statementId) {}
 
-    public Flux<TracedPolicyBodyResultAndCoverage> compilePolicyBodyWithCoverage(PolicyBody body,
-            CompilationContext ctx) {
+    public Flux<TracedValueAndBodyCoverage> compilePolicyBodyWithCoverage(PolicyBody body, CompilationContext ctx) {
         val       statements = body.statements();
         final var conditions = compileConditions(statements, ctx);
         if (conditions.isEmpty()) {
-            val bodyResult = new TracedPolicyBodyResultAndCoverage(TracedValue.of(Value.TRUE),
+            val bodyResult = new TracedValueAndBodyCoverage(TracedValue.of(Value.TRUE),
                     new Coverage.BodyCoverage(List.of(), 0));
             return Flux.just(bodyResult);
         }
@@ -73,7 +72,7 @@ public class PolicyBodyCompiler {
             switch (condition.expression()) {
             case ErrorValue error           -> {
                 hits.add(new Coverage.ConditionHit(error, condition.location(), condition.statementId()));
-                val bodyResult = new TracedPolicyBodyResultAndCoverage(TracedValue.of(error),
+                val bodyResult = new TracedValueAndBodyCoverage(TracedValue.of(error),
                         new Coverage.BodyCoverage(hits, numberOfConditions));
                 return Flux.just(bodyResult);
             }
@@ -81,7 +80,7 @@ public class PolicyBodyCompiler {
                 hits.add(new Coverage.ConditionHit(Value.TRUE, condition.location(), condition.statementId()));
             case BooleanValue ignored       -> {
                 hits.add(new Coverage.ConditionHit(Value.FALSE, condition.location(), condition.statementId()));
-                val bodyResult = new TracedPolicyBodyResultAndCoverage(TracedValue.of(Value.FALSE),
+                val bodyResult = new TracedValueAndBodyCoverage(TracedValue.of(Value.FALSE),
                         new Coverage.BodyCoverage(hits, numberOfConditions));
                 return Flux.just(bodyResult);
             }
@@ -92,19 +91,19 @@ public class PolicyBodyCompiler {
         }
 
         if (remainingConditions.isEmpty()) {
-            val bodyResult = new TracedPolicyBodyResultAndCoverage(TracedValue.of(Value.TRUE),
+            val bodyResult = new TracedValueAndBodyCoverage(TracedValue.of(Value.TRUE),
                     new Coverage.BodyCoverage(hits, numberOfConditions));
             return Flux.just(bodyResult);
         }
         return buildChain(remainingConditions, hits, numberOfConditions);
     }
 
-    private Flux<TracedPolicyBodyResultAndCoverage> buildChain(List<IndexedCompiledCondition> conditions,
+    private Flux<TracedValueAndBodyCoverage> buildChain(List<IndexedCompiledCondition> conditions,
             List<Coverage.ConditionHit> hits, long numberOfConditions) {
 
-        val                                     fallbackResult = new TracedPolicyBodyResultAndCoverage(
-                TracedValue.of(Value.TRUE), new Coverage.BodyCoverage(hits, numberOfConditions));
-        Flux<TracedPolicyBodyResultAndCoverage> chain          = Flux.just(fallbackResult);
+        val                              fallbackResult = new TracedValueAndBodyCoverage(TracedValue.of(Value.TRUE),
+                new Coverage.BodyCoverage(hits, numberOfConditions));
+        Flux<TracedValueAndBodyCoverage> chain          = Flux.just(fallbackResult);
 
         for (int i = conditions.size() - 1; i >= 0; i--) {
             val condition = conditions.get(i);
@@ -115,8 +114,8 @@ public class PolicyBodyCompiler {
         return chain;
     }
 
-    private Flux<TracedPolicyBodyResultAndCoverage> buildStreamLink(IndexedCompiledCondition condition,
-            Flux<TracedPolicyBodyResultAndCoverage> next, SourceLocation location, Coverage.BodyCoverage coverage) {
+    private Flux<TracedValueAndBodyCoverage> buildStreamLink(IndexedCompiledCondition condition,
+            Flux<TracedValueAndBodyCoverage> next, SourceLocation location, Coverage.BodyCoverage coverage) {
         val stream = ((StreamOperator) condition.expression()).stream();
         return stream.switchMap(currentTracedValue -> {
             var currentValue                  = currentTracedValue.value();
@@ -124,18 +123,18 @@ public class PolicyBodyCompiler {
             val hit                           = new Coverage.ConditionHit(currentValue, location,
                     condition.statementId());
             if (currentValue instanceof ErrorValue) {
-                val result = new TracedPolicyBodyResultAndCoverage(currentTracedValue, coverage.with(hit));
+                val result = new TracedValueAndBodyCoverage(currentTracedValue, coverage.with(hit));
                 return Flux.just(result);
             }
             if (currentValue instanceof BooleanValue(var b) && !b) {
-                val result = new TracedPolicyBodyResultAndCoverage(
-                        new TracedValue(Value.FALSE, currentContributingAttributes), coverage.with(hit));
+                val result = new TracedValueAndBodyCoverage(new TracedValue(Value.FALSE, currentContributingAttributes),
+                        coverage.with(hit));
                 return Flux.just(result);
             }
             return next.map(nextTv -> {
                 val value = LazyNaryBooleanCompiler.mergeAttributes(currentContributingAttributes, nextTv.value());
                 val hits  = nextTv.bodyCoverage().with(hit);
-                return new TracedPolicyBodyResultAndCoverage(value, hits);
+                return new TracedValueAndBodyCoverage(value, hits);
             });
         });
     }

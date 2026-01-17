@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @param name qualified function name
  * @param arguments function arguments, empty list if none
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record FunctionCall(
         @NonNull QualifiedName name,

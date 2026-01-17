@@ -17,21 +17,11 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.compiler.policy.PolicyMetadata;
+import lombok.NonNull;
 
-import java.util.List;
-
-/**
- * Metadata for a single policy decision.
- *
- * @param source the policy that produced this decision
- * @param contributingAttributes see
- * {@link DecisionMetadata#contributingAttributes()}
- * @param error see {@link DecisionMetadata#error()}
- */
-public record PolicyDecisionMetadata(
-        PolicyMetadata source,
-        List<AttributeRecord> contributingAttributes,
-        ErrorValue error) implements DecisionMetadata {}
+public record PolicyVoterMetadata(
+        @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        String documentId // filename or DB Id
+) implements VoterMetadata {}

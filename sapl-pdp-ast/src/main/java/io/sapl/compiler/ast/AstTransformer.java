@@ -24,8 +24,8 @@ import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policy.PolicyMetadata;
-import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.pdp.PolicySetVoterMetadata;
+import io.sapl.compiler.pdp.PolicyVoterMetadata;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;
@@ -196,7 +196,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var name       = unquoteString(ctx.saplName.getText());
         var documentId = toDocumentId(name);
         var algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
-        var metadata   = new PolicySetMetadata(name, pdpId, configurationId, documentId, algorithm);
+        var metadata   = new PolicySetVoterMetadata(name, pdpId, configurationId, documentId, algorithm);
         var target     = ctx.target != null ? expr(ctx.target) : null;
         var variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
 
@@ -222,7 +222,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public Policy visitPolicy(PolicyContext ctx) {
         var name        = unquoteString(ctx.saplName.getText());
         var documentId  = toDocumentId(name);
-        var metadata    = new PolicyMetadata(name, pdpId, configurationId, documentId);
+        var metadata    = new PolicyVoterMetadata(name, pdpId, configurationId, documentId);
         var entitlement = toEntitlement(ctx.entitlement());
 
         // Build body statements, prepending SchemaCondition if there are schemas
@@ -787,8 +787,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case DenyDefaultContext ignored    -> DefaultDecision.DENY;
         case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
         case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
-        default                            ->
-            throw new SaplCompilerException("Unknown default decision", fromContext(ctx));
+        default                            -> throw new SaplCompilerException("Unknown default vote", fromContext(ctx));
         };
     }
 

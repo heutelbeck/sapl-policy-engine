@@ -15,14 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policyset;
+package io.sapl.compiler.pdp;
 
-import io.sapl.ast.CombiningAlgorithm;
-import lombok.NonNull;
+public interface VoterMetadata {
+    String name();
 
-public record PolicySetMetadata(
-        @NonNull String name,
-        @NonNull String pdpId,
-        @NonNull String configurationId,
-        String documentId, // filename or DB Id
-        CombiningAlgorithm combiningAlgorithm) {}
+    String pdpId();
+
+    String configurationId();
+}

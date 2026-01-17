@@ -23,10 +23,10 @@ import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.DecisionMaker;
+import io.sapl.compiler.pdp.Voter;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
-import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.pdp.VoteWithCoverage;
+import io.sapl.compiler.pdp.PolicySetVoterMetadata;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -36,24 +36,24 @@ import java.util.List;
 
 @UtilityClass
 public class UniqueDecisionCompiler {
-    public static DecisionMakerAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
-            CompiledExpression isApplicable, PolicySetMetadata metadata, DefaultDecision defaultDecision,
+    public static VoterAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
+            CompiledExpression isApplicable, PolicySetVoterMetadata metadata, DefaultDecision defaultDecision,
             ErrorHandling errorHandling) {
         val decisionMaker = compileDecisionMaker(compiledPolicies, metadata, policySet.location(), defaultDecision,
                 errorHandling);
         val coverage      = compileCoverageStream(policySet, isApplicable, compiledPolicies, metadata, defaultDecision,
                 errorHandling);
-        return new DecisionMakerAndCoverage(decisionMaker, coverage);
+        return new VoterAndCoverage(decisionMaker, coverage);
     }
 
-    private static Flux<PolicySetDecisionWithCoverage> compileCoverageStream(PolicySet policySet,
-            CompiledExpression isApplicable, List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata,
-            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+    private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
+            List<CompiledPolicy> compiledPolicies, PolicySetVoterMetadata metadata, DefaultDecision defaultDecision,
+            ErrorHandling errorHandling) {
         throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s".formatted(policySet, isApplicable,
                 compiledPolicies, metadata, defaultDecision, errorHandling));
     }
 
-    private static DecisionMaker compileDecisionMaker(List<CompiledPolicy> compiledPolicies, PolicySetMetadata metadata,
+    private static Voter compileDecisionMaker(List<CompiledPolicy> compiledPolicies, PolicySetVoterMetadata metadata,
             @NonNull SourceLocation location, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
         throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s".formatted(compiledPolicies, metadata,
                 location, defaultDecision, errorHandling));

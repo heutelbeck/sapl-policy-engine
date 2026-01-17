@@ -40,7 +40,7 @@ import java.util.Set;
  * {@link #resetForNextDocument()}.
  * <p>
  * Trace level: Controls granularity of trace information gathered during
- * evaluation. This is a compile-time decision affecting generated expressions.
+ * evaluation. This is a compile-time vote affecting generated expressions.
  */
 @Getter
 @Setter

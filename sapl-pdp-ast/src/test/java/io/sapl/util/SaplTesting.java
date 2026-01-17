@@ -35,17 +35,14 @@ import io.sapl.compiler.ast.Document;
 import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.pdp.DecisionMaker;
-import io.sapl.compiler.pdp.PDPDecision;
-import io.sapl.compiler.pdp.PureDecisionMaker;
-import io.sapl.compiler.pdp.StreamDecisionMaker;
+import io.sapl.compiler.pdp.*;
+import io.sapl.compiler.pdp.PureVoter;
+import io.sapl.compiler.pdp.Voter;
 import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
-import io.sapl.compiler.policy.PolicyDecisionWithCoverage;
 import io.sapl.compiler.policyset.CompiledPolicySet;
 import io.sapl.compiler.policyset.PolicySetCompiler;
-import io.sapl.compiler.policyset.PolicySetDecision;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
+import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.compiler.util.Stratum;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
@@ -157,29 +154,28 @@ public class SaplTesting {
         throw new IllegalArgumentException("Expected a single policy, not a policy set");
     }
 
-    public static DecisionMaker compilePolicy(String policySource) {
+    public static Voter compilePolicy(String policySource) {
         return compilePolicy(policySource, compilationContext());
     }
 
-    public static DecisionMaker compilePolicy(String policySource, AttributeBroker attrBroker) {
+    public static Voter compilePolicy(String policySource, AttributeBroker attrBroker) {
         return compilePolicy(policySource, compilationContext(attrBroker));
     }
 
-    public static DecisionMaker compilePolicy(String policySource, CompilationContext ctx) {
+    public static Voter compilePolicy(String policySource, CompilationContext ctx) {
         var policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndDecision();
+        return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndVote();
     }
 
-    public static Flux<PDPDecision> evaluatePolicy(String subscriptionJson, String policySource) {
+    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource) {
         return evaluatePolicy(subscriptionJson, policySource, ATTRIBUTE_BROKER);
     }
 
-    public static Flux<PDPDecision> evaluatePolicy(String subscriptionJson, String policySource,
-            AttributeBroker attrBroker) {
+    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource, AttributeBroker attrBroker) {
         return evaluatePolicy(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
     }
 
-    public static Flux<PDPDecision> evaluatePolicy(String subscriptionJson, String policySource,
+    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource,
             CompilationContext compilationCtx, AttributeBroker attrBroker) {
         var subscription  = parseSubscription(subscriptionJson);
         var compiled      = compilePolicy(policySource, compilationCtx);
@@ -187,12 +183,11 @@ public class SaplTesting {
         return evaluatePolicyDecisionMaker(compiled, evaluationCtx);
     }
 
-    public static Flux<PDPDecision> evaluatePolicyDecisionMaker(DecisionMaker compiled, EvaluationContext evalCtx) {
+    public static Flux<Vote> evaluatePolicyDecisionMaker(Voter compiled, EvaluationContext evalCtx) {
         return switch (compiled) {
-        case PDPDecision decision       -> Flux.just(decision);
-        case PureDecisionMaker pure     -> Flux.just(pure.decide(List.of(), evalCtx));
-        case StreamDecisionMaker stream ->
-            stream.decide(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        case Vote decision      -> Flux.just(decision);
+        case PureVoter pure     -> Flux.just(pure.vote(List.of(), evalCtx));
+        case StreamVoter stream -> stream.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         };
     }
 
@@ -218,18 +213,17 @@ public class SaplTesting {
         return PolicySetCompiler.compilePolicySet(policySet, ctx);
     }
 
-    public static PolicySetDecision evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
-        var decisionMaker = compiled.applicabilityAndDecision();
-        return (PolicySetDecision) switch (decisionMaker) {
-        case PDPDecision decision       -> decision;
-        case PureDecisionMaker pure     -> pure.decide(List.of(), ctx);
-        case StreamDecisionMaker stream ->
-            stream.decide(List.of()).contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+    public static Vote evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
+        var voter = compiled.applicabilityAndVote();
+        return switch (voter) {
+        case Vote decision      -> decision;
+        case PureVoter pure     -> pure.vote(List.of(), ctx);
+        case StreamVoter stream ->
+            stream.vote(List.of()).contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
         };
     }
 
-    public static PolicySetDecisionWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled,
-            EvaluationContext ctx) {
+    public static VoteWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled, EvaluationContext ctx) {
         return compiled.coverage().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
     }
 
@@ -246,18 +240,17 @@ public class SaplTesting {
         return PolicyCompiler.compilePolicy(policy, ctx);
     }
 
-    public static Flux<PolicyDecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson,
-            String policySource) {
+    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource) {
         return evaluatePolicyWithCoverage(subscriptionJson, policySource, ATTRIBUTE_BROKER);
     }
 
-    public static Flux<PolicyDecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson,
-            String policySource, AttributeBroker attrBroker) {
+    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
+            AttributeBroker attrBroker) {
         return evaluatePolicyWithCoverage(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
     }
 
-    public static Flux<PolicyDecisionWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson,
-            String policySource, CompilationContext compilationCtx, AttributeBroker attrBroker) {
+    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
+            CompilationContext compilationCtx, AttributeBroker attrBroker) {
         var subscription  = parseSubscription(subscriptionJson);
         var compiled      = compilePolicyFull(policySource, compilationCtx);
         var evaluationCtx = evaluationContext(subscription, attrBroker);
@@ -274,7 +267,7 @@ public class SaplTesting {
         var prodList = evaluatePolicy(subscriptionJson, policySource, attrBroker).collectList()
                 .block(Duration.ofSeconds(5));
         var covList  = evaluatePolicyWithCoverage(subscriptionJson, policySource, attrBroker)
-                .map(PolicyDecisionWithCoverage::decision).collectList().block(Duration.ofSeconds(5));
+                .map(VoteWithCoverage::vote).collectList().block(Duration.ofSeconds(5));
 
         assertThat(covList).as("Number of emissions").hasSameSizeAs(prodList);
         for (int i = 0; i < Objects.requireNonNull(prodList).size(); i++) {
@@ -285,7 +278,7 @@ public class SaplTesting {
         }
     }
 
-    private static boolean decisionsEquivalent(PDPDecision a, PDPDecision b) {
+    private static boolean decisionsEquivalent(Vote a, Vote b) {
         var authzA = a.authorizationDecision();
         var authzB = b.authorizationDecision();
         return authzA.decision() == authzB.decision() && Objects.equals(authzA.obligations(), authzB.obligations())

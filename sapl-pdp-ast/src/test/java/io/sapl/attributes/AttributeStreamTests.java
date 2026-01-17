@@ -321,7 +321,7 @@ class AttributeStreamTests {
      * another.
      * <p>
      * Use case: Configuration update or PIP replacement where the attribute
-     * metadata
+     * voterMetadata
      * changes but the stream continues
      * operating.
      * <p>

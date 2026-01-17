@@ -43,15 +43,15 @@ public class TimeOutWrapper {
      * <p>
      * The wrapped flux ensures:
      * <ul>
-     * <li>Empty metadata flux emits Value.UNDEFINED immediately</li>
+     * <li>Empty voterMetadata flux emits Value.UNDEFINED immediately</li>
      * <li>Timeout before first value emits Value.UNDEFINED, but continues emitting
      * subsequent values from the
-     * metadata</li>
+     * voterMetadata</li>
      * <li>Early completion terminates immediately without waiting for timeout</li>
      * </ul>
      *
      * @param flux
-     * the metadata flux to wrap
+     * the voterMetadata flux to wrap
      * @param timeOut
      * duration before emitting timeout value
      *
@@ -66,20 +66,20 @@ public class TimeOutWrapper {
      * <p>
      * The wrapped flux ensures:
      * <ul>
-     * <li>Empty metadata flux emits emptyFluxValue immediately</li>
+     * <li>Empty voterMetadata flux emits emptyFluxValue immediately</li>
      * <li>Timeout before first value emits timeOutValue, but continues emitting
-     * subsequent values from the metadata</li>
+     * subsequent values from the voterMetadata</li>
      * <li>Early completion terminates immediately without waiting for timeout</li>
      * </ul>
      *
      * @param flux
-     * the metadata flux to wrap
+     * the voterMetadata flux to wrap
      * @param timeOut
      * duration before emitting timeout value
      * @param timeOutValue
      * value emitted on timeout
      * @param emptyFluxValue
-     * value emitted when metadata is empty
+     * value emitted when voterMetadata is empty
      *
      * @return wrapped flux with timeout behavior
      */
@@ -108,9 +108,10 @@ public class TimeOutWrapper {
                     sink.tryEmitError(error);
                 }, () -> {}));
 
-                sourceSubscription.set(sourceFlux.subscribe(value -> log.trace("metadata flux: {}", value), error ->
+                sourceSubscription
+                        .set(sourceFlux.subscribe(value -> log.trace("voterMetadata flux: {}", value), error ->
                 // Already handled by doOnError(sink::tryEmitError)
-                log.trace("Error in metadata flux", error), () -> {}));
+                log.trace("Error in voterMetadata flux", error), () -> {}));
             }).doOnTerminate(() -> {
                 disposeIfPresent(timeoutSubscription);
                 disposeIfPresent(sourceSubscription);

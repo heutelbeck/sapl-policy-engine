@@ -112,7 +112,7 @@ public class InputStreamUtil {
         private void checkByte(int b) {
             buffer.addByte(b);
             if (buffer.illegalCharacterDetected()) {
-                final String message = "Illegal bidirectional unicode control characters were recognised in the input stream. This is indicative of a potential trojan metadata attack.";
+                final String message = "Illegal bidirectional unicode control characters were recognised in the input stream. This is indicative of a potential trojan voterMetadata attack.";
                 throw new SaplCompilerException(PARSING_ERRORS.formatted(message));
             }
         }

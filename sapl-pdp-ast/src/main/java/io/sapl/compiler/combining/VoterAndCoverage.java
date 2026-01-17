@@ -17,8 +17,8 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.compiler.pdp.DecisionMaker;
-import io.sapl.compiler.policyset.PolicySetDecisionWithCoverage;
+import io.sapl.compiler.pdp.Voter;
+import io.sapl.compiler.pdp.VoteWithCoverage;
 import reactor.core.publisher.Flux;
 
-public record DecisionMakerAndCoverage(DecisionMaker decisionMaker, Flux<PolicySetDecisionWithCoverage> coverage) {}
+public record VoterAndCoverage(Voter voter, Flux<VoteWithCoverage> coverage) {}

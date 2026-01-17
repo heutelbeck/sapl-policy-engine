@@ -15,9 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy.policybody;
+package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.TracedValue;
-import io.sapl.compiler.model.Coverage;
+import io.sapl.ast.CombiningAlgorithm;
+import lombok.NonNull;
 
-public record TracedPolicyBodyResultAndCoverage(TracedValue value, Coverage.BodyCoverage bodyCoverage) {}
+public record PolicySetVoterMetadata(
+        @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        String documentId, // filename or DB Id
+        CombiningAlgorithm combiningAlgorithm) implements VoterMetadata {}

@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.compiler.pdp;
 
 import io.sapl.compiler.model.Coverage;
 
-public record PolicyDecisionWithCoverage(PolicyDecision decision, Coverage.PolicyCoverage coverage) {}
+public record VoteWithCoverage(Vote vote, Coverage.DocumentCoverage coverage) {}

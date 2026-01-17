@@ -39,27 +39,26 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.pdp.DecisionMaker;
-import io.sapl.compiler.pdp.PDPDecision;
-import io.sapl.compiler.pdp.PureDecisionMaker;
-import io.sapl.compiler.pdp.StreamDecisionMaker;
+import io.sapl.compiler.pdp.*;
+import io.sapl.compiler.pdp.PureVoter;
+import io.sapl.compiler.pdp.Voter;
 import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
-import io.sapl.compiler.policy.policybody.TracedPolicyBodyResultAndCoverage;
+import io.sapl.compiler.policy.policybody.TracedValueAndBodyCoverage;
 import io.sapl.compiler.util.Nature;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
 /**
- * Compiles SAPL policies into executable decision makers.
+ * Compiles SAPL policies into executable vote makers.
  * <p>
  * A {@link CompiledPolicy} provides four entry points:
  * <ul>
  * <li>{@code isApplicable} - Evaluates only the policy body for applicability
  * checking.</li>
- * <li>{@code decisionMaker} - Evaluates constraints assuming applicability
+ * <li>{@code voter} - Evaluates constraints assuming applicability
  * (e.g., the PDP after determining applicability).</li>
- * <li>{@code applicabilityAndDecision} - Combined applicability and constraint
+ * <li>{@code applicabilityAndVote} - Combined applicability and constraint
  * evaluation (e.g., in policy sets walking the contained polices).</li>
  * <li>{@code coverage} - Stream emitting decisions with coverage data for
  * testing.</li>
@@ -80,19 +79,18 @@ public class PolicyCompiler {
      *
      * @param policy the policy AST node
      * @param ctx the compilation context
-     * @return the compiled policy with decision makers and coverage streams
+     * @return the compiled policy with vote makers and coverage streams
      */
     public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val metadata                 = policy.metadata();
+        val voterMetadata            = policy.metadata();
         val compiledBody             = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
         val isApplicable             = compiledBody.bodyExpression();
-        val decisionMaker            = compileDecisionMaker(policy, metadata, ctx);
-        val coverage                 = assembleDecisionWithCoverage(compiledBody.coverageStream(), decisionMaker,
-                metadata);
+        val voter                    = compileVoter(policy, voterMetadata, ctx);
+        val coverage                 = assembleVoteWithCoverage(compiledBody.coverageStream(), voter, voterMetadata);
         val hasConstraints           = hasConstraints(policy);
-        val applicabilityAndDecision = compileApplicabilityAndDecision(isApplicable, decisionMaker, metadata);
-        return new CompiledPolicy(isApplicable, decisionMaker, applicabilityAndDecision, coverage, metadata,
+        val applicabilityAndDecision = compileApplicabilityAndDecision(isApplicable, voter, voterMetadata);
+        return new CompiledPolicy(isApplicable, voter, applicabilityAndDecision, coverage, voterMetadata,
                 hasConstraints);
     }
 
@@ -104,54 +102,53 @@ public class PolicyCompiler {
     }
 
     /**
-     * Wraps the decision maker with applicability checking based on the body
+     * Wraps the vote maker with applicability checking based on the body
      * expression type.
      * Used by policy sets walking contained policies.
      *
      * @param isApplicable the compiled body expression determining applicability
-     * @param decision the decision maker for constraints evaluation
-     * @param metadata the policy metadata
-     * @return a decision maker that combines applicability and constraint
+     * @param voter the vote maker for constraints evaluation
+     * @param voterMetadata the policy voterMetadata
+     * @return a vote maker that combines applicability and constraint
      * evaluation
      */
-    private DecisionMaker compileApplicabilityAndDecision(CompiledExpression isApplicable, DecisionMaker decision,
-            PolicyMetadata metadata) {
+    private Voter compileApplicabilityAndDecision(CompiledExpression isApplicable, Voter voter,
+            VoterMetadata voterMetadata) {
         return switch (isApplicable) {
-        case ErrorValue error                                                 -> PolicyDecision.error(error, metadata);
-        case BooleanValue(var b) when b                                       -> decision;
-        case BooleanValue ignored                                             -> PolicyDecision.notApplicable(metadata);
-        case PureOperator po when decision instanceof StreamDecisionMaker sdm ->
-            new PureBodyStreamConstraintsDecisionMaker(po, sdm, metadata);
-        case PureOperator po                                                  ->
-            new ApplicabilityCheckingPureDecisionMaker(po, decision, metadata);
-        case StreamOperator so                                                ->
-            new ApplicabilityCheckingStreamDecisionMaker(so, decision, metadata);
-        default                                                               ->
-            PolicyDecision.error(Value.error(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), metadata);
+        case ErrorValue error                                      -> Vote.error(error, voterMetadata);
+        case BooleanValue(var b) when b                            -> voter;
+        case BooleanValue ignored                                  -> Vote.abstain(voterMetadata);
+        case PureOperator po when voter instanceof StreamVoter sdm ->
+            new PureBodyStreamConstraintsVoter(po, sdm, voterMetadata);
+        case PureOperator po                                       ->
+            new ApplicabilityCheckingPureVoter(po, voter, voterMetadata);
+        case StreamOperator so                                     ->
+            new ApplicabilityCheckingStreamVoter(so, voter, voterMetadata);
+        default                                                    ->
+            Vote.error(Value.error(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), voterMetadata);
         };
     }
 
     /**
-     * Compiles the policy constraints into a decision maker based on their nature.
+     * Compiles the policy constraints into a vote maker based on their nature.
      * Used by the PDP after determining applicability.
      *
      * @param policy the policy AST node
-     * @param metadata the policy metadata
+     * @param voterMetadata the policy voterMetadata
      * @param ctx the compilation context
-     * @return a constant, pure, or stream decision maker
+     * @return a constant, pure, or stream vote maker
      */
-    private static DecisionMaker compileDecisionMaker(Policy policy, PolicyMetadata metadata, CompilationContext ctx) {
+    private static Voter compileVoter(Policy policy, VoterMetadata voterMetadata, CompilationContext ctx) {
         val constraints = compileConstraints(policy, policy.location(), ctx);
         val decision    = policy.entitlement().decision();
         return switch (constraints.nature()) {
-        case CONSTANT -> PolicyDecision.tracedDecision(decision, (ArrayValue) constraints.obligations(),
-                (ArrayValue) constraints.advice(), (Value) constraints.resource(), metadata, List.of());
-        case PURE     -> new SimplePureDecisionMaker(decision, constraints.obligations(), constraints.advice(),
-                constraints.resource(), metadata);
-        case STREAM   ->
-            new SimpleStreamDecisionMaker(decision, OperatorLiftUtil.liftToStream(constraints.obligations()),
-                    OperatorLiftUtil.liftToStream(constraints.advice()),
-                    OperatorLiftUtil.liftToStream(constraints.resource()), metadata);
+        case CONSTANT -> Vote.tracedVote(decision, (ArrayValue) constraints.obligations(),
+                (ArrayValue) constraints.advice(), (Value) constraints.resource(), voterMetadata, List.of());
+        case PURE     -> new SimplePureVoter(decision, constraints.obligations(), constraints.advice(),
+                constraints.resource(), voterMetadata);
+        case STREAM   -> new SimpleStreamVoter(decision, OperatorLiftUtil.liftToStream(constraints.obligations()),
+                OperatorLiftUtil.liftToStream(constraints.advice()),
+                OperatorLiftUtil.liftToStream(constraints.resource()), voterMetadata);
         };
     }
 
@@ -212,87 +209,85 @@ public class PolicyCompiler {
     }
 
     /**
-     * Creates a coverage-tracking decision stream from body coverage and decision
+     * Creates a coverage-tracking vote stream from body coverage and vote
      * maker.
      *
      * @param bodyCoverage the body coverage stream
-     * @param decisionMaker the decision maker
-     * @param policyMetadata the policy metadata
+     * @param voter the vote maker
+     * @param voterMetadata the policy voterMetadata
      * @return a flux emitting policy decisions with coverage information
      */
-    private static Flux<PolicyDecisionWithCoverage> assembleDecisionWithCoverage(
-            Flux<TracedPolicyBodyResultAndCoverage> bodyCoverage, DecisionMaker decisionMaker,
-            PolicyMetadata policyMetadata) {
+    private static Flux<VoteWithCoverage> assembleVoteWithCoverage(Flux<TracedValueAndBodyCoverage> bodyCoverage,
+            Voter voter, VoterMetadata voterMetadata) {
         return bodyCoverage.switchMap(bodyResult -> {
             val bodyValue         = bodyResult.value().value();
             val bodyAttrs         = bodyResult.value().contributingAttributes();
             val bodyConditionHits = bodyResult.bodyCoverage();
-            val policyCoverage    = new Coverage.PolicyCoverage(policyMetadata, bodyConditionHits);
+            val policyCoverage    = new Coverage.PolicyCoverage(voterMetadata, bodyConditionHits);
             if (bodyValue instanceof ErrorValue error) {
-                return Flux.just(withCoverage(PolicyDecision.tracedError(error, policyMetadata, bodyAttrs),
-                        policyMetadata, bodyConditionHits));
+                return Flux.just(withCoverage(Vote.tracedError(error, voterMetadata, bodyAttrs), voterMetadata,
+                        bodyConditionHits));
             }
             if (Value.FALSE.equals(bodyValue)) {
-                return Flux.just(withCoverage(PolicyDecision.tracedNotApplicable(policyMetadata, bodyAttrs),
-                        policyMetadata, bodyConditionHits));
+                return Flux.just(
+                        withCoverage(Vote.tracedAbstain(voterMetadata, bodyAttrs), voterMetadata, bodyConditionHits));
             }
-            return switch (decisionMaker) {
-            case PDPDecision pd          ->
-                Flux.just(new PolicyDecisionWithCoverage((PolicyDecision) pd, policyCoverage));
-            case PureDecisionMaker pdm   -> Flux.deferContextual(ctxView -> Flux.just(new PolicyDecisionWithCoverage(
-                    (PolicyDecision) pdm.decide(bodyAttrs, ctxView.get(EvaluationContext.class)), policyCoverage)));
-            case StreamDecisionMaker sdm -> sdm.decide(bodyAttrs).map(
-                    policyDecision -> new PolicyDecisionWithCoverage((PolicyDecision) policyDecision, policyCoverage));
+            return switch (voter) {
+            case Vote pd         -> Flux.just(new VoteWithCoverage(pd, policyCoverage));
+            case PureVoter pdm   -> Flux.deferContextual(ctxView -> Flux.just(
+                    new VoteWithCoverage(pdm.vote(bodyAttrs, ctxView.get(EvaluationContext.class)), policyCoverage)));
+            case StreamVoter sdm ->
+                sdm.vote(bodyAttrs).map(policyDecision -> new VoteWithCoverage(policyDecision, policyCoverage));
             };
         });
     }
 
     /**
-     * Wraps a policy decision with coverage information.
+     * Wraps a policy vote with coverage information.
      *
-     * @param decision the policy decision
-     * @param decisionSource the policy metadata
+     * @param vote the policy vote
+     * @param voterMetadata the policy voterMetadata
      * @param bodyCoverage the body coverage data
-     * @return the decision with coverage
+     * @return the vote with coverage
      */
-    private static PolicyDecisionWithCoverage withCoverage(PolicyDecision decision, PolicyMetadata decisionSource,
+    private static VoteWithCoverage withCoverage(Vote vote, VoterMetadata voterMetadata,
             Coverage.BodyCoverage bodyCoverage) {
-        val policyCoverage = new Coverage.PolicyCoverage(decisionSource, bodyCoverage);
-        return new PolicyDecisionWithCoverage(decision, policyCoverage);
+        val policyCoverage = new Coverage.PolicyCoverage(voterMetadata, bodyCoverage);
+        return new VoteWithCoverage(vote, policyCoverage);
     }
 
     /**
-     * Builds a policy decision from merged constraint stream values.
+     * Builds a policy vote from merged constraint stream values.
      *
      * @param merged the merged stream values [obligations, advice, resource]
-     * @param decision the entitlement decision
+     * @param decision the entitlement vote
      * @param baseAttributes the contributing attributes from body evaluation
-     * @param policyMetadata the policy metadata
-     * @return the assembled policy decision
+     * @param voterMetadata the policy voterMetadata
+     * @return the assembled policy vote
      */
-    private static PolicyDecision buildFromConstraintStreams(Object[] merged, Decision decision,
-            List<AttributeRecord> baseAttributes, PolicyMetadata policyMetadata) {
+    private static Vote buildFromConstraintStreams(Object[] merged, Decision decision,
+            List<AttributeRecord> baseAttributes, VoterMetadata voterMetadata) {
         val tracedObligationsValue = (TracedValue) merged[0];
         val obligationsValue       = tracedObligationsValue.value();
         val contributingAttributes = new ArrayList<>(baseAttributes);
         contributingAttributes.addAll(tracedObligationsValue.contributingAttributes());
         if (obligationsValue instanceof ErrorValue error) {
-            return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
+            return Vote.tracedError(error, voterMetadata, contributingAttributes);
         }
         val tracedAdviceValue = (TracedValue) merged[1];
         val adviceValue       = tracedAdviceValue.value();
         contributingAttributes.addAll(tracedAdviceValue.contributingAttributes());
         if (adviceValue instanceof ErrorValue error) {
-            return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
+            return Vote.tracedError(error, voterMetadata, contributingAttributes);
         }
         val tracedResourceValue = (TracedValue) merged[2];
         val resourceValue       = tracedResourceValue.value();
         contributingAttributes.addAll(tracedResourceValue.contributingAttributes());
         if (resourceValue instanceof ErrorValue error) {
-            return PolicyDecision.tracedError(error, policyMetadata, contributingAttributes);
+            return Vote.tracedError(error, voterMetadata, contributingAttributes);
         }
-        return PolicyDecision.tracedDecision(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue,
-                resourceValue, policyMetadata, contributingAttributes);
+        return Vote.tracedVote(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue, resourceValue,
+                voterMetadata, contributingAttributes);
     }
 
     /**
@@ -313,35 +308,35 @@ public class PolicyCompiler {
      * Decision maker for policies with pure constraints requiring runtime
      * evaluation.
      *
-     * @param decision the entitlement decision
+     * @param decision the entitlement vote
      * @param obligations the obligations expression
      * @param advice the advice expression
      * @param resource the transformation expression
-     * @param metadata the policy metadata
+     * @param metadata the policy voterMetadata
      */
-    public record SimplePureDecisionMaker(
+    public record SimplePureVoter(
             Decision decision,
             CompiledExpression obligations,
             CompiledExpression advice,
             CompiledExpression resource,
-            PolicyMetadata metadata) implements PureDecisionMaker {
+            VoterMetadata metadata) implements PureVoter {
 
         @Override
-        public PolicyDecision decide(List<AttributeRecord> bodyContributions, EvaluationContext ctx) {
+        public Vote vote(List<AttributeRecord> bodyContributions, EvaluationContext ctx) {
             val obligationsArray = evaluate(obligations, ctx);
             if (obligationsArray instanceof ErrorValue error) {
-                return PolicyDecision.error(error, metadata);
+                return Vote.error(error, metadata);
             }
             val adviceArray = evaluate(advice, ctx);
             if (adviceArray instanceof ErrorValue error) {
-                return PolicyDecision.error(error, metadata);
+                return Vote.error(error, metadata);
             }
             val resourceValue = evaluate(resource, ctx);
             if (resourceValue instanceof ErrorValue error) {
-                return PolicyDecision.error(error, metadata);
+                return Vote.error(error, metadata);
             }
-            return PolicyDecision.tracedDecision(decision, (ArrayValue) obligationsArray, (ArrayValue) adviceArray,
-                    resourceValue, metadata, bodyContributions);
+            return Vote.tracedVote(decision, (ArrayValue) obligationsArray, (ArrayValue) adviceArray, resourceValue,
+                    metadata, bodyContributions);
         }
 
         private Value evaluate(CompiledExpression expression, EvaluationContext ctx) {
@@ -356,23 +351,23 @@ public class PolicyCompiler {
     /**
      * Decision maker for policies with streaming constraints.
      *
-     * @param decision the entitlement decision
+     * @param decision the entitlement vote
      * @param obligations the obligations stream operator
      * @param advice the advice stream operator
      * @param resource the transformation stream operator
-     * @param metadata the policy metadata
+     * @param voterMetadata the policy voterMetadata
      */
-    public record SimpleStreamDecisionMaker(
+    public record SimpleStreamVoter(
             Decision decision,
             StreamOperator obligations,
             StreamOperator advice,
             StreamOperator resource,
-            PolicyMetadata metadata) implements StreamDecisionMaker {
+            VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
             return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
-                    merged -> buildFromConstraintStreams(merged, decision, knownContributions, metadata));
+                    merged -> buildFromConstraintStreams(merged, decision, knownContributions, voterMetadata));
         }
     }
 
@@ -380,29 +375,27 @@ public class PolicyCompiler {
      * Decision maker for pure applicability check with non-streaming constraints.
      *
      * @param isApplicable the pure operator for applicability evaluation
-     * @param decisionMaker the underlying decision maker
-     * @param metadata the policy metadata
+     * @param voter the underlying vote maker
+     * @param voterMetadata the policy voterMetadata
      */
-    public record ApplicabilityCheckingPureDecisionMaker(
-            PureOperator isApplicable,
-            DecisionMaker decisionMaker,
-            PolicyMetadata metadata) implements PureDecisionMaker {
+    public record ApplicabilityCheckingPureVoter(PureOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
+            implements PureVoter {
 
         @Override
-        public PDPDecision decide(List<AttributeRecord> bodyContributions, EvaluationContext ctx) {
+        public Vote vote(List<AttributeRecord> bodyContributions, EvaluationContext ctx) {
             val applicabilityResult = isApplicable.evaluate(ctx);
             if (applicabilityResult instanceof ErrorValue error) {
-                return PolicyDecision.error(error, metadata);
+                return Vote.error(error, voterMetadata);
             }
             if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                return switch (decisionMaker) {
-                case PDPDecision pd              -> pd;
-                case PureDecisionMaker pdm       -> pdm.decide(bodyContributions, ctx);
-                case StreamDecisionMaker ignored ->
-                    throw new IllegalStateException("StreamDecisionMaker in pure applicability context");
+                return switch (voter) {
+                case Vote pd             -> pd;
+                case PureVoter pdm       -> pdm.vote(bodyContributions, ctx);
+                case StreamVoter ignored -> Vote.tracedError(Value.error("StreamVoter in pure applicability context"),
+                        voterMetadata, bodyContributions);
                 };
             }
-            return PolicyDecision.notApplicable(metadata);
+            return Vote.abstain(voterMetadata);
         }
     }
 
@@ -410,30 +403,30 @@ public class PolicyCompiler {
      * Decision maker for streaming applicability check.
      *
      * @param isApplicable the stream operator for applicability evaluation
-     * @param decisionMaker the underlying decision maker
-     * @param metadata the policy metadata
+     * @param voter the underlying vote maker
+     * @param voterMetadata the policy voterMetadata
      */
-    public record ApplicabilityCheckingStreamDecisionMaker(
+    public record ApplicabilityCheckingStreamVoter(
             StreamOperator isApplicable,
-            DecisionMaker decisionMaker,
-            PolicyMetadata metadata) implements StreamDecisionMaker {
+            Voter voter,
+            VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
             return isApplicable.stream().switchMap(tracedApplicability -> {
                 val applicabilityValue = tracedApplicability.value();
                 if (applicabilityValue instanceof ErrorValue error) {
-                    return Flux.just(PolicyDecision.error(error, metadata));
+                    return Flux.just(Vote.error(error, voterMetadata));
                 }
                 if (applicabilityValue instanceof BooleanValue(var b) && b) {
-                    return switch (decisionMaker) {
-                    case PDPDecision pd          -> Flux.just(pd);
-                    case PureDecisionMaker pdm   -> Flux.deferContextual(
-                            ctxView -> Flux.just(pdm.decide(knownContributions, ctxView.get(EvaluationContext.class))));
-                    case StreamDecisionMaker sdm -> sdm.decide(knownContributions);
+                    return switch (voter) {
+                    case Vote pd         -> Flux.just(pd);
+                    case PureVoter pdm   -> Flux.deferContextual(
+                            ctxView -> Flux.just(pdm.vote(knownContributions, ctxView.get(EvaluationContext.class))));
+                    case StreamVoter sdm -> sdm.vote(knownContributions);
                     };
                 }
-                return Flux.just(PolicyDecision.notApplicable(metadata));
+                return Flux.just(Vote.abstain(voterMetadata));
             });
         }
     }
@@ -442,26 +435,26 @@ public class PolicyCompiler {
      * Decision maker for pure applicability check with streaming constraints.
      *
      * @param isApplicable the pure operator for applicability evaluation
-     * @param streamDecisionMaker the streaming decision maker for constraints
-     * @param metadata the policy metadata
+     * @param streamDecisionMaker the streaming vote maker for constraints
+     * @param metadata the policy voterMetadata
      */
-    public record PureBodyStreamConstraintsDecisionMaker(
+    public record PureBodyStreamConstraintsVoter(
             PureOperator isApplicable,
-            StreamDecisionMaker streamDecisionMaker,
-            PolicyMetadata metadata) implements StreamDecisionMaker {
+            StreamVoter streamDecisionMaker,
+            VoterMetadata metadata) implements StreamVoter {
 
         @Override
-        public Flux<PDPDecision> decide(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
             return Flux.deferContextual(ctxView -> {
                 val ctx                 = ctxView.get(EvaluationContext.class);
                 val applicabilityResult = isApplicable.evaluate(ctx);
                 if (applicabilityResult instanceof ErrorValue error) {
-                    return Flux.just(PolicyDecision.error(error, metadata));
+                    return Flux.just(Vote.error(error, metadata));
                 }
                 if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamDecisionMaker.decide(knownContributions);
+                    return streamDecisionMaker.vote(knownContributions);
                 }
-                return Flux.just(PolicyDecision.notApplicable(metadata));
+                return Flux.just(Vote.abstain(metadata));
             });
         }
     }

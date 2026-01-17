@@ -25,7 +25,7 @@ import lombok.NonNull;
  *
  * @param element the subscription element this schema applies to
  * @param schema the schema expression
- * @param location metadata location
+ * @param location voterMetadata location
  */
 public record SchemaStatement(
         @NonNull SubscriptionElement element,

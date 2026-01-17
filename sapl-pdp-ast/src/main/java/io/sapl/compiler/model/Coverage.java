@@ -19,8 +19,7 @@ package io.sapl.compiler.model;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.policy.PolicyMetadata;
-import io.sapl.compiler.policyset.PolicySetMetadata;
+import io.sapl.compiler.pdp.VoterMetadata;
 import lombok.NonNull;
 import lombok.val;
 
@@ -33,18 +32,19 @@ public record Coverage(List<DocumentCoverage> coverage) {
     public static final TargetHit BLANK_TARGET_HIT = new Coverage.BlankTargetHit();
 
     public sealed interface DocumentCoverage permits PolicyCoverage, PolicySetCoverage {
+        VoterMetadata voter();
     }
 
-    public record PolicyCoverage(PolicyMetadata metadata, BodyCoverage bodyCoverage) implements DocumentCoverage {}
+    public record PolicyCoverage(VoterMetadata voter, BodyCoverage bodyCoverage) implements DocumentCoverage {}
 
     public record PolicySetCoverage(
-            @NonNull PolicySetMetadata metadata,
+            @NonNull VoterMetadata voter,
             @NonNull TargetHit targetHit,
-            @NonNull List<PolicyCoverage> policyCoverages) implements DocumentCoverage {
-        public PolicySetCoverage with(PolicyCoverage newCoverage) {
-            val aggregatedPolicyCoverage = new ArrayList<PolicyCoverage>(policyCoverages);
+            @NonNull List<DocumentCoverage> policyCoverages) implements DocumentCoverage {
+        public PolicySetCoverage with(DocumentCoverage newCoverage) {
+            val aggregatedPolicyCoverage = new ArrayList<>(policyCoverages);
             aggregatedPolicyCoverage.add(newCoverage);
-            return new PolicySetCoverage(metadata, targetHit, aggregatedPolicyCoverage);
+            return new PolicySetCoverage(voter, targetHit, aggregatedPolicyCoverage);
         }
     }
 

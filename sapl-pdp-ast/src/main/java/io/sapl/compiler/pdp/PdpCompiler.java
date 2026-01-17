@@ -27,7 +27,7 @@ import io.sapl.compiler.policyset.PolicySetCompiler;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class PDPCompiler {
+public class PdpCompiler {
 
     public static Object compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
         return null;
