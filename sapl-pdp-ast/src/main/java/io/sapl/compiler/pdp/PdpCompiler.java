@@ -22,6 +22,7 @@ import io.sapl.ast.Policy;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.SaplDocument;
 import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policyset.PolicySetCompiler;
 import lombok.experimental.UtilityClass;
@@ -30,7 +31,7 @@ import lombok.experimental.UtilityClass;
 public class PdpCompiler {
 
     public static Object compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
-        return null;
+        throw new SaplCompilerException("PDP configuration not implemented %s %s".formatted(pdpConfiguration, ctx));
     }
 
     public static CompiledDocument compileDocument(SaplDocument saplDocument, CompilationContext ctx) {
