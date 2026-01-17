@@ -60,8 +60,8 @@ class FirstVoteCompilerTests {
     static final TargetHit TARGET_FALSE = new Coverage.TargetResult(Value.FALSE, null);
     static final TargetHit TARGET_ERROR = new Coverage.TargetResult(Value.error(""), null);
 
-    void assertDecisionHasAllTheseContributing(Vote decision, List<String> expectedNames) {
-        val actual = decision.contributingVotes().stream().map(d -> d.voter().name()).toList();
+    void assertVoteHasAllTheseContributing(Vote vote, List<String> expectedNames) {
+        val actual = vote.contributingVotes().stream().map(d -> d.voter().name()).toList();
         assertThat(actual).containsExactlyInAnyOrder(expectedNames.toArray(new String[0]));
     }
 
@@ -106,7 +106,7 @@ class FirstVoteCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-            assertDecisionHasAllTheseContributing(result, List.of("only-one"));
+            assertVoteHasAllTheseContributing(result, List.of("only-one"));
         }
 
         @Test
@@ -127,7 +127,7 @@ class FirstVoteCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-            assertDecisionHasAllTheseContributing(result, List.of("never-matches"));
+            assertVoteHasAllTheseContributing(result, List.of("never-matches"));
         }
     }
 
@@ -615,7 +615,7 @@ class FirstVoteCompilerTests {
             val resultWithCoverage = evaluatePolicySetWithCoverage(compiled, ctx);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
-            assertDecisionHasAllTheseContributing(result, testCase.contributingPolicies());
+            assertVoteHasAllTheseContributing(result, testCase.contributingPolicies());
 
             assertThat(resultWithCoverage.vote().authorizationDecision().decision())
                     .isEqualTo(testCase.expectedDecision());
@@ -859,19 +859,18 @@ class FirstVoteCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource
         void streamTestCases(StreamTestCase testCase) {
-            val attrBroker          = attributeBroker(testCase.attributes());
-            val compiled            = compilePolicySet(testCase.policySet(), attrBroker);
-            val streamDecisionMaker = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription        = parseSubscription(testCase.subscription());
-            val ctx                 = evaluationContext(subscription, attrBroker);
+            val attrBroker   = attributeBroker(testCase.attributes());
+            val compiled     = compilePolicySet(testCase.policySet(), attrBroker);
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription(testCase.subscription());
+            val ctx          = evaluationContext(subscription, attrBroker);
 
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            StepVerifier
-                    .create(streamDecisionMaker.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+            StepVerifier.create(streamVoter.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
                     .assertNext(pdpVote -> {
                         assertThat(pdpVote.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
-                        assertDecisionHasAllTheseContributing(pdpVote, testCase.contributingPolicies());
+                        assertVoteHasAllTheseContributing(pdpVote, testCase.contributingPolicies());
                     }).expectComplete().verify(TIMEOUT);
 
             StepVerifier.create(compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
@@ -1017,7 +1016,7 @@ class FirstVoteCompilerTests {
             // Error makes set INDETERMINATE, errors abstain → NOT_APPLICABLE
             // Fallback policy is NOT evaluated (error stops first-vote)
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-            assertDecisionHasAllTheseContributing(result, List.of("error-policy"));
+            assertVoteHasAllTheseContributing(result, List.of("error-policy"));
         }
 
         @Test
@@ -1041,7 +1040,7 @@ class FirstVoteCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-            assertDecisionHasAllTheseContributing(result, List.of("error-policy"));
+            assertVoteHasAllTheseContributing(result, List.of("error-policy"));
         }
 
         @Test

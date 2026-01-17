@@ -60,7 +60,7 @@ public class PolicySetUtil {
      * @param voterMetadata the policy set voterMetadata
      * @return a vote maker that combines applicability and vote evaluation
      */
-    public static Voter compileApplicabilityAndDecision(CompiledExpression isApplicable, Voter voter,
+    public static Voter compileApplicabilityAndVoter(CompiledExpression isApplicable, Voter voter,
             VoterMetadata voterMetadata) {
         return switch (isApplicable) {
         case ErrorValue error                                      -> Vote.error(error, voterMetadata);
@@ -81,7 +81,7 @@ public class PolicySetUtil {
      * Compiles a coverage stream by chaining target evaluation with body coverage.
      * <p>
      * Handles target expression types analogously to
-     * {@link #compileApplicabilityAndDecision}: static values short-circuit,
+     * {@link #compileApplicabilityAndVoter}: static values short-circuit,
      * pure operators defer evaluation, and stream operators in targets are errors.
      *
      * @param policySet the policy set being compiled
@@ -177,18 +177,17 @@ public class PolicySetUtil {
      * <p>
      * Used when all policies are NOT_APPLICABLE (clean exhaustion, no errors).
      *
-     * @param contributingDecisions the policy decisions that contributed to this
-     * result
+     * @param contributingVotes the policy votes that contributed to this result
      * @param voterMetadata the policy set voterMetadata
      * @param defaultDecision the configured default vote
      * @return the fallback policy set vote
      */
-    public static Vote getFallbackDecision(List<Vote> contributingDecisions, VoterMetadata voterMetadata,
+    public static Vote getFallbackVote(List<Vote> contributingVotes, VoterMetadata voterMetadata,
             DefaultDecision defaultDecision) {
         return switch (defaultDecision) {
-        case ABSTAIN -> Vote.abstain(voterMetadata, contributingDecisions);
-        case DENY    -> Vote.combinedVote(AuthorizationDecision.DENY, voterMetadata, contributingDecisions);
-        case PERMIT  -> Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingDecisions);
+        case ABSTAIN -> Vote.abstain(voterMetadata, contributingVotes);
+        case DENY    -> Vote.combinedVote(AuthorizationDecision.DENY, voterMetadata, contributingVotes);
+        case PERMIT  -> Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingVotes);
         };
     }
 
@@ -250,15 +249,15 @@ public class PolicySetUtil {
     }
 
     /**
-     * Decision maker for pure applicability check with streaming vote.
+     * Voter for pure applicability check with streaming vote.
      *
      * @param isApplicable the pure operator for applicability evaluation
-     * @param streamDecisionMaker the streaming vote maker
+     * @param streamVoter the streaming vote maker
      * @param voterMetadata the policy set voterMetadata
      */
     record PureApplicabilityStreamPolicySet(
             PureOperator isApplicable,
-            StreamVoter streamDecisionMaker,
+            StreamVoter streamVoter,
             VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
@@ -270,7 +269,7 @@ public class PolicySetUtil {
                     return Flux.just(Vote.error(error, voterMetadata));
                 }
                 if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamDecisionMaker.vote(knownContributions);
+                    return streamVoter.vote(knownContributions);
                 }
                 return Flux.just(Vote.abstain(voterMetadata));
             });

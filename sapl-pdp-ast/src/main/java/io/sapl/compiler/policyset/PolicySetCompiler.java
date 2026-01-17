@@ -45,35 +45,35 @@ public class PolicySetCompiler {
         if (policySet.policies().isEmpty()) {
             throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
         }
-        val metadata                 = policySet.metadata();
-        val compiledPolicies         = policySet.policies().stream()
-                .map(policy -> PolicyCompiler.compilePolicy(policy, ctx)).toList();
-        val schemaValidator          = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
-        val isApplicable             = TargetExpressionCompiler.compileTargetExpression(policySet.target(),
-                schemaValidator, ctx);
-        val algorithm                = policySet.algorithm();
-        val defaultDecision          = algorithm.defaultDecision();
-        val errorHandling            = algorithm.errorHandling();
-        val decisionMakerAndCoverage = switch (algorithm.votingMode()) {
-                                     case DENY_WINS          ->
-                                         PriorityVoteWinsCompiler.compilePolicySet(policySet, compiledPolicies,
-                                                 isApplicable, metadata, Decision.DENY, defaultDecision, errorHandling);
-                                     case PERMIT_WINS        -> PriorityVoteWinsCompiler.compilePolicySet(policySet,
-                                             compiledPolicies, isApplicable, metadata, Decision.PERMIT, defaultDecision,
-                                             errorHandling);
-                                     case FIRST_VOTE         -> FirstVoteCompiler.compilePolicySet(policySet,
-                                             compiledPolicies, isApplicable, metadata, defaultDecision, errorHandling);
-                                     case UNIQUE_DECISION    -> UniqueDecisionCompiler.compilePolicySet(policySet,
-                                             compiledPolicies, isApplicable, metadata, defaultDecision, errorHandling);
-                                     case UNANIMOUS_DECISION -> UnanimousDecisionCompiler.compilePolicySet(policySet,
-                                             compiledPolicies, isApplicable, metadata, defaultDecision, errorHandling);
-                                     };
+        val metadata         = policySet.metadata();
+        val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
+                .toList();
+        val schemaValidator  = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
+        val isApplicable     = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
+                ctx);
+        val algorithm        = policySet.algorithm();
+        val defaultDecision  = algorithm.defaultDecision();
+        val errorHandling    = algorithm.errorHandling();
+        val voterAndCoverage = switch (algorithm.votingMode()) {
+                             case DENY_WINS          ->
+                                 PriorityVoteWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
+                                         metadata, Decision.DENY, defaultDecision, errorHandling);
+                             case PERMIT_WINS        ->
+                                 PriorityVoteWinsCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
+                                         metadata, Decision.PERMIT, defaultDecision, errorHandling);
+                             case FIRST_VOTE         -> FirstVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, defaultDecision, errorHandling);
+                             case UNIQUE_DECISION    -> UniqueDecisionCompiler.compilePolicySet(policySet,
+                                     compiledPolicies, isApplicable, metadata, defaultDecision, errorHandling);
+                             case UNANIMOUS_DECISION -> UnanimousDecisionCompiler.compilePolicySet(policySet,
+                                     compiledPolicies, isApplicable, metadata, defaultDecision, errorHandling);
+                             };
 
-        val applicabilityAndDecision = PolicySetUtil.compileApplicabilityAndDecision(isApplicable,
-                decisionMakerAndCoverage.voter(), metadata);
-        val hasConstraints           = compiledPolicies.stream().anyMatch(CompiledPolicy::hasConstraints);
-        return new CompiledPolicySet(isApplicable, decisionMakerAndCoverage.voter(), applicabilityAndDecision,
-                decisionMakerAndCoverage.coverage(), metadata, hasConstraints);
+        val applicabilityAndVoter = PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voterAndCoverage.voter(),
+                metadata);
+        val hasConstraints        = compiledPolicies.stream().anyMatch(CompiledPolicy::hasConstraints);
+        return new CompiledPolicySet(isApplicable, voterAndCoverage.voter(), applicabilityAndVoter,
+                voterAndCoverage.coverage(), metadata, hasConstraints);
     }
 
     private static void compilePolicySetVariables(PolicySet policySet, CompilationContext ctx) {

@@ -20,8 +20,8 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.pdp.PolicySetVoterMetadata;
 import io.sapl.compiler.pdp.PureVoter;
+import io.sapl.compiler.pdp.VoterMetadata;
 import io.sapl.compiler.pdp.StreamVoter;
 import io.sapl.compiler.pdp.Vote;
 import io.sapl.compiler.policy.CompiledPolicy;
@@ -86,11 +86,11 @@ public record StratifiedDocumentIndex(
      *
      * @param policies the compiled policies to index
      * @param priority the priority vote type (PERMIT or DENY)
-     * @param metadata the policy set voterMetadata for the folded vote
+     * @param voterMetadata the policy set voterMetadata for the folded vote
      * @return a new stratified index
      */
     public static StratifiedDocumentIndex of(List<CompiledPolicy> policies, Decision priority,
-            PolicySetVoterMetadata metadata) {
+            VoterMetadata voterMetadata) {
 
         var foldableDecisions        = new ArrayList<Vote>();
         var pureWithConstraints      = new ArrayList<CompiledPolicy>();
@@ -99,8 +99,8 @@ public record StratifiedDocumentIndex(
         var streamWithoutConstraints = new ArrayList<CompiledPolicy>();
 
         for (var policy : policies) {
-            val isApplicable  = policy.isApplicable();
-            val decisionMaker = policy.voter();
+            val isApplicable = policy.isApplicable();
+            val voter        = policy.voter();
 
             // Check isApplicable type
             if (isApplicable instanceof Value constantApplicable) {
@@ -110,17 +110,17 @@ public record StratifiedDocumentIndex(
                     continue;
                 }
                 // Constant TRUE or ERROR - check voter
-                if (decisionMaker instanceof Vote decision) {
+                if (voter instanceof Vote decision) {
                     // Constant + constant - fold
                     foldableDecisions.add(decision);
-                } else if (decisionMaker instanceof PureVoter) {
+                } else if (voter instanceof PureVoter) {
                     // Constant TRUE + pure - pure stratum
                     addToStratum(policy, pureWithConstraints, pureWithoutConstraints);
                 } else {
                     // Constant TRUE + stream - stream stratum
                     addToStratum(policy, streamWithConstraints, streamWithoutConstraints);
                 }
-            } else if (decisionMaker instanceof StreamVoter) {
+            } else if (voter instanceof StreamVoter) {
                 // Pure/stream isApplicable + stream voter - stream stratum
                 addToStratum(policy, streamWithConstraints, streamWithoutConstraints);
             } else {
@@ -130,7 +130,7 @@ public record StratifiedDocumentIndex(
         }
 
         // Fold constant stratum
-        val foldedConstant = DecisionCombiner.fold(foldableDecisions, priority, metadata);
+        val foldedConstant = DecisionCombiner.fold(foldableDecisions, priority, voterMetadata);
 
         return new StratifiedDocumentIndex(foldedConstant, List.copyOf(pureWithConstraints),
                 List.copyOf(pureWithoutConstraints), List.copyOf(streamWithConstraints),

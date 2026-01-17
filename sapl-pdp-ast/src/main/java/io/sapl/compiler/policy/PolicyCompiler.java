@@ -83,15 +83,14 @@ public class PolicyCompiler {
      */
     public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val voterMetadata            = policy.metadata();
-        val compiledBody             = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
-        val isApplicable             = compiledBody.bodyExpression();
-        val voter                    = compileVoter(policy, voterMetadata, ctx);
-        val coverage                 = assembleVoteWithCoverage(compiledBody.coverageStream(), voter, voterMetadata);
-        val hasConstraints           = hasConstraints(policy);
-        val applicabilityAndDecision = compileApplicabilityAndDecision(isApplicable, voter, voterMetadata);
-        return new CompiledPolicy(isApplicable, voter, applicabilityAndDecision, coverage, voterMetadata,
-                hasConstraints);
+        val voterMetadata         = policy.metadata();
+        val compiledBody          = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
+        val isApplicable          = compiledBody.bodyExpression();
+        val voter                 = compileVoter(policy, voterMetadata, ctx);
+        val coverage              = assembleVoteWithCoverage(compiledBody.coverageStream(), voter, voterMetadata);
+        val hasConstraints        = hasConstraints(policy);
+        val applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, voter, voterMetadata);
+        return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverage, voterMetadata, hasConstraints);
     }
 
     /**
@@ -112,7 +111,7 @@ public class PolicyCompiler {
      * @return a vote maker that combines applicability and constraint
      * evaluation
      */
-    private Voter compileApplicabilityAndDecision(CompiledExpression isApplicable, Voter voter,
+    private Voter compileApplicabilityAndVoter(CompiledExpression isApplicable, Voter voter,
             VoterMetadata voterMetadata) {
         return switch (isApplicable) {
         case ErrorValue error                                      -> Vote.error(error, voterMetadata);
@@ -432,15 +431,15 @@ public class PolicyCompiler {
     }
 
     /**
-     * Decision maker for pure applicability check with streaming constraints.
+     * Voter for pure applicability check with streaming constraints.
      *
      * @param isApplicable the pure operator for applicability evaluation
-     * @param streamDecisionMaker the streaming vote maker for constraints
+     * @param streamVoter the streaming vote maker for constraints
      * @param metadata the policy voterMetadata
      */
     public record PureBodyStreamConstraintsVoter(
             PureOperator isApplicable,
-            StreamVoter streamDecisionMaker,
+            StreamVoter streamVoter,
             VoterMetadata metadata) implements StreamVoter {
 
         @Override
@@ -452,7 +451,7 @@ public class PolicyCompiler {
                     return Flux.just(Vote.error(error, metadata));
                 }
                 if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamDecisionMaker.vote(knownContributions);
+                    return streamVoter.vote(knownContributions);
                 }
                 return Flux.just(Vote.abstain(metadata));
             });

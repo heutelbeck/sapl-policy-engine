@@ -180,12 +180,12 @@ public class SaplTesting {
         var subscription  = parseSubscription(subscriptionJson);
         var compiled      = compilePolicy(policySource, compilationCtx);
         var evaluationCtx = evaluationContext(subscription, attrBroker);
-        return evaluatePolicyDecisionMaker(compiled, evaluationCtx);
+        return evaluatePolicyVoter(compiled, evaluationCtx);
     }
 
-    public static Flux<Vote> evaluatePolicyDecisionMaker(Voter compiled, EvaluationContext evalCtx) {
+    public static Flux<Vote> evaluatePolicyVoter(Voter compiled, EvaluationContext evalCtx) {
         return switch (compiled) {
-        case Vote decision      -> Flux.just(decision);
+        case Vote vote          -> Flux.just(vote);
         case PureVoter pure     -> Flux.just(pure.vote(List.of(), evalCtx));
         case StreamVoter stream -> stream.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         };
@@ -216,7 +216,7 @@ public class SaplTesting {
     public static Vote evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
         var voter = compiled.applicabilityAndVote();
         return switch (voter) {
-        case Vote decision      -> decision;
+        case Vote vote          -> vote;
         case PureVoter pure     -> pure.vote(List.of(), ctx);
         case StreamVoter stream ->
             stream.vote(List.of()).contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();

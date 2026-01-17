@@ -21,8 +21,8 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.pdp.PolicySetVoterMetadata;
 import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.pdp.VoterMetadata;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -33,16 +33,16 @@ import java.util.Optional;
 @UtilityClass
 public class DecisionCombiner {
 
-    public static Optional<Vote> combineAuthorizationDecisions(Vote setDecision, Vote policyVote, Decision priority) {
-        val setAuthzDecision    = setDecision.authorizationDecision();
-        val policyAuthzDecision = policyVote.authorizationDecision();
-        val combinedDecisions   = combineAuthorizationDecisions(setAuthzDecision, policyAuthzDecision, priority);
+    public static Optional<Vote> combineAuthorizationDecisions(Vote setVote, Vote policyVote, Decision priority) {
+        val setAuthzDecision      = setVote.authorizationDecision();
+        val policyAuthzDecision   = policyVote.authorizationDecision();
+        val combinedAuthzDecision = combineAuthorizationDecisions(setAuthzDecision, policyAuthzDecision, priority);
 
-        return Optional.of(setDecision);
+        return Optional.of(setVote);
     }
 
-    public static Vote combineAuthorizationDecisions(Vote setDecision, Vote policyDecision) {
-        return setDecision;
+    public static Vote combineAuthorizationDecisions(Vote setVote, Vote policyVote) {
+        return setVote;
     }
 
     public static AuthorizationDecision combineAuthorizationDecisions(AuthorizationDecision authzDecisionA,
@@ -102,7 +102,7 @@ public class DecisionCombiner {
         return new ArrayValue(merged);
     }
 
-    public static Optional<Vote> fold(List<Vote> decisions, Decision priority, PolicySetVoterMetadata metadata) {
+    public static Optional<Vote> fold(List<Vote> decisions, Decision priority, VoterMetadata voterMetadata) {
         if (decisions.isEmpty()) {
             return Optional.empty();
         }
@@ -162,7 +162,7 @@ public class DecisionCombiner {
         val advice      = selectConstraints(entitlement, permitAdvice, denyAdvice);
         val authzResult = new AuthorizationDecision(entitlement, obligations, advice, resource);
 
-        return Optional.of(Vote.combinedVote(authzResult, metadata, decisions));
+        return Optional.of(Vote.combinedVote(authzResult, voterMetadata, decisions));
     }
 
     private static ArrayValue selectConstraints(Decision entitlement, List<Value> permitList, List<Value> denyList) {
