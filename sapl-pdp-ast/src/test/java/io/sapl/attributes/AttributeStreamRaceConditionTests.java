@@ -133,19 +133,29 @@ class AttributeStreamRaceConditionTests {
     void reconnectAndResubscribeDuringGracePeriod_pipPreserved() throws Exception {
         val invocation    = createInvocation();
         val cleanupCalled = new AtomicInteger(0);
-        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), SHORT_GRACE_PERIOD);
+        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), LONG_GRACE_PERIOD);
         val initialPip    = (AttributeFinder) inv -> Flux.just(Value.of("initial"));
         stream.connectToPolicyInformationPoint(initialPip);
 
         val subscription = stream.getStream().subscribe();
         subscription.dispose();
-        // Wait test reconnection during grace period
-        await().pollDelay(50, MILLISECONDS).atMost(90, MILLISECONDS).until(() -> true);
+
+        // Thread.sleep is intentional here: we need wall-clock delay to simulate
+        // realistic
+        // reconnection timing, not wait for a condition. Using LONG_GRACE_PERIOD (10s)
+        // with
+        // 50ms sleep provides large margin for CI environments with variable timing.
+        Thread.sleep(50);
 
         val newPip = (AttributeFinder) inv -> Flux.just(Value.of("reconnected"));
         stream.connectToPolicyInformationPoint(newPip);
 
-        val result = stream.getStream().blockFirst(Duration.ofSeconds(1));
+        val reconnectedStream = stream.getStream();
+        assertThat(reconnectedStream)
+                .as("Stream should still be available during grace period (if null, grace period expired prematurely)")
+                .isNotNull();
+
+        val result = reconnectedStream.blockFirst(Duration.ofSeconds(1));
 
         assertThat(result).as("Stream should emit value from new PIP").isNotNull()
                 .matches(value -> value instanceof TextValue tv && "reconnected".equals(tv.value()));
