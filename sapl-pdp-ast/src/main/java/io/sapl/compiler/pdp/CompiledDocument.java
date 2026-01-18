@@ -18,6 +18,8 @@
 package io.sapl.compiler.pdp;
 
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.ast.Outcome;
+import io.sapl.ast.VoterMetadata;
 
 /**
  * A compiled SAPL document (policy or policy set) with multiple evaluation
@@ -25,25 +27,19 @@ import io.sapl.api.model.CompiledExpression;
  */
 public interface CompiledDocument {
 
-    /**
-     * @return expression for applicability checking only
-     */
+    VoterMetadata metadata();
+
+    default Outcome outcome() {
+        return metadata().outcome();
+    }
+
+    default boolean hasConstraints() {
+        return metadata().hasConstraints();
+    }
+
     CompiledExpression isApplicable();
 
-    /**
-     * @return vote maker assuming applicability (used by PDP after determining
-     * applicability)
-     */
     Voter voter();
 
-    /**
-     * @return vote maker with combined applicability and constraint evaluation
-     * (used by policy sets)
-     */
     Voter applicabilityAndVote();
-
-    /**
-     * @return true if the document has obligations, advice, or a transformation
-     */
-    boolean hasConstraints();
 }

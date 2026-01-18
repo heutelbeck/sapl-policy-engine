@@ -18,7 +18,6 @@
 package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
-import io.sapl.compiler.pdp.VoterMetadata;
 import lombok.NonNull;
 
 import java.util.List;

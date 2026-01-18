@@ -19,7 +19,7 @@ package io.sapl.compiler.model;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.pdp.VoterMetadata;
+import io.sapl.ast.VoterMetadata;
 import lombok.NonNull;
 import lombok.val;
 

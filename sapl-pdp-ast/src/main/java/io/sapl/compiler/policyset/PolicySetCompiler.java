@@ -28,7 +28,6 @@ import io.sapl.compiler.combining.UniqueDecisionCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
 import lombok.experimental.UtilityClass;
@@ -71,9 +70,8 @@ public class PolicySetCompiler {
 
         val applicabilityAndVoter = PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voterAndCoverage.voter(),
                 metadata);
-        val hasConstraints        = compiledPolicies.stream().anyMatch(CompiledPolicy::hasConstraints);
         return new CompiledPolicySet(isApplicable, voterAndCoverage.voter(), applicabilityAndVoter,
-                voterAndCoverage.coverage(), metadata, hasConstraints);
+                voterAndCoverage.coverage(), metadata);
     }
 
     private static void compilePolicySetVariables(PolicySet policySet, CompilationContext ctx) {

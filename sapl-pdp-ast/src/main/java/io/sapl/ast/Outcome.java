@@ -15,13 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.pdp;
+package io.sapl.ast;
 
-import lombok.NonNull;
-
-public record PolicyVoterMetadata(
-        @NonNull String name,
-        @NonNull String pdpId,
-        @NonNull String configurationId,
-        String documentId // filename or DB Id
-) implements VoterMetadata {}
+public enum Outcome {
+    DENY,
+    PERMIT,
+    PERMIT_OR_DENY
+}

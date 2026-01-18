@@ -23,6 +23,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.VoterMetadata;
 import lombok.val;
 
 import java.util.ArrayList;

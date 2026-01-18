@@ -22,7 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.pdp.Vote;
-import io.sapl.compiler.pdp.VoterMetadata;
+import io.sapl.ast.VoterMetadata;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

@@ -18,28 +18,13 @@
 package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.pdp.CompiledDocument;
-import io.sapl.compiler.pdp.VoteWithCoverage;
-import io.sapl.compiler.pdp.PolicySetVoterMetadata;
-import io.sapl.compiler.pdp.Voter;
+import io.sapl.ast.PolicySetVoterMetadata;
+import io.sapl.compiler.pdp.*;
 import reactor.core.publisher.Flux;
 
-/**
- * A compiled policy set.
- *
- * @param isApplicable see {@link CompiledDocument#isApplicable()}
- * @param voter see {@link CompiledDocument#voter()}
- * @param applicabilityAndVote see
- * {@link CompiledDocument#applicabilityAndVote()}
- * @param coverage stream emitting decisions with coverage data for testing
- * @param metadata policy set name and location for tracing
- * @param hasConstraints true if any contained policy has obligations, advice,
- * or a transformation
- */
 public record CompiledPolicySet(
         CompiledExpression isApplicable,
         Voter voter,
         Voter applicabilityAndVote,
         Flux<VoteWithCoverage> coverage,
-        PolicySetVoterMetadata metadata,
-        boolean hasConstraints) implements CompiledDocument {}
+        PolicySetVoterMetadata metadata) implements CompiledDocument {}

@@ -24,8 +24,9 @@ import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.PolicySetVoterMetadata;
-import io.sapl.compiler.pdp.PolicyVoterMetadata;
+import io.sapl.ast.Outcome;
+import io.sapl.ast.PolicySetVoterMetadata;
+import io.sapl.ast.PolicyVoterMetadata;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;
@@ -196,7 +197,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var name       = unquoteString(ctx.saplName.getText());
         var documentId = toDocumentId(name);
         var algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
-        var metadata   = new PolicySetVoterMetadata(name, pdpId, configurationId, documentId, algorithm);
         var target     = ctx.target != null ? expr(ctx.target) : null;
         var variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
 
@@ -211,6 +211,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
         this.inPolicySet = false;
 
+        // Compute outcome and hasConstraints from contained policies
+        var outcome        = computeSetOutcome(policies);
+        var hasConstraints = policies.stream().anyMatch(p -> p.metadata().hasConstraints());
+        var metadata       = new PolicySetVoterMetadata(name, pdpId, configurationId, documentId, algorithm, outcome,
+                hasConstraints);
+
         var match = (currentSchemas != null && !currentSchemas.isEmpty())
                 ? new SchemaCondition(currentSchemas, schemaBlockLocation)
                 : null;
@@ -218,12 +224,28 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return new PolicySet(policySetImports, metadata, target, match, variables, policies, fromContext(ctx));
     }
 
+    private Outcome computeSetOutcome(List<Policy> policies) {
+        Outcome outcome = null;
+        for (var policy : policies) {
+            var policyOutcome = policy.metadata().outcome();
+            if (outcome == null) {
+                outcome = policyOutcome;
+            } else if (policyOutcome != outcome) {
+                return Outcome.PERMIT_OR_DENY;
+            }
+        }
+        return outcome;
+    }
+
     @Override
     public Policy visitPolicy(PolicyContext ctx) {
-        var name        = unquoteString(ctx.saplName.getText());
-        var documentId  = toDocumentId(name);
-        var metadata    = new PolicyVoterMetadata(name, pdpId, configurationId, documentId);
-        var entitlement = toEntitlement(ctx.entitlement());
+        var name           = unquoteString(ctx.saplName.getText());
+        var documentId     = toDocumentId(name);
+        var entitlement    = toEntitlement(ctx.entitlement());
+        var outcome        = entitlement == Entitlement.DENY ? Outcome.DENY : Outcome.PERMIT;
+        var hasConstraints = !ctx.obligations.isEmpty() || !ctx.adviceExpressions.isEmpty()
+                || ctx.transformation != null;
+        var metadata       = new PolicyVoterMetadata(name, pdpId, configurationId, documentId, outcome, hasConstraints);
 
         // Build body statements, prepending SchemaCondition if there are schemas
         // (only for standalone policies, not when inside a policy set)

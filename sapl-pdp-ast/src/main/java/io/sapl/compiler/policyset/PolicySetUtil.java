@@ -21,6 +21,7 @@ import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.PolicySet;
+import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.*;
 import io.sapl.compiler.policy.CompiledPolicy;
@@ -168,7 +169,7 @@ public class PolicySetUtil {
         case Vote d              -> d;
         case PureVoter p         -> p.vote(priorAttributes, ctx);
         case StreamVoter ignored ->
-            Vote.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.voterMetadata());
+            Vote.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.metadata());
         };
     }
 

@@ -15,16 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy;
+package io.sapl.ast;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.pdp.*;
-import reactor.core.publisher.Flux;
+import lombok.NonNull;
 
-public record CompiledPolicy(
-        CompiledExpression isApplicable,
-        Voter voter,
-        Voter applicabilityAndVote,
-        Flux<VoteWithCoverage> coverage,
-        VoterMetadata metadata) implements CompiledDocument {}
+public record PolicyVoterMetadata(
+        @NonNull String name,
+        @NonNull String pdpId,
+        @NonNull String configurationId,
+        String documentId,
+        @NonNull Outcome outcome,
+        boolean hasConstraints) implements VoterMetadata {}

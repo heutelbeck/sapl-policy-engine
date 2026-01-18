@@ -19,7 +19,6 @@ package io.sapl.ast;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.PolicySetVoterMetadata;
 import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 

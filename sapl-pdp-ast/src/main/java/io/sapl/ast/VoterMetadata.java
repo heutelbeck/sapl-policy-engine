@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.pdp;
+package io.sapl.ast;
 
 public interface VoterMetadata {
     String name();
@@ -23,4 +23,8 @@ public interface VoterMetadata {
     String pdpId();
 
     String configurationId();
+
+    Outcome outcome();
+
+    boolean hasConstraints();
 }

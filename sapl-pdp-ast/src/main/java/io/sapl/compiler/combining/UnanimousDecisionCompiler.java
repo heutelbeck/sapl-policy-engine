@@ -25,7 +25,7 @@ import io.sapl.ast.PolicySet;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.compiler.pdp.Voter;
-import io.sapl.compiler.pdp.VoterMetadata;
+import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.policy.CompiledPolicy;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;

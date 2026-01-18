@@ -24,6 +24,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.ast.CombiningAlgorithm;
 import io.sapl.ast.PolicySet;
+import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.*;
 import io.sapl.compiler.pdp.PureVoter;

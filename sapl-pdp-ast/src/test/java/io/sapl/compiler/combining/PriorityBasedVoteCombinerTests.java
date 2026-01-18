@@ -21,7 +21,8 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.pdp.Vote;
-import io.sapl.compiler.pdp.VoterMetadata;
+import io.sapl.ast.Outcome;
+import io.sapl.ast.VoterMetadata;
 import lombok.val;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
@@ -58,6 +59,16 @@ class PriorityBasedVoteCombinerTests {
             @Override
             public String configurationId() {
                 return "test-config";
+            }
+
+            @Override
+            public Outcome outcome() {
+                return Outcome.PERMIT;
+            }
+
+            @Override
+            public boolean hasConstraints() {
+                return false;
             }
         };
     }

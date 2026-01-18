@@ -32,8 +32,10 @@ import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
+import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.expressions.ArrayCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
@@ -83,21 +85,13 @@ public class PolicyCompiler {
      */
     public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val voterMetadata         = policy.metadata();
+        val metadata              = policy.metadata();
         val compiledBody          = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
         val isApplicable          = compiledBody.bodyExpression();
-        val voter                 = compileVoter(policy, voterMetadata, ctx);
-        val coverage              = assembleVoteWithCoverage(compiledBody.coverageStream(), voter, voterMetadata);
-        val hasConstraints        = hasConstraints(policy);
-        val applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, voter, voterMetadata);
-        return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverage, voterMetadata, hasConstraints);
-    }
-
-    /**
-     * @return true if the policy has obligations, advice, or a transformation
-     */
-    private static boolean hasConstraints(Policy policy) {
-        return !policy.obligations().isEmpty() || !policy.advice().isEmpty() || policy.transformation() != null;
+        val voter                 = compileVoter(policy, metadata, ctx);
+        val coverage              = assembleVoteWithCoverage(compiledBody.coverageStream(), voter, metadata);
+        val applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, voter, metadata);
+        return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverage, metadata);
     }
 
     /**
