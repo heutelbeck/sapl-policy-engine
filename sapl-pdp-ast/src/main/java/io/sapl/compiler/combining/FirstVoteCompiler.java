@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.SourceLocation;
@@ -213,7 +212,7 @@ public class FirstVoteCompiler {
         for (int i = policies.size() - 1; i >= 0; i--) {
             val policy        = policies.get(i);
             val voteChainTail = votingChain;
-            votingChain = PolicySetUtil.toStream(policy.applicabilityAndVote(), List.of()).switchMap(currentVote -> {
+            votingChain = PolicySetUtil.toStream(policy.applicabilityAndVote()).switchMap(currentVote -> {
                 val allVotes = new ArrayList<>(contributingVotes);
                 allVotes.add(currentVote);
                 if (errorHandling == ABSTAIN && currentVote.authorizationDecision().decision() == INDETERMINATE) {
@@ -253,10 +252,10 @@ public class FirstVoteCompiler {
             CombiningAlgorithm.ErrorHandling errorHandling) implements PureVoter {
 
         @Override
-        public Vote vote(List<AttributeRecord> priorAttributes, EvaluationContext ctx) {
+        public Vote vote(EvaluationContext ctx) {
             val allVotes = new ArrayList<>(contributingVotes);
             for (var policy : policies) {
-                val policyVote = PolicySetUtil.evaluatePure(policy, priorAttributes, ctx, location);
+                val policyVote = PolicySetUtil.evaluatePure(policy, ctx, location);
                 allVotes.add(policyVote);
                 if (errorHandling == ABSTAIN && policyVote.authorizationDecision().decision() == INDETERMINATE) {
                     return Vote.abstain(voterMetadata, allVotes);
@@ -274,15 +273,14 @@ public class FirstVoteCompiler {
      * Stream vote maker wrapping a pre-built reverse chain.
      * <p>
      * The chain is constructed at compile time; this record provides the
-     * {@link StreamVoter} interface and merges known attribute
-     * contributions into the result.
+     * {@link StreamVoter} interface.
      *
      * @param chain the pre-built reverse-chained flux
      */
     record FirstVoteStreamPolicySet(Flux<Vote> chain) implements StreamVoter {
         @Override
-        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
-            return chain.map(vote -> vote.withAttributes(knownContributions));
+        public Flux<Vote> vote() {
+            return chain;
         }
     }
 }

@@ -227,10 +227,10 @@ public class PolicyCompiler {
             }
             return switch (voter) {
             case Vote pd         -> Flux.just(new VoteWithCoverage(pd, policyCoverage));
-            case PureVoter pdm   -> Flux.deferContextual(ctxView -> Flux.just(
-                    new VoteWithCoverage(pdm.vote(bodyAttrs, ctxView.get(EvaluationContext.class)), policyCoverage)));
+            case PureVoter pdm   -> Flux.deferContextual(ctxView -> Flux
+                    .just(new VoteWithCoverage(pdm.vote(ctxView.get(EvaluationContext.class)), policyCoverage)));
             case StreamVoter sdm ->
-                sdm.vote(bodyAttrs).map(policyDecision -> new VoteWithCoverage(policyDecision, policyCoverage));
+                sdm.vote().map(policyDecision -> new VoteWithCoverage(policyDecision, policyCoverage));
             };
         });
     }
@@ -315,7 +315,7 @@ public class PolicyCompiler {
             VoterMetadata metadata) implements PureVoter {
 
         @Override
-        public Vote vote(List<AttributeRecord> bodyContributions, EvaluationContext ctx) {
+        public Vote vote(EvaluationContext ctx) {
             val obligationsArray = evaluate(obligations, ctx);
             if (obligationsArray instanceof ErrorValue error) {
                 return Vote.error(error, metadata);
@@ -329,7 +329,7 @@ public class PolicyCompiler {
                 return Vote.error(error, metadata);
             }
             return Vote.tracedVote(decision, (ArrayValue) obligationsArray, (ArrayValue) adviceArray, resourceValue,
-                    metadata, bodyContributions);
+                    metadata, List.of());
         }
 
         private Value evaluate(CompiledExpression expression, EvaluationContext ctx) {
@@ -358,9 +358,9 @@ public class PolicyCompiler {
             VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote() {
             return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
-                    merged -> buildFromConstraintStreams(merged, decision, knownContributions, voterMetadata));
+                    merged -> buildFromConstraintStreams(merged, decision, List.of(), voterMetadata));
         }
     }
 
@@ -375,7 +375,7 @@ public class PolicyCompiler {
             implements PureVoter {
 
         @Override
-        public Vote vote(List<AttributeRecord> bodyContributions, EvaluationContext ctx) {
+        public Vote vote(EvaluationContext ctx) {
             val applicabilityResult = isApplicable.evaluate(ctx);
             if (applicabilityResult instanceof ErrorValue error) {
                 return Vote.error(error, voterMetadata);
@@ -383,9 +383,9 @@ public class PolicyCompiler {
             if (applicabilityResult instanceof BooleanValue(var b) && b) {
                 return switch (voter) {
                 case Vote pd             -> pd;
-                case PureVoter pdm       -> pdm.vote(bodyContributions, ctx);
-                case StreamVoter ignored -> Vote.tracedError(Value.error("StreamVoter in pure applicability context"),
-                        voterMetadata, bodyContributions);
+                case PureVoter pdm       -> pdm.vote(ctx);
+                case StreamVoter ignored ->
+                    Vote.error(Value.error("StreamVoter in pure applicability context"), voterMetadata);
                 };
             }
             return Vote.abstain(voterMetadata);
@@ -394,6 +394,9 @@ public class PolicyCompiler {
 
     /**
      * Decision maker for streaming applicability check.
+     * <p>
+     * Captures body attributes from the streaming applicability evaluation and
+     * includes them in all resulting votes (error, abstain, or applicable).
      *
      * @param isApplicable the stream operator for applicability evaluation
      * @param voter the underlying vote maker
@@ -405,22 +408,33 @@ public class PolicyCompiler {
             VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote() {
             return isApplicable.stream().switchMap(tracedApplicability -> {
                 val applicabilityValue = tracedApplicability.value();
+                val bodyAttributes     = tracedApplicability.contributingAttributes();
                 if (applicabilityValue instanceof ErrorValue error) {
-                    return Flux.just(Vote.error(error, voterMetadata));
+                    return Flux.just(Vote.tracedError(error, voterMetadata, bodyAttributes));
                 }
                 if (applicabilityValue instanceof BooleanValue(var b) && b) {
                     return switch (voter) {
-                    case Vote pd         -> Flux.just(pd);
-                    case PureVoter pdm   -> Flux.deferContextual(
-                            ctxView -> Flux.just(pdm.vote(knownContributions, ctxView.get(EvaluationContext.class))));
-                    case StreamVoter sdm -> sdm.vote(knownContributions);
+                    case Vote pd         -> Flux.just(mergeBodyAttributes(pd, bodyAttributes));
+                    case PureVoter pdm   -> Flux.deferContextual(ctxView -> Flux
+                            .just(mergeBodyAttributes(pdm.vote(ctxView.get(EvaluationContext.class)), bodyAttributes)));
+                    case StreamVoter sdm -> sdm.vote().map(v -> mergeBodyAttributes(v, bodyAttributes));
                     };
                 }
-                return Flux.just(Vote.abstain(voterMetadata));
+                return Flux.just(Vote.tracedAbstain(voterMetadata, bodyAttributes));
             });
+        }
+
+        private static Vote mergeBodyAttributes(Vote constraintVote, List<AttributeRecord> bodyAttributes) {
+            if (bodyAttributes.isEmpty()) {
+                return constraintVote;
+            }
+            val merged = new ArrayList<>(bodyAttributes);
+            merged.addAll(constraintVote.contributingAttributes());
+            return new Vote(constraintVote.authorizationDecision(), constraintVote.errors(), merged,
+                    constraintVote.contributingVotes(), constraintVote.voter(), constraintVote.outcome());
         }
     }
 
@@ -437,7 +451,7 @@ public class PolicyCompiler {
             VoterMetadata metadata) implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
                 val ctx                 = ctxView.get(EvaluationContext.class);
                 val applicabilityResult = isApplicable.evaluate(ctx);
@@ -445,7 +459,7 @@ public class PolicyCompiler {
                     return Flux.just(Vote.error(error, metadata));
                 }
                 if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamVoter.vote(knownContributions);
+                    return streamVoter.vote();
                 }
                 return Flux.just(Vote.abstain(metadata));
             });

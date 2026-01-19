@@ -72,8 +72,6 @@ public class PolicySetUtil {
             new PureApplicabilityStreamPolicySet(po, sdm, voterMetadata);
         case PureOperator po                                       ->
             new ApplicabilityCheckingPurePolicySet(po, voter, voterMetadata);
-        case StreamOperator so                                     ->
-            new ApplicabilityCheckingStreamPolicySet(so, voter, voterMetadata);
         default                                                    ->
             Vote.error(new ErrorValue(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), voterMetadata);
         };
@@ -141,17 +139,16 @@ public class PolicySetUtil {
      * Lifts any vote maker type to a flux for uniform stream handling.
      *
      * @param voter the vote maker to lift
-     * @param priorAttributes attributes from prior evaluation
      * @return flux emitting policy decisions
      */
-    public static Flux<Vote> toStream(Voter voter, List<AttributeRecord> priorAttributes) {
+    public static Flux<Vote> toStream(Voter voter) {
         return switch (voter) {
         case Vote d        -> Flux.just(d);
         case PureVoter p   -> Flux.deferContextual(ctxView -> {
                            val ctx = ctxView.get(EvaluationContext.class);
-                           return Flux.just(p.vote(priorAttributes, ctx));
+                           return Flux.just(p.vote(ctx));
                        });
-        case StreamVoter s -> s.vote(priorAttributes);
+        case StreamVoter s -> s.vote();
         };
     }
 
@@ -159,16 +156,14 @@ public class PolicySetUtil {
      * Evaluates a policy in pure context, expecting non-streaming vote maker.
      *
      * @param policy the compiled policy to evaluate
-     * @param priorAttributes attributes from prior evaluation
      * @param ctx the evaluation context
      * @param location source location for errors reporting
      * @return the policy vote
      */
-    public static Vote evaluatePure(CompiledPolicy policy, List<AttributeRecord> priorAttributes, EvaluationContext ctx,
-            SourceLocation location) {
+    public static Vote evaluatePure(CompiledPolicy policy, EvaluationContext ctx, SourceLocation location) {
         return switch (policy.applicabilityAndVote()) {
         case Vote d              -> d;
-        case PureVoter p         -> p.vote(priorAttributes, ctx);
+        case PureVoter p         -> p.vote(ctx);
         case StreamVoter ignored ->
             Vote.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT, null, location), policy.metadata());
         };
@@ -205,7 +200,7 @@ public class PolicySetUtil {
             implements PureVoter {
 
         @Override
-        public Vote vote(List<AttributeRecord> knownContributions, EvaluationContext ctx) {
+        public Vote vote(EvaluationContext ctx) {
             val applicabilityResult = isApplicable.evaluate(ctx);
             if (applicabilityResult instanceof ErrorValue error) {
                 return Vote.error(error, voterMetadata);
@@ -213,41 +208,11 @@ public class PolicySetUtil {
             if (applicabilityResult instanceof BooleanValue(var b) && b) {
                 return switch (voter) {
                 case Vote pd             -> pd;
-                case PureVoter pdm       -> pdm.vote(knownContributions, ctx);
+                case PureVoter pdm       -> pdm.vote(ctx);
                 case StreamVoter ignored -> Vote.error(new ErrorValue(ERROR_STREAM_IN_PURE_CONTEXT), voterMetadata);
                 };
             }
             return Vote.abstain(voterMetadata);
-        }
-    }
-
-    /**
-     * Decision maker for streaming applicability check.
-     *
-     * @param isApplicable the stream operator for applicability evaluation
-     * @param voter the underlying vote maker
-     * @param voterMetadata the policy set voterMetadata
-     */
-    record ApplicabilityCheckingStreamPolicySet(StreamOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
-            implements StreamVoter {
-
-        @Override
-        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
-            return isApplicable.stream().switchMap(tracedApplicability -> {
-                val applicabilityValue = tracedApplicability.value();
-                if (applicabilityValue instanceof ErrorValue error) {
-                    return Flux.just(Vote.error(error, voterMetadata));
-                }
-                if (applicabilityValue instanceof BooleanValue(var b) && b) {
-                    return switch (voter) {
-                    case Vote pd         -> Flux.just(pd);
-                    case PureVoter pdm   -> Flux.deferContextual(
-                            ctxView -> Flux.just(pdm.vote(knownContributions, ctxView.get(EvaluationContext.class))));
-                    case StreamVoter sdm -> sdm.vote(knownContributions);
-                    };
-                }
-                return Flux.just(Vote.abstain(voterMetadata, List.of()));
-            });
         }
     }
 
@@ -264,7 +229,7 @@ public class PolicySetUtil {
             VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
                 val ctx                 = ctxView.get(EvaluationContext.class);
                 val applicabilityResult = isApplicable.evaluate(ctx);
@@ -272,7 +237,7 @@ public class PolicySetUtil {
                     return Flux.just(Vote.error(error, voterMetadata));
                 }
                 if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamVoter.vote(knownContributions);
+                    return streamVoter.vote();
                 }
                 return Flux.just(Vote.abstain(voterMetadata));
             });

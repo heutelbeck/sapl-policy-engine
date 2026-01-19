@@ -17,11 +17,8 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.AttributeRecord;
 import reactor.core.publisher.Flux;
 
-import java.util.List;
-
 public non-sealed interface StreamVoter extends Voter {
-    Flux<Vote> vote(List<AttributeRecord> knownContributions);
+    Flux<Vote> vote();
 }

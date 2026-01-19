@@ -186,8 +186,8 @@ public class SaplTesting {
     public static Flux<Vote> evaluatePolicyVoter(Voter compiled, EvaluationContext evalCtx) {
         return switch (compiled) {
         case Vote vote          -> Flux.just(vote);
-        case PureVoter pure     -> Flux.just(pure.vote(List.of(), evalCtx));
-        case StreamVoter stream -> stream.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        case PureVoter pure     -> Flux.just(pure.vote(evalCtx));
+        case StreamVoter stream -> stream.vote().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         };
     }
 
@@ -205,10 +205,16 @@ public class SaplTesting {
             var errors = String.join("; ", parsed.syntaxErrors());
             throw new IllegalArgumentException("Syntax errors(s) in policy set: " + errors);
         }
+        if (!parsed.validationErrors().isEmpty()) {
+            var errors = parsed.validationErrors().stream().map(Object::toString)
+                    .collect(java.util.stream.Collectors.joining("; "));
+            throw new IllegalArgumentException("Validation error(s) in policy set: " + errors);
+        }
         var document = parsed.saplDocument();
         if (!(document instanceof io.sapl.ast.PolicySet policySet)) {
             throw new IllegalArgumentException("Expected a policy set document, got: "
-                    + (document == null ? "null" : document.getClass().getSimpleName()));
+                    + (document == null ? "null" : document.getClass().getSimpleName()) + " | type: " + parsed.type()
+                    + " | errorMessage: " + parsed.errorMessage());
         }
         return PolicySetCompiler.compilePolicySet(policySet, ctx);
     }
@@ -217,9 +223,9 @@ public class SaplTesting {
         var voter = compiled.applicabilityAndVote();
         return switch (voter) {
         case Vote vote          -> vote;
-        case PureVoter pure     -> pure.vote(List.of(), ctx);
+        case PureVoter pure     -> pure.vote(ctx);
         case StreamVoter stream ->
-            stream.vote(List.of()).contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+            stream.vote().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
         };
     }
 

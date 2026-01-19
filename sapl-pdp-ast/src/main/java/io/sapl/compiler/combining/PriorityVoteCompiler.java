@@ -110,19 +110,10 @@ public class PriorityVoteCompiler {
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata) implements PureVoter {
         @Override
-        public Vote vote(List<AttributeRecord> bodyContributionsIgnored, EvaluationContext ctx) {
-            // Note: the bodyContributions is always empty here. This is only set when dong
-            // a
-            // first-applicable set evaluation as prior policies in the sequence can
-            // contribute.
-            // NOTE: Check if we can simplify there as well and defer the contributing
-            // attributes to the aggregated contributingPolicies List of the vote there as
-            // well. Maybe my assumption is wrong here.
+        public Vote vote(EvaluationContext ctx) {
             val vote = combinePureVoters(accumulatorVote, documents, priorityDecision, voterMetadata, ctx);
             return finalizeVote(vote, defaultDecision, errorHandling);
-
         }
-
     }
 
     record StreamPriorityVoter(
@@ -134,7 +125,7 @@ public class PriorityVoteCompiler {
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata) implements StreamVoter {
         @Override
-        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
+        public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
                 val evalCtx      = ctxView.get(EvaluationContext.class);
                 var pureVote     = combinePureVoters(accumulatorVote, pureDocuments, priorityDecision, voterMetadata,
@@ -155,7 +146,7 @@ public class PriorityVoteCompiler {
                         pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, errorVote, priorityDecision,
                                 voterMetadata);
                     } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                        streamVoters.add(((StreamVoter) document.voter()).vote(List.of()));
+                        streamVoters.add(((StreamVoter) document.voter()).vote());
                     }
                 }
                 streamVoters.set(0, Flux.just(pureVote));
@@ -194,7 +185,7 @@ public class PriorityVoteCompiler {
                 if (voter instanceof Vote constantVote) {
                     newVote = constantVote;
                 } else {
-                    newVote = ((PureVoter) voter).vote(List.of(), ctx);
+                    newVote = ((PureVoter) voter).vote(ctx);
                 }
                 vote = PriorityBasedVoteCombiner.combineVotes(vote, newVote, priorityDecision, voterMetadata);
             }

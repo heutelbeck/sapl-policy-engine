@@ -867,7 +867,7 @@ class FirstVoteCompilerTests {
 
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            StepVerifier.create(streamVoter.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
                     .assertNext(pdpVote -> {
                         assertThat(pdpVote.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
                         assertVoteHasAllTheseContributing(pdpVote, testCase.contributingPolicies());
@@ -986,6 +986,135 @@ class FirstVoteCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+        }
+    }
+
+    @Nested
+    @DisplayName("Attribute aggregation")
+    class AttributeAggregation {
+
+        @Test
+        @DisplayName("aggregates attributes from chain of NOT_APPLICABLE policies with final PERMIT")
+        void aggregatesAttributesFromNotApplicableChainWithFinalPermit() {
+            // Policy A: test.attrA returns false -> NOT_APPLICABLE
+            // Policy B: test.attrB returns false -> NOT_APPLICABLE
+            // Policy C: test.attrC returns true -> PERMIT
+            // All attributes should be aggregated in the final vote
+            val attrBroker = attributeBroker(Map.of("test.attrA", new Value[] { Value.FALSE }, "test.attrB",
+                    new Value[] { Value.FALSE }, "test.attrC", new Value[] { Value.TRUE }));
+            val compiled   = compilePolicySet("""
+                    set "attribute-chain"
+                    first-vote or abstain errors propagate
+
+                    policy "policy-a"
+                    permit
+                    where
+                      <test.attrA>;
+
+                    policy "policy-b"
+                    permit
+                    where
+                      <test.attrB>;
+
+                    policy "policy-c"
+                    permit
+                    where
+                      <test.attrC>;
+                    """, attrBroker);
+
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                        assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
+
+                        // Verify all three attributes are aggregated from the tree
+                        val aggregatedAttrs = vote.aggregatedContributingAttributes();
+                        val attrNames = aggregatedAttrs.stream().map(attr -> attr.invocation().attributeName()).toList();
+                        assertThat(attrNames).containsExactlyInAnyOrder("test.attrA", "test.attrB", "test.attrC");
+                    }).expectComplete().verify(TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("aggregates attributes when first policy permits (short-circuit with attributes)")
+        void aggregatesAttributesOnShortCircuit() {
+            val attrBroker = attributeBroker(Map.of("test.first", new Value[] { Value.TRUE }));
+            val compiled   = compilePolicySet("""
+                    set "short-circuit"
+                    first-vote or abstain errors propagate
+
+                    policy "permits-immediately"
+                    permit
+                    where
+                      <test.first>;
+
+                    policy "never-evaluated"
+                    deny
+                    where
+                      <test.never>;
+                    """, attrBroker);
+
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                        assertVoteHasAllTheseContributing(vote, List.of("permits-immediately"));
+
+                        // Only the first policy's attribute should be aggregated (short-circuit)
+                        val aggregatedAttrs = vote.aggregatedContributingAttributes();
+                        val attrNames = aggregatedAttrs.stream().map(attr -> attr.invocation().attributeName()).toList();
+                        assertThat(attrNames).containsExactly("test.first");
+                    }).expectComplete().verify(TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("aggregates attributes from all NOT_APPLICABLE policies when none match")
+        void aggregatesAttributesWhenAllNotApplicable() {
+            // Both attributes return false -> all policies NOT_APPLICABLE
+            val attrBroker = attributeBroker(
+                    Map.of("test.attrX", new Value[] { Value.FALSE }, "test.attrY", new Value[] { Value.FALSE }));
+            val compiled   = compilePolicySet("""
+                    set "all-not-applicable"
+                    first-vote or abstain errors propagate
+
+                    policy "policy-x"
+                    permit
+                    where
+                      <test.attrX>;
+
+                    policy "policy-y"
+                    permit
+                    where
+                      <test.attrY>;
+                    """, attrBroker);
+
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
+                        assertVoteHasAllTheseContributing(vote, List.of("policy-x", "policy-y"));
+
+                        // Both attributes should be aggregated even though all policies are
+                        // NOT_APPLICABLE
+                        val aggregatedAttrs = vote.aggregatedContributingAttributes();
+                        val attrNames = aggregatedAttrs.stream().map(attr -> attr.invocation().attributeName()).toList();
+                        assertThat(attrNames).containsExactlyInAnyOrder("test.attrX", "test.attrY");
+                    }).expectComplete().verify(TIMEOUT);
         }
     }
 

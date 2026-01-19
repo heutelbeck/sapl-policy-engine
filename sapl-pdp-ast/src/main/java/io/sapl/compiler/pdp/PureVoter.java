@@ -17,11 +17,8 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.EvaluationContext;
 
-import java.util.List;
-
 public non-sealed interface PureVoter extends Voter {
-    Vote vote(List<AttributeRecord> bodyContributions, EvaluationContext ctx);
+    Vote vote(EvaluationContext ctx);
 }

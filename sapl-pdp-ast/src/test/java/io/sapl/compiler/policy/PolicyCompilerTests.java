@@ -353,7 +353,7 @@ class PolicyCompilerTests {
             assertThat(voter).isInstanceOf(PureVoter.class);
 
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), rincewindContext());
+            val vote                  = pureVoter.vote(rincewindContext());
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
         }
@@ -368,7 +368,7 @@ class PolicyCompilerTests {
                     """;
             val voter                 = compileToVoter(policy);
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), rincewindContext());
+            val vote                  = pureVoter.vote(rincewindContext());
             val authorizationDecision = vote.authorizationDecision();
             assertThat(vote).isInstanceOf(Vote.class);
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.NOT_APPLICABLE);
@@ -384,7 +384,7 @@ class PolicyCompilerTests {
                     """;
             val voter                 = compileToVoter(policy);
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), rincewindContext());
+            val vote                  = pureVoter.vote(rincewindContext());
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
@@ -404,7 +404,7 @@ class PolicyCompilerTests {
             assertThat(voter).isInstanceOf(PureVoter.class);
 
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), rincewindContext());
+            val vote                  = pureVoter.vote(rincewindContext());
             val authorizationDecision = vote.authorizationDecision();
 
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
@@ -423,7 +423,7 @@ class PolicyCompilerTests {
                     """;
             val voter                 = compileToVoter(policy);
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), rincewindContext());
+            val vote                  = pureVoter.vote(rincewindContext());
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.DENY);
         }
@@ -439,7 +439,7 @@ class PolicyCompilerTests {
                     """;
             val voter                 = compileToVoter(policy);
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), rincewindContext());
+            val vote                  = pureVoter.vote(rincewindContext());
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
             assertThat(authorizationDecision.obligations()).hasSize(1);
@@ -468,8 +468,7 @@ class PolicyCompilerTests {
                     """);
             val evalContext  = evaluationContext(subscription, attrBroker);
             val streamVoter  = (StreamVoter) voter;
-            StepVerifier
-                    .create(streamVoter.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
                     .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
                             .isEqualTo(Decision.NOT_APPLICABLE))
@@ -651,7 +650,7 @@ class PolicyCompilerTests {
             val ctx          = evaluationContext(subscription);
 
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), ctx);
+            val vote                  = pureVoter.vote(ctx);
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
             assertThat(authorizationDecision.obligations()).isNotEmpty();
@@ -686,7 +685,7 @@ class PolicyCompilerTests {
             val ctx          = evaluationContext(subscription);
 
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), ctx);
+            val vote                  = pureVoter.vote(ctx);
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.DENY);
         }
@@ -735,7 +734,7 @@ class PolicyCompilerTests {
             val ctx          = evaluationContext(subscription);
 
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), ctx);
+            val vote                  = pureVoter.vote(ctx);
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
         }
@@ -766,7 +765,7 @@ class PolicyCompilerTests {
             val ctx          = evaluationContext(subscription);
 
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), ctx);
+            val vote                  = pureVoter.vote(ctx);
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
             assertThat(authorizationDecision.resource()).isNotNull().isNotInstanceOf(UndefinedValue.class);
@@ -883,7 +882,7 @@ class PolicyCompilerTests {
             val ctx          = evaluationContext(subscription);
 
             val pureVoter             = (PureVoter) voter;
-            val vote                  = pureVoter.vote(List.of(), ctx);
+            val vote                  = pureVoter.vote(ctx);
             val authorizationDecision = vote.authorizationDecision();
             assertThat(authorizationDecision.decision()).isEqualTo(Decision.PERMIT);
         }
@@ -913,8 +912,7 @@ class PolicyCompilerTests {
             val evalContext  = evaluationContext(subscription, attrBroker);
 
             val streamVoter = (StreamVoter) voter;
-            StepVerifier
-                    .create(streamVoter.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
                     .verifyComplete();
         }
@@ -938,8 +936,7 @@ class PolicyCompilerTests {
             val evalContext  = evaluationContext(subscription, attrBroker);
 
             val streamVoter = (StreamVoter) voter;
-            StepVerifier
-                    .create(streamVoter.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
                             .isEqualTo(Decision.NOT_APPLICABLE))
                     .verifyComplete();
@@ -965,8 +962,7 @@ class PolicyCompilerTests {
             val evalContext  = evaluationContext(subscription, attrBroker);
 
             val streamVoter = (StreamVoter) voter;
-            StepVerifier
-                    .create(streamVoter.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(vote -> {
                         val authzDecision = vote.authorizationDecision();
                         assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
@@ -993,8 +989,7 @@ class PolicyCompilerTests {
             val evalContext  = evaluationContext(subscription, attrBroker);
 
             val streamVoter = (StreamVoter) voter;
-            StepVerifier
-                    .create(streamVoter.vote(List.of()).contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
                     .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
                             .isEqualTo(Decision.INDETERMINATE))
                     .verifyComplete();

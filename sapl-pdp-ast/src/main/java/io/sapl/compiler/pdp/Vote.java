@@ -81,9 +81,17 @@ public record Vote(
         return new Vote(authorizationDecision, errors, contributingAttributes, mergedVotes, voter, outcome);
     }
 
-    public Vote withAttributes(List<AttributeRecord> newAttributes) {
-        val mergedAttributes = new ArrayList<>(contributingAttributes);
-        mergedAttributes.addAll(newAttributes);
-        return new Vote(authorizationDecision, errors, mergedAttributes, contributingVotes, voter, outcome);
+    /**
+     * Recursively aggregates all contributing attributes from this vote and all
+     * nested contributing votes in the tree.
+     *
+     * @return all attributes from this vote and its entire contributing vote tree
+     */
+    public List<AttributeRecord> aggregatedContributingAttributes() {
+        val all = new ArrayList<>(contributingAttributes);
+        for (val childVote : contributingVotes) {
+            all.addAll(childVote.aggregatedContributingAttributes());
+        }
+        return all;
     }
 }
