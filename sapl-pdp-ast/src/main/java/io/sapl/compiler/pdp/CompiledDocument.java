@@ -20,6 +20,7 @@ package io.sapl.compiler.pdp;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
+import reactor.core.publisher.Flux;
 
 /**
  * A compiled SAPL document (policy or policy set) with multiple evaluation
@@ -42,4 +43,6 @@ public interface CompiledDocument {
     Voter voter();
 
     Voter applicabilityAndVote();
+
+    Flux<VoteWithCoverage> coverage();
 }

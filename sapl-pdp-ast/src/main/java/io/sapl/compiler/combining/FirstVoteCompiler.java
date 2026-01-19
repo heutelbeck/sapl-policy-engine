@@ -270,12 +270,12 @@ public class FirstVoteCompiler {
     }
 
     /**
-     * Stream vote maker wrapping a pre-built reverse chain.
+     * Stream vote maker wrapping a prebuilt reverse chain.
      * <p>
      * The chain is constructed at compile time; this record provides the
      * {@link StreamVoter} interface.
      *
-     * @param chain the pre-built reverse-chained flux
+     * @param chain the prebuilt reverse-chained flux
      */
     record FirstVoteStreamPolicySet(Flux<Vote> chain) implements StreamVoter {
         @Override

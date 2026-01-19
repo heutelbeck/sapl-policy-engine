@@ -25,8 +25,9 @@ import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.*;
+import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -34,6 +35,7 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 @UtilityClass
 public class PriorityVoteCompiler {
@@ -47,7 +49,52 @@ public class PriorityVoteCompiler {
         return new VoterAndCoverage(voter, coverage);
     }
 
-    private record ClassifiedPolicies(
+    private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
+            List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata, Decision priorityDecision,
+            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory = targetHit -> evaluateAllPoliciesForCoverage(
+                compiledPolicies, targetHit, voterMetadata, priorityDecision, defaultDecision, errorHandling);
+        return PolicySetUtil.compileCoverageStream(policySet, isApplicable, bodyFactory);
+    }
+
+    /**
+     * Evaluates all policies for coverage collection.
+     * Unlike the optimized voter path, this evaluates ALL policies to provide
+     * comprehensive coverage information for testing.
+     */
+    private static Flux<VoteWithCoverage> evaluateAllPoliciesForCoverage(List<? extends CompiledDocument> policies,
+            Coverage.TargetHit targetHit, VoterMetadata voterMetadata, Decision priorityDecision,
+            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+
+        if (policies.isEmpty()) {
+            val fallbackVote = finalizeVote(Vote.abstain(voterMetadata), defaultDecision, errorHandling);
+            val coverage     = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
+            return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
+        }
+
+        List<Flux<VoteWithCoverage>> coverageStreams = policies.stream()
+                .map(CompiledDocument::coverage)
+                .toList();
+
+        return Flux.combineLatest(coverageStreams, results -> {
+            val votes            = new ArrayList<Vote>(results.length);
+            val policyCoverages  = new ArrayList<Coverage.DocumentCoverage>(results.length);
+
+            for (Object result : results) {
+                val vwc = (VoteWithCoverage) result;
+                votes.add(vwc.vote());
+                policyCoverages.add(vwc.coverage());
+            }
+
+            val combinedVote = PriorityBasedVoteCombiner.combineMultipleVotes(votes, priorityDecision, voterMetadata);
+            val finalVote    = finalizeVote(combinedVote, defaultDecision, errorHandling);
+            val setCoverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, policyCoverages);
+
+            return new VoteWithCoverage(finalVote, setCoverage);
+        });
+    }
+
+    private record StratifiedPolicies(
             List<Vote> foldableVotes,
             List<CompiledDocument> purePolicies,
             List<CompiledDocument> streamPolicies) {}
@@ -71,7 +118,7 @@ public class PriorityVoteCompiler {
                 priorityDecision, defaultDecision, errorHandling, voterMetadata);
     }
 
-    private static ClassifiedPolicies classifyPoliciesByEvaluationStrategy(
+    private static StratifiedPolicies classifyPoliciesByEvaluationStrategy(
             List<? extends CompiledDocument> compiledPolicies) {
         var foldableVotes  = new ArrayList<Vote>();
         var purePolicies   = new ArrayList<CompiledDocument>();
@@ -99,7 +146,7 @@ public class PriorityVoteCompiler {
                 purePolicies.add(policy);
             }
         }
-        return new ClassifiedPolicies(foldableVotes, purePolicies, streamPolicies);
+        return new StratifiedPolicies(foldableVotes, purePolicies, streamPolicies);
     }
 
     record PurePriorityVoter(
@@ -218,13 +265,6 @@ public class PriorityVoteCompiler {
                 originalAuthorizationDecision.resource());
         return new Vote(newAuthorizationDecision, accumulatedVote.errors(), accumulatedVote.contributingAttributes(),
                 accumulatedVote.contributingVotes(), accumulatedVote.voter(), outcome);
-    }
-
-    private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
-            List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata, Decision priorityDecision,
-            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s, %s".formatted(policySet, isApplicable,
-                compiledPolicies, voterMetadata, priorityDecision, defaultDecision, errorHandling));
     }
 
 }
