@@ -61,7 +61,7 @@ public class PriorityBasedVoteCombiner {
      * @param voterMetadata metadata for the combined vote
      * @return combined vote, or abstain if input is empty
      */
-    public static Vote combineMultipleVotes(ArrayList<Vote> foldableVotes, Decision priorityDecision,
+    public static Vote combineMultipleVotes(List<Vote> foldableVotes, Decision priorityDecision,
             VoterMetadata voterMetadata) {
         if (foldableVotes.isEmpty()) {
             return Vote.abstain(voterMetadata);

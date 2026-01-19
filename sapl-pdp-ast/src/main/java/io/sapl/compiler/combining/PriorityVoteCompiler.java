@@ -17,31 +17,30 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.Vote;
-import io.sapl.compiler.pdp.Voter;
-import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.ast.VoterMetadata;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.*;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @UtilityClass
 public class PriorityVoteCompiler {
-    public static VoterAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
-            CompiledExpression isApplicable, VoterMetadata voterMetadata, Decision priorityDecision,
-            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+    public static VoterAndCoverage compilePolicySet(PolicySet policySet,
+            List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
+            VoterMetadata voterMetadata, Decision priorityDecision, DefaultDecision defaultDecision,
+            ErrorHandling errorHandling) {
         val voter    = compileVoter(compiledPolicies, voterMetadata, policySet.location(), priorityDecision,
                 defaultDecision, errorHandling);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, priorityDecision,
@@ -49,24 +48,151 @@ public class PriorityVoteCompiler {
         return new VoterAndCoverage(voter, coverage);
     }
 
-    private static Voter compileVoter(List<CompiledPolicy> compiledPolicies, VoterMetadata voterMetadata,
+    private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             @NonNull SourceLocation location, Decision priorityDecision, DefaultDecision defaultDecision,
             ErrorHandling errorHandling) {
-        val index = StratifiedDocumentIndex.of(compiledPolicies, priorityDecision, voterMetadata);
 
-        // Check if we can constant-fold this voter. If no other stratum beyond the
-        // constant stratum is filled with policies, the vote calculated by the Index is
-        // already the final one.
-        if (index.isFullyConstant()) {
-            return finalizeVote(index.accumulatorVote(), defaultDecision, errorHandling);
+        var foldableVotes  = new ArrayList<Vote>();
+        var purePolicies   = new ArrayList<CompiledDocument>();
+        var streamPolicies = new ArrayList<CompiledDocument>();
+
+        for (var policy : compiledPolicies) {
+            val isApplicable = policy.isApplicable();
+            val voter        = policy.voter();
+
+            if (isApplicable instanceof Value constantApplicable) {
+                if (constantApplicable instanceof BooleanValue(var b) && !b) {
+                    continue; // constant FALSE - not applicable, skip
+                }
+                // constant TRUE or ERROR
+                if (voter instanceof Vote vote) {
+                    foldableVotes.add(vote);
+                } else if (voter instanceof StreamVoter) {
+                    streamPolicies.add(policy);
+                } else {
+                    purePolicies.add(policy);
+                }
+            } else if (voter instanceof StreamVoter) {
+                streamPolicies.add(policy);
+            } else {
+                purePolicies.add(policy);
+            }
         }
 
-        if (!index.hasStreamingPolicies()) {
-            // TODO Stream Path
+        val accumulatorVote = PriorityBasedVoteCombiner.combineMultipleVotes(foldableVotes, priorityDecision,
+                voterMetadata);
+
+        if (purePolicies.isEmpty() && streamPolicies.isEmpty()) {
+            return finalizeVote(accumulatorVote, defaultDecision, errorHandling);
         }
-        // TODO PURE PATH
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s".formatted(compiledPolicies,
-                voterMetadata, location, priorityDecision, defaultDecision, errorHandling));
+
+        if (streamPolicies.isEmpty()) {
+            return new PurePriorityVoter(accumulatorVote, purePolicies, priorityDecision, defaultDecision,
+                    errorHandling, voterMetadata);
+        }
+        return new StreamPriorityVoter(accumulatorVote, purePolicies, streamPolicies, priorityDecision, defaultDecision,
+                errorHandling, voterMetadata);
+    }
+
+    record PurePriorityVoter(
+            Vote accumulatorVote,
+            List<CompiledDocument> documents,
+            Decision priorityDecision,
+            DefaultDecision defaultDecision,
+            ErrorHandling errorHandling,
+            VoterMetadata voterMetadata) implements PureVoter {
+        @Override
+        public Vote vote(List<AttributeRecord> bodyContributionsIgnored, EvaluationContext ctx) {
+            // Note: the bodyContributions is always empty. This is only set when dong a
+            // first-applicable set evaluation as prior policies in the sequence can
+            // contribute.
+            // TODO: Check if we can simplify there as well and defer the contributing
+            // attributes to the aggregated contributingPolicies List of the vote there as
+            // well.
+            // Must examine this! Maybe my assumption is wrong here.
+            val vote = combinePureVoters(accumulatorVote, documents, priorityDecision, voterMetadata, ctx);
+            return finalizeVote(vote, defaultDecision, errorHandling);
+
+        }
+
+    }
+
+    record StreamPriorityVoter(
+            Vote accumulatorVote,
+            List<CompiledDocument> pureDocuments,
+            List<CompiledDocument> streamDocuments,
+            Decision priorityDecision,
+            DefaultDecision defaultDecision,
+            ErrorHandling errorHandling,
+            VoterMetadata voterMetadata) implements StreamVoter {
+        @Override
+        public Flux<Vote> vote(List<AttributeRecord> knownContributions) {
+            return Flux.deferContextual(ctxView -> {
+                val evalCtx      = ctxView.get(EvaluationContext.class);
+                var pureVote     = combinePureVoters(accumulatorVote, pureDocuments, priorityDecision, voterMetadata,
+                        evalCtx);
+                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
+                streamVoters.add(Flux.empty());
+                for (CompiledDocument document : streamDocuments) {
+                    Value isApplicable;
+                    val   isApplicableExpression = document.isApplicable();
+                    if (isApplicableExpression instanceof Value v) {
+                        isApplicable = v;
+                    } else {
+                        isApplicable = ((PureOperator) isApplicableExpression).evaluate(evalCtx);
+                    }
+
+                    if (isApplicable instanceof ErrorValue error) {
+                        var errorVote = Vote.error(error, document.metadata());
+                        pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, errorVote, priorityDecision,
+                                voterMetadata);
+                    } else if (isApplicable instanceof BooleanValue(var b) && b) {
+                        // TODO: again validate the empty list semantics globally.
+                        streamVoters.add(((StreamVoter) document.voter()).vote(List.of()));
+                    }
+                }
+                streamVoters.set(0, Flux.just(pureVote));
+                return Flux
+                        .combineLatest(streamVoters,
+                                votes -> PriorityBasedVoteCombiner.combineMultipleVotes(asTypedList(votes),
+                                        priorityDecision, voterMetadata))
+                        .map(vote -> finalizeVote(vote, defaultDecision, errorHandling));
+            });
+        }
+
+        @SuppressWarnings("unchecked")
+        private static <T> List<T> asTypedList(Object[] array) {
+            return (List<T>) (List<?>) Arrays.asList(array);
+        }
+    }
+
+    private static Vote combinePureVoters(Vote accumulatorVote, List<CompiledDocument> documents,
+            Decision priorityDecision, VoterMetadata voterMetadata, EvaluationContext ctx) {
+        var vote = accumulatorVote;
+        for (val document : documents) {
+            Value isApplicable;
+            val   isApplicableExpression = document.isApplicable();
+            if (isApplicableExpression instanceof Value v) {
+                isApplicable = v;
+            } else {
+                isApplicable = ((PureOperator) isApplicableExpression).evaluate(ctx);
+            }
+
+            if (isApplicable instanceof ErrorValue error) {
+                var errorVote = Vote.error(error, document.metadata());
+                vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
+            } else if (isApplicable instanceof BooleanValue(var b) && b) {
+                val  voter = document.voter();
+                Vote newVote;
+                if (voter instanceof Vote constantVote) {
+                    newVote = constantVote;
+                } else {
+                    newVote = ((PureVoter) voter).vote(List.of(), ctx);
+                }
+                vote = PriorityBasedVoteCombiner.combineVotes(vote, newVote, priorityDecision, voterMetadata);
+            }
+        }
+        return vote;
     }
 
     private static Vote finalizeVote(Vote accumulatedVote, DefaultDecision defaultDecision,
@@ -97,7 +223,7 @@ public class PriorityVoteCompiler {
     }
 
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
-            List<CompiledPolicy> compiledPolicies, VoterMetadata voterMetadata, Decision priorityDecision,
+            List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata, Decision priorityDecision,
             DefaultDecision defaultDecision, ErrorHandling errorHandling) {
         throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s, %s".formatted(policySet, isApplicable,
                 compiledPolicies, voterMetadata, priorityDecision, defaultDecision, errorHandling));
