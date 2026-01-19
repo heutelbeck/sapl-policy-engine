@@ -27,7 +27,6 @@ import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.*;
-import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -42,17 +41,38 @@ public class PriorityVoteCompiler {
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, Decision priorityDecision, DefaultDecision defaultDecision,
             ErrorHandling errorHandling) {
-        val voter    = compileVoter(compiledPolicies, voterMetadata, policySet.location(), priorityDecision,
-                defaultDecision, errorHandling);
+        val voter    = compileVoter(compiledPolicies, voterMetadata, priorityDecision, defaultDecision, errorHandling);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, priorityDecision,
                 defaultDecision, errorHandling);
         return new VoterAndCoverage(voter, coverage);
     }
 
-    private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
-            @NonNull SourceLocation location, Decision priorityDecision, DefaultDecision defaultDecision,
-            ErrorHandling errorHandling) {
+    private record ClassifiedPolicies(
+            List<Vote> foldableVotes,
+            List<CompiledDocument> purePolicies,
+            List<CompiledDocument> streamPolicies) {}
 
+    private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
+            Decision priorityDecision, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+
+        val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);
+        val accumulatorVote = PriorityBasedVoteCombiner.combineMultipleVotes(classified.foldableVotes(),
+                priorityDecision, voterMetadata);
+
+        if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
+            return finalizeVote(accumulatorVote, defaultDecision, errorHandling);
+        }
+
+        if (classified.streamPolicies().isEmpty()) {
+            return new PurePriorityVoter(accumulatorVote, classified.purePolicies(), priorityDecision, defaultDecision,
+                    errorHandling, voterMetadata);
+        }
+        return new StreamPriorityVoter(accumulatorVote, classified.purePolicies(), classified.streamPolicies(),
+                priorityDecision, defaultDecision, errorHandling, voterMetadata);
+    }
+
+    private static ClassifiedPolicies classifyPoliciesByEvaluationStrategy(
+            List<? extends CompiledDocument> compiledPolicies) {
         var foldableVotes  = new ArrayList<Vote>();
         var purePolicies   = new ArrayList<CompiledDocument>();
         var streamPolicies = new ArrayList<CompiledDocument>();
@@ -79,20 +99,7 @@ public class PriorityVoteCompiler {
                 purePolicies.add(policy);
             }
         }
-
-        val accumulatorVote = PriorityBasedVoteCombiner.combineMultipleVotes(foldableVotes, priorityDecision,
-                voterMetadata);
-
-        if (purePolicies.isEmpty() && streamPolicies.isEmpty()) {
-            return finalizeVote(accumulatorVote, defaultDecision, errorHandling);
-        }
-
-        if (streamPolicies.isEmpty()) {
-            return new PurePriorityVoter(accumulatorVote, purePolicies, priorityDecision, defaultDecision,
-                    errorHandling, voterMetadata);
-        }
-        return new StreamPriorityVoter(accumulatorVote, purePolicies, streamPolicies, priorityDecision, defaultDecision,
-                errorHandling, voterMetadata);
+        return new ClassifiedPolicies(foldableVotes, purePolicies, streamPolicies);
     }
 
     record PurePriorityVoter(
@@ -104,13 +111,13 @@ public class PriorityVoteCompiler {
             VoterMetadata voterMetadata) implements PureVoter {
         @Override
         public Vote vote(List<AttributeRecord> bodyContributionsIgnored, EvaluationContext ctx) {
-            // Note: the bodyContributions is always empty. This is only set when dong a
+            // Note: the bodyContributions is always empty here. This is only set when dong
+            // a
             // first-applicable set evaluation as prior policies in the sequence can
             // contribute.
-            // TODO: Check if we can simplify there as well and defer the contributing
+            // NOTE: Check if we can simplify there as well and defer the contributing
             // attributes to the aggregated contributingPolicies List of the vote there as
-            // well.
-            // Must examine this! Maybe my assumption is wrong here.
+            // well. Maybe my assumption is wrong here.
             val vote = combinePureVoters(accumulatorVote, documents, priorityDecision, voterMetadata, ctx);
             return finalizeVote(vote, defaultDecision, errorHandling);
 
@@ -148,7 +155,6 @@ public class PriorityVoteCompiler {
                         pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, errorVote, priorityDecision,
                                 voterMetadata);
                     } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                        // TODO: again validate the empty list semantics globally.
                         streamVoters.add(((StreamVoter) document.voter()).vote(List.of()));
                     }
                 }

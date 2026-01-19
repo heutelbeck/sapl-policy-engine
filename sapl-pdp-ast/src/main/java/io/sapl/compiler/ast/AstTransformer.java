@@ -226,7 +226,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private Outcome computeSetOutcome(List<Policy> policies, CombiningAlgorithm.DefaultDecision defaultDecision) {
         var outcome = switch (defaultDecision) {
-        case ABSTAIN -> (Outcome) null;
+        case ABSTAIN -> null;
         case DENY    -> Outcome.DENY;
         case PERMIT  -> Outcome.PERMIT;
         };

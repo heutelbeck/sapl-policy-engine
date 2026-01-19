@@ -36,14 +36,10 @@ import lombok.val;
 @UtilityClass
 public class PolicySetCompiler {
 
-    public static final String ERROR_NO_POLICIES           = "Policy sets must contain at least one policy";
     public static final String ERROR_VARIABLE_REDEFINITION = "Redefinition of variable %s not permitted.";
 
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
         compilePolicySetVariables(policySet, ctx);
-        if (policySet.policies().isEmpty()) {
-            throw new SaplCompilerException(ERROR_NO_POLICIES, policySet.location());
-        }
         val metadata         = policySet.metadata();
         val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
                 .toList();
