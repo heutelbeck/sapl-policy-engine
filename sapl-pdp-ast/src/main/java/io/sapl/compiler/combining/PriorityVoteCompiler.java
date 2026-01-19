@@ -22,6 +22,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
+import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -200,26 +201,26 @@ public class PriorityVoteCompiler {
         if (accumulatedVote.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
             return switch (defaultDecision) {
             case ABSTAIN -> accumulatedVote;
-            case DENY    -> replaceDecision(accumulatedVote, Decision.DENY);
-            case PERMIT  -> replaceDecision(accumulatedVote, Decision.PERMIT);
+            case DENY    -> replaceDecision(accumulatedVote, Decision.DENY, Outcome.DENY);
+            case PERMIT  -> replaceDecision(accumulatedVote, Decision.PERMIT, Outcome.PERMIT);
             };
         }
         if (accumulatedVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
             return switch (errorHandling) {
-            case ABSTAIN   -> replaceDecision(accumulatedVote, Decision.NOT_APPLICABLE);
+            case ABSTAIN   -> replaceDecision(accumulatedVote, Decision.NOT_APPLICABLE, accumulatedVote.outcome());
             case PROPAGATE -> accumulatedVote;
             };
         }
         return accumulatedVote;
     }
 
-    private static Vote replaceDecision(Vote accumulatedVote, Decision decision) {
+    private static Vote replaceDecision(Vote accumulatedVote, Decision decision, Outcome outcome) {
         val originalAuthorizationDecision = accumulatedVote.authorizationDecision();
         val newAuthorizationDecision      = new AuthorizationDecision(decision,
                 originalAuthorizationDecision.obligations(), originalAuthorizationDecision.advice(),
                 originalAuthorizationDecision.resource());
         return new Vote(newAuthorizationDecision, accumulatedVote.errors(), accumulatedVote.contributingAttributes(),
-                accumulatedVote.contributingVotes(), accumulatedVote.voter());
+                accumulatedVote.contributingVotes(), accumulatedVote.voter(), outcome);
     }
 
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,

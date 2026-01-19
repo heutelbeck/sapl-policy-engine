@@ -212,7 +212,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         this.inPolicySet = false;
 
         // Compute outcome and hasConstraints from contained policies
-        var outcome        = computeSetOutcome(policies);
+        var outcome        = computeSetOutcome(policies, algorithm.defaultDecision());
         var hasConstraints = policies.stream().anyMatch(p -> p.metadata().hasConstraints());
         var metadata       = new PolicySetVoterMetadata(name, pdpId, configurationId, documentId, algorithm, outcome,
                 hasConstraints);
@@ -224,8 +224,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return new PolicySet(policySetImports, metadata, target, match, variables, policies, fromContext(ctx));
     }
 
-    private Outcome computeSetOutcome(List<Policy> policies) {
-        Outcome outcome = null;
+    private Outcome computeSetOutcome(List<Policy> policies, CombiningAlgorithm.DefaultDecision defaultDecision) {
+        var outcome = switch (defaultDecision) {
+        case ABSTAIN -> (Outcome) null;
+        case DENY    -> Outcome.DENY;
+        case PERMIT  -> Outcome.PERMIT;
+        };
         for (var policy : policies) {
             var policyOutcome = policy.metadata().outcome();
             if (outcome == null) {

@@ -42,9 +42,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @DisplayName("PriorityBasedVoteCombiner")
 class PriorityBasedVoteCombinerTests {
 
-    static final VoterMetadata TEST_METADATA = testMetadata("test-voter");
+    static final VoterMetadata TEST_METADATA = testMetadata("test-voter", Outcome.PERMIT_OR_DENY);
 
-    static VoterMetadata testMetadata(String name) {
+    static VoterMetadata testMetadata(String name, Outcome outcome) {
         return new VoterMetadata() {
             @Override
             public String name() {
@@ -63,7 +63,7 @@ class PriorityBasedVoteCombinerTests {
 
             @Override
             public Outcome outcome() {
-                return Outcome.PERMIT;
+                return outcome;
             }
 
             @Override
@@ -75,25 +75,26 @@ class PriorityBasedVoteCombinerTests {
 
     static Vote permitVote(String name) {
         return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name), List.of());
+                testMetadata(name, Outcome.PERMIT), List.of());
     }
 
     static Vote denyVote(String name) {
-        return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, testMetadata(name),
-                List.of());
+        return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.DENY), List.of());
     }
 
-    static Vote notApplicableVote(String name) {
-        return Vote.abstain(testMetadata(name));
-    }
-
-    static Vote indeterminateVote(String name) {
-        return Vote.error(Value.error("test error"), testMetadata(name));
+    static Vote indeterminateVote(String name, Outcome outcome) {
+        return Vote.error(Value.error("test error"), testMetadata(name, outcome));
     }
 
     static Vote permitWithResource(String name, Value resource) {
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource, testMetadata(name),
-                List.of());
+        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
+                testMetadata(name, Outcome.PERMIT), List.of());
+    }
+
+    static Vote denyWithResource(String name, Value resource) {
+        return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
+                testMetadata(name, Outcome.DENY), List.of());
     }
 
     static Vote permitWithObligations(String name, Value... obligations) {
@@ -102,7 +103,16 @@ class PriorityBasedVoteCombinerTests {
             obligationsArray.add(o);
         }
         return Vote.tracedVote(Decision.PERMIT, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name), List.of());
+                testMetadata(name, Outcome.PERMIT), List.of());
+    }
+
+    static Vote denyWithObligations(String name, Value... obligations) {
+        val obligationsArray = ArrayValue.builder();
+        for (var o : obligations) {
+            obligationsArray.add(o);
+        }
+        return Vote.tracedVote(Decision.DENY, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.DENY), List.of());
     }
 
     static Vote permitWithAdvice(String name, Value... advice) {
@@ -111,7 +121,17 @@ class PriorityBasedVoteCombinerTests {
             adviceArray.add(a);
         }
         return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArray.build(), Value.UNDEFINED,
-                testMetadata(name), List.of());
+                testMetadata(name, Outcome.PERMIT), List.of());
+    }
+
+    static Vote voteWithNullOutcome(Decision decision, String name) {
+        return new Vote(new io.sapl.api.pdp.AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED), List.of(), List.of(), List.of(), testMetadata(name, null), null);
+    }
+
+    static Vote indeterminateWithNullOutcome(String name) {
+        return new Vote(io.sapl.api.pdp.AuthorizationDecision.INDETERMINATE, List.of(Value.error("test error")),
+                List.of(), List.of(), testMetadata(name, null), null);
     }
 
     @Nested
@@ -142,8 +162,7 @@ class PriorityBasedVoteCombinerTests {
         @Test
         @DisplayName("multiple votes are combined and all contributing")
         void whenMultipleVotesThenAllContributing() {
-            val votes  = new ArrayList<>(
-                    List.of(notApplicableVote("policy-1"), notApplicableVote("policy-2"), permitVote("policy-3")));
+            val votes  = new ArrayList<>(List.of(denyVote("policy-1"), denyVote("policy-2"), permitVote("policy-3")));
             val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
@@ -151,95 +170,161 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("short-circuits on INDETERMINATE")
-        void whenIndeterminateThenShortCircuits() {
-            val votes  = new ArrayList<>(
-                    List.of(permitVote("policy-1"), indeterminateVote("policy-2"), denyVote("policy-3")));
+        @DisplayName("short-circuits on critical INDETERMINATE")
+        void whenCriticalIndeterminateThenShortCircuits() {
+            // INDET(PERMIT) is critical for permit-overrides - should short-circuit
+            val votes  = new ArrayList<>(List.of(denyVote("policy-1"), indeterminateVote("policy-2", Outcome.PERMIT),
+                    permitVote("policy-3")));
             val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
             assertThat(result.contributingVotes()).hasSize(2).extracting(v -> v.voter().name())
                     .containsExactly("policy-1", "policy-2");
         }
+
+        @Test
+        @DisplayName("does not short-circuit on non-critical INDETERMINATE")
+        void whenNonCriticalIndeterminateThenContinues() {
+            // INDET(DENY) is non-critical for permit-overrides - priority can still win
+            val votes  = new ArrayList<>(
+                    List.of(denyVote("policy-1"), indeterminateVote("policy-2", Outcome.DENY), permitVote("policy-3")));
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+            assertThat(result.contributingVotes()).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("non-critical accumulated INDETERMINATE continues loop")
+        void whenNonCriticalAccumulatedIndeterminateThenContinuesLoop() {
+            // INDET(PERMIT) is non-critical for deny-overrides - should not short-circuit
+            val votes  = new ArrayList<>(List.of(indeterminateVote("policy-1", Outcome.PERMIT), denyVote("policy-2")));
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.DENY, TEST_METADATA);
+
+            // DENY priority wins, all votes considered
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+            assertThat(result.contributingVotes()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("does not short-circuit on priority - collects constraints")
+        void whenPriorityThenContinuesToCollectConstraints() {
+            val obligation1 = Value.of("obligation-1");
+            val obligation2 = Value.of("obligation-2");
+            val votes       = new ArrayList<>(List.of(permitWithObligations("policy-1", obligation1),
+                    denyVote("policy-2"), permitWithObligations("policy-3", obligation2)));
+            val result      = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+            assertThat((List<Value>) result.authorizationDecision().obligations()).containsExactly(obligation1,
+                    obligation2);
+            assertThat(result.contributingVotes()).hasSize(3);
+        }
     }
 
     @Nested
-    @DisplayName("combineVotes decision priority")
-    class CombineVotesDecisionPriorityTests {
-
-        record DecisionPriorityCase(
-                String description,
-                Decision accumulatorDecision,
-                Decision newDecision,
-                Decision priorityDecision,
-                Decision expectedResult) {
-
-            @Override
-            public @NonNull String toString() {
-                return description;
-            }
-        }
-
-        static Stream<Arguments> decisionPriorityCases() {
-            return Stream.of(
-                    // INDETERMINATE always wins
-                    arguments(new DecisionPriorityCase("accumulator INDETERMINATE returns accumulator",
-                            Decision.INDETERMINATE, Decision.PERMIT, Decision.PERMIT, Decision.INDETERMINATE)),
-                    arguments(new DecisionPriorityCase("new INDETERMINATE returns INDETERMINATE", Decision.PERMIT,
-                            Decision.INDETERMINATE, Decision.PERMIT, Decision.INDETERMINATE)),
-                    arguments(new DecisionPriorityCase("new INDETERMINATE over DENY returns INDETERMINATE",
-                            Decision.DENY, Decision.INDETERMINATE, Decision.DENY, Decision.INDETERMINATE)),
-
-                    // NOT_APPLICABLE loses to everything
-                    arguments(new DecisionPriorityCase("accumulator NOT_APPLICABLE loses to PERMIT",
-                            Decision.NOT_APPLICABLE, Decision.PERMIT, Decision.PERMIT, Decision.PERMIT)),
-                    arguments(new DecisionPriorityCase("accumulator NOT_APPLICABLE loses to DENY",
-                            Decision.NOT_APPLICABLE, Decision.DENY, Decision.DENY, Decision.DENY)),
-                    arguments(new DecisionPriorityCase("new NOT_APPLICABLE loses to PERMIT", Decision.PERMIT,
-                            Decision.NOT_APPLICABLE, Decision.PERMIT, Decision.PERMIT)),
-                    arguments(new DecisionPriorityCase("new NOT_APPLICABLE loses to DENY", Decision.DENY,
-                            Decision.NOT_APPLICABLE, Decision.DENY, Decision.DENY)),
-                    arguments(new DecisionPriorityCase("both NOT_APPLICABLE returns NOT_APPLICABLE",
-                            Decision.NOT_APPLICABLE, Decision.NOT_APPLICABLE, Decision.PERMIT,
-                            Decision.NOT_APPLICABLE)),
-
-                    // Same decisions merge (no conflict)
-                    arguments(new DecisionPriorityCase("both PERMIT merges to PERMIT", Decision.PERMIT, Decision.PERMIT,
-                            Decision.PERMIT, Decision.PERMIT)),
-                    arguments(new DecisionPriorityCase("both DENY merges to DENY", Decision.DENY, Decision.DENY,
-                            Decision.DENY, Decision.DENY)),
-
-                    // Priority resolution for PERMIT vs DENY
-                    arguments(new DecisionPriorityCase("PERMIT vs DENY with priority PERMIT returns PERMIT",
-                            Decision.PERMIT, Decision.DENY, Decision.PERMIT, Decision.PERMIT)),
-                    arguments(new DecisionPriorityCase("PERMIT vs DENY with priority DENY returns DENY",
-                            Decision.PERMIT, Decision.DENY, Decision.DENY, Decision.DENY)),
-                    arguments(new DecisionPriorityCase("DENY vs PERMIT with priority PERMIT returns PERMIT",
-                            Decision.DENY, Decision.PERMIT, Decision.PERMIT, Decision.PERMIT)),
-                    arguments(new DecisionPriorityCase("DENY vs PERMIT with priority DENY returns DENY", Decision.DENY,
-                            Decision.PERMIT, Decision.DENY, Decision.DENY)));
-        }
+    @DisplayName("combineVotes basic decision logic")
+    class CombineVotesBasicDecisionTests {
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("decisionPriorityCases")
-        void decisionPriorityCases(DecisionPriorityCase testCase) {
-            val accumulatorVote = createVoteForDecision(testCase.accumulatorDecision(), "accumulator");
-            val newVote         = createVoteForDecision(testCase.newDecision(), "new");
-            val accumulator     = PriorityBasedVoteCombiner.accumulatorVoteFrom(accumulatorVote, TEST_METADATA);
+        @MethodSource("basicDecisionCases")
+        @DisplayName("basic decision combining")
+        void basicDecisionCases(String description, Vote accVote, Vote newVote, Decision priority,
+                Decision expectedDecision) {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(accVote, TEST_METADATA);
+            val result      = PriorityBasedVoteCombiner.combineVotes(accumulator, newVote, priority, TEST_METADATA);
 
-            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, newVote, testCase.priorityDecision(),
-                    TEST_METADATA);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedResult());
+            assertThat(result.authorizationDecision().decision()).isEqualTo(expectedDecision);
         }
 
-        private Vote createVoteForDecision(Decision decision, String name) {
-            return switch (decision) {
-            case PERMIT         -> permitVote(name);
-            case DENY           -> denyVote(name);
-            case NOT_APPLICABLE -> notApplicableVote(name);
-            case INDETERMINATE  -> indeterminateVote(name);
-            };
+        static Stream<Arguments> basicDecisionCases() {
+            return Stream.of(
+                    // Same decisions merge
+                    arguments("both PERMIT merges to PERMIT", permitVote("a"), permitVote("b"), Decision.PERMIT,
+                            Decision.PERMIT),
+                    arguments("both DENY merges to DENY", denyVote("a"), denyVote("b"), Decision.DENY, Decision.DENY),
+
+                    // Priority wins in PERMIT vs DENY
+                    arguments("DENY vs PERMIT with permit-overrides returns PERMIT", denyVote("a"), permitVote("b"),
+                            Decision.PERMIT, Decision.PERMIT),
+                    arguments("DENY vs PERMIT with deny-overrides returns DENY", denyVote("a"), permitVote("b"),
+                            Decision.DENY, Decision.DENY));
+        }
+    }
+
+    @Nested
+    @DisplayName("combineVotes extended indeterminate logic")
+    class CombineVotesExtendedIndeterminateTests {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("extendedIndeterminateCases")
+        @DisplayName("extended indeterminate handling")
+        void extendedIndeterminateCases(String description, Vote accVote, Vote newVote, Decision priority,
+                Decision expectedDecision, Outcome expectedOutcome) {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(accVote, TEST_METADATA);
+            val result      = PriorityBasedVoteCombiner.combineVotes(accumulator, newVote, priority, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).as("decision").isEqualTo(expectedDecision);
+            assertThat(result.outcome()).as("outcome").isEqualTo(expectedOutcome);
+        }
+
+        static Stream<Arguments> extendedIndeterminateCases() {
+            return Stream.of(
+                    // Critical error blocks priority (permit-overrides)
+                    arguments("DENY + INDET(PERMIT) is critical for permit-overrides", denyVote("a"),
+                            indeterminateVote("b", Outcome.PERMIT), Decision.PERMIT, Decision.INDETERMINATE,
+                            Outcome.PERMIT_OR_DENY),
+                    arguments("DENY + INDET(PERMIT_OR_DENY) is critical for permit-overrides", denyVote("a"),
+                            indeterminateVote("b", Outcome.PERMIT_OR_DENY), Decision.PERMIT, Decision.INDETERMINATE,
+                            Outcome.PERMIT_OR_DENY),
+
+                    // Non-critical error loses to priority
+                    arguments("DENY + INDET(DENY) non-critical for permit-overrides - DENY wins", denyVote("a"),
+                            indeterminateVote("b", Outcome.DENY), Decision.PERMIT, Decision.DENY, Outcome.DENY),
+
+                    // Priority wins over non-critical accumulated error
+                    arguments("INDET(DENY) + PERMIT: priority wins over non-critical error",
+                            indeterminateVote("a", Outcome.DENY), permitVote("b"), Decision.PERMIT, Decision.PERMIT,
+                            Outcome.PERMIT),
+
+                    // Accumulated priority wins over non-critical new error
+                    arguments("PERMIT + INDET(DENY): priority wins over non-critical error", permitVote("a"),
+                            indeterminateVote("b", Outcome.DENY), Decision.PERMIT, Decision.PERMIT, Outcome.PERMIT),
+
+                    // Critical accumulated error blocks priority
+                    arguments("INDET(PERMIT) + PERMIT: critical error blocks priority",
+                            indeterminateVote("a", Outcome.PERMIT), permitVote("b"), Decision.PERMIT,
+                            Decision.INDETERMINATE, Outcome.PERMIT),
+                    arguments("INDET(PERMIT_OR_DENY) + PERMIT: critical error blocks priority",
+                            indeterminateVote("a", Outcome.PERMIT_OR_DENY), permitVote("b"), Decision.PERMIT,
+                            Decision.INDETERMINATE, Outcome.PERMIT_OR_DENY),
+
+                    // Non-priority vs accumulated INDETERMINATE
+                    arguments("INDET(DENY) + DENY: non-critical error loses to non-priority",
+                            indeterminateVote("a", Outcome.DENY), denyVote("b"), Decision.PERMIT, Decision.DENY,
+                            Outcome.DENY),
+                    arguments("INDET(PERMIT) + DENY: critical error blocks non-priority",
+                            indeterminateVote("a", Outcome.PERMIT), denyVote("b"), Decision.PERMIT,
+                            Decision.INDETERMINATE, Outcome.PERMIT_OR_DENY),
+
+                    // Two INDETERMINATEs combine outcomes
+                    arguments("INDET(PERMIT) + INDET(DENY) combines to INDET(PERMIT_OR_DENY)",
+                            indeterminateVote("a", Outcome.PERMIT), indeterminateVote("b", Outcome.DENY),
+                            Decision.PERMIT, Decision.INDETERMINATE, Outcome.PERMIT_OR_DENY),
+                    arguments("INDET(DENY) + INDET(DENY) stays INDET(DENY)", indeterminateVote("a", Outcome.DENY),
+                            indeterminateVote("b", Outcome.DENY), Decision.PERMIT, Decision.INDETERMINATE,
+                            Outcome.DENY),
+
+                    // Deny-overrides scenarios (DENY is priority, PERMIT is non-critical)
+                    arguments("PERMIT + INDET(PERMIT): non-critical error for deny-overrides - PERMIT wins",
+                            permitVote("a"), indeterminateVote("b", Outcome.PERMIT), Decision.DENY, Decision.PERMIT,
+                            Outcome.PERMIT),
+                    arguments("PERMIT + INDET(DENY): critical error for deny-overrides blocks", permitVote("a"),
+                            indeterminateVote("b", Outcome.DENY), Decision.DENY, Decision.INDETERMINATE,
+                            Outcome.PERMIT_OR_DENY),
+                    arguments("INDET(PERMIT) + DENY: priority wins over non-critical error (deny-overrides)",
+                            indeterminateVote("a", Outcome.PERMIT), denyVote("b"), Decision.DENY, Decision.DENY,
+                            Outcome.DENY));
         }
     }
 
@@ -337,10 +422,10 @@ class PriorityBasedVoteCombinerTests {
     class ErrorHandlingTests {
 
         @Test
-        @DisplayName("errors from new INDETERMINATE vote are captured")
-        void whenNewIsIndeterminateThenErrorsCaptured() {
-            val vote1       = permitVote("policy-1");
-            val vote2       = indeterminateVote("policy-2");
+        @DisplayName("errors from critical INDETERMINATE vote are captured")
+        void whenCriticalIndeterminateThenErrorsCaptured() {
+            val vote1       = denyVote("policy-1");
+            val vote2       = indeterminateVote("policy-2", Outcome.PERMIT);
             val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
 
             val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
@@ -350,16 +435,42 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("accumulator INDETERMINATE returns unchanged (defensive path)")
-        void whenAccumulatorIsIndeterminateThenReturnsAccumulator() {
-            val vote1       = indeterminateVote("policy-1");
+        @DisplayName("errors from non-critical INDETERMINATE are ignored when priority wins")
+        void whenNonCriticalIndeterminateThenErrorsIgnored() {
+            val vote1       = denyVote("policy-1");
+            val vote2       = indeterminateVote("policy-2", Outcome.DENY);
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+            assertThat(result.errors()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("critical accumulated INDETERMINATE blocks priority")
+        void whenCriticalAccumulatedIndeterminateThenBlocksPriority() {
+            val vote1       = indeterminateVote("policy-1", Outcome.PERMIT);
             val vote2       = permitVote("policy-2");
             val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
 
             val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-            assertThat(result.voter().name()).isEqualTo("test-voter");
+            assertThat(result.errors()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("non-critical accumulated INDETERMINATE loses to priority")
+        void whenNonCriticalAccumulatedIndeterminateThenPriorityWins() {
+            val vote1       = indeterminateVote("policy-1", Outcome.DENY);
+            val vote2       = permitVote("policy-2");
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+            assertThat(result.errors()).isEmpty();
         }
     }
 
@@ -379,7 +490,7 @@ class PriorityBasedVoteCombinerTests {
         @Test
         @DisplayName("preserves errors from original vote")
         void whenCalledThenPreservesErrors() {
-            val vote   = indeterminateVote("original");
+            val vote   = indeterminateVote("original", Outcome.PERMIT);
             val result = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote, TEST_METADATA);
 
             assertThat(result.errors()).isEqualTo(vote.errors());
@@ -407,10 +518,81 @@ class PriorityBasedVoteCombinerTests {
         @DisplayName("uses provided voter metadata")
         void whenCalledThenUsesProvidedMetadata() {
             val vote     = permitVote("original");
-            val metadata = testMetadata("new-metadata");
+            val metadata = testMetadata("new-metadata", Outcome.PERMIT);
             val result   = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote, metadata);
 
             assertThat(result.voter().name()).isEqualTo("new-metadata");
+        }
+
+        @Test
+        @DisplayName("preserves outcome from original vote")
+        void whenCalledThenPreservesOutcome() {
+            val vote   = indeterminateVote("original", Outcome.DENY);
+            val result = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote, TEST_METADATA);
+
+            assertThat(result.outcome()).isEqualTo(Outcome.DENY);
+        }
+    }
+
+    @Nested
+    @DisplayName("null outcome edge cases")
+    class NullOutcomeEdgeCasesTests {
+
+        @Test
+        @DisplayName("null outcome in new INDETERMINATE vote treated as critical")
+        void whenNewIndeterminateHasNullOutcomeThenTreatedAsCritical() {
+            val vote1       = denyVote("policy-1");
+            val vote2       = indeterminateWithNullOutcome("policy-2");
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("null outcome in accumulated vote combined with non-null")
+        void whenAccumulatorHasNullOutcomeThenCombinesWithNewOutcome() {
+            val vote1       = voteWithNullOutcome(Decision.DENY, "policy-1");
+            val vote2       = denyVote("policy-2");
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.outcome()).isEqualTo(Outcome.DENY);
+        }
+
+        @Test
+        @DisplayName("non-null outcome combined with null returns non-null")
+        void whenNewVoteHasNullOutcomeThenReturnsAccumulatorOutcome() {
+            val vote1       = denyVote("policy-1");
+            val vote2       = voteWithNullOutcome(Decision.DENY, "policy-2");
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.outcome()).isEqualTo(Outcome.DENY);
+        }
+    }
+
+    @Nested
+    @DisplayName("empty contributing votes edge case")
+    class EmptyContributingVotesTests {
+
+        @Test
+        @DisplayName("accumulator with empty contributing votes list")
+        void whenAccumulatorHasEmptyContributingVotesThenAppendWorks() {
+            // Create accumulator directly without using accumulatorVoteFrom to get empty
+            // list
+            val accVote = new Vote(
+                    new io.sapl.api.pdp.AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                            Value.UNDEFINED),
+                    List.of(), List.of(), List.of(), testMetadata("acc", Outcome.PERMIT), Outcome.PERMIT);
+            val newVote = permitVote("policy-2");
+
+            val result = PriorityBasedVoteCombiner.combineVotes(accVote, newVote, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.contributingVotes()).hasSize(1);
         }
     }
 

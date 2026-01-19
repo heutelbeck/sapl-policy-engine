@@ -20,6 +20,7 @@ package io.sapl.compiler.policyset;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
+import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
@@ -187,8 +188,9 @@ public class PolicySetUtil {
             DefaultDecision defaultDecision) {
         return switch (defaultDecision) {
         case ABSTAIN -> Vote.abstain(voterMetadata, contributingVotes);
-        case DENY    -> Vote.combinedVote(AuthorizationDecision.DENY, voterMetadata, contributingVotes);
-        case PERMIT  -> Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingVotes);
+        case DENY    -> Vote.combinedVote(AuthorizationDecision.DENY, voterMetadata, contributingVotes, Outcome.DENY);
+        case PERMIT  ->
+            Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingVotes, Outcome.PERMIT);
         };
     }
 

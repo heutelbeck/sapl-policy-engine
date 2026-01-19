@@ -23,6 +23,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import lombok.val;
 
@@ -35,49 +36,54 @@ public record Vote(
         List<ErrorValue> errors,
         List<AttributeRecord> contributingAttributes,
         List<Vote> contributingVotes,
-        VoterMetadata voter) implements Voter {
+        VoterMetadata voter,
+        Outcome outcome) implements Voter {
 
     public static Vote combinedVote(AuthorizationDecision authorizationDecision, VoterMetadata voter,
-            List<Vote> contributingVotes) {
-        return new Vote(authorizationDecision, List.of(), List.of(), contributingVotes, voter);
+            List<Vote> contributingVotes, Outcome outcome) {
+        return new Vote(authorizationDecision, List.of(), List.of(), contributingVotes, voter, outcome);
     }
 
     public static Vote tracedVote(Decision decision, ArrayValue obligations, ArrayValue advice, Value resource,
             VoterMetadata voter, List<AttributeRecord> contributingAttributes) {
         return new Vote(new AuthorizationDecision(decision, obligations, advice, resource), List.of(),
-                contributingAttributes, List.of(), voter);
+                contributingAttributes, List.of(), voter, voter.outcome());
     }
 
     public static Vote error(ErrorValue error, VoterMetadata voter) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), List.of(), List.of(), voter);
+        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), List.of(), List.of(), voter,
+                voter.outcome());
     }
 
     public static Vote tracedError(ErrorValue error, VoterMetadata voter,
             List<AttributeRecord> contributingAttributes) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), contributingAttributes, List.of(), voter);
+        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), contributingAttributes, List.of(), voter,
+                voter.outcome());
     }
 
     public static Vote abstain(VoterMetadata voter) {
-        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), List.of(), voter);
+        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), List.of(), voter, voter.outcome());
     }
 
     public static Vote tracedAbstain(VoterMetadata voter, List<AttributeRecord> contributingAttributes) {
-        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), contributingAttributes, List.of(), voter);
+        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), contributingAttributes, List.of(), voter,
+                voter.outcome());
     }
 
     public static Vote abstain(VoterMetadata voter, List<Vote> contributingVotes) {
-        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), contributingVotes, voter);
+        return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), contributingVotes, voter,
+                voter.outcome());
     }
 
     public Vote withVote(Vote newVote) {
         val mergedVotes = new ArrayList<>(contributingVotes);
         mergedVotes.add(newVote);
-        return new Vote(authorizationDecision, errors, contributingAttributes, mergedVotes, voter);
+        return new Vote(authorizationDecision, errors, contributingAttributes, mergedVotes, voter, outcome);
     }
 
     public Vote withAttributes(List<AttributeRecord> newAttributes) {
         val mergedAttributes = new ArrayList<>(contributingAttributes);
         mergedAttributes.addAll(newAttributes);
-        return new Vote(authorizationDecision, errors, mergedAttributes, contributingVotes, voter);
+        return new Vote(authorizationDecision, errors, mergedAttributes, contributingVotes, voter, outcome);
     }
 }
