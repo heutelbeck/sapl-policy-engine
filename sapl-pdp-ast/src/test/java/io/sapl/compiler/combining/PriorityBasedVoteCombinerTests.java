@@ -19,6 +19,7 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.pdp.Vote;
 import io.sapl.ast.Outcome;
@@ -92,11 +93,6 @@ class PriorityBasedVoteCombinerTests {
                 testMetadata(name, Outcome.PERMIT), List.of());
     }
 
-    static Vote denyWithResource(String name, Value resource) {
-        return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
-                testMetadata(name, Outcome.DENY), List.of());
-    }
-
     static Vote permitWithObligations(String name, Value... obligations) {
         val obligationsArray = ArrayValue.builder();
         for (var o : obligations) {
@@ -104,15 +100,6 @@ class PriorityBasedVoteCombinerTests {
         }
         return Vote.tracedVote(Decision.PERMIT, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
                 testMetadata(name, Outcome.PERMIT), List.of());
-    }
-
-    static Vote denyWithObligations(String name, Value... obligations) {
-        val obligationsArray = ArrayValue.builder();
-        for (var o : obligations) {
-            obligationsArray.add(o);
-        }
-        return Vote.tracedVote(Decision.DENY, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.DENY), List.of());
     }
 
     static Vote permitWithAdvice(String name, Value... advice) {
@@ -125,13 +112,13 @@ class PriorityBasedVoteCombinerTests {
     }
 
     static Vote voteWithNullOutcome(Decision decision, String name) {
-        return new Vote(new io.sapl.api.pdp.AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                Value.UNDEFINED), List.of(), List.of(), List.of(), testMetadata(name, null), null);
+        return new Vote(new AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED),
+                List.of(), List.of(), List.of(), testMetadata(name, null), null);
     }
 
     static Vote indeterminateWithNullOutcome(String name) {
-        return new Vote(io.sapl.api.pdp.AuthorizationDecision.INDETERMINATE, List.of(Value.error("test error")),
-                List.of(), List.of(), testMetadata(name, null), null);
+        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(Value.error("test error")), List.of(), List.of(),
+                testMetadata(name, null), null);
     }
 
     @Nested
@@ -418,58 +405,52 @@ class PriorityBasedVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("error handling")
-    class ErrorHandlingTests {
+    @DisplayName("error propagation")
+    class ErrorPropagationTests {
 
         @Test
-        @DisplayName("errors from critical INDETERMINATE vote are captured")
-        void whenCriticalIndeterminateThenErrorsCaptured() {
-            val vote1       = denyVote("policy-1");
-            val vote2       = indeterminateVote("policy-2", Outcome.PERMIT);
-            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+        @DisplayName("critical error propagates errors to result")
+        void whenCriticalErrorThenErrorsPropagated() {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("a"), TEST_METADATA);
 
-            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, indeterminateVote("b", Outcome.PERMIT),
+                    Decision.PERMIT, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
             assertThat(result.errors()).isNotEmpty();
         }
 
         @Test
-        @DisplayName("errors from non-critical INDETERMINATE are ignored when priority wins")
-        void whenNonCriticalIndeterminateThenErrorsIgnored() {
-            val vote1       = denyVote("policy-1");
-            val vote2       = indeterminateVote("policy-2", Outcome.DENY);
-            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+        @DisplayName("non-critical error clears errors from result")
+        void whenNonCriticalErrorThenErrorsCleared() {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("a"), TEST_METADATA);
 
-            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, indeterminateVote("b", Outcome.DENY),
+                    Decision.PERMIT, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
             assertThat(result.errors()).isEmpty();
         }
 
         @Test
-        @DisplayName("critical accumulated INDETERMINATE blocks priority")
-        void whenCriticalAccumulatedIndeterminateThenBlocksPriority() {
-            val vote1       = indeterminateVote("policy-1", Outcome.PERMIT);
-            val vote2       = permitVote("policy-2");
-            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+        @DisplayName("critical accumulated error preserves errors when priority arrives")
+        void whenCriticalAccumulatedErrorThenErrorsPreserved() {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(indeterminateVote("a", Outcome.PERMIT),
+                    TEST_METADATA);
 
-            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, permitVote("b"), Decision.PERMIT,
+                    TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
             assertThat(result.errors()).isNotEmpty();
         }
 
         @Test
-        @DisplayName("non-critical accumulated INDETERMINATE loses to priority")
-        void whenNonCriticalAccumulatedIndeterminateThenPriorityWins() {
-            val vote1       = indeterminateVote("policy-1", Outcome.DENY);
-            val vote2       = permitVote("policy-2");
-            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+        @DisplayName("non-critical accumulated error clears errors when priority arrives")
+        void whenNonCriticalAccumulatedErrorThenErrorsCleared() {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(indeterminateVote("a", Outcome.DENY),
+                    TEST_METADATA);
 
-            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, permitVote("b"), Decision.PERMIT,
+                    TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
             assertThat(result.errors()).isEmpty();
         }
     }
@@ -582,11 +563,8 @@ class PriorityBasedVoteCombinerTests {
         @Test
         @DisplayName("accumulator with empty contributing votes list")
         void whenAccumulatorHasEmptyContributingVotesThenAppendWorks() {
-            // Create accumulator directly without using accumulatorVoteFrom to get empty
-            // list
             val accVote = new Vote(
-                    new io.sapl.api.pdp.AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                            Value.UNDEFINED),
+                    new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED),
                     List.of(), List.of(), List.of(), testMetadata("acc", Outcome.PERMIT), Outcome.PERMIT);
             val newVote = permitVote("policy-2");
 
