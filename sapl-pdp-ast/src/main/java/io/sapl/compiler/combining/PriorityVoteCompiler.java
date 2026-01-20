@@ -72,13 +72,11 @@ public class PriorityVoteCompiler {
             return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
         }
 
-        List<Flux<VoteWithCoverage>> coverageStreams = policies.stream()
-                .map(CompiledDocument::coverage)
-                .toList();
+        List<Flux<VoteWithCoverage>> coverageStreams = policies.stream().map(CompiledDocument::coverage).toList();
 
         return Flux.combineLatest(coverageStreams, results -> {
-            val votes            = new ArrayList<Vote>(results.length);
-            val policyCoverages  = new ArrayList<Coverage.DocumentCoverage>(results.length);
+            val votes           = new ArrayList<Vote>(results.length);
+            val policyCoverages = new ArrayList<Coverage.DocumentCoverage>(results.length);
 
             for (Object result : results) {
                 val vwc = (VoteWithCoverage) result;
@@ -133,6 +131,10 @@ public class PriorityVoteCompiler {
                     continue; // constant FALSE - not applicable, skip
                 }
                 // constant TRUE or ERROR
+                if (constantApplicable instanceof ErrorValue error) {
+                    foldableVotes.add(Vote.error(error, policy.metadata())); // constant INDETERMINATE
+                    continue;
+                }
                 if (voter instanceof Vote vote) {
                     foldableVotes.add(vote);
                 } else if (voter instanceof StreamVoter) {

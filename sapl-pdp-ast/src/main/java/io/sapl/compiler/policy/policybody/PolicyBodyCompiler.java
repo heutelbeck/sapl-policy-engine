@@ -43,21 +43,30 @@ public class PolicyBodyCompiler {
     public static final String ERROR_CONDITION_NON_BOOLEAN          = "Condition in policy body must return a Boolean value, but got: %s.";
 
     public CompiledPolicyBody compilePolicyBody(PolicyBody policyBody, CompilationContext ctx) {
-        return new CompiledPolicyBody(compilePolicyBodyExpression(policyBody, ctx),
-                compilePolicyBodyWithCoverage(policyBody, ctx));
+        val conditions       = compileConditions(policyBody.statements(), ctx);
+        val isApplicable     = compilePureSectionOfBodyExpression(conditions, policyBody);
+        val streamingSection = compileStreamingSectionOfBodyExpression(conditions, policyBody);
+        val coverage         = compilePolicyBodyWithCoverage(conditions);
+        return new CompiledPolicyBody(isApplicable, streamingSection, coverage);
     }
 
-    public CompiledExpression compilePolicyBodyExpression(PolicyBody body, CompilationContext ctx) {
-        val conditions = compileConditions(body.statements(), ctx).stream().map(IndexedCompiledCondition::expression)
-                .toList();
-        return LazyNaryBooleanCompiler.compile(conditions, body.location(), Value.FALSE, Value.TRUE);
+    private static CompiledExpression compileStreamingSectionOfBodyExpression(List<IndexedCompiledCondition> conditions,
+            PolicyBody policyBody) {
+        val streamConditions = conditions.stream().map(IndexedCompiledCondition::expression)
+                .filter(StreamOperator.class::isInstance).toList();
+        return LazyNaryBooleanCompiler.compile(streamConditions, policyBody.location(), Value.FALSE, Value.TRUE);
+    }
+
+    private CompiledExpression compilePureSectionOfBodyExpression(List<IndexedCompiledCondition> conditions,
+            PolicyBody body) {
+        val pureConditions = conditions.stream().map(IndexedCompiledCondition::expression)
+                .filter(expression -> expression instanceof Value || expression instanceof PureOperator).toList();
+        return LazyNaryBooleanCompiler.compile(pureConditions, body.location(), Value.FALSE, Value.TRUE);
     }
 
     record IndexedCompiledCondition(CompiledExpression expression, SourceLocation location, long statementId) {}
 
-    public Flux<TracedValueAndBodyCoverage> compilePolicyBodyWithCoverage(PolicyBody body, CompilationContext ctx) {
-        val       statements = body.statements();
-        final var conditions = compileConditions(statements, ctx);
+    private Flux<TracedValueAndBodyCoverage> compilePolicyBodyWithCoverage(List<IndexedCompiledCondition> conditions) {
         if (conditions.isEmpty()) {
             val bodyResult = new TracedValueAndBodyCoverage(TracedValue.of(Value.TRUE),
                     new Coverage.BodyCoverage(List.of(), 0));

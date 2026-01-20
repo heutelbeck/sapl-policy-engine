@@ -149,6 +149,12 @@ public class PriorityBasedVoteCombiner {
 
         val contributingVotes = appendToList(accumulatorVote.contributingVotes(), newVote);
 
+        // NOT_APPLICABLE accumulator: new vote replaces decision but keeps contributing
+        // votes
+        if (accDec == Decision.NOT_APPLICABLE) {
+            return concreteResult(newAuthz, newVote.outcome(), contributingVotes, voterMetadata);
+        }
+
         // Priority decision in new vote always wins
         if (newDec == priorityDecision) {
             // Same decision - check transformation uncertainty and merge

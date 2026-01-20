@@ -74,12 +74,14 @@ public class SchemaValidatorCompiler {
     private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory.builder()
             .metaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri()).build();
 
-    public static PureOperator compileValidator(@Nullable SchemaCondition match, CompilationContext ctx) {
-        val schemas = match == null ? List.<SchemaStatement>of() : match.schemas();
-        return compileValidator(schemas, ctx);
+    public static CompiledExpression compileValidator(@Nullable SchemaCondition match, CompilationContext ctx) {
+        if (match == null || match.schemas().isEmpty()) {
+            return Value.TRUE;
+        }
+        return compileValidator(match.schemas(), ctx);
     }
 
-    public static PureOperator compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
+    public static CompiledExpression compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
         val validators = schemas.stream().map(schema -> compileSchemaValidator(schema, ctx)).toList();
         if (validators.size() == 1) {
             return validators.getFirst();

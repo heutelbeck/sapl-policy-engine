@@ -17,15 +17,19 @@
  */
 package io.sapl.compiler.policy;
 
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Identifier;
 import io.sapl.ast.Literal;
+import io.sapl.ast.SchemaCondition;
 import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedSchemaValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
-import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -75,16 +79,27 @@ class SchemaValidatorCompilerTests {
         return new SchemaStatement(element, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
     }
 
+    /**
+     * Evaluates a CompiledExpression, handling both Value and PureOperator.
+     * The validator compilation never returns StreamOperator.
+     */
+    private static Value evaluate(CompiledExpression expr, EvaluationContext ctx) {
+        return switch (expr) {
+        case Value v         -> v;
+        case PureOperator po -> po.evaluate(ctx);
+        default              -> throw new IllegalStateException("Unexpected expression type: " + expr);
+        };
+    }
+
     @Nested
     @DisplayName("compileValidator")
     class CompileValidatorTests {
 
         @Test
-        @DisplayName("when schema list is empty then returns CombinedSchemaValidator with empty validators")
-        void whenEmptySchemaList_thenReturnsCombinedSchemaValidatorWithEmptyValidators() {
-            val result = compileValidator(List.of(), compilationContext());
-            assertThat(result).isInstanceOf(CombinedSchemaValidator.class);
-            assertThat(((CombinedSchemaValidator) result).validators()).isEmpty();
+        @DisplayName("when schema condition is null then returns constant TRUE")
+        void whenSchemaConditionIsNull_thenReturnsConstantTrue() {
+            val result = compileValidator((SchemaCondition) null, compilationContext());
+            assertThat(result).isEqualTo(Value.TRUE);
         }
 
         @Test
@@ -204,7 +219,7 @@ class SchemaValidatorCompilerTests {
                         "environment": "production"
                     }
                     """);
-            val result = validator.evaluate(ctx);
+            val result = evaluate(validator, ctx);
             assertThat(result).isEqualTo(Value.TRUE);
         }
 
@@ -222,7 +237,7 @@ class SchemaValidatorCompilerTests {
                         "environment": 999
                     }
                     """);
-            val result = validator.evaluate(ctx);
+            val result = evaluate(validator, ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
 
@@ -230,7 +245,7 @@ class SchemaValidatorCompilerTests {
         @DisplayName("isDependingOnSubscription returns true")
         void isDependingOnSubscription_returnsTrue() {
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA));
-            val validator = compileValidator(schemas, compilationContext());
+            val validator = (PureOperator) compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
             assertThat(validator.isDependingOnSubscription()).isTrue();
         }
@@ -239,7 +254,7 @@ class SchemaValidatorCompilerTests {
         @DisplayName("location returns the configured location")
         void location_returnsConfiguredLocation() {
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA));
-            val validator = compileValidator(schemas, compilationContext());
+            val validator = (PureOperator) compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
             assertThat(validator.location()).isSameAs(TEST_LOCATION);
         }
@@ -259,7 +274,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            assertThat(validator.evaluate(ctx)).isEqualTo(Value.TRUE);
+            assertThat(evaluate(validator, ctx)).isEqualTo(Value.TRUE);
         }
 
         @Test
@@ -277,7 +292,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            assertThat(validator.evaluate(ctx)).isEqualTo(Value.FALSE);
+            assertThat(evaluate(validator, ctx)).isEqualTo(Value.FALSE);
         }
 
     }
@@ -300,7 +315,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            val result = combined.evaluate(ctx);
+            val result = evaluate(combined, ctx);
             assertThat(result).isEqualTo(Value.TRUE);
         }
 
@@ -318,7 +333,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            val result = combined.evaluate(ctx);
+            val result = evaluate(combined, ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
 
@@ -336,7 +351,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            val result = combined.evaluate(ctx);
+            val result = evaluate(combined, ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
 
@@ -345,7 +360,7 @@ class SchemaValidatorCompilerTests {
         void location_returnsFirstValidatorLocation() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
-            val combined = compileValidator(schemas, compilationContext());
+            val combined = (PureOperator) compileValidator(schemas, compilationContext());
             assertThat(combined).isNotNull();
             assertThat(combined.location()).isSameAs(TEST_LOCATION);
         }
@@ -355,7 +370,7 @@ class SchemaValidatorCompilerTests {
         void isDependingOnSubscription_returnsTrue() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
-            val combined = compileValidator(schemas, compilationContext());
+            val combined = (PureOperator) compileValidator(schemas, compilationContext());
             assertThat(combined).isNotNull();
             assertThat(combined.isDependingOnSubscription()).isTrue();
         }
@@ -375,7 +390,7 @@ class SchemaValidatorCompilerTests {
                         "resource": true
                     }
                     """);
-            assertThat(combined.evaluate(ctx)).isEqualTo(Value.TRUE);
+            assertThat(evaluate(combined, ctx)).isEqualTo(Value.TRUE);
         }
 
         @Test
@@ -393,7 +408,7 @@ class SchemaValidatorCompilerTests {
                         "resource": true
                     }
                     """);
-            assertThat(combined.evaluate(ctx)).isEqualTo(Value.FALSE);
+            assertThat(evaluate(combined, ctx)).isEqualTo(Value.FALSE);
         }
 
     }
@@ -474,7 +489,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            assertThat(validator.evaluate(ctx)).isEqualTo(Value.TRUE);
+            assertThat(evaluate(validator, ctx)).isEqualTo(Value.TRUE);
 
             val ctx2 = subscriptionContext("""
                     {
@@ -486,7 +501,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            assertThat(validator.evaluate(ctx2)).isEqualTo(Value.FALSE);
+            assertThat(evaluate(validator, ctx2)).isEqualTo(Value.FALSE);
         }
 
         @Test
@@ -507,7 +522,7 @@ class SchemaValidatorCompilerTests {
                         "resource": "data"
                     }
                     """);
-            assertThat(validator.evaluate(ctx)).isEqualTo(Value.FALSE);
+            assertThat(evaluate(validator, ctx)).isEqualTo(Value.FALSE);
         }
     }
 }

@@ -32,7 +32,6 @@ import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Entitlement;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.VoterMetadata;
@@ -69,12 +68,13 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class PolicyCompiler {
 
-    private static final String ERROR_ADVICE_STATIC_ERROR              = "Advice expression statically evaluates to an errors: %s.";
-    private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR     = "%s contains @ or # outside of proper context.";
-    private static final String ERROR_OBLIGATIONS_STATIC_ERROR         = "Obligation expression statically evaluates to an errors: %s.";
-    private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR = "Transformation contains @ or # outside of proper context.";
-    private static final String ERROR_TRANSFORMATION_STATIC_ERROR      = "Transformation expression statically evaluates to an errors: %s.";
-    private static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE    = "Unexpected isApplicable type. Indicates implementation bug.";
+    private static final String ERROR_ADVICE_STATIC_ERROR                         = "Advice expression statically evaluates to an errors: %s.";
+    private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR                = "%s contains @ or # outside of proper context.";
+    private static final String ERROR_OBLIGATIONS_STATIC_ERROR                    = "Obligation expression statically evaluates to an errors: %s.";
+    private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR            = "Transformation contains @ or # outside of proper context.";
+    private static final String ERROR_TRANSFORMATION_STATIC_ERROR                 = "Transformation expression statically evaluates to an errors: %s.";
+    private static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE               = "Unexpected isApplicable type. Indicates implementation bug.";
+    public static final String  ERROR_MUST_BE_TRUE_OR_A_STREAM_OPERATOR_BUT_WAS_S = "Streaming part of conditions must be TRUE or a StreamOperator, but was: %s. This indicates an implementation bug.";
 
     /**
      * Compiles a policy AST into an executable compiled policy.
@@ -87,9 +87,11 @@ public class PolicyCompiler {
         ctx.resetForNextPolicy();
         val metadata              = policy.metadata();
         val compiledBody          = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
-        val isApplicable          = compiledBody.bodyExpression();
-        val voter                 = compileVoter(policy, metadata, ctx);
-        val coverage              = assembleVoteWithCoverage(compiledBody.coverageStream(), voter, metadata);
+        val isApplicable          = compiledBody.isApplicable();
+        val constraintsVoter      = compileConstraintsVoter(policy, metadata, ctx);
+        val voter                 = wrapWithStreamingBody(constraintsVoter, compiledBody.streamingSectionOfBody(),
+                metadata, policy.location());
+        val coverage              = assembleVoteWithCoverage(compiledBody.coverageStream(), constraintsVoter, metadata);
         val applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, voter, metadata);
         return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverage, metadata);
     }
@@ -115,8 +117,6 @@ public class PolicyCompiler {
             new PureBodyStreamConstraintsVoter(po, sdm, voterMetadata);
         case PureOperator po                                       ->
             new ApplicabilityCheckingPureVoter(po, voter, voterMetadata);
-        case StreamOperator so                                     ->
-            new ApplicabilityCheckingStreamVoter(so, voter, voterMetadata);
         default                                                    ->
             Vote.error(Value.error(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), voterMetadata);
         };
@@ -124,14 +124,13 @@ public class PolicyCompiler {
 
     /**
      * Compiles the policy constraints into a vote maker based on their nature.
-     * Used by the PDP after determining applicability.
      *
      * @param policy the policy AST node
      * @param voterMetadata the policy voterMetadata
      * @param ctx the compilation context
-     * @return a constant, pure, or stream vote maker
+     * @return a constant, pure, or stream vote maker for constraints only
      */
-    private static Voter compileVoter(Policy policy, VoterMetadata voterMetadata, CompilationContext ctx) {
+    private static Voter compileConstraintsVoter(Policy policy, VoterMetadata voterMetadata, CompilationContext ctx) {
         val constraints = compileConstraints(policy, policy.location(), ctx);
         val decision    = policy.entitlement().decision();
         return switch (constraints.nature()) {
@@ -143,6 +142,27 @@ public class PolicyCompiler {
                 OperatorLiftUtil.liftToStream(constraints.advice()),
                 OperatorLiftUtil.liftToStream(constraints.resource()), voterMetadata);
         };
+    }
+
+    /**
+     * Wraps the constraints voter with streaming body conditions if needed.
+     *
+     * @param constraintsVoter the voter for constraints evaluation
+     * @param streamingPartOfBody the streaming section of body conditions
+     * @param voterMetadata the policy voterMetadata
+     * @param location source location for error reporting
+     * @return the wrapped voter or the original if no streaming body
+     */
+    private static Voter wrapWithStreamingBody(Voter constraintsVoter, CompiledExpression streamingPartOfBody,
+            VoterMetadata voterMetadata, SourceLocation location) {
+        if (streamingPartOfBody == null || (streamingPartOfBody instanceof BooleanValue(var b) && b)) {
+            return constraintsVoter;
+        }
+        if (streamingPartOfBody instanceof StreamOperator so) {
+            return new ApplicabilityCheckingStreamVoter(so, constraintsVoter, voterMetadata);
+        }
+        throw new SaplCompilerException(ERROR_MUST_BE_TRUE_OR_A_STREAM_OPERATOR_BUT_WAS_S
+                .formatted(streamingPartOfBody.getClass().getSimpleName()), location);
     }
 
     /**

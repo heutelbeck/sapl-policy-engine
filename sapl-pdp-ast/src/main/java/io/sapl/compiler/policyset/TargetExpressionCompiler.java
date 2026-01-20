@@ -34,7 +34,7 @@ public class TargetExpressionCompiler {
     private static final String ERROR_TARGET_STATIC_ERROR      = "The target expression statically evaluates to an errors: %s.";
     private static final String ERROR_TARGET_STREAM_OPERATOR   = "Target expression must not contain attributes operators <>!.";
 
-    public CompiledExpression compileTargetExpression(Expression targetExpression, PureOperator schemaValidator,
+    public CompiledExpression compileTargetExpression(Expression targetExpression, CompiledExpression schemaValidator,
             CompilationContext ctx) {
         val compiledTarget = targetExpression == null ? Value.TRUE
                 : BooleanGuardCompiler.applyBooleanGuard(ExpressionCompiler.compile(targetExpression, ctx),

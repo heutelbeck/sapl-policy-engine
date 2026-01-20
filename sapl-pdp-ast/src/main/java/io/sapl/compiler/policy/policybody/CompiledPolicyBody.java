@@ -18,6 +18,10 @@
 package io.sapl.compiler.policy.policybody;
 
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.StreamOperator;
 import reactor.core.publisher.Flux;
 
-public record CompiledPolicyBody(CompiledExpression bodyExpression, Flux<TracedValueAndBodyCoverage> coverageStream) {}
+public record CompiledPolicyBody(
+        CompiledExpression isApplicable,
+        CompiledExpression streamingSectionOfBody,
+        Flux<TracedValueAndBodyCoverage> coverageStream) {}
