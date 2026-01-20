@@ -17,7 +17,12 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
@@ -26,7 +31,12 @@ import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.pdp.*;
+import io.sapl.compiler.pdp.CompiledDocument;
+import io.sapl.compiler.pdp.PureVoter;
+import io.sapl.compiler.pdp.StreamVoter;
+import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.pdp.VoteWithCoverage;
+import io.sapl.compiler.pdp.Voter;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -118,11 +128,11 @@ public class PriorityVoteCompiler {
 
     private static StratifiedPolicies classifyPoliciesByEvaluationStrategy(
             List<? extends CompiledDocument> compiledPolicies) {
-        var foldableVotes  = new ArrayList<Vote>();
-        var purePolicies   = new ArrayList<CompiledDocument>();
-        var streamPolicies = new ArrayList<CompiledDocument>();
+        val foldableVotes  = new ArrayList<Vote>();
+        val purePolicies   = new ArrayList<CompiledDocument>();
+        val streamPolicies = new ArrayList<CompiledDocument>();
 
-        for (var policy : compiledPolicies) {
+        for (val policy : compiledPolicies) {
             val isApplicable = policy.isApplicable();
             val voter        = policy.voter();
 
@@ -182,16 +192,9 @@ public class PriorityVoteCompiler {
                 val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
                 streamVoters.add(Flux.empty());
                 for (CompiledDocument document : streamDocuments) {
-                    Value isApplicable;
-                    val   isApplicableExpression = document.isApplicable();
-                    if (isApplicableExpression instanceof Value v) {
-                        isApplicable = v;
-                    } else {
-                        isApplicable = ((PureOperator) isApplicableExpression).evaluate(evalCtx);
-                    }
-
+                    val isApplicable = evaluateApplicability(document.isApplicable(), evalCtx);
                     if (isApplicable instanceof ErrorValue error) {
-                        var errorVote = Vote.error(error, document.metadata());
+                        val errorVote = Vote.error(error, document.metadata());
                         pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, errorVote, priorityDecision,
                                 voterMetadata);
                     } else if (isApplicable instanceof BooleanValue(var b) && b) {
@@ -217,16 +220,9 @@ public class PriorityVoteCompiler {
             Decision priorityDecision, VoterMetadata voterMetadata, EvaluationContext ctx) {
         var vote = accumulatorVote;
         for (val document : documents) {
-            Value isApplicable;
-            val   isApplicableExpression = document.isApplicable();
-            if (isApplicableExpression instanceof Value v) {
-                isApplicable = v;
-            } else {
-                isApplicable = ((PureOperator) isApplicableExpression).evaluate(ctx);
-            }
-
+            val isApplicable = evaluateApplicability(document.isApplicable(), ctx);
             if (isApplicable instanceof ErrorValue error) {
-                var errorVote = Vote.error(error, document.metadata());
+                val errorVote = Vote.error(error, document.metadata());
                 vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
             } else if (isApplicable instanceof BooleanValue(var b) && b) {
                 val  voter = document.voter();
@@ -267,6 +263,13 @@ public class PriorityVoteCompiler {
                 originalAuthorizationDecision.resource());
         return new Vote(newAuthorizationDecision, accumulatedVote.errors(), accumulatedVote.contributingAttributes(),
                 accumulatedVote.contributingVotes(), accumulatedVote.voter(), outcome);
+    }
+
+    private static Value evaluateApplicability(CompiledExpression isApplicableExpression, EvaluationContext ctx) {
+        if (isApplicableExpression instanceof Value v) {
+            return v;
+        }
+        return ((PureOperator) isApplicableExpression).evaluate(ctx);
     }
 
 }

@@ -106,9 +106,9 @@ public class PriorityBasedVoteCombiner {
      * Combines two votes according to priority-based rules with extended
      * indeterminate tracking.
      * <p>
-     * Note: The accumulator is never the priority decision (short-circuited
-     * before this method is called). Both votes are from applicable policies,
-     * so neither is ever NOT_APPLICABLE.
+     * The accumulator may be NOT_APPLICABLE when starting from an empty
+     * foldable votes list. In this case, the new vote replaces the accumulator
+     * while preserving contributing votes.
      * <p>
      * Decision table (assuming permit-overrides; swap P/D for deny-overrides):
      *
@@ -133,9 +133,9 @@ public class PriorityBasedVoteCombiner {
      * outcome includes the priority decision. An INDET(DENY) cannot block
      * permit-overrides because even without the error it would have been DENY.
      *
-     * @param accumulatorVote the accumulated result (never priority, never
-     * NOT_APPLICABLE)
-     * @param newVote the new vote to incorporate (never NOT_APPLICABLE)
+     * @param accumulatorVote the accumulated result (may be NOT_APPLICABLE if
+     * starting empty)
+     * @param newVote the new vote to incorporate
      * @param priorityDecision the decision that wins on PERMIT vs DENY conflict
      * @param voterMetadata metadata for the combined result
      * @return the combined vote
