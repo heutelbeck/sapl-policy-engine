@@ -30,6 +30,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -100,6 +101,11 @@ public class CombiningUtils {
             return v;
         }
         return ((PureOperator) isApplicableExpression).evaluate(ctx);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> asTypedList(Object[] array) {
+        return (List<T>) (List<?>) Arrays.asList(array);
     }
 
 }

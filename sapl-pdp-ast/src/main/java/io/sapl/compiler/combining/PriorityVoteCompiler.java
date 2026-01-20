@@ -31,10 +31,10 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.sapl.compiler.combining.CombiningUtils.asTypedList;
 import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
 import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
 
@@ -159,11 +159,6 @@ public class PriorityVoteCompiler {
                                         priorityDecision, voterMetadata))
                         .map(vote -> vote.finalize(defaultDecision, errorHandling));
             });
-        }
-
-        @SuppressWarnings("unchecked")
-        private static <T> List<T> asTypedList(Object[] array) {
-            return (List<T>) (List<?>) Arrays.asList(array);
         }
     }
 

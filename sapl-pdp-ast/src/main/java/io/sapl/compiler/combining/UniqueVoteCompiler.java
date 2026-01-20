@@ -27,10 +27,10 @@ import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.pdp.CompiledDocument;
 import io.sapl.compiler.pdp.PureVoter;
+import io.sapl.compiler.pdp.StreamVoter;
 import io.sapl.compiler.pdp.Vote;
 import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.compiler.pdp.Voter;
@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.sapl.compiler.combining.CombiningUtils.asTypedList;
 import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
 import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
 
@@ -60,8 +61,6 @@ import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
  */
 @UtilityClass
 public class UniqueVoteCompiler {
-
-    private static final String ERROR_STREAM_UNIQUE_VOTER_NOT_IMPLEMENTED = "StreamUniqueVoter not yet implemented";
 
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
@@ -124,7 +123,8 @@ public class UniqueVoteCompiler {
             return new PureUniqueVoter(accumulatorVote, classified.purePolicies(), defaultDecision, errorHandling,
                     voterMetadata);
         }
-        throw new SaplCompilerException(ERROR_STREAM_UNIQUE_VOTER_NOT_IMPLEMENTED);
+        return new StreamUniqueVoter(accumulatorVote, classified.purePolicies(), classified.streamPolicies(),
+                defaultDecision, errorHandling, voterMetadata);
     }
 
     record PureUniqueVoter(
@@ -164,6 +164,48 @@ public class UniqueVoteCompiler {
             }
         }
         return vote;
+    }
+
+    record StreamUniqueVoter(
+            Vote accumulatorVote,
+            List<CompiledDocument> pureDocuments,
+            List<CompiledDocument> streamDocuments,
+            DefaultDecision defaultDecision,
+            ErrorHandling errorHandling,
+            VoterMetadata voterMetadata) implements StreamVoter {
+        @Override
+        public Flux<Vote> vote() {
+            return Flux.deferContextual(ctxView -> {
+                val evalCtx  = ctxView.get(EvaluationContext.class);
+                var pureVote = combinePureVoters(accumulatorVote, pureDocuments, voterMetadata, evalCtx);
+
+                // Short-circuit if already INDETERMINATE - no need to evaluate streams
+                if (pureVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
+                    return Flux.just(pureVote.finalize(defaultDecision, errorHandling));
+                }
+
+                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
+                streamVoters.add(Flux.empty());
+                for (CompiledDocument document : streamDocuments) {
+                    // Short-circuit on INDETERMINATE - uniqueness cannot be determined
+                    if (pureVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
+                        break;
+                    }
+                    val isApplicable = evaluateApplicability(document.isApplicable(), evalCtx);
+                    if (isApplicable instanceof ErrorValue error) {
+                        val errorVote = Vote.error(error, document.metadata());
+                        pureVote = UniqueVoteCombiner.combineVotes(pureVote, errorVote, voterMetadata);
+                    } else if (isApplicable instanceof BooleanValue(var b) && b) {
+                        streamVoters.add(((StreamVoter) document.voter()).vote());
+                    }
+                }
+                streamVoters.set(0, Flux.just(pureVote));
+                return Flux
+                        .combineLatest(streamVoters,
+                                votes -> UniqueVoteCombiner.combineMultipleVotes(asTypedList(votes), voterMetadata))
+                        .map(vote -> vote.finalize(defaultDecision, errorHandling));
+            });
+        }
     }
 
 }

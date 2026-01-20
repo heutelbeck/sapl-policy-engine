@@ -26,6 +26,7 @@ import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
@@ -231,6 +232,27 @@ public class SaplTesting {
 
     public static VoteWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled, EvaluationContext ctx) {
         return compiled.coverage().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+    }
+
+    public static Vote evaluatePolicySetWithPathEquivalenceCheck(CompiledPolicySet compiled, EvaluationContext ctx) {
+        var productionVote = evaluatePolicySet(compiled, ctx);
+        var coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
+        assertThat(productionVote.authorizationDecision().decision())
+                .as("Production and coverage paths must produce same decision")
+                .isEqualTo(coverageVote.authorizationDecision().decision());
+        return productionVote;
+    }
+
+    public static void assertStreamPathEquivalence(CompiledPolicySet compiled, EvaluationContext ctx,
+            Decision expectedDecision) {
+        var productionVote = ((StreamVoter) compiled.applicabilityAndVote()).vote()
+                .contextWrite(c -> c.put(EvaluationContext.class, ctx)).blockFirst();
+        var coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
+        assertThat(productionVote.authorizationDecision().decision()).as("Production path decision")
+                .isEqualTo(expectedDecision);
+        assertThat(productionVote.authorizationDecision().decision())
+                .as("Production and coverage paths must produce same decision")
+                .isEqualTo(coverageVote.authorizationDecision().decision());
     }
 
     public static CompiledPolicy compilePolicyFull(String policySource) {
