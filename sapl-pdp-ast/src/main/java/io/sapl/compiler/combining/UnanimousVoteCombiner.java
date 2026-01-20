@@ -201,7 +201,7 @@ public class UnanimousVoteCombiner {
                 && a.resource().equals(b.resource());
     }
 
-    private static boolean isTerminal(Vote vote, boolean strictMode) {
+    static boolean isTerminal(Vote vote, boolean strictMode) {
         if (vote.authorizationDecision().decision() != Decision.INDETERMINATE) {
             return false;
         }

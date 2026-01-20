@@ -1158,7 +1158,7 @@ class FirstVoteCompilerTests {
 
                     policy "fallback"
                     %s
-                    """.formatted(algorithm, entitlement, entitlement.equals("permit") ? "deny" : "permit"));
+                    """.formatted(algorithm, entitlement, "permit".equals(entitlement) ? "deny" : "permit"));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);
