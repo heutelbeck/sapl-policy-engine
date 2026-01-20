@@ -304,15 +304,23 @@ class UniqueVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("multiple applicable has PERMIT_OR_DENY outcome and collision error")
-        void whenMultipleApplicableThenHasPermitOrDenyOutcomeAndCollisionError() {
+        @DisplayName("two PERMITs has PERMIT outcome and collision error")
+        void whenTwoPermitsThenHasPermitOutcomeAndCollisionError() {
             val votes  = List.of(permitVote("policy-1"), permitVote("policy-2"));
             val result = UniqueVoteCombiner.combineMultipleVotes(votes, TEST_METADATA);
             assertThat(result).satisfies(r -> {
-                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_DENY);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT);
                 assertThat(r.errors()).hasSize(1).first()
                         .satisfies(e -> assertThat(e.message()).contains("Multiple applicable policies"));
             });
+        }
+
+        @Test
+        @DisplayName("PERMIT and DENY has PERMIT_OR_DENY outcome")
+        void whenPermitAndDenyThenHasPermitOrDenyOutcome() {
+            val votes  = List.of(permitVote("policy-1"), denyVote("policy-2"));
+            val result = UniqueVoteCombiner.combineMultipleVotes(votes, TEST_METADATA);
+            assertThat(result.outcome()).isEqualTo(Outcome.PERMIT_OR_DENY);
         }
     }
 

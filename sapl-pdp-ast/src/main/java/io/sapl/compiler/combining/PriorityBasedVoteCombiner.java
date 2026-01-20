@@ -18,6 +18,9 @@
 package io.sapl.compiler.combining;
 
 import static io.sapl.compiler.combining.CombiningUtils.appendToList;
+import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
+import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
+import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
@@ -222,7 +225,7 @@ public class PriorityBasedVoteCombiner {
             return indeterminateResult(combineOutcomes(accVote.outcome(), newVote.outcome()),
                     List.of(transformationError), contributingVotes, voterMetadata);
         }
-        val merged = mergeAuthorizationDecisionsConstraints(accAuthz, newAuthz);
+        val merged = mergeConstraints(accAuthz, newAuthz);
         return concreteResult(merged, combineOutcomes(accVote.outcome(), newVote.outcome()), contributingVotes,
                 voterMetadata);
     }
@@ -230,12 +233,6 @@ public class PriorityBasedVoteCombiner {
     private static Vote concreteResult(AuthorizationDecision authz, Outcome outcome, List<Vote> contributingVotes,
             VoterMetadata voterMetadata) {
         return new Vote(authz, List.of(), List.of(), contributingVotes, voterMetadata, outcome);
-    }
-
-    private static Vote indeterminateResult(Outcome outcome, List<ErrorValue> errors, List<Vote> contributingVotes,
-            VoterMetadata voterMetadata) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, errors, List.of(), contributingVotes, voterMetadata,
-                outcome);
     }
 
     private static boolean isCritical(Outcome outcome, Decision priorityDecision) {
@@ -246,27 +243,6 @@ public class PriorityBasedVoteCombiner {
         case DENY           -> priorityDecision == Decision.DENY;
         case PERMIT_OR_DENY -> true; // Always critical
         };
-    }
-
-    private static Outcome combineOutcomes(Outcome a, Outcome b) {
-        if (a == null)
-            return b;
-        if (b == null)
-            return a;
-        if (a == b)
-            return a;
-        return Outcome.PERMIT_OR_DENY;
-    }
-
-    private static AuthorizationDecision mergeAuthorizationDecisionsConstraints(AuthorizationDecision authzDecisionA,
-            AuthorizationDecision authzDecisionB) {
-        // assumes transformation uncertainty has been eliminated before.
-        val resourceA   = authzDecisionA.resource();
-        val resourceB   = authzDecisionB.resource();
-        val resource    = Value.UNDEFINED.equals(resourceA) ? resourceB : resourceA;
-        val obligations = authzDecisionA.obligations().append(authzDecisionB.obligations());
-        val advice      = authzDecisionA.advice().append(authzDecisionB.advice());
-        return new AuthorizationDecision(authzDecisionA.decision(), obligations, advice, resource);
     }
 
 }

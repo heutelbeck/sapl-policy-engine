@@ -118,18 +118,15 @@ public class FirstVoteCompiler {
             val newCoverage     = accumulatedCoverage.with(policyCoverage);
             val newContributing = new ArrayList<>(contributingVotes);
             newContributing.add(policyVote);
-            if (errorHandling == ABSTAIN && policyVote.authorizationDecision().decision() == INDETERMINATE) {
-                return Flux.just(new VoteWithCoverage(Vote.combinedVote(AuthorizationDecision.NOT_APPLICABLE,
-                        voterMetadata, newContributing, policyVote.outcome()), newCoverage));
-            }
             if (policyVote.authorizationDecision().decision() == NOT_APPLICABLE) {
                 return evaluatePoliciesForCoverage(policies, index + 1, newCoverage, newContributing, voterMetadata,
                         defaultDecision, errorHandling);
             }
 
-            val setVote = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, newContributing,
+            val setVote   = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, newContributing,
                     policyVote.outcome());
-            return Flux.just(new VoteWithCoverage(setVote, newCoverage));
+            val finalized = finalizeVote(setVote, errorHandling, voterMetadata);
+            return Flux.just(new VoteWithCoverage(finalized, newCoverage));
         });
     }
 
@@ -154,12 +151,10 @@ public class FirstVoteCompiler {
                 break; // non-static, stop short-circuit scan
             }
             contributingVotes.add(policyVote);
-            if (errorHandling == ABSTAIN && policyVote.authorizationDecision().decision() == INDETERMINATE) {
-                return Vote.abstain(voterMetadata, contributingVotes);
-            }
             if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {
-                return Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, contributingVotes,
+                val combined = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, contributingVotes,
                         policyVote.outcome());
+                return finalizeVote(combined, errorHandling, voterMetadata);
             }
             firstNonStatic++;
         }
@@ -215,17 +210,13 @@ public class FirstVoteCompiler {
             votingChain = PolicySetUtil.toStream(policy.applicabilityAndVote()).switchMap(currentVote -> {
                 val allVotes = new ArrayList<>(contributingVotes);
                 allVotes.add(currentVote);
-                if (errorHandling == ABSTAIN && currentVote.authorizationDecision().decision() == INDETERMINATE) {
-                    return Flux.just(Vote.combinedVote(AuthorizationDecision.NOT_APPLICABLE, voterMetadata, allVotes,
-                            currentVote.outcome()));
-                }
-
                 if (currentVote.authorizationDecision().decision() == NOT_APPLICABLE) {
                     return voteChainTail.map(voteAtTail -> voteAtTail.withVote(currentVote));
                 }
 
-                return Flux.just(Vote.combinedVote(currentVote.authorizationDecision(), voterMetadata, allVotes,
-                        currentVote.outcome()));
+                val combined = Vote.combinedVote(currentVote.authorizationDecision(), voterMetadata, allVotes,
+                        currentVote.outcome());
+                return Flux.just(finalizeVote(combined, errorHandling, voterMetadata));
             });
         }
         return votingChain;
@@ -257,12 +248,10 @@ public class FirstVoteCompiler {
             for (var policy : policies) {
                 val policyVote = PolicySetUtil.evaluatePure(policy, ctx, location);
                 allVotes.add(policyVote);
-                if (errorHandling == ABSTAIN && policyVote.authorizationDecision().decision() == INDETERMINATE) {
-                    return Vote.abstain(voterMetadata, allVotes);
-                }
                 if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {
-                    return Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, allVotes,
+                    val combined = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, allVotes,
                             policyVote.outcome());
+                    return finalizeVote(combined, errorHandling, voterMetadata);
                 }
             }
             return getFallbackVote(allVotes, voterMetadata, defaultDecision);
@@ -282,5 +271,26 @@ public class FirstVoteCompiler {
         public Flux<Vote> vote() {
             return chain;
         }
+    }
+
+    /**
+     * Finalizes a vote by applying error handling.
+     * <p>
+     * With {@code errors abstain}, INDETERMINATE is converted to the default
+     * decision. With {@code errors propagate}, INDETERMINATE is preserved.
+     *
+     * @param vote the combined vote
+     * @param errorHandling how to handle INDETERMINATE
+     * @param defaultDecision what to return when abstaining
+     * @param voterMetadata metadata for the finalized vote
+     * @return finalized vote
+     */
+    private static Vote finalizeVote(Vote vote, CombiningAlgorithm.ErrorHandling errorHandling,
+            VoterMetadata voterMetadata) {
+        if (errorHandling == ABSTAIN && vote.authorizationDecision().decision() == INDETERMINATE) {
+            // Error abstains - return NOT_APPLICABLE (not the default decision)
+            return Vote.abstain(voterMetadata, vote.contributingVotes());
+        }
+        return vote;
     }
 }

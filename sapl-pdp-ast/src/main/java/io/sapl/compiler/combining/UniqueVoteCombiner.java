@@ -18,6 +18,8 @@
 package io.sapl.compiler.combining;
 
 import static io.sapl.compiler.combining.CombiningUtils.appendToList;
+import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
+import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
@@ -141,15 +143,8 @@ public class UniqueVoteCombiner {
 
         // Both applicable - collision!
         val collisionError = Value.error(ERROR_MULTIPLE_APPLICABLE);
-        val outcome        = (accDec == newDec) ? (accDec == Decision.PERMIT ? Outcome.PERMIT : Outcome.DENY)
-                : Outcome.PERMIT_OR_DENY;
+        val outcome        = (accDec == newDec) ? decisionToOutcome(accDec) : Outcome.PERMIT_OR_DENY;
         return indeterminateResult(outcome, List.of(collisionError), contributingVotes, voterMetadata);
-    }
-
-    private static Vote indeterminateResult(Outcome outcome, List<ErrorValue> errors, List<Vote> contributingVotes,
-            VoterMetadata voterMetadata) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, errors, List.of(), contributingVotes, voterMetadata,
-                outcome);
     }
 
 }

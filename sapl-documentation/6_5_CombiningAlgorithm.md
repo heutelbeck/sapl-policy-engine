@@ -75,7 +75,7 @@ Algorithms where only one policy can contribute a permit vote (`unique`, `first`
 | `priority permit` | Any permit vote results in permit; denies only win if no permit exists |
 | `first`           | Policies vote in order; the first non-abstain vote wins                |
 | `unanimous`       | All policies must agree                                                |
-| `unanimous strict`| All policies must agree and vote identically (no abstaining)           |
+| `unanimous strict`| All policies must return equal decisions (same decision, obligations, advice, resource) |
 | `unique`          | Exactly one policy must vote; multiple matches cause an error          |
 
 #### Default Decisions
@@ -169,14 +169,15 @@ A variant that preserves error information and distinguishes "no policy votes" f
 
 **Behavior:**
 
-1. If any policy votes `DENY`, the result is `DENY`.
-2. Otherwise, if any policy votes `INDETERMINATE` or transformation uncertainty exists, the result is `INDETERMINATE`.
+1. If any policy votes `DENY` and no error could have also produced `DENY`, the result is `DENY`.
+2. If any policy votes `INDETERMINATE`, or if transformation uncertainty exists, the result is `INDETERMINATE`.
 3. Otherwise, if any policy votes `PERMIT`, the result is `PERMIT`.
 4. Otherwise, the result is `NOT_APPLICABLE`.
 
 **Characteristics:**
 
 - Preserves error information
+- An error that could have been `DENY` blocks a concrete `DENY` (cannot safely merge constraints)
 - Distinguishes `NOT_APPLICABLE` from `DENY`
 - Suitable when the PEP must handle indeterminate states
 
@@ -221,53 +222,88 @@ A variant that preserves error information and distinguishes "no policy votes" f
 
 **Behavior:**
 
-1. If any policy votes `PERMIT` (without transformation uncertainty), the result is `PERMIT`.
-2. Otherwise, if any policy votes `INDETERMINATE` or transformation uncertainty exists, the result is `INDETERMINATE`.
+1. If any policy votes `PERMIT` and no error could have also produced `PERMIT`, and no transformation uncertainty exists, the result is `PERMIT`.
+2. If any policy votes `INDETERMINATE`, or if transformation uncertainty exists, the result is `INDETERMINATE`.
 3. Otherwise, if any policy votes `DENY`, the result is `DENY`.
 4. Otherwise, the result is `NOT_APPLICABLE`.
 
 **Characteristics:**
 
 - Preserves error information
-- Any permit overrides denies
+- An error that could have been `PERMIT` blocks a concrete `PERMIT` (cannot safely merge constraints)
+- Any permit overrides denies (when no conflicting errors exist)
 - Suitable when "at least one allows" semantics are required
 
 ### `unanimous`
 
-The `unanimous` voting style requires all policies to agree. If any policy votes differently, the result depends on the default.
+The `unanimous` voting style requires all applicable policies to agree on the same entitlement. If policies disagree, the result depends on error handling.
 
 **`unanimous or deny`**
 
-All policies must vote `PERMIT` for access to be granted. Any `DENY` vote, or lack of unanimous `PERMIT`, results in deny.
+All applicable policies must agree. If they all vote `PERMIT`, the result is permit with merged constraints. If they all vote `DENY`, the result is deny with merged constraints. Disagreement results in deny.
 
 **Behavior:**
 
-1. If any policy votes `DENY`, the result is `DENY`.
-2. Otherwise, if all policies vote `PERMIT` (without transformation uncertainty), the result is `PERMIT`.
-3. Otherwise, the result is `DENY`.
+1. If all applicable policies vote `PERMIT` (without transformation uncertainty), the result is `PERMIT` with merged constraints.
+2. If all applicable policies vote `DENY`, the result is `DENY` with merged constraints.
+3. If policies disagree on entitlement, the result is `DENY` (disagreement error treated as abstain).
+4. If no policy is applicable, the result is `DENY`.
 
 **Characteristics:**
 
 - Never returns `NOT_APPLICABLE` or `INDETERMINATE`
-- Errors are treated as abstain
+- Errors and disagreements are treated as abstain
 - Use when all stakeholders must agree
 
 **`unanimous or abstain errors propagate`**
 
-A variant that preserves error information and distinguishes "no consensus" from "access denied".
+A variant that preserves error information and signals disagreement as `INDETERMINATE`.
 
 **Behavior:**
 
-1. If any policy votes `DENY`, the result is `DENY`.
-2. Otherwise, if any policy votes `INDETERMINATE` or transformation uncertainty exists, the result is `INDETERMINATE`.
-3. Otherwise, if all policies vote `PERMIT`, the result is `PERMIT`.
-4. Otherwise, the result is `NOT_APPLICABLE`.
+1. If any policy votes `INDETERMINATE`, the result is `INDETERMINATE`.
+2. If policies disagree on entitlement, the result is `INDETERMINATE`.
+3. If transformation uncertainty exists, the result is `INDETERMINATE`.
+4. If all applicable policies vote `PERMIT`, the result is `PERMIT` with merged constraints.
+5. If all applicable policies vote `DENY`, the result is `DENY` with merged constraints.
+6. If no policy is applicable, the result is `NOT_APPLICABLE`.
 
 **Characteristics:**
 
 - Preserves error information
-- Requires explicit agreement from all policies
+- Disagreement is signaled as `INDETERMINATE`, not silently converted to deny
 - Suitable for multi-stakeholder authorization
+
+**`unanimous strict or deny`**
+
+A stricter variant where all applicable policies must return equal decisions. Unlike normal unanimous mode which only requires agreement on entitlement and merges constraints, strict mode requires the decisions to be equal including obligations, advice, and resource transformation.
+
+**Behavior:**
+
+1. If all applicable policies return equal decisions, the result is that decision.
+2. If policies return different decisions (even if they agree on entitlement), the result is `DENY`.
+3. If no policy is applicable, the result is `DENY`.
+
+**Characteristics:**
+
+- Never returns `NOT_APPLICABLE` or `INDETERMINATE`
+- No constraint merging: decisions must already be equal
+- Use when policies must produce identical outputs, not just agree on entitlement
+
+**`unanimous strict or abstain errors propagate`**
+
+**Behavior:**
+
+1. If any policy votes `INDETERMINATE`, the result is `INDETERMINATE`.
+2. If policies return different decisions, the result is `INDETERMINATE`.
+3. If all applicable policies return equal decisions, the result is that decision.
+4. If no policy is applicable, the result is `NOT_APPLICABLE`.
+
+**Characteristics:**
+
+- Preserves error information
+- Signals non-equality as `INDETERMINATE`
+- Suitable when exact policy agreement must be verified
 
 ### `unique`
 
@@ -307,25 +343,26 @@ A variant that preserves error information and signals configuration errors as `
 
 ### `first`
 
-The `first` voting style is order-dependent: the first policy to vote `PERMIT` or `DENY` wins. Policy priority is determined by declaration order within the policy set.
+The `first` voting style is order-dependent: the first policy to return a non-`NOT_APPLICABLE` result wins. Policy priority is determined by declaration order within the policy set.
 
 **Not available at PDP level** (document order is undefined).
 
 **`first or deny`**
 
-The first policy to vote `PERMIT` or `DENY` determines the result. If no policy votes, the result is deny.
+The first policy to return a result determines the outcome. If all policies abstain, the result is deny.
 
 **Behavior:**
 
 1. Evaluate each policy in declaration order:
    - If it votes `PERMIT` or `DENY`, that is the result.
+   - If it votes `INDETERMINATE`, the error abstains and the result is `NOT_APPLICABLE`.
    - If it votes `NOT_APPLICABLE`, continue to the next policy.
-2. If no policy votes `PERMIT` or `DENY`, the result is `DENY`.
+2. If all policies vote `NOT_APPLICABLE`, the result is `DENY`.
 
 **Characteristics:**
 
-- Never returns `NOT_APPLICABLE` or `INDETERMINATE`
-- Errors are treated as abstain
+- Returns `NOT_APPLICABLE` when an error occurs (error abstains)
+- Errors short-circuit evaluation (later policies are not evaluated)
 - Order-dependent: earlier policies have higher priority
 
 **`first or abstain errors propagate`**
@@ -338,7 +375,7 @@ A variant that preserves error information and stops evaluation on errors.
    - If it votes `INDETERMINATE`, the result is `INDETERMINATE`.
    - If it votes `PERMIT` or `DENY`, that is the result.
    - If it votes `NOT_APPLICABLE`, continue to the next policy.
-2. If no policy votes `PERMIT` or `DENY`, the result is `NOT_APPLICABLE`.
+2. If all policies vote `NOT_APPLICABLE`, the result is `NOT_APPLICABLE`.
 
 **Characteristics:**
 
