@@ -141,7 +141,9 @@ public class UniqueVoteCombiner {
 
         // Both applicable - collision!
         val collisionError = Value.error(ERROR_MULTIPLE_APPLICABLE);
-        return indeterminateResult(Outcome.PERMIT_OR_DENY, List.of(collisionError), contributingVotes, voterMetadata);
+        val outcome        = (accDec == newDec) ? (accDec == Decision.PERMIT ? Outcome.PERMIT : Outcome.DENY)
+                : Outcome.PERMIT_OR_DENY;
+        return indeterminateResult(outcome, List.of(collisionError), contributingVotes, voterMetadata);
     }
 
     private static Vote indeterminateResult(Outcome outcome, List<ErrorValue> errors, List<Vote> contributingVotes,
