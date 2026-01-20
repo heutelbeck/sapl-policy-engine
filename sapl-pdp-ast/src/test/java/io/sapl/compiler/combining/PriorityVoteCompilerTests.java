@@ -237,8 +237,10 @@ class PriorityVoteCompilerTests {
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-            assertThat(result.authorizationDecision().obligations()).isNotEmpty();
+            assertThat(result.authorizationDecision()).satisfies(authz -> {
+                assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
+                assertThat(authz.obligations()).isNotEmpty();
+            });
         }
     }
 

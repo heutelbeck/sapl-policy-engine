@@ -54,6 +54,8 @@ import java.util.List;
 @UtilityClass
 public class PriorityBasedVoteCombiner {
 
+    private static final String ERROR_TRANSFORMATION_UNCERTAINTY = "Transformation uncertainty: multiple policies define different resource transformations. Cannot determine which transformation to apply.";
+
     /**
      * Combines multiple votes into a single vote using priority-based logic.
      * <p>
@@ -215,8 +217,9 @@ public class PriorityBasedVoteCombiner {
         val resourceB = newAuthz.resource();
         // Transformation uncertainty: both define different resources
         if (!Value.UNDEFINED.equals(resourceA) && !Value.UNDEFINED.equals(resourceB)) {
-            return indeterminateResult(combineOutcomes(accVote.outcome(), newVote.outcome()), List.of(),
-                    contributingVotes, voterMetadata);
+            val transformationError = Value.error(ERROR_TRANSFORMATION_UNCERTAINTY);
+            return indeterminateResult(combineOutcomes(accVote.outcome(), newVote.outcome()),
+                    List.of(transformationError), contributingVotes, voterMetadata);
         }
         val merged = mergeAuthorizationDecisionsConstraints(accAuthz, newAuthz);
         return concreteResult(merged, combineOutcomes(accVote.outcome(), newVote.outcome()), contributingVotes,
@@ -265,7 +268,7 @@ public class PriorityBasedVoteCombiner {
         return new AuthorizationDecision(authzDecisionA.decision(), obligations, advice, resource);
     }
 
-    private static <T> List<T> appendToList(List<T> list, T newElement) {
+    static <T> List<T> appendToList(List<T> list, T newElement) {
         if (list.isEmpty())
             return List.of(newElement);
         val result = new ArrayList<T>(list.size() + 1);

@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @UtilityClass
-public class UniqueDecisionCompiler {
+public class UniqueVoteCompiler {
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling) {

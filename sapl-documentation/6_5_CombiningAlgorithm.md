@@ -20,10 +20,10 @@ Combining algorithms apply at two levels:
 A combining algorithm in SAPL looks like this:
 
 ```
-deny-wins or permit
+priority deny or permit
 ```
 
-This reads naturally: "deny wins, or permit by default." It tells you:
+This reads naturally: "priority to deny, or permit by default." It tells you:
 
 1. **How conflicts resolve**: If any policy votes deny, the result is deny.
 2. **What happens otherwise**: If no policy votes deny, the result is permit.
@@ -36,7 +36,7 @@ SAPL's notation makes behavior explicit by separating three orthogonal concerns:
 
 | Concern            | Description                 | Options                                                                  |
 |--------------------|-----------------------------|--------------------------------------------------------------------------|
-| **Voting**         | How competing votes resolve | `deny-wins`, `permit-wins`, `first-vote`, `unanimous`, `unique-decision` |
+| **Voting**         | How competing votes resolve | `priority deny`, `priority permit`, `first`, `unanimous`, `unanimous strict`, `unique` |
 | **Default**        | Result when no policy votes | `permit`, `deny`, `abstain`                                              |
 | **Error handling** | How errors are treated      | `errors abstain` (default), `errors propagate`                           |
 
@@ -63,7 +63,7 @@ How transformation uncertainty is handled depends on the error handling setting:
 | `errors abstain`   | `DENY`                            |
 | `errors propagate` | `INDETERMINATE`                   |
 
-Algorithms where only one policy can contribute a permit vote (`unique-decision`, `first-vote`) cannot encounter transformation uncertainty.
+Algorithms where only one policy can contribute a permit vote (`unique`, `first`) cannot encounter transformation uncertainty.
 
 ### Vocabulary
 
@@ -71,11 +71,12 @@ Algorithms where only one policy can contribute a permit vote (`unique-decision`
 
 | Style             | Meaning                                                                |
 |-------------------|------------------------------------------------------------------------|
-| `deny-wins`       | Any deny vote results in deny; permits only win if no deny exists      |
-| `permit-wins`     | Any permit vote results in permit; denies only win if no permit exists |
-| `first-vote`      | Policies vote in order; the first non-abstain vote wins                |
+| `priority deny`   | Any deny vote results in deny; permits only win if no deny exists      |
+| `priority permit` | Any permit vote results in permit; denies only win if no permit exists |
+| `first`           | Policies vote in order; the first non-abstain vote wins                |
 | `unanimous`       | All policies must agree                                                |
-| `unique-decision` | Exactly one policy must vote; multiple matches cause an error          |
+| `unanimous strict`| All policies must agree and vote identically (no abstaining)           |
+| `unique`          | Exactly one policy must vote; multiple matches cause an error          |
 
 #### Default Decisions
 
@@ -94,22 +95,23 @@ Algorithms where only one policy can contribute a permit vote (`unique-decision`
 
 ### Available Algorithms
 
-SAPL supports all permutations of voting style, default, and error handling. The only restriction is that `first-vote` cannot be used at PDP level (document order is undefined).
+SAPL supports all permutations of voting style, default, and error handling. The only restriction is that `first` cannot be used at PDP level (document order is undefined).
 
 **Examples:**
 
 ```
-deny-wins or permit
-deny-wins or deny
-deny-wins or abstain
-deny-wins or permit errors propagate
-permit-wins or deny
-permit-wins or abstain errors propagate
-first-vote or deny
-first-vote or abstain errors propagate
+priority deny or permit
+priority deny or deny
+priority deny or abstain
+priority deny or permit errors propagate
+priority permit or deny
+priority permit or abstain errors propagate
+first or deny
+first or abstain errors propagate
 unanimous or deny
+unanimous strict or deny
 unanimous or abstain errors propagate
-unique-decision or abstain errors propagate
+unique or abstain errors propagate
 ```
 
 ### Choosing an Algorithm
@@ -117,7 +119,7 @@ unique-decision or abstain errors propagate
 The safest starting point is the most restrictive algorithm:
 
 ```
-deny-wins or deny
+priority deny or deny
 ```
 
 This algorithm denies access unless a policy explicitly permits, and if any policy votes deny, that deny cannot be overridden. When no policy votes at all, access is denied.
@@ -126,11 +128,11 @@ For PDP-level configuration, this is the recommended default. Deviations should 
 
 The following sections describe each voting style in detail, starting from the most restrictive and progressing to more permissive variants.
 
-### `deny-wins`
+### `priority deny`
 
-The `deny-wins` voting style is conservative: any deny vote results in deny. Permits only win if no deny exists.
+The `priority deny` voting style is conservative: any deny vote results in deny. Permits only win if no deny exists.
 
-**`deny-wins or deny`**
+**`priority deny or deny`**
 
 The most restrictive algorithm. Access requires an explicit permit and no deny votes. When no policy votes, the result is deny.
 
@@ -146,7 +148,7 @@ The most restrictive algorithm. Access requires an explicit permit and no deny v
 - Errors are treated as abstain
 - Recommended default for PDP-level configuration
 
-**`deny-wins or permit`**
+**`priority deny or permit`**
 
 A permissive variant. Deny still wins over permit, but when no policy votes, the result is permit.
 
@@ -161,7 +163,7 @@ A permissive variant. Deny still wins over permit, but when no policy votes, the
 - Errors are treated as abstain
 - Use with caution: forgetting a deny rule grants access
 
-**`deny-wins or abstain errors propagate`**
+**`priority deny or abstain errors propagate`**
 
 A variant that preserves error information and distinguishes "no policy votes" from "access denied".
 
@@ -178,11 +180,11 @@ A variant that preserves error information and distinguishes "no policy votes" f
 - Distinguishes `NOT_APPLICABLE` from `DENY`
 - Suitable when the PEP must handle indeterminate states
 
-### `permit-wins`
+### `priority permit`
 
-The `permit-wins` voting style is liberal: any permit vote results in permit. Denies only win if no permit exists.
+The `priority permit` voting style is liberal: any permit vote results in permit. Denies only win if no permit exists.
 
-**`permit-wins or deny`**
+**`priority permit or deny`**
 
 Access is granted if any policy votes permit, regardless of deny votes. When no policy votes, the result is deny.
 
@@ -197,7 +199,7 @@ Access is granted if any policy votes permit, regardless of deny votes. When no 
 - Errors are treated as abstain
 - A single permit overrides all denies
 
-**`permit-wins or permit`**
+**`priority permit or permit`**
 
 The most permissive algorithm. Access is granted if any policy votes permit, and also when no policy votes at all.
 
@@ -213,7 +215,7 @@ The most permissive algorithm. Access is granted if any policy votes permit, and
 - Errors are treated as abstain
 - Use with extreme caution: access is granted by default
 
-**`permit-wins or abstain errors propagate`**
+**`priority permit or abstain errors propagate`**
 
 A variant that preserves error information and distinguishes "no policy votes" from "access granted".
 
@@ -267,11 +269,11 @@ A variant that preserves error information and distinguishes "no consensus" from
 - Requires explicit agreement from all policies
 - Suitable for multi-stakeholder authorization
 
-### `unique-decision`
+### `unique`
 
-The `unique-decision` voting style requires exactly one policy to vote. Multiple matching policies indicate a configuration error.
+The `unique` voting style requires exactly one policy to vote. Multiple matching policies indicate a configuration error.
 
-**`unique-decision or deny`**
+**`unique or deny`**
 
 Exactly one policy must match and vote. If no policy matches or multiple policies match, the result is deny.
 
@@ -287,7 +289,7 @@ Exactly one policy must match and vote. If no policy matches or multiple policie
 - Errors are treated as abstain
 - Useful for mutually exclusive policy structures with safe default
 
-**`unique-decision or abstain errors propagate`**
+**`unique or abstain errors propagate`**
 
 A variant that preserves error information and signals configuration errors as `INDETERMINATE`.
 
@@ -303,13 +305,13 @@ A variant that preserves error information and signals configuration errors as `
 - Transformation uncertainty cannot occur (only one policy matches)
 - Suitable when the PEP must handle configuration errors explicitly
 
-### `first-vote`
+### `first`
 
-The `first-vote` voting style is order-dependent: the first policy to vote `PERMIT` or `DENY` wins. Policy priority is determined by declaration order within the policy set.
+The `first` voting style is order-dependent: the first policy to vote `PERMIT` or `DENY` wins. Policy priority is determined by declaration order within the policy set.
 
 **Not available at PDP level** (document order is undefined).
 
-**`first-vote or deny`**
+**`first or deny`**
 
 The first policy to vote `PERMIT` or `DENY` determines the result. If no policy votes, the result is deny.
 
@@ -326,7 +328,7 @@ The first policy to vote `PERMIT` or `DENY` determines the result. If no policy 
 - Errors are treated as abstain
 - Order-dependent: earlier policies have higher priority
 
-**`first-vote or abstain errors propagate`**
+**`first or abstain errors propagate`**
 
 A variant that preserves error information and stops evaluation on errors.
 
@@ -351,9 +353,9 @@ Combining algorithms apply at both levels, with one restriction:
 | Level      | Available Algorithms    |
 |------------|-------------------------|
 | Policy Set | All algorithms          |
-| PDP        | All except `first-vote` |
+| PDP        | All except `first`      |
 
-The `first-vote` voting style requires a defined evaluation order. Within a policy set, the declaration order establishes this sequence. At the PDP level, the order of policy documents is undefined, making `first-vote` inapplicable.
+The `first` voting style requires a defined evaluation order. Within a policy set, the declaration order establishes this sequence. At the PDP level, the order of policy documents is undefined, making `first` inapplicable.
 
 ### Comparison to XACML and SAPL 3.0.0
 
@@ -368,14 +370,14 @@ SAPL 3.0.0 adopted the short form of these identifiers (e.g., `deny-overrides`, 
 
 SAPL 4.0.0 introduces a new notation that makes algorithm behavior explicit:
 
-| XACML 3.0 Identifier          | SAPL 3.0.0            | SAPL 4.0.0                                    |
-|-------------------------------|-----------------------|-----------------------------------------------|
-| `urn:...:deny-overrides`      | `deny-overrides`      | `deny-wins or abstain errors propagate`       |
-| `urn:...:permit-overrides`    | `permit-overrides`    | `permit-wins or abstain errors propagate`     |
-| `urn:...:permit-unless-deny`  | `permit-unless-deny`  | `deny-wins or permit`                         |
-| `urn:...:deny-unless-permit`  | `deny-unless-permit`  | `permit-wins or deny`                         |
-| `urn:...:first-applicable`    | `first-applicable`    | `first-vote or abstain errors propagate`      |
-| `urn:...:only-one-applicable` | `only-one-applicable` | `unique-decision or abstain errors propagate` |
+| XACML 3.0 Identifier          | SAPL 3.0.0            | SAPL 4.0.0                                      |
+|-------------------------------|-----------------------|-------------------------------------------------|
+| `urn:...:deny-overrides`      | `deny-overrides`      | `priority deny or abstain errors propagate`     |
+| `urn:...:permit-overrides`    | `permit-overrides`    | `priority permit or abstain errors propagate`   |
+| `urn:...:permit-unless-deny`  | `permit-unless-deny`  | `priority deny or permit`                       |
+| `urn:...:deny-unless-permit`  | `deny-unless-permit`  | `priority permit or deny`                       |
+| `urn:...:first-applicable`    | `first-applicable`    | `first or abstain errors propagate`             |
+| `urn:...:only-one-applicable` | `only-one-applicable` | `unique or abstain errors propagate`            |
 
 **Why a new notation?**
 
@@ -400,5 +402,5 @@ SAPL 4.0.0 separates these concerns explicitly:
 <voting> or <default> [errors <handling>]
 ```
 
-Each component is visible. The algorithm `deny-wins or permit` reads naturally: "deny wins, or permit by default." The algorithm `deny-wins or abstain errors propagate` makes clear that errors are not swallowed.
+Each component is visible. The algorithm `priority deny or permit` reads naturally: "priority to deny, or permit by default." The algorithm `priority deny or abstain errors propagate` makes clear that errors are not swallowed.
 

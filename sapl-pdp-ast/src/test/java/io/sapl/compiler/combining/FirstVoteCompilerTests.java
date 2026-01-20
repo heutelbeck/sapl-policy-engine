@@ -42,8 +42,10 @@ import java.util.stream.Stream;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.Duration;
+import org.junit.jupiter.params.provider.Arguments;
 
 /**
  * Tests for FirstApplicableCompiler covering short-circuit optimization,
@@ -92,7 +94,7 @@ class FirstVoteCompilerTests {
 
         @Test
         @DisplayName("single policy permit")
-        void singlePolicyPermit() {
+        void whenSinglePolicyPermitsThenReturnsPermit() {
             val compiled = compilePolicySet("""
                     set "single"
                     first or abstain errors propagate
@@ -105,13 +107,15 @@ class FirstVoteCompilerTests {
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-            assertVoteHasAllTheseContributing(result, List.of("only-one"));
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertVoteHasAllTheseContributing(r, List.of("only-one"));
+            });
         }
 
         @Test
         @DisplayName("single policy NOT_APPLICABLE")
-        void singlePolicyNotApplicable() {
+        void whenSinglePolicyNotApplicableThenReturnsNotApplicable() {
             val compiled = compilePolicySet("""
                     set "single"
                     first or abstain errors propagate
@@ -126,8 +130,10 @@ class FirstVoteCompilerTests {
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-            assertVoteHasAllTheseContributing(result, List.of("never-matches"));
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
+                assertVoteHasAllTheseContributing(r, List.of("never-matches"));
+            });
         }
     }
 
@@ -888,104 +894,34 @@ class FirstVoteCompilerTests {
     @DisplayName("Default vote permutations")
     class DefaultDecisionPermutations {
 
-        @Test
-        @DisplayName("first or deny: all NOT_APPLICABLE returns DENY")
-        void firstVoteOrDeny_allNotApplicable_returnsDeny() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    first or deny
-
-                    policy "never-matches"
-                    permit
-                    where
-                      false;
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySet(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+        static Stream<Arguments> defaultDecisionCases() {
+            return Stream.of(arguments("first or deny", "permit", Decision.DENY),
+                    arguments("first or permit", "deny", Decision.PERMIT),
+                    arguments("first or abstain", "permit", Decision.NOT_APPLICABLE),
+                    arguments("first or deny errors propagate", "permit", Decision.DENY),
+                    arguments("first or permit errors propagate", "deny", Decision.PERMIT));
         }
 
-        @Test
-        @DisplayName("first or permit: all NOT_APPLICABLE returns PERMIT")
-        void firstVoteOrPermit_allNotApplicable_returnsPermit() {
+        @ParameterizedTest(name = "{0}: all NOT_APPLICABLE returns {2}")
+        @MethodSource("defaultDecisionCases")
+        @DisplayName("default decision when all NOT_APPLICABLE")
+        void whenAllNotApplicableThenReturnsDefaultDecision(String algorithm, String entitlement,
+                Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
-                    first or permit
+                    %s
 
                     policy "never-matches"
-                    deny
+                    %s
                     where
                       false;
-                    """);
+                    """.formatted(algorithm, entitlement));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-        }
-
-        @Test
-        @DisplayName("first or abstain: all NOT_APPLICABLE returns NOT_APPLICABLE")
-        void firstVoteOrAbstain_allNotApplicable_returnsNotApplicable() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    first or abstain
-
-                    policy "never-matches"
-                    permit
-                    where
-                      false;
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySet(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-        }
-
-        @Test
-        @DisplayName("first or deny errors propagate: all NOT_APPLICABLE returns DENY")
-        void firstVoteOrDenyErrorsPropagate_allNotApplicable_returnsDeny() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    first or deny errors propagate
-
-                    policy "never-matches"
-                    permit
-                    where
-                      false;
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySet(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
-        }
-
-        @Test
-        @DisplayName("first or permit errors propagate: all NOT_APPLICABLE returns PERMIT")
-        void firstVoteOrPermitErrorsPropagate_allNotApplicable_returnsPermit() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    first or permit errors propagate
-
-                    policy "never-matches"
-                    deny
-                    where
-                      false;
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySet(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+            assertThat(result.authorizationDecision().decision()).isEqualTo(expectedDecision);
         }
     }
 
@@ -1124,7 +1060,7 @@ class FirstVoteCompilerTests {
 
         @Test
         @DisplayName("errors abstain (default): set abstains on errors, returns NOT_APPLICABLE")
-        void errorsAbstain_setAbstainsOnError() {
+        void whenErrorsAbstainThenSetAbstainsOnError() {
             val compiled = compilePolicySet("""
                     set "test"
                     first or abstain
@@ -1142,15 +1078,17 @@ class FirstVoteCompilerTests {
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            // Error makes set INDETERMINATE, errors abstain → NOT_APPLICABLE
+            // Error makes set INDETERMINATE, errors abstain -> NOT_APPLICABLE
             // Fallback policy is NOT evaluated (errors stops first)
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-            assertVoteHasAllTheseContributing(result, List.of("errors-policy"));
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
+                assertVoteHasAllTheseContributing(r, List.of("errors-policy"));
+            });
         }
 
         @Test
         @DisplayName("errors propagate: INDETERMINATE stops evaluation and returns INDETERMINATE")
-        void errorsPropagate_indeterminateStopsEvaluation() {
+        void whenErrorsPropagateThenIndeterminateStopsEvaluation() {
             val compiled = compilePolicySet("""
                     set "test"
                     first or abstain errors propagate
@@ -1168,90 +1106,59 @@ class FirstVoteCompilerTests {
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-            assertVoteHasAllTheseContributing(result, List.of("errors-policy"));
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertVoteHasAllTheseContributing(r, List.of("errors-policy"));
+            });
         }
 
-        @Test
-        @DisplayName("first or deny errors abstain: errors causes set to abstain (NOT default DENY)")
-        void firstVoteOrDenyErrorsAbstain_errorCausesAbstain() {
+        static Stream<Arguments> errorsAbstainOverridesDefaultCases() {
+            return Stream.of(arguments("first or deny", "permit"), arguments("first or permit", "deny"));
+        }
+
+        @ParameterizedTest(name = "{0}: errors causes abstain (NOT default)")
+        @MethodSource("errorsAbstainOverridesDefaultCases")
+        @DisplayName("errors abstain overrides default decision")
+        void whenErrorsAbstainThenOverridesDefaultDecision(String algorithm, String entitlement) {
             val compiled = compilePolicySet("""
                     set "test"
-                    first or deny
+                    %s
 
                     policy "errors-policy"
-                    permit
+                    %s
                     where
                       subject.missing.field;
-                    """);
+                    """.formatted(algorithm, entitlement));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);
             val result   = evaluatePolicySet(compiled, ctx);
 
-            // Error handling (abstain) takes precedence over default vote (deny)
+            // Error handling (abstain) takes precedence over default vote
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
         }
 
-        @Test
-        @DisplayName("first or permit errors abstain: errors causes set to abstain (NOT default PERMIT)")
-        void firstVoteOrPermitErrorsAbstain_errorCausesAbstain() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    first or permit
-
-                    policy "errors-policy"
-                    deny
-                    where
-                      subject.missing.field;
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySet(compiled, ctx);
-
-            // Error handling (abstain) takes precedence over default vote (permit)
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
+        static Stream<Arguments> errorsPropagateReturnsIndeterminateCases() {
+            return Stream.of(arguments("first or deny errors propagate", "permit"),
+                    arguments("first or permit errors propagate", "deny"));
         }
 
-        @Test
-        @DisplayName("first or deny errors propagate: errors returns INDETERMINATE (not DENY)")
-        void firstVoteOrDenyErrorsPropagate_errorReturnsIndeterminate() {
+        @ParameterizedTest(name = "{0}: errors returns INDETERMINATE")
+        @MethodSource("errorsPropagateReturnsIndeterminateCases")
+        @DisplayName("errors propagate returns INDETERMINATE")
+        void whenErrorsPropagateThenReturnsIndeterminate(String algorithm, String entitlement) {
             val compiled = compilePolicySet("""
                     set "test"
-                    first or deny errors propagate
+                    %s
 
                     policy "errors-policy"
-                    permit
+                    %s
                     where
                       subject.missing.field;
 
                     policy "fallback"
-                    deny
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySet(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-        }
-
-        @Test
-        @DisplayName("first or permit errors propagate: errors returns INDETERMINATE (not PERMIT)")
-        void firstVoteOrPermitErrorsPropagate_errorReturnsIndeterminate() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    first or permit errors propagate
-
-                    policy "errors-policy"
-                    deny
-                    where
-                      subject.missing.field;
-
-                    policy "fallback"
-                    permit
-                    """);
+                    %s
+                    """.formatted(algorithm, entitlement, entitlement.equals("permit") ? "deny" : "permit"));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);

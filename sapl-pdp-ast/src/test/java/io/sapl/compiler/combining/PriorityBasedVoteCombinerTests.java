@@ -152,8 +152,10 @@ class PriorityBasedVoteCombinerTests {
             val votes  = new ArrayList<>(List.of(denyVote("policy-1"), denyVote("policy-2"), permitVote("policy-3")));
             val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-            assertThat(result.contributingVotes()).hasSize(3);
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.contributingVotes()).hasSize(3);
+            });
         }
 
         @Test
@@ -164,9 +166,11 @@ class PriorityBasedVoteCombinerTests {
                     permitVote("policy-3")));
             val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-            assertThat(result.contributingVotes()).hasSize(2).extracting(v -> v.voter().name())
-                    .containsExactly("policy-1", "policy-2");
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.contributingVotes()).hasSize(2).extracting(v -> v.voter().name())
+                        .containsExactly("policy-1", "policy-2");
+            });
         }
 
         @Test
@@ -177,8 +181,10 @@ class PriorityBasedVoteCombinerTests {
                     List.of(denyVote("policy-1"), indeterminateVote("policy-2", Outcome.DENY), permitVote("policy-3")));
             val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-            assertThat(result.contributingVotes()).hasSize(3);
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.contributingVotes()).hasSize(3);
+            });
         }
 
         @Test
@@ -189,8 +195,10 @@ class PriorityBasedVoteCombinerTests {
             val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.DENY, TEST_METADATA);
 
             // DENY priority wins, all votes considered
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
-            assertThat(result.contributingVotes()).hasSize(2);
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+                assertThat(r.contributingVotes()).hasSize(2);
+            });
         }
 
         @Test
@@ -202,10 +210,12 @@ class PriorityBasedVoteCombinerTests {
                     denyVote("policy-2"), permitWithObligations("policy-3", obligation2)));
             val result      = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-            assertThat((List<Value>) result.authorizationDecision().obligations()).containsExactly(obligation1,
-                    obligation2);
-            assertThat(result.contributingVotes()).hasSize(3);
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat((List<Value>) r.authorizationDecision().obligations()).containsExactly(obligation1,
+                        obligation2);
+                assertThat(r.contributingVotes()).hasSize(3);
+            });
         }
     }
 
@@ -251,8 +261,10 @@ class PriorityBasedVoteCombinerTests {
             val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(accVote, TEST_METADATA);
             val result      = PriorityBasedVoteCombiner.combineVotes(accumulator, newVote, priority, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).as("decision").isEqualTo(expectedDecision);
-            assertThat(result.outcome()).as("outcome").isEqualTo(expectedOutcome);
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).as("decision").isEqualTo(expectedDecision);
+                assertThat(r.outcome()).as("outcome").isEqualTo(expectedOutcome);
+            });
         }
 
         static Stream<Arguments> extendedIndeterminateCases() {
@@ -353,8 +365,23 @@ class PriorityBasedVoteCombinerTests {
 
             val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
 
-            assertThat(result.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
-            assertThat(result.authorizationDecision().resource()).isEqualTo(testCase.expectedResource());
+            assertThat(result.authorizationDecision()).satisfies(authz -> {
+                assertThat(authz.decision()).isEqualTo(testCase.expectedDecision());
+                assertThat(authz.resource()).isEqualTo(testCase.expectedResource());
+            });
+        }
+
+        @Test
+        @DisplayName("transformation uncertainty creates error message")
+        void whenTransformationUncertaintyThenCreatesErrorMessage() {
+            val vote1       = permitWithResource("policy-1", Value.of("resource-1"));
+            val vote2       = permitWithResource("policy-2", Value.of("resource-2"));
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
+
+            val result = PriorityBasedVoteCombiner.combineVotes(accumulator, vote2, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.errors()).hasSize(1).first()
+                    .satisfies(e -> assertThat(e.message()).contains("Transformation uncertainty"));
         }
     }
 

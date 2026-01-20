@@ -25,7 +25,7 @@ The name is followed by a combining algorithm. This algorithm describes how to c
 Example:
 
 ```
-set "example-policies" deny-wins or deny
+set "example-policies" priority deny or deny
 ```
 
 The algorithm notation follows the pattern:
@@ -52,6 +52,6 @@ In case a policy within the policy set assigns a variable already assigned in th
 
 ### Policies
 
-Each policy set must contain one or more policies. [See above](../5_4_SAPLPolicy/#sapl-policy) how to describe a SAPL policy. If the combining algorithm uses the `first-vote` voting style, the policies are evaluated in the order in which they appear in the policy set.
+Each policy set must contain one or more policies. [See above](../5_4_SAPLPolicy/#sapl-policy) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
 
 In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see [Variable Assignments](5_4_SAPLPolicy/#variable-assignments)) are available within the policies but can be overwritten for a particular policy. The same applies to imports: imports at the policy level overwrite imports defined for the policy set but are only valid for the particular policy.
