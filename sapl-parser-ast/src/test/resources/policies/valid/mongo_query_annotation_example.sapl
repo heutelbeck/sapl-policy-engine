@@ -1,5 +1,5 @@
 set "query_annotation_user_repository"
-first-vote or abstain errors propagate
+first or abstain errors propagate
 
 policy "permit query method (1)"
 permit

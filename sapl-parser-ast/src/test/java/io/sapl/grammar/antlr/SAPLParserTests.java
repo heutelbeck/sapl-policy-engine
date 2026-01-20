@@ -423,12 +423,12 @@ class SAPLParserTests {
                 """), arguments("deny-wins or permit algorithm", """
                 set "test" deny-wins or permit
                 policy "not applicable" deny where subject == "non-matching";
-                """), arguments("unique-decision algorithm", """
-                set "test" unique-decision or abstain errors propagate
+                """), arguments("unique algorithm", """
+                set "test" unique or abstain errors propagate
                 policy "permit policy" permit
                 policy "deny policy" deny
-                """), arguments("first-vote algorithm", """
-                set "test" first-vote or abstain errors propagate
+                """), arguments("first algorithm", """
+                set "test" first or abstain errors propagate
                 policy "not applicable" permit where subject == "non-matching";
                 policy "permit policy" permit
                 policy "deny policy" deny
@@ -597,10 +597,8 @@ class SAPLParserTests {
                         "set \"test\" deny-wins or abstain errors propagate policy \"p\" permit"),
                 arguments("permit-wins algorithm",
                         "set \"test\" permit-wins or abstain errors propagate policy \"p\" permit"),
-                arguments("first-vote algorithm",
-                        "set \"test\" first-vote or abstain errors propagate policy \"p\" permit"),
-                arguments("unique-decision algorithm",
-                        "set \"test\" unique-decision or abstain errors propagate policy \"p\" permit"),
+                arguments("first algorithm", "set \"test\" first or abstain errors propagate policy \"p\" permit"),
+                arguments("unique algorithm", "set \"test\" unique or abstain errors propagate policy \"p\" permit"),
                 arguments("permit-wins or deny algorithm", "set \"test\" permit-wins or deny policy \"p\" permit"),
                 arguments("deny-wins or permit algorithm", "set \"test\" deny-wins or permit policy \"p\" permit"),
 

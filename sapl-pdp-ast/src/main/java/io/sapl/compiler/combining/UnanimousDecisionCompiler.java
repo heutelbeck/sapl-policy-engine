@@ -39,25 +39,27 @@ public class UnanimousDecisionCompiler {
 
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
-            VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+            VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
+            boolean strictMode) {
         val voter    = compileVoter(compiledPolicies, voterMetadata, policySet.location(), defaultDecision,
-                errorHandling);
+                errorHandling, strictMode);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, defaultDecision,
-                errorHandling);
+                errorHandling, strictMode);
         return new VoterAndCoverage(voter, coverage);
     }
 
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
             List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
-            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s".formatted(policySet, isApplicable,
-                compiledPolicies, voterMetadata, defaultDecision, errorHandling));
+            DefaultDecision defaultDecision, ErrorHandling errorHandling, boolean strictMode) {
+        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s, %s".formatted(policySet, isApplicable,
+                compiledPolicies, voterMetadata, defaultDecision, errorHandling, strictMode));
     }
 
     private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
-            @NonNull SourceLocation location, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s".formatted(compiledPolicies, voterMetadata,
-                location, defaultDecision, errorHandling));
+            @NonNull SourceLocation location, DefaultDecision defaultDecision, ErrorHandling errorHandling,
+            boolean strictMode) {
+        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s".formatted(compiledPolicies,
+                voterMetadata, location, defaultDecision, errorHandling, strictMode));
     }
 
 }

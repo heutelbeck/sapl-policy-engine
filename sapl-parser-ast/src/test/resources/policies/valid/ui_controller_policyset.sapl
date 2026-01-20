@@ -1,7 +1,7 @@
 import filter.blacken
 
 set "UIController"
-first-vote or abstain errors propagate
+first or abstain errors propagate
 
 /*
  * This policy enables all authenticated users to see the patient list. The contents of the patient list

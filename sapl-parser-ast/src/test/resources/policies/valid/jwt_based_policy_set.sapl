@@ -7,7 +7,7 @@
  */
 
 set "JWT Demo Policies"
-first-vote or abstain errors propagate
+first or abstain errors propagate
 
 /*
  * The spring security libraries for OAuth2 JWT integration map each element of

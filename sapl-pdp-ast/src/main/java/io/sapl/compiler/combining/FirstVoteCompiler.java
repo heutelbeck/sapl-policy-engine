@@ -45,9 +45,9 @@ import static io.sapl.ast.CombiningAlgorithm.ErrorHandling.ABSTAIN;
 import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
 
 /**
- * Compiles policy sets using the first-vote combining algorithm.
+ * Compiles policy sets using the first combining algorithm.
  * <p>
- * The first-vote algorithm evaluates policies in order until one returns
+ * The first algorithm evaluates policies in order until one returns
  * a vote other than NOT_APPLICABLE. That vote becomes the final result.
  * If all policies return NOT_APPLICABLE, the set returns NOT_APPLICABLE.
  * <p>
@@ -78,7 +78,7 @@ public class FirstVoteCompiler {
     /**
      * Compiles the coverage stream for the policy set.
      * Delegates target evaluation to {@link PolicySetUtil} and provides a
-     * first-vote body factory.
+     * first body factory.
      */
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
             List<CompiledPolicy> compiledPolicies, VoterMetadata voterMetadata,
@@ -88,7 +88,7 @@ public class FirstVoteCompiler {
     }
 
     /**
-     * Creates a factory for body coverage evaluation using first-vote
+     * Creates a factory for body coverage evaluation using first
      * semantics.
      */
     private Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyCoverageFactory(List<CompiledPolicy> policies,
@@ -101,7 +101,7 @@ public class FirstVoteCompiler {
 
     /**
      * Recursively evaluates policies for coverage, accumulating results.
-     * Stops at first non-NOT_APPLICABLE vote (first-vote semantics).
+     * Stops at first non-NOT_APPLICABLE vote (first semantics).
      */
     private static Flux<VoteWithCoverage> evaluatePoliciesForCoverage(List<CompiledPolicy> policies, int index,
             Coverage.PolicySetCoverage accumulatedCoverage, List<Vote> contributingVotes, VoterMetadata voterMetadata,
@@ -232,7 +232,7 @@ public class FirstVoteCompiler {
     }
 
     /**
-     * Pure vote maker for first-vote evaluation without streaming
+     * Pure vote maker for first evaluation without streaming
      * policies.
      * <p>
      * Evaluates policies sequentially at runtime, returning the first

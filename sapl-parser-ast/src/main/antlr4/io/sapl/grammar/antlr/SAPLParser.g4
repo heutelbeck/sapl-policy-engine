@@ -49,11 +49,12 @@ combiningAlgorithm
     ;
 
 votingMode
-    : DENY_WINS          # denyWins
-    | FIRST_VOTE         # firstVote
-    | PERMIT_WINS        # permitWins
-    | UNANIMOUS_DECISION # unanimousDecision
-    | UNIQUE_DECISION    # uniqueDecision
+    : DENY_WINS        # denyWins
+    | FIRST            # first
+    | PERMIT_WINS      # permitWins
+    | UNANIMOUS STRICT # unanimousStrict
+    | UNANIMOUS        # unanimous
+    | UNIQUE           # unique
     ;
 
 defaultDecision

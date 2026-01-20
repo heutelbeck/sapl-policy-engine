@@ -256,16 +256,16 @@ class LazyNaryBooleanCompilerTests {
         @Test
         void conjunction_evaluatesLeftToRight_pure() {
             // First pure is false, second would cause errors but shouldn't be reached
-            var ctx    = evaluationContext(Map.of("first", Value.FALSE, "second", Value.error("should not see this")));
-            var result = evaluateExpression("first && second && true", ctx);
+            var ctx    = evaluationContext(Map.of("a", Value.FALSE, "b", Value.error("should not see this")));
+            var result = evaluateExpression("a && b && true", ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
 
         @Test
         void disjunction_evaluatesLeftToRight_pure() {
             // First pure is true, second would cause errors but shouldn't be reached
-            var ctx    = evaluationContext(Map.of("first", Value.TRUE, "second", Value.error("should not see this")));
-            var result = evaluateExpression("first || second || false", ctx);
+            var ctx    = evaluationContext(Map.of("a", Value.TRUE, "b", Value.error("should not see this")));
+            var result = evaluateExpression("a || b || false", ctx);
             assertThat(result).isEqualTo(Value.TRUE);
         }
     }
@@ -734,12 +734,12 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @ParameterizedTest(name = "{0}")
-        @CsvSource({ "conjunction,false,first && second,false", "disjunction,true,first || second,true" })
+        @CsvSource({ "conjunction,false,a && b,false", "disjunction,true,a || b,true" })
         void errorAfterShortCircuit_notReached(String description, boolean shortCircuitValue, String expr,
                 boolean expected) {
             // Should short-circuit before reaching the errors
-            var first  = shortCircuitValue ? Value.TRUE : Value.FALSE;
-            var ctx    = evaluationContext(Map.of("first", first, "second", Value.error("should not see")));
+            var a      = shortCircuitValue ? Value.TRUE : Value.FALSE;
+            var ctx    = evaluationContext(Map.of("a", a, "b", Value.error("should not see")));
             var result = evaluateExpression(expr, ctx);
             assertThat(result).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }

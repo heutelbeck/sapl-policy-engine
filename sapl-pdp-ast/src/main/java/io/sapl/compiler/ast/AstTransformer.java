@@ -798,13 +798,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private VotingMode toVotingMode(VotingModeContext ctx) {
         return switch (ctx) {
-        case DenyWinsContext ignored          -> VotingMode.DENY_WINS;
-        case FirstVoteContext ignored         -> VotingMode.FIRST_VOTE;
-        case PermitWinsContext ignored        -> VotingMode.PERMIT_WINS;
-        case UnanimousDecisionContext ignored -> VotingMode.UNANIMOUS_DECISION;
-        case UniqueDecisionContext ignored    -> VotingMode.UNIQUE_DECISION;
-        default                               ->
-            throw new SaplCompilerException("Unknown voting mode", fromContext(ctx));
+        case DenyWinsContext ignored        -> VotingMode.DENY_WINS;
+        case FirstContext ignored           -> VotingMode.FIRST;
+        case PermitWinsContext ignored      -> VotingMode.PERMIT_WINS;
+        case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
+        case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
+        case UniqueContext ignored          -> VotingMode.UNIQUE;
+        default                             -> throw new SaplCompilerException("Unknown voting mode", fromContext(ctx));
         };
     }
 

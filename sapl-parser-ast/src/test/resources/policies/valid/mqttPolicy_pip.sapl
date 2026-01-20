@@ -1,5 +1,5 @@
 set "mqttPipPolicySet"
-first-vote or abstain errors propagate
+first or abstain errors propagate
 
 policy "mqttPolicyWithoutParams"
 permit

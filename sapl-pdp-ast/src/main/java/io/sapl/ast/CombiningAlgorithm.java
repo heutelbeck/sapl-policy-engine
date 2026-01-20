@@ -29,10 +29,11 @@ public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultD
 
     public enum VotingMode {
         DENY_WINS,
-        FIRST_VOTE,
+        FIRST,
         PERMIT_WINS,
-        UNANIMOUS_DECISION,
-        UNIQUE_DECISION
+        UNANIMOUS,
+        UNANIMOUS_STRICT,
+        UNIQUE
     }
 
     public enum DefaultDecision {

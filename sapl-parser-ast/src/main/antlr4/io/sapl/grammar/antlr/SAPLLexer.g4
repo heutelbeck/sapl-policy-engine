@@ -51,10 +51,11 @@ ERRORS              : 'errors';
 ABSTAIN             : 'abstain';
 PROPAGATE           : 'propagate';
 DENY_WINS           : 'deny-wins';
-FIRST_VOTE          : 'first-vote';
+FIRST               : 'first';
 PERMIT_WINS         : 'permit-wins';
-UNANIMOUS_DECISION  : 'unanimous-decision';
-UNIQUE_DECISION     : 'unique-decision';
+STRICT              : 'strict';
+UNANIMOUS           : 'unanimous';
+UNIQUE              : 'unique';
 
 // Operators
 FILTER      : '|-';

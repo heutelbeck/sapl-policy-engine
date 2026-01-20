@@ -1,5 +1,5 @@
 set "classified documents"
-first-vote or abstain errors propagate
+first or abstain errors propagate
 
 policy "Clearance (1/3)"
 permit

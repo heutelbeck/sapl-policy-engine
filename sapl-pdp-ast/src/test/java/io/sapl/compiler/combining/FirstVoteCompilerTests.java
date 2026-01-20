@@ -86,7 +86,7 @@ class FirstVoteCompilerTests {
         void emptyPolicySetThrows() {
             assertThatThrownBy(() -> compilePolicySet("""
                     set "empty"
-                    first-vote or abstain errors propagate
+                    first or abstain errors propagate
                     """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Syntax errors");
         }
 
@@ -95,7 +95,7 @@ class FirstVoteCompilerTests {
         void singlePolicyPermit() {
             val compiled = compilePolicySet("""
                     set "single"
-                    first-vote or abstain errors propagate
+                    first or abstain errors propagate
 
                     policy "only-one"
                     permit
@@ -114,7 +114,7 @@ class FirstVoteCompilerTests {
         void singlePolicyNotApplicable() {
             val compiled = compilePolicySet("""
                     set "single"
-                    first-vote or abstain errors propagate
+                    first or abstain errors propagate
 
                     policy "never-matches"
                     permit
@@ -155,7 +155,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("short-circuit: first policy permits", """
                             set "guild-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "always-permit"
                             permit
@@ -172,7 +172,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("short-circuit: first policy body NOT_APPLICABLE, continues to next", """
                             set "test"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "body-not-applicable"
                             permit
@@ -191,7 +191,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("first policy target false, second applies", """
                             set "guild-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "never-matches"
                             permit
@@ -210,7 +210,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("runtime target: first policy matches", """
                             set "watch-duties"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "captain-only"
                             permit
@@ -229,7 +229,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("runtime target: second policy matches", """
                             set "watch-duties"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "captain-only"
                             permit
@@ -253,7 +253,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("runtime target: no policy matches, falls through to default", """
                             set "watch-duties"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "captain-only"
                             permit
@@ -277,7 +277,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("body condition matches", """
                             set "library-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "wizards-reading"
                             permit
@@ -297,7 +297,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("target matches but body fails, continues to next policy", """
                             set "library-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "wizards-reading"
                             permit
@@ -319,7 +319,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set variable: constant folds to short-circuit", """
                             set "constant-var"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var allowed = true;
 
@@ -340,7 +340,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set variable: subscription-dependent used in target", """
                             set "employee-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var isManager = subject.role == "manager";
 
@@ -361,7 +361,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set variable: subscription-dependent, condition false", """
                             set "employee-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var isManager = subject.role == "manager";
 
@@ -382,7 +382,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set variable: multiple vars used across policies", """
                             set "multi-var"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var dept = subject.department;
                             var isAdmin = subject.role == "admin";
@@ -409,7 +409,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set variable: used in policy body condition", """
                             set "body-var"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var requiredLevel = 5;
 
@@ -430,7 +430,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set variable: body condition fails, falls through", """
                             set "body-var"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var requiredLevel = 5;
 
@@ -453,7 +453,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("all policies NOT_APPLICABLE returns NOT_APPLICABLE", """
                             set "no-match"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "never-matches-1"
                             permit
@@ -474,7 +474,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("errors in policy body propagates as INDETERMINATE", """
                             set "errors-target"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "errors-policy"
                             permit
@@ -494,7 +494,7 @@ class FirstVoteCompilerTests {
                     new PureTestCase(
                             "short-circuit loop completion: all policies have target=true but body=NOT_APPLICABLE", """
                                     set "all-not-applicable-folded"
-                                    first-vote or abstain errors propagate
+                                    first or abstain errors propagate
 
                                     policy "first"
                                     permit
@@ -517,7 +517,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set target: static true, policies evaluated", """
                             set "static-target-true"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for true
 
                             policy "inner"
@@ -532,7 +532,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set target: static false, NOT_APPLICABLE without evaluating policies", """
                             set "static-target-false"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for false
 
                             policy "inner"
@@ -547,7 +547,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set target: runtime true, policies evaluated", """
                             set "runtime-target-true"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for subject == "alice"
 
                             policy "inner"
@@ -562,7 +562,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set target: runtime false, NOT_APPLICABLE", """
                             set "runtime-target-false"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for subject == "bob"
 
                             policy "inner"
@@ -577,7 +577,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set target: errors in target, INDETERMINATE", """
                             set "errors-in-set-target"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for subject.missing.field
 
                             policy "inner"
@@ -592,7 +592,7 @@ class FirstVoteCompilerTests {
 
                     new PureTestCase("set target: non-boolean result, INDETERMINATE", """
                             set "non-boolean-target"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for subject
 
                             policy "inner"
@@ -650,7 +650,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("attribute in body permits", """
                             set "time-based-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "time-check"
                             permit
@@ -670,7 +670,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("target matches but body fails, continues to next policy", """
                             set "library-access"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "wizards-reading"
                             permit
@@ -693,7 +693,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("set variable: attribute in body makes set streaming", """
                             set "streaming-var"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var currentTime = <test.time>;
 
@@ -715,7 +715,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("set variable: streaming var body condition false", """
                             set "streaming-var"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             var currentTime = <test.time>;
 
@@ -737,7 +737,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("stream path: first policy target false, falls through to second", """
                             set "stream-target-false"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "never-matches"
                             permit
@@ -759,7 +759,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("stream path: errors in body propagates as INDETERMINATE", """
                             set "errors-target-stream"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "errors-policy"
                             permit
@@ -780,7 +780,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("stream path: non-boolean in body propagates as INDETERMINATE", """
                             set "non-boolean-target-stream"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
 
                             policy "number-target"
                             permit
@@ -803,7 +803,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("set target: runtime true with streaming policy", """
                             set "target-with-stream"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for subject == "alice"
 
                             policy "stream-policy"
@@ -821,7 +821,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("set target: runtime false with streaming policy, NOT_APPLICABLE", """
                             set "target-with-stream"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for subject == "bob"
 
                             policy "stream-policy"
@@ -839,7 +839,7 @@ class FirstVoteCompilerTests {
 
                     new StreamTestCase("set target: runtime errors with streaming policy, INDETERMINATE", """
                             set "target-errors-stream"
-                            first-vote or abstain errors propagate
+                            first or abstain errors propagate
                             for subject.missing.field
 
                             policy "stream-policy"
@@ -889,11 +889,11 @@ class FirstVoteCompilerTests {
     class DefaultDecisionPermutations {
 
         @Test
-        @DisplayName("first-vote or deny: all NOT_APPLICABLE returns DENY")
+        @DisplayName("first or deny: all NOT_APPLICABLE returns DENY")
         void firstVoteOrDeny_allNotApplicable_returnsDeny() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or deny
+                    first or deny
 
                     policy "never-matches"
                     permit
@@ -909,11 +909,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or permit: all NOT_APPLICABLE returns PERMIT")
+        @DisplayName("first or permit: all NOT_APPLICABLE returns PERMIT")
         void firstVoteOrPermit_allNotApplicable_returnsPermit() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or permit
+                    first or permit
 
                     policy "never-matches"
                     deny
@@ -929,11 +929,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or abstain: all NOT_APPLICABLE returns NOT_APPLICABLE")
+        @DisplayName("first or abstain: all NOT_APPLICABLE returns NOT_APPLICABLE")
         void firstVoteOrAbstain_allNotApplicable_returnsNotApplicable() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or abstain
+                    first or abstain
 
                     policy "never-matches"
                     permit
@@ -949,11 +949,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or deny errors propagate: all NOT_APPLICABLE returns DENY")
+        @DisplayName("first or deny errors propagate: all NOT_APPLICABLE returns DENY")
         void firstVoteOrDenyErrorsPropagate_allNotApplicable_returnsDeny() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or deny errors propagate
+                    first or deny errors propagate
 
                     policy "never-matches"
                     permit
@@ -969,11 +969,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or permit errors propagate: all NOT_APPLICABLE returns PERMIT")
+        @DisplayName("first or permit errors propagate: all NOT_APPLICABLE returns PERMIT")
         void firstVoteOrPermitErrorsPropagate_allNotApplicable_returnsPermit() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or permit errors propagate
+                    first or permit errors propagate
 
                     policy "never-matches"
                     deny
@@ -1004,7 +1004,7 @@ class FirstVoteCompilerTests {
                     new Value[] { Value.FALSE }, "test.attrC", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "attribute-chain"
-                    first-vote or abstain errors propagate
+                    first or abstain errors propagate
 
                     policy "policy-a"
                     permit
@@ -1043,15 +1043,15 @@ class FirstVoteCompilerTests {
         @Test
         @DisplayName("aggregates attributes when first policy permits (short-circuit with attributes)")
         void aggregatesAttributesOnShortCircuit() {
-            val attrBroker = attributeBroker(Map.of("test.first", new Value[] { Value.TRUE }));
+            val attrBroker = attributeBroker(Map.of("test.attr1", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "short-circuit"
-                    first-vote or abstain errors propagate
+                    first or abstain errors propagate
 
                     policy "permits-immediately"
                     permit
                     where
-                      <test.first>;
+                      <test.attr1>;
 
                     policy "never-evaluated"
                     deny
@@ -1073,7 +1073,7 @@ class FirstVoteCompilerTests {
                         // Only the first policy's attribute should be aggregated (short-circuit)
                         val aggregatedAttrs = vote.aggregatedContributingAttributes();
                         val attrNames = aggregatedAttrs.stream().map(attr -> attr.invocation().attributeName()).toList();
-                        assertThat(attrNames).containsExactly("test.first");
+                        assertThat(attrNames).containsExactly("test.attr1");
                     }).expectComplete().verify(TIMEOUT);
         }
 
@@ -1085,7 +1085,7 @@ class FirstVoteCompilerTests {
                     Map.of("test.attrX", new Value[] { Value.FALSE }, "test.attrY", new Value[] { Value.FALSE }));
             val compiled   = compilePolicySet("""
                     set "all-not-applicable"
-                    first-vote or abstain errors propagate
+                    first or abstain errors propagate
 
                     policy "policy-x"
                     permit
@@ -1127,7 +1127,7 @@ class FirstVoteCompilerTests {
         void errorsAbstain_setAbstainsOnError() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or abstain
+                    first or abstain
 
                     policy "errors-policy"
                     permit
@@ -1143,7 +1143,7 @@ class FirstVoteCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             // Error makes set INDETERMINATE, errors abstain → NOT_APPLICABLE
-            // Fallback policy is NOT evaluated (errors stops first-vote)
+            // Fallback policy is NOT evaluated (errors stops first)
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
             assertVoteHasAllTheseContributing(result, List.of("errors-policy"));
         }
@@ -1153,7 +1153,7 @@ class FirstVoteCompilerTests {
         void errorsPropagate_indeterminateStopsEvaluation() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or abstain errors propagate
+                    first or abstain errors propagate
 
                     policy "errors-policy"
                     permit
@@ -1173,11 +1173,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or deny errors abstain: errors causes set to abstain (NOT default DENY)")
+        @DisplayName("first or deny errors abstain: errors causes set to abstain (NOT default DENY)")
         void firstVoteOrDenyErrorsAbstain_errorCausesAbstain() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or deny
+                    first or deny
 
                     policy "errors-policy"
                     permit
@@ -1194,11 +1194,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or permit errors abstain: errors causes set to abstain (NOT default PERMIT)")
+        @DisplayName("first or permit errors abstain: errors causes set to abstain (NOT default PERMIT)")
         void firstVoteOrPermitErrorsAbstain_errorCausesAbstain() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or permit
+                    first or permit
 
                     policy "errors-policy"
                     deny
@@ -1215,11 +1215,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or deny errors propagate: errors returns INDETERMINATE (not DENY)")
+        @DisplayName("first or deny errors propagate: errors returns INDETERMINATE (not DENY)")
         void firstVoteOrDenyErrorsPropagate_errorReturnsIndeterminate() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or deny errors propagate
+                    first or deny errors propagate
 
                     policy "errors-policy"
                     permit
@@ -1238,11 +1238,11 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("first-vote or permit errors propagate: errors returns INDETERMINATE (not PERMIT)")
+        @DisplayName("first or permit errors propagate: errors returns INDETERMINATE (not PERMIT)")
         void firstVoteOrPermitErrorsPropagate_errorReturnsIndeterminate() {
             val compiled = compilePolicySet("""
                     set "test"
-                    first-vote or permit errors propagate
+                    first or permit errors propagate
 
                     policy "errors-policy"
                     deny

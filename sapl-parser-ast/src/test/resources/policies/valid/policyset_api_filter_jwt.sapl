@@ -6,7 +6,7 @@
 import filter.blacken
 
 set "api_filter_jwt_set"
-first-vote or abstain errors propagate
+first or abstain errors propagate
 
 //reject JWTs from unknown issuers
 policy "api_filter_jwt:untrusted_issuer"
