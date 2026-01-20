@@ -28,9 +28,9 @@ package io.sapl.ast;
 public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
 
     public enum VotingMode {
-        DENY_WINS,
         FIRST,
-        PERMIT_WINS,
+        PRIORITY_DENY,
+        PRIORITY_PERMIT,
         UNANIMOUS,
         UNANIMOUS_STRICT,
         UNIQUE

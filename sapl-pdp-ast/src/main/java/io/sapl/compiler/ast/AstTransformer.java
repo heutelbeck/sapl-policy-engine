@@ -798,9 +798,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private VotingMode toVotingMode(VotingModeContext ctx) {
         return switch (ctx) {
-        case DenyWinsContext ignored        -> VotingMode.DENY_WINS;
         case FirstContext ignored           -> VotingMode.FIRST;
-        case PermitWinsContext ignored      -> VotingMode.PERMIT_WINS;
+        case PriorityDenyContext ignored    -> VotingMode.PRIORITY_DENY;
+        case PriorityPermitContext ignored  -> VotingMode.PRIORITY_PERMIT;
         case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
         case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
         case UniqueContext ignored          -> VotingMode.UNIQUE;

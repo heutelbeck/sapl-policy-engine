@@ -375,6 +375,19 @@ class SAPLParserTests {
                         policy "p" permit
                         where
                            var x = 123 schema { "type": "number" }, { "minimum": 0 };
+                        """), arguments("combining algorithm keywords as identifiers", """
+                        policy "keywords as variables" permit
+                        where
+                           var priority = 5;
+                           var first = true;
+                           var unique = "value";
+                           var unanimous = [1, 2, 3];
+                           var strict = { "key": "value" };
+                           var errors = 0;
+                           var abstain = false;
+                           var propagate = null;
+                           priority > 3;
+                           first == true;
                         """));
     }
 
@@ -387,41 +400,41 @@ class SAPLParserTests {
 
     static Stream<Arguments> policySets() {
         return Stream.of(arguments("policy set with permit policy", """
-                set "tests" deny-wins or abstain errors propagate
+                set "tests" priority deny or abstain errors propagate
                 policy "testp" permit
                 """), arguments("policy set with deny policy", """
-                set "tests" deny-wins or abstain errors propagate
+                set "tests" priority deny or abstain errors propagate
                 policy "testp" deny
                 """), arguments("policy set with body condition", """
-                set "tests" deny-wins or abstain errors propagate
+                set "tests" priority deny or abstain errors propagate
                 policy "testp" deny where subject == "non-matching";
                 """), arguments("policy set with multiple policies", """
-                set "tests" deny-wins or abstain errors propagate
+                set "tests" priority deny or abstain errors propagate
                 policy "testp1" permit
                 policy "testp2" deny
                 """), arguments("policy set with imports", """
                 import filter.replace
                 import filter.replace
-                set "tests" deny-wins or abstain errors propagate
+                set "tests" priority deny or abstain errors propagate
                 policy "testp1" permit where true;
                 """), arguments("policy set with set-level variables", """
-                set "tests" deny-wins or abstain errors propagate
+                set "tests" priority deny or abstain errors propagate
                 var var1 = true;
                 policy "testp1" permit where var1 == true;
                 """), arguments("policy set with policy-level variables", """
-                set "tests" deny-wins or abstain errors propagate
+                set "tests" priority deny or abstain errors propagate
                 var var1 = true;
                 policy "testp1" permit where var var2 = 10; var2 == 10;
                 policy "testp2" deny where !(var1 == true);
-                """), arguments("permit-wins algorithm", """
-                set "test" permit-wins or abstain errors propagate
+                """), arguments("priority permit algorithm", """
+                set "test" priority permit or abstain errors propagate
                 policy "deny policy" deny
                 policy "permit policy" permit
-                """), arguments("permit-wins or deny algorithm", """
-                set "test" permit-wins or deny
+                """), arguments("priority permit or deny algorithm", """
+                set "test" priority permit or deny
                 policy "not applicable" permit where subject == "non-matching";
-                """), arguments("deny-wins or permit algorithm", """
-                set "test" deny-wins or permit
+                """), arguments("priority deny or permit algorithm", """
+                set "test" priority deny or permit
                 policy "not applicable" deny where subject == "non-matching";
                 """), arguments("unique algorithm", """
                 set "test" unique or abstain errors propagate
@@ -433,16 +446,16 @@ class SAPLParserTests {
                 policy "permit policy" permit
                 policy "deny policy" deny
                 """), arguments("policy set with obligation", """
-                set "test" deny-wins or abstain errors propagate
+                set "test" priority deny or abstain errors propagate
                 policy "permit with obligation" permit obligation { "type": "log" }
                 """), arguments("policy set with advice", """
-                set "test" deny-wins or abstain errors propagate
+                set "test" priority deny or abstain errors propagate
                 policy "permit with advice" permit advice { "type": "info" }
                 """), arguments("policy set with transformation", """
-                set "test" deny-wins or abstain errors propagate
+                set "test" priority deny or abstain errors propagate
                 policy "permit with transform" permit transform { "modified": true }
                 """), arguments("policy set with nested conditions", """
-                set "test" deny-wins or abstain errors propagate
+                set "test" priority deny or abstain errors propagate
                 var setVar = true;
                 policy "complex policy" permit
                 where
@@ -593,14 +606,16 @@ class SAPLParserTests {
                         """),
 
                 // Combining Algorithms
-                arguments("deny-wins algorithm",
-                        "set \"test\" deny-wins or abstain errors propagate policy \"p\" permit"),
-                arguments("permit-wins algorithm",
-                        "set \"test\" permit-wins or abstain errors propagate policy \"p\" permit"),
+                arguments("priority deny algorithm",
+                        "set \"test\" priority deny or abstain errors propagate policy \"p\" permit"),
+                arguments("priority permit algorithm",
+                        "set \"test\" priority permit or abstain errors propagate policy \"p\" permit"),
                 arguments("first algorithm", "set \"test\" first or abstain errors propagate policy \"p\" permit"),
                 arguments("unique algorithm", "set \"test\" unique or abstain errors propagate policy \"p\" permit"),
-                arguments("permit-wins or deny algorithm", "set \"test\" permit-wins or deny policy \"p\" permit"),
-                arguments("deny-wins or permit algorithm", "set \"test\" deny-wins or permit policy \"p\" permit"),
+                arguments("priority permit or deny algorithm",
+                        "set \"test\" priority permit or deny policy \"p\" permit"),
+                arguments("priority deny or permit algorithm",
+                        "set \"test\" priority deny or permit policy \"p\" permit"),
 
                 // Steps and Path Expressions
                 arguments("all step types", """
@@ -738,7 +753,7 @@ class SAPLParserTests {
                 // From SAPLSyntaxErrorMessageProviderTests
                 arguments("empty document", ""), arguments("incomplete set - missing name", "set "),
                 arguments("incomplete set - missing entitlement", "set \"setname\" "),
-                arguments("set without policy", "set \"setname\" permit-wins or deny"),
+                arguments("set without policy", "set \"setname\" priority permit or deny"),
                 arguments("incomplete import", "import "), arguments("incomplete policy - missing name", "policy "),
                 arguments("incomplete policy - missing entitlement trimmed", "policy \"test\""),
                 arguments("incomplete policy - missing entitlement with whitespace", "policy \"test\" "),

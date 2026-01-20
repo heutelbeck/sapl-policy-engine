@@ -49,9 +49,9 @@ combiningAlgorithm
     ;
 
 votingMode
-    : DENY_WINS        # denyWins
-    | FIRST            # first
-    | PERMIT_WINS      # permitWins
+    : FIRST            # first
+    | PRIORITY DENY    # priorityDeny
+    | PRIORITY PERMIT  # priorityPermit
     | UNANIMOUS STRICT # unanimousStrict
     | UNANIMOUS        # unanimous
     | UNIQUE           # unique
@@ -91,8 +91,21 @@ statement
     ;
 
 valueDefinition
-    : VAR name=ID ASSIGN eval=expression
+    : VAR name=varName ASSIGN eval=expression
       (SCHEMA schemaVarExpression+=expression (COMMA schemaVarExpression+=expression)*)?
+    ;
+
+// Variable names: IDs plus combining algorithm keywords (but NOT subscription element keywords)
+varName
+    : ID
+    | ABSTAIN
+    | ERRORS
+    | FIRST
+    | PRIORITY
+    | PROPAGATE
+    | STRICT
+    | UNANIMOUS
+    | UNIQUE
     ;
 
 // Expressions - operator precedence from lowest to highest
@@ -349,9 +362,19 @@ saplId
     | reservedId # reservedIdentifier
     ;
 
+// Keywords that can also be used as identifiers in expression contexts
 reservedId
     : SUBJECT     # subjectId
     | ACTION      # actionId
     | RESOURCE    # resourceId
     | ENVIRONMENT # environmentId
+    // Combining algorithm keywords - usable as identifiers outside that context
+    | ABSTAIN     # abstainId
+    | ERRORS      # errorsId
+    | FIRST       # firstId
+    | PRIORITY    # priorityId
+    | PROPAGATE   # propagateId
+    | STRICT      # strictId
+    | UNANIMOUS   # unanimousId
+    | UNIQUE      # uniqueId
     ;

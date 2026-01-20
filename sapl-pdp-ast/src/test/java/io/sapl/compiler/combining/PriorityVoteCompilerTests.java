@@ -80,7 +80,7 @@ class PriorityVoteCompilerTests {
             // constant TRUE applicability + constant vote = foldable
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1" permit
                     policy "p2" deny
@@ -94,7 +94,7 @@ class PriorityVoteCompilerTests {
             // runtime applicability = pure voter needed
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1" permit where subject == "alice";
                     """);
@@ -107,7 +107,7 @@ class PriorityVoteCompilerTests {
             val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1" permit where <test.attr>;
                     """, attrBroker);
@@ -119,7 +119,7 @@ class PriorityVoteCompilerTests {
         void constantFalseApplicabilitySkipped() {
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "skipped" permit where false;
                     policy "active" deny
@@ -137,7 +137,7 @@ class PriorityVoteCompilerTests {
         void constantErrorApplicabilityTreatedAsApplicable() {
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "error-applicable" permit where (1/0) > 0;
                     """);
@@ -158,7 +158,7 @@ class PriorityVoteCompilerTests {
         void constantTrueWithConstantVote() {
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1" permit where subject == "alice";
                     policy "p2" deny
@@ -175,7 +175,7 @@ class PriorityVoteCompilerTests {
         void runtimeApplicabilityEvaluatesPureOperator() {
             val compiled = compilePolicySet("""
                     set "test"
-                    deny-wins or abstain
+                    priority deny or abstain
 
                     policy "p1" permit where subject == "alice";
                     policy "p2" deny where subject == "bob";
@@ -193,7 +193,7 @@ class PriorityVoteCompilerTests {
         void runtimeApplicabilityErrorProducesErrorVote() {
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "p1" permit where subject.missing.field;
                     """);
@@ -209,7 +209,7 @@ class PriorityVoteCompilerTests {
         void runtimeFalseApplicabilitySkipsPolicy() {
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1" permit where subject == "bob";
                     policy "p2" deny
@@ -227,7 +227,7 @@ class PriorityVoteCompilerTests {
         void voterIsPureVoterRequiringEvaluation() {
             val compiled = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1"
                     permit where subject == "alice";
@@ -252,7 +252,7 @@ class PriorityVoteCompilerTests {
             val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "stream" permit where <test.attr>;
                     """, attrBroker);
@@ -275,7 +275,7 @@ class PriorityVoteCompilerTests {
             val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "stream" permit where subject == "alice" && <test.attr>;
                     """, attrBroker);
@@ -298,7 +298,7 @@ class PriorityVoteCompilerTests {
             val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "error" permit where subject.missing && <test.attr>;
                     """, attrBroker);
@@ -322,7 +322,7 @@ class PriorityVoteCompilerTests {
             val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    deny-wins or abstain
+                    priority deny or abstain
 
                     policy "skipped" permit where subject == "bob" && <test.attr>;
                     policy "active" deny
@@ -346,7 +346,7 @@ class PriorityVoteCompilerTests {
             val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "pure" deny where subject == "alice";
                     policy "stream" permit where <test.attr>;
@@ -371,7 +371,7 @@ class PriorityVoteCompilerTests {
                     Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    deny-wins or abstain
+                    priority deny or abstain
 
                     policy "stream1" permit where <test.attr1>;
                     policy "stream2" deny where <test.attr2>;
@@ -395,7 +395,7 @@ class PriorityVoteCompilerTests {
             val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    deny-wins or abstain
+                    priority deny or abstain
 
                     policy "foldable" deny
                     policy "stream" permit where <test.attr>;
@@ -421,24 +421,25 @@ class PriorityVoteCompilerTests {
         static Stream<Arguments> finalizeVoteCases() {
             return Stream.of(
                     // NOT_APPLICABLE + default decision
-                    arguments("NOT_APPLICABLE + abstain = NOT_APPLICABLE", "permit-wins or abstain", "false",
+                    arguments("NOT_APPLICABLE + abstain = NOT_APPLICABLE", "priority permit or abstain", "false",
                             Decision.NOT_APPLICABLE),
-                    arguments("NOT_APPLICABLE + deny = DENY", "permit-wins or deny", "false", Decision.DENY),
-                    arguments("NOT_APPLICABLE + permit = PERMIT", "permit-wins or permit", "false", Decision.PERMIT),
+                    arguments("NOT_APPLICABLE + deny = DENY", "priority permit or deny", "false", Decision.DENY),
+                    arguments("NOT_APPLICABLE + permit = PERMIT", "priority permit or permit", "false",
+                            Decision.PERMIT),
                     // INDETERMINATE + error handling
-                    arguments("INDETERMINATE + abstain = NOT_APPLICABLE", "permit-wins or abstain", "subject.missing",
-                            Decision.NOT_APPLICABLE),
-                    arguments("INDETERMINATE + propagate = INDETERMINATE", "permit-wins or abstain errors propagate",
-                            "subject.missing", Decision.INDETERMINATE),
+                    arguments("INDETERMINATE + abstain = NOT_APPLICABLE", "priority permit or abstain",
+                            "subject.missing", Decision.NOT_APPLICABLE),
+                    arguments("INDETERMINATE + propagate = INDETERMINATE",
+                            "priority permit or abstain errors propagate", "subject.missing", Decision.INDETERMINATE),
                     // PERMIT/DENY pass through
-                    arguments("PERMIT passes through", "permit-wins or deny", "true", Decision.PERMIT),
-                    arguments("DENY passes through", "deny-wins or permit", "true", Decision.DENY));
+                    arguments("PERMIT passes through", "priority permit or deny", "true", Decision.PERMIT),
+                    arguments("DENY passes through", "priority deny or permit", "true", Decision.DENY));
         }
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("finalizeVoteCases")
         void finalizeVoteHandlesAllCases(String description, String algorithm, String whereClause, Decision expected) {
-            val entitlement = algorithm.startsWith("permit") ? "permit" : "deny";
+            val entitlement = algorithm.contains("priority permit") ? "permit" : "deny";
             val compiled    = compilePolicySet("""
                     set "test"
                     %s
@@ -462,7 +463,7 @@ class PriorityVoteCompilerTests {
         void coverageCollectsAllPolicies() {
             val compiled           = compilePolicySet("""
                     set "all-policies"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "first" permit
                     policy "second" deny
@@ -484,7 +485,7 @@ class PriorityVoteCompilerTests {
         void coverageIncludesNotApplicable() {
             val compiled           = compilePolicySet("""
                     set "mixed"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "applicable" permit
                     policy "not-applicable" deny where false;
@@ -506,7 +507,7 @@ class PriorityVoteCompilerTests {
                     Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "streaming"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "stream1" permit where <test.attr1>;
                     policy "stream2" deny where <test.attr2>;
@@ -550,7 +551,7 @@ class PriorityVoteCompilerTests {
                 int expectedPolicyCoverageCount, TargetHit expectedTargetHit) {
             val compiled           = compilePolicySet("""
                     set "with-target"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
                     %s
 
                     policy "p1" permit
@@ -573,87 +574,87 @@ class PriorityVoteCompilerTests {
     class ProductionCoverageEquivalence {
 
         static Stream<Arguments> equivalenceCases() {
-            return Stream.of(arguments("permit-wins with conflict", """
+            return Stream.of(arguments("priority permit with conflict", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "p1" permit
                     policy "p2" deny
-                    """, "alice"), arguments("deny-wins with conflict", """
+                    """, "alice"), arguments("priority deny with conflict", """
                     set "test"
-                    deny-wins or abstain errors propagate
+                    priority deny or abstain errors propagate
 
                     policy "p1" permit
                     policy "p2" deny
                     """, "alice"), arguments("all NOT_APPLICABLE with abstain", """
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1" permit where false;
                     """, "alice"), arguments("all NOT_APPLICABLE with deny", """
                     set "test"
-                    permit-wins or deny
+                    priority permit or deny
 
                     policy "p1" permit where false;
                     """, "alice"), arguments("all NOT_APPLICABLE with permit", """
                     set "test"
-                    deny-wins or permit
+                    priority deny or permit
 
                     policy "p1" deny where false;
                     """, "alice"), arguments("target TRUE", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
                     for true
 
                     policy "p1" permit
                     policy "p2" deny
                     """, "alice"), arguments("target FALSE", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
                     for false
 
                     policy "p1" permit
                     policy "p2" deny
                     """, "alice"), arguments("runtime target TRUE", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
                     for subject == "alice"
 
                     policy "p1" permit
                     policy "p2" deny
                     """, "alice"), arguments("runtime target FALSE", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
                     for subject == "bob"
 
                     policy "p1" permit
                     policy "p2" deny
                     """, "alice"), arguments("target error", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
                     for subject.missing.field
 
                     policy "p1" permit
                     policy "p2" deny
                     """, "simple-string"), arguments("policy error with abstain", """
                     set "test"
-                    permit-wins or abstain
+                    priority permit or abstain
 
                     policy "p1" permit where subject.missing.field;
                     """, "simple-string"), arguments("policy error with propagate", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "p1" permit where subject.missing.field;
                     """, "simple-string"), arguments("priority wins over error", """
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "p1" permit
                     policy "p2" deny where subject.missing.field;
                     """, "simple-string"), arguments("mixed applicable and not applicable", """
                     set "test"
-                    deny-wins or abstain errors propagate
+                    priority deny or abstain errors propagate
 
                     policy "p1" permit
                     policy "p2" deny where false;
@@ -683,7 +684,7 @@ class PriorityVoteCompilerTests {
                     Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
             val compiled   = compilePolicySet("""
                     set "test"
-                    permit-wins or abstain errors propagate
+                    priority permit or abstain errors propagate
 
                     policy "stream1" permit where <test.attr1>;
                     policy "stream2" deny where <test.attr2>;
@@ -708,8 +709,8 @@ class PriorityVoteCompilerTests {
     class PriorityDecisionSemantics {
 
         static Stream<Arguments> priorityDecisionCases() {
-            return Stream.of(arguments("permit-wins: PERMIT beats DENY", "permit-wins", Decision.PERMIT),
-                    arguments("deny-wins: DENY beats PERMIT", "deny-wins", Decision.DENY));
+            return Stream.of(arguments("priority permit: PERMIT beats DENY", "priority permit", Decision.PERMIT),
+                    arguments("priority deny: DENY beats PERMIT", "priority deny", Decision.DENY));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -736,13 +737,13 @@ class PriorityVoteCompilerTests {
     class DefaultDecisionPermutations {
 
         static Stream<Arguments> defaultDecisionCases() {
-            return Stream.of(arguments("permit-wins or deny yields DENY", "permit-wins", "deny", Decision.DENY),
-                    arguments("permit-wins or permit yields PERMIT", "permit-wins", "permit", Decision.PERMIT),
-                    arguments("deny-wins or deny yields DENY", "deny-wins", "deny", Decision.DENY),
-                    arguments("deny-wins or permit yields PERMIT", "deny-wins", "permit", Decision.PERMIT),
-                    arguments("permit-wins or abstain yields NOT_APPLICABLE", "permit-wins", "abstain",
+            return Stream.of(arguments("priority permit or deny yields DENY", "priority permit", "deny", Decision.DENY),
+                    arguments("priority permit or permit yields PERMIT", "priority permit", "permit", Decision.PERMIT),
+                    arguments("priority deny or deny yields DENY", "priority deny", "deny", Decision.DENY),
+                    arguments("priority deny or permit yields PERMIT", "priority deny", "permit", Decision.PERMIT),
+                    arguments("priority permit or abstain yields NOT_APPLICABLE", "priority permit", "abstain",
                             Decision.NOT_APPLICABLE),
-                    arguments("deny-wins or abstain yields NOT_APPLICABLE", "deny-wins", "abstain",
+                    arguments("priority deny or abstain yields NOT_APPLICABLE", "priority deny", "abstain",
                             Decision.NOT_APPLICABLE));
         }
 
@@ -771,9 +772,9 @@ class PriorityVoteCompilerTests {
 
         static Stream<Arguments> errorHandlingCases() {
             return Stream.of(
-                    arguments("errors abstain yields NOT_APPLICABLE", "permit-wins or abstain",
+                    arguments("errors abstain yields NOT_APPLICABLE", "priority permit or abstain",
                             Decision.NOT_APPLICABLE),
-                    arguments("errors propagate yields INDETERMINATE", "permit-wins or abstain errors propagate",
+                    arguments("errors propagate yields INDETERMINATE", "priority permit or abstain errors propagate",
                             Decision.INDETERMINATE));
         }
 
@@ -796,8 +797,9 @@ class PriorityVoteCompilerTests {
 
         static Stream<Arguments> priorityOverErrorCases() {
             return Stream.of(
-                    arguments("permit-wins: PERMIT wins over error", "permit-wins", "permit", "deny", Decision.PERMIT),
-                    arguments("deny-wins: DENY wins over error", "deny-wins", "deny", "permit", Decision.DENY));
+                    arguments("priority permit: PERMIT wins over error", "priority permit", "permit", "deny",
+                            Decision.PERMIT),
+                    arguments("priority deny: DENY wins over error", "priority deny", "deny", "permit", Decision.DENY));
         }
 
         @ParameterizedTest(name = "{0}")

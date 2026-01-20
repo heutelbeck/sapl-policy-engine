@@ -1,10 +1,10 @@
 /*
- * This policy set uses the 'deny-wins or permit' combining algorithm.
+ * This policy set uses the 'priority deny or permit' combining algorithm.
  * This means that access is permitted unless a policy in the set
  * explicitly denied access.
  */
 set "filter_set"
-deny-wins or permit
+priority deny or permit
 
 /*
  * This policy black-lists GET requests to the requestURI '/secret' for all

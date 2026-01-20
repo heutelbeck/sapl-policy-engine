@@ -643,7 +643,7 @@ class TracedPdpDecisionTests {
                     obligation "permit_obl"
                     advice "permit_adv"
                     """, """
-                    policy "deny-wins" deny
+                    policy "priority deny" deny
                     obligation "deny_obl"
                     """), subscription, DENY_OVERRIDES);
 
