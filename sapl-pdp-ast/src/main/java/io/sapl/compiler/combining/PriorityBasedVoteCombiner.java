@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.combining;
 
+import static io.sapl.compiler.combining.CombiningUtils.appendToList;
+
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -27,7 +29,6 @@ import io.sapl.compiler.pdp.Vote;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -266,15 +267,6 @@ public class PriorityBasedVoteCombiner {
         val obligations = authzDecisionA.obligations().append(authzDecisionB.obligations());
         val advice      = authzDecisionA.advice().append(authzDecisionB.advice());
         return new AuthorizationDecision(authzDecisionA.decision(), obligations, advice, resource);
-    }
-
-    static <T> List<T> appendToList(List<T> list, T newElement) {
-        if (list.isEmpty())
-            return List.of(newElement);
-        val result = new ArrayList<T>(list.size() + 1);
-        result.addAll(list);
-        result.add(newElement);
-        return result;
     }
 
 }

@@ -23,6 +23,8 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
+import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import lombok.val;
@@ -93,5 +95,45 @@ public record Vote(
             all.addAll(childVote.aggregatedContributingAttributes());
         }
         return all;
+    }
+
+    /**
+     * Finalizes a vote by applying default decision and error handling rules.
+     * <p>
+     * If the vote is NOT_APPLICABLE, applies the default decision.
+     * If the vote is INDETERMINATE, applies the error handling rule.
+     *
+     * @param defaultDecision the decision when NOT_APPLICABLE
+     * @param errorHandling how to handle INDETERMINATE
+     * @return the finalized vote
+     */
+    public Vote finalize(DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+        if (authorizationDecision.decision() == Decision.NOT_APPLICABLE) {
+            return switch (defaultDecision) {
+            case ABSTAIN -> this;
+            case DENY    -> replaceDecision(Decision.DENY, Outcome.DENY);
+            case PERMIT  -> replaceDecision(Decision.PERMIT, Outcome.PERMIT);
+            };
+        }
+        if (authorizationDecision.decision() == Decision.INDETERMINATE) {
+            return switch (errorHandling) {
+            case ABSTAIN   -> replaceDecision(Decision.NOT_APPLICABLE, outcome);
+            case PROPAGATE -> this;
+            };
+        }
+        return this;
+    }
+
+    /**
+     * Replaces the decision in this vote while preserving other fields.
+     *
+     * @param decision the new decision
+     * @param newOutcome the new outcome
+     * @return a new vote with the replaced decision
+     */
+    public Vote replaceDecision(Decision decision, Outcome newOutcome) {
+        val newAuthorizationDecision = new AuthorizationDecision(decision, authorizationDecision.obligations(),
+                authorizationDecision.advice(), authorizationDecision.resource());
+        return new Vote(newAuthorizationDecision, errors, contributingAttributes, contributingVotes, voter, newOutcome);
     }
 }

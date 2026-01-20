@@ -17,26 +17,14 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
-import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.pdp.CompiledDocument;
-import io.sapl.compiler.pdp.PureVoter;
-import io.sapl.compiler.pdp.StreamVoter;
-import io.sapl.compiler.pdp.Vote;
-import io.sapl.compiler.pdp.VoteWithCoverage;
-import io.sapl.compiler.pdp.Voter;
+import io.sapl.compiler.pdp.*;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -46,6 +34,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+
+import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
+import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
 
 @UtilityClass
 public class PriorityVoteCompiler {
@@ -77,7 +68,7 @@ public class PriorityVoteCompiler {
             DefaultDecision defaultDecision, ErrorHandling errorHandling) {
 
         if (policies.isEmpty()) {
-            val fallbackVote = finalizeVote(Vote.abstain(voterMetadata), defaultDecision, errorHandling);
+            val fallbackVote = Vote.abstain(voterMetadata).finalize(defaultDecision, errorHandling);
             val coverage     = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
             return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
         }
@@ -95,17 +86,12 @@ public class PriorityVoteCompiler {
             }
 
             val combinedVote = PriorityBasedVoteCombiner.combineMultipleVotes(votes, priorityDecision, voterMetadata);
-            val finalVote    = finalizeVote(combinedVote, defaultDecision, errorHandling);
+            val finalVote    = combinedVote.finalize(defaultDecision, errorHandling);
             val setCoverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, policyCoverages);
 
             return new VoteWithCoverage(finalVote, setCoverage);
         });
     }
-
-    private record StratifiedPolicies(
-            List<Vote> foldableVotes,
-            List<CompiledDocument> purePolicies,
-            List<CompiledDocument> streamPolicies) {}
 
     private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             Decision priorityDecision, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
@@ -115,7 +101,7 @@ public class PriorityVoteCompiler {
                 priorityDecision, voterMetadata);
 
         if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
-            return finalizeVote(accumulatorVote, defaultDecision, errorHandling);
+            return accumulatorVote.finalize(defaultDecision, errorHandling);
         }
 
         if (classified.streamPolicies().isEmpty()) {
@@ -124,41 +110,6 @@ public class PriorityVoteCompiler {
         }
         return new StreamPriorityVoter(accumulatorVote, classified.purePolicies(), classified.streamPolicies(),
                 priorityDecision, defaultDecision, errorHandling, voterMetadata);
-    }
-
-    private static StratifiedPolicies classifyPoliciesByEvaluationStrategy(
-            List<? extends CompiledDocument> compiledPolicies) {
-        val foldableVotes  = new ArrayList<Vote>();
-        val purePolicies   = new ArrayList<CompiledDocument>();
-        val streamPolicies = new ArrayList<CompiledDocument>();
-
-        for (val policy : compiledPolicies) {
-            val isApplicable = policy.isApplicable();
-            val voter        = policy.voter();
-
-            if (isApplicable instanceof Value constantApplicable) {
-                if (constantApplicable instanceof BooleanValue(var b) && !b) {
-                    continue; // constant FALSE - not applicable, skip
-                }
-                // constant TRUE or ERROR
-                if (constantApplicable instanceof ErrorValue error) {
-                    foldableVotes.add(Vote.error(error, policy.metadata())); // constant INDETERMINATE
-                    continue;
-                }
-                if (voter instanceof Vote vote) {
-                    foldableVotes.add(vote);
-                } else if (voter instanceof StreamVoter) {
-                    streamPolicies.add(policy);
-                } else {
-                    purePolicies.add(policy);
-                }
-            } else if (voter instanceof StreamVoter) {
-                streamPolicies.add(policy);
-            } else {
-                purePolicies.add(policy);
-            }
-        }
-        return new StratifiedPolicies(foldableVotes, purePolicies, streamPolicies);
     }
 
     record PurePriorityVoter(
@@ -171,7 +122,7 @@ public class PriorityVoteCompiler {
         @Override
         public Vote vote(EvaluationContext ctx) {
             val vote = combinePureVoters(accumulatorVote, documents, priorityDecision, voterMetadata, ctx);
-            return finalizeVote(vote, defaultDecision, errorHandling);
+            return vote.finalize(defaultDecision, errorHandling);
         }
     }
 
@@ -206,7 +157,7 @@ public class PriorityVoteCompiler {
                         .combineLatest(streamVoters,
                                 votes -> PriorityBasedVoteCombiner.combineMultipleVotes(asTypedList(votes),
                                         priorityDecision, voterMetadata))
-                        .map(vote -> finalizeVote(vote, defaultDecision, errorHandling));
+                        .map(vote -> vote.finalize(defaultDecision, errorHandling));
             });
         }
 
@@ -236,40 +187,6 @@ public class PriorityVoteCompiler {
             }
         }
         return vote;
-    }
-
-    private static Vote finalizeVote(Vote accumulatedVote, DefaultDecision defaultDecision,
-            ErrorHandling errorHandling) {
-        if (accumulatedVote.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
-            return switch (defaultDecision) {
-            case ABSTAIN -> accumulatedVote;
-            case DENY    -> replaceDecision(accumulatedVote, Decision.DENY, Outcome.DENY);
-            case PERMIT  -> replaceDecision(accumulatedVote, Decision.PERMIT, Outcome.PERMIT);
-            };
-        }
-        if (accumulatedVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
-            return switch (errorHandling) {
-            case ABSTAIN   -> replaceDecision(accumulatedVote, Decision.NOT_APPLICABLE, accumulatedVote.outcome());
-            case PROPAGATE -> accumulatedVote;
-            };
-        }
-        return accumulatedVote;
-    }
-
-    private static Vote replaceDecision(Vote accumulatedVote, Decision decision, Outcome outcome) {
-        val originalAuthorizationDecision = accumulatedVote.authorizationDecision();
-        val newAuthorizationDecision      = new AuthorizationDecision(decision,
-                originalAuthorizationDecision.obligations(), originalAuthorizationDecision.advice(),
-                originalAuthorizationDecision.resource());
-        return new Vote(newAuthorizationDecision, accumulatedVote.errors(), accumulatedVote.contributingAttributes(),
-                accumulatedVote.contributingVotes(), accumulatedVote.voter(), outcome);
-    }
-
-    private static Value evaluateApplicability(CompiledExpression isApplicableExpression, EvaluationContext ctx) {
-        if (isApplicableExpression instanceof Value v) {
-            return v;
-        }
-        return ((PureOperator) isApplicableExpression).evaluate(ctx);
     }
 
 }

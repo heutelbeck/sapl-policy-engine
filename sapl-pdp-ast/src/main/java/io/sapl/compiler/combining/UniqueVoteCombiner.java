@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.combining;
 
+import static io.sapl.compiler.combining.CombiningUtils.appendToList;
+
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -114,7 +116,7 @@ public class UniqueVoteCombiner {
         val accDec = accumulatorVote.authorizationDecision().decision();
         val newDec = newVote.authorizationDecision().decision();
 
-        val contributingVotes = PriorityBasedVoteCombiner.appendToList(accumulatorVote.contributingVotes(), newVote);
+        val contributingVotes = appendToList(accumulatorVote.contributingVotes(), newVote);
 
         // INDETERMINATE propagates (first one wins)
         if (accDec == Decision.INDETERMINATE || newDec == Decision.INDETERMINATE) {

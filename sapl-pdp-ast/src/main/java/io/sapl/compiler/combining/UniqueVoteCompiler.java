@@ -17,30 +17,56 @@
  */
 package io.sapl.compiler.combining;
 
+import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.Decision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.Voter;
-import io.sapl.compiler.pdp.CompiledDocument;
-import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.ast.VoterMetadata;
-import lombok.NonNull;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.pdp.CompiledDocument;
+import io.sapl.compiler.pdp.PureVoter;
+import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.pdp.VoteWithCoverage;
+import io.sapl.compiler.pdp.Voter;
+import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
+import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
+import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
+
+/**
+ * Compiles policy sets using the unique (only-one-applicable) combining
+ * algorithm.
+ * <p>
+ * The unique algorithm requires exactly one policy to be applicable:
+ * <ul>
+ * <li><b>Zero applicable:</b> Returns NOT_APPLICABLE (or default decision)</li>
+ * <li><b>One applicable:</b> Returns that policy's decision</li>
+ * <li><b>Multiple applicable:</b> Returns INDETERMINATE (configuration
+ * error)</li>
+ * </ul>
+ */
 @UtilityClass
 public class UniqueVoteCompiler {
+
+    private static final String ERROR_STREAM_UNIQUE_VOTER_NOT_IMPLEMENTED = "StreamUniqueVoter not yet implemented";
+
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        val voter    = compileVoter(compiledPolicies, voterMetadata, policySet.location(), defaultDecision,
-                errorHandling);
+        val voter    = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, defaultDecision,
                 errorHandling);
         return new VoterAndCoverage(voter, coverage);
@@ -49,14 +75,95 @@ public class UniqueVoteCompiler {
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
             List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s, %s".formatted(policySet, isApplicable,
-                compiledPolicies, voterMetadata, defaultDecision, errorHandling));
+        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory = targetHit -> evaluateAllPoliciesForCoverage(
+                compiledPolicies, targetHit, voterMetadata, defaultDecision, errorHandling);
+        return PolicySetUtil.compileCoverageStream(policySet, isApplicable, bodyFactory);
+    }
+
+    private static Flux<VoteWithCoverage> evaluateAllPoliciesForCoverage(List<? extends CompiledDocument> policies,
+            Coverage.TargetHit targetHit, VoterMetadata voterMetadata, DefaultDecision defaultDecision,
+            ErrorHandling errorHandling) {
+
+        if (policies.isEmpty()) {
+            val fallbackVote = Vote.abstain(voterMetadata).finalize(defaultDecision, errorHandling);
+            val coverage     = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
+            return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
+        }
+
+        List<Flux<VoteWithCoverage>> coverageStreams = policies.stream().map(CompiledDocument::coverage).toList();
+
+        return Flux.combineLatest(coverageStreams, results -> {
+            val votes           = new ArrayList<Vote>(results.length);
+            val policyCoverages = new ArrayList<Coverage.DocumentCoverage>(results.length);
+
+            for (Object result : results) {
+                val vwc = (VoteWithCoverage) result;
+                votes.add(vwc.vote());
+                policyCoverages.add(vwc.coverage());
+            }
+
+            val combinedVote = UniqueVoteCombiner.combineMultipleVotes(votes, voterMetadata);
+            val finalVote    = combinedVote.finalize(defaultDecision, errorHandling);
+            val setCoverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, policyCoverages);
+
+            return new VoteWithCoverage(finalVote, setCoverage);
+        });
     }
 
     private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
-            @NonNull SourceLocation location, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        throw new SaplCompilerException("Unimplemented %s, %s, %s, %s, %s".formatted(compiledPolicies, voterMetadata,
-                location, defaultDecision, errorHandling));
+            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+
+        val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);
+        val accumulatorVote = UniqueVoteCombiner.combineMultipleVotes(classified.foldableVotes(), voterMetadata);
+
+        if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
+            return accumulatorVote.finalize(defaultDecision, errorHandling);
+        }
+
+        if (classified.streamPolicies().isEmpty()) {
+            return new PureUniqueVoter(accumulatorVote, classified.purePolicies(), defaultDecision, errorHandling,
+                    voterMetadata);
+        }
+        throw new SaplCompilerException(ERROR_STREAM_UNIQUE_VOTER_NOT_IMPLEMENTED);
+    }
+
+    record PureUniqueVoter(
+            Vote accumulatorVote,
+            List<CompiledDocument> documents,
+            DefaultDecision defaultDecision,
+            ErrorHandling errorHandling,
+            VoterMetadata voterMetadata) implements PureVoter {
+        @Override
+        public Vote vote(EvaluationContext ctx) {
+            val vote = combinePureVoters(accumulatorVote, documents, voterMetadata, ctx);
+            return vote.finalize(defaultDecision, errorHandling);
+        }
+    }
+
+    private static Vote combinePureVoters(Vote accumulatorVote, List<CompiledDocument> documents,
+            VoterMetadata voterMetadata, EvaluationContext ctx) {
+        var vote = accumulatorVote;
+        for (val document : documents) {
+            // Short-circuit on INDETERMINATE - uniqueness cannot be determined
+            if (vote.authorizationDecision().decision() == Decision.INDETERMINATE) {
+                break;
+            }
+            val isApplicable = evaluateApplicability(document.isApplicable(), ctx);
+            if (isApplicable instanceof ErrorValue error) {
+                val errorVote = Vote.error(error, document.metadata());
+                vote = UniqueVoteCombiner.combineVotes(vote, errorVote, voterMetadata);
+            } else if (isApplicable instanceof BooleanValue(var b) && b) {
+                val  voter = document.voter();
+                Vote newVote;
+                if (voter instanceof Vote constantVote) {
+                    newVote = constantVote;
+                } else {
+                    newVote = ((PureVoter) voter).vote(ctx);
+                }
+                vote = UniqueVoteCombiner.combineVotes(vote, newVote, voterMetadata);
+            }
+        }
+        return vote;
     }
 
 }
