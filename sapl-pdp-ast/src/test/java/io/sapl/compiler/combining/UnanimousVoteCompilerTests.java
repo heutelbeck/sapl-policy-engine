@@ -186,51 +186,93 @@ class UnanimousVoteCompilerTests {
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(PureVoter.class);
         }
 
-        @Test
-        @DisplayName("runtime TRUE applicability with constant vote")
-        void runtimeTrueWithConstantVote() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
+        // @formatter:off
+        static Stream<Arguments> pureVoterDecisionCases() {
+            return Stream.of(
+                arguments("runtime TRUE applicability with constant vote",
+                    """
                     policy "p1" permit where subject == "alice";
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-        }
-
-        @Test
-        @DisplayName("runtime FALSE applicability skips policy")
-        void runtimeFalseApplicabilitySkipsPolicy() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Decision.PERMIT),
+                arguments("runtime FALSE applicability skips policy",
+                    """
                     policy "p1" deny where subject == "bob";
                     policy "p2" permit
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Decision.PERMIT),
+                arguments("mixed foldable and pure policies - all agree",
+                    """
+                    policy "foldable" permit
+                    policy "pure" permit where subject == "alice";
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Decision.PERMIT),
+                arguments("all pure policies NOT_APPLICABLE returns default deny",
+                    """
+                    policy "p1" permit where subject == "bob";
+                    policy "p2" permit where subject == "charlie";
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Decision.DENY)
+            );
+        }
+        // @formatter:on
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("pureVoterDecisionCases")
+        @DisplayName("pure voter decision cases")
+        void pureVoterDecisionCases(String description, String policies, String subscription,
+                Decision expectedDecision) {
+            val algorithm = expectedDecision == Decision.DENY ? "unanimous or deny" : "unanimous or abstain";
+            val compiled  = compilePolicySet("""
+                    set "test"
+                    %s
+
+                    %s
+                    """.formatted(algorithm, policies));
+            val ctx       = subscriptionContext(subscription);
+            val result    = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+            assertThat(result.authorizationDecision().decision()).isEqualTo(expectedDecision);
         }
 
-        @Test
-        @DisplayName("runtime ERROR applicability produces error vote")
-        void runtimeErrorApplicabilityProducesErrorVote() {
+        // @formatter:off
+        static Stream<Arguments> pureVoterIndeterminateCases() {
+            return Stream.of(
+                arguments("runtime ERROR applicability produces error vote",
+                    """
+                    policy "p1" permit where subject.missing.field;
+                    """,
+                    "{ \"subject\": \"simple-string\", \"action\": \"read\", \"resource\": \"data\" }"),
+                arguments("disagreement with runtime applicability",
+                    """
+                    policy "p1" permit where subject == "alice";
+                    policy "p2" deny where subject == "alice";
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
+                arguments("short-circuit on terminal INDETERMINATE (disagreement)",
+                    """
+                    policy "p1" permit where subject == "alice";
+                    policy "p2" deny where subject == "alice";
+                    policy "p3" permit where subject == "alice";
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }")
+            );
+        }
+        // @formatter:on
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("pureVoterIndeterminateCases")
+        @DisplayName("pure voter INDETERMINATE cases")
+        void pureVoterIndeterminateCases(String description, String policies, String subscription) {
             val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain errors propagate
 
-                    policy "p1" permit where subject.missing.field;
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
-                    """);
+                    %s
+                    """.formatted(policies));
+            val ctx      = subscriptionContext(subscription);
             val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
         }
@@ -255,76 +297,6 @@ class UnanimousVoteCompilerTests {
                 assertThat(authz.obligations()).isNotEmpty();
             });
         }
-
-        @Test
-        @DisplayName("disagreement with runtime applicability")
-        void disagreementWithRuntimeApplicability() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain errors propagate
-
-                    policy "p1" permit where subject == "alice";
-                    policy "p2" deny where subject == "alice";
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-        }
-
-        @Test
-        @DisplayName("mixed foldable and pure policies - all agree")
-        void mixedFoldableAndPurePoliciesAgree() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
-                    policy "foldable" permit
-                    policy "pure" permit where subject == "alice";
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-        }
-
-        @Test
-        @DisplayName("all pure policies NOT_APPLICABLE returns default")
-        void allPureNotApplicableReturnsDefault() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous or deny
-
-                    policy "p1" permit where subject == "bob";
-                    policy "p2" permit where subject == "charlie";
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
-        }
-
-        @Test
-        @DisplayName("short-circuit on terminal INDETERMINATE (disagreement)")
-        void shortCircuitOnTerminalIndeterminate() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain errors propagate
-
-                    policy "p1" permit where subject == "alice";
-                    policy "p2" deny where subject == "alice";
-                    policy "p3" permit where subject == "alice";
-                    """);
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-            // Should short-circuit after p1 and p2 disagree
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-        }
     }
 
     @Nested
@@ -344,164 +316,106 @@ class UnanimousVoteCompilerTests {
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
 
-        @Test
-        @DisplayName("stream voter with constant TRUE applicability")
-        void streamVoterWithConstantTrueApplicability() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
+        // @formatter:off
+        static Stream<Arguments> streamVoterPermitCases() {
+            return Stream.of(
+                arguments("stream voter with constant TRUE applicability",
+                    """
                     policy "stream" permit where <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
-        }
-
-        @Test
-        @DisplayName("stream voter with runtime applicability")
-        void streamVoterWithRuntimeApplicability() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
+                arguments("stream voter with runtime applicability",
+                    """
                     policy "stream" permit where subject == "alice" && <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
-        }
-
-        @Test
-        @DisplayName("stream voter with error in applicability")
-        void streamVoterWithErrorInApplicability() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain errors propagate
-
-                    policy "stream" permit where subject.missing.field && <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
-        }
-
-        @Test
-        @DisplayName("stream voter with FALSE applicability skips stream")
-        void streamVoterWithFalseApplicabilitySkipsStream() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
+                arguments("stream voter with FALSE applicability skips stream",
+                    """
                     policy "skipped" deny where subject == "bob" && <test.attr>;
                     policy "active" permit
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
-        }
-
-        @Test
-        @DisplayName("mixed pure and stream policies - all agree")
-        void mixedPureAndStreamPoliciesAgree() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
+                arguments("mixed pure and stream policies - all agree",
+                    """
                     policy "pure" permit where subject == "alice";
                     policy "stream" permit where <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
+                arguments("stream voter with foldable accumulator - all agree",
+                    """
+                    policy "foldable" permit
+                    policy "stream" permit where <test.attr>;
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }")
+            );
         }
+        // @formatter:on
 
-        @Test
-        @DisplayName("disagreement with stream policies")
-        void disagreementWithStreamPolicies() {
-            val attrBroker   = attributeBroker(
-                    Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain errors propagate
-
-                    policy "stream1" permit where <test.attr1>;
-                    policy "stream2" deny where <test.attr2>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
-        }
-
-        @Test
-        @DisplayName("stream voter with foldable accumulator - all agree")
-        void streamVoterWithFoldableAccumulatorAgree() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("streamVoterPermitCases")
+        @DisplayName("stream voter PERMIT cases")
+        void streamVoterPermitCases(String description, String policies, String subscription) {
+            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
+            val compiled   = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
-                    policy "foldable" permit
-                    policy "stream" permit where <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+                    %s
+                    """.formatted(policies), attrBroker);
+            val parsedSub  = parseSubscription(subscription);
+            val ctx        = evaluationContext(parsedSub, attrBroker);
             assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
         }
 
-        @Test
-        @DisplayName("stream voter with foldable accumulator - disagree")
-        void streamVoterWithFoldableAccumulatorDisagree() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain errors propagate
-
+        // @formatter:off
+        static Stream<Arguments> streamVoterIndeterminateCases() {
+            return Stream.of(
+                arguments("stream voter with error in applicability",
+                    """
+                    policy "stream" permit where subject.missing.field && <test.attr>;
+                    """,
+                    "{ \"subject\": \"simple-string\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Map.of("test.attr", new Value[] { Value.TRUE })),
+                arguments("disagreement with stream policies",
+                    """
+                    policy "stream1" permit where <test.attr1>;
+                    policy "stream2" deny where <test.attr2>;
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE })),
+                arguments("stream voter with foldable accumulator - disagree",
+                    """
                     policy "foldable" deny
                     policy "stream" permit where <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
-        }
-
-        @Test
-        @DisplayName("pure disagreement short-circuits before evaluating streams")
-        void pureDisagreementShortCircuitsBeforeStreams() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain errors propagate
-
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Map.of("test.attr", new Value[] { Value.TRUE })),
+                arguments("pure disagreement short-circuits before evaluating streams",
+                    """
                     policy "pure1" permit where subject == "alice";
                     policy "pure2" deny where subject == "alice";
                     policy "stream" permit where <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+                    """,
+                    "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
+                    Map.of("test.attr", new Value[] { Value.TRUE }))
+            );
+        }
+        // @formatter:on
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("streamVoterIndeterminateCases")
+        @DisplayName("stream voter INDETERMINATE cases")
+        void streamVoterIndeterminateCases(String description, String policies, String subscription,
+                Map<String, Value[]> attributes) {
+            val attrBroker = attributeBroker(attributes);
+            val compiled   = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain errors propagate
+
+                    %s
+                    """.formatted(policies), attrBroker);
+            val parsedSub  = parseSubscription(subscription);
+            val ctx        = evaluationContext(parsedSub, attrBroker);
             assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
         }
     }
@@ -577,39 +491,24 @@ class UnanimousVoteCompilerTests {
     @DisplayName("Default decision permutations")
     class DefaultDecisionPermutations {
 
+        // @formatter:off
         static Stream<Arguments> defaultDecisionCases() {
-            return Stream.of(arguments("unanimous or deny", Decision.DENY),
-                    arguments("unanimous or permit", Decision.PERMIT),
-                    arguments("unanimous or abstain", Decision.NOT_APPLICABLE));
+            return Stream.of(
+                arguments("unanimous or deny", Decision.DENY, false),
+                arguments("unanimous or permit", Decision.PERMIT, false),
+                arguments("unanimous or abstain", Decision.NOT_APPLICABLE, false),
+                arguments("unanimous strict or deny", Decision.DENY, true),
+                arguments("unanimous strict or permit", Decision.PERMIT, true),
+                arguments("unanimous strict or abstain", Decision.NOT_APPLICABLE, true)
+            );
         }
+        // @formatter:on
 
         @ParameterizedTest(name = "{0}: all NOT_APPLICABLE returns {1}")
         @MethodSource("defaultDecisionCases")
         @DisplayName("default decision when all NOT_APPLICABLE")
-        void whenAllNotApplicableThenReturnsDefaultDecision(String algorithm, Decision expectedDecision) {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    %s
-
-                    policy "never" permit where false;
-                    """.formatted(algorithm));
-            val ctx      = subscriptionContext("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-            assertThat(result.authorizationDecision().decision()).isEqualTo(expectedDecision);
-        }
-
-        static Stream<Arguments> strictDefaultDecisionCases() {
-            return Stream.of(arguments("unanimous strict or deny", Decision.DENY),
-                    arguments("unanimous strict or permit", Decision.PERMIT),
-                    arguments("unanimous strict or abstain", Decision.NOT_APPLICABLE));
-        }
-
-        @ParameterizedTest(name = "{0}: all NOT_APPLICABLE returns {1}")
-        @MethodSource("strictDefaultDecisionCases")
-        @DisplayName("strict mode default decision when all NOT_APPLICABLE")
-        void whenStrictAllNotApplicableThenReturnsDefaultDecision(String algorithm, Decision expectedDecision) {
+        void whenAllNotApplicableThenReturnsDefaultDecision(String algorithm, Decision expectedDecision,
+                boolean isStrict) {
             val compiled = compilePolicySet("""
                     set "test"
                     %s
