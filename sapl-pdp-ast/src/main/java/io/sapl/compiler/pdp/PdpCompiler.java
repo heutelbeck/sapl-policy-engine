@@ -17,10 +17,7 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.ast.Outcome;
@@ -28,25 +25,20 @@ import io.sapl.ast.Policy;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.SaplDocument;
 import io.sapl.compiler.ast.SAPLCompiler;
-import io.sapl.compiler.combining.FirstVoteCompiler;
 import io.sapl.compiler.combining.PriorityVoteCompiler;
 import io.sapl.compiler.combining.UnanimousVoteCompiler;
 import io.sapl.compiler.combining.UniqueVoteCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.PolicyCompiler;
-import io.sapl.compiler.policy.SchemaValidatorCompiler;
-import io.sapl.compiler.policyset.CompiledPolicySet;
 import io.sapl.compiler.policyset.PolicySetCompiler;
 import io.sapl.compiler.policyset.PolicySetUtil;
-import io.sapl.compiler.policyset.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
 
 @UtilityClass
 public class PdpCompiler {
@@ -59,42 +51,51 @@ public class PdpCompiler {
         boolean hasConstraints    = true;
         var     voterMetadata     = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(),
                 pdpConfiguration.pdpId(), pdpConfiguration.combiningAlgorithm(), outcome, hasConstraints);
-        val     compiledDocuments = pdpConfiguration.saplDocuments().stream().map(SAPLCompiler::parseDocument)
-                .map(d -> compileDocument(d.saplDocument(), ctx)).toList();
+        val     compiledDocuments = new ArrayList<CompiledDocument>(pdpConfiguration.saplDocuments().size());
+        for (val saplDocument : pdpConfiguration.saplDocuments()) {
+            val parsedDocument = SAPLCompiler.parseDocument(saplDocument);
+            if (parsedDocument.isInvalid()) {
+                System.err.println("Parsing of SAPL document failed: %s.".formatted(parsedDocument.syntaxErrors()));
+                throw new SaplCompilerException(
+                        "Parsing of SAPL document failed: %s.".formatted(parsedDocument.syntaxErrors()));
+            }
+            compiledDocuments.add(compileDocument(parsedDocument.saplDocument(), ctx));
+        }
         assertDocumentNamesAreUnique(compiledDocuments);
         val algorithm = pdpConfiguration.combiningAlgorithm();
 
-        val defaultDecision  = algorithm.defaultDecision();
-        val errorHandling    = algorithm.errorHandling();
-        val voter = switch (algorithm.votingMode()) {
-                             case FIRST            -> throw new SaplCompilerException(
-                                     ERROR_FIRST_IS_NOT_ALLOWED_S.formatted(algorithm.votingMode()));
-                             case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments,voterMetadata,
-                                     Decision.DENY, defaultDecision, errorHandling);
-                             case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments,
-                                     voterMetadata, Decision.PERMIT, defaultDecision, errorHandling);
-                             case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
-                                     voterMetadata, defaultDecision, errorHandling, false);
-                             case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
-                                     voterMetadata, defaultDecision, errorHandling, true);
-                             case UNIQUE           -> UniqueVoteCompiler.compileVoter( compiledDocuments,
-                                     voterMetadata, defaultDecision, errorHandling);
-                             };
+        val defaultDecision = algorithm.defaultDecision();
+        val errorHandling   = algorithm.errorHandling();
+        val voter           = switch (algorithm.votingMode()) {
+                            case FIRST            -> throw new SaplCompilerException(
+                                    ERROR_FIRST_IS_NOT_ALLOWED_S.formatted(algorithm.votingMode()));
+                            case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata,
+                                    Decision.DENY, defaultDecision, errorHandling);
+                            case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata,
+                                    Decision.PERMIT, defaultDecision, errorHandling);
+                            case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
+                                    voterMetadata, defaultDecision, errorHandling, false);
+                            case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
+                                    voterMetadata, defaultDecision, errorHandling, true);
+                            case UNIQUE           -> UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata,
+                                    defaultDecision, errorHandling);
+                            };
+
         val coverageStream = switch (algorithm.votingMode()) {
-            case FIRST            -> throw new SaplCompilerException(
-                    ERROR_FIRST_IS_NOT_ALLOWED_S.formatted(algorithm.votingMode()));
-            case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments,voterMetadata,
-                    Decision.DENY, defaultDecision, errorHandling);
-            case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments,
-                    voterMetadata, Decision.PERMIT, defaultDecision, errorHandling);
-            case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
-                    voterMetadata, defaultDecision, errorHandling, false);
-            case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
-                    voterMetadata, defaultDecision, errorHandling, true);
-            case UNIQUE           -> UniqueVoteCompiler.compileVoter( compiledDocuments,
-                    voterMetadata, defaultDecision, errorHandling);
+        case FIRST            ->
+            throw new SaplCompilerException(ERROR_FIRST_IS_NOT_ALLOWED_S.formatted(algorithm.votingMode()));
+        case PRIORITY_DENY    -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
+                Decision.DENY, defaultDecision, errorHandling);
+        case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
+                Decision.PERMIT, defaultDecision, errorHandling);
+        case UNANIMOUS        -> UnanimousVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling, false);
+        case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling, true);
+        case UNIQUE           ->
+            UniqueVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata, defaultDecision, errorHandling);
         };
-        return new CompiledPdpVoter(voterMetadata, voter, pdpConfiguration.variables(),
+        return new CompiledPdpVoter(voterMetadata, voter, coverageStream, pdpConfiguration.variables(),
                 ctx.getAttributeBroker(), ctx.getFunctionBroker(), ctx.getTimestampSupplier());
     }
 

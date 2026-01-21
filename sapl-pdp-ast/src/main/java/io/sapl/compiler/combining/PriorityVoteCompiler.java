@@ -50,12 +50,26 @@ public class PriorityVoteCompiler {
         return new VoterAndCoverage(voter, coverage);
     }
 
+    /**
+     * Compiles coverage stream for PDP-level usage (no target expression).
+     */
+    public static Flux<VoteWithCoverage> compileCoverageStream(List<? extends CompiledDocument> compiledPolicies,
+            VoterMetadata voterMetadata, Decision priorityDecision, DefaultDecision defaultDecision,
+            ErrorHandling errorHandling) {
+        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory = targetHit -> evaluateAllPoliciesForCoverage(
+                compiledPolicies, targetHit, voterMetadata, priorityDecision, defaultDecision, errorHandling);
+        return PolicySetUtil.compileCoverageStream(voterMetadata, null, Value.TRUE, bodyFactory);
+    }
+
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
             List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata, Decision priorityDecision,
             DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory = targetHit -> evaluateAllPoliciesForCoverage(
+        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory    = targetHit -> evaluateAllPoliciesForCoverage(
                 compiledPolicies, targetHit, voterMetadata, priorityDecision, defaultDecision, errorHandling);
-        return PolicySetUtil.compileCoverageStream(policySet, isApplicable, bodyFactory);
+        val                                                  targetLocation = policySet.target() != null
+                ? policySet.target().location()
+                : null;
+        return PolicySetUtil.compileCoverageStream(voterMetadata, targetLocation, isApplicable, bodyFactory);
     }
 
     /**

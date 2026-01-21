@@ -68,7 +68,8 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
-        return gatherVotes(authorizationSubscription).map(tv -> tv.vote().authorizationDecision());
+        return gatherVotes(authorizationSubscription)
+                .map(tv -> tv.vote().authorizationDecision());
     }
 
     @Override

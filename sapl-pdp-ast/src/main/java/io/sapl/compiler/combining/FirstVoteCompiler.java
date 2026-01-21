@@ -83,8 +83,9 @@ public class FirstVoteCompiler {
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
             List<CompiledPolicy> compiledPolicies, VoterMetadata voterMetadata,
             CombiningAlgorithm.DefaultDecision defaultDecision, CombiningAlgorithm.ErrorHandling errorHandling) {
-        val bodyFactory = bodyCoverageFactory(compiledPolicies, voterMetadata, defaultDecision, errorHandling);
-        return PolicySetUtil.compileCoverageStream(policySet, isApplicable, bodyFactory);
+        val bodyFactory    = bodyCoverageFactory(compiledPolicies, voterMetadata, defaultDecision, errorHandling);
+        val targetLocation = policySet.target() != null ? policySet.target().location() : null;
+        return PolicySetUtil.compileCoverageStream(voterMetadata, targetLocation, isApplicable, bodyFactory);
     }
 
     /**

@@ -25,13 +25,13 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
-import java.io.Serializable;
 import java.util.Map;
 import java.util.function.Supplier;
 
 public record CompiledPdpVoter(
         PdpVoterMetadata voterMetadata,
         Voter pdpVoter,
+        Flux<VoteWithCoverage> coverageStream,
         Map<String, Value> variables,
         AttributeBroker attributeBroker,
         FunctionBroker functionBroker,
@@ -64,7 +64,7 @@ public record CompiledPdpVoter(
 
     private EvaluationContext evaluationContext(AuthorizationSubscription authorizationSubscription,
             String subscriptionId) {
-        return new EvaluationContext(voterMetadata().pdpId(), voterMetadata.configurationId(), subscriptionId,
+        return EvaluationContext.of(voterMetadata().pdpId(), voterMetadata.configurationId(), subscriptionId,
                 authorizationSubscription, variables, functionBroker, attributeBroker, timestampSupplier);
     }
 }

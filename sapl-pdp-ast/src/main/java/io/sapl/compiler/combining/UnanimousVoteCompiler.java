@@ -28,6 +28,7 @@ import java.util.function.Function;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -76,12 +77,26 @@ public class UnanimousVoteCompiler {
         return new VoterAndCoverage(voter, coverage);
     }
 
+    /**
+     * Compiles coverage stream for PDP-level usage (no target expression).
+     */
+    public static Flux<VoteWithCoverage> compileCoverageStream(List<? extends CompiledDocument> compiledPolicies,
+            VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
+            boolean strictMode) {
+        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory = targetHit -> evaluateAllPoliciesForCoverage(
+                compiledPolicies, targetHit, voterMetadata, defaultDecision, errorHandling, strictMode);
+        return PolicySetUtil.compileCoverageStream(voterMetadata, null, Value.TRUE, bodyFactory);
+    }
+
     private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
             List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             DefaultDecision defaultDecision, ErrorHandling errorHandling, boolean strictMode) {
-        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory = targetHit -> evaluateAllPoliciesForCoverage(
+        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory    = targetHit -> evaluateAllPoliciesForCoverage(
                 compiledPolicies, targetHit, voterMetadata, defaultDecision, errorHandling, strictMode);
-        return PolicySetUtil.compileCoverageStream(policySet, isApplicable, bodyFactory);
+        val                                                  targetLocation = policySet.target() != null
+                ? policySet.target().location()
+                : null;
+        return PolicySetUtil.compileCoverageStream(voterMetadata, targetLocation, isApplicable, bodyFactory);
     }
 
     private static Flux<VoteWithCoverage> evaluateAllPoliciesForCoverage(List<? extends CompiledDocument> policies,

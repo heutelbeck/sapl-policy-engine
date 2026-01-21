@@ -83,29 +83,35 @@ public class PolicySetUtil {
      * Handles target expression types analogously to
      * {@link #compileApplicabilityAndVoter}: static values short-circuit,
      * pure operators defer evaluation, and stream operators in targets are errors.
+     * <p>
+     * This method is agnostic to the caller context (PDP or PolicySet level).
+     * For PDP-level usage, pass {@code Value.TRUE} as isApplicable and null for
+     * targetLocation.
      *
-     * @param policySet the policy set being compiled
+     * @param voterMetadata metadata for creating votes and coverage
+     * @param targetLocation source location of the target expression, or null if no
+     * target
      * @param isApplicable the compiled target expression
      * @param bodyFactory factory producing coverage stream when target matches
      * @return flux emitting decisions with coverage information
      */
-    public static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
+    public static Flux<VoteWithCoverage> compileCoverageStream(VoterMetadata voterMetadata,
+            SourceLocation targetLocation, CompiledExpression isApplicable,
             Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory) {
-        if (policySet.target() == null) {
+        if (targetLocation == null) {
             return bodyFactory.apply(Coverage.BLANK_TARGET_HIT);
         }
-        val targetLocation = policySet.target().location();
         switch (isApplicable) {
         case Value match             -> {
-            return coverageStreamFromMatch(policySet, bodyFactory, match, targetLocation);
+            return coverageStreamFromMatch(voterMetadata, bodyFactory, match, targetLocation);
         }
         case StreamOperator ignored  -> {
-            var coverage = new Coverage.PolicySetCoverage(policySet.metadata(), Coverage.NO_TARGET_HIT, List.of());
-            var decision = Vote.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), policySet.metadata());
+            var coverage = new Coverage.PolicySetCoverage(voterMetadata, Coverage.NO_TARGET_HIT, List.of());
+            var decision = Vote.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), voterMetadata);
             return Flux.just(new VoteWithCoverage(decision, coverage));
         }
         case PureOperator pureTarget -> {
-            return Flux.deferContextual(ctxView -> coverageStreamFromMatch(policySet, bodyFactory,
+            return Flux.deferContextual(ctxView -> coverageStreamFromMatch(voterMetadata, bodyFactory,
                     pureTarget.evaluate(ctxView.get(EvaluationContext.class)), targetLocation));
         }
         }
@@ -117,19 +123,19 @@ public class PolicySetUtil {
      * TRUE continues to body evaluation, FALSE yields NOT_APPLICABLE,
      * errors yield INDETERMINATE. All cases record the target hit for coverage.
      */
-    private static Flux<VoteWithCoverage> coverageStreamFromMatch(PolicySet policySet,
+    private static Flux<VoteWithCoverage> coverageStreamFromMatch(VoterMetadata voterMetadata,
             Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory, Value match,
             SourceLocation targetLocation) {
         var targetHit = new Coverage.TargetResult(match, targetLocation);
         if (Value.TRUE.equals(match)) {
             return bodyFactory.apply(targetHit);
         } else {
-            var  coverage = new Coverage.PolicySetCoverage(policySet.metadata(), targetHit, List.of());
+            var  coverage = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
             Vote vote;
             if (Value.FALSE.equals(match)) {
-                vote = Vote.abstain(policySet.metadata());
+                vote = Vote.abstain(voterMetadata);
             } else {
-                vote = Vote.error((ErrorValue) match, policySet.metadata());
+                vote = Vote.error((ErrorValue) match, voterMetadata);
             }
             return Flux.just(new VoteWithCoverage(vote, coverage));
         }

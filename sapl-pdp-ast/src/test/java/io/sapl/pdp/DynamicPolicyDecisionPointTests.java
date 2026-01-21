@@ -120,44 +120,82 @@ class DynamicPolicyDecisionPointTests {
         val cultistSubscription      = subscription("cultist", "summon", "deep_one");
         val investigatorSubscription = subscription("investigator", "investigate", "innsmouth");
 
-        return Stream.of(
-                arguments("deny-unless-permit with permit returns PERMIT", DENY_UNLESS_PERMIT,
-                        List.of("policy \"permit summoning\" permit"), cultistSubscription, Decision.PERMIT),
+        return Stream.of(arguments("deny-unless-permit with permit returns PERMIT", DENY_UNLESS_PERMIT, List.of("""
+                policy "permit summoning"
+                permit
+                """), cultistSubscription, Decision.PERMIT),
 
-                arguments("deny-unless-permit with no matching policies returns DENY", DENY_UNLESS_PERMIT,
-                        List.of("policy \"never matches\" permit subject == \"elder_thing\""), cultistSubscription,
-                        Decision.DENY),
+                arguments("deny-unless-permit with no matching policies returns DENY", DENY_UNLESS_PERMIT, List.of("""
+                        policy "never matches"
+                        permit
+                        where
+                            subject == "elder_thing";
+                        """), cultistSubscription, Decision.DENY),
 
-                arguments("permit-unless-deny with deny returns DENY", PERMIT_UNLESS_DENY,
-                        List.of("policy \"deny investigation\" deny"), investigatorSubscription, Decision.DENY),
+                arguments("permit-unless-deny with deny returns DENY", PERMIT_UNLESS_DENY, List.of("""
+                        policy "deny investigation"
+                        deny
+                        """), investigatorSubscription, Decision.DENY),
 
-                arguments("permit-unless-deny with no matching policies returns PERMIT", PERMIT_UNLESS_DENY,
-                        List.of("policy \"never matches\" deny subject == \"mi_go\""), investigatorSubscription,
-                        Decision.PERMIT),
+                arguments("permit-unless-deny with no matching policies returns PERMIT", PERMIT_UNLESS_DENY, List.of("""
+                        policy "never matches"
+                        deny
+                        where
+                            subject == "mi_go";
+                        """), investigatorSubscription, Decision.PERMIT),
 
-                arguments("deny-overrides with deny and permit returns DENY", DENY_OVERRIDES,
-                        List.of("policy \"permit access\" permit", "policy \"deny access\" deny"), cultistSubscription,
-                        Decision.DENY),
+                arguments("deny-overrides with deny and permit returns DENY", DENY_OVERRIDES, List.of("""
+                        policy "permit access"
+                        permit
+                        """, """
+                        policy "deny access"
+                        deny
+                        """), cultistSubscription, Decision.DENY),
 
-                arguments("permit-overrides with deny and permit returns PERMIT", PERMIT_OVERRIDES,
-                        List.of("policy \"permit access\" permit", "policy \"deny access\" deny"), cultistSubscription,
-                        Decision.PERMIT),
+                arguments("permit-overrides with deny and permit returns PERMIT", PERMIT_OVERRIDES, List.of("""
+                        policy "permit access"
+                        permit
+                        """, """
+                        policy "deny access"
+                        deny
+                        """), cultistSubscription, Decision.PERMIT),
 
                 arguments("only-one-applicable with single matching policy returns that decision", ONLY_ONE_APPLICABLE,
-                        List.of("policy \"permit cultists\" permit subject == \"cultist\"",
-                                "policy \"permit investigators\" permit subject == \"investigator\""),
-                        cultistSubscription, Decision.PERMIT),
+                        List.of("""
+                                policy "permit cultists"
+                                permit
+                                where
+                                    subject == "cultist";
+                                """, """
+                                policy "permit investigators"
+                                permit
+                                where
+                                    subject == "investigator";
+                                """), cultistSubscription, Decision.PERMIT),
 
                 arguments("only-one-applicable with multiple matching policies returns INDETERMINATE",
-                        ONLY_ONE_APPLICABLE,
-                        List.of("policy \"permit all\" permit", "policy \"also permit all\" permit"),
-                        cultistSubscription, Decision.INDETERMINATE));
+                        ONLY_ONE_APPLICABLE, List.of("""
+                                policy "permit all"
+                                permit
+                                """, """
+                                policy "also permit all"
+                                permit
+                                """), cultistSubscription, Decision.INDETERMINATE));
     }
 
     @Test
     void whenPolicyWithTargetExpression_thenOnlyMatchingPoliciesApply() {
-        loadConfiguration(DENY_UNLESS_PERMIT, "policy \"permit investigators\" permit subject == \"investigator\"",
-                "policy \"deny cultists\" deny subject == \"cultist\"");
+        loadConfiguration(DENY_UNLESS_PERMIT, """
+                policy "permit investigators"
+                permit
+                where
+                    subject == "investigator";
+                """, """
+                policy "deny cultists"
+                deny
+                where
+                    subject == "cultist";
+                """);
 
         val investigatorSubscription = subscription("investigator", "read", "necronomicon");
         val cultistSubscription      = subscription("cultist", "read", "necronomicon");
@@ -248,7 +286,9 @@ class DynamicPolicyDecisionPointTests {
     void whenPolicyAccessesSubscriptionFields_thenFieldsAvailable() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on environment"
-                permit environment.location == "miskatonic_university"
+                permit
+                where
+                    environment.location == "miskatonic_university";
                 """);
 
         val universityEnvironment = ObjectValue.builder().put("location", Value.of("miskatonic_university")).build();
@@ -330,7 +370,9 @@ class DynamicPolicyDecisionPointTests {
     void whenComplexSubscriptionWithObjectSubject_thenObjectFieldsAccessible() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on subject role"
-                permit subject.role == "elder_sign_bearer"
+                permit
+                where
+                    subject.role == "elder_sign_bearer";
                 """);
 
         val subject      = ObjectValue.builder().put("name", Value.of("Randolph Carter"))
