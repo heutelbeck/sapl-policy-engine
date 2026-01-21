@@ -30,11 +30,11 @@ import java.util.List;
  * configurationId,
  * documentId)
  * @param entitlement PERMIT or DENY
- * @param body policy body with statements and voterMetadata location
+ * @param body policy body with statements and source location
  * @param obligations obligation expressions, empty list if none
  * @param advice advice expressions, empty list if none
  * @param transformation transformation expression, or null if none
- * @param location voterMetadata location
+ * @param location source location
  */
 public record Policy(
         @NonNull List<Import> imports,

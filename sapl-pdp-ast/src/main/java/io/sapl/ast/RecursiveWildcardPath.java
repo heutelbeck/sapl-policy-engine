@@ -23,6 +23,6 @@ import lombok.NonNull;
 /**
  * Recursive descent wildcard path element: {@code ..*}
  *
- * @param location voterMetadata location
+ * @param location source location
  */
 public record RecursiveWildcardPath(@NonNull SourceLocation location) implements PathElement {}

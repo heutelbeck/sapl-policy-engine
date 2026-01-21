@@ -176,7 +176,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
      * @param invocation
      * the function invocation containing name and parameters
      *
-     * @return the result of the function evaluation, or an errors Value if no match
+     * @return the result of the function evaluation, or an error Value if no match
      * found
      *
      * @throws IllegalArgumentException

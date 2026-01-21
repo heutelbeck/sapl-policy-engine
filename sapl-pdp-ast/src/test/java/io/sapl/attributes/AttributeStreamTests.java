@@ -648,14 +648,14 @@ class AttributeStreamTests {
      * The test validates that:
      * <ul>
      * <li>Errors are wrapped in Value.errors() for consistent handling</li>
-     * <li>Original errors messages are preserved (not wrapped in "Retries
+     * <li>Original error messages are preserved (not wrapped in "Retries
      * exhausted")</li>
      * <li>The retry mechanism is bypassed when retries=0</li>
      * </ul>
      * <p>
-     * With retries=0, the stream should publish the original errors message
+     * With retries=0, the stream should publish the original error message
      * directly
-     * to help with debugging and errors
+     * to help with debugging and error
      * diagnosis.
      */
     @Test

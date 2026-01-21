@@ -101,12 +101,12 @@ public class PemUtils {
     }
 
     /**
-     * Decodes Base64 content with contextual errors messages.
+     * Decodes Base64 content with contextual error messages.
      *
      * @param content
      * the Base64-encoded content
      * @param context
-     * the context description for errors messages (e.g., "public key",
+     * the context description for error messages (e.g., "public key",
      * "certificate")
      *
      * @return the decoded bytes

@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Condition statement: a boolean expression that must evaluate to true.
  *
  * @param expression the condition expression
- * @param location voterMetadata location
+ * @param location source location
  */
 public record Condition(@NonNull Expression expression, @NonNull SourceLocation location) implements Statement {}

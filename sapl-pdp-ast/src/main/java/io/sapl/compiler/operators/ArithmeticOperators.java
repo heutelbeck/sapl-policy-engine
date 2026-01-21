@@ -33,7 +33,7 @@ import java.math.MathContext;
 public class ArithmeticOperators {
 
     private static final String ERROR_DIVISION_BY_ZERO = "Division by zero.";
-    private static final String ERROR_TYPE_MISMATCH    = "Numeric op requires number values, but found: %s.";
+    private static final String ERROR_TYPE_MISMATCH    = "Numeric operation requires number values, but found: %s.";
 
     /**
      * Adds two values.
@@ -76,7 +76,7 @@ public class ArithmeticOperators {
      * <p>
      * Uses {@link MathContext#DECIMAL128} for 34 digits of precision, allowing
      * non-terminating decimals like {@code 1/3} to produce a result rather than
-     * an errors. This precision exceeds IEEE 754 double (~15-17 digits) and is
+     * an error. This precision exceeds IEEE 754 double (~15-17 digits) and is
      * sufficient for all practical policy evaluation scenarios.
      */
     public static Value divide(Value a, Value b, SourceLocation location) {

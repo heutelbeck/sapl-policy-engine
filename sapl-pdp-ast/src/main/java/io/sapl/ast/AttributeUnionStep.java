@@ -28,7 +28,7 @@ import java.util.List;
  *
  * @param base the expression to access
  * @param attributes the attribute keys to select
- * @param location voterMetadata location
+ * @param location source location
  */
 public record AttributeUnionStep(
         @NonNull Expression base,

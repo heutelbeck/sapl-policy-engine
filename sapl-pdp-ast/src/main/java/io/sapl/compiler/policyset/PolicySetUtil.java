@@ -157,7 +157,7 @@ public class PolicySetUtil {
      *
      * @param policy the compiled policy to evaluate
      * @param ctx the evaluation context
-     * @param location source location for errors reporting
+     * @param location source location for error reporting
      * @return the policy vote
      */
     public static Vote evaluatePure(CompiledPolicy policy, EvaluationContext ctx, SourceLocation location) {

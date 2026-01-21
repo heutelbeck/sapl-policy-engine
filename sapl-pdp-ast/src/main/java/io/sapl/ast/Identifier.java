@@ -24,6 +24,6 @@ import lombok.NonNull;
  * Variable or subscription element reference.
  *
  * @param name the identifier name
- * @param location voterMetadata location
+ * @param location source location
  */
 public record Identifier(@NonNull String name, @NonNull SourceLocation location) implements Expression {}

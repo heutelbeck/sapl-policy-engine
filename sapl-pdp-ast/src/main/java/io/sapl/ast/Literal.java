@@ -25,6 +25,6 @@ import lombok.NonNull;
  * Literal value - holds a Value directly for unified type handling.
  *
  * @param value the literal value
- * @param location voterMetadata location
+ * @param location source location
  */
 public record Literal(@NonNull Value value, @NonNull SourceLocation location) implements Expression {}

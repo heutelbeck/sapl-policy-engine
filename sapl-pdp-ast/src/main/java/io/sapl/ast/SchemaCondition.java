@@ -29,7 +29,7 @@ import java.util.List;
  * and inserted as the first statement in a policy body.
  *
  * @param schemas the schema statements
- * @param location voterMetadata location covering the schema block
+ * @param location source location covering the schema block
  */
 public record SchemaCondition(@NonNull List<SchemaStatement> schemas, @NonNull SourceLocation location)
         implements Statement {

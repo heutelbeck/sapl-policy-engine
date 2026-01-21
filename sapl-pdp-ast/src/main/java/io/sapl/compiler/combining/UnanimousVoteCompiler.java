@@ -89,7 +89,7 @@ public class UnanimousVoteCompiler {
             ErrorHandling errorHandling, boolean strictMode) {
 
         if (policies.isEmpty()) {
-            val fallbackVote = Vote.abstain(voterMetadata).finalize(defaultDecision, errorHandling);
+            val fallbackVote = Vote.abstain(voterMetadata).finalizeVote(defaultDecision, errorHandling);
             val coverage     = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
             return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
         }
@@ -107,7 +107,7 @@ public class UnanimousVoteCompiler {
             }
 
             val combinedVote = UnanimousVoteCombiner.combineMultipleVotes(votes, voterMetadata, strictMode);
-            val finalVote    = combinedVote.finalize(defaultDecision, errorHandling);
+            val finalVote    = combinedVote.finalizeVote(defaultDecision, errorHandling);
             val setCoverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, policyCoverages);
 
             return new VoteWithCoverage(finalVote, setCoverage);
@@ -122,7 +122,7 @@ public class UnanimousVoteCompiler {
                 strictMode);
 
         if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
-            return accumulatorVote.finalize(defaultDecision, errorHandling);
+            return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
         if (classified.streamPolicies().isEmpty()) {
@@ -143,7 +143,7 @@ public class UnanimousVoteCompiler {
         @Override
         public Vote vote(EvaluationContext ctx) {
             val vote = combinePureVoters(accumulatorVote, documents, voterMetadata, strictMode, ctx);
-            return vote.finalize(defaultDecision, errorHandling);
+            return vote.finalizeVote(defaultDecision, errorHandling);
         }
     }
 
@@ -189,7 +189,7 @@ public class UnanimousVoteCompiler {
 
                 // Short-circuit if already terminal - no need to evaluate streams
                 if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
-                    return Flux.just(pureVote.finalize(defaultDecision, errorHandling));
+                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }
 
                 val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
@@ -211,7 +211,7 @@ public class UnanimousVoteCompiler {
                 return Flux
                         .combineLatest(streamVoters, votes -> UnanimousVoteCombiner
                                 .combineMultipleVotes(asTypedList(votes), voterMetadata, strictMode))
-                        .map(vote -> vote.finalize(defaultDecision, errorHandling));
+                        .map(vote -> vote.finalizeVote(defaultDecision, errorHandling));
             });
         }
     }

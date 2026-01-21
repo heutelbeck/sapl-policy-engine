@@ -26,7 +26,7 @@ import java.util.List;
  * Object literal expression: {@code {key1: expr1, key2: expr2, ...}}
  *
  * @param entries object entries, empty list for empty object
- * @param location voterMetadata location
+ * @param location source location
  */
 public record ObjectExpression(@NonNull List<ObjectEntry> entries, @NonNull SourceLocation location)
         implements Expression {

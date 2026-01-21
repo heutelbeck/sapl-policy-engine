@@ -25,6 +25,6 @@ import lombok.NonNull;
  *
  * @param base the expression to access
  * @param index the array index (may be negative for end-relative)
- * @param location voterMetadata location
+ * @param location source location
  */
 public record IndexStep(@NonNull Expression base, int index, @NonNull SourceLocation location) implements Step {}

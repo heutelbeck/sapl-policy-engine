@@ -23,6 +23,6 @@ import lombok.NonNull;
 /**
  * Wildcard path element: {@code .*} or {@code [*]}
  *
- * @param location voterMetadata location
+ * @param location source location
  */
 public record WildcardPath(@NonNull SourceLocation location) implements PathElement {}

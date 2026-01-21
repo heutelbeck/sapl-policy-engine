@@ -68,7 +68,7 @@ public class PriorityVoteCompiler {
             DefaultDecision defaultDecision, ErrorHandling errorHandling) {
 
         if (policies.isEmpty()) {
-            val fallbackVote = Vote.abstain(voterMetadata).finalize(defaultDecision, errorHandling);
+            val fallbackVote = Vote.abstain(voterMetadata).finalizeVote(defaultDecision, errorHandling);
             val coverage     = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
             return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
         }
@@ -86,7 +86,7 @@ public class PriorityVoteCompiler {
             }
 
             val combinedVote = PriorityBasedVoteCombiner.combineMultipleVotes(votes, priorityDecision, voterMetadata);
-            val finalVote    = combinedVote.finalize(defaultDecision, errorHandling);
+            val finalVote    = combinedVote.finalizeVote(defaultDecision, errorHandling);
             val setCoverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, policyCoverages);
 
             return new VoteWithCoverage(finalVote, setCoverage);
@@ -101,7 +101,7 @@ public class PriorityVoteCompiler {
                 priorityDecision, voterMetadata);
 
         if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
-            return accumulatorVote.finalize(defaultDecision, errorHandling);
+            return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
         if (classified.streamPolicies().isEmpty()) {
@@ -122,7 +122,7 @@ public class PriorityVoteCompiler {
         @Override
         public Vote vote(EvaluationContext ctx) {
             val vote = combinePureVoters(accumulatorVote, documents, priorityDecision, voterMetadata, ctx);
-            return vote.finalize(defaultDecision, errorHandling);
+            return vote.finalizeVote(defaultDecision, errorHandling);
         }
     }
 
@@ -157,7 +157,7 @@ public class PriorityVoteCompiler {
                         .combineLatest(streamVoters,
                                 votes -> PriorityBasedVoteCombiner.combineMultipleVotes(asTypedList(votes),
                                         priorityDecision, voterMetadata))
-                        .map(vote -> vote.finalize(defaultDecision, errorHandling));
+                        .map(vote -> vote.finalizeVote(defaultDecision, errorHandling));
             });
         }
     }

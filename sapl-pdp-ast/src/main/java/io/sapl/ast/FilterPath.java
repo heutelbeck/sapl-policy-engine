@@ -31,7 +31,7 @@ import java.util.List;
  * An empty elements list means the whole value ({@code @}).
  *
  * @param elements the path elements (empty for whole value)
- * @param location voterMetadata location
+ * @param location source location
  */
 public record FilterPath(@NonNull List<PathElement> elements, @NonNull SourceLocation location) implements AstNode {
     public FilterPath {

@@ -232,7 +232,7 @@ public class FirstVoteCompiler {
      * @param contributingVotes leading static NOT_APPLICABLE decisions
      * @param policies remaining policies requiring runtime evaluation
      * @param voterMetadata the policy set voterMetadata
-     * @param location source location for errors reporting
+     * @param location source location for error reporting
      */
     record FirstVotePurePolicySet(
             List<Vote> contributingVotes,

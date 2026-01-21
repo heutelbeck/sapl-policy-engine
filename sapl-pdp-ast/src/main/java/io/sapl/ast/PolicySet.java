@@ -34,7 +34,7 @@ import java.util.List;
  * @param match optional schema condition for matching, null if none
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
- * @param location voterMetadata location
+ * @param location source location
  */
 public record PolicySet(
         @NonNull List<Import> imports,

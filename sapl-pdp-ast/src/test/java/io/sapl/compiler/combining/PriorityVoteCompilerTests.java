@@ -420,7 +420,7 @@ class PriorityVoteCompilerTests {
     @DisplayName("finalizeVote branches")
     class FinalizeVoteBranches {
 
-        static Stream<Arguments> finalizeVoteCases() {
+        static Stream<Arguments> finalizeVoteVoteCases() {
             return Stream.of(
                     // NOT_APPLICABLE + default decision
                     arguments("NOT_APPLICABLE + abstain = NOT_APPLICABLE", "priority permit or abstain", "false",
@@ -439,8 +439,9 @@ class PriorityVoteCompilerTests {
         }
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("finalizeVoteCases")
-        void finalizeVoteHandlesAllCases(String description, String algorithm, String whereClause, Decision expected) {
+        @MethodSource("finalizeVoteVoteCases")
+        void finalizeVoteVoteHandlesAllCases(String description, String algorithm, String whereClause,
+                Decision expected) {
             val entitlement = algorithm.contains("priority permit") ? "permit" : "deny";
             val compiled    = compilePolicySet("""
                     set "test"

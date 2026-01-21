@@ -25,10 +25,10 @@ import java.util.List;
 
 /**
  * N-ary lazy disjunction (OR) for 3+ operands.
- * Enables pure-first evaluation and errors absorption optimizations.
+ * Enables pure-first evaluation and error absorption optimizations.
  *
  * @param operands list of operands (at least 3)
- * @param location voterMetadata location spanning all operands
+ * @param location source location spanning all operands
  */
 public record Disjunction(@NonNull List<Expression> operands, @NonNull SourceLocation location) implements Expression {
 

@@ -31,7 +31,6 @@ import lombok.val;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public record Vote(
         AuthorizationDecision authorizationDecision,
@@ -107,7 +106,7 @@ public record Vote(
      * @param errorHandling how to handle INDETERMINATE
      * @return the finalized vote
      */
-    public Vote finalize(DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+    public Vote finalizeVote(DefaultDecision defaultDecision, ErrorHandling errorHandling) {
         if (authorizationDecision.decision() == Decision.NOT_APPLICABLE) {
             return switch (defaultDecision) {
             case ABSTAIN -> this;

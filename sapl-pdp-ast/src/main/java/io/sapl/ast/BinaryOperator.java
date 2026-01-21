@@ -21,7 +21,7 @@ import io.sapl.api.model.SourceLocation;
 import lombok.NonNull;
 
 /**
- * Binary op with operator enum.
+ * Binary operation with operator enum.
  */
 public record BinaryOperator(
         @NonNull BinaryOperatorType op,

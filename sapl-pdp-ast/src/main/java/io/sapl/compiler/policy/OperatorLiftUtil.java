@@ -42,7 +42,7 @@ public class OperatorLiftUtil {
      * Lifts a value or pure operator to pure stratum.
      *
      * @param expr the expression to lift
-     * @param location the source location for errors reporting
+     * @param location the source location for error reporting
      * @return a pure operator
      */
     public static PureOperator liftToPure(CompiledExpression expr, SourceLocation location) {

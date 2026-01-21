@@ -32,10 +32,10 @@ import java.util.List;
  * @param name the document name (extracted from policy/set name)
  * @param sapl the ANTLR parse tree
  * @param saplDocument optimized AST
- * @param source the original voterMetadata text
+ * @param source the original source text
  * @param syntaxErrors list of syntax errors from parsing
  * @param validationErrors list of semantic validation errors
- * @param errorMessage combined errors message if any errors exist
+ * @param errorMessage combined error message if any errors exist
  */
 public record Document(
         String id,

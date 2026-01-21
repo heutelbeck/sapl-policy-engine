@@ -79,7 +79,7 @@ public class LazyNaryBooleanCompiler {
      * Unified compilation for both conjunction and disjunction.
      *
      * @param operands compiled operands
-     * @param location source location for errors messages
+     * @param location source location for error messages
      * @param shortCircuitValue value that triggers short-circuit (FALSE for AND,
      * TRUE for OR)
      * @param identityValue value returned when all operands pass (TRUE for AND,

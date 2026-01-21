@@ -25,7 +25,7 @@ import lombok.NonNull;
  *
  * @param base the expression to search
  * @param index the index to match
- * @param location voterMetadata location
+ * @param location source location
  */
 public record RecursiveIndexStep(@NonNull Expression base, int index, @NonNull SourceLocation location)
         implements Step {}

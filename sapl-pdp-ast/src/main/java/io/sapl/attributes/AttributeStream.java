@@ -273,7 +273,7 @@ public final class AttributeStream {
     /**
      * Publishes a value to all active subscribers.
      * <p>
-     * Package-private: intended for traced use by AttributeStream and related
+     * Package-private: intended for internal use by AttributeStream and related
      * broker components.
      *
      * @param value

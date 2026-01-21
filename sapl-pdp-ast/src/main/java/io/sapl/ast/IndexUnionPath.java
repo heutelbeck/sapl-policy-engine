@@ -27,7 +27,7 @@ import java.util.List;
  * Index union path element: {@code [1, 2, 3]}
  *
  * @param indices the array indices to select
- * @param location voterMetadata location
+ * @param location source location
  */
 public record IndexUnionPath(@NonNull List<Integer> indices, @NonNull SourceLocation location) implements PathElement {
     public IndexUnionPath {

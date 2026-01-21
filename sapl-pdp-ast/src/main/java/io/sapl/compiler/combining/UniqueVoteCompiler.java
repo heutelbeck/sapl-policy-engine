@@ -21,7 +21,6 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
@@ -84,7 +83,7 @@ public class UniqueVoteCompiler {
             ErrorHandling errorHandling) {
 
         if (policies.isEmpty()) {
-            val fallbackVote = Vote.abstain(voterMetadata).finalize(defaultDecision, errorHandling);
+            val fallbackVote = Vote.abstain(voterMetadata).finalizeVote(defaultDecision, errorHandling);
             val coverage     = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
             return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
         }
@@ -102,7 +101,7 @@ public class UniqueVoteCompiler {
             }
 
             val combinedVote = UniqueVoteCombiner.combineMultipleVotes(votes, voterMetadata);
-            val finalVote    = combinedVote.finalize(defaultDecision, errorHandling);
+            val finalVote    = combinedVote.finalizeVote(defaultDecision, errorHandling);
             val setCoverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, policyCoverages);
 
             return new VoteWithCoverage(finalVote, setCoverage);
@@ -116,7 +115,7 @@ public class UniqueVoteCompiler {
         val accumulatorVote = UniqueVoteCombiner.combineMultipleVotes(classified.foldableVotes(), voterMetadata);
 
         if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
-            return accumulatorVote.finalize(defaultDecision, errorHandling);
+            return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
         if (classified.streamPolicies().isEmpty()) {
@@ -136,7 +135,7 @@ public class UniqueVoteCompiler {
         @Override
         public Vote vote(EvaluationContext ctx) {
             val vote = combinePureVoters(accumulatorVote, documents, voterMetadata, ctx);
-            return vote.finalize(defaultDecision, errorHandling);
+            return vote.finalizeVote(defaultDecision, errorHandling);
         }
     }
 
@@ -181,7 +180,7 @@ public class UniqueVoteCompiler {
 
                 // Short-circuit if already INDETERMINATE - no need to evaluate streams
                 if (pureVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
-                    return Flux.just(pureVote.finalize(defaultDecision, errorHandling));
+                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }
 
                 val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
@@ -203,7 +202,7 @@ public class UniqueVoteCompiler {
                 return Flux
                         .combineLatest(streamVoters,
                                 votes -> UniqueVoteCombiner.combineMultipleVotes(asTypedList(votes), voterMetadata))
-                        .map(vote -> vote.finalize(defaultDecision, errorHandling));
+                        .map(vote -> vote.finalizeVote(defaultDecision, errorHandling));
             });
         }
     }

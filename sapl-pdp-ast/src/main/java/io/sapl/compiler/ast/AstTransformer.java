@@ -822,7 +822,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case AbstainErrorsContext ignored   -> ErrorHandling.ABSTAIN;
         case PropagateErrorsContext ignored -> ErrorHandling.PROPAGATE;
         default                             ->
-            throw new SaplCompilerException("Unknown errors handling", fromContext(ctx));
+            throw new SaplCompilerException("Unknown error handling", fromContext(ctx));
         };
     }
 

@@ -965,7 +965,7 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts variable definitions from an op. Only includes variables that
+     * Extracts variable definitions from an operation. Only includes variables that
      * have default values specified.
      *
      * @param operation

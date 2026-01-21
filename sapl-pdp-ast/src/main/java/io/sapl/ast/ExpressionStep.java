@@ -25,7 +25,7 @@ import lombok.NonNull;
  *
  * @param base the expression to access
  * @param expression the expression to evaluate for the key/index
- * @param location voterMetadata location
+ * @param location source location
  */
 public record ExpressionStep(@NonNull Expression base, @NonNull Expression expression, @NonNull SourceLocation location)
         implements Step {

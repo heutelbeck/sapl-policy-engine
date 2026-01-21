@@ -28,7 +28,7 @@ import java.util.List;
  * @param name the variable name
  * @param value the value expression
  * @param schemas schema validation expressions, empty list if none
- * @param location voterMetadata location
+ * @param location source location
  */
 public record VarDef(
         @NonNull String name,

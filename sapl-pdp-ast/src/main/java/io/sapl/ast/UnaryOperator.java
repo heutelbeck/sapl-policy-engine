@@ -21,11 +21,11 @@ import io.sapl.api.model.SourceLocation;
 import lombok.NonNull;
 
 /**
- * Unary op.
+ * Unary operation.
  *
  * @param op the unary operator
  * @param operand the operand expression
- * @param location voterMetadata location
+ * @param location source location
  */
 public record UnaryOperator(
         @NonNull UnaryOperatorType op,

@@ -68,11 +68,11 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class PolicyCompiler {
 
-    private static final String ERROR_ADVICE_STATIC_ERROR                         = "Advice expression statically evaluates to an errors: %s.";
+    private static final String ERROR_ADVICE_STATIC_ERROR                         = "Advice expression statically evaluates to an error: %s.";
     private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR                = "%s contains @ or # outside of proper context.";
-    private static final String ERROR_OBLIGATIONS_STATIC_ERROR                    = "Obligation expression statically evaluates to an errors: %s.";
+    private static final String ERROR_OBLIGATIONS_STATIC_ERROR                    = "Obligation expression statically evaluates to an error: %s.";
     private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR            = "Transformation contains @ or # outside of proper context.";
-    private static final String ERROR_TRANSFORMATION_STATIC_ERROR                 = "Transformation expression statically evaluates to an errors: %s.";
+    private static final String ERROR_TRANSFORMATION_STATIC_ERROR                 = "Transformation expression statically evaluates to an error: %s.";
     private static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE               = "Unexpected isApplicable type. Indicates implementation bug.";
     public static final String  ERROR_MUST_BE_TRUE_OR_A_STREAM_OPERATOR_BUT_WAS_S = "Streaming part of conditions must be TRUE or a StreamOperator, but was: %s. This indicates an implementation bug.";
 
@@ -169,7 +169,7 @@ public class PolicyCompiler {
      * Compiles policy constraints (obligations, advice, transformation).
      *
      * @param policy the policy AST node
-     * @param location the source location for errors reporting
+     * @param location the source location for error reporting
      * @param ctx the compilation context
      * @return compiled constraints with their determined nature
      */
@@ -206,8 +206,8 @@ public class PolicyCompiler {
      * Compiles a list of constraint expressions into an array expression.
      *
      * @param expressions the constraint expressions
-     * @param location the source location for errors reporting
-     * @param name the constraint type name for errors messages
+     * @param location the source location for error reporting
+     * @param name the constraint type name for error messages
      * @param ctx the compilation context
      * @return the compiled array expression
      */

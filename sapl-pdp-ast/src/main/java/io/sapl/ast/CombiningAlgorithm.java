@@ -19,7 +19,7 @@ package io.sapl.ast;
 
 /**
  * Combining algorithm for policy sets, composed of voting mode, default
- * vote, and errors handling strategy.
+ * vote, and error handling strategy.
  *
  * @param votingMode how policy decisions are combined
  * @param defaultDecision the vote when no policy applies
