@@ -15,12 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.pdp;
 
-public enum CombiningAlgorithm {
-    DENY_OVERRIDES,
-    DENY_UNLESS_PERMIT,
-    PERMIT_OVERRIDES,
-    PERMIT_UNLESS_DENY,
-    ONLY_ONE_APPLICABLE
+import io.sapl.compiler.pdp.Vote;
+
+public interface VoteInterceptor extends Comparable<VoteInterceptor> {
+    int priority();
+
+    void intercept(Vote vote);
+
+    default int compareTo(VoteInterceptor otherInterceptor) {
+        return Integer.compare(priority(), otherInterceptor.priority());
+    }
 }

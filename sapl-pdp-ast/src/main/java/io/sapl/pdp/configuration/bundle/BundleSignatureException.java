@@ -15,23 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.model.Value;
-import io.sapl.ast.CombiningAlgorithm;
+import lombok.experimental.StandardException;
 
 import java.io.Serial;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
 
-public record PDPConfiguration(
-        String pdpId,
-        String configurationId,
-        CombiningAlgorithm combiningAlgorithm,
-        List<String> saplDocuments,
-        Map<String, Value> variables) implements Serializable {
+/**
+ * Exception thrown when bundle signature verification fails.
+ * <p>
+ * This exception indicates a security-relevant failure during bundle
+ * verification. Possible causes include:
+ * </p>
+ * <ul>
+ * <li>Missing signature when one is required</li>
+ * <li>Invalid or corrupted signature</li>
+ * <li>Signature created with unknown or untrusted key</li>
+ * <li>File hash mismatch (bundle contents were modified)</li>
+ * <li>Expired signature</li>
+ * <li>Extra files in bundle not covered by signature</li>
+ * <li>Missing files that were signed</li>
+ * </ul>
+ *
+ * @see BundleManifest
+ * @see BundleParser
+ */
+@StandardException
+public class BundleSignatureException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

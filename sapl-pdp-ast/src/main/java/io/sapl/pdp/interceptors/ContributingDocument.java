@@ -15,23 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.pdp.interceptors;
 
-import io.sapl.api.SaplVersion;
-import io.sapl.api.model.Value;
-import io.sapl.ast.CombiningAlgorithm;
+import io.sapl.api.pdp.Decision;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-
-public record PDPConfiguration(
-        String pdpId,
-        String configurationId,
-        CombiningAlgorithm combiningAlgorithm,
-        List<String> saplDocuments,
-        Map<String, Value> variables) implements Serializable {
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
-}
+/**
+ * A simple record capturing a contributing document's name and decision.
+ *
+ * @param name the document name (policy or policy set)
+ * @param decision the authorization decision from this document
+ */
+public record ContributingDocument(String name, Decision decision) {}

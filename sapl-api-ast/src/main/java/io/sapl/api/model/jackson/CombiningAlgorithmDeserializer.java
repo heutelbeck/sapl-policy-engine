@@ -18,26 +18,62 @@
 package io.sapl.api.model.jackson;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.ast.CombiningAlgorithm;
+import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
+import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
+import io.sapl.ast.CombiningAlgorithm.VotingMode;
 
 import java.io.IOException;
 
 /**
- * Deserializer for {@link CombiningAlgorithm} that supports case-insensitive
- * parsing and kebab-case format (e.g.,
- * "deny-overrides" maps to DENY_OVERRIDES).
+ * Deserializer for {@link CombiningAlgorithm} that parses the record from JSON object format.
+ * <p>
+ * Expected format:
+ * <pre>
+ * {
+ *   "votingMode": "PRIORITY_DENY",
+ *   "defaultDecision": "ABSTAIN",
+ *   "errorHandling": "PROPAGATE"
+ * }
+ * </pre>
  */
 public class CombiningAlgorithmDeserializer extends JsonDeserializer<CombiningAlgorithm> {
 
     @Override
     public CombiningAlgorithm deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-        var text = parser.getText();
-        if (text == null || text.isBlank()) {
-            return null;
+        if (parser.currentToken() != JsonToken.START_OBJECT) {
+            throw new IOException("Expected START_OBJECT for CombiningAlgorithm.");
         }
-        return CombiningAlgorithm.valueOf(text.replace('-', '_').toUpperCase());
-    }
 
+        VotingMode      votingMode      = null;
+        DefaultDecision defaultDecision = null;
+        ErrorHandling   errorHandling   = null;
+
+        while (parser.nextToken() != JsonToken.END_OBJECT) {
+            var fieldName = parser.currentName();
+            parser.nextToken();
+
+            switch (fieldName) {
+            case "votingMode"      -> votingMode = VotingMode.valueOf(parser.getText());
+            case "defaultDecision" -> defaultDecision = DefaultDecision.valueOf(parser.getText());
+            case "errorHandling"   -> errorHandling = ErrorHandling.valueOf(parser.getText());
+            default                -> { /* ignore unknown fields */ }
+            }
+        }
+
+        if (votingMode == null) {
+            throw new IOException("CombiningAlgorithm requires votingMode field.");
+        }
+        if (defaultDecision == null) {
+            throw new IOException("CombiningAlgorithm requires defaultDecision field.");
+        }
+        if (errorHandling == null) {
+            throw new IOException("CombiningAlgorithm requires errorHandling field.");
+        }
+
+        return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);
+    }
 }

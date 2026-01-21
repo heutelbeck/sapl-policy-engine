@@ -20,12 +20,17 @@ package io.sapl.compiler.pdp;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.CombiningAlgorithm;
 import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.Outcome;
+import io.sapl.ast.PolicySetVoterMetadata;
+import io.sapl.ast.PolicyVoterMetadata;
 import io.sapl.ast.VoterMetadata;
 import lombok.val;
 
@@ -39,6 +44,40 @@ public record Vote(
         List<Vote> contributingVotes,
         VoterMetadata voter,
         Outcome outcome) implements Voter {
+
+    // Field name constants (alphabetical)
+    private static final String FIELD_ADVICE = "advice";
+    private static final String FIELD_ALGORITHM = "algorithm";
+    private static final String FIELD_ARGUMENTS = "arguments";
+    private static final String FIELD_ATTRIBUTE_NAME = "attributeName";
+    private static final String FIELD_ATTRIBUTES = "attributes";
+    private static final String FIELD_CONFIGURATION_ID = "configurationId";
+    private static final String FIELD_CONTRIBUTING_VOTES = "contributingVotes";
+    private static final String FIELD_DECISION = "decision";
+    private static final String FIELD_DEFAULT_DECISION = "defaultDecision";
+    private static final String FIELD_DOCUMENT_ID = "documentId";
+    private static final String FIELD_END = "end";
+    private static final String FIELD_ENTITY = "entity";
+    private static final String FIELD_ERROR_HANDLING = "errorHandling";
+    private static final String FIELD_ERRORS = "errors";
+    private static final String FIELD_LINE = "line";
+    private static final String FIELD_MESSAGE = "message";
+    private static final String FIELD_NAME = "name";
+    private static final String FIELD_OBLIGATIONS = "obligations";
+    private static final String FIELD_OUTCOME = "outcome";
+    private static final String FIELD_PDP_ID = "pdpId";
+    private static final String FIELD_RESOURCE = "resource";
+    private static final String FIELD_RETRIEVED_AT = "retrievedAt";
+    private static final String FIELD_START = "start";
+    private static final String FIELD_TYPE = "type";
+    private static final String FIELD_VALUE = "value";
+    private static final String FIELD_VOTER = "voter";
+    private static final String FIELD_VOTING_MODE = "votingMode";
+
+    // Type value constants (alphabetical)
+    private static final String TYPE_POLICY = "policy";
+    private static final String TYPE_SET = "set";
+    private static final String TYPE_UNKNOWN = "unknown";
 
     public static Vote combinedVote(AuthorizationDecision authorizationDecision, VoterMetadata voter,
             List<Vote> contributingVotes, Outcome outcome) {
@@ -134,5 +173,123 @@ public record Vote(
         val newAuthorizationDecision = new AuthorizationDecision(decision, authorizationDecision.obligations(),
                 authorizationDecision.advice(), authorizationDecision.resource());
         return new Vote(newAuthorizationDecision, errors, contributingAttributes, contributingVotes, voter, newOutcome);
+    }
+
+    /**
+     * Converts this vote to a detailed trace ObjectValue for debugging and
+     * auditing.
+     * <p>
+     * The trace includes the complete recursive structure of the decision tree,
+     * showing all contributing votes, errors, and attributes.
+     *
+     * @return an ObjectValue containing the full hierarchical trace
+     */
+    public ObjectValue toTrace() {
+        val builder = ObjectValue.builder();
+
+        builder.put(FIELD_DECISION, Value.of(authorizationDecision.decision().name()));
+        if (!authorizationDecision.obligations().isEmpty()) {
+            builder.put(FIELD_OBLIGATIONS, authorizationDecision.obligations());
+        }
+        if (!authorizationDecision.advice().isEmpty()) {
+            builder.put(FIELD_ADVICE, authorizationDecision.advice());
+        }
+        if (!(authorizationDecision.resource() instanceof UndefinedValue)) {
+            builder.put(FIELD_RESOURCE, authorizationDecision.resource());
+        }
+
+        builder.put(FIELD_VOTER, voterToTrace(voter));
+        builder.put(FIELD_OUTCOME, Value.of(outcome.name()));
+
+        if (!errors.isEmpty()) {
+            val errArray = ArrayValue.builder();
+            for (val err : errors) {
+                errArray.add(errorToTrace(err));
+            }
+            builder.put(FIELD_ERRORS, errArray.build());
+        }
+
+        if (!contributingAttributes.isEmpty()) {
+            val attrArray = ArrayValue.builder();
+            for (val attr : contributingAttributes) {
+                attrArray.add(attributeToTrace(attr));
+            }
+            builder.put(FIELD_ATTRIBUTES, attrArray.build());
+        }
+
+        if (!contributingVotes.isEmpty()) {
+            val votesArray = ArrayValue.builder();
+            for (val child : contributingVotes) {
+                votesArray.add(child.toTrace());
+            }
+            builder.put(FIELD_CONTRIBUTING_VOTES, votesArray.build());
+        }
+
+        return builder.build();
+    }
+
+    private static ObjectValue voterToTrace(VoterMetadata voterMetadata) {
+        val builder = ObjectValue.builder().put(FIELD_NAME, Value.of(voterMetadata.name()))
+                .put(FIELD_PDP_ID, Value.of(voterMetadata.pdpId()))
+                .put(FIELD_CONFIGURATION_ID, Value.of(voterMetadata.configurationId()))
+                .put(FIELD_OUTCOME, Value.of(voterMetadata.outcome().name()));
+
+        switch (voterMetadata) {
+        case PolicyVoterMetadata p     -> {
+            builder.put(FIELD_TYPE, Value.of(TYPE_POLICY));
+            if (p.documentId() != null) {
+                builder.put(FIELD_DOCUMENT_ID, Value.of(p.documentId()));
+            }
+        }
+        case PolicySetVoterMetadata ps -> {
+            builder.put(FIELD_TYPE, Value.of(TYPE_SET));
+            if (ps.documentId() != null) {
+                builder.put(FIELD_DOCUMENT_ID, Value.of(ps.documentId()));
+            }
+            if (ps.combiningAlgorithm() != null) {
+                builder.put(FIELD_ALGORITHM, algorithmToTrace(ps.combiningAlgorithm()));
+            }
+        }
+        default                        -> builder.put(FIELD_TYPE, Value.of(TYPE_UNKNOWN));
+        }
+
+        return builder.build();
+    }
+
+    private static ObjectValue algorithmToTrace(CombiningAlgorithm algorithm) {
+        return ObjectValue.builder().put(FIELD_VOTING_MODE, Value.of(algorithm.votingMode().name()))
+                .put(FIELD_DEFAULT_DECISION, Value.of(algorithm.defaultDecision().name()))
+                .put(FIELD_ERROR_HANDLING, Value.of(algorithm.errorHandling().name())).build();
+    }
+
+    private static ObjectValue errorToTrace(ErrorValue error) {
+        val builder = ObjectValue.builder().put(FIELD_MESSAGE, Value.of(error.message()));
+        if (error.location() != null) {
+            builder.put(FIELD_LINE, Value.of(error.location().line()))
+                    .put(FIELD_START, Value.of(error.location().start()))
+                    .put(FIELD_END, Value.of(error.location().end()));
+        }
+        return builder.build();
+    }
+
+    private static ObjectValue attributeToTrace(AttributeRecord attr) {
+        val builder = ObjectValue.builder().put(FIELD_ATTRIBUTE_NAME, Value.of(attr.invocation().attributeName()))
+                .put(FIELD_CONFIGURATION_ID, Value.of(attr.invocation().configurationId()))
+                .put(FIELD_VALUE, attr.attributeValue())
+                .put(FIELD_RETRIEVED_AT, Value.of(attr.retrievedAt().toString()));
+
+        if (attr.invocation().entity() != null) {
+            builder.put(FIELD_ENTITY, attr.invocation().entity());
+        }
+        if (!attr.invocation().arguments().isEmpty()) {
+            builder.put(FIELD_ARGUMENTS, ArrayValue.builder().addAll(attr.invocation().arguments()).build());
+        }
+        if (attr.location() != null) {
+            builder.put(FIELD_LINE, Value.of(attr.location().line()))
+                    .put(FIELD_START, Value.of(attr.location().start()))
+                    .put(FIELD_END, Value.of(attr.location().end()));
+        }
+
+        return builder.build();
     }
 }

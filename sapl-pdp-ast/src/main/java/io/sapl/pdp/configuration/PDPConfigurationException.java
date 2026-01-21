@@ -15,23 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.pdp.configuration;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.model.Value;
-import io.sapl.ast.CombiningAlgorithm;
+import lombok.experimental.StandardException;
 
 import java.io.Serial;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
 
-public record PDPConfiguration(
-        String pdpId,
-        String configurationId,
-        CombiningAlgorithm combiningAlgorithm,
-        List<String> saplDocuments,
-        Map<String, Value> variables) implements Serializable {
+/**
+ * Exception thrown when PDP configuration loading fails.
+ */
+@StandardException
+public class PDPConfigurationException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }
