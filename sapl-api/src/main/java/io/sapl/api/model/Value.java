@@ -28,12 +28,7 @@ import java.util.Map;
 
 /**
  * Central value type for policy evaluation. Represents defined values (null,
- * boolean, number, text, array, object),
- * error states, or undefined states.
- * <p>
- * Values can be marked as secret to prevent exposure in logs. The secret flag
- * only affects toString() and does not
- * impact equality or evaluation.
+ * boolean, number, text, array, object), error states, or undefined states.
  * <p>
  * Creating values:
  *
@@ -49,21 +44,11 @@ import java.util.Map;
  *
  * <pre>{@code
  * String decision = switch (value) {
- * case BooleanValue(boolean allowed, _) -> allowed ? "PERMIT" : "DENY";
- * case TextValue(String role, _) -> "Role: " + role;
+ * case BooleanValue(boolean allowed) -> allowed ? "PERMIT" : "DENY";
+ * case TextValue(String role) -> "Role: " + role;
  * case ErrorValue e -> "Error: " + e.message();
  * default -> "INDETERMINATE";
  * };
- * }</pre>
- * <p>
- * Secret values prevent sensitive data exposure:
- *
- * <pre>{@code
- * Value password = Value.of("secret123").asSecret();
- * System.out.println(password); // Prints: ***SECRET***
- *
- * ArrayValue tokens = new ArrayValue(List.of(Value.of("token1")), true);
- * Value extracted = tokens.get(0); // Inherits secret flag
  * }</pre>
  * <p>
  * Errors are values, not exceptions:
@@ -106,59 +91,54 @@ public sealed interface Value extends Serializable, CompiledExpression
     long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Placeholder text used when displaying secret values.
-     */
-    String SECRET_PLACEHOLDER = "***SECRET***";
-
-    /**
      * Singleton for boolean true.
      */
-    BooleanValue TRUE = new BooleanValue(true, ValueMetadata.EMPTY);
+    BooleanValue TRUE = new BooleanValue(true);
 
     /**
      * Singleton for boolean false.
      */
-    BooleanValue FALSE = new BooleanValue(false, ValueMetadata.EMPTY);
+    BooleanValue FALSE = new BooleanValue(false);
 
     /**
      * Singleton for undefined values.
      */
-    UndefinedValue UNDEFINED = new UndefinedValue(ValueMetadata.EMPTY);
+    UndefinedValue UNDEFINED = new UndefinedValue();
 
     /**
      * Singleton for null values.
      */
-    NullValue NULL = new NullValue(ValueMetadata.EMPTY);
+    NullValue NULL = new NullValue();
 
     /**
      * Constant for numeric zero.
      */
-    NumberValue ZERO = new NumberValue(BigDecimal.ZERO, ValueMetadata.EMPTY);
+    NumberValue ZERO = new NumberValue(BigDecimal.ZERO);
 
     /**
      * Constant for numeric one.
      */
-    NumberValue ONE = new NumberValue(BigDecimal.ONE, ValueMetadata.EMPTY);
+    NumberValue ONE = new NumberValue(BigDecimal.ONE);
 
     /**
      * Constant for numeric ten.
      */
-    NumberValue TEN = new NumberValue(BigDecimal.TEN, ValueMetadata.EMPTY);
+    NumberValue TEN = new NumberValue(BigDecimal.TEN);
 
     /**
      * Constant for empty array.
      */
-    ArrayValue EMPTY_ARRAY = new ArrayValue(List.of(), ValueMetadata.EMPTY);
+    ArrayValue EMPTY_ARRAY = new ArrayValue(List.of());
 
     /**
      * Constant for empty object.
      */
-    ObjectValue EMPTY_OBJECT = new ObjectValue(Map.of(), ValueMetadata.EMPTY);
+    ObjectValue EMPTY_OBJECT = new ObjectValue(Map.of());
 
     /**
      * Constant for empty text.
      */
-    TextValue EMPTY_TEXT = new TextValue("", ValueMetadata.EMPTY);
+    TextValue EMPTY_TEXT = new TextValue("");
 
     /**
      * Creates a boolean value.
@@ -187,7 +167,7 @@ public sealed interface Value extends Serializable, CompiledExpression
             return ONE;
         if (value == 10L)
             return TEN;
-        return new NumberValue(BigDecimal.valueOf(value), ValueMetadata.EMPTY);
+        return new NumberValue(BigDecimal.valueOf(value));
     }
 
     /**
@@ -220,7 +200,7 @@ public sealed interface Value extends Serializable, CompiledExpression
             return ONE;
         if (value == 10.0)
             return TEN;
-        return new NumberValue(BigDecimal.valueOf(value), ValueMetadata.EMPTY);
+        return new NumberValue(BigDecimal.valueOf(value));
     }
 
     /**
@@ -238,7 +218,7 @@ public sealed interface Value extends Serializable, CompiledExpression
             return ONE;
         if (value.compareTo(BigDecimal.TEN) == 0)
             return TEN;
-        return new NumberValue(value, ValueMetadata.EMPTY);
+        return new NumberValue(value);
     }
 
     /**
@@ -252,7 +232,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static TextValue of(@NonNull String value) {
         if (value.isEmpty())
             return EMPTY_TEXT;
-        return new TextValue(value, ValueMetadata.EMPTY);
+        return new TextValue(value);
     }
 
     /**
@@ -266,7 +246,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static ArrayValue ofArray(Value... values) {
         if (values.length == 0)
             return EMPTY_ARRAY;
-        return new ArrayValue(values, ValueMetadata.EMPTY);
+        return new ArrayValue(values);
     }
 
     /**
@@ -280,7 +260,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static ArrayValue ofArray(@NonNull List<Value> values) {
         if (values.isEmpty())
             return EMPTY_ARRAY;
-        return new ArrayValue(values, ValueMetadata.EMPTY);
+        return new ArrayValue(values);
     }
 
     /**
@@ -294,7 +274,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static ObjectValue ofObject(@NonNull Map<String, Value> properties) {
         if (properties.isEmpty())
             return EMPTY_OBJECT;
-        return new ObjectValue(Map.copyOf(properties), ValueMetadata.EMPTY);
+        return new ObjectValue(Map.copyOf(properties));
     }
 
     /**
@@ -306,7 +286,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull String message) {
-        return new ErrorValue(message, null, ValueMetadata.EMPTY);
+        return new ErrorValue(message, null);
     }
 
     /**
@@ -334,7 +314,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * if the format string is invalid
      */
     static ErrorValue error(@NonNull String message, Object... args) {
-        return new ErrorValue(String.format(message, args), null, ValueMetadata.EMPTY);
+        return new ErrorValue(String.format(message, args), null);
     }
 
     /**
@@ -348,7 +328,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull String message, Throwable cause) {
-        return new ErrorValue(message, cause, ValueMetadata.EMPTY);
+        return new ErrorValue(message, cause);
     }
 
     /**
@@ -360,28 +340,28 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull Throwable cause) {
-        return new ErrorValue(cause, ValueMetadata.EMPTY);
+        return new ErrorValue(cause);
     }
 
     /**
-     * Creates an error value with a message and source location.
+     * Creates an error value with a message and metadata location.
      *
      * @param message
      * the error message (must not be null)
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      *
      * @return an ErrorValue with location information
      */
     static ErrorValue error(@NonNull String message, SourceLocation location) {
-        return new ErrorValue(message, null, ValueMetadata.EMPTY, location);
+        return new ErrorValue(message, null, location);
     }
 
     /**
-     * Creates an error value with a formatted message and source location.
+     * Creates an error value with a formatted message and metadata location.
      *
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      * @param message
      * the format string (must not be null)
      * @param args
@@ -390,75 +370,36 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue with the formatted message and location
      */
     static ErrorValue errorAt(SourceLocation location, @NonNull String message, Object... args) {
-        return new ErrorValue(String.format(message, args), null, ValueMetadata.EMPTY, location);
+        return new ErrorValue(String.format(message, args), null, location);
     }
 
     /**
-     * Creates an error value with a message, cause, and source location.
+     * Creates an error value with a message, cause, and metadata location.
      *
      * @param message
      * the error message (must not be null)
      * @param cause
      * the exception (may be null)
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      *
      * @return an ErrorValue with cause and location information
      */
     static ErrorValue error(@NonNull String message, Throwable cause, SourceLocation location) {
-        return new ErrorValue(message, cause, ValueMetadata.EMPTY, location);
+        return new ErrorValue(message, cause, location);
     }
 
     /**
-     * Creates an error value from an exception with source location.
+     * Creates an error value from an exception with metadata location.
      *
      * @param cause
      * the exception (must not be null)
      * @param location
-     * the source location where the error occurred (may be null)
+     * the metadata location where the error occurred (may be null)
      *
      * @return an ErrorValue with cause and location information
      */
     static ErrorValue error(@NonNull Throwable cause, SourceLocation location) {
-        return new ErrorValue(cause.getMessage(), cause, ValueMetadata.EMPTY, location);
-    }
-
-    /**
-     * Returns the metadata for this value.
-     *
-     * @return the value metadata
-     */
-    ValueMetadata metadata();
-
-    /**
-     * Creates a copy of this value with the specified metadata.
-     *
-     * @param metadata
-     * the new metadata
-     *
-     * @return a value with the new metadata
-     */
-    Value withMetadata(ValueMetadata metadata);
-
-    /**
-     * Returns whether this value is marked as secret.
-     *
-     * @return true if secret
-     */
-    default boolean isSecret() {
-        return metadata().secret();
-    }
-
-    /**
-     * Marks this value as secret. Secret values display as "***SECRET***" in
-     * toString() to prevent exposure. The secret
-     * flag does not affect equality or evaluation.
-     * <p>
-     * Container types propagate the secret flag to extracted elements.
-     *
-     * @return a secret value (or this instance if already secret)
-     */
-    default Value asSecret() {
-        return isSecret() ? this : withMetadata(metadata().asSecret());
+        return new ErrorValue(cause.getMessage(), cause, location);
     }
 }

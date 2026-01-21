@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.CombiningAlgorithm;
 
 import java.io.IOException;
 import java.util.Map;
@@ -35,7 +36,11 @@ import java.util.Map;
  * {
  *   "pdpId": "production",
  *   "configurationId": "v1.0",
- *   "combiningAlgorithm": "DENY_OVERRIDES",
+ *   "combiningAlgorithm": {
+ *     "votingMode": "PRIORITY_DENY",
+ *     "defaultDecision": "ABSTAIN",
+ *     "errorHandling": "PROPAGATE"
+ *   },
  *   "saplDocuments": ["policy access-control...", "policy audit-log..."],
  *   "variables": {
  *     "serverUrl": "https://api.example.com",
@@ -43,10 +48,6 @@ import java.util.Map;
  *   }
  * }
  * }</pre>
- * <p>
- * The combiningAlgorithm is serialized using its enum name (uppercase with
- * underscores). The variables map is
- * serialized as a JSON object with Value serialization for each entry.
  */
 public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration> {
 
@@ -59,7 +60,9 @@ public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration>
 
         generator.writeStringField("pdpId", configuration.pdpId());
         generator.writeStringField("configurationId", configuration.configurationId());
-        generator.writeStringField("combiningAlgorithm", configuration.combiningAlgorithm().name());
+
+        generator.writeFieldName("combiningAlgorithm");
+        serializeCombiningAlgorithm(configuration.combiningAlgorithm(), generator);
 
         generator.writeFieldName("saplDocuments");
         serializeStringList(configuration.saplDocuments(), generator);
@@ -67,6 +70,14 @@ public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration>
         generator.writeFieldName("variables");
         serializeVariablesMap(configuration.variables(), generator, serializers);
 
+        generator.writeEndObject();
+    }
+
+    private void serializeCombiningAlgorithm(CombiningAlgorithm algorithm, JsonGenerator generator) throws IOException {
+        generator.writeStartObject();
+        generator.writeStringField("votingMode", algorithm.votingMode().name());
+        generator.writeStringField("defaultDecision", algorithm.defaultDecision().name());
+        generator.writeStringField("errorHandling", algorithm.errorHandling().name());
         generator.writeEndObject();
     }
 

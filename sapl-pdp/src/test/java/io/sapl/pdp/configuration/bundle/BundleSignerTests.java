@@ -277,9 +277,10 @@ class BundleSignerTests {
 
     private Map<String, String> createTestFiles() {
         val files = new TreeMap<String, String>();
-        files.put("pdp.json", """
-                { "algorithm": "DENY_OVERRIDES" }
-                """);
+        files.put("pdp.json",
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                        """);
         files.put("ritual.sapl", """
                 policy "elder-ritual"
                 permit subject.cultRank == "elder"

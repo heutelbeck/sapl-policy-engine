@@ -18,7 +18,7 @@
 package io.sapl.api.coverage;
 
 /**
- * Coverage information for a single source line.
+ * Coverage information for a single metadata line.
  *
  * @param line the 1-based line number
  * @param status the coverage status

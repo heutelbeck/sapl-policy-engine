@@ -1,171 +1,186 @@
-/* 
+/*
  * Policy set for controlling access to augmented manufacturing API
- * by means of json web tokens (JWT) through the Spring Security 
+ * by means of json web tokens (JWT) through the Spring Security
  * webflux filter chain.
  */
 import filter.blacken
 
 set "api_filter_jwt_set"
-first-applicable
-for action.path.requestPath =~ "^/api.*"
+first or abstain errors propagate
 
 //reject JWTs from unknown issuers
 policy "api_filter_jwt:untrusted_issuer"
 deny
-	!(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"])
+where
+	action.path.requestPath =~ "^/api.*";
+	!(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"]);
 
 /*
- * The target expression is used for efficient indexing and 
- * selection of policies. As it needs to be evaluated quickly, 
- * it must not call external services.
- * 
  * Functions in the JWT function library return contents from
  * the JWT without verifying the JWT's validity. As they rely
- * purely on the passed arguments, they can be used inside a
- * target expression. But unfortunately, the values returned
- * can not be trusted.
- * 
- * The JWT attribute finder validates the JWT's authenticity 
+ * purely on the passed arguments, they can be used for quick
+ * selection. But unfortunately, the values returned can not be trusted.
+ *
+ * The JWT attribute finder validates the JWT's authenticity
  * and integrity and ensures the token is mature and not expired.
  * But to verify authenticity, the attribute finder needs to
  * fetch public keys from trusted authentication servers.
- * Consequently, attributes can not be used in target expressions.
- * 
- * Whenever a JWT function is used in target expressions, its
+ *
+ * Whenever a JWT function is used for quick selection, its
  * equivalent attribute should therefore be tested in the body
  * as well.
- * 
- * example:
- * policy "api_filter_jwt:admin_allow_all"
- * permit
- *  // function in target for policy selection
- *  "ROLE_ADMIN" in jwt.payload(subject).authorities
- * where
- *  // attribute in body for access decision
- *  "ROLE_ADMIN" in subject.<jwt.payload>.authorities;
  */
 
 // no role has access to nothing
 policy "api_filter_jwt:nothing_allow_none"
 deny
-    jwt.payload(subject).authorities == []
+where
+    action.path.requestPath =~ "^/api.*";
+    jwt.payload(subject).authorities == [];
 
 // admin has access to everything
 policy "api_filter_jwt:admin_allow_all"
 permit
-    "ROLE_ADMIN" in jwt.payload(subject).authorities
 where
+    action.path.requestPath =~ "^/api.*";
+    "ROLE_ADMIN" in jwt.payload(subject).authorities;
     "ROLE_ADMIN" in subject.<jwt.payload>.authorities;
-    
+
 // customers
 policy "api_filter_jwt:client_deny_customer"
 deny
-    action.path.requestPath =~ "^/api/customers.*"
-  & "ROLE_CLIENT" in jwt.payload(subject).authorities
+where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/customers.*";
+    "ROLE_CLIENT" in jwt.payload(subject).authorities;
 
 policy "api_filter_jwt:nonclient_allow_customer"
 permit
-    action.path.requestPath =~ "^/api/customers.*"
-  & !("ROLE_CLIENT" in jwt.payload(subject).authorities)
 where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/customers.*";
+    !("ROLE_CLIENT" in jwt.payload(subject).authorities);
     !("ROLE_CLIENT" in subject.<jwt.payload>.authorities);
 
 // orders
 policy "api_filter_jwt:client_deny_order"
 deny
-    action.path.requestPath =~ "^/api/orders.*"
-  & "ROLE_CLIENT" in jwt.payload(subject).authorities
-    
+where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/orders.*";
+    "ROLE_CLIENT" in jwt.payload(subject).authorities;
+
 policy "api_filter_jwt:nonclient_allow_order"
 permit
-    action.path.requestPath =~ "^/api/orders.*"
-  & !("ROLE_CLIENT" in jwt.payload(subject).authorities)
 where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/orders.*";
+    !("ROLE_CLIENT" in jwt.payload(subject).authorities);
     !("ROLE_CLIENT" in subject.<jwt.payload>.authorities);
 
 // print jobs
 policy "api_filter_jwt:engineer_operator_allow_all_printjob"
 permit
-    action.path.requestPath =~ "^/api/printjobs.*"
-  & (  "ROLE_ENGINEER" in jwt.payload(subject).authorities
-     | "ROLE_OPERATOR" in jwt.payload(subject).authorities)
 where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/printjobs.*";
+    "ROLE_ENGINEER" in jwt.payload(subject).authorities
+     | "ROLE_OPERATOR" in jwt.payload(subject).authorities;
     "ROLE_ENGINEER" in subject.<jwt.payload>.authorities
  || "ROLE_OPERATOR" in subject.<jwt.payload>.authorities;
 
 policy "api_filter_jwt:authenticated_allow_get_printjob"
 permit
-    "GET" == action.method & action.path.requestPath =~ "^/api/printjobs.*"
 where
+    action.path.requestPath =~ "^/api.*";
+    "GET" == action.method;
+    action.path.requestPath =~ "^/api/printjobs.*";
     "VALID" == subject.<jwt.validity>;
 
 // production plans
 policy "api_filter_jwt:client_deny_original_or_annotated_3mf"
 deny
-    "GET" == action.method
-  & (  action.path.requestPath =~ "^/api/production-plans/.*/threemf-file"
-     | action.path.requestPath =~ "^/api/production-plans/.*/annotated-threemf-file")
-  & "ROLE_CLIENT" in jwt.payload(subject).authorities
-  
+where
+    action.path.requestPath =~ "^/api.*";
+    "GET" == action.method;
+    action.path.requestPath =~ "^/api/production-plans/.*/threemf-file"
+     | action.path.requestPath =~ "^/api/production-plans/.*/annotated-threemf-file";
+    "ROLE_CLIENT" in jwt.payload(subject).authorities;
+
 policy "api_filter_jwt:client_blacken_printobject"
 permit
-    "GET" == action.method
-  & action.path.requestPath =~ "^/api/production-plans/.*/print-objects"
-  & "ROLE_CLIENT" in jwt.payload(subject).authorities
 where
+    action.path.requestPath =~ "^/api.*";
+    "GET" == action.method;
+    action.path.requestPath =~ "^/api/production-plans/.*/print-objects";
+    "ROLE_CLIENT" in jwt.payload(subject).authorities;
     "ROLE_CLIENT" in subject.<jwt.payload>.authorities;
 transform
     resource |- {@..customerName : blacken}
 
 policy "api_filter_jwt:authenticated_allow_get_productionplan"
 permit
-    "GET" == action.method & action.path.requestPath =~ "^/api/production-plans.*"
 where
+    action.path.requestPath =~ "^/api.*";
+    "GET" == action.method;
+    action.path.requestPath =~ "^/api/production-plans.*";
     "VALID" == subject.<jwt.validity>;
 
 // files
 policy "api_filter_jwt:client_deny_file"
 deny
-    action.path.requestPath =~ "^/api/files.*"
-  & "ROLE_CLIENT" in jwt.payload(subject).authorities
+where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/files.*";
+    "ROLE_CLIENT" in jwt.payload(subject).authorities;
 
 policy "api_filter_jwt:engineer_allow_all_file"
 permit
-    action.path.requestPath =~ "^/api/files.*"
-  & "ROLE_ENGINEER" in jwt.payload(subject).authorities
 where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/files.*";
+    "ROLE_ENGINEER" in jwt.payload(subject).authorities;
     "ROLE_ENGINEER" in subject.<jwt.payload>.authorities;
 
 policy "api_filter_jwt:authenticated_allow_get_file"
 permit
-    "GET" == action.method & action.path.requestPath =~ "^/api/files.*"
 where
+    action.path.requestPath =~ "^/api.*";
+    "GET" == action.method;
+    action.path.requestPath =~ "^/api/files.*";
     "VALID" == subject.<jwt.validity>;
 
 // machines
 policy "api_filter_jwt:engineer_operator_allow_all_machine"
 permit
-    action.path.requestPath =~ "^/api/machines.*"
-  & (  "ROLE_ENGINEER" in jwt.payload(subject).authorities
-     | "ROLE_OPERATOR" in jwt.payload(subject).authorities)
 where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/machines.*";
+    "ROLE_ENGINEER" in jwt.payload(subject).authorities
+     | "ROLE_OPERATOR" in jwt.payload(subject).authorities;
     "ROLE_ENGINEER" in subject.<jwt.payload>.authorities
  || "ROLE_OPERATOR" in subject.<jwt.payload>.authorities;
 
 policy "api_filter_jwt:authenticated_allow_get_machines"
 permit
-    "GET" == action.method & action.path.requestPath =~ "^/api/machines.*"
 where
+    action.path.requestPath =~ "^/api.*";
+    "GET" == action.method;
+    action.path.requestPath =~ "^/api/machines.*";
     "VALID" == subject.<jwt.validity>;
 
 // subscriptions
 policy "api_filter_jwt:client_deny_subscription_anomaly"
 deny
-    action.path.requestPath =~ "^/api/subscriptions.*/anomaly"
-  & "ROLE_CLIENT" in jwt.payload(subject).authorities
+where
+    action.path.requestPath =~ "^/api.*";
+    action.path.requestPath =~ "^/api/subscriptions.*/anomaly";
+    "ROLE_CLIENT" in jwt.payload(subject).authorities;
 
 policy "api_filter_jwt:authenticated_allow_get_subscription"
 permit
-    "GET" == action.method & action.path.requestPath =~ "^/api/subscriptions.*"
 where
+    action.path.requestPath =~ "^/api.*";
+    "GET" == action.method;
+    action.path.requestPath =~ "^/api/subscriptions.*";
     "VALID" == subject.<jwt.validity>;

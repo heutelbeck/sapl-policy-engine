@@ -21,7 +21,6 @@ lexer grammar SAPLLexer;
 IMPORT      : 'import';
 AS          : 'as';
 SET         : 'set';
-FOR         : 'for';
 POLICY      : 'policy';
 PERMIT      : 'permit';
 DENY        : 'deny';
@@ -38,6 +37,7 @@ NULL        : 'null';
 UNDEFINED   : 'undefined';
 IN          : 'in';
 EACH        : 'each';
+FOR         : 'for';
 
 // Reserved Identifiers (also valid as identifiers)
 SUBJECT     : 'subject';
@@ -45,13 +45,16 @@ ACTION      : 'action';
 RESOURCE    : 'resource';
 ENVIRONMENT : 'environment';
 
-// Combining Algorithms
-DENY_OVERRIDES      : 'deny-overrides';
-PERMIT_OVERRIDES    : 'permit-overrides';
-FIRST_APPLICABLE    : 'first-applicable';
-ONLY_ONE_APPLICABLE : 'only-one-applicable';
-DENY_UNLESS_PERMIT  : 'deny-unless-permit';
-PERMIT_UNLESS_DENY  : 'permit-unless-deny';
+// Combining Algorithm Components
+KW_OR               : 'or';
+ERRORS              : 'errors';
+ABSTAIN             : 'abstain';
+PROPAGATE           : 'propagate';
+FIRST               : 'first';
+PRIORITY            : 'priority';
+STRICT              : 'strict';
+UNANIMOUS           : 'unanimous';
+UNIQUE              : 'unique';
 
 // Operators
 FILTER      : '|-';

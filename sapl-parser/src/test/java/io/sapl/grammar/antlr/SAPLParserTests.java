@@ -51,215 +51,214 @@ class SAPLParserTests {
         assertThat(errors).as("Parsing '%s' should produce no syntax errors", policyPath.getFileName()).isEmpty();
     }
 
-    static Stream<Arguments> simplePolicies() {
-        return Stream.of(arguments("simple write denial", """
-                policy "policy 2"
-                deny action == "write"
-                """), arguments("simple read permit", """
-                policy "policy read"
-                permit
-                    action == "read"
-                """), arguments("apple eating permit", """
-                policy "policy1"
-                permit
-                    action == "eat"
-                where
-                    resource == "apple";
-                """), arguments("read with variable comparison", """
-                policy "policy read"
-                permit
-                    action == "read"
-                where
-                    test == 1;
-                """), arguments("read for subject willi", """
-                policy "policySimple"
-                permit
-                    action == "read"
-                where
-                    subject == "willi";
-                """), arguments("deny foo for WILLI", """
-                policy "policy_A"
-                deny
-                    resource == "foo"
-                where
-                    "WILLI" == subject;
-                """), arguments("permit foo for WILLI", """
-                policy "policy_B"
-                permit
-                    resource == "foo"
-                where
-                    "WILLI" == subject;
-                """), arguments("empty permit", """
-                policy "test policy"
-                permit
-                """), arguments("empty deny", """
-                policy "test policy"
-                deny
-                """), arguments("target with regex", """
-                policy "test policy"
-                deny action =~ "some regex"
-                """), arguments("complex boolean target with conjunction", """
-                policy "test policy"
-                permit (subject == "aSubject" & target == "aTarget")
-                """), arguments("disjunction target", """
-                policy "test policy"
-                permit ((subject == "aSubject") | (target == "aTarget"))
-                """), arguments("negation in target", """
-                policy "test policy"
-                permit !(subject == "aSubject" | target == "aTarget")
-                """), arguments("variable definition in body", """
-                policy "test policy"
-                permit
-                where
-                    var subject_id = subject.metadata.id;
-                    !("a" == "b");
-                    action =~ "HTTP.GET";
-                """));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("simplePolicies")
-    void whenParsingSimplePolicy_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
-    }
-
-    static Stream<Arguments> policiesWithFunctions() {
-        return Stream.of(arguments("day of week function check",
-                """
-                        policy "policyWithSimpleFunction"
-                        permit
-                            action == "read"
+    static Stream<Arguments> policies() {
+        return Stream.of(
+                // Simple Policies
+                arguments("simple write denial", """
+                        policy "policy 2"
+                        deny
                         where
-                            time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
-                        """));
-    }
+                            action == "write";
+                        """), arguments("simple read permit", """
+                        policy "policy read"
+                        permit
+                        where
+                            action == "read";
+                        """), arguments("apple eating permit", """
+                        policy "policy1"
+                        permit
+                        where
+                            action == "eat";
+                            resource == "apple";
+                        """), arguments("read with variable comparison", """
+                        policy "policy read"
+                        permit
+                        where
+                            action == "read";
+                            test == 1;
+                        """), arguments("read for subject willi", """
+                        policy "policySimple"
+                        permit
+                        where
+                            action == "read";
+                            subject == "willi";
+                        """), arguments("deny foo for WILLI", """
+                        policy "policy_A"
+                        deny
+                        where
+                            resource == "foo";
+                            "WILLI" == subject;
+                        """), arguments("permit foo for WILLI", """
+                        policy "policy_B"
+                        permit
+                        where
+                            resource == "foo";
+                            "WILLI" == subject;
+                        """), arguments("empty permit", """
+                        policy "test policy"
+                        permit
+                        """), arguments("empty deny", """
+                        policy "test policy"
+                        deny
+                        """), arguments("body with regex", """
+                        policy "test policy"
+                        deny
+                        where
+                            action =~ "some regex";
+                        """), arguments("complex boolean body with conjunction", """
+                        policy "test policy"
+                        permit
+                        where
+                            subject == "aSubject" & target == "aTarget";
+                        """), arguments("disjunction in body", """
+                        policy "test policy"
+                        permit
+                        where
+                            (subject == "aSubject") | (target == "aTarget");
+                        """), arguments("negation in body", """
+                        policy "test policy"
+                        permit
+                        where
+                            !(subject == "aSubject" | target == "aTarget");
+                        """), arguments("variable definition in body", """
+                        policy "test policy"
+                        permit
+                        where
+                            var subject_id = subject.metadata.id;
+                            !("a" == "b");
+                            action =~ "HTTP.GET";
+                        """),
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("policiesWithFunctions")
-    void whenParsingPolicyWithFunctions_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
-    }
+                // Functions
+                arguments("day of week function check",
+                        """
+                                policy "policyWithSimpleFunction"
+                                permit
+                                where
+                                    action == "read";
+                                    time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+                                """),
 
-    static Stream<Arguments> policiesWithAttributes() {
-        return Stream.of(arguments("upper case subject and time PIP", """
-                policy "policy 1"
-                permit
-                    action == "read"
-                where
-                    subject.<test.upper> == "WILLI";
-                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
-                """), arguments("upper case subject with variable", """
-                policy "policy 1"
-                permit
-                    action == "read"
-                where
-                    subject.<test.upper> == "WILLI";
-                    var test = 1;
-                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
-                """), arguments("eat icecream with PIPs", """
-                policy "policy eat icecream"
-                permit
-                    action == "eat" & resource == "icecream"
-                where
-                    subject.<test.upper> == "WILLI";
-                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
-                """), arguments("environment attribute", """
-                policy "policyWithEnvironmentAttribute"
-                permit
-                    action == "write"
-                where
-                    <org.emergencyLevel> == 0;
-                """), arguments("simple upper case PIP", """
-                policy "policyWithSimplePIP"
-                permit
-                    action == "read"
-                where
-                    subject.<test.upper> == "WILLI";
-                """), arguments("multiple functions and PIPs", """
-                policy "policyWithMultipleFunctionsOrPIPs"
-                permit
-                    action == "read"
-                where
-                    subject.<test.upper> == "WILLI";
-                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
-                """), arguments("streaming time attribute", """
-                policy "policyStreaming"
-                permit
-                  resource == "heartBeatData"
-                where
-                  subject == "ROLE_DOCTOR";
-                  var interval = 2;
-                  time.secondOf(<time.now(interval)>) > 4;
-                """), arguments("streaming time attribute variant", """
-                policy "policyStreaming"
-                permit
-                  resource == "bar"
-                where
-                  subject == "WILLI";
-                  var interval = 2;
-                  time.secondOf(<time.now(interval)>) >= 4;
-                """), arguments("head attribute finder", """
-                policy "headAttribute"
-                permit
-                where
-                    |<clock.ticker> != undefined;
-                    subject.|<user.updates> == true;
-                """), arguments("attribute finder with options", """
-                policy "attributeWithOptions"
-                permit
-                where
-                    subject.<user.data[{"option": true, "timeout": 5000}]> == "data";
-                """));
-    }
+                // Attributes
+                arguments("upper case subject and time PIP",
+                        """
+                                policy "policy 1"
+                                permit
+                                where
+                                    action == "read";
+                                    subject.<test.upper> == "WILLI";
+                                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+                                """),
+                arguments("upper case subject with variable",
+                        """
+                                policy "policy 1"
+                                permit
+                                where
+                                    action == "read";
+                                    subject.<test.upper> == "WILLI";
+                                    var test = 1;
+                                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+                                """),
+                arguments("eat icecream with PIPs",
+                        """
+                                policy "policy eat icecream"
+                                permit
+                                where
+                                    action == "eat" & resource == "icecream";
+                                    subject.<test.upper> == "WILLI";
+                                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+                                """),
+                arguments("environment attribute", """
+                        policy "policyWithEnvironmentAttribute"
+                        permit
+                        where
+                            action == "write";
+                            <org.emergencyLevel> == 0;
+                        """), arguments("simple upper case PIP", """
+                        policy "policyWithSimplePIP"
+                        permit
+                        where
+                            action == "read";
+                            subject.<test.upper> == "WILLI";
+                        """),
+                arguments("multiple functions and PIPs",
+                        """
+                                policy "policyWithMultipleFunctionsOrPIPs"
+                                permit
+                                where
+                                    action == "read";
+                                    subject.<test.upper> == "WILLI";
+                                    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+                                """),
+                arguments("streaming time attribute", """
+                        policy "policyStreaming"
+                        permit
+                        where
+                          resource == "heartBeatData";
+                          subject == "ROLE_DOCTOR";
+                          var interval = 2;
+                          time.secondOf(<time.now(interval)>) > 4;
+                        """), arguments("streaming time attribute variant", """
+                        policy "policyStreaming"
+                        permit
+                        where
+                          resource == "bar";
+                          subject == "WILLI";
+                          var interval = 2;
+                          time.secondOf(<time.now(interval)>) >= 4;
+                        """), arguments("head attribute finder", """
+                        policy "headAttribute"
+                        permit
+                        where
+                            |<clock.ticker> != undefined;
+                            subject.|<user.updates> == true;
+                        """), arguments("attribute finder with options", """
+                        policy "attributeWithOptions"
+                        permit
+                        where
+                            subject.<user.data[{"option": true, "timeout": 5000}]> == "data";
+                        """),
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("policiesWithAttributes")
-    void whenParsingPolicyWithAttributes_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
-    }
-
-    static Stream<Arguments> policiesWithObligationsAdviceTransform() {
-        return Stream.of(arguments("mongo query manipulation with obligation", """
-                policy "permit query method (1)"
-                permit
-                where
-                    action == "fetchingByQueryMethod";
-                    subject.age > 18;
-                obligation {
-                               "type": "mongoQueryManipulation",
-                               "conditions": [ "{'age': {'$gt': 18}}" ]
-                             }
-                """), arguments("mongo with blacklist selection", """
-                policy "permit method name query (1)"
-                permit
-                where
-                    action == "findAll";
-                    subject.age > 18;
-                obligation {
-                               "type": "mongoQueryManipulation",
-                               "conditions": [ "{'admin': {'$eq': false}}" ],
-                               "selection": {
-                                    "type": "blacklist",
-                                    "columns": ["firstname"]
-                                }
-                             }
-                """), arguments("streaming with obligation A", """
-                policy "policy 1"
-                permit
-                     action == "read"
-                where
-                     subject == "WILLI";
-                     time.secondOf(<time.now>) < 20; obligation "A"
-                """),
+                // Obligations, Advice, Transforms
+                arguments("mongo query manipulation with obligation", """
+                        policy "permit query method (1)"
+                        permit
+                        where
+                            action == "fetchingByQueryMethod";
+                            subject.age > 18;
+                        obligation {
+                                       "type": "mongoQueryManipulation",
+                                       "conditions": [ "{'age': {'$gt': 18}}" ]
+                                     }
+                        """), arguments("mongo with blacklist selection", """
+                        policy "permit method name query (1)"
+                        permit
+                        where
+                            action == "findAll";
+                            subject.age > 18;
+                        obligation {
+                                       "type": "mongoQueryManipulation",
+                                       "conditions": [ "{'admin': {'$eq': false}}" ],
+                                       "selection": {
+                                            "type": "blacklist",
+                                            "columns": ["firstname"]
+                                        }
+                                     }
+                        """), arguments("streaming with obligation A", """
+                        policy "policy 1"
+                        permit
+                        where
+                             action == "read";
+                             subject == "WILLI";
+                             time.secondOf(<time.now>) < 20;
+                        obligation "A"
+                        """),
                 arguments("obligation and transform with blacken",
                         """
                                 policy "policyWithObligationAndResource"
                                 permit
-                                    action.java.name == "findById"
                                 where
+                                    action.java.name == "findById";
                                     "ROLE_ADMIN" in subject..authority;
                                 obligation
                                     {
@@ -324,136 +323,139 @@ class SAPLParserTests {
                             { "type": "cache", "duration": 300 }
                         advice
                             { "type": "rate_limit", "max": 100 }
+                        """),
+
+                // Schemas
+                arguments("basic schema enforcement", """
+                        subject enforced schema {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "string"
+                        }
+                        policy "test"
+                        permit
+                        """), arguments("schema enforcement with body", """
+                        subject enforced schema {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "string"
+                        }
+                        policy "test"
+                        permit
+                        where
+                            true;
+                        """), arguments("multiple schemas", """
+                        subject enforced schema {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "string"
+                        }
+                        action enforced schema {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "string"
+                        }
+                        policy "test"
+                        permit
+                        """), arguments("non-enforced schema", """
+                        subject schema {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "string"
+                        }
+                        policy "test"
+                        permit
+                        """), arguments("all subscription elements with schemas", """
+                        subject schema { "type": "object" }
+                        action enforced schema { "type": "string" }
+                        resource schema { "required": ["id"] }
+                        environment schema { "type": "object" }
+                        policy "schema test"
+                        permit
+                        """), arguments("variable with schema", """
+                        policy "p" permit
+                        where
+                           var x = 123 schema { "type": "number" };
+                        """), arguments("variable with multiple schemas", """
+                        policy "p" permit
+                        where
+                           var x = 123 schema { "type": "number" }, { "minimum": 0 };
+                        """), arguments("combining algorithm keywords as identifiers", """
+                        policy "keywords as variables" permit
+                        where
+                           var priority = 5;
+                           var first = true;
+                           var unique = "value";
+                           var unanimous = [1, 2, 3];
+                           var strict = { "key": "value" };
+                           var errors = 0;
+                           var abstain = false;
+                           var propagate = null;
+                           priority > 3;
+                           first == true;
                         """));
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("policiesWithObligationsAdviceTransform")
-    void whenParsingPolicyWithObligationsAdviceTransform_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
-    }
-
-    static Stream<Arguments> policiesWithSchemas() {
-        return Stream.of(arguments("basic schema enforcement", """
-                subject enforced schema {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "type": "string"
-                }
-                policy "test"
-                permit
-                """), arguments("schema enforcement with target", """
-                subject enforced schema {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "type": "string"
-                }
-                policy "test"
-                permit true
-                """), arguments("multiple schemas", """
-                subject enforced schema {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "type": "string"
-                }
-                action enforced schema {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "type": "string"
-                }
-                policy "test"
-                permit
-                """), arguments("non-enforced schema", """
-                subject schema {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "type": "string"
-                }
-                policy "test"
-                permit
-                """), arguments("all subscription elements with schemas", """
-                subject schema { "type": "object" }
-                action enforced schema { "type": "string" }
-                resource schema { "required": ["id"] }
-                environment schema { "type": "object" }
-                policy "schema test"
-                permit
-                """), arguments("variable with schema", """
-                policy "p" permit
-                where
-                   var x = 123 schema { "type": "number" };
-                """), arguments("variable with multiple schemas", """
-                policy "p" permit
-                where
-                   var x = 123 schema { "type": "number" }, { "minimum": 0 };
-                """));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("policiesWithSchemas")
-    void whenParsingPolicyWithSchemas_thenNoSyntaxErrors(String description, String policy) {
+    @MethodSource("policies")
+    void whenParsingPolicy_thenNoSyntaxErrors(String description, String policy) {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
     }
 
     static Stream<Arguments> policySets() {
         return Stream.of(arguments("policy set with permit policy", """
-                set "tests" deny-overrides
+                set "tests" priority deny or abstain errors propagate
                 policy "testp" permit
                 """), arguments("policy set with deny policy", """
-                set "tests" deny-overrides
+                set "tests" priority deny or abstain errors propagate
                 policy "testp" deny
-                """), arguments("policy set with target mismatch", """
-                set "tests" deny-overrides
-                policy "testp" deny subject == "non-matching"
-                """), arguments("policy set with for clause", """
-                set "tests" deny-overrides
-                for true
-                policy "testp" deny subject == "non-matching"
+                """), arguments("policy set with body condition", """
+                set "tests" priority deny or abstain errors propagate
+                policy "testp" deny where subject == "non-matching";
                 """), arguments("policy set with multiple policies", """
-                set "tests" deny-overrides
+                set "tests" priority deny or abstain errors propagate
                 policy "testp1" permit
                 policy "testp2" deny
                 """), arguments("policy set with imports", """
                 import filter.replace
                 import filter.replace
-                set "tests" deny-overrides
+                set "tests" priority deny or abstain errors propagate
                 policy "testp1" permit where true;
                 """), arguments("policy set with set-level variables", """
-                set "tests" deny-overrides
+                set "tests" priority deny or abstain errors propagate
                 var var1 = true;
-                policy "testp1" permit var1 == true
+                policy "testp1" permit where var1 == true;
                 """), arguments("policy set with policy-level variables", """
-                set "tests" deny-overrides
+                set "tests" priority deny or abstain errors propagate
                 var var1 = true;
                 policy "testp1" permit where var var2 = 10; var2 == 10;
                 policy "testp2" deny where !(var1 == true);
-                """), arguments("permit-overrides algorithm", """
-                set "test" permit-overrides
+                """), arguments("priority permit algorithm", """
+                set "test" priority permit or abstain errors propagate
                 policy "deny policy" deny
                 policy "permit policy" permit
-                """), arguments("deny-unless-permit algorithm", """
-                set "test" deny-unless-permit
-                policy "not applicable" permit subject == "non-matching"
-                """), arguments("permit-unless-deny algorithm", """
-                set "test" permit-unless-deny
-                policy "not applicable" deny subject == "non-matching"
-                """), arguments("only-one-applicable algorithm", """
-                set "test" only-one-applicable
+                """), arguments("priority permit or deny algorithm", """
+                set "test" priority permit or deny
+                policy "not applicable" permit where subject == "non-matching";
+                """), arguments("priority deny or permit algorithm", """
+                set "test" priority deny or permit
+                policy "not applicable" deny where subject == "non-matching";
+                """), arguments("unique algorithm", """
+                set "test" unique or abstain errors propagate
                 policy "permit policy" permit
                 policy "deny policy" deny
-                """), arguments("first-applicable algorithm", """
-                set "test" first-applicable
-                policy "not applicable" permit subject == "non-matching"
+                """), arguments("first algorithm", """
+                set "test" first or abstain errors propagate
+                policy "not applicable" permit where subject == "non-matching";
                 policy "permit policy" permit
                 policy "deny policy" deny
                 """), arguments("policy set with obligation", """
-                set "test" deny-overrides
+                set "test" priority deny or abstain errors propagate
                 policy "permit with obligation" permit obligation { "type": "log" }
                 """), arguments("policy set with advice", """
-                set "test" deny-overrides
+                set "test" priority deny or abstain errors propagate
                 policy "permit with advice" permit advice { "type": "info" }
                 """), arguments("policy set with transformation", """
-                set "test" deny-overrides
+                set "test" priority deny or abstain errors propagate
                 policy "permit with transform" permit transform { "modified": true }
                 """), arguments("policy set with nested conditions", """
-                set "test" deny-overrides
+                set "test" priority deny or abstain errors propagate
                 var setVar = true;
                 policy "complex policy" permit
                 where
@@ -477,25 +479,27 @@ class SAPLParserTests {
                         """
                                 policy "api_filter_jwt:untrusted_issuer"
                                 deny
-                                    !(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"])
+                                where
+                                    !(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"]);
                                 """),
                 arguments("JWT no authorities denial", """
                         policy "api_filter_jwt:nothing_allow_none"
                         deny
-                            jwt.payload(subject).authorities == []
+                        where
+                            jwt.payload(subject).authorities == [];
                         """), arguments("JWT admin allow all", """
                         policy "api_filter_jwt:admin_allow_all"
                         permit
-                            "ROLE_ADMIN" in jwt.payload(subject).authorities
                         where
+                            "ROLE_ADMIN" in jwt.payload(subject).authorities;
                             "ROLE_ADMIN" in subject.<jwt.payload>.authorities;
                         """), arguments("JWT client blacken print object", """
                         policy "api_filter_jwt:client_blacken_printobject"
                         permit
-                            "GET" == action.method
-                          & action.path.requestPath =~ "^/api/production-plans/.*/print-objects"
-                          & "ROLE_CLIENT" in jwt.payload(subject).authorities
                         where
+                            "GET" == action.method;
+                            action.path.requestPath =~ "^/api/production-plans/.*/print-objects";
+                            "ROLE_CLIENT" in jwt.payload(subject).authorities;
                             "ROLE_CLIENT" in subject.<jwt.payload>.authorities;
                         transform
                             resource |- {@..customerName : blacken}
@@ -514,7 +518,9 @@ class SAPLParserTests {
                 policy "SimplePolicy1"
                 /* Any subject with an e-mail name in the med.example.com
                    domain can perform any action on any resource. */
-                permit subject =~ "(?i).*@med\\\\.example\\\\.com"
+                permit
+                where
+                    subject =~ "(?i).*@med\\\\.example\\\\.com";
                 """), arguments("XACML rule 1 patient read record", """
                 policy "rule_1"
                 /* A person may read any medical record in the
@@ -522,10 +528,10 @@ class SAPLParserTests {
                     for which he or she is the designated patient */
 
                 permit
-                    resource._type == "urn:example:med:schemas:record" &
-                    string.starts_with(resource._selector, "@") &
-                    action == "read"
                 where
+                    resource._type == "urn:example:med:schemas:record";
+                    string.starts_with(resource._selector, "@");
+                    action == "read";
                     subject.role == "patient";
                     subject.patient_number == resource._content.patient.patient_number;
                 """),
@@ -538,10 +544,10 @@ class SAPLParserTests {
                                     and for which the patient is under 16 years of age */
 
                                 permit
-                                    resource._type == "urn:example:med:schemas:record" &
-                                    string.starts_with(resource._selector, "@") &
-                                    action == "read"
                                 where
+                                    resource._type == "urn:example:med:schemas:record";
+                                    string.starts_with(resource._selector, "@");
+                                    action == "read";
                                     subject.role == "parent_guardian";
                                     subject.parent_guardian_id == resource._content.patient.patient_number.<patient.profile>.parentGuardian.id;
                                     date.diff("years", environment.current_date, resource._content.patient.dob) < 16;
@@ -553,10 +559,10 @@ class SAPLParserTests {
                             physician, provided an email is sent to the patient */
 
                         permit
-                            subject.role == "physician" &
-                            string.starts_with(resource._selector, "@.medical") &
-                            action == "write"
                         where
+                            subject.role == "physician";
+                            string.starts_with(resource._selector, "@.medical");
+                            action == "write";
                             subject.physician_id == resource._content.primaryCarePhysician.registrationID;
                         obligation
                             {
@@ -600,12 +606,16 @@ class SAPLParserTests {
                         """),
 
                 // Combining Algorithms
-                arguments("deny-overrides algorithm", "set \"test\" deny-overrides policy \"p\" permit"),
-                arguments("permit-overrides algorithm", "set \"test\" permit-overrides policy \"p\" permit"),
-                arguments("first-applicable algorithm", "set \"test\" first-applicable policy \"p\" permit"),
-                arguments("only-one-applicable algorithm", "set \"test\" only-one-applicable policy \"p\" permit"),
-                arguments("deny-unless-permit algorithm", "set \"test\" deny-unless-permit policy \"p\" permit"),
-                arguments("permit-unless-deny algorithm", "set \"test\" permit-unless-deny policy \"p\" permit"),
+                arguments("priority deny algorithm",
+                        "set \"test\" priority deny or abstain errors propagate policy \"p\" permit"),
+                arguments("priority permit algorithm",
+                        "set \"test\" priority permit or abstain errors propagate policy \"p\" permit"),
+                arguments("first algorithm", "set \"test\" first or abstain errors propagate policy \"p\" permit"),
+                arguments("unique algorithm", "set \"test\" unique or abstain errors propagate policy \"p\" permit"),
+                arguments("priority permit or deny algorithm",
+                        "set \"test\" priority permit or deny policy \"p\" permit"),
+                arguments("priority deny or permit algorithm",
+                        "set \"test\" priority deny or permit policy \"p\" permit"),
 
                 // Steps and Path Expressions
                 arguments("all step types", """
@@ -657,7 +667,7 @@ class SAPLParserTests {
                         // Single line comment
                         /* Multi-line comment */
                         policy "comments" // inline comment
-                        permit /* block */ action == "test"
+                        permit /* block */ where action == "test";
                         """),
 
                 // Reserved Identifiers as Field Names
@@ -743,7 +753,7 @@ class SAPLParserTests {
                 // From SAPLSyntaxErrorMessageProviderTests
                 arguments("empty document", ""), arguments("incomplete set - missing name", "set "),
                 arguments("incomplete set - missing entitlement", "set \"setname\" "),
-                arguments("set without policy", "set \"setname\" deny-unless-permit"),
+                arguments("set without policy", "set \"setname\" priority permit or deny"),
                 arguments("incomplete import", "import "), arguments("incomplete policy - missing name", "policy "),
                 arguments("incomplete policy - missing entitlement trimmed", "policy \"test\""),
                 arguments("incomplete policy - missing entitlement with whitespace", "policy \"test\" "),
@@ -791,17 +801,14 @@ class SAPLParserTests {
 
     static Stream<Arguments> syntacticallyValidButSemanticallyInvalidPolicies() {
         return Stream.of(
-                // Lazy operator in target (semantic error, not syntax)
-                arguments("lazy AND in target", "policy \"test\" permit a == b && c == d"),
-                arguments("lazy OR in target", "policy \"test\" permit a == b || c == d"),
-                // Attribute finders in target (semantic error, not syntax)
-                arguments("attribute finder in target", "policy \"test\" permit subject.<pip.test> == \"test\""),
-                arguments("environment attribute in target", "policy \"test\" permit <time.now> != undefined"),
-                // Division by zero in target (runtime error, not syntax)
-                arguments("division by zero in target", "policy \"test\" permit 17 / 0"),
-                // JSON object comparison in target (runtime behavior, not syntax)
-                arguments("JSON object comparison in target",
-                        "policy \"test\" permit { \"key\" : \"value\" } == { \"key\": \"value\" }"));
+                // Attribute finders in schema (semantic error, not syntax)
+                arguments("attribute finder in schema", "subject schema subject.<pip.test> policy \"test\" permit"),
+                arguments("environment attribute in schema", "subject schema <time.now> policy \"test\" permit"),
+                // Division by zero in body (runtime error, not syntax)
+                arguments("division by zero in body", "policy \"test\" permit where 17 / 0;"),
+                // JSON object comparison in body (runtime behavior, not syntax)
+                arguments("JSON object comparison in body",
+                        "policy \"test\" permit where { \"key\" : \"value\" } == { \"key\": \"value\" };"));
     }
 
     @ParameterizedTest(name = "syntactically valid: {0}")

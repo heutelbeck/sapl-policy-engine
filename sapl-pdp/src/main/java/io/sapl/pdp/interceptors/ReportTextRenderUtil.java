@@ -17,314 +17,54 @@
  */
 package io.sapl.pdp.interceptors;
 
-import io.sapl.api.model.*;
-import io.sapl.api.pdp.traced.TraceFields;
+import io.sapl.api.model.UndefinedValue;
 import lombok.experimental.UtilityClass;
-import lombok.val;
 
 /**
- * Utility class for rendering traced decisions as human-readable text reports.
- * <p>
- * Provides formatted output suitable for logging and console display, with
- * optional pretty-printing support using pure
- * Value model formatting.
+ * Utility class for rendering VoteReports as human-readable text.
  */
 @UtilityClass
 public class ReportTextRenderUtil {
 
-    private static final String DECISION_PREFIX = "Decision    : ";
-
     /**
-     * Renders a report ObjectValue as a human-readable text string.
+     * Renders a VoteReport as a compact human-readable text string.
      *
-     * @param report
-     * the report ObjectValue from ReportBuilderUtil
-     * @param prettyPrint
-     * whether to pretty-print JSON values
+     * @param report the report to render
      * @return the formatted text report
      */
-    public static String textReport(ObjectValue report, boolean prettyPrint) {
-        val text = new StringBuilder("--- The PDP made a decision ---\n");
+    public static String textReport(VoteReport report) {
+        var sb = new StringBuilder("--- PDP Decision ---\n");
+        sb.append("Decision : ").append(report.decision()).append('\n');
+        sb.append("PDP ID   : ").append(report.pdpId()).append('\n');
 
-        appendSubscription(text, report, prettyPrint);
-        appendDecision(text, report, prettyPrint);
-        appendTimestamp(text, report);
-        appendAlgorithm(text, report);
-        appendDocumentCounts(text, report);
-        appendRetrievalErrors(text, report);
-        appendModifications(text, report);
-        appendDocumentReports(text, report);
-
-        return text.toString();
-    }
-
-    private static void appendSubscription(StringBuilder text, ObjectValue report, boolean prettyPrint) {
-        val subscription = report.get(TraceFields.SUBSCRIPTION);
-        if (subscription != null) {
-            text.append("Subscription: ").append(prettyPrint ? '\n' : "")
-                    .append(prettyPrintValue(subscription, prettyPrint)).append('\n');
+        if (report.algorithm() != null) {
+            sb.append("Algorithm: ").append(report.algorithm().votingMode()).append('\n');
         }
-    }
 
-    private static void appendDecision(StringBuilder text, ObjectValue report, boolean prettyPrint) {
-        val decision    = report.get(TraceFields.DECISION);
-        val obligations = report.get(TraceFields.OBLIGATIONS);
-        val advice      = report.get(TraceFields.ADVICE);
-        val resource    = report.get(TraceFields.RESOURCE);
-
-        text.append(DECISION_PREFIX).append(decision).append('\n');
-
-        if (obligations instanceof ArrayValue arr && !arr.isEmpty()) {
-            text.append("Obligations : ").append(prettyPrint ? '\n' : "")
-                    .append(prettyPrintValue(obligations, prettyPrint)).append('\n');
+        if (report.obligations() != null && !report.obligations().isEmpty()) {
+            sb.append("Obligations: ").append(report.obligations()).append('\n');
         }
-        if (advice instanceof ArrayValue arr && !arr.isEmpty()) {
-            text.append("Advice      : ").append(prettyPrint ? '\n' : "").append(prettyPrintValue(advice, prettyPrint))
-                    .append('\n');
+        if (report.advice() != null && !report.advice().isEmpty()) {
+            sb.append("Advice: ").append(report.advice()).append('\n');
         }
-        if (resource != null && !(resource instanceof io.sapl.api.model.UndefinedValue)) {
-            text.append("Resource    : ").append(prettyPrint ? '\n' : "")
-                    .append(prettyPrintValue(resource, prettyPrint)).append('\n');
+        if (report.resource() != null && !(report.resource() instanceof UndefinedValue)) {
+            sb.append("Resource: ").append(report.resource()).append('\n');
         }
-    }
 
-    private static void appendTimestamp(StringBuilder text, ObjectValue report) {
-        val timestamp = report.get(TraceFields.TIMESTAMP);
-        if (timestamp instanceof TextValue textValue) {
-            text.append("Timestamp   : ").append(textValue.value()).append('\n');
-        }
-    }
-
-    private static void appendAlgorithm(StringBuilder text, ObjectValue report) {
-        val algorithm = report.get(TraceFields.ALGORITHM);
-        if (algorithm != null) {
-            text.append("Algorithm   : ").append(algorithm).append('\n');
-        }
-    }
-
-    private static void appendDocumentCounts(StringBuilder text, ObjectValue report) {
-        val totalDocuments = report.get(TraceFields.TOTAL_DOCUMENTS);
-        val documents      = report.get(TraceFields.DOCUMENTS);
-
-        int total    = totalDocuments instanceof io.sapl.api.model.NumberValue num ? num.value().intValue() : 0;
-        int matching = documents instanceof ArrayValue arr ? arr.size() : 0;
-
-        text.append("Documents   : ").append(matching).append(" matching out of ").append(total).append(" total\n");
-    }
-
-    private static void appendRetrievalErrors(StringBuilder text, ObjectValue report) {
-        val retrievalErrors = report.get(TraceFields.RETRIEVAL_ERRORS);
-        if (retrievalErrors instanceof ArrayValue errors && !errors.isEmpty()) {
-            text.append("Retrieval Errors:\n");
-            for (val error : errors) {
-                text.append("  - ").append(error).append('\n');
-            }
-        }
-    }
-
-    private static void appendModifications(StringBuilder text, ObjectValue report) {
-        val modifications = report.get(TraceFields.MODIFICATIONS);
-        if (modifications instanceof ArrayValue mods && !mods.isEmpty()) {
-            text.append("Interceptor Modifications:\n");
-            for (val mod : mods) {
-                if (mod instanceof TextValue textValue) {
-                    text.append("  - ").append(textValue.value()).append('\n');
-                } else {
-                    text.append("  - ").append(mod).append('\n');
-                }
-            }
-        }
-    }
-
-    private static void appendDocumentReports(StringBuilder text, ObjectValue report) {
-        val documents = report.get(TraceFields.DOCUMENTS);
-        if (documents instanceof ArrayValue docs && !docs.isEmpty()) {
-            text.append("\n=== Document Evaluation Results ===\n");
-            for (val document : docs) {
-                if (document instanceof ObjectValue docObj) {
-                    appendDocumentReport(text, docObj, "");
-                }
-            }
-        } else {
-            text.append("No documents were evaluated.\n");
-        }
-    }
-
-    private static void appendDocumentReport(StringBuilder text, ObjectValue document, String indent) {
-        val type = getTextValue(document, TraceFields.TYPE);
-        if (TraceFields.TYPE_POLICY.equals(type)) {
-            appendPolicyReport(text, document, indent);
-        } else if (TraceFields.TYPE_SET.equals(type)) {
-            appendPolicySetReport(text, document, indent);
-        }
-    }
-
-    private static void appendPolicyReport(StringBuilder text, ObjectValue policy, String indent) {
-        text.append(indent).append("Policy: ").append(getTextValue(policy, TraceFields.NAME)).append('\n');
-        text.append(indent).append("  Entitlement : ").append(getTextValue(policy, TraceFields.ENTITLEMENT))
-                .append('\n');
-        text.append(indent).append("  Decision    : ").append(getTextValue(policy, TraceFields.DECISION)).append('\n');
-
-        val errors = policy.get(TraceFields.ERRORS);
-        if (errors instanceof ArrayValue errArray && !errArray.isEmpty()) {
-            text.append(indent).append("  Errors:\n");
-            for (val error : errArray) {
-                text.append(indent).append("    - ").append(error).append('\n');
+        if (!report.contributingDocuments().isEmpty()) {
+            sb.append("Documents:\n");
+            for (var doc : report.contributingDocuments()) {
+                sb.append("  ").append(doc.name()).append(" -> ").append(doc.decision()).append('\n');
             }
         }
 
-        val attributes = policy.get(TraceFields.ATTRIBUTES);
-        if (attributes instanceof ArrayValue attrArray && !attrArray.isEmpty()) {
-            text.append(indent).append("  Attributes:\n");
-            for (val attribute : attrArray) {
-                text.append(indent).append("    - ").append(attribute).append('\n');
+        if (!report.errors().isEmpty()) {
+            sb.append("Errors:\n");
+            for (var err : report.errors()) {
+                sb.append("  - ").append(err.message()).append('\n');
             }
         }
 
-        val targetError = policy.get(TraceFields.TARGET_ERROR);
-        if (targetError != null) {
-            text.append(indent).append("  Target Error: ").append(targetError).append('\n');
-        }
-    }
-
-    private static void appendPolicySetReport(StringBuilder text, ObjectValue policySet, String indent) {
-        text.append(indent).append("Policy Set: ").append(getTextValue(policySet, TraceFields.NAME)).append('\n');
-        text.append(indent).append("  Algorithm : ").append(getTextValue(policySet, TraceFields.ALGORITHM))
-                .append('\n');
-        text.append(indent).append("  Decision  : ").append(getTextValue(policySet, TraceFields.DECISION)).append('\n');
-
-        val policies = policySet.get(TraceFields.POLICIES);
-        if (policies instanceof ArrayValue policiesArray && !policiesArray.isEmpty()) {
-            text.append(indent).append("  Nested Policies:\n");
-            for (val policy : policiesArray) {
-                if (policy instanceof ObjectValue policyObj) {
-                    appendDocumentReport(text, policyObj, indent + "    ");
-                }
-            }
-        }
-    }
-
-    private static String getTextValue(ObjectValue obj, String fieldName) {
-        val field = obj.get(fieldName);
-        if (field instanceof TextValue textValue) {
-            return textValue.value();
-        }
-        return field != null ? field.toString() : "N/A";
-    }
-
-    /**
-     * Pretty-prints a Value to a string representation using pure Value model
-     * formatting.
-     * <p>
-     * UndefinedValue and ErrorValue are rendered as terminal nodes using their
-     * toString() representation.
-     *
-     * @param value
-     * the Value to format
-     * @param prettyPrint
-     * whether to apply pretty formatting with indentation
-     * @return the formatted string representation
-     */
-    public static String prettyPrintValue(Value value, boolean prettyPrint) {
-        return formatValue(value, 0, prettyPrint);
-    }
-
-    private static String formatValue(Value value, int indent, boolean prettyPrint) {
-        if (value == null) {
-            return "null";
-        }
-        return switch (value) {
-        case NullValue n      -> "null";
-        case BooleanValue b   -> String.valueOf(b.value());
-        case NumberValue n    -> n.value().toPlainString();
-        case TextValue t      -> quoteString(t.value());
-        case UndefinedValue u -> "undefined";
-        case ErrorValue e     -> "error: " + e.message();
-        case ArrayValue a     -> formatArray(a, indent, prettyPrint);
-        case ObjectValue o    -> formatObject(o, indent, prettyPrint);
-        };
-    }
-
-    private static String quoteString(String text) {
-        return "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
-                .replace("\t", "\\t") + "\"";
-    }
-
-    private static String formatArray(ArrayValue array, int indent, boolean prettyPrint) {
-        if (array.isEmpty()) {
-            return "[]";
-        }
-        if (!prettyPrint || isSimpleArray(array)) {
-            var result = new StringBuilder("[");
-            var first  = true;
-            for (var item : array) {
-                if (!first) {
-                    result.append(", ");
-                }
-                result.append(formatValue(item, 0, false));
-                first = false;
-            }
-            result.append(']');
-            return result.toString();
-        }
-        var result      = new StringBuilder("[\n");
-        var childIndent = indent + 1;
-        var padding     = "  ".repeat(childIndent);
-        var first       = true;
-        for (var item : array) {
-            if (!first) {
-                result.append(",\n");
-            }
-            result.append(padding).append(formatValue(item, childIndent, true));
-            first = false;
-        }
-        result.append('\n').append("  ".repeat(indent)).append(']');
-        return result.toString();
-    }
-
-    private static String formatObject(ObjectValue object, int indent, boolean prettyPrint) {
-        if (object.isSecret()) {
-            return "<<SECRET>>";
-        }
-        if (object.isEmpty()) {
-            return "{}";
-        }
-        if (!prettyPrint) {
-            var result = new StringBuilder("{");
-            var first  = true;
-            for (var entry : object.entrySet()) {
-                if (!first) {
-                    result.append(", ");
-                }
-                result.append(quoteString(entry.getKey())).append(": ").append(formatValue(entry.getValue(), 0, false));
-                first = false;
-            }
-            result.append('}');
-            return result.toString();
-        }
-        var result      = new StringBuilder("{\n");
-        var childIndent = indent + 1;
-        var padding     = "  ".repeat(childIndent);
-        var first       = true;
-        for (var entry : object.entrySet()) {
-            if (!first) {
-                result.append(",\n");
-            }
-            result.append(padding).append(quoteString(entry.getKey())).append(": ")
-                    .append(formatValue(entry.getValue(), childIndent, true));
-            first = false;
-        }
-        result.append('\n').append("  ".repeat(indent)).append('}');
-        return result.toString();
-    }
-
-    private static boolean isSimpleArray(ArrayValue array) {
-        return array.size() <= 3 && array.stream().allMatch(ReportTextRenderUtil::isSimpleValue);
-    }
-
-    private static boolean isSimpleValue(Value value) {
-        return value instanceof NullValue || value instanceof BooleanValue || value instanceof NumberValue
-                || value instanceof TextValue || value instanceof UndefinedValue
-                || (value instanceof ArrayValue a && a.isEmpty()) || (value instanceof ObjectValue o && o.isEmpty());
+        return sb.toString();
     }
 }

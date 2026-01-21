@@ -18,6 +18,9 @@
 package io.sapl.pdp.configuration;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +39,13 @@ import static org.awaitility.Awaitility.await;
 
 class MultiDirectoryPDPConfigurationSourceTests {
 
+    private static final CombiningAlgorithm DENY_OVERRIDES     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm PERMIT_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm DENY_UNLESS_PERMIT = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.DENY, ErrorHandling.ABSTAIN);
+
     @TempDir
     Path tempDir;
 
@@ -50,9 +60,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenLoadingFromSubdirectories_thenCallbackIsInvokedForEach() throws IOException {
-        createSubdirectoryWithPolicy("arkham", "DENY_OVERRIDES", "forbidden.sapl",
+        createSubdirectoryWithPolicy("arkham", DENY_OVERRIDES, "forbidden.sapl",
                 "policy \"forbidden\" deny subject.sanity < 50;");
-        createSubdirectoryWithPolicy("innsmouth", "PERMIT_OVERRIDES", "access.sapl",
+        createSubdirectoryWithPolicy("innsmouth", PERMIT_OVERRIDES, "access.sapl",
                 "policy \"access\" permit subject.species == \"deep_one\";");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -65,20 +75,21 @@ class MultiDirectoryPDPConfigurationSourceTests {
         assertThat(pdpIds).containsExactlyInAnyOrder("arkham", "innsmouth");
 
         val arkhamConfig = configs.stream().filter(c -> "arkham".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(arkhamConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(arkhamConfig.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
         assertThat(arkhamConfig.saplDocuments()).hasSize(1);
 
         val innsmouthConfig = configs.stream().filter(c -> "innsmouth".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(innsmouthConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(innsmouthConfig.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
     @Test
     void whenIncludeRootFilesIsTrue_thenRootFilesAreLoadedAsDefaultPdp() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), """
-                { "algorithm": "DENY_UNLESS_PERMIT" }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                        """);
         createFile(tempDir.resolve("root-policy.sapl"), "policy \"root\" permit true;");
-        createSubdirectoryWithPolicy("tenant-a", "PERMIT_OVERRIDES", "tenant.sapl", "policy \"tenant\" deny true;");
+        createSubdirectoryWithPolicy("tenant-a", PERMIT_OVERRIDES, "tenant.sapl", "policy \"tenant\" deny true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -90,16 +101,17 @@ class MultiDirectoryPDPConfigurationSourceTests {
         assertThat(pdpIds).containsExactlyInAnyOrder("default", "tenant-a");
 
         val defaultConfig = configs.stream().filter(c -> "default".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(defaultConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_UNLESS_PERMIT);
+        assertThat(defaultConfig.combiningAlgorithm()).isEqualTo(DENY_UNLESS_PERMIT);
     }
 
     @Test
     void whenIncludeRootFilesIsFalse_thenRootFilesAreIgnored() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), """
-                { "algorithm": "DENY_UNLESS_PERMIT" }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
         createFile(tempDir.resolve("root-policy.sapl"), "policy \"root\" permit true;");
-        createSubdirectoryWithPolicy("tenant-a", "PERMIT_OVERRIDES", "tenant.sapl", "policy \"tenant\" deny true;");
+        createSubdirectoryWithPolicy("tenant-a", PERMIT_OVERRIDES, "tenant.sapl", "policy \"tenant\" deny true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -111,8 +123,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenSubdirectoryNamedDefaultExists_thenRootFilesNotLoadedAsDefault() throws IOException {
-        createSubdirectoryWithPolicy("default", "PERMIT_OVERRIDES", "default.sapl",
-                "policy \"default-dir\" deny true;");
+        createSubdirectoryWithPolicy("default", PERMIT_OVERRIDES, "default.sapl", "policy \"default-dir\" deny true;");
         createFile(tempDir.resolve("root-policy.sapl"), "policy \"root\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -121,7 +132,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("default");
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
     @Test
@@ -152,7 +163,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenSubdirectoryHasInvalidName_thenItIsSkipped() throws IOException {
-        createSubdirectoryWithPolicy("valid-name", "DENY_OVERRIDES", "policy.sapl", "policy \"test\" permit true;");
+        createSubdirectoryWithPolicy("valid-name", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
         val invalidDir = tempDir.resolve("invalid name with spaces");
         Files.createDirectory(invalidDir);
         createFile(invalidDir.resolve("policy.sapl"), "policy \"invalid\" deny true;");
@@ -167,7 +178,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenSubdirectoryIsAdded_thenNewSourceIsCreated() throws IOException {
-        createSubdirectoryWithPolicy("initial", "DENY_OVERRIDES", "policy.sapl", "policy \"initial\" permit true;");
+        createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -175,7 +186,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1);
 
-        createSubdirectoryWithPolicy("added", "PERMIT_OVERRIDES", "policy.sapl", "policy \"added\" deny true;");
+        createSubdirectoryWithPolicy("added", PERMIT_OVERRIDES, "policy.sapl", "policy \"added\" deny true;");
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(configs).hasSizeGreaterThanOrEqualTo(2);
@@ -224,7 +235,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenFileInSubdirectoryChanges_thenCallbackIsInvokedAgain() throws IOException {
-        val subdirPath = createSubdirectoryWithPolicy("mutable", "DENY_OVERRIDES", "policy.sapl",
+        val subdirPath = createSubdirectoryWithPolicy("mutable", DENY_OVERRIDES, "policy.sapl",
                 "policy \"original\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -247,7 +258,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         Files.createDirectories(cultistDir);
         createFile(cultistDir.resolve("ritual.sapl"), "policy \"ritual\" permit true;");
         createFile(cultistDir.resolve("pdp.json"),
-                "{\"algorithm\":\"DENY_OVERRIDES\",\"configurationId\":\"eldritch-v1\"}");
+                "{\"algorithm\":{\"votingMode\":\"PRIORITY_DENY\",\"defaultDecision\":\"DENY\",\"errorHandling\":\"PROPAGATE\"},\"configurationId\":\"eldritch-v1\"}");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -259,7 +270,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenChildPdpJsonHasNoConfigurationId_thenAutoGeneratesId() throws IOException {
-        createSubdirectoryWithPolicy("cultist", "DENY_OVERRIDES", "ritual.sapl", "policy \"ritual\" permit true;");
+        createSubdirectoryWithPolicy("cultist", DENY_OVERRIDES, "ritual.sapl", "policy \"ritual\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -273,7 +284,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenDisposeIsCalled_thenIsDisposedReturnsTrue() throws IOException {
-        createSubdirectoryWithPolicy("disposable", "DENY_OVERRIDES", "policy.sapl", "policy \"test\" permit true;");
+        createSubdirectoryWithPolicy("disposable", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, config -> {});
 
@@ -286,7 +297,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenDisposeIsCalledTwice_thenIsIdempotent() throws IOException {
-        createSubdirectoryWithPolicy("disposable", "DENY_OVERRIDES", "policy.sapl", "policy \"test\" permit true;");
+        createSubdirectoryWithPolicy("disposable", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, config -> {});
 
@@ -298,7 +309,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenSymlinkSubdirectoryPresent_thenItIsSkipped(@TempDir Path externalDir) throws IOException {
-        createSubdirectoryWithPolicy("real", "DENY_OVERRIDES", "policy.sapl", "policy \"real\" permit true;");
+        createSubdirectoryWithPolicy("real", DENY_OVERRIDES, "policy.sapl", "policy \"real\" permit true;");
 
         // Create target directory OUTSIDE the watched directory
         val target = externalDir.resolve("target");
@@ -340,7 +351,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenSymlinkSubdirectoryAddedAfterStart_thenItIsIgnored(@TempDir Path externalDir) throws IOException {
-        createSubdirectoryWithPolicy("initial", "DENY_OVERRIDES", "policy.sapl", "policy \"initial\" permit true;");
+        createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
         // Create target directory OUTSIDE the watched directory
         val target = externalDir.resolve("symlink-target");
@@ -375,7 +386,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     @Test
     void whenManySubdirectories_thenAllAreLoaded() throws IOException {
         for (int i = 0; i < 10; i++) {
-            createSubdirectoryWithPolicy("tenant-" + i, "DENY_OVERRIDES", "policy.sapl",
+            createSubdirectoryWithPolicy("tenant-" + i, DENY_OVERRIDES, "policy.sapl",
                     "policy \"tenant%d\" permit subject.tenantId == %d;".formatted(i, i));
         }
 
@@ -390,9 +401,10 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenSubdirectoryHasNoSaplFiles_thenEmptyConfigIsLoaded() throws IOException {
         val emptyDir = tempDir.resolve("empty-tenant");
         Files.createDirectory(emptyDir);
-        createFile(emptyDir.resolve("pdp.json"), """
-                { "algorithm": "PERMIT_OVERRIDES" }
-                """);
+        createFile(emptyDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
+                        """);
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -401,7 +413,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("empty-tenant");
         assertThat(configs.getFirst().saplDocuments()).isEmpty();
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
     @Test
@@ -449,13 +461,14 @@ class MultiDirectoryPDPConfigurationSourceTests {
         });
     }
 
-    private Path createSubdirectoryWithPolicy(String name, String algorithm, String policyFileName,
+    private Path createSubdirectoryWithPolicy(String name, CombiningAlgorithm algorithm, String policyFileName,
             String policyContent) throws IOException {
         val subdirPath = tempDir.resolve(name);
         Files.createDirectories(subdirPath);
         createFile(subdirPath.resolve("pdp.json"), """
-                { "algorithm": "%s" }
-                """.formatted(algorithm));
+                { "algorithm": { "votingMode": "%s", "defaultDecision": "%s", "errorHandling": "%s" } }
+                """.formatted(algorithm.votingMode().name(), algorithm.defaultDecision().name(),
+                algorithm.errorHandling().name()));
         createFile(subdirPath.resolve(policyFileName), policyContent);
         return subdirPath;
     }
@@ -466,7 +479,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenDirectoryAddedAfterDispose_thenItIsIgnored() throws IOException {
-        createSubdirectoryWithPolicy("initial", "DENY_OVERRIDES", "policy.sapl", "policy \"initial\" permit true;");
+        createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -513,7 +526,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenIncludeRootFilesAndRootFailsToLoad_thenSubdirectoriesStillWork() throws IOException {
-        createSubdirectoryWithPolicy("tenant", "DENY_OVERRIDES", "policy.sapl", "policy \"tenant\" permit true;");
+        createSubdirectoryWithPolicy("tenant", DENY_OVERRIDES, "policy.sapl", "policy \"tenant\" permit true;");
         // Create an invalid pdp.json at root level that won't parse
         createFile(tempDir.resolve("pdp.json"), "not valid json {{{");
 
@@ -529,7 +542,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenSubdirectoryFailsToLoad_thenOtherSubdirectoriesStillWork() throws IOException {
-        createSubdirectoryWithPolicy("working", "DENY_OVERRIDES", "policy.sapl", "policy \"working\" permit true;");
+        createSubdirectoryWithPolicy("working", DENY_OVERRIDES, "policy.sapl", "policy \"working\" permit true;");
 
         // Create a subdirectory with invalid pdp.json
         val failing = tempDir.resolve("failing");
@@ -551,15 +564,17 @@ class MultiDirectoryPDPConfigurationSourceTests {
         // Create a subdirectory named "default" to test the collision scenario
         val defaultDir = tempDir.resolve("default");
         Files.createDirectory(defaultDir);
-        createFile(defaultDir.resolve("pdp.json"), """
-                { "algorithm": "PERMIT_OVERRIDES" }
-                """);
+        createFile(defaultDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
+                        """);
         createFile(defaultDir.resolve("policy.sapl"), "policy \"from-subdirectory\" permit true;");
 
         // Create root files that would normally be loaded as "default"
-        createFile(tempDir.resolve("pdp.json"), """
-                { "algorithm": "DENY_OVERRIDES" }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
         createFile(tempDir.resolve("policy.sapl"), "policy \"from-root\" deny true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -572,7 +587,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         assertThat(configs.getFirst().pdpId()).isEqualTo("default");
         // Should be PERMIT_OVERRIDES from the subdirectory, not DENY_OVERRIDES from
         // root
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
     private void deleteDirectory(Path directory) throws IOException {

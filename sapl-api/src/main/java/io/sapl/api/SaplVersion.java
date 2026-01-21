@@ -25,5 +25,5 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class SaplVersion {
-    public static final long VERSION_UID = 04_00_00L;
+    public static final long VERSION_UID = 4_00_00L;
 }

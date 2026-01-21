@@ -17,9 +17,9 @@
  */
 package io.sapl.pdp.interceptors;
 
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.pdp.traced.TracedDecision;
-import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
+import io.sapl.compiler.pdp.TimestampedVote;
+import io.sapl.compiler.pdp.Vote;
+import io.sapl.pdp.VoteInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -29,60 +29,56 @@ import lombok.val;
  * <p>
  * Supports multiple output formats:
  * <ul>
- * <li>Full trace - the complete trace structure as JSON</li>
+ * <li>Full trace - the complete trace structure as JSON via
+ * {@link Vote#toTrace()}</li>
  * <li>JSON report - a condensed JSON report with essential information</li>
  * <li>Text report - human-readable formatted output for console/logs</li>
  * </ul>
  * <p>
  * This interceptor executes with the lowest priority (last) to ensure all other
- * interceptors have had a chance to
- * modify the decision before logging.
+ * interceptors have had a chance to modify the decision before logging.
  */
 @Slf4j
 @RequiredArgsConstructor
-public class ReportingDecisionInterceptor implements TracedDecisionInterceptor {
+public class ReportingDecisionInterceptor implements VoteInterceptor {
 
-    private final boolean prettyPrint;
     private final boolean printTrace;
     private final boolean printJsonReport;
     private final boolean printTextReport;
 
     @Override
-    public Integer getPriority() {
-        // Execute last to capture all modifications (higher priority = later execution)
+    public int priority() {
         return Integer.MAX_VALUE;
     }
 
     @Override
-    public TracedDecision apply(TracedDecision tracedDecision) {
+    public void intercept(TimestampedVote vote) {
         if (printTrace) {
-            logTrace(tracedDecision);
+            logTrace(vote);
         }
         if (printJsonReport || printTextReport) {
-            val report = ReportBuilderUtil.extractReport(tracedDecision);
+            val report = ReportBuilderUtil.extractReport(vote.vote());
             if (printJsonReport) {
-                logJsonReport(report);
+                logJsonReport(vote.timestamp(), report);
             }
             if (printTextReport) {
-                logTextReport(report);
+                logTextReport(vote.timestamp(), report);
             }
         }
-        return tracedDecision;
     }
 
-    private void logTrace(TracedDecision tracedDecision) {
-        val trace  = tracedDecision.originalTrace();
-        val prefix = "New Decision (trace) : ";
-        multiLineLog(prefix + (prettyPrint ? "\n" : "") + ReportTextRenderUtil.prettyPrintValue(trace, prettyPrint));
+    private void logTrace(TimestampedVote vote) {
+        val trace = vote.vote().toTrace();
+        multiLineLog(vote.timestamp() + ": New Decision (trace) : " + trace);
     }
 
-    private void logJsonReport(ObjectValue report) {
-        val prefix = "New Decision (report): ";
-        multiLineLog(prefix + (prettyPrint ? "\n" : "") + ReportTextRenderUtil.prettyPrintValue(report, prettyPrint));
+    private void logJsonReport(String timestamp, VoteReport report) {
+        val reportValue = ReportBuilderUtil.toObjectValue(report);
+        multiLineLog("New Decision (report): " + reportValue);
     }
 
-    private void logTextReport(ObjectValue report) {
-        multiLineLog(ReportTextRenderUtil.textReport(report, prettyPrint));
+    private void logTextReport(String timestamp, VoteReport report) {
+        multiLineLog(ReportTextRenderUtil.textReport(report));
     }
 
     private void multiLineLog(String message) {

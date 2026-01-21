@@ -50,8 +50,8 @@ public class AttributeMethodSignatureProcessor {
 
     public static AttributeFinderSpecification processAttributeMethod(Object pipInstance, String namespace,
             Method method) {
-        val hasAttribute            = method.isAnnotationPresent(Attribute.class);
-        val hasEnvironmentAttribute = method.isAnnotationPresent(EnvironmentAttribute.class);
+        boolean hasAttribute            = method.isAnnotationPresent(Attribute.class);
+        boolean hasEnvironmentAttribute = method.isAnnotationPresent(EnvironmentAttribute.class);
 
         if (!hasAttribute && !hasEnvironmentAttribute) {
             return null;
@@ -60,12 +60,13 @@ public class AttributeMethodSignatureProcessor {
         validateStaticMethodRequirement(pipInstance, method);
         validateReturnType(method);
 
-        val name          = extractAttributeName(method, hasAttribute);
-        val signatureInfo = extractSignature(method, hasEnvironmentAttribute);
-        val returnsFlux   = isFluxReturnType(method);
+        String        name          = extractAttributeName(method, hasAttribute);
+        SignatureInfo signatureInfo = extractSignature(method, hasEnvironmentAttribute);
+        boolean       returnsFlux   = isFluxReturnType(method);
 
         try {
-            val attributeFinder = createAttributeFinderForMethod(pipInstance, method, signatureInfo, returnsFlux);
+            AttributeFinder attributeFinder = createAttributeFinderForMethod(pipInstance, method, signatureInfo,
+                    returnsFlux);
             return new AttributeFinderSpecification(namespace, name, hasEnvironmentAttribute,
                     signatureInfo.parameterTypes, signatureInfo.varArgsParameterType, attributeFinder);
         } catch (IllegalAccessException exception) {
@@ -75,10 +76,10 @@ public class AttributeMethodSignatureProcessor {
 
     private static String extractAttributeName(Method method, boolean hasAttribute) {
         if (hasAttribute) {
-            val annotation = method.getAnnotation(Attribute.class);
+            Attribute annotation = method.getAnnotation(Attribute.class);
             return annotationNameOrMethodName(annotation.name(), method);
         }
-        val annotation = method.getAnnotation(EnvironmentAttribute.class);
+        EnvironmentAttribute annotation = method.getAnnotation(EnvironmentAttribute.class);
         return annotationNameOrMethodName(annotation.name(), method);
     }
 
@@ -89,23 +90,23 @@ public class AttributeMethodSignatureProcessor {
     }
 
     private static void validateReturnType(Method method) {
-        val returnType = method.getGenericReturnType();
+        java.lang.reflect.Type returnType = method.getGenericReturnType();
 
         if (!(returnType instanceof ParameterizedType paramType)) {
             throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
         }
 
-        val rawType = paramType.getRawType();
+        java.lang.reflect.Type rawType = paramType.getRawType();
         if (!Flux.class.equals(rawType) && !Mono.class.equals(rawType)) {
             throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
         }
 
-        val typeArgs = paramType.getActualTypeArguments();
+        java.lang.reflect.Type[] typeArgs = paramType.getActualTypeArguments();
         if (typeArgs.length != 1) {
             throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
         }
 
-        val elementType = typeArgs[0];
+        java.lang.reflect.Type elementType = typeArgs[0];
         if (elementType instanceof Class<?> clazz && !Value.class.isAssignableFrom(clazz)) {
             throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
         }

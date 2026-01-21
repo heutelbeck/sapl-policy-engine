@@ -105,9 +105,7 @@ class AttributeStreamTests {
                 pollInterval, backoff, retries, false);
     }
 
-    // ========================================================================
     // Basic Functionality Tests
-    // ========================================================================
 
     /**
      * Validates that the invocation configuration is accessible via getter.
@@ -167,9 +165,7 @@ class AttributeStreamTests {
                 .verifyComplete();
     }
 
-    // ========================================================================
     // Multicast and Caching Tests
-    // ========================================================================
 
     /**
      * Tests multicast semantics where multiple subscribers receive the same values
@@ -216,9 +212,7 @@ class AttributeStreamTests {
         assertThat(secondValue).isEqualTo(Value.of("cached"));
     }
 
-    // ========================================================================
     // Grace Period and Cleanup Tests
-    // ========================================================================
 
     /**
      * Tests that cleanup is deferred by the grace period after the last subscriber
@@ -282,9 +276,7 @@ class AttributeStreamTests {
                 .atMost(GRACE_PERIOD_TIMEOUT, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
     }
 
-    // ========================================================================
     // PIP Connection and Disconnection Tests
-    // ========================================================================
 
     /**
      * Tests that disconnection publishes an error value and stops further
@@ -328,14 +320,15 @@ class AttributeStreamTests {
      * Tests PIP hot-swapping by disconnecting from one PIP and connecting to
      * another.
      * <p>
-     * Use case: Configuration update or PIP replacement where the attribute source
+     * Use case: Configuration update or PIP replacement where the attribute
+     * voterMetadata
      * changes but the stream continues
      * operating.
      * <p>
      * Validates that:
      * <ul>
      * <li>First PIP's values are received before disconnection</li>
-     * <li>Disconnection error is published</li>
+     * <li>Disconnection errors is published</li>
      * <li>Second PIP can be connected to the same stream</li>
      * <li>Second PIP's values are received normally</li>
      * <li>The stream maintains continuity throughout the swap</li>
@@ -410,9 +403,7 @@ class AttributeStreamTests {
         assertThat(valuesAfterPip2).noneMatch(v -> v instanceof TextValue tv && tv.value().startsWith("pip1"));
     }
 
-    // ========================================================================
     // Race Condition Prevention Tests
-    // ========================================================================
 
     /**
      * Tests that disconnection properly prevents late-arriving values from a
@@ -426,7 +417,7 @@ class AttributeStreamTests {
      * <li>The disconnected flag is set atomically before disposal</li>
      * <li>The filter() operator blocks emissions after disconnection</li>
      * <li>Async values from the old PIP do not pollute the stream</li>
-     * <li>Only a single "PIP disconnected" error is emitted</li>
+     * <li>Only a single "PIP disconnected" errors is emitted</li>
      * </ul>
      */
     @Test
@@ -461,22 +452,22 @@ class AttributeStreamTests {
      * Tests that PIP errors occurring after disconnection are not published to
      * subscribers.
      * <p>
-     * Use case: A PIP with delayed error emissions (e.g., network timeout) is
-     * disconnected before the error
+     * Use case: A PIP with delayed errors emissions (e.g., network timeout) is
+     * disconnected before the errors
      * materializes.
      * <p>
      * The test validates that:
      * <ul>
-     * <li>Only the "PIP disconnected" error is published</li>
+     * <li>Only the "PIP disconnected" errors is published</li>
      * <li>Subsequent PIP errors are filtered out by the disconnected flag</li>
-     * <li>The error count remains 1 (no duplicate errors)</li>
+     * <li>The errors count remains 1 (no duplicate errors)</li>
      * </ul>
      */
     @Test
     void when_pipThrowsErrorAfterDisconnect_then_errorNotPublished() {
         val invocation = createInvocation();
-        val faultyPip  = (AttributeFinder) inv -> Flux.concat(Flux.just(Value.of("before-error")),
-                Flux.<Value>error(new RuntimeException("async-error")).delaySubscription(Duration.ofMillis(50)));
+        val faultyPip  = (AttributeFinder) inv -> Flux.concat(Flux.just(Value.of("before-errors")),
+                Flux.<Value>error(new RuntimeException("async-errors")).delaySubscription(Duration.ofMillis(50)));
         val stream     = new AttributeStream(invocation, s -> {}, Duration.ofSeconds(10), faultyPip);
 
         val results      = new CopyOnWriteArrayList<Value>();
@@ -498,9 +489,7 @@ class AttributeStreamTests {
         assertThat(errors.getFirst().message()).contains("PIP disconnected");
     }
 
-    // ========================================================================
     // Timeout Behavior Tests
-    // ========================================================================
 
     /**
      * Tests initial timeout handling when a PIP is slow to emit its first value.
@@ -550,9 +539,7 @@ class AttributeStreamTests {
         StepVerifier.create(stream.getStream().take(1)).expectNext(Value.of("fast")).verifyComplete();
     }
 
-    // ========================================================================
     // Polling Behavior Tests
-    // ========================================================================
 
     /**
      * Tests the polling mechanism for attributes that complete early but require
@@ -579,9 +566,7 @@ class AttributeStreamTests {
                 .expectNext(Value.of(2)).expectNext(Value.of(3)).verifyComplete();
     }
 
-    // ========================================================================
     // Retry Behavior Tests
-    // ========================================================================
 
     /**
      * Tests the retry mechanism with exponential backoff for transient PIP
@@ -603,7 +588,7 @@ class AttributeStreamTests {
      * Implementation note: The PIP must use Flux.defer() to re-evaluate the
      * success/failure condition on each
      * subscription attempt. Without defer(), the retryWhen operator would
-     * re-subscribe to the same error Flux
+     * re-subscribe to the same errors Flux
      * repeatedly.
      */
     @ParameterizedTest
@@ -626,9 +611,7 @@ class AttributeStreamTests {
         assertThat(attempts.get()).isEqualTo((int) retries + 1);
     }
 
-    // ========================================================================
     // Empty Flux Handling Tests
-    // ========================================================================
 
     /**
      * Tests handling of PIPs that emit no values (empty Flux).
@@ -653,12 +636,10 @@ class AttributeStreamTests {
         StepVerifier.create(stream.getStream().take(1)).expectNext(Value.UNDEFINED).verifyComplete();
     }
 
-    // ========================================================================
     // Error Handling Tests
-    // ========================================================================
 
     /**
-     * Tests error propagation when a PIP fails immediately with retries disabled.
+     * Tests errors propagation when a PIP fails immediately with retries disabled.
      * <p>
      * Use case: Permanent failures (invalid configuration, missing permissions, or
      * non-existent resources) that should
@@ -666,30 +647,29 @@ class AttributeStreamTests {
      * <p>
      * The test validates that:
      * <ul>
-     * <li>Errors are wrapped in Value.error() for consistent handling</li>
+     * <li>Errors are wrapped in Value.errors() for consistent handling</li>
      * <li>Original error messages are preserved (not wrapped in "Retries
      * exhausted")</li>
      * <li>The retry mechanism is bypassed when retries=0</li>
      * </ul>
      * <p>
-     * With retries=0, the stream should publish the original error message directly
+     * With retries=0, the stream should publish the original error message
+     * directly
      * to help with debugging and error
      * diagnosis.
      */
     @Test
     void when_pipEmitsError_then_errorValuePublished() {
         val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(10), 0);
-        val errorPip   = (AttributeFinder) inv -> Flux.error(new RuntimeException("test-error"));
+        val errorPip   = (AttributeFinder) inv -> Flux.error(new RuntimeException("test-errors"));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, errorPip);
 
         StepVerifier.create(stream.getStream().take(1))
-                .expectNextMatches(value -> value instanceof ErrorValue ev && ev.message().contains("test-error"))
+                .expectNextMatches(value -> value instanceof ErrorValue ev && ev.message().contains("test-errors"))
                 .verifyComplete();
     }
 
-    // ========================================================================
     // Complex Scenario Tests
-    // ========================================================================
 
     /**
      * Tests PIP hot-swapping under high-frequency emission load.

@@ -52,21 +52,16 @@ public class ValueSerializer extends JsonSerializer<Value> {
 
     private void serializeValue(Value value, JsonGenerator generator, boolean topLevel) throws IOException {
         switch (value) {
-        case NullValue nullValue                                                  -> generator.writeNull();
-        case BooleanValue(boolean booleanValue, ValueMetadata ignored)            ->
-            generator.writeBoolean(booleanValue);
-        case NumberValue(java.math.BigDecimal numberValue, ValueMetadata ignored) -> generator.writeNumber(numberValue);
-        case TextValue(String textValue, ValueMetadata ignored)                   -> generator.writeString(textValue);
-        case ArrayValue arrayValue                                                ->
-            serializeArray(arrayValue, generator);
-        case ObjectValue objectValue                                              ->
-            serializeObject(objectValue, generator);
-        case UndefinedValue undefinedValue                                        -> {
-            if (topLevel) {
-                throw new IllegalArgumentException("Cannot serialize UndefinedValue to JSON.");
-            }
-        }
-        case ErrorValue errorValue                                                ->
+        case NullValue ignored                             -> generator.writeNull();
+        case BooleanValue(boolean booleanValue)            -> generator.writeBoolean(booleanValue);
+        case NumberValue(java.math.BigDecimal numberValue) -> generator.writeNumber(numberValue);
+        case TextValue(String textValue)                   -> generator.writeString(textValue);
+        case ArrayValue arrayValue                         -> serializeArray(arrayValue, generator);
+        case ObjectValue objectValue                       -> serializeObject(objectValue, generator);
+        case UndefinedValue ignored when topLevel          ->
+            throw new IllegalArgumentException("Cannot serialize UndefinedValue to JSON.");
+        case UndefinedValue ignored                        -> { /* DROP */ }
+        case ErrorValue errorValue                         ->
             throw new IllegalArgumentException("Cannot serialize ErrorValue to JSON: " + errorValue.message());
         }
     }

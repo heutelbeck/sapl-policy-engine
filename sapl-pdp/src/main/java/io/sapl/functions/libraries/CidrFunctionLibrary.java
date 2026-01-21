@@ -41,7 +41,7 @@ import java.util.function.UnaryOperator;
  * Uses the IPAddress library for RFC-compliant IPv4 and IPv6 operations. All
  * IPv6 addresses use RFC 5952 canonical form
  * (compressed, lowercase). Address family mixing returns false rather than
- * error for cleaner policy logic.
+ * errors for cleaner policy logic.
  */
 @UtilityClass
 @FunctionLibrary(name = CidrFunctionLibrary.NAME, description = CidrFunctionLibrary.DESCRIPTION, libraryDocumentation = CidrFunctionLibrary.DOCUMENTATION)

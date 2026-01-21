@@ -537,11 +537,6 @@
 		<module>sapl-code-style</module>
 
 		<!-- Core modules -->
-		<module>sapl-api-ast</module>
-		<module>sapl-parser-ast</module>
-		<module>sapl-pdp-ast</module>
-
-		<!-- Legacy modules -->	
 		<module>sapl-api</module>
 		<module>sapl-parser</module>
 		<module>sapl-pdp</module>

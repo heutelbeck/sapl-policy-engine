@@ -1,46 +1,50 @@
 set "patients"
-first-applicable
+first or abstain errors propagate
 
 policy "Change Resource Example (1/3)"
-permit action.java.name == "getPatients"
+permit
 where
-  time.secondOf(<time.now>) < 20; 
+    action.java.name == "getPatients";
+    time.secondOf(<time.now>) < 20;
 obligation
 	{
 		"type" 		: "filterJsonContent",
 		"actions"   : [
-						{ 
-						  "type" : "blacken", 
-						  "path" : "$.icd11Code", 
+						{
+						  "type" : "blacken",
+						  "path" : "$.icd11Code",
 						  "discloseLeft": 2
 						},
-						{ 
-						  "type" : "delete", 
-						  "path" : "$.diagnosis" 
+						{
+						  "type" : "delete",
+						  "path" : "$.diagnosis"
 						}
                       ]
 	}
 
 policy "Change Resource Example (2/3)"
-permit action.java.name == "getPatients"
+permit
 where
-  time.secondOf(<time.now>) < 40; 
+    action.java.name == "getPatients";
+    time.secondOf(<time.now>) < 40;
 obligation
 	{
 		"type" 		: "filterJsonContent",
 		"actions"   : [
-						{ 
-						  "type" : "blacken", 
-						  "path" : "$.icd11Code", 
+						{
+						  "type" : "blacken",
+						  "path" : "$.icd11Code",
 						  "replacement": "*"
 						},
-						{ 
-						  "type" : "replace", 
+						{
+						  "type" : "replace",
 						  "path" : "$.diagnosis",
-						  "replacement" : "[DIAGNOSIS HIDDEN]" 
+						  "replacement" : "[DIAGNOSIS HIDDEN]"
 						}
                       ]
 	}
 
 policy "Change Resource Example (3/3)"
-permit action.java.name == "getPatients"
+permit
+where
+    action.java.name == "getPatients";

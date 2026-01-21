@@ -17,88 +17,59 @@
  */
 package io.sapl.api.model;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("NullValue Tests")
 class NullValueTests {
 
-    @ParameterizedTest(name = "NullValue(secret={0}) construction")
-    @MethodSource
-    void when_constructedWithSecretFlag_then_createsValue(boolean secret) {
-        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
-        var value    = new NullValue(metadata);
+    @Test
+    @DisplayName("Constructor creates NullValue")
+    void when_constructed_then_createsValue() {
+        var value = new NullValue();
 
-        assertThat(value.isSecret()).isEqualTo(secret);
-    }
-
-    static Stream<Arguments> when_constructedWithSecretFlag_then_createsValue() {
-        return Stream.of(arguments(false), arguments(true));
+        assertThat(value).isNotNull();
     }
 
     @Test
-    void when_asSecretCalled_then_returnsSecretNullValue() {
-        var regular = new NullValue(ValueMetadata.EMPTY);
-        var secret  = regular.asSecret();
+    @DisplayName("All NullValues are equal")
+    void when_equalsAndHashCodeCompared_then_allNullValuesAreEqual() {
+        var null1 = new NullValue();
+        var null2 = new NullValue();
 
-        assertThat(secret.isSecret()).isTrue();
-        assertThat(secret).isEqualTo(regular);
+        assertThat(null1).isEqualTo(null2).hasSameHashCodeAs(null2).isEqualTo(Value.NULL);
     }
 
     @Test
-    void when_asSecretCalledOnSecretValue_then_returnsSameInstance() {
-        var secretOriginal = new NullValue(ValueMetadata.SECRET_EMPTY);
-
-        assertThat(secretOriginal.asSecret()).isSameAs(secretOriginal);
-    }
-
-    @ParameterizedTest(name = "{0}={1}, equal={2}")
-    @MethodSource
-    void when_equalsAndHashCodeCompared_then_allNullValuesAreEqual(NullValue value1, NullValue value2,
-            boolean shouldBeEqual) {
-        assertThat(value1).isEqualTo(value2).hasSameHashCodeAs(value2);
-    }
-
-    static Stream<Arguments> when_equalsAndHashCodeCompared_then_allNullValuesAreEqual() {
-        return Stream.of(arguments(new NullValue(ValueMetadata.EMPTY), new NullValue(ValueMetadata.EMPTY), true),
-                arguments(new NullValue(ValueMetadata.EMPTY), new NullValue(ValueMetadata.SECRET_EMPTY), true),
-                arguments(new NullValue(ValueMetadata.SECRET_EMPTY), new NullValue(ValueMetadata.SECRET_EMPTY), true));
-    }
-
-    @Test
+    @DisplayName("NullValue is not equal to other value types")
     void when_comparedToOtherValueTypes_then_notEqual() {
-        var nullValue = new NullValue(ValueMetadata.EMPTY);
+        var nullValue = new NullValue();
 
         assertThat(nullValue).isNotEqualTo(Value.UNDEFINED).isNotEqualTo(Value.of(0)).isNotEqualTo(Value.of("null"));
     }
 
-    @ParameterizedTest(name = "secret={0} toString()={1}")
-    @MethodSource
-    void when_toStringCalled_then_showsNullOrPlaceholder(boolean secret, String expected) {
-        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
-        var value    = new NullValue(metadata);
+    @Test
+    @DisplayName("toString() returns 'null'")
+    void when_toStringCalled_then_showsNull() {
+        var value = new NullValue();
 
-        assertThat(value).hasToString(expected);
+        assertThat(value).hasToString("null");
     }
 
-    static Stream<Arguments> when_toStringCalled_then_showsNullOrPlaceholder() {
-        return Stream.of(arguments(false, "null"), arguments(true, "***SECRET***"));
+    @Test
+    @DisplayName("Value.NULL constant is NullValue")
+    void when_nullConstantChecked_then_isNullValue() {
+        assertThat(Value.NULL).isInstanceOf(NullValue.class);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    void when_constantsChecked_then_haveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
-        assertThat(constant.isSecret()).isEqualTo(expectedSecret);
-    }
+    @Test
+    @DisplayName("hashCode is consistent")
+    void when_hashCodeCalled_then_consistent() {
+        var null1 = new NullValue();
+        var null2 = new NullValue();
 
-    static Stream<Arguments> when_constantsChecked_then_haveExpectedSecretFlag() {
-        return Stream.of(arguments("Value.NULL is not secret", Value.NULL, false),
-                arguments("NullValue.SECRET_NULL is secret", NullValue.SECRET_NULL, true));
+        assertThat(null1).hasSameHashCodeAs(null2);
     }
 }

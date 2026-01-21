@@ -1,5 +1,0 @@
-policy "strict-access"
-deny
-where
-    action == "delete";
-    !subject.isAdmin;

@@ -1,2 +1,4 @@
 policy "policy 2"
-deny action == "write"
+deny
+where
+    action == "write";

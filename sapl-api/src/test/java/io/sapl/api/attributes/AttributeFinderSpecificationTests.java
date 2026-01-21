@@ -65,8 +65,6 @@ class AttributeFinderSpecificationTests {
         assertThat(spec.fullyQualifiedName()).isEqualTo("time.now");
     }
 
-    // === Collision Detection Tests ===
-
     @Test
     void when_collidesWith_differentNames_then_noCollision() {
         var spec1 = new AttributeFinderSpecification("time", "now", true, List.of(), null, DUMMY_FINDER);
@@ -112,8 +110,6 @@ class AttributeFinderSpecificationTests {
 
         assertThat(spec1.collidesWith(spec2)).isFalse();
     }
-
-    // === Matching Tests ===
 
     @Test
     void when_matches_differentName_then_noMatch() {

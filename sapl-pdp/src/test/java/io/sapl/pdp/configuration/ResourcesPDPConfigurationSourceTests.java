@@ -18,6 +18,9 @@
 package io.sapl.pdp.configuration;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ResourcesPDPConfigurationSourceTests {
 
+    private static final CombiningAlgorithm PERMIT_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm DENY_OVERRIDES     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm PERMIT_UNLESS_DENY = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
+
     @Test
     void whenLoadingSinglePdpFromRootLevelFiles_thenCallbackIsInvokedOnce() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -38,7 +48,7 @@ class ResourcesPDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1).first().satisfies(config -> {
             assertThat(config.pdpId()).isEqualTo("default");
-            assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+            assertThat(config.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
             assertThat(config.saplDocuments()).hasSize(1);
         });
 
@@ -57,11 +67,11 @@ class ResourcesPDPConfigurationSourceTests {
         assertThat(pdpIds).containsExactlyInAnyOrder("production", "development");
 
         val productionConfig = configs.stream().filter(c -> "production".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(productionConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(productionConfig.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
         assertThat(productionConfig.saplDocuments()).hasSize(1);
 
         val developmentConfig = configs.stream().filter(c -> "development".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(developmentConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_UNLESS_DENY);
+        assertThat(developmentConfig.combiningAlgorithm()).isEqualTo(PERMIT_UNLESS_DENY);
         assertThat(developmentConfig.saplDocuments()).hasSize(1);
 
         source.dispose();
@@ -79,10 +89,10 @@ class ResourcesPDPConfigurationSourceTests {
         assertThat(pdpIds).containsExactlyInAnyOrder("default", "tenant-a");
 
         val defaultConfig = configs.stream().filter(c -> "default".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(defaultConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(defaultConfig.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
 
         val tenantConfig = configs.stream().filter(c -> "tenant-a".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(tenantConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(tenantConfig.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
 
         source.dispose();
     }

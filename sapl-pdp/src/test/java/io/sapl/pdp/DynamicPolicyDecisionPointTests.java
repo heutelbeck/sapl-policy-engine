@@ -22,6 +22,9 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,27 +49,40 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  */
 class DynamicPolicyDecisionPointTests {
 
-    private ConfigurationRegister      configurationRegister;
+    // Commonly used combining algorithm configurations
+    private static final CombiningAlgorithm DENY_UNLESS_PERMIT  = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.DENY, ErrorHandling.ABSTAIN);
+    private static final CombiningAlgorithm PERMIT_UNLESS_DENY  = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
+    private static final CombiningAlgorithm DENY_OVERRIDES      = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm PERMIT_OVERRIDES    = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm ONLY_ONE_APPLICABLE = new CombiningAlgorithm(VotingMode.UNIQUE,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+
+    private PdpRegister                pdpRegister;
     private DynamicPolicyDecisionPoint pdp;
 
     @BeforeEach
     void setUp() throws Exception {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
-        configurationRegister = components.configurationRegister();
-        pdp                   = (DynamicPolicyDecisionPoint) components.pdp();
+        pdpRegister = components.pdpRegister();
+        pdp         = (DynamicPolicyDecisionPoint) components.pdp();
     }
 
     @Test
-    void whenNoConfigurationLoaded_thenReturnIndeterminate() {
+    void whenNoConfigurationLoaded_thenThrowException() {
         val subscription = subscription("Nyarlathotep", "invoke", "outer_gods_council");
 
-        StepVerifier.create(pdp.decide(subscription).take(1)).expectNext(AuthorizationDecision.INDETERMINATE)
-                .verifyComplete();
+        StepVerifier.create(pdp.decide(subscription).take(1)).expectErrorMatches(
+                e -> e instanceof IllegalArgumentException && e.getMessage().contains("No PDP configuration found"))
+                .verify();
     }
 
     @Test
     void whenSimplePermitPolicy_thenReturnPermit() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "allow all"
                 permit
                 """);
@@ -79,7 +95,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenSimpleDenyPolicy_thenReturnDeny() {
-        loadConfiguration(CombiningAlgorithm.PERMIT_UNLESS_DENY, """
+        loadConfiguration(PERMIT_UNLESS_DENY, """
                 policy "deny all"
                 deny
                 """);
@@ -104,48 +120,82 @@ class DynamicPolicyDecisionPointTests {
         val cultistSubscription      = subscription("cultist", "summon", "deep_one");
         val investigatorSubscription = subscription("investigator", "investigate", "innsmouth");
 
-        return Stream.of(
-                arguments("deny-unless-permit with permit returns PERMIT", CombiningAlgorithm.DENY_UNLESS_PERMIT,
-                        List.of("policy \"permit summoning\" permit"), cultistSubscription, Decision.PERMIT),
+        return Stream.of(arguments("deny-unless-permit with permit returns PERMIT", DENY_UNLESS_PERMIT, List.of("""
+                policy "permit summoning"
+                permit
+                """), cultistSubscription, Decision.PERMIT),
 
-                arguments("deny-unless-permit with no matching policies returns DENY",
-                        CombiningAlgorithm.DENY_UNLESS_PERMIT,
-                        List.of("policy \"never matches\" permit subject == \"elder_thing\""), cultistSubscription,
-                        Decision.DENY),
+                arguments("deny-unless-permit with no matching policies returns DENY", DENY_UNLESS_PERMIT, List.of("""
+                        policy "never matches"
+                        permit
+                        where
+                            subject == "elder_thing";
+                        """), cultistSubscription, Decision.DENY),
 
-                arguments("permit-unless-deny with deny returns DENY", CombiningAlgorithm.PERMIT_UNLESS_DENY,
-                        List.of("policy \"deny investigation\" deny"), investigatorSubscription, Decision.DENY),
+                arguments("permit-unless-deny with deny returns DENY", PERMIT_UNLESS_DENY, List.of("""
+                        policy "deny investigation"
+                        deny
+                        """), investigatorSubscription, Decision.DENY),
 
-                arguments("permit-unless-deny with no matching policies returns PERMIT",
-                        CombiningAlgorithm.PERMIT_UNLESS_DENY,
-                        List.of("policy \"never matches\" deny subject == \"mi_go\""), investigatorSubscription,
-                        Decision.PERMIT),
+                arguments("permit-unless-deny with no matching policies returns PERMIT", PERMIT_UNLESS_DENY, List.of("""
+                        policy "never matches"
+                        deny
+                        where
+                            subject == "mi_go";
+                        """), investigatorSubscription, Decision.PERMIT),
 
-                arguments("deny-overrides with deny and permit returns DENY", CombiningAlgorithm.DENY_OVERRIDES,
-                        List.of("policy \"permit access\" permit", "policy \"deny access\" deny"), cultistSubscription,
-                        Decision.DENY),
+                arguments("deny-overrides with deny and permit returns DENY", DENY_OVERRIDES, List.of("""
+                        policy "permit access"
+                        permit
+                        """, """
+                        policy "deny access"
+                        deny
+                        """), cultistSubscription, Decision.DENY),
 
-                arguments("permit-overrides with deny and permit returns PERMIT", CombiningAlgorithm.PERMIT_OVERRIDES,
-                        List.of("policy \"permit access\" permit", "policy \"deny access\" deny"), cultistSubscription,
-                        Decision.PERMIT),
+                arguments("permit-overrides with deny and permit returns PERMIT", PERMIT_OVERRIDES, List.of("""
+                        policy "permit access"
+                        permit
+                        """, """
+                        policy "deny access"
+                        deny
+                        """), cultistSubscription, Decision.PERMIT),
 
-                arguments("only-one-applicable with single matching policy returns that decision",
-                        CombiningAlgorithm.ONLY_ONE_APPLICABLE,
-                        List.of("policy \"permit cultists\" permit subject == \"cultist\"",
-                                "policy \"permit investigators\" permit subject == \"investigator\""),
-                        cultistSubscription, Decision.PERMIT),
+                arguments("only-one-applicable with single matching policy returns that decision", ONLY_ONE_APPLICABLE,
+                        List.of("""
+                                policy "permit cultists"
+                                permit
+                                where
+                                    subject == "cultist";
+                                """, """
+                                policy "permit investigators"
+                                permit
+                                where
+                                    subject == "investigator";
+                                """), cultistSubscription, Decision.PERMIT),
 
                 arguments("only-one-applicable with multiple matching policies returns INDETERMINATE",
-                        CombiningAlgorithm.ONLY_ONE_APPLICABLE,
-                        List.of("policy \"permit all\" permit", "policy \"also permit all\" permit"),
-                        cultistSubscription, Decision.INDETERMINATE));
+                        ONLY_ONE_APPLICABLE, List.of("""
+                                policy "permit all"
+                                permit
+                                """, """
+                                policy "also permit all"
+                                permit
+                                """), cultistSubscription, Decision.INDETERMINATE));
     }
 
     @Test
     void whenPolicyWithTargetExpression_thenOnlyMatchingPoliciesApply() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT,
-                "policy \"permit investigators\" permit subject == \"investigator\"",
-                "policy \"deny cultists\" deny subject == \"cultist\"");
+        loadConfiguration(DENY_UNLESS_PERMIT, """
+                policy "permit investigators"
+                permit
+                where
+                    subject == "investigator";
+                """, """
+                policy "deny cultists"
+                deny
+                where
+                    subject == "cultist";
+                """);
 
         val investigatorSubscription = subscription("investigator", "read", "necronomicon");
         val cultistSubscription      = subscription("cultist", "read", "necronomicon");
@@ -159,7 +209,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenPolicyWithObligations_thenObligationsIncludedInDecision() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with obligation"
                 permit
                 obligation {"type": "log_access", "entity": "shoggoth"}
@@ -178,7 +228,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenPolicyWithAdvice_thenAdviceIncludedInDecision() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with advice"
                 permit
                 advice {"warning": "sanity_check_recommended"}
@@ -196,7 +246,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenPolicyWithTransformation_thenResourceTransformed() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with transformation"
                 permit
                 transform {"sanitized": true, "original_resource": resource}
@@ -215,7 +265,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenPolicyWithWhereClause_thenConditionEvaluated() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit only for specific action"
                 permit
                 where
@@ -234,9 +284,11 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenPolicyAccessesSubscriptionFields_thenFieldsAvailable() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on environment"
-                permit environment.location == "miskatonic_university"
+                permit
+                where
+                    environment.location == "miskatonic_university";
                 """);
 
         val universityEnvironment = ObjectValue.builder().put("location", Value.of("miskatonic_university")).build();
@@ -255,7 +307,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenMultiplePoliciesWithObligations_thenObligationsCombined() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with first obligation"
                 permit
                 obligation {"step": 1, "action": "verify_identity"}
@@ -275,7 +327,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenConfigurationUpdated_thenNewConfigurationUsed() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "initial deny"
                 deny
                 """);
@@ -285,7 +337,7 @@ class DynamicPolicyDecisionPointTests {
         StepVerifier.create(pdp.decide(subscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.DENY)).verifyComplete();
 
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "updated permit"
                 permit
                 """);
@@ -296,7 +348,7 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenPolicyWithVariableDefinition_thenVariableUsedInDecision() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with local variable"
                 permit
                 where
@@ -316,9 +368,11 @@ class DynamicPolicyDecisionPointTests {
 
     @Test
     void whenComplexSubscriptionWithObjectSubject_thenObjectFieldsAccessible() {
-        loadConfiguration(CombiningAlgorithm.DENY_UNLESS_PERMIT, """
+        loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on subject role"
-                permit subject.role == "elder_sign_bearer"
+                permit
+                where
+                    subject.role == "elder_sign_bearer";
                 """);
 
         val subject      = ObjectValue.builder().put("name", Value.of("Randolph Carter"))
@@ -339,6 +393,6 @@ class DynamicPolicyDecisionPointTests {
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
-        configurationRegister.loadConfiguration(configuration(algorithm, policies), false);
+        pdpRegister.loadConfiguration(configuration(algorithm, policies), false);
     }
 }

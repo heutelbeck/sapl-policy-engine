@@ -22,9 +22,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.TraceLevel;
+import io.sapl.api.pdp.CombiningAlgorithm;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,7 +49,8 @@ import java.util.Map;
  */
 public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfiguration> {
 
-    private final ValueDeserializer valueDeserializer = new ValueDeserializer();
+    private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
+    private final CombiningAlgorithmDeserializer combiningAlgorithmDeserializer = new CombiningAlgorithmDeserializer();
 
     @Override
     public PDPConfiguration deserialize(JsonParser parser, DeserializationContext context) throws IOException {
@@ -61,7 +61,6 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
         String             pdpId              = null;
         String             configurationId    = null;
         CombiningAlgorithm combiningAlgorithm = null;
-        TraceLevel         traceLevel         = TraceLevel.STANDARD;
         List<String>       saplDocuments      = List.of();
         Map<String, Value> variables          = Map.of();
 
@@ -72,8 +71,8 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
             switch (fieldName) {
             case "pdpId"              -> pdpId = parser.getText();
             case "configurationId"    -> configurationId = parser.getText();
-            case "combiningAlgorithm" -> combiningAlgorithm = parseCombiningAlgorithm(parser.getText());
-            case "traceLevel"         -> traceLevel = parseTraceLevel(parser.getText());
+            case "combiningAlgorithm" ->
+                combiningAlgorithm = combiningAlgorithmDeserializer.deserialize(parser, context);
             case "saplDocuments"      -> saplDocuments = deserializeStringList(parser);
             case "variables"          -> variables = deserializeVariablesMap(parser, context);
             default                   -> parser.skipChildren();
@@ -90,21 +89,7 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
             throw new IOException("PDPConfiguration requires combiningAlgorithm field.");
         }
 
-        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, traceLevel, saplDocuments, variables);
-    }
-
-    private CombiningAlgorithm parseCombiningAlgorithm(String text) {
-        if (text == null || text.isBlank()) {
-            return null;
-        }
-        return CombiningAlgorithm.valueOf(text.replace('-', '_').toUpperCase());
-    }
-
-    private TraceLevel parseTraceLevel(String text) {
-        if (text == null || text.isBlank()) {
-            return TraceLevel.STANDARD;
-        }
-        return TraceLevel.valueOf(text.replace('-', '_').toUpperCase());
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, saplDocuments, variables);
     }
 
     private List<String> deserializeStringList(JsonParser parser) throws IOException {

@@ -18,85 +18,32 @@
 package io.sapl.compiler.operators;
 
 import io.sapl.api.model.*;
-import io.sapl.compiler.Error;
-import io.sapl.compiler.SaplCompilerException;
 import lombok.experimental.UtilityClass;
-import lombok.val;
-import org.antlr.v4.runtime.ParserRuleContext;
-
-import java.util.function.UnaryOperator;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
- * Provides equality and containment comparison operations for Value instances.
+ * Comparison operations for SAPL expression evaluation.
  * <p>
  * Supports equality testing, containment checking in collections, and regular
- * expression matching. All operations
- * preserve secret flags from operands.
+ * expression matching.
  */
 @UtilityClass
 public class ComparisonOperators {
 
-    // Compile-time errors (thrown as SaplCompilerException)
-    private static final String COMPILE_ERROR_REGEX_INVALID        = "Compilation failed. Invalid regular expression: %s - %s.";
-    private static final String COMPILE_ERROR_REGEX_MUST_BE_STRING = "Compilation failed. Regular expressions must be strings, but got: %s.";
-
-    // Runtime errors (used in Error.at() calls)
-    private static final String RUNTIME_ERROR_IN_OPERATOR_TYPE_MISMATCH = "'in' operator supports value lookup in arrays or objects, as well as substring matching with two strings. But I got: %s in %s.";
-    private static final String RUNTIME_ERROR_REGEX_INVALID             = "Invalid regular expression: %s - %s.";
-    private static final String RUNTIME_ERROR_REGEX_MUST_BE_STRING      = "Regular expressions must be strings, but got: %s.";
+    private static final String ERROR_IN_TYPE_MISMATCH = "'in' operator supports value lookup in arrays or objects, "
+            + "as well as substring matching with two strings. But got: %s in %s.";
 
     /**
      * Tests two values for equality using Value.equals() semantics.
-     * <p>
-     * Propagates errors: if either operand is an ErrorValue, the error is returned
-     * instead of a boolean result.
-     *
-     * @param a
-     * the first value
-     * @param b
-     * the second value
-     *
-     * @return Value.TRUE if values are equal, Value.FALSE otherwise, with combined
-     * secret flag, or ErrorValue if either
-     * operand is an error
      */
-    public static Value equals(ParserRuleContext ignored, Value a, Value b) {
-        val metadata = a.metadata().merge(b.metadata());
-        if (a instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        if (b instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        return new BooleanValue(a.equals(b), metadata);
+    public static Value equals(Value a, Value b) {
+        return a.equals(b) ? Value.TRUE : Value.FALSE;
     }
 
     /**
      * Tests two values for inequality.
-     * <p>
-     * Propagates errors: if either operand is an ErrorValue, the error is returned
-     * instead of a boolean result.
-     *
-     * @param a
-     * the first value
-     * @param b
-     * the second value
-     *
-     * @return Value.TRUE if values are not equal, Value.FALSE otherwise, with
-     * combined secret flag, or ErrorValue if
-     * either operand is an error
      */
-    public static Value notEquals(ParserRuleContext ignored, Value a, Value b) {
-        val metadata = a.metadata().merge(b.metadata());
-        if (a instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        if (b instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        return new BooleanValue(!a.equals(b), metadata);
+    public static Value notEquals(Value a, Value b) {
+        return !a.equals(b) ? Value.TRUE : Value.FALSE;
     }
 
     /**
@@ -108,103 +55,18 @@ public class ComparisonOperators {
      * <li>Value lookup in objects (checks if needle equals any value)</li>
      * <li>Substring matching in strings</li>
      * </ul>
-     *
-     * @param needle
-     * the value to search for
-     * @param haystack
-     * the collection or string to search in
-     *
-     * @return Value.TRUE if needle is found, Value.FALSE otherwise, or error if
-     * type mismatch
      */
-    public static Value isContainedIn(ParserRuleContext astNode, Value needle, Value haystack) {
-        val metadata = needle.metadata().merge(haystack.metadata());
-        if (needle instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        if (haystack instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
+    public static Value isContainedIn(Value needle, Value haystack, SourceLocation location) {
         return switch (haystack) {
-        case ArrayValue array                                                   ->
-            new BooleanValue(array.contains(needle), metadata);
-        case ObjectValue object                                                 ->
-            new BooleanValue(object.containsValue(needle), metadata);
-        case TextValue textHaystack when needle instanceof TextValue textNeedle ->
-            new BooleanValue(textHaystack.value().contains(textNeedle.value()), metadata);
-        default                                                                 ->
-            Error.at(astNode, metadata, RUNTIME_ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
+        case ArrayValue array                                                      ->
+            array.contains(needle) ? Value.TRUE : Value.FALSE;
+        case ObjectValue object                                                    ->
+            object.containsValue(needle) ? Value.TRUE : Value.FALSE;
+        case TextValue textHaystack when needle instanceof TextValue(String value) ->
+            textHaystack.value().contains(value) ? Value.TRUE : Value.FALSE;
+        default                                                                    ->
+            Value.errorAt(location, ERROR_IN_TYPE_MISMATCH, needle, haystack);
         };
     }
 
-    /**
-     * Tests whether a string matches a regular expression pattern.
-     *
-     * @param input
-     * the string to test
-     * @param regex
-     * the regular expression pattern as a TextValue
-     *
-     * @return Value.TRUE if the string matches the pattern, Value.FALSE otherwise,
-     * or error if types are invalid or
-     * pattern is malformed
-     */
-    public static Value matchesRegularExpression(ParserRuleContext astNode, Value input, Value regex) {
-        val metadata = input.metadata().merge(regex.metadata());
-        if (input instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        if (regex instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        if (!(input instanceof TextValue inputText)) {
-            // Non-text input simply doesn't match - return false instead of error
-            return Value.FALSE.withMetadata(metadata);
-        }
-        if (!(regex instanceof TextValue regexText)) {
-            return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_MUST_BE_STRING, regex);
-        }
-        try {
-            return new BooleanValue(Pattern.matches(regexText.value(), inputText.value()), metadata);
-        } catch (PatternSyntaxException e) {
-            return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_INVALID, regex, e.getMessage());
-        }
-    }
-
-    /**
-     * Compiles a regular expression pattern into a reusable operator function.
-     * <p>
-     * Pre-compiles the pattern at compile time for efficient repeated matching at
-     * runtime.
-     *
-     * @param regex
-     * the regular expression pattern as a TextValue
-     *
-     * @return a function that tests input strings against the compiled pattern
-     *
-     * @throws SaplCompilerException
-     * if regex is not a TextValue or pattern is malformed
-     */
-    public static UnaryOperator<Value> compileRegularExpressionOperator(ParserRuleContext astNode, Value regex) {
-        if (!(regex instanceof TextValue regexText)) {
-            throw new SaplCompilerException(COMPILE_ERROR_REGEX_MUST_BE_STRING.formatted(regex), astNode);
-        }
-        try {
-            val pattern       = Pattern.compile(regexText.value()).asMatchPredicate();
-            val regexMetadata = regex.metadata();
-            return input -> {
-                val metadata = input.metadata().merge(regexMetadata);
-                if (input instanceof ErrorValue error) {
-                    return error.withMetadata(metadata);
-                }
-                if (!(input instanceof TextValue inputText)) {
-                    // Non-text input simply doesn't match - return false instead of error
-                    return Value.FALSE.withMetadata(metadata);
-                }
-                return new BooleanValue(pattern.test(inputText.value()), metadata);
-            };
-        } catch (IllegalArgumentException e) {
-            throw new SaplCompilerException(COMPILE_ERROR_REGEX_INVALID.formatted(regex, e.getMessage()), e, astNode);
-        }
-    }
 }

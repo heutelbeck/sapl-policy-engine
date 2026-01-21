@@ -20,12 +20,7 @@ package io.sapl.api.coverage;
 import lombok.Getter;
 import lombok.val;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Collects coverage data for a single SAPL policy or policy set.
@@ -55,7 +50,7 @@ public class PolicyCoverageData {
      * Creates coverage data for a policy document.
      *
      * @param documentName the policy or policy set name
-     * @param documentSource the original SAPL source code (for HTML report
+     * @param documentSource the original SAPL metadata code (for HTML report
      * generation)
      * @param documentType "policy" or "set"
      */
@@ -67,7 +62,8 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Computes a unique position key for a condition based on its source location.
+     * Computes a unique position key for a condition based on its metadata
+     * location.
      * The key combines line and character position to uniquely identify conditions
      * even when multiple appear on the same line.
      */
@@ -92,7 +88,7 @@ public class PolicyCoverageData {
      * Records a target expression evaluation result with position data.
      * <p>
      * For policy sets with multiple nested policies, each target expression
-     * is recorded as a branch hit keyed by its source position for unique
+     * is recorded as a branch hit keyed by its metadata position for unique
      * identification.
      *
      * @param matched true if the target matched (policy applies), false otherwise
@@ -122,7 +118,7 @@ public class PolicyCoverageData {
      * version).
      *
      * @param statementId the 0-based statement index
-     * @param line the 1-based source line
+     * @param line the 1-based metadata line
      * @param result the evaluation result
      */
     public void recordConditionHit(int statementId, int line, boolean result) {
@@ -213,12 +209,12 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Sets the document source for this policy.
+     * Sets the document metadata for this policy.
      * <p>
-     * Used when the source is loaded from a file at report generation time,
+     * Used when the metadata is loaded from a file at report generation time,
      * rather than being captured during test execution.
      *
-     * @param documentSource the SAPL policy source code
+     * @param documentSource the SAPL policy metadata code
      */
     public void setDocumentSource(String documentSource) {
         this.documentSource = documentSource;
@@ -228,11 +224,11 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Sets the source hash for this policy document.
+     * Sets the metadata hash for this policy document.
      * <p>
-     * Used when deserializing from JSON where the full source is not available.
+     * Used when deserializing from JSON where the full metadata is not available.
      *
-     * @param sourceHash the hash code of the original document source
+     * @param sourceHash the hash code of the original document metadata
      */
     public void setSourceHash(int sourceHash) {
         this.sourceHash = sourceHash;
@@ -288,7 +284,7 @@ public class PolicyCoverageData {
      * <p>
      * Branch coverage = (covered branches / total branches) x 100
      * where each condition has 2 branches (true and false).
-     * This calculation is independent of source code layout.
+     * This calculation is independent of metadata code layout.
      *
      * @return coverage percentage (0.0 to 100.0), or 0.0 if no conditions
      */
@@ -315,9 +311,9 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Returns the number of source lines in the policy.
+     * Returns the number of metadata lines in the policy.
      *
-     * @return line count, or 0 if source not available
+     * @return line count, or 0 if metadata not available
      */
     public int getLineCount() {
         if (documentSource == null || documentSource.isEmpty()) {
@@ -335,14 +331,14 @@ public class PolicyCoverageData {
         val lines = new HashSet<Integer>();
         for (val hit : branchHitsByPosition.values()) {
             if (hit.isPartiallyCovered()) {
-                // Add all lines spanned by this condition
+                // BinaryOperationCompiler all lines spanned by this condition
                 for (int line = hit.startLine(); line <= hit.endLine(); line++) {
                     lines.add(line);
                 }
             }
         }
         if (wasTargetMatched()) {
-            // Add all lines covered by the target expression
+            // BinaryOperationCompiler all lines covered by the target expression
             val startLine = targetStartLine > 0 ? targetStartLine : 1;
             val endLine   = targetEndLine > 0 ? targetEndLine : startLine;
             for (int line = startLine; line <= endLine; line++) {

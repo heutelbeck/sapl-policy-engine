@@ -133,19 +133,29 @@ class AttributeStreamRaceConditionTests {
     void reconnectAndResubscribeDuringGracePeriod_pipPreserved() throws Exception {
         val invocation    = createInvocation();
         val cleanupCalled = new AtomicInteger(0);
-        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), SHORT_GRACE_PERIOD);
+        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), LONG_GRACE_PERIOD);
         val initialPip    = (AttributeFinder) inv -> Flux.just(Value.of("initial"));
         stream.connectToPolicyInformationPoint(initialPip);
 
         val subscription = stream.getStream().subscribe();
         subscription.dispose();
-        // Wait test reconnection during grace period
-        await().pollDelay(50, MILLISECONDS).atMost(90, MILLISECONDS).until(() -> true);
+
+        // Thread.sleep is intentional here: we need wall-clock delay to simulate
+        // realistic
+        // reconnection timing, not wait for a condition. Using LONG_GRACE_PERIOD (10s)
+        // with
+        // 50ms sleep provides large margin for CI environments with variable timing.
+        Thread.sleep(50);
 
         val newPip = (AttributeFinder) inv -> Flux.just(Value.of("reconnected"));
         stream.connectToPolicyInformationPoint(newPip);
 
-        val result = stream.getStream().blockFirst(Duration.ofSeconds(1));
+        val reconnectedStream = stream.getStream();
+        assertThat(reconnectedStream)
+                .as("Stream should still be available during grace period (if null, grace period expired prematurely)")
+                .isNotNull();
+
+        val result = reconnectedStream.blockFirst(Duration.ofSeconds(1));
 
         assertThat(result).as("Stream should emit value from new PIP").isNotNull()
                 .matches(value -> value instanceof TextValue tv && "reconnected".equals(tv.value()));
@@ -186,13 +196,13 @@ class AttributeStreamRaceConditionTests {
     }
 
     /**
-     * Tests disconnect racing with connect operation.
+     * Tests disconnect racing with connect op.
      * <p>
      * Two threads race: one connects a slow-starting PIP (delayed emission),
      * another disconnects immediately. The
      * disconnect may happen before, during, or after the connect completes.
      * <p>
-     * Expected: Either disconnect error appears, or the PIP connects and then gets
+     * Expected: Either disconnect errors appears, or the PIP connects and then gets
      * disconnected. The stream should not
      * hang or crash. Race condition being tested: Disconnect during PIP
      * subscription setup.
@@ -222,7 +232,7 @@ class AttributeStreamRaceConditionTests {
             latch.countDown();
             try {
                 latch.await();
-                // Intentional delay to create race timing window with connect operation
+                // Intentional delay to create race timing window with connect op
                 Thread.sleep(10);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -242,8 +252,8 @@ class AttributeStreamRaceConditionTests {
         val hasDisconnectError = results.stream()
                 .anyMatch(value -> value instanceof ErrorValue ev && ev.message().contains("disconnected"));
 
-        assertThat(hasDisconnectError).as("Disconnect error should be published").isTrue();
-        assertThat(results).as("Stream should publish at least the disconnect error").isNotEmpty();
+        assertThat(hasDisconnectError).as("Disconnect errors should be published").isTrue();
+        assertThat(results).as("Stream should publish at least the disconnect errors").isNotEmpty();
     }
 
     /**
@@ -251,11 +261,11 @@ class AttributeStreamRaceConditionTests {
      * <p>
      * Multiple threads call disconnect simultaneously on an active stream. The
      * implementation should ensure only one
-     * disconnect error is published.
+     * disconnect errors is published.
      * <p>
-     * Expected: Exactly one disconnect error published. Race condition being
+     * Expected: Exactly one disconnect errors published. Race condition being
      * tested: Multiple threads racing to set
-     * disconnected flag and publish error.
+     * disconnected flag and publish errors.
      */
     @RepeatedTest(10)
     void concurrentDisconnects_singleErrorPublished() throws Exception {
@@ -293,7 +303,7 @@ class AttributeStreamRaceConditionTests {
             }
         });
 
-        // Wait for disconnect error to appear
+        // Wait for disconnect errors to appear
         await().pollDelay(20, MILLISECONDS).atMost(300, MILLISECONDS).until(() -> results.stream()
                 .anyMatch(value -> value instanceof ErrorValue ev && ev.message().contains("disconnected")));
 
@@ -303,11 +313,11 @@ class AttributeStreamRaceConditionTests {
         val disconnectErrors = results.stream()
                 .filter(value -> value instanceof ErrorValue ev && ev.message().contains("disconnected")).count();
 
-        assertThat(disconnectErrors).as("Should publish exactly one disconnect error").isEqualTo(1);
+        assertThat(disconnectErrors).as("Should publish exactly one disconnect errors").isEqualTo(1);
     }
 
     /**
-     * Tests connect racing with another connect operation.
+     * Tests connect racing with another connect op.
      * <p>
      * Two threads connect different PIPs simultaneously. Each PIP emits
      * continuously. The implementation should
@@ -355,7 +365,7 @@ class AttributeStreamRaceConditionTests {
         thread1.join();
         thread2.join();
 
-        // Wait for sufficient values to be emitted (at least 5 non-error values)
+        // Wait for sufficient values to be emitted (at least 5 non-errors values)
         await().pollDelay(20, MILLISECONDS).atMost(500, MILLISECONDS).until(() -> {
             val nonErrorCount = results.stream().filter(value -> !(value instanceof ErrorValue)).count();
             return nonErrorCount >= 5;

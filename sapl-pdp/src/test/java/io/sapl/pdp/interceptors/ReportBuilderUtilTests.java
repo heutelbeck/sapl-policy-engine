@@ -18,19 +18,21 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.traced.TraceFields;
-import io.sapl.api.pdp.traced.TracedDecision;
-import io.sapl.api.pdp.traced.TracedPdpDecision;
-import io.sapl.compiler.TracedPolicyDecision;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.ast.Outcome;
+import io.sapl.ast.PolicySetVoterMetadata;
+import io.sapl.ast.PolicyVoterMetadata;
+import io.sapl.compiler.pdp.Vote;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,108 +40,137 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ReportBuilderUtil")
 class ReportBuilderUtilTests {
 
+    private static final CombiningAlgorithm DENY_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+
     @Test
-    @DisplayName("extracts decision from traced decision")
+    @DisplayName("extracts decision from vote")
     void whenExtractReport_thenDecisionIsExtracted() {
-        val trace          = createSimplePermitTrace();
-        val tracedDecision = new TracedDecision(trace);
+        val vote = createSimplePermitVote();
 
-        val report = ReportBuilderUtil.extractReport(tracedDecision);
+        val report = ReportBuilderUtil.extractReport(vote);
 
-        assertThat(report.get(TraceFields.DECISION)).isEqualTo(Value.of("PERMIT"));
+        assertThat(report.decision()).isEqualTo(Decision.PERMIT);
     }
 
     @Test
-    @DisplayName("extracts PDP metadata from trace")
+    @DisplayName("extracts PDP metadata from vote")
     void whenExtractReport_thenPdpMetadataIsExtracted() {
-        val trace          = createSimplePermitTrace();
-        val tracedDecision = new TracedDecision(trace);
+        val vote = createSimplePermitVote();
 
-        val report = ReportBuilderUtil.extractReport(tracedDecision);
+        val report = ReportBuilderUtil.extractReport(vote);
 
-        assertThat(report.get(TraceFields.PDP_ID)).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) report.get(TraceFields.PDP_ID)).value()).isEqualTo("cthulhu-pdp");
+        assertThat(report.pdpId()).isEqualTo("cthulhu-pdp");
+        assertThat(report.configurationId()).isEqualTo("test-security");
     }
 
     @Test
-    @DisplayName("extracts obligations from trace")
+    @DisplayName("extracts obligations from vote")
     void whenExtractReport_thenObligationsAreExtracted() {
-        val obligation = Value.of("log_access");
-        val trace      = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
-                .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
-                .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.PERMIT)
-                .totalDocuments(1).obligations(List.of(obligation)).build();
+        val obligation    = Value.of("log_access");
+        val obligations   = ArrayValue.builder().add(obligation).build();
+        val authzDecision = new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED);
+        val voter         = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
+                Outcome.PERMIT, true);
+        val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
 
-        val tracedDecision = new TracedDecision(trace);
-        val report         = ReportBuilderUtil.extractReport(tracedDecision);
+        val report = ReportBuilderUtil.extractReport(vote);
 
-        val obligations = report.get(TraceFields.OBLIGATIONS);
-        assertThat(obligations).isInstanceOf(ArrayValue.class);
-        assertThat(((ArrayValue) obligations)).contains(obligation);
+        assertThat(report.obligations()).contains(obligation);
     }
 
     @Test
-    @DisplayName("includes modifications when present")
-    void whenTracedDecisionHasModifications_thenModificationsAreIncluded() {
-        val trace          = createSimplePermitTrace();
-        val tracedDecision = new TracedDecision(trace).modified(io.sapl.api.pdp.AuthorizationDecision.DENY,
-                "Ritual interrupted by investigators");
+    @DisplayName("extracts contributing documents from nested votes")
+    void whenVoteHasContributingVotes_thenContributingDocumentsAreExtracted() {
+        val policyVoter = new PolicyVoterMetadata("forbidden-knowledge-access", "cthulhu-pdp", "test-security", "doc-1",
+                Outcome.PERMIT, false);
+        val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                policyVoter, List.of());
 
-        val report = ReportBuilderUtil.extractReport(tracedDecision);
+        val setVoter = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
+                Outcome.PERMIT, false);
+        val vote     = Vote.combinedVote(AuthorizationDecision.PERMIT, setVoter, List.of(policyVote), Outcome.PERMIT);
 
-        val modifications = report.get(TraceFields.MODIFICATIONS);
-        assertThat(modifications).isInstanceOf(ArrayValue.class);
-        assertThat(((ArrayValue) modifications)).hasSize(1);
+        val report = ReportBuilderUtil.extractReport(vote);
+
+        assertThat(report.contributingDocuments()).hasSize(1);
+        assertThat(report.contributingDocuments().getFirst().name()).isEqualTo("forbidden-knowledge-access");
+        assertThat(report.contributingDocuments().getFirst().decision()).isEqualTo(Decision.PERMIT);
     }
 
     @Test
-    @DisplayName("extracts document reports from nested policies")
-    void whenTraceContainsPolicies_thenDocumentReportsAreExtracted() {
-        val policyTrace = TracedPolicyDecision.builder().name("forbidden-knowledge-access").entitlement("permit")
-                .decision(Decision.PERMIT).build();
+    @DisplayName("handles vote with no contributing votes")
+    void whenVoteHasNoContributingVotes_thenReportHasEmptyContributingDocuments() {
+        val voter = new PolicySetVoterMetadata("minimal-set", "minimal-pdp", "test-security", null, DENY_OVERRIDES,
+                Outcome.DENY, false);
+        val vote  = new Vote(AuthorizationDecision.INDETERMINATE, List.of(), List.of(), List.of(), voter, Outcome.DENY);
 
-        val trace = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
-                .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "read", "necronomicon"))
-                .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.PERMIT)
-                .totalDocuments(1).addDocument(policyTrace).build();
+        val report = ReportBuilderUtil.extractReport(vote);
 
-        val tracedDecision = new TracedDecision(trace);
-        val report         = ReportBuilderUtil.extractReport(tracedDecision);
-
-        val documents = report.get(TraceFields.DOCUMENTS);
-        assertThat(documents).isInstanceOf(ArrayValue.class);
-        assertThat(((ArrayValue) documents)).hasSize(1);
+        assertThat(report.decision()).isEqualTo(Decision.INDETERMINATE);
+        assertThat(report.contributingDocuments()).isEmpty();
     }
 
     @Test
-    @DisplayName("extracts subscription from trace")
-    void whenExtractReport_thenSubscriptionIsExtracted() {
-        val trace          = createSimplePermitTrace();
-        val tracedDecision = new TracedDecision(trace);
+    @DisplayName("converts report to ObjectValue for JSON serialization")
+    void whenToObjectValue_thenReportIsConvertedToObjectValue() {
+        val vote   = createSimplePermitVote();
+        val report = ReportBuilderUtil.extractReport(vote);
 
-        val report = ReportBuilderUtil.extractReport(tracedDecision);
+        val objectValue = ReportBuilderUtil.toObjectValue(report);
 
-        assertThat(report.get(TraceFields.SUBSCRIPTION)).isNotNull();
+        assertThat(objectValue.get("decision")).isEqualTo(Value.of("PERMIT"));
+        assertThat(objectValue.get("pdpId")).isEqualTo(Value.of("cthulhu-pdp"));
     }
 
     @Test
-    @DisplayName("handles empty trace gracefully")
-    void whenTraceIsMinimal_thenReportIsStillGenerated() {
-        val trace = TracedPdpDecision.builder().pdpId("minimal-pdp").configurationId("test-security")
-                .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("user", "action", "resource"))
-                .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.INDETERMINATE)
-                .totalDocuments(0).build();
+    @DisplayName("extractReportAsValue combines extraction and conversion")
+    void whenExtractReportAsValue_thenReturnsObjectValue() {
+        val vote = createSimplePermitVote();
 
-        val tracedDecision = new TracedDecision(trace);
-        val report         = ReportBuilderUtil.extractReport(tracedDecision);
+        val objectValue = ReportBuilderUtil.extractReportAsValue(vote);
 
-        assertThat(report.get(TraceFields.DECISION)).isEqualTo(Value.of("INDETERMINATE"));
+        assertThat(objectValue.get("decision")).isEqualTo(Value.of("PERMIT"));
     }
 
-    private Value createSimplePermitTrace() {
-        return TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
-                .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
-                .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.PERMIT)
-                .totalDocuments(1).build();
+    @Test
+    @DisplayName("extracts algorithm from policy set voter")
+    void whenVoterIsPolicySet_thenAlgorithmIsExtracted() {
+        val vote = createSimplePermitVote();
+
+        val report = ReportBuilderUtil.extractReport(vote);
+
+        assertThat(report.algorithm()).isNotNull();
+        assertThat(report.algorithm().votingMode()).isEqualTo(VotingMode.PRIORITY_DENY);
+    }
+
+    @Test
+    @DisplayName("flattens nested policy sets into contributing documents")
+    void whenNestedPolicySets_thenAllAreFlattened() {
+        val innerPolicyVoter = new PolicyVoterMetadata("inner-policy", "pdp", "config", null, Outcome.DENY, false);
+        val innerPolicyVote  = Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                innerPolicyVoter, List.of());
+
+        val innerSetVoter = new PolicySetVoterMetadata("inner-set", "pdp", "config", null, DENY_OVERRIDES, Outcome.DENY,
+                false);
+        val innerSetVote  = Vote.combinedVote(AuthorizationDecision.DENY, innerSetVoter, List.of(innerPolicyVote),
+                Outcome.DENY);
+
+        val outerSetVoter = new PolicySetVoterMetadata("outer-set", "pdp", "config", null, DENY_OVERRIDES, Outcome.DENY,
+                false);
+        val vote          = Vote.combinedVote(AuthorizationDecision.DENY, outerSetVoter, List.of(innerSetVote),
+                Outcome.DENY);
+
+        val report = ReportBuilderUtil.extractReport(vote);
+
+        assertThat(report.contributingDocuments()).hasSize(2);
+        assertThat(report.contributingDocuments().get(0).name()).isEqualTo("inner-set");
+        assertThat(report.contributingDocuments().get(1).name()).isEqualTo("inner-policy");
+    }
+
+    private Vote createSimplePermitVote() {
+        val voter = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
+                Outcome.PERMIT, false);
+        return new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
     }
 }

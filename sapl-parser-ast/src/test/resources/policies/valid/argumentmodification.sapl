@@ -1,7 +1,0 @@
-policy "modify string arguments"
-permit
-where
-    action.http.requestedURI == "/string";
-obligation {
-              "suffix" : "HELLO MODIFICATION"
-           }

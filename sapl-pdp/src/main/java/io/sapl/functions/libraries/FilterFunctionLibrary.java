@@ -26,6 +26,9 @@ import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
+
 /**
  * Function library implementing content filtering functions for data
  * transformation in access control policies.
@@ -42,11 +45,11 @@ public class FilterFunctionLibrary {
     public static final String DESCRIPTION = "Essential functions for content filtering.";
 
     private static final String ILLEGAL_PARAMETERS_COUNT         = "Illegal number of parameters provided.";
-    private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT  = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer.";
-    private static final String ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer.";
-    private static final String ILLEGAL_PARAMETER_REPLACEMENT    = "Illegal parameter for REPLACEMENT. Expecting a string.";
-    private static final String ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_LENGTH. Expecting a positive integer.";
-    private static final String ILLEGAL_PARAMETER_STRING         = "Illegal parameter for STRING. Expecting a string.";
+    private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT  = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer. Got: %s.";
+    private static final String ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer. Got: %s.";
+    private static final String ILLEGAL_PARAMETER_REPLACEMENT    = "Illegal parameter for REPLACEMENT. Expecting a string. Got: %s.";
+    private static final String ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_LENGTH. Expecting a positive integer. Got: %s.";
+    private static final String ILLEGAL_PARAMETER_STRING         = "Illegal parameter for STRING. Expecting a string. Got: %s.";
 
     private static final int    ORIGINAL_STRING_INDEX                      = 0;
     private static final int    DISCLOSE_LEFT_INDEX                        = 1;
@@ -151,10 +154,10 @@ public class FilterFunctionLibrary {
         }
 
         val parameter = parameters[index];
-        if (!(parameter instanceof NumberValue number) || number.value().intValue() < 0) {
-            throw new IllegalArgumentException(errorMessage);
+        if (!(parameter instanceof NumberValue(BigDecimal value)) || value.intValue() < 0) {
+            throw new IllegalArgumentException(errorMessage.formatted(parameter));
         }
-        return number.value().intValue();
+        return value.intValue();
     }
 
     private static int extractDiscloseLeft(Value... parameters) {
@@ -172,19 +175,19 @@ public class FilterFunctionLibrary {
             return DEFAULT_REPLACEMENT;
         }
 
-        if (!(parameters[REPLACEMENT_INDEX] instanceof TextValue text)) {
+        if (!(parameters[REPLACEMENT_INDEX] instanceof TextValue(String value))) {
             throw new IllegalArgumentException(ILLEGAL_PARAMETER_REPLACEMENT);
         }
-        return text.value();
+        return value;
     }
 
     private static String extractOriginalText(Value... parameters) {
         if (hasNoParameterAtIndex(parameters.length, ORIGINAL_STRING_INDEX)
-                || !(parameters[ORIGINAL_STRING_INDEX] instanceof TextValue text)) {
-            throw new IllegalArgumentException(ILLEGAL_PARAMETER_STRING);
+                || !(parameters[ORIGINAL_STRING_INDEX] instanceof TextValue(String value))) {
+            throw new IllegalArgumentException(ILLEGAL_PARAMETER_STRING.formatted(Arrays.toString(parameters)));
         }
 
-        return text.value();
+        return value;
     }
 
     /**
@@ -204,11 +207,11 @@ public class FilterFunctionLibrary {
         }
 
         val parameter = parameters[BLACKEN_LENGTH_INDEX];
-        if (!(parameter instanceof NumberValue number) || number.value().intValue() < 0) {
+        if (!(parameter instanceof NumberValue(BigDecimal value)) || value.intValue() < 0) {
             throw new IllegalArgumentException(ILLEGAL_PARAMETER_BLACKEN_LENGTH);
         }
 
-        return number.value().intValue();
+        return value.intValue();
     }
 
     private static boolean hasNoParameterAtIndex(int parameterCount, int parameterIndex) {
@@ -231,7 +234,7 @@ public class FilterFunctionLibrary {
      *
      * @return the replacement value, or the original if it's an error.
      */
-    @Function(docs = "Replace a value with another value (errors bubble up)")
+    @Function(docs = "Replace a value with another value (error bubbles up)")
     public static Value replace(Value original, Value replacement) {
         if (original instanceof ErrorValue) {
             return original;

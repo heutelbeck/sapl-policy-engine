@@ -129,8 +129,6 @@ public class SanitizationFunctionLibrary {
 
     static final String POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
 
-    // === Shared Patterns ===
-
     private static final Pattern SQL_METACHARACTERS    = Pattern.compile("[';*()@]");
     private static final Pattern SQL_DML_DDL_KEYWORDS  = Pattern.compile(
             "\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b",
@@ -140,11 +138,7 @@ public class SanitizationFunctionLibrary {
     private static final Pattern URL_ENCODED_CHARACTERS = Pattern.compile("%[0-9a-f]{2}", Pattern.CASE_INSENSITIVE);
     private static final Pattern HEX_ENCODED_STRINGS    = Pattern.compile("0x[0-9a-f]{2,}", Pattern.CASE_INSENSITIVE);
 
-    // === Strict Mode Patterns ===
-
     private static final Pattern SQL_COMMENT_MARKERS = Pattern.compile("--|#");
-
-    // === Balanced Mode Patterns ===
 
     private static final Pattern SQL_SELECT_FROM_STATEMENT = Pattern
             .compile("\\bSELECT\\s+\\S++(?:\\s*+,\\s*+(?!FROM\\b)\\S++)*+\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
@@ -183,8 +177,6 @@ public class SanitizationFunctionLibrary {
             Pattern.CASE_INSENSITIVE);
     private static final Pattern LONG_URL_ENCODED_SEQUENCES     = Pattern.compile("(%[0-9a-f]{2}){3,}",
             Pattern.CASE_INSENSITIVE);
-
-    // === Pattern Arrays ===
 
     private static final Pattern[] STRICT_SQL_PATTERNS = { SQL_METACHARACTERS, SQL_COMMENT_MARKERS,
             SQL_DML_DDL_KEYWORDS, SQL_LOGICAL_OPERATORS, URL_ENCODED_CHARACTERS, HEX_ENCODED_STRINGS };

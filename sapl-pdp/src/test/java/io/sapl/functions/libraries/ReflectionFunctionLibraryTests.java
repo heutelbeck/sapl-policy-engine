@@ -219,20 +219,6 @@ class ReflectionFunctionLibraryTests {
                 arguments("Array returns false", Value.EMPTY_ARRAY, false));
     }
 
-    @Test
-    void isSecret_whenSecret_returnsTrue() {
-        val secretVal = Value.of("password").asSecret();
-        val actual    = ReflectionFunctionLibrary.isSecret(secretVal);
-        assertThat(actual).isEqualTo(Value.TRUE);
-    }
-
-    @Test
-    void isSecret_whenNotSecret_returnsFalse() {
-        val normalVal = Value.of("public data");
-        val actual    = ReflectionFunctionLibrary.isSecret(normalVal);
-        assertThat(actual).isEqualTo(Value.FALSE);
-    }
-
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_isEmpty_then_returnsExpectedResult(String description, Value input, boolean expected) {

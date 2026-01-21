@@ -36,7 +36,7 @@ import static org.awaitility.Awaitility.await;
 /**
  * Tests timeout management in InMemoryAttributeRepository.
  * <p>
- * These tests scenarios to verify attributes being published
+ * These tests use scenarios to verify attributes being published
  * with various TTL settings and observing
  * them timing out according to their configured strategies. The cosmic horror
  * theme provides engaging test data while

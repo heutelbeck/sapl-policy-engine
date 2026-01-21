@@ -28,7 +28,7 @@
 		<version>4.0.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>sapl-parser</artifactId>
-	<name>SAPL Parser</name>
+	<name>SAPL Parser - For new AST Compiler</name>
 	<description>Pure ANTLR4 parser for SAPL (Streaming Attribute Policy Language)
 		without Xtext dependencies.</description>
 

@@ -18,169 +18,106 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.traced.TraceFields;
-import io.sapl.api.pdp.traced.TracedDecision;
-import io.sapl.api.pdp.traced.TracedPdpDecision;
-import io.sapl.compiler.TracedPolicyDecision;
+import io.sapl.compiler.pdp.Vote;
 import lombok.experimental.UtilityClass;
-import lombok.val;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
- * Utility class for building concise reports from traced PDP decisions.
- * <p>
- * Extracts key information from the hierarchical trace structure into a flat
- * report structure suitable for logging and
- * auditing.
+ * Utility class for building reports from Vote decisions.
  */
 @UtilityClass
 public class ReportBuilderUtil {
 
-    /**
-     * Extracts a concise report from a traced decision.
-     * <p>
-     * The report contains the essential information for understanding the decision:
-     * subscription, decision, timestamp,
-     * algorithm, document evaluations, and any modifications by interceptors.
-     *
-     * @param tracedDecision
-     * the traced decision to extract the report from
-     *
-     * @return an ObjectValue containing the concise report
-     */
-    public static ObjectValue extractReport(TracedDecision tracedDecision) {
-        val trace  = tracedDecision.originalTrace();
-        val report = ObjectValue.builder();
+    // Field name constants (alphabetical)
+    private static final String FIELD_ADVICE                 = "advice";
+    private static final String FIELD_ALGORITHM              = "algorithm";
+    private static final String FIELD_ATTRIBUTE_NAME         = "attributeName";
+    private static final String FIELD_ATTRIBUTES             = "attributes";
+    private static final String FIELD_CONFIGURATION_ID       = "configurationId";
+    private static final String FIELD_CONTRIBUTING_DOCUMENTS = "contributingDocuments";
+    private static final String FIELD_DECISION               = "decision";
+    private static final String FIELD_ERRORS                 = "errors";
+    private static final String FIELD_LINE                   = "line";
+    private static final String FIELD_MESSAGE                = "message";
+    private static final String FIELD_NAME                   = "name";
+    private static final String FIELD_OBLIGATIONS            = "obligations";
+    private static final String FIELD_PDP_ID                 = "pdpId";
+    private static final String FIELD_RESOURCE               = "resource";
+    private static final String FIELD_RETRIEVED_AT           = "retrievedAt";
+    private static final String FIELD_VALUE                  = "value";
+    private static final String FIELD_VOTER_NAME             = "voterName";
 
-        // Top-level decision fields
-        val decision = TracedPdpDecision.getDecision(trace);
-        if (decision != null) {
-            report.put(TraceFields.DECISION, Value.of(decision.name()));
-        }
-        putIfNotNull(report, TraceFields.OBLIGATIONS, TracedPdpDecision.getObligations(trace));
-        putIfNotNull(report, TraceFields.ADVICE, TracedPdpDecision.getAdvice(trace));
-
-        val resource = TracedPdpDecision.getResource(trace);
-        if (resource != null && !(resource instanceof io.sapl.api.model.UndefinedValue)) {
-            report.put(TraceFields.RESOURCE, resource);
-        }
-
-        // Trace metadata
-        val traceObj = TracedPdpDecision.getTrace(trace);
-        if (!traceObj.isEmpty()) {
-            putIfNotNull(report, TraceFields.PDP_ID, traceObj.get(TraceFields.PDP_ID));
-            putIfNotNull(report, TraceFields.SUBSCRIPTION_ID, traceObj.get(TraceFields.SUBSCRIPTION_ID));
-            putIfNotNull(report, TraceFields.SUBSCRIPTION, traceObj.get(TraceFields.SUBSCRIPTION));
-            putIfNotNull(report, TraceFields.TIMESTAMP, traceObj.get(TraceFields.TIMESTAMP));
-            putIfNotNull(report, TraceFields.ALGORITHM, traceObj.get(TraceFields.ALGORITHM));
-            putIfNotNull(report, TraceFields.TOTAL_DOCUMENTS, traceObj.get(TraceFields.TOTAL_DOCUMENTS));
-        }
-
-        // Document reports
-        val documents       = TracedPdpDecision.getDocuments(trace);
-        val documentReports = extractDocumentReports(documents);
-        if (!documentReports.isEmpty()) {
-            report.put(TraceFields.DOCUMENTS, ArrayValue.builder().addAll(documentReports).build());
-        }
-
-        // Retrieval errors
-        val retrievalErrors = TracedPdpDecision.getRetrievalErrors(trace);
-        if (!retrievalErrors.isEmpty()) {
-            report.put(TraceFields.RETRIEVAL_ERRORS, retrievalErrors);
-        }
-
-        // Modifications from interceptors
-        val modifications = tracedDecision.modifications();
-        if (!modifications.isEmpty()) {
-            val modArray = ArrayValue.builder();
-            for (val mod : modifications) {
-                modArray.add(Value.of(mod));
-            }
-            report.put(TraceFields.MODIFICATIONS, modArray.build());
-        }
-
-        return report.build();
+    public static VoteReport extractReport(Vote vote) {
+        return VoteReport.from(vote);
     }
 
-    private static List<Value> extractDocumentReports(ArrayValue documents) {
-        val reports = new ArrayList<Value>();
-        for (val document : documents) {
-            if (document instanceof ObjectValue docObj) {
-                val type = getTextFieldValue(docObj, TraceFields.TYPE);
-                if (TraceFields.TYPE_POLICY.equals(type)) {
-                    reports.add(extractPolicyReport(docObj));
-                } else if (TraceFields.TYPE_SET.equals(type)) {
-                    reports.add(extractPolicySetReport(docObj));
-                }
-            }
-        }
-        return reports;
+    public static ObjectValue extractReportAsValue(Vote vote) {
+        return toObjectValue(VoteReport.from(vote));
     }
 
-    private static ObjectValue extractPolicyReport(ObjectValue policy) {
-        val report = ObjectValue.builder();
+    public static ObjectValue toObjectValue(VoteReport report) {
+        var builder = ObjectValue.builder().put(FIELD_DECISION, Value.of(report.decision().name()))
+                .put(FIELD_VOTER_NAME, Value.of(report.voterName())).put(FIELD_PDP_ID, Value.of(report.pdpId()))
+                .put(FIELD_CONFIGURATION_ID, Value.of(report.configurationId()));
 
-        report.put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY));
-        putIfNotNull(report, TraceFields.NAME, policy.get(TraceFields.NAME));
-        putIfNotNull(report, TraceFields.ENTITLEMENT, policy.get(TraceFields.ENTITLEMENT));
-        putIfNotNull(report, TraceFields.DECISION, policy.get(TraceFields.DECISION));
+        putIfNonEmpty(builder, FIELD_OBLIGATIONS, report.obligations());
+        putIfNonEmpty(builder, FIELD_ADVICE, report.advice());
+        putIfDefined(builder, FIELD_RESOURCE, report.resource());
 
-        // Include errors if present
-        val errors = TracedPolicyDecision.getErrors(policy);
-        if (!errors.isEmpty()) {
-            report.put(TraceFields.ERRORS, errors);
+        if (report.algorithm() != null) {
+            builder.put(FIELD_ALGORITHM, Value.of(report.algorithm().votingMode().name()));
         }
 
-        // Include attributes if present
-        val attributes = TracedPolicyDecision.getAttributes(policy);
-        if (!attributes.isEmpty()) {
-            report.put(TraceFields.ATTRIBUTES, attributes);
-        }
+        putArray(builder, FIELD_CONTRIBUTING_DOCUMENTS, report.contributingDocuments(),
+                ReportBuilderUtil::documentToValue);
+        putArray(builder, FIELD_ERRORS, report.errors(), ReportBuilderUtil::errorToValue);
+        putArray(builder, FIELD_ATTRIBUTES, report.attributes(), ReportBuilderUtil::attributeToValue);
 
-        // Include target error if present
-        if (TracedPolicyDecision.hasTargetError(policy)) {
-            putIfNotNull(report, TraceFields.TARGET_ERROR, TracedPolicyDecision.getTargetError(policy));
-        }
-
-        return report.build();
+        return builder.build();
     }
 
-    private static ObjectValue extractPolicySetReport(ObjectValue policySet) {
-        val report = ObjectValue.builder();
-
-        report.put(TraceFields.TYPE, Value.of(TraceFields.TYPE_SET));
-        putIfNotNull(report, TraceFields.NAME, policySet.get(TraceFields.NAME));
-        putIfNotNull(report, TraceFields.DECISION, policySet.get(TraceFields.DECISION));
-        putIfNotNull(report, TraceFields.ALGORITHM, policySet.get(TraceFields.ALGORITHM));
-
-        // Include nested policies
-        val policies = policySet.get(TraceFields.POLICIES);
-        if (policies instanceof ArrayValue policiesArray && !policiesArray.isEmpty()) {
-            val nestedReports = extractDocumentReports(policiesArray);
-            if (!nestedReports.isEmpty()) {
-                report.put(TraceFields.POLICIES, ArrayValue.builder().addAll(nestedReports).build());
-            }
-        }
-
-        return report.build();
+    private static ObjectValue documentToValue(ContributingDocument doc) {
+        return ObjectValue.builder().put(FIELD_NAME, Value.of(doc.name()))
+                .put(FIELD_DECISION, Value.of(doc.decision().name())).build();
     }
 
-    private static String getTextFieldValue(ObjectValue obj, String fieldName) {
-        val field = obj.get(fieldName);
-        if (field instanceof TextValue textValue) {
-            return textValue.value();
+    private static ObjectValue errorToValue(ErrorValue error) {
+        var builder = ObjectValue.builder().put(FIELD_MESSAGE, Value.of(error.message()));
+        if (error.location() != null) {
+            builder.put(FIELD_LINE, Value.of(error.location().line()));
         }
-        return null;
+        return builder.build();
     }
 
-    private static void putIfNotNull(ObjectValue.Builder builder, String key, Value value) {
-        if (value != null) {
+    private static ObjectValue attributeToValue(AttributeRecord attr) {
+        return ObjectValue.builder().put(FIELD_ATTRIBUTE_NAME, Value.of(attr.invocation().attributeName()))
+                .put(FIELD_VALUE, attr.attributeValue())
+                .put(FIELD_RETRIEVED_AT, Value.of(attr.retrievedAt().toString())).build();
+    }
+
+    private static void putIfNonEmpty(ObjectValue.Builder builder, String key, ArrayValue value) {
+        if (value != null && !value.isEmpty()) {
             builder.put(key, value);
+        }
+    }
+
+    private static void putIfDefined(ObjectValue.Builder builder, String key, Value value) {
+        if (value != null && !(value instanceof UndefinedValue)) {
+            builder.put(key, value);
+        }
+    }
+
+    private static <T> void putArray(ObjectValue.Builder builder, String key, List<T> items,
+            Function<T, Value> mapper) {
+        if (items != null && !items.isEmpty()) {
+            builder.put(key, ArrayValue.builder().addAll(items.stream().map(mapper).toList()).build());
         }
     }
 }

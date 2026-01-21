@@ -18,152 +18,121 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.traced.TraceFields;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("ReportTextRenderUtil")
 class ReportTextRenderUtilTests {
 
+    private static final CombiningAlgorithm DENY_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+
     @Test
     @DisplayName("renders decision in text report")
     void whenTextReport_thenContainsDecision() {
-        val report = createSimpleReport("PERMIT");
+        val report = createSimpleReport(Decision.PERMIT);
 
-        val text = ReportTextRenderUtil.textReport(report, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Decision    :").contains("PERMIT");
+        assertThat(text).contains("Decision :").contains("PERMIT");
     }
 
     @Test
-    @DisplayName("renders subscription in text report")
-    void whenTextReport_thenContainsSubscription() {
-        val subscription = ObjectValue.builder().put("subject", Value.of("cultist")).put("action", Value.of("summon"))
-                .put("resource", Value.of("elder-god")).build();
-        val report       = createReportWithSubscription(subscription);
+    @DisplayName("renders PDP ID in text report")
+    void whenTextReport_thenContainsPdpId() {
+        val report = createSimpleReport(Decision.PERMIT);
 
-        val text = ReportTextRenderUtil.textReport(report, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Subscription:");
+        assertThat(text).contains("PDP ID   : cthulhu-pdp");
     }
 
     @Test
     @DisplayName("renders algorithm in text report")
     void whenTextReport_thenContainsAlgorithm() {
-        val report = ObjectValue.builder().put(TraceFields.DECISION, Value.of("PERMIT"))
-                .put(TraceFields.ALGORITHM, Value.of("deny-overrides")).put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY)
-                .put(TraceFields.ADVICE, Value.EMPTY_ARRAY).put(TraceFields.TOTAL_DOCUMENTS, Value.of(5))
-                .put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY).build();
+        val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp",
+                "test-config", DENY_OVERRIDES, List.of(), List.of(), List.of());
 
-        val text = ReportTextRenderUtil.textReport(report, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Algorithm   : ").contains("deny-overrides");
+        assertThat(text).contains("Algorithm:").contains("PRIORITY_DENY");
     }
 
     @Test
-    @DisplayName("renders document counts in text report")
-    void whenTextReport_thenContainsDocumentCounts() {
-        val documents = ArrayValue.builder().add(createPolicyDocument("ritual-policy", "permit", "PERMIT")).build();
-        val report    = ObjectValue.builder().put(TraceFields.DECISION, Value.of("PERMIT"))
-                .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
-                .put(TraceFields.TOTAL_DOCUMENTS, Value.of(10)).put(TraceFields.DOCUMENTS, documents).build();
+    @DisplayName("renders errors in text report")
+    void whenReportHasErrors_thenErrorsAreRendered() {
+        val error  = new ErrorValue("Ritual interrupted by investigators", null);
+        val report = new VoteReport(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",
+                "test-pdp", "test-config", DENY_OVERRIDES, List.of(), List.of(error), List.of());
 
-        val text = ReportTextRenderUtil.textReport(report, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Documents   : 1 matching out of 10 total");
+        assertThat(text).contains("Errors:").contains("Ritual interrupted by investigators");
     }
 
     @Test
-    @DisplayName("renders modifications in text report")
-    void whenReportHasModifications_thenModificationsAreRendered() {
-        val modifications = ArrayValue.builder().add(Value.of("Ritual interrupted by investigators"))
-                .add(Value.of("Elder sign barrier activated")).build();
-        val report        = ObjectValue.builder().put(TraceFields.DECISION, Value.of("DENY"))
-                .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
-                .put(TraceFields.TOTAL_DOCUMENTS, Value.of(1)).put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY)
-                .put(TraceFields.MODIFICATIONS, modifications).build();
+    @DisplayName("renders contributing documents in text report")
+    void whenReportHasDocuments_thenDocumentsAreRendered() {
+        val doc    = new ContributingDocument("forbidden-knowledge-access", Decision.PERMIT);
+        val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp",
+                "test-config", DENY_OVERRIDES, List.of(doc), List.of(), List.of());
 
-        val text = ReportTextRenderUtil.textReport(report, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Interceptor Modifications:").contains("Ritual interrupted by investigators")
-                .contains("Elder sign barrier activated");
+        assertThat(text).contains("Documents:").contains("forbidden-knowledge-access -> PERMIT");
     }
 
     @Test
-    @DisplayName("renders policy documents in text report")
-    void whenReportHasPolicies_thenPoliciesAreRendered() {
-        val documents = ArrayValue.builder().add(createPolicyDocument("forbidden-knowledge-access", "permit", "PERMIT"))
-                .build();
-        val report    = ObjectValue.builder().put(TraceFields.DECISION, Value.of("PERMIT"))
-                .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
-                .put(TraceFields.TOTAL_DOCUMENTS, Value.of(1)).put(TraceFields.DOCUMENTS, documents).build();
+    @DisplayName("renders multiple contributing documents")
+    void whenReportHasMultipleDocuments_thenAllAreRendered() {
+        val doc1   = new ContributingDocument("outer-set", Decision.DENY);
+        val doc2   = new ContributingDocument("inner-policy", Decision.DENY);
+        val report = new VoteReport(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "top-set", "test-pdp",
+                "test-config", DENY_OVERRIDES, List.of(doc1, doc2), List.of(), List.of());
 
-        val text = ReportTextRenderUtil.textReport(report, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("=== Document Evaluation Results ===").contains("Policy: forbidden-knowledge-access")
-                .contains("Entitlement : permit").contains("Decision    : PERMIT");
+        assertThat(text).contains("outer-set -> DENY").contains("inner-policy -> DENY");
     }
 
     @Test
-    @DisplayName("renders retrieval errors in text report")
-    void whenReportHasRetrievalErrors_thenErrorsAreRendered() {
-        val errors = ArrayValue.builder().add(ObjectValue.builder().put(TraceFields.NAME, Value.of("cursed-tome"))
-                .put(TraceFields.MESSAGE, Value.of("Failed to parse arcane symbols")).build()).build();
-        val report = ObjectValue.builder().put(TraceFields.DECISION, Value.of("INDETERMINATE"))
-                .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
-                .put(TraceFields.TOTAL_DOCUMENTS, Value.of(1)).put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY)
-                .put(TraceFields.RETRIEVAL_ERRORS, errors).build();
+    @DisplayName("renders obligations when present")
+    void whenObligationsPresent_thenObligationsAreRendered() {
+        val obligations = ArrayValue.builder().add(Value.of("log_access")).build();
+        val report      = new VoteReport(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, null, "test-set",
+                "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(), List.of(), List.of());
 
-        val text = ReportTextRenderUtil.textReport(report, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Retrieval Errors:");
+        assertThat(text).contains("Obligations:").contains("log_access");
     }
 
     @Test
-    @DisplayName("pretty-prints value as JSON")
-    void whenPrettyPrint_thenJsonIsFormatted() {
-        val value = ObjectValue.builder().put("key", Value.of("value")).build();
+    @DisplayName("renders advice when present")
+    void whenAdvicePresent_thenAdviceIsRendered() {
+        val advice = ArrayValue.builder().add(Value.of("consider_logging")).build();
+        val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, advice, null, "test-set", "cthulhu-pdp",
+                "test-config", DENY_OVERRIDES, List.of(), List.of(), List.of());
 
-        val pretty  = ReportTextRenderUtil.prettyPrintValue(value, true);
-        val compact = ReportTextRenderUtil.prettyPrintValue(value, false);
+        val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(pretty).contains("\n");
-        assertThat(compact).doesNotContain("\n");
+        assertThat(text).contains("Advice:").contains("consider_logging");
     }
 
-    @Test
-    @DisplayName("renders empty documents message when no policies evaluated")
-    void whenNoDocuments_thenEmptyMessageIsRendered() {
-        val report = ObjectValue.builder().put(TraceFields.DECISION, Value.of("DENY"))
-                .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
-                .put(TraceFields.TOTAL_DOCUMENTS, Value.of(0)).put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY).build();
-
-        val text = ReportTextRenderUtil.textReport(report, false);
-
-        assertThat(text).contains("No documents were evaluated.");
-    }
-
-    private ObjectValue createSimpleReport(String decision) {
-        return ObjectValue.builder().put(TraceFields.DECISION, Value.of(decision))
-                .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
-                .put(TraceFields.TOTAL_DOCUMENTS, Value.of(0)).put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY).build();
-    }
-
-    private ObjectValue createReportWithSubscription(ObjectValue subscription) {
-        return ObjectValue.builder().put(TraceFields.DECISION, Value.of("PERMIT"))
-                .put(TraceFields.SUBSCRIPTION, subscription).put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY)
-                .put(TraceFields.ADVICE, Value.EMPTY_ARRAY).put(TraceFields.TOTAL_DOCUMENTS, Value.of(0))
-                .put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY).build();
-    }
-
-    private ObjectValue createPolicyDocument(String name, String entitlement, String decision) {
-        return ObjectValue.builder().put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY))
-                .put(TraceFields.NAME, Value.of(name)).put(TraceFields.ENTITLEMENT, Value.of(entitlement))
-                .put(TraceFields.DECISION, Value.of(decision)).build();
+    private VoteReport createSimpleReport(Decision decision) {
+        return new VoteReport(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp",
+                "test-config", null, List.of(), List.of(), List.of());
     }
 }

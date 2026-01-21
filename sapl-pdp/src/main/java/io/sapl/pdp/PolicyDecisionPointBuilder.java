@@ -25,13 +25,10 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.TraceLevel;
-import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.attributes.libraries.*;
-import io.sapl.compiler.CompilationContext;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.*;
@@ -62,7 +59,7 @@ import java.util.function.Function;
  *         .withPolicyInformationPoint(new MyCustomPIP()).build();
  *
  * var pdp = pdpComponents.pdp();
- * pdpComponents.configurationRegister().loadConfiguration(pdpConfiguration, false);
+ * pdpComponents.pdpRegister().loadConfiguration(pdpConfiguration, false);
  * }</pre>
  *
  * <h2>Configuration Sources</h2>
@@ -107,7 +104,7 @@ import java.util.function.Function;
  *         }
  *
  *         &#64;Bean(destroyMethod = "dispose")
- *         public PDPConfigurationSource policySource(ConfigurationRegister register) {
+ *         public PDPConfigurationSource policySource(PdpRegister register) {
  *             return new DirectoryPDPConfigurationSource(Path.of("/policies"),
  *                     security -> register.loadConfiguration(security, true));
  *         }
@@ -162,12 +159,13 @@ public class PolicyDecisionPointBuilder {
     private FunctionBroker  externalFunctionBroker;
     private AttributeBroker externalAttributeBroker;
 
-    private TraceLevel traceLevelOverride;
-
-    private final List<TracedDecisionInterceptor> interceptors = new ArrayList<>();
+    private final List<VoteInterceptor> interceptors = new ArrayList<>();
 
     private Function<Consumer<PDPConfiguration>, PDPConfigurationSource> sourceFactory;
     private final List<PDPConfiguration>                                 initialConfigurations = new ArrayList<>();
+
+    private CombiningAlgorithm combiningAlgorithm;
+    private final List<String> policyDocuments = new ArrayList<>();
 
     private PolicyDecisionPointBuilder(ObjectMapper mapper, Clock clock) {
         this.mapper = mapper;
@@ -420,59 +418,9 @@ public class PolicyDecisionPointBuilder {
         return this;
     }
 
-    /**
-     * Sets a trace level that overrides the trace level specified in pdp.json.
-     * <p>
-     * When set, this trace level is used for all policy compilations regardless of
-     * what is configured in the pdp.json
-     * file. This is useful for:
-     * <ul>
-     * <li>Forcing audit-level tracing in production for compliance</li>
-     * <li>Enabling coverage tracing in test environments</li>
-     * <li>Disabling tracing for high-throughput scenarios</li>
-     * </ul>
-     * <p>
-     * If not set, the trace level from pdp.json is used (defaulting to STANDARD if
-     * not specified there either).
-     *
-     * @param traceLevel
-     * the trace level to use for all compilations
-     *
-     * @return this builder
-     */
-    public PolicyDecisionPointBuilder withTraceLevel(TraceLevel traceLevel) {
-        this.traceLevelOverride = traceLevel;
-        return this;
-    }
-
     // === Decision Interceptor Methods ===
 
-    /**
-     * Adds a traced decision interceptor. Interceptors are applied to every
-     * authorization decision in priority order
-     * (lower values execute first).
-     * <p>
-     * Common use cases:
-     * <ul>
-     * <li>Logging and auditing decisions</li>
-     * <li>Modifying decisions based on external conditions</li>
-     * <li>Recording metrics and statistics</li>
-     * <li>Integrating with external audit systems</li>
-     * </ul>
-     * <p>
-     * The {@link io.sapl.pdp.interceptors.ReportingDecisionInterceptor} uses
-     * {@code Integer.MAX_VALUE} priority to
-     * ensure it runs last and captures all modifications made by other
-     * interceptors.
-     *
-     * @param interceptor
-     * the interceptor to add
-     *
-     * @return this builder
-     *
-     * @see TracedDecisionInterceptor
-     */
-    public PolicyDecisionPointBuilder withInterceptor(TracedDecisionInterceptor interceptor) {
+    public PolicyDecisionPointBuilder withInterceptor(VoteInterceptor interceptor) {
         this.interceptors.add(interceptor);
         return this;
     }
@@ -490,7 +438,7 @@ public class PolicyDecisionPointBuilder {
      *
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withInterceptors(Collection<? extends TracedDecisionInterceptor> interceptors) {
+    public PolicyDecisionPointBuilder withInterceptors(Collection<? extends VoteInterceptor> interceptors) {
         this.interceptors.addAll(interceptors);
         return this;
     }
@@ -756,50 +704,37 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Convenience method to load a single policy with default settings. Creates a
-     * configuration with PDP ID "default",
-     * a generated configuration ID, and DENY_OVERRIDES combining algorithm.
+     * Sets the combining algorithm for the default PDP configuration.
+     * If not set, {@link CombiningAlgorithm#DEFAULT} is used.
      *
-     * @param policyDocument
-     * the SAPL policy document text
+     * @param algorithm the combining algorithm
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm) {
+        this.combiningAlgorithm = algorithm;
+        return this;
+    }
+
+    /**
+     * Adds a policy document to the default PDP configuration.
      *
+     * @param policyDocument the SAPL policy document text
      * @return this builder
      */
     public PolicyDecisionPointBuilder withPolicy(String policyDocument) {
-        return withPolicies(CombiningAlgorithm.DENY_OVERRIDES, policyDocument);
+        this.policyDocuments.add(policyDocument);
+        return this;
     }
 
     /**
-     * Convenience method to load multiple policies with default settings. Creates a
-     * configuration with PDP ID
-     * "default", a generated configuration ID, and DENY_OVERRIDES combining
-     * algorithm.
+     * Adds multiple policy documents to the default PDP configuration.
      *
-     * @param policyDocuments
-     * the SAPL policy document texts
-     *
+     * @param policyDocuments the SAPL policy document texts
      * @return this builder
      */
     public PolicyDecisionPointBuilder withPolicies(String... policyDocuments) {
-        return withPolicies(CombiningAlgorithm.DENY_OVERRIDES, policyDocuments);
-    }
-
-    /**
-     * Convenience method to load policies with a specific combining algorithm.
-     * Creates a configuration with PDP ID
-     * "default" and a generated configuration ID.
-     *
-     * @param algorithm
-     * the combining algorithm
-     * @param policyDocuments
-     * the SAPL policy document texts
-     *
-     * @return this builder
-     */
-    public PolicyDecisionPointBuilder withPolicies(CombiningAlgorithm algorithm, String... policyDocuments) {
-        val configuration = new PDPConfiguration("default", "security-" + System.currentTimeMillis(), algorithm,
-                TraceLevel.STANDARD, List.of(policyDocuments), Map.of());
-        return withConfiguration(configuration);
+        this.policyDocuments.addAll(List.of(policyDocuments));
+        return this;
     }
 
     /**
@@ -815,12 +750,20 @@ public class PolicyDecisionPointBuilder {
     public PDPComponents build() throws AttributeBrokerException {
         val functionBroker        = resolveFunctionBroker();
         val attributeBroker       = resolveAttributeBroker();
-        val configurationRegister = new ConfigurationRegister(functionBroker, attributeBroker, traceLevelOverride);
+        val configurationRegister = new PdpRegister(functionBroker, attributeBroker);
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
         val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
                 context -> reactor.core.publisher.Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID),
-                timestampClock::now, sortedInterceptors);
+                sortedInterceptors);
+
+        // Create default configuration from collected policies if any
+        if (!policyDocuments.isEmpty()) {
+            val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
+            val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
+                    List.copyOf(policyDocuments), Map.of());
+            initialConfigurations.add(config);
+        }
 
         // Load initial configurations
         for (val config : initialConfigurations) {
@@ -925,43 +868,15 @@ public class PolicyDecisionPointBuilder {
      * // Cleanup all resources
      * components.dispose();
      * }</pre>
-     *
-     * @param pdp
-     * the policy decision point
-     * @param configurationRegister
-     * the configuration register for loading policies
-     * @param functionBroker
-     * the function broker with loaded libraries
-     * @param attributeBroker
-     * the attribute broker with loaded PIPs
-     * @param source
-     * the configuration source, or null if none was registered
-     * @param timestampClock
-     * the high-performance timestamp clock for traced decisions
-     * @param interceptors
-     * the traced decision interceptors applied to all decisions
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
-            ConfigurationRegister configurationRegister,
+            PdpRegister pdpRegister,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker,
             @Nullable PDPConfigurationSource source,
             LazyFastClock timestampClock,
-            List<TracedDecisionInterceptor> interceptors) {
-
-        /**
-         * Creates a CompilationContext using this instance's function and attribute
-         * brokers.
-         * <p>
-         * Useful in tests that need to compile SAPL documents without setting up
-         * brokers manually.
-         *
-         * @return a new CompilationContext
-         */
-        public CompilationContext compilationContext() {
-            return new CompilationContext(functionBroker, attributeBroker);
-        }
+            List<VoteInterceptor> sortedInterceptors) {
 
         /**
          * Disposes all resources held by this PDP instance.

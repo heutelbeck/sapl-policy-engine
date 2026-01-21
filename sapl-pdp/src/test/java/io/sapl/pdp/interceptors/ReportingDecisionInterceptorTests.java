@@ -17,119 +17,130 @@
  */
 package io.sapl.pdp.interceptors;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.traced.TracedDecision;
-import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
-import io.sapl.api.pdp.traced.TracedPdpDecision;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.ast.Outcome;
+import io.sapl.ast.PolicySetVoterMetadata;
+import io.sapl.ast.PolicyVoterMetadata;
+import io.sapl.compiler.pdp.TimestampedVote;
+import io.sapl.compiler.pdp.Vote;
+import io.sapl.pdp.VoteInterceptor;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("ReportingDecisionInterceptor")
 class ReportingDecisionInterceptorTests {
 
+    private static final String             DUMMY_TIMESTAMP = "2026-01-01T00:00:00Z";
+    private static final CombiningAlgorithm DENY_OVERRIDES  = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+
     @Test
     @DisplayName("returns highest priority to execute last")
     void whenGetPriority_thenReturnsMaxValue() {
-        val interceptor = new ReportingDecisionInterceptor(false, false, false, false);
+        val interceptor = new ReportingDecisionInterceptor(false, false, false);
 
-        assertThat(interceptor.getPriority()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(interceptor.priority()).isEqualTo(Integer.MAX_VALUE);
     }
 
     @Test
-    @DisplayName("passes through traced decision unchanged when all logging disabled")
-    void whenApplyWithAllLoggingDisabled_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(false, false, false, false);
-        val tracedDecision = createTracedDecision(Decision.PERMIT);
+    @DisplayName("executes without exception when all logging disabled")
+    void whenInterceptWithAllLoggingDisabled_thenNoException() {
+        val interceptor = new ReportingDecisionInterceptor(false, false, false);
+        val vote        = createTimestampedVote(Decision.PERMIT);
 
-        val result = interceptor.apply(tracedDecision);
-
-        assertThat(result).isSameAs(tracedDecision);
+        // Should not throw
+        interceptor.intercept(vote);
     }
 
     @Test
-    @DisplayName("passes through traced decision unchanged when trace logging enabled")
-    void whenApplyWithTraceLogging_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(false, true, false, false);
-        val tracedDecision = createTracedDecision(Decision.PERMIT);
+    @DisplayName("executes without exception when trace logging enabled")
+    void whenInterceptWithTraceLogging_thenNoException() {
+        val interceptor = new ReportingDecisionInterceptor(true, false, false);
+        val vote        = createTimestampedVote(Decision.PERMIT);
 
-        val result = interceptor.apply(tracedDecision);
-
-        assertThat(result).isSameAs(tracedDecision);
+        // Should not throw
+        interceptor.intercept(vote);
     }
 
     @Test
-    @DisplayName("passes through traced decision unchanged when JSON report enabled")
-    void whenApplyWithJsonReport_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(false, false, true, false);
-        val tracedDecision = createTracedDecision(Decision.DENY);
+    @DisplayName("executes without exception when JSON report enabled")
+    void whenInterceptWithJsonReport_thenNoException() {
+        val interceptor = new ReportingDecisionInterceptor(false, true, false);
+        val vote        = createTimestampedVote(Decision.DENY);
 
-        val result = interceptor.apply(tracedDecision);
-
-        assertThat(result).isSameAs(tracedDecision);
+        // Should not throw
+        interceptor.intercept(vote);
     }
 
     @Test
-    @DisplayName("passes through traced decision unchanged when text report enabled")
-    void whenApplyWithTextReport_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(false, false, false, true);
-        val tracedDecision = createTracedDecision(Decision.INDETERMINATE);
+    @DisplayName("executes without exception when text report enabled")
+    void whenInterceptWithTextReport_thenNoException() {
+        val interceptor = new ReportingDecisionInterceptor(false, false, true);
+        val vote        = createTimestampedVote(Decision.INDETERMINATE);
 
-        val result = interceptor.apply(tracedDecision);
-
-        assertThat(result).isSameAs(tracedDecision);
+        // Should not throw
+        interceptor.intercept(vote);
     }
 
     @Test
-    @DisplayName("passes through traced decision unchanged when all logging enabled")
-    void whenApplyWithAllLoggingEnabled_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(true, true, true, true);
-        val tracedDecision = createTracedDecision(Decision.PERMIT);
+    @DisplayName("executes without exception when all logging enabled")
+    void whenInterceptWithAllLoggingEnabled_thenNoException() {
+        val interceptor = new ReportingDecisionInterceptor(true, true, true);
+        val vote        = createTimestampedVote(Decision.PERMIT);
 
-        val result = interceptor.apply(tracedDecision);
-
-        assertThat(result).isSameAs(tracedDecision);
+        // Should not throw
+        interceptor.intercept(vote);
     }
 
     @Test
-    @DisplayName("implements TracedDecisionInterceptor interface")
+    @DisplayName("implements VoteInterceptor interface")
     void whenCreated_thenImplementsInterface() {
-        val interceptor = new ReportingDecisionInterceptor(false, false, false, false);
+        val interceptor = new ReportingDecisionInterceptor(false, false, false);
 
-        assertThat(interceptor).isInstanceOf(TracedDecisionInterceptor.class);
+        assertThat(interceptor).isInstanceOf(VoteInterceptor.class);
     }
 
     @Test
-    @DisplayName("handles modified traced decision")
-    void whenApplyWithModifiedDecision_thenNoException() {
-        val interceptor    = new ReportingDecisionInterceptor(false, false, false, true);
-        val tracedDecision = createTracedDecision(Decision.PERMIT).modified(AuthorizationDecision.DENY,
-                "The stars are not right");
+    @DisplayName("handles vote with contributing votes")
+    void whenInterceptWithContributingVotes_thenNoException() {
+        val interceptor = new ReportingDecisionInterceptor(false, false, true);
+        val policyVoter = new PolicyVoterMetadata("test-policy", "pdp", "config", null, Outcome.PERMIT, false);
+        val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                policyVoter, List.of());
 
-        val result = interceptor.apply(tracedDecision);
+        val setVoter        = new PolicySetVoterMetadata("test-set", "pdp", "config", null, DENY_OVERRIDES,
+                Outcome.PERMIT, false);
+        val vote            = Vote.combinedVote(AuthorizationDecision.PERMIT, setVoter, List.of(policyVote),
+                Outcome.PERMIT);
+        val timestampedVote = new TimestampedVote(vote, DUMMY_TIMESTAMP);
 
-        assertThat(result).isSameAs(tracedDecision);
-        assertThat(result.modifications()).contains("The stars are not right");
+        // Should not throw
+        interceptor.intercept(timestampedVote);
     }
 
     @Test
     @DisplayName("has correct comparison ordering based on priority")
     void whenComparedWithOtherInterceptor_thenOrderedByPriority() {
-        val reportingInterceptor     = new ReportingDecisionInterceptor(false, false, false, false);
-        val lowerPriorityInterceptor = new TracedDecisionInterceptor() {
+        val reportingInterceptor     = new ReportingDecisionInterceptor(false, false, false);
+        val lowerPriorityInterceptor = new VoteInterceptor() {
                                          @Override
-                                         public TracedDecision apply(TracedDecision tracedDecision) {
-                                             return tracedDecision;
+                                         public void intercept(TimestampedVote vote) {
+                                             // no-op
                                          }
 
                                          @Override
-                                         public Integer getPriority() {
+                                         public int priority() {
                                              return 100;
                                          }
                                      };
@@ -139,11 +150,16 @@ class ReportingDecisionInterceptorTests {
         assertThat(lowerPriorityInterceptor.compareTo(reportingInterceptor)).isNegative();
     }
 
-    private TracedDecision createTracedDecision(Decision decision) {
-        val trace = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
-                .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
-                .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(decision).totalDocuments(1)
-                .build();
-        return new TracedDecision(trace);
+    private TimestampedVote createTimestampedVote(Decision decision) {
+        val authzDecision = switch (decision) {
+                          case PERMIT         -> AuthorizationDecision.PERMIT;
+                          case DENY           -> AuthorizationDecision.DENY;
+                          case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
+                          case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
+                          };
+        val voter         = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
+                Outcome.PERMIT, false);
+        val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
+        return new TimestampedVote(vote, DUMMY_TIMESTAMP);
     }
 }

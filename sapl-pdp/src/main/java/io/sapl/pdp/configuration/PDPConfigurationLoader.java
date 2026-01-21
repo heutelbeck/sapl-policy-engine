@@ -22,7 +22,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.TraceLevel;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -130,8 +129,7 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path, pdpJson, saplContents);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.traceLevel(), documents,
-                pdpJson.variables());
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents, pdpJson.variables());
     }
 
     /**
@@ -164,8 +162,7 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateResourceConfigurationId(sourcePath, pdpJson, saplDocuments);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.traceLevel(), documents,
-                pdpJson.variables());
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents, pdpJson.variables());
     }
 
     /**
@@ -202,8 +199,8 @@ public class PDPConfigurationLoader {
         }
 
         val documents = new ArrayList<>(saplDocuments.values());
-        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.traceLevel(),
-                documents, pdpJson.variables());
+        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), documents,
+                pdpJson.variables());
     }
 
     private static String generateDirectoryConfigurationId(Path path, PdpJsonContent pdpJson,
@@ -247,7 +244,7 @@ public class PDPConfigurationLoader {
             val sorted  = new TreeMap<>(saplContents);
             val builder = new StringBuilder();
 
-            builder.append("algorithm:").append(pdpJson.algorithm().name()).append('\n');
+            builder.append("algorithm:").append(pdpJson.algorithm().toCanonicalString()).append('\n');
 
             for (val entry : sorted.entrySet()) {
                 builder.append(entry.getKey()).append(':').append(entry.getValue()).append('\n');
@@ -279,14 +276,9 @@ public class PDPConfigurationLoader {
         try {
             val node = MAPPER.readTree(content);
 
-            CombiningAlgorithm algorithm = CombiningAlgorithm.DENY_OVERRIDES;
+            CombiningAlgorithm algorithm = CombiningAlgorithm.DEFAULT;
             if (node.has("algorithm")) {
                 algorithm = MAPPER.treeToValue(node.get("algorithm"), CombiningAlgorithm.class);
-            }
-
-            TraceLevel traceLevel = TraceLevel.STANDARD;
-            if (node.has("traceLevel")) {
-                traceLevel = MAPPER.treeToValue(node.get("traceLevel"), TraceLevel.class);
             }
 
             String configurationId = null;
@@ -306,7 +298,7 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            return new PdpJsonContent(algorithm, traceLevel, configurationId, variables);
+            return new PdpJsonContent(algorithm, configurationId, variables);
         } catch (IOException e) {
             throw new PDPConfigurationException("Failed to parse pdp.json content.", e);
         }
@@ -355,13 +347,9 @@ public class PDPConfigurationLoader {
         }
     }
 
-    private record PdpJsonContent(
-            CombiningAlgorithm algorithm,
-            TraceLevel traceLevel,
-            String configurationId,
-            Map<String, Value> variables) {
+    private record PdpJsonContent(CombiningAlgorithm algorithm, String configurationId, Map<String, Value> variables) {
         static PdpJsonContent defaults() {
-            return new PdpJsonContent(CombiningAlgorithm.DENY_OVERRIDES, TraceLevel.STANDARD, null, Map.of());
+            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, null, Map.of());
         }
     }
 

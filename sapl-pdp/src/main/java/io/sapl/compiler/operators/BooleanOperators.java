@@ -19,122 +19,46 @@ package io.sapl.compiler.operators;
 
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueMetadata;
-import io.sapl.compiler.Error;
+import io.sapl.compiler.expressions.LazyBooleanOperationCompiler;
 import lombok.experimental.UtilityClass;
-import lombok.val;
-import org.antlr.v4.runtime.ParserRuleContext;
-
-import java.util.function.BinaryOperator;
 
 /**
- * Provides logical operations for BooleanValue instances.
+ * Boolean operations for SAPL expression evaluation.
  * <p>
- * All operations preserve secret flags from operands and return appropriate
- * error values for type mismatches.
+ * Note: AND and OR use cost-stratified short-circuit evaluation via
+ * {@link LazyBooleanOperationCompiler} and are not in this
+ * class.
+ * <p>
+ * All operations return {@link ErrorValue} for type mismatches rather than
+ * throwing exceptions. Error values propagate through operations.
  */
 @UtilityClass
 public class BooleanOperators {
 
-    public static final String RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED = "Type mismatch error. Boolean operation requires Boolean values, but found: %s.";
+    private static final String ERROR_TYPE_MISMATCH = "Logical operation requires boolean value, but found: %s.";
 
     /**
-     * Performs logical AND operation on two boolean values.
-     *
-     * @param a
-     * the first operand
-     * @param b
-     * the second operand
-     *
-     * @return Value.TRUE if both operands are true, Value.FALSE otherwise, or error
-     * if either operand is not a
-     * BooleanValue
+     * Logical negation.
      */
-    public static Value and(ParserRuleContext astNode, Value a, Value b) {
-        return applyBooleanOperation(astNode, a, b, (left, right) -> left && right);
+    public static Value not(Value v, SourceLocation location) {
+        if (v instanceof BooleanValue(boolean val))
+            return val ? Value.FALSE : Value.TRUE;
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v);
     }
 
     /**
-     * Performs logical OR operation on two boolean values.
-     *
-     * @param a
-     * the first operand
-     * @param b
-     * the second operand
-     *
-     * @return Value.TRUE if at least one operand is true, Value.FALSE otherwise, or
-     * error if either operand is not a
-     * BooleanValue
+     * Logical XOR (exclusive or).
+     * <p>
+     * XOR is the only non-short-circuit boolean operator since both operands
+     * must always be evaluated to determine the result.
      */
-    public static Value or(ParserRuleContext astNode, Value a, Value b) {
-        return applyBooleanOperation(astNode, a, b, (left, right) -> left || right);
+    public static Value xor(Value a, Value b, SourceLocation location) {
+        if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
+            return va ^ vb ? Value.TRUE : Value.FALSE;
+        }
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof BooleanValue) ? a : b);
     }
 
-    /**
-     * Performs logical XOR operation on two boolean values.
-     *
-     * @param a
-     * the first operand
-     * @param b
-     * the second operand
-     *
-     * @return Value.TRUE if exactly one operand is true, Value.FALSE otherwise, or
-     * error if either operand is not a
-     * BooleanValue
-     */
-    public static Value xor(ParserRuleContext astNode, Value a, Value b) {
-        return applyBooleanOperation(astNode, a, b, (left, right) -> left ^ right);
-    }
-
-    /**
-     * Applies a binary boolean operation to two values with type checking and
-     * secret preservation.
-     *
-     * @param left
-     * the left operand
-     * @param right
-     * the right operand
-     * @param operation
-     * the boolean operation to apply
-     *
-     * @return result of the operation with combined secret flag, or error if type
-     * mismatch
-     */
-    private static Value applyBooleanOperation(ParserRuleContext astNode, Value left, Value right,
-            BinaryOperator<Boolean> operation) {
-        val metadata = left.metadata().merge(right.metadata());
-        if (left instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        if (right instanceof ErrorValue error) {
-            return error.withMetadata(metadata);
-        }
-        if (!(left instanceof BooleanValue boolLeft)) {
-            return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, left);
-        }
-        if (!(right instanceof BooleanValue boolRight)) {
-            return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, right);
-        }
-        return new BooleanValue(operation.apply(boolLeft.value(), boolRight.value()), metadata);
-    }
-
-    /**
-     * Performs logical NOT operation on a boolean value.
-     *
-     * @param value
-     * the operand to negate
-     *
-     * @return negated boolean value preserving secret flag, or error if operand is
-     * not a BooleanValue
-     */
-    public static Value not(ParserRuleContext astNode, Value value) {
-        if (value instanceof ErrorValue error) {
-            return error;
-        }
-        if (!(value instanceof BooleanValue(boolean bool, ValueMetadata ignored))) {
-            return Error.at(astNode, value.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, value);
-        }
-        return new BooleanValue(!bool, value.metadata());
-    }
 }

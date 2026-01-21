@@ -18,6 +18,9 @@
 package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -37,6 +40,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class BundleSecurityPolicyTests {
+
+    private static final CombiningAlgorithm DENY_OVERRIDES      = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm PERMIT_OVERRIDES    = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm DENY_UNLESS_PERMIT  = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.DENY, ErrorHandling.ABSTAIN);
+    private static final CombiningAlgorithm ONLY_ONE_APPLICABLE = new CombiningAlgorithm(VotingMode.UNIQUE,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
     private static KeyPair elderKeyPair;
 
@@ -115,7 +127,7 @@ class BundleSecurityPolicyTests {
 
     @Test
     void whenParsingUnsignedBundleWithRequiredSignature_thenThrowsException() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                 .withPolicy("cultist-access.sapl", "policy \"cultist\" permit subject.initiated == true").build();
 
         val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
@@ -126,7 +138,7 @@ class BundleSecurityPolicyTests {
 
     @Test
     void whenParsingUnsignedBundleWithDisabledVerificationAndAcceptedRisks_thenSucceeds() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("public-access.sapl", "policy \"public\" permit true").build();
 
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
@@ -138,7 +150,7 @@ class BundleSecurityPolicyTests {
 
     @Test
     void whenParsingUnsignedBundleWithDisabledVerificationButNoAcceptedRisks_thenThrowsException() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("public-access.sapl", "policy \"public\" permit true").build();
 
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
@@ -149,7 +161,7 @@ class BundleSecurityPolicyTests {
 
     @Test
     void whenParsingSignedBundleWithValidKey_thenSucceeds() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
                 .withPolicy("necronomicon.sapl", "policy \"tome\" deny subject.sanity < 50")
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
 
@@ -157,12 +169,12 @@ class BundleSecurityPolicyTests {
         val config = BundleParser.parse(bundle, "library-pdp", policy);
 
         assertThat(config.pdpId()).isEqualTo("library-pdp");
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_UNLESS_PERMIT);
+        assertThat(config.combiningAlgorithm()).isEqualTo(DENY_UNLESS_PERMIT);
     }
 
     @Test
     void whenParsingSignedBundleWithWrongKey_thenThrowsException() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE)
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(ONLY_ONE_APPLICABLE)
                 .withPolicy("ritual.sapl", "policy \"ritual\" permit action.type == \"summon\"")
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
 
@@ -176,7 +188,7 @@ class BundleSecurityPolicyTests {
     @Test
     void whenParsingExpiredSignatureWithExpirationCheck_thenThrowsException() {
         val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
-        val bundle      = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+        val bundle      = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                 .withPolicy("old-tome.sapl", "policy \"ancient\" deny true")
                 .signWith(elderKeyPair.getPrivate(), "expired-key").expiresAt(expiredTime).build();
 
@@ -189,7 +201,7 @@ class BundleSecurityPolicyTests {
     @Test
     void whenParsingExpiredSignatureWithoutExpirationCheck_thenSucceeds() {
         val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
-        val bundle      = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+        val bundle      = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("ancient-scroll.sapl", "policy \"scroll\" permit subject.scholar == true")
                 .signWith(elderKeyPair.getPrivate(), "ancient-key").expiresAt(expiredTime).build();
 
@@ -202,7 +214,7 @@ class BundleSecurityPolicyTests {
     @Test
     void whenParsingValidFutureExpiration_thenSucceeds() {
         val futureTime = Instant.now().plus(365, ChronoUnit.DAYS);
-        val bundle     = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+        val bundle     = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
                 .withPolicy("prophecy.sapl", "policy \"stars\" permit environment.starsRight == true")
                 .signWith(elderKeyPair.getPrivate(), "prophecy-key").expiresAt(futureTime).build();
 

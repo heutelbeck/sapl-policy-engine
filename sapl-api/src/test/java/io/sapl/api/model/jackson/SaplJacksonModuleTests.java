@@ -19,8 +19,13 @@ package io.sapl.api.model.jackson;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -89,7 +94,7 @@ class SaplJacksonModuleTests {
 
     static Stream<Arguments> nonSerializableValueCases() {
         return Stream.of(arguments(Value.UNDEFINED, "UndefinedValue"),
-                arguments(Value.error("The stars are not right."), "ErrorValue"));
+                arguments(Value.error("The stars are not rp."), "ErrorValue"));
     }
 
     @Test
@@ -144,18 +149,20 @@ class SaplJacksonModuleTests {
     }
 
     static Stream<Arguments> decisionWithOptionalFieldsCases() {
-        val obligation = Value.ofObject(Map.of("type", Value.of("log")));
-        val advice     = Value.ofObject(Map.of("recommendation", Value.of("enable_2fa")));
-        val resource   = Value.ofObject(Map.of("filtered", Value.TRUE));
+        val obligation  = Value.ofObject(Map.of("type", Value.of("log")));
+        val advice      = Value.ofObject(Map.of("recommendation", Value.of("enable_2fa")));
+        val resource    = Value.ofObject(Map.of("filtered", Value.TRUE));
+        val obligations = new ArrayValue(List.of(obligation));
+        val adviceArr   = new ArrayValue(List.of(advice));
 
         return Stream.of(
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(), Value.UNDEFINED),
+                arguments(new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED),
                         List.of("\"obligations\"", "\"type\":\"log\""), List.of("\"advice\"", "\"resource\"")),
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advice), Value.UNDEFINED),
+                arguments(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArr, Value.UNDEFINED),
                         List.of("\"advice\"", "\"recommendation\""), List.of("\"obligations\"", "\"resource\"")),
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), resource),
+                arguments(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource),
                         List.of("\"resource\"", "\"filtered\":true"), List.of("\"obligations\"", "\"advice\"")),
-                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(advice), resource),
+                arguments(new AuthorizationDecision(Decision.PERMIT, obligations, adviceArr, resource),
                         List.of("\"obligations\"", "\"advice\"", "\"resource\""), List.of()));
     }
 
@@ -201,7 +208,8 @@ class SaplJacksonModuleTests {
         val obligation = Value.ofObject(Map.of("type", Value.of("notify"), "target", Value.of("security")));
         val advice     = Value.ofObject(Map.of("suggestion", Value.of("Review access logs")));
         val resource   = Value.ofObject(Map.of("sanitized", Value.TRUE));
-        val original   = new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(advice), resource);
+        val original   = new AuthorizationDecision(Decision.PERMIT, new ArrayValue(List.of(obligation)),
+                new ArrayValue(List.of(advice)), resource);
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, AuthorizationDecision.class);
@@ -246,7 +254,7 @@ class SaplJacksonModuleTests {
 
     @Test
     void when_roundTrippingIdentifiableDecision_then_preserved() throws JsonProcessingException {
-        val decision = new AuthorizationDecision(Decision.DENY, List.of(), List.of(), Value.UNDEFINED);
+        val decision = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
         val original = new IdentifiableAuthorizationDecision("forbidden-ritual", decision);
 
         val json     = mapper.writeValueAsString(original);
@@ -317,7 +325,8 @@ class SaplJacksonModuleTests {
     @Test
     void when_roundTrippingMultiDecisionWithObligations_then_obligationsPreserved() throws JsonProcessingException {
         val obligation = Value.ofObject(Map.of("type", Value.of("log_access")));
-        val decision   = new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(), Value.UNDEFINED);
+        val decision   = new AuthorizationDecision(Decision.PERMIT, new ArrayValue(List.of(obligation)),
+                Value.EMPTY_ARRAY, Value.UNDEFINED);
 
         val original = new MultiAuthorizationDecision();
         original.setDecision("guarded-action", decision);
@@ -331,60 +340,71 @@ class SaplJacksonModuleTests {
 
     @ParameterizedTest
     @MethodSource("combiningAlgorithmSerializationCases")
-    void when_serializingCombiningAlgorithm_then_producesEnumName(CombiningAlgorithm algorithm, String expectedJson)
+    void when_serializingCombiningAlgorithm_then_producesObjectFormat(CombiningAlgorithm algorithm, String expectedJson)
             throws JsonProcessingException {
         val json = mapper.writeValueAsString(algorithm);
         assertThat(json).isEqualTo(expectedJson);
     }
 
     static Stream<Arguments> combiningAlgorithmSerializationCases() {
-        return Stream.of(arguments(CombiningAlgorithm.DENY_OVERRIDES, "\"DENY_OVERRIDES\""),
-                arguments(CombiningAlgorithm.PERMIT_OVERRIDES, "\"PERMIT_OVERRIDES\""),
-                arguments(CombiningAlgorithm.DENY_UNLESS_PERMIT, "\"DENY_UNLESS_PERMIT\""),
-                arguments(CombiningAlgorithm.PERMIT_UNLESS_DENY, "\"PERMIT_UNLESS_DENY\""),
-                arguments(CombiningAlgorithm.ONLY_ONE_APPLICABLE, "\"ONLY_ONE_APPLICABLE\""));
+        return Stream.of(
+                arguments(new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.ABSTAIN),
+                        """
+                                {"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"ABSTAIN"}"""),
+                arguments(
+                        new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                                ErrorHandling.ABSTAIN),
+                        """
+                                {"votingMode":"PRIORITY_PERMIT","defaultDecision":"PERMIT","errorHandling":"ABSTAIN"}"""),
+                arguments(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE),
+                        """
+                                {"votingMode":"UNIQUE","defaultDecision":"ABSTAIN","errorHandling":"PROPAGATE"}"""));
     }
 
     @ParameterizedTest
     @MethodSource("combiningAlgorithmDeserializationCases")
-    void when_deserializingCombiningAlgorithm_then_supportsCaseInsensitive(String json, CombiningAlgorithm expected)
+    void when_deserializingCombiningAlgorithm_then_parsesObjectFormat(String json, CombiningAlgorithm expected)
             throws JsonProcessingException {
         val algorithm = mapper.readValue(json, CombiningAlgorithm.class);
         assertThat(algorithm).isEqualTo(expected);
     }
 
     static Stream<Arguments> combiningAlgorithmDeserializationCases() {
-        return Stream.of(arguments("\"DENY_OVERRIDES\"", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("\"deny_overrides\"", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("\"Deny_Overrides\"", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("\"deny-overrides\"", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("\"DENY-OVERRIDES\"", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("\"PERMIT_OVERRIDES\"", CombiningAlgorithm.PERMIT_OVERRIDES),
-                arguments("\"permit_overrides\"", CombiningAlgorithm.PERMIT_OVERRIDES),
-                arguments("\"permit-overrides\"", CombiningAlgorithm.PERMIT_OVERRIDES),
-                arguments("\"DENY_UNLESS_PERMIT\"", CombiningAlgorithm.DENY_UNLESS_PERMIT),
-                arguments("\"deny-unless-permit\"", CombiningAlgorithm.DENY_UNLESS_PERMIT),
-                arguments("\"PERMIT_UNLESS_DENY\"", CombiningAlgorithm.PERMIT_UNLESS_DENY),
-                arguments("\"permit-unless-deny\"", CombiningAlgorithm.PERMIT_UNLESS_DENY),
-                arguments("\"ONLY_ONE_APPLICABLE\"", CombiningAlgorithm.ONLY_ONE_APPLICABLE),
-                arguments("\"only-one-applicable\"", CombiningAlgorithm.ONLY_ONE_APPLICABLE));
+        return Stream.of(
+                arguments("""
+                        {"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"ABSTAIN"}""",
+                        new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.ABSTAIN)),
+                arguments("""
+                        {"votingMode":"PRIORITY_PERMIT","defaultDecision":"PERMIT","errorHandling":"ABSTAIN"}""",
+                        new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                                ErrorHandling.ABSTAIN)),
+                arguments("""
+                        {"votingMode":"UNIQUE","defaultDecision":"ABSTAIN","errorHandling":"PROPAGATE"}""",
+                        new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE)),
+                arguments("""
+                        {"votingMode":"FIRST","defaultDecision":"DENY","errorHandling":"ABSTAIN"}""",
+                        new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.DENY, ErrorHandling.ABSTAIN)));
     }
 
     @Test
-    void when_deserializingInvalidCombiningAlgorithm_then_throwsException() {
-        assertThatThrownBy(() -> mapper.readValue("\"INVALID_ALGORITHM\"", CombiningAlgorithm.class))
-                .isInstanceOf(IllegalArgumentException.class);
+    void when_deserializingCombiningAlgorithmMissingField_then_throwsException() {
+        val json = """
+                {"votingMode":"PRIORITY_DENY"}""";
+        assertThatThrownBy(() -> mapper.readValue(json, CombiningAlgorithm.class))
+                .hasMessageContaining("defaultDecision");
     }
 
     @Test
     void when_serializingPDPConfiguration_then_allFieldsSerialized() throws JsonProcessingException {
-        val configuration = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
-                TraceLevel.STANDARD, List.of("policy access-control permit", "policy audit-log deny"),
+        val algorithm     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
+                ErrorHandling.ABSTAIN);
+        val configuration = new PDPConfiguration("arkham-pdp", "v1.0", algorithm,
+                List.of("policy access-control permit", "policy audit-log deny"),
                 Map.of("serverUrl", Value.of("https://miskatonic.edu"), "maxRetries", Value.of(3)));
         val json          = mapper.writeValueAsString(configuration);
 
         assertThat(json).contains("\"pdpId\":\"arkham-pdp\"").contains("\"configurationId\":\"v1.0\"")
-                .contains("\"combiningAlgorithm\":\"DENY_OVERRIDES\"")
+                .contains("\"combiningAlgorithm\":{\"votingMode\":\"PRIORITY_DENY\"")
                 .contains("\"saplDocuments\":[\"policy access-control permit\",\"policy audit-log deny\"]")
                 .contains("\"variables\"").contains("\"serverUrl\":\"https://miskatonic.edu\"")
                 .contains("\"maxRetries\":3");
@@ -396,15 +416,17 @@ class SaplJacksonModuleTests {
                 {
                     "pdpId": "innsmouth-pdp",
                     "configurationId": "ritual-security",
-                    "combiningAlgorithm": "PERMIT_OVERRIDES",
+                    "combiningAlgorithm": {"votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN"},
                     "saplDocuments": ["policy deep-ones permit"],
                     "variables": {"depth": 100, "location": "reef"}
                 }""";
         val configuration = mapper.readValue(json, PDPConfiguration.class);
+        val expected      = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                ErrorHandling.ABSTAIN);
 
         assertThat(configuration.pdpId()).isEqualTo("innsmouth-pdp");
         assertThat(configuration.configurationId()).isEqualTo("ritual-security");
-        assertThat(configuration.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(configuration.combiningAlgorithm()).isEqualTo(expected);
         assertThat(configuration.saplDocuments()).containsExactly("policy deep-ones permit");
         assertThat(configuration.variables()).containsEntry("depth", Value.of(100)).containsEntry("location",
                 Value.of("reef"));
@@ -412,8 +434,8 @@ class SaplJacksonModuleTests {
 
     @Test
     void when_roundTrippingPDPConfiguration_then_configurationPreserved() throws JsonProcessingException {
-        val original = new PDPConfiguration("dunwich-pdp", "elder-security", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
-                TraceLevel.STANDARD,
+        val algorithm = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+        val original  = new PDPConfiguration("dunwich-pdp", "elder-security", algorithm,
                 List.of("policy whateley-access permit where action == \"read\"",
                         "policy stone-circles deny where subject.sanity < 50"),
                 Map.of("threshold", Value.of(42), "location", Value.of("standing stones"), "active", Value.TRUE));
@@ -425,19 +447,19 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_deserializingPDPConfigurationWithKebabCaseAlgorithm_then_parsesCorrectly()
-            throws JsonProcessingException {
+    void when_deserializingPDPConfigurationWithObjectAlgorithm_then_parsesCorrectly() throws JsonProcessingException {
         val json          = """
                 {
                     "pdpId": "test-pdp",
                     "configurationId": "test-security",
-                    "combiningAlgorithm": "deny-unless-permit",
+                    "combiningAlgorithm": {"votingMode": "FIRST", "defaultDecision": "ABSTAIN", "errorHandling": "ABSTAIN"},
                     "saplDocuments": [],
                     "variables": {}
                 }""";
         val configuration = mapper.readValue(json, PDPConfiguration.class);
+        val expected      = new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.ABSTAIN, ErrorHandling.ABSTAIN);
 
-        assertThat(configuration.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_UNLESS_PERMIT);
+        assertThat(configuration.combiningAlgorithm()).isEqualTo(expected);
     }
 
     @Test
@@ -447,7 +469,7 @@ class SaplJacksonModuleTests {
                 {
                     "pdpId": "complex-pdp",
                     "configurationId": "complex-security",
-                    "combiningAlgorithm": "PERMIT_UNLESS_DENY",
+                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN"},
                     "saplDocuments": [],
                     "variables": {
                         "nested": {"inner": "value", "count": 5},
@@ -470,7 +492,7 @@ class SaplJacksonModuleTests {
         val json = """
                 {
                     "configurationId": "test-security",
-                    "combiningAlgorithm": "DENY_OVERRIDES",
+                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
                     "saplDocuments": [],
                     "variables": {}
                 }""";
@@ -482,7 +504,7 @@ class SaplJacksonModuleTests {
         val json = """
                 {
                     "pdpId": "test-pdp",
-                    "combiningAlgorithm": "DENY_OVERRIDES",
+                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
                     "saplDocuments": [],
                     "variables": {}
                 }""";
@@ -510,7 +532,7 @@ class SaplJacksonModuleTests {
                 {
                     "pdpId": "empty-pdp",
                     "configurationId": "empty-security",
-                    "combiningAlgorithm": "DENY_OVERRIDES"
+                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"}
                 }""";
         val configuration = mapper.readValue(json, PDPConfiguration.class);
 
@@ -529,8 +551,9 @@ class SaplJacksonModuleTests {
                     action == "read";
                     resource.classification != "restricted";
                 """;
-        val original        = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
-                TraceLevel.STANDARD, List.of(multilinePolicy), Map.of());
+        val algorithm       = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
+                ErrorHandling.ABSTAIN);
+        val original        = new PDPConfiguration("arkham-pdp", "v1.0", algorithm, List.of(multilinePolicy), Map.of());
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, PDPConfiguration.class);

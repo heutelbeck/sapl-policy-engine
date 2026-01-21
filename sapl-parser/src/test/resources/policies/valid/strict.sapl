@@ -1,5 +1,5 @@
 policy "strict-access"
 deny
-    action == "delete"
 where
+    action == "delete";
     !subject.isAdmin;

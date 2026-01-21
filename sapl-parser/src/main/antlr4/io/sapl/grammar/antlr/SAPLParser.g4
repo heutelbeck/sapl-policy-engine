@@ -39,22 +39,37 @@ policyElement
 
 policySet
     : SET saplName=STRING combiningAlgorithm
-      (FOR targetExpression=expression)?
+      (FOR target=expression)?
       (valueDefinition SEMI)*
       policy+
     ;
 
 combiningAlgorithm
-    : DENY_OVERRIDES       # denyOverridesAlgorithm
-    | PERMIT_OVERRIDES     # permitOverridesAlgorithm
-    | FIRST_APPLICABLE     # firstApplicableAlgorithm
-    | ONLY_ONE_APPLICABLE  # onlyOneApplicableAlgorithm
-    | DENY_UNLESS_PERMIT   # denyUnlessPermitAlgorithm
-    | PERMIT_UNLESS_DENY   # permitUnlessDenyAlgorithm
+    : votingMode KW_OR defaultDecision (COMMA? ERRORS errorHandling)? DOT?
+    ;
+
+votingMode
+    : FIRST            # first
+    | PRIORITY DENY    # priorityDeny
+    | PRIORITY PERMIT  # priorityPermit
+    | UNANIMOUS STRICT # unanimousStrict
+    | UNANIMOUS        # unanimous
+    | UNIQUE           # unique
+    ;
+
+defaultDecision
+    : DENY    # denyDefault
+    | ABSTAIN # abstainDefault
+    | PERMIT  # permitDefault
+    ;
+
+errorHandling
+    : ABSTAIN   # abstainErrors
+    | PROPAGATE # propagateErrors
     ;
 
 policy
-    : POLICY saplName=STRING entitlement targetExpression=expression?
+    : POLICY saplName=STRING entitlement
       policyBody?
       (OBLIGATION obligations+=expression)*
       (ADVICE adviceExpressions+=expression)*
@@ -76,8 +91,21 @@ statement
     ;
 
 valueDefinition
-    : VAR name=ID ASSIGN eval=expression
+    : VAR name=varName ASSIGN eval=expression
       (SCHEMA schemaVarExpression+=expression (COMMA schemaVarExpression+=expression)*)?
+    ;
+
+// Variable names: IDs plus combining algorithm keywords (but NOT subscription element keywords)
+varName
+    : ID
+    | ABSTAIN
+    | ERRORS
+    | FIRST
+    | PRIORITY
+    | PROPAGATE
+    | STRICT
+    | UNANIMOUS
+    | UNIQUE
     ;
 
 // Expressions - operator precedence from lowest to highest
@@ -334,9 +362,19 @@ saplId
     | reservedId # reservedIdentifier
     ;
 
+// Keywords that can also be used as identifiers in expression contexts
 reservedId
     : SUBJECT     # subjectId
     | ACTION      # actionId
     | RESOURCE    # resourceId
     | ENVIRONMENT # environmentId
+    // Combining algorithm keywords - usable as identifiers outside that context
+    | ABSTAIN     # abstainId
+    | ERRORS      # errorsId
+    | FIRST       # firstId
+    | PRIORITY    # priorityId
+    | PROPAGATE   # propagateId
+    | STRICT      # strictId
+    | UNANIMOUS   # unanimousId
+    | UNIQUE      # uniqueId
     ;

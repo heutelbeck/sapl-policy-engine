@@ -17,6 +17,7 @@
  */
 package io.sapl.api.model;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,34 +30,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("TextValue Tests")
 class TextValueTests {
 
-    @ParameterizedTest(name = "TextValue(\"{0}\", {1}) construction")
-    @MethodSource
-    void when_constructedWithTextAndSecretFlag_then_createsValue(String text, boolean secret) {
-        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
-        var value    = new TextValue(text, metadata);
+    @ParameterizedTest(name = "TextValue(\"{0}\") construction")
+    @ValueSource(strings = { "test", "", "longer text with spaces" })
+    @DisplayName("Constructor creates value correctly")
+    void when_constructed_then_createsValue(String text) {
+        var value = new TextValue(text);
 
         assertThat(value.value()).isEqualTo(text);
-        assertThat(value.isSecret()).isEqualTo(secret);
-    }
-
-    static Stream<Arguments> when_constructedWithTextAndSecretFlag_then_createsValue() {
-        return Stream.of(arguments("test", false), arguments("test", true), arguments("", false), arguments("", true),
-                arguments("longer text with spaces", false));
     }
 
     @Test
+    @DisplayName("Constructor with null throws NullPointerException")
     void when_constructedWithNullValue_then_throws() {
-        assertThatThrownBy(() -> new TextValue(null, ValueMetadata.EMPTY)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new TextValue(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
+    @DisplayName("Factory with empty string returns EMPTY_TEXT singleton")
     void when_factoryCalledWithEmptyString_then_returnsEmptyTextSingleton() {
         assertThat(Value.of("")).isSameAs(Value.EMPTY_TEXT);
     }
 
     @Test
+    @DisplayName("Factory with non-empty string creates new instance")
     void when_factoryCalledWithNonEmptyString_then_createsNewInstance() {
         var text1 = Value.of("test");
         var text2 = Value.of("test");
@@ -64,21 +63,10 @@ class TextValueTests {
         assertThat(text1).isEqualTo(text2).isNotSameAs(text2);
     }
 
-    @ParameterizedTest(name = "asSecret() on \"{0}\"")
-    @ValueSource(strings = { "test", "", "very long text string with lots of characters" })
-    void when_asSecretCalled_then_createsSecretCopyOrReturnsSameInstance(String text) {
-        var original      = new TextValue(text, ValueMetadata.EMPTY);
-        var alreadySecret = new TextValue(text, ValueMetadata.SECRET_EMPTY);
-
-        var secretCopy = original.asSecret();
-        assertThat(secretCopy.isSecret()).isTrue();
-        assertThat(((TextValue) secretCopy).value()).isEqualTo(text);
-        assertThat(alreadySecret.asSecret()).isSameAs(alreadySecret);
-    }
-
-    @ParameterizedTest(name = "{0}={1}, equal={2}")
+    @ParameterizedTest(name = "{0} equals {1}: {2}")
     @MethodSource
-    void when_equalsAndHashCodeCompared_then_comparesByValueIgnoringSecretFlag(TextValue value1, TextValue value2,
+    @DisplayName("equals() and hashCode() compare by value")
+    void when_equalsAndHashCodeCompared_then_comparesByValue(TextValue value1, TextValue value2,
             boolean shouldBeEqual) {
         if (shouldBeEqual) {
             assertThat(value1).isEqualTo(value2).hasSameHashCodeAs(value2);
@@ -87,64 +75,67 @@ class TextValueTests {
         }
     }
 
-    static Stream<Arguments> when_equalsAndHashCodeCompared_then_comparesByValueIgnoringSecretFlag() {
-        return Stream.of(
-                arguments(new TextValue("test", ValueMetadata.EMPTY), new TextValue("test", ValueMetadata.SECRET_EMPTY),
-                        true),
-                arguments(new TextValue("", ValueMetadata.EMPTY), new TextValue("", ValueMetadata.SECRET_EMPTY), true),
-                arguments(new TextValue("test", ValueMetadata.EMPTY), new TextValue("other", ValueMetadata.EMPTY),
-                        false),
-                arguments(new TextValue("test", ValueMetadata.SECRET_EMPTY),
-                        new TextValue("other", ValueMetadata.SECRET_EMPTY), false));
+    static Stream<Arguments> when_equalsAndHashCodeCompared_then_comparesByValue() {
+        return Stream.of(arguments(new TextValue("test"), new TextValue("test"), true),
+                arguments(new TextValue(""), new TextValue(""), true),
+                arguments(new TextValue("test"), new TextValue("other"), false),
+                arguments(Value.EMPTY_TEXT, new TextValue(""), true));
     }
 
-    @ParameterizedTest(name = "{0} with secret={1} toString()={2}")
+    @ParameterizedTest(name = "\"{0}\" toString()=\"{1}\"")
     @MethodSource
-    void when_toStringCalled_then_showsQuotedValueOrPlaceholder(String text, boolean secret, String expected) {
-        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
-        var value    = new TextValue(text, metadata);
+    @DisplayName("toString() shows quoted value")
+    void when_toStringCalled_then_showsQuotedValue(String text, String expected) {
+        var value = new TextValue(text);
 
         assertThat(value).hasToString(expected);
     }
 
-    static Stream<Arguments> when_toStringCalled_then_showsQuotedValueOrPlaceholder() {
-        return Stream.of(arguments("hello", false, "\"hello\""), arguments("secret", true, "***SECRET***"),
-                arguments("", false, "\"\""), arguments("", true, "***SECRET***"));
+    static Stream<Arguments> when_toStringCalled_then_showsQuotedValue() {
+        return Stream.of(arguments("hello", "\"hello\""), arguments("", "\"\""));
     }
 
     @ParameterizedTest(name = "Text: {0}")
     @ValueSource(strings = { "simple text", "", " ", "   multiple   spaces   ", "Line1\nLine2\tTabbed",
-            "Unicode: ä¸–ç•Œ ðŸŒ", "Quotes: \"nested\"", "x" // single character
+            "Unicode: 世界 🌍", "Quotes: \"nested\"", "x" // single character
     })
+    @DisplayName("Various text content handled correctly")
     void when_variousTextContent_then_handledCorrectly(String text) {
-        var value = new TextValue(text, ValueMetadata.EMPTY);
+        var value = new TextValue(text);
 
         assertThat(value.value()).isEqualTo(text);
         assertThat(value).hasToString("\"" + text + "\"");
     }
 
     @Test
+    @DisplayName("Very long string is supported")
     void when_veryLongStringUsed_then_supported() {
         var longString = "a".repeat(10000);
-        var value      = new TextValue(longString, ValueMetadata.EMPTY);
+        var value      = new TextValue(longString);
 
         assertThat(value.value()).hasSize(10000);
     }
 
     @Test
+    @DisplayName("Pattern matching extracts value correctly")
     void when_patternMatchingUsed_then_extractsValueCorrectly() {
-        Value username = Value.of("admin");
+        var username = Value.of("admin");
 
         assertThat(username).isInstanceOf(TextValue.class);
-        if (username instanceof TextValue(String name, ValueMetadata ignored)) {
-            assertThat(name).isEqualTo("admin");
-        }
+        assertThat(username.value()).isEqualTo("admin");
     }
 
     @Test
-    void when_emptyTextConstantChecked_then_notSecretAndEmpty() {
-        assertThat(Value.EMPTY_TEXT.isSecret()).isFalse();
+    @DisplayName("EMPTY_TEXT constant is empty string")
+    void when_emptyTextConstantChecked_then_isEmptyString() {
         assertThat(((TextValue) Value.EMPTY_TEXT).value()).isEmpty();
     }
 
+    @Test
+    @DisplayName("TextValue is not equal to other value types")
+    void when_comparedToOtherValueTypes_then_notEqual() {
+        var text = Value.of("123");
+
+        assertThat(text).isNotEqualTo(Value.of(123)).isNotEqualTo(Value.TRUE).isNotEqualTo(Value.NULL);
+    }
 }

@@ -17,6 +17,6 @@
  */
 package io.sapl.api.model;
 
-public sealed interface CompiledExpression permits StreamExpression, PureExpression, Value {
+public sealed interface CompiledExpression permits Value, PureOperator, StreamOperator {
 
 }

@@ -20,7 +20,9 @@ package io.sapl.pdp.configuration;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.TraceLevel;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -51,8 +53,7 @@ class PDPConfigurationLoaderTests {
 
         assertThat(config.pdpId()).isEqualTo("arkham-pdp");
         assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
-        assertThat(config.traceLevel()).isEqualTo(TraceLevel.STANDARD);
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
         assertThat(config.variables()).isEmpty();
         assertThat(config.saplDocuments()).isEmpty();
     }
@@ -61,7 +62,7 @@ class PDPConfigurationLoaderTests {
     void whenLoadingWithPdpJson_thenParsesAlgorithmAndVariables() throws IOException {
         val pdpJson = """
                 {
-                  "algorithm": "PERMIT_UNLESS_DENY",
+                  "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" },
                   "configurationId": "innsmouth-v1",
                   "variables": {
                     "cultName": "Esoteric Order of Dagon",
@@ -74,7 +75,8 @@ class PDPConfigurationLoaderTests {
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "innsmouth-pdp");
 
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_UNLESS_DENY);
+        assertThat(config.combiningAlgorithm()).isEqualTo(
+                new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
         assertThat(config.configurationId()).isEqualTo("innsmouth-v1");
         assertThat(config.variables()).containsEntry("cultName", Value.of("Esoteric Order of Dagon"))
                 .containsEntry("memberCount", Value.of(42)).containsEntry("isActive", Value.TRUE);
@@ -85,7 +87,7 @@ class PDPConfigurationLoaderTests {
     void whenLoadingWithDifferentAlgorithms_thenParsesCorrectly(String algorithmJson, CombiningAlgorithm expected)
             throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
-                {"algorithm": "%s"}
+                {"algorithm": %s}
                 """.formatted(algorithmJson));
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
@@ -94,50 +96,24 @@ class PDPConfigurationLoaderTests {
     }
 
     static Stream<Arguments> algorithmCases() {
-        return Stream.of(arguments("DENY_OVERRIDES", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("deny_overrides", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("deny-overrides", CombiningAlgorithm.DENY_OVERRIDES),
-                arguments("PERMIT_OVERRIDES", CombiningAlgorithm.PERMIT_OVERRIDES),
-                arguments("permit-overrides", CombiningAlgorithm.PERMIT_OVERRIDES),
-                arguments("DENY_UNLESS_PERMIT", CombiningAlgorithm.DENY_UNLESS_PERMIT),
-                arguments("deny-unless-permit", CombiningAlgorithm.DENY_UNLESS_PERMIT),
-                arguments("PERMIT_UNLESS_DENY", CombiningAlgorithm.PERMIT_UNLESS_DENY),
-                arguments("permit-unless-deny", CombiningAlgorithm.PERMIT_UNLESS_DENY),
-                arguments("ONLY_ONE_APPLICABLE", CombiningAlgorithm.ONLY_ONE_APPLICABLE),
-                arguments("only-one-applicable", CombiningAlgorithm.ONLY_ONE_APPLICABLE));
-    }
-
-    @Test
-    void whenLoadingFromEmptyDirectory_thenTraceLevelDefaultsToStandard() {
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
-
-        assertThat(config.traceLevel()).isEqualTo(TraceLevel.STANDARD);
-    }
-
-    @ParameterizedTest
-    @MethodSource("traceLevelCases")
-    void whenLoadingWithDifferentTraceLevels_thenParsesCorrectly(String traceLevelJson, TraceLevel expected)
-            throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                {"traceLevel": "%s"}
-                """.formatted(traceLevelJson));
-
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
-
-        assertThat(config.traceLevel()).isEqualTo(expected);
-    }
-
-    static Stream<Arguments> traceLevelCases() {
-        return Stream.of(arguments("STANDARD", TraceLevel.STANDARD), arguments("standard", TraceLevel.STANDARD),
-                arguments("COVERAGE", TraceLevel.COVERAGE), arguments("coverage", TraceLevel.COVERAGE));
-    }
-
-    @Test
-    void whenLoadingWithInvalidTraceLevel_thenThrowsException() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), "{\"traceLevel\": \"UNKNOWN_LEVEL\"}");
-
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
-                .isInstanceOf(IllegalArgumentException.class);
+        return Stream.of(
+                arguments("""
+                        { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }""",
+                        new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
+                                ErrorHandling.PROPAGATE)),
+                arguments("""
+                        { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" }""",
+                        new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                                ErrorHandling.ABSTAIN)),
+                arguments("""
+                        { "votingMode": "UNANIMOUS", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" }""",
+                        new CombiningAlgorithm(VotingMode.UNANIMOUS, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE)),
+                arguments("""
+                        { "votingMode": "UNIQUE", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }""",
+                        new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN)),
+                arguments("""
+                        { "votingMode": "FIRST", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }""",
+                        new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.PERMIT, ErrorHandling.PROPAGATE)));
     }
 
     @Test
@@ -199,7 +175,9 @@ class PDPConfigurationLoaderTests {
 
     @Test
     void whenLoadingWithInvalidAlgorithm_thenThrowsException() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), "{\"algorithm\": \"UNKNOWN_ALGORITHM\"}");
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {"algorithm": { "votingMode": "INVALID", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }}
+                """);
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -209,7 +187,7 @@ class PDPConfigurationLoaderTests {
     void whenLoadingFromContent_thenCreatesConfiguration() {
         val pdpJsonContent = """
                 {
-                  "algorithm": "ONLY_ONE_APPLICABLE",
+                  "algorithm": { "votingMode": "UNIQUE", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" },
                   "configurationId": "ritual-v2",
                   "variables": {"ritual": "summoning"}
                 }
@@ -222,7 +200,8 @@ class PDPConfigurationLoaderTests {
 
         assertThat(config.pdpId()).isEqualTo("ritual-pdp");
         assertThat(config.configurationId()).isEqualTo("ritual-v2");
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
+        assertThat(config.combiningAlgorithm())
+                .isEqualTo(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE));
         assertThat(config.variables()).containsEntry("ritual", Value.of("summoning"));
         assertThat(config.saplDocuments()).hasSize(2);
     }
@@ -235,34 +214,21 @@ class PDPConfigurationLoaderTests {
 
         val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, "test-pdp", "/test/policies");
 
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
-        assertThat(config.traceLevel()).isEqualTo(TraceLevel.STANDARD);
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
         assertThat(config.variables()).isEmpty();
         assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
     }
 
     @Test
-    void whenLoadingFromContentWithTraceLevel_thenParsesCorrectly() {
-        val pdpJsonContent = """
-                {
-                  "algorithm": "DENY_OVERRIDES",
-                  "traceLevel": "COVERAGE",
-                  "configurationId": "test-v1"
-                }
-                """;
-
-        val config = PDPConfigurationLoader.loadFromContent(pdpJsonContent, Map.of(), "test-pdp", "/test/policies");
-
-        assertThat(config.traceLevel()).isEqualTo(TraceLevel.COVERAGE);
-    }
-
-    @Test
     void whenLoadingFromContentWithOnlyAlgorithm_thenVariablesAreEmpty() {
-        val config = PDPConfigurationLoader.loadFromContent("""
-                { "algorithm": "PERMIT_OVERRIDES" }
-                """, Map.of(), "test-pdp", "/policies/test");
+        val config = PDPConfigurationLoader.loadFromContent(
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
+                        """,
+                Map.of(), "test-pdp", "/policies/test");
 
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(config.combiningAlgorithm()).isEqualTo(
+                new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
         assertThat(config.variables()).isEmpty();
         assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
     }
@@ -273,7 +239,7 @@ class PDPConfigurationLoaderTests {
                 { "variables": { "realm": "arkham" } }
                 """, Map.of(), "test-pdp", "/policies/arkham");
 
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
         assertThat(config.variables()).containsEntry("realm", Value.of("arkham"));
     }
 
@@ -301,7 +267,7 @@ class PDPConfigurationLoaderTests {
     void whenPdpJsonContainsNullAndArrayValues_thenTheyAreHandled() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
                 {
-                  "algorithm": "DENY_OVERRIDES",
+                  "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" },
                   "variables": {
                     "nullValue": null,
                     "realValue": "test",

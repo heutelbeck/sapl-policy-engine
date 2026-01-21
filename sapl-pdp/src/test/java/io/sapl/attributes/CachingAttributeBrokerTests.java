@@ -17,9 +17,9 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.model.Value;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;

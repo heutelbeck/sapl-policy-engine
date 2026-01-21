@@ -17,10 +17,57 @@
  */
 package io.sapl.api.pdp;
 
-public enum CombiningAlgorithm {
-    DENY_OVERRIDES,
-    DENY_UNLESS_PERMIT,
-    PERMIT_OVERRIDES,
-    PERMIT_UNLESS_DENY,
-    ONLY_ONE_APPLICABLE
+/**
+ * Combining algorithm for policy sets, composed of voting mode, default
+ * vote, and error handling strategy.
+ *
+ * @param votingMode how policy decisions are combined
+ * @param defaultDecision the vote when no policy applies
+ * @param errorHandling how errors are handled during combination
+ */
+public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+
+    /**
+     * Default combining algorithm: priority deny, default deny, errors propagate.
+     */
+    public static final CombiningAlgorithm DEFAULT = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+
+    /**
+     * Returns a canonical string representation for hashing and comparison.
+     * <p>
+     * Format: {@code votingMode:defaultDecision:errorHandling}
+     * <br>
+     * Example: {@code PRIORITY_DENY:DENY:ABSTAIN}
+     * </p>
+     * <p>
+     * This format is stable and used in configuration ID generation.
+     * Changes to this format are breaking changes.
+     * </p>
+     *
+     * @return canonical string representation
+     */
+    public String toCanonicalString() {
+        return votingMode.name() + ":" + defaultDecision.name() + ":" + errorHandling.name();
+    }
+
+    public enum VotingMode {
+        FIRST,
+        PRIORITY_DENY,
+        PRIORITY_PERMIT,
+        UNANIMOUS,
+        UNANIMOUS_STRICT,
+        UNIQUE
+    }
+
+    public enum DefaultDecision {
+        ABSTAIN,
+        DENY,
+        PERMIT
+    }
+
+    public enum ErrorHandling {
+        ABSTAIN,
+        PROPAGATE
+    }
 }

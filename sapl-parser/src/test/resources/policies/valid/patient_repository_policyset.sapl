@@ -3,39 +3,32 @@ import filter.blacken
 set "PatientRepository"
 
 /*
- * The 'first-applicable' combination algorithm is used here in oder to avoid 'transformation uncertainty',
+ * The 'first' combination algorithm is used here in oder to avoid 'transformation uncertainty',
  * i.e., multiple policies which return PERMIT but do not agree about transformation of the resource.
- * This algorithm evaluates policies from top to bottom in the document and stops as soon as one policy 
+ * This algorithm evaluates policies from top to bottom in the document and stops as soon as one policy
  * yields an applicable result or errors.
  */
-first-applicable
-
-/*
- * This 'for' statement ensures, that the policies are only checked when they are actions, e.g., method calls,
- * in the designated Java class.
- * In this case, spring will indirectly implement the PatientRepository interface and it may not appear directly 
- * in the method signatures, e.g. when using default methods from CrudRepositories. Thus we inspect the class 
- * hierarchy and interfaces implemented by the class to scope the policy set.
- */
-for "PatientRepository" in action.java.instanceof..simpleName
+first or abstain errors propagate
 
 /*
  * All doctors and nurses have full read access on all patient records.
  */
 policy "doctor and nurse access to patient data"
-permit 
-       action.java.name == "findById"
-where 
-       "ROLE_DOCTOR" in subject..authority || "ROLE_NURSE" in subject..authority; 
+permit
+where
+       "PatientRepository" in action.java.instanceof..simpleName;
+       action.java.name == "findById";
+       "ROLE_DOCTOR" in subject..authority || "ROLE_NURSE" in subject..authority;
 
 
 /*
  * This policy enables all authenticated users to see the patient list.
  */
 policy "all authenticated users may see patient list"
-permit        
-	action.java.name == "findAll"
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+	action.java.name == "findAll";
 	!("ROLE_ANONYMOUS" in subject..authority);
 
 
@@ -45,59 +38,62 @@ where
  * also administrator access is to be documented.
  */
 policy "administrator access to patient data"
-permit 
-       action.java.name == "findById"
-where 
+permit
+where
+       "PatientRepository" in action.java.instanceof..simpleName;
+       action.java.name == "findById";
        "ROLE_ADMIN" in subject..authority;
-obligation  
-		{ 
+obligation
+		{
         	"type" : "logAccess",
 			"message" : subject.name + " has accessed patient data (id="+resource.id+") as an administrator."
-		}  
-transform 
+		}
+transform
 		// filtering with text blackening
-		resource |- { 
+		resource |- {
 						@.icd11Code : blacken(2,0,"\u2588"),
-						@.diagnosisText : blacken(0,0,"\u2588") 
+						@.diagnosisText : blacken(0,0,"\u2588")
 					}
 
 /*
  * Visitors which are relatives may see the name, phone number and room number.
  */
 policy "visiting relatives access patient data"
-permit 
-       action.java.name == "findById"
-where 
+permit
+where
+       "PatientRepository" in action.java.instanceof..simpleName;
+       action.java.name == "findById";
        "ROLE_VISITOR" in subject..authority;
         /*
-         * The next condition invokes the "patient" policy information point and 
+         * The next condition invokes the "patient" policy information point and
          * determines the "relatives" attribute of id of the patient.
-         * The policy information policy point accesses the database to determine 
-         * the relatives of the patient and it is checked if the subject is in the 
+         * The policy information policy point accesses the database to determine
+         * the relatives of the patient and it is checked if the subject is in the
          * list of relatives.
          */
-       subject.name in resource.id.<patient.relatives>; 
-transform 
+       subject.name in resource.id.<patient.relatives>;
+transform
 		// Subtractive template with filters removing content
-		resource |- { 
+		resource |- {
 						@.medicalRecordNumber 	: remove,
 						@.icd11Code 			: remove,
 						@.diagnosisText 		: remove,
 						@.attendingDoctor 		: remove,
-						@.attendingNurse 		: remove 
+						@.attendingNurse 		: remove
 					}
 
 /*
  * Visitors which are not relatives may see the name and phone number only.
  */
 policy "visiting non relatives access patient data"
-permit 
-       action.java.name == "findById"
-where 
+permit
+where
+       "PatientRepository" in action.java.instanceof..simpleName;
+       action.java.name == "findById";
        "ROLE_VISITOR" in subject..authority;
 transform
-		// Constructive template 
-		{ 
+		// Constructive template
+		{
 			"id" 			: resource.id,
 			"name" 			: resource.name,
 			"phoneNumber"	: resource.phoneNumber
@@ -108,60 +104,65 @@ transform
  * Permit attending doctors to delete patients
  */
 policy "attending doctors may access the delete patient data interface via navigation button"
-permit 
-       action.java.name == "deleteById"
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+    action.java.name == "deleteById";
 	("ROLE_DOCTOR" in subject..authority);
 	subject.name == action.java.arguments[0].<patient.patientRecord>.attendingDoctor;
 
 /*
- * Doctors may create new patients. 
- * 
+ * Doctors may create new patients.
+ *
  * In the demo, new patients are also created during application startup. In this case there is no subject defined.
  * So subject == null when the access comes from a system process not linked to a user session.
  * System processes are also permitted to create patients.
  *
  */
 policy "doctors and system processes may create patients"
-permit 
-       action.java.name == "save"
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+    action.java.name == "save";
 	("ROLE_SYSTEM" in subject..authority) || ("ROLE_DOCTOR" in subject..authority);
 
 /*
- * System may search by name. 
+ * System may search by name.
  */
 policy "system search by name"
-permit 
-       action.java.name == "findByName"
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+    action.java.name == "findByName";
 	("ROLE_SYSTEM" in subject..authority);
 
 /*
- * Only the attending doctor may change diagnosis information or the 
- * attending doctor without any side effects.  
+ * Only the attending doctor may change diagnosis information or the
+ * attending doctor without any side effects.
  */
 policy "attending doctors may update diagnosis and attending doctors"
-permit 
-		action.java.name == "updateDiagnosisTextById"
-	|	action.java.name == "updateIcd11CodeById" 
-	|	action.java.name == "updateAttendingDoctorById" 
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+	action.java.name == "updateDiagnosisTextById"
+	|	action.java.name == "updateIcd11CodeById"
+	|	action.java.name == "updateAttendingDoctorById";
 	("ROLE_DOCTOR" in subject..authority);
 	subject.name == action.java.arguments[1].<patient.patientRecord>.attendingDoctor;
 
 /*
  * All doctors may change diagnosis information or the attending doctor.
  * But the (original) attending doctor must be notified about the change.
- * 
- * This is an emergency override. The so-called "breaking the glass scenario".  
+ *
+ * This is an emergency override. The so-called "breaking the glass scenario".
  */
 policy "breaking the glass"
-permit 
-		action.java.name == "updateDiagnosisTextById"
-	|	action.java.name == "updateIcd11CodeById" 
-	|	action.java.name == "updateAttendingDoctorById" 
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+	action.java.name == "updateDiagnosisTextById"
+	|	action.java.name == "updateIcd11CodeById"
+	|	action.java.name == "updateAttendingDoctorById";
 	("ROLE_DOCTOR" in subject..authority);
 	var patient = action.java.arguments[1].<patient.patientRecord>;
 obligation
@@ -171,28 +172,29 @@ obligation
 		"subject"	: "Data of your patient "+(patient.name)+" was changed.",
 		"message"	: "Doctor " + subject.name + " changed the data."
 	}
-	
+
 /*
  * All doctors and nurses may update attending nurse, name, phone number and room number fields.
  */
 policy "doctors and nurses may change other fields"
-permit 
-		action.java.name == "updateAttendingNurseById" 
-	|	action.java.name == "updateNameById"
-	|	action.java.name == "updatePhoneNumberById" 
-	|	action.java.name == "updateRoomNumberById" 
-
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+	action.java.name == "updateAttendingNurseById"
+	|	action.java.name == "updateNameById"
+	|	action.java.name == "updatePhoneNumberById"
+	|	action.java.name == "updateRoomNumberById";
 	("ROLE_DOCTOR" in subject..authority) || ("ROLE_NURSE" in subject..authority);
 
 /*
  * Permit administrators to update/delete patients, but the action SHOULD be logged and an email MUST be sent.
  */
 policy "administrators may update/delete patients, but it has to be reported"
-permit 
-       	action.java.name == "deleteById"
-	|	action.java.name =~ "^update.*"
+permit
 where
+    "PatientRepository" in action.java.instanceof..simpleName;
+    action.java.name == "deleteById"
+	|	action.java.name =~ "^update.*";
 	("ROLE_ADMIN" in subject..authority);
 obligation
 	{

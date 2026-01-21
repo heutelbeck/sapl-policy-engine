@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.compiler.pdp.CompiledPdpVoter;
 import reactor.core.publisher.Flux;
 
 import java.util.Optional;
@@ -32,7 +33,7 @@ public interface CompiledPDPConfigurationSource {
      *
      * @return a Flux emitting configuration updates
      */
-    Flux<Optional<CompiledPDPConfiguration>> getPDPConfigurations(String pdpId);
+    Flux<Optional<CompiledPdpVoter>> getPDPConfigurations(String pdpId);
 
     /**
      * Returns the current configuration for the specified PDP synchronously. This
@@ -45,5 +46,5 @@ public interface CompiledPDPConfigurationSource {
      *
      * @return the current configuration, or empty if no configuration is loaded
      */
-    Optional<CompiledPDPConfiguration> getCurrentConfiguration(String pdpId);
+    Optional<CompiledPdpVoter> getCurrentConfiguration(String pdpId);
 }

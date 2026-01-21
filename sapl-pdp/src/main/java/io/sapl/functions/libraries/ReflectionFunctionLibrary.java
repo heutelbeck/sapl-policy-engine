@@ -184,10 +184,10 @@ public class ReflectionFunctionLibrary {
             ```
             """, schema = SCHEMA_BOOLEAN)
     public static Value isInteger(Value value) {
-        if (!(value instanceof NumberValue numberValue)) {
+        if (!(value instanceof NumberValue(BigDecimal number))) {
             return Value.FALSE;
         }
-        return Value.of(isIntegral(numberValue.value()));
+        return Value.of(isIntegral(number));
     }
 
     /**
@@ -326,32 +326,6 @@ public class ReflectionFunctionLibrary {
             """, schema = SCHEMA_BOOLEAN)
     public static Value isError(Value value) {
         return Value.of(value instanceof ErrorValue);
-    }
-
-    /**
-     * Checks if the value is marked as secret.
-     *
-     * @param value
-     * the value to check
-     *
-     * @return Value.TRUE if the value is marked as secret, Value.FALSE otherwise
-     */
-    @Function(docs = """
-            ```reflect.isSecret(ANY value)```: Returns ```true``` if the value is marked as secret, ```false``` otherwise.
-            Secret values are redacted in traces and logs for security purposes.
-
-            **Example:**
-            ```sapl
-            policy "protect_sensitive_data"
-            permit
-            where
-              var password = subject.credentials.password;
-              reflect.isSecret(password);        // true if marked secret
-              !reflect.isSecret(subject.username); // username not secret
-            ```
-            """, schema = SCHEMA_BOOLEAN)
-    public static Value isSecret(Value value) {
-        return Value.of(value.isSecret());
     }
 
     /**

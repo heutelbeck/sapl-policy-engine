@@ -207,7 +207,8 @@ public final class AttributeStream {
      * <p>
      * Marks that subscribers are active and attempts to start PIP subscription if a
      * PIP is configured. If no PIP is
-     * configured, publishes an error to inform subscribers that no matching PIP was
+     * configured, publishes an error to inform subscribers that no matching PIP
+     * was
      * found for this invocation.
      * <p>
      * The subscription handlers are empty because values and errors are already
@@ -272,7 +273,7 @@ public final class AttributeStream {
     /**
      * Publishes a value to all active subscribers.
      * <p>
-     * Package-private: intended for traced use by AttributeStream and related
+     * Package-private: intended for internal use by AttributeStream and related
      * broker components.
      *
      * @param value

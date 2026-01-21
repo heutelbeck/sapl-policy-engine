@@ -1,4 +1,0 @@
-policy "policy 2"
-deny
-where
-    action == "write";

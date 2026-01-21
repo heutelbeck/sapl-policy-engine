@@ -18,13 +18,17 @@
 package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -43,6 +47,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,23 +92,40 @@ class BundleBuilderTests {
     @Test
     void whenAddingPdpJson_thenBundleContainsPdpJson() throws IOException {
         val pdpJsonContent = """
-                { "algorithm": "DENY_OVERRIDES" }
+                { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
                 """;
         val bundle         = BundleBuilder.create().withPdpJson(pdpJsonContent).build();
 
         val entries = extractEntries(bundle);
         assertThat(entries).containsKey("pdp.json");
-        assertThat(entries.get("pdp.json")).contains("DENY_OVERRIDES");
+        assertThat(entries.get("pdp.json")).contains("PRIORITY_DENY");
     }
 
     @ParameterizedTest
-    @EnumSource(CombiningAlgorithm.class)
-    void whenSettingCombiningAlgorithm_thenPdpJsonContainsAlgorithm(CombiningAlgorithm algorithm) throws IOException {
+    @MethodSource("algorithmCases")
+    void whenSettingCombiningAlgorithm_thenPdpJsonContainsAlgorithm(CombiningAlgorithm algorithm,
+            String expectedContent) throws IOException {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(algorithm).build();
 
         val entries = extractEntries(bundle);
         assertThat(entries).containsKey("pdp.json");
-        assertThat(entries.get("pdp.json")).contains(algorithm.name());
+        assertThat(entries.get("pdp.json")).contains(expectedContent);
+    }
+
+    static Stream<Arguments> algorithmCases() {
+        return Stream.of(
+                Arguments.of(
+                        new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.PROPAGATE),
+                        "PRIORITY_DENY"),
+                Arguments.of(new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                        ErrorHandling.ABSTAIN), "PRIORITY_PERMIT"),
+                Arguments.of(
+                        new CombiningAlgorithm(VotingMode.UNANIMOUS, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE),
+                        "UNANIMOUS"),
+                Arguments.of(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN),
+                        "UNIQUE"),
+                Arguments.of(new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.PERMIT, ErrorHandling.PROPAGATE),
+                        "FIRST"));
     }
 
     @Test
@@ -154,7 +176,8 @@ class BundleBuilderTests {
 
     @Test
     void whenBuildingCompletBundle_thenContainsPdpJsonAndPolicies() throws IOException {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+        val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.DENY, ErrorHandling.ABSTAIN);
+        val bundle    = BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("necronomicon-access.sapl", """
                         policy "necronomicon"
                         deny subject.sanity < 50
@@ -166,14 +189,16 @@ class BundleBuilderTests {
 
         val entries = extractEntries(bundle);
         assertThat(entries).hasSize(3).containsKeys("pdp.json", "necronomicon-access.sapl", "miskatonic-library.sapl");
-        assertThat(entries.get("pdp.json")).contains("DENY_UNLESS_PERMIT");
+        assertThat(entries.get("pdp.json")).contains("PRIORITY_PERMIT");
     }
 
     @Test
     void whenWritingToPath_thenFileIsCreated() throws IOException {
         val bundlePath = tempDir.resolve("cthulhu-cult.saplbundle");
+        val algorithm  = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                ErrorHandling.ABSTAIN);
 
-        BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+        BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("summoning.sapl", "policy \"summon\" permit subject.stars == \"right\"")
                 .writeTo(bundlePath);
 
@@ -187,8 +212,9 @@ class BundleBuilderTests {
     @Test
     void whenWritingToOutputStream_thenStreamContainsBundle() throws IOException {
         val outputStream = new ByteArrayOutputStream();
+        val algorithm    = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
-        BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE)
+        BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("yog-sothoth.sapl", "policy \"gate\" permit resource.dimension == \"outer\"")
                 .writeTo(outputStream);
 
@@ -231,11 +257,11 @@ class BundleBuilderTests {
         variables.put("maxSanity", "100");
         variables.put("cultName", "\"Esoteric Order of Dagon\"");
 
-        val bundle = BundleBuilder.create().withConfiguration(CombiningAlgorithm.DENY_OVERRIDES, variables).build();
+        val bundle = BundleBuilder.create().withConfiguration(CombiningAlgorithm.DEFAULT, variables).build();
 
         val entries = extractEntries(bundle);
         assertThat(entries).containsKey("pdp.json");
-        assertThat(entries.get("pdp.json")).contains("DENY_OVERRIDES").contains("variables").contains("maxSanity")
+        assertThat(entries.get("pdp.json")).contains("PRIORITY_DENY").contains("variables").contains("maxSanity")
                 .contains("cultName");
     }
 
@@ -246,21 +272,25 @@ class BundleBuilderTests {
                 permit subject.role == "doctor"
                 where resource.ward != "forbidden"
                 """;
+        val algorithm      = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.DENY,
+                ErrorHandling.ABSTAIN);
 
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
-                .withPolicy("arkham.sapl", originalPolicy).build();
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(algorithm).withPolicy("arkham.sapl", originalPolicy)
+                .build();
 
         val config = BundleParser.parse(bundle, "arkham-pdp", developmentPolicy);
 
         assertThat(config.pdpId()).isEqualTo("arkham-pdp");
         assertThat(config.configurationId()).startsWith("bundle-");
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_UNLESS_PERMIT);
+        assertThat(config.combiningAlgorithm()).isEqualTo(algorithm);
         assertThat(config.saplDocuments()).hasSize(1).first().asString().contains("arkham-asylum");
     }
 
     @Test
     void whenBuildingWithEmptyVariablesMap_thenPdpJsonContainsEmptyObject() throws IOException {
-        val bundle = BundleBuilder.create().withConfiguration(CombiningAlgorithm.PERMIT_OVERRIDES, Map.of()).build();
+        val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                ErrorHandling.ABSTAIN);
+        val bundle    = BundleBuilder.create().withConfiguration(algorithm, Map.of()).build();
 
         val entries = extractEntries(bundle);
         assertThat(entries.get("pdp.json")).contains("\"variables\":").containsPattern("\\{\\s*}");
@@ -268,12 +298,15 @@ class BundleBuilderTests {
 
     @Test
     void whenOverwritingPdpJson_thenLastValueWins() throws IOException {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).withPdpJson("""
-                { "algorithm": "PERMIT_UNLESS_DENY" }
-                """).build();
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
+                .withPdpJson(
+                        """
+                                { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
+                                """)
+                .build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries.get("pdp.json")).contains("PERMIT_UNLESS_DENY");
+        assertThat(entries.get("pdp.json")).contains("PRIORITY_PERMIT");
     }
 
     @Test
@@ -288,7 +321,7 @@ class BundleBuilderTests {
 
     @Test
     void whenSigningBundle_thenManifestIsIncluded() throws IOException {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                 .withPolicy("elder-ritual.sapl", "policy \"ritual\" permit subject.initiated == true")
                 .signWith(cultKeyPair.getPrivate(), "necronomicon-key").build();
 
@@ -299,7 +332,9 @@ class BundleBuilderTests {
 
     @Test
     void whenSigningBundle_thenManifestContainsValidSignature() throws IOException {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+        val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                ErrorHandling.ABSTAIN);
+        val bundle    = BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("deep-one.sapl", "policy \"greeting\" permit resource.location == \"Innsmouth\"")
                 .signWith(cultKeyPair.getPrivate(), "dagon-key").build();
 
@@ -316,7 +351,9 @@ class BundleBuilderTests {
     @Test
     void whenSigningBundleWithExpiration_thenManifestContainsExpiration() throws IOException {
         val expirationTime = Instant.now().plus(30, ChronoUnit.DAYS);
-        val bundle         = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+        val algorithm      = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.DENY,
+                ErrorHandling.ABSTAIN);
+        val bundle         = BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("shoggoth.sapl", "policy \"containment\" deny subject.sanity < 20")
                 .signWith(cultKeyPair.getPrivate(), "arkham-key").expiresAt(expirationTime).build();
 
@@ -368,19 +405,20 @@ class BundleBuilderTests {
 
     @Test
     void whenSigningAndParsing_thenVerificationSucceeds() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE)
+        val algorithm = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+        val bundle    = BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("mi-go.sapl", "policy \"brain-cylinder\" permit resource.type == \"specimen\"")
                 .signWith(cultKeyPair.getPrivate(), "yuggoth-key").build();
 
         val config = BundleParser.parse(bundle, "cult-pdp", signedPolicy);
 
         assertThat(config.pdpId()).isEqualTo("cult-pdp");
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
+        assertThat(config.combiningAlgorithm()).isEqualTo(algorithm);
     }
 
     @Test
     void whenSigningAndParsingWithWrongKey_thenVerificationFails() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                 .withPolicy("cthulhu.sapl", "policy \"awakening\" deny subject.stars != \"right\"")
                 .signWith(cultKeyPair.getPrivate(), "rlyeh-key").build();
 

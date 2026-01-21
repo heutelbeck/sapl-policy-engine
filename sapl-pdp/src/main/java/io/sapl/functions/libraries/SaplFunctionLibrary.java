@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueMetadata;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -180,7 +179,7 @@ public class SaplFunctionLibrary {
      * available
      */
     private static TextValue saplVersion() {
-        return new TextValue(VERSION_PROPERTIES.getProperty(PROPERTY_SAPL_VERSION, UNKNOWN), ValueMetadata.EMPTY);
+        return new TextValue(VERSION_PROPERTIES.getProperty(PROPERTY_SAPL_VERSION, UNKNOWN));
     }
 
     /**
@@ -193,7 +192,7 @@ public class SaplFunctionLibrary {
      * available
      */
     private static TextValue gitProperty(String key) {
-        return new TextValue(SaplFunctionLibrary.GIT_PROPERTIES.getProperty(key, UNKNOWN), ValueMetadata.EMPTY);
+        return new TextValue(SaplFunctionLibrary.GIT_PROPERTIES.getProperty(key, UNKNOWN));
     }
 
     /**
@@ -206,6 +205,6 @@ public class SaplFunctionLibrary {
      * available
      */
     private static TextValue systemProperty(String key) {
-        return new TextValue(System.getProperty(key, UNKNOWN), ValueMetadata.EMPTY);
+        return new TextValue(System.getProperty(key, UNKNOWN));
     }
 }
