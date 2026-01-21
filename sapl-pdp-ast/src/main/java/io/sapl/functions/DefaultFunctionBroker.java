@@ -57,7 +57,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class DefaultFunctionBroker implements FunctionBroker {
 
-    private static final String ERROR_FUNCTION_COLLISION             = "Function collision errors for '%s'. A function with the same signature already exists.";
+    private static final String ERROR_FUNCTION_COLLISION             = "Function collision error for '%s'. A function with the same signature already exists.";
     private static final String ERROR_INVOCATION_NULL                = "Function invocation must not be null.";
     private static final String ERROR_LIBRARY_CLASS_NULL             = "Library class must not be null.";
     private static final String ERROR_LIBRARY_INSTANCE_NULL          = "Library instance must not be null.";

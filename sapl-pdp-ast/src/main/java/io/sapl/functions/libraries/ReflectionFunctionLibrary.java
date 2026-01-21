@@ -257,7 +257,7 @@ public class ReflectionFunctionLibrary {
      */
     @Function(docs = """
             ```reflect.isUndefined(ANY value)```: Returns ```true``` if the value is ```undefined```, ```false``` otherwise.
-            This is distinct from ```null``` or an errors.
+            This is distinct from ```null``` or an error.
 
             **Example:**
             ```sapl
@@ -275,7 +275,7 @@ public class ReflectionFunctionLibrary {
     }
 
     /**
-     * Checks if the value is defined (not undefined and not an errors).
+     * Checks if the value is defined (not undefined and not an error).
      *
      * @param value
      * the value to check
@@ -283,7 +283,7 @@ public class ReflectionFunctionLibrary {
      * @return Value.TRUE if the value is defined, Value.FALSE otherwise
      */
     @Function(docs = """
-            ```reflect.isDefined(ANY value)```: Returns ```true``` if the value is defined (not ```undefined``` and not an errors),
+            ```reflect.isDefined(ANY value)```: Returns ```true``` if the value is defined (not ```undefined``` and not an error),
             ```false``` otherwise. ```null``` is considered defined.
 
             **Example:**
@@ -302,15 +302,15 @@ public class ReflectionFunctionLibrary {
     }
 
     /**
-     * Checks if the value is an errors.
+     * Checks if the value is an error.
      *
      * @param value
      * the value to check
      *
-     * @return Value.TRUE if the value is an errors, Value.FALSE otherwise
+     * @return Value.TRUE if the value is an error, Value.FALSE otherwise
      */
     @Function(docs = """
-            ```reflect.isError(ANY value)```: Returns ```true``` if the value represents an errors, ```false``` otherwise.
+            ```reflect.isError(ANY value)```: Returns ```true``` if the value represents an error, ```false``` otherwise.
 
             **Example:**
             ```sapl

@@ -31,7 +31,7 @@ import java.math.BigDecimal;
  * integers.
  * <p>
  * Functions accept NumberValue parameters and return Value to support the
- * errors-as-value pattern. Overflow checking is
+ * error-as-value pattern. Overflow checking is
  * performed when converting BigDecimal to long primitives.
  */
 @UtilityClass
@@ -180,7 +180,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise AND op.
+     * Performs bitwise AND operation.
      *
      * @param left
      * first operand
@@ -221,7 +221,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise OR op.
+     * Performs bitwise OR operation.
      *
      * @param left
      * first operand
@@ -261,7 +261,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise XOR op.
+     * Performs bitwise XOR operation.
      *
      * @param left
      * first operand
@@ -301,7 +301,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise NOT op.
+     * Performs bitwise NOT operation.
      *
      * @param value
      * operand
@@ -562,7 +562,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Shifts bits lp by the specified number of positions.
+     * Shifts bits left by the specified number of positions.
      *
      * @param value
      * value to shift
@@ -608,7 +608,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Shifts bits rp by the specified number of positions with sign extension.
+     * Shifts bits right by the specified number of positions with sign extension.
      *
      * @param value
      * value to shift
@@ -655,7 +655,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Shifts bits rp by the specified number of positions with zero extension.
+     * Shifts bits right by the specified number of positions with zero extension.
      *
      * @param value
      * value to shift
@@ -701,7 +701,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Rotates bits lp by the specified number of positions.
+     * Rotates bits left by the specified number of positions.
      *
      * @param value
      * value to rotate
@@ -747,7 +747,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Rotates bits rp by the specified number of positions.
+     * Rotates bits right by the specified number of positions.
      *
      * @param value
      * value to rotate
@@ -952,9 +952,9 @@ public class BitwiseFunctionLibrary {
      * @param position
      * the position to validate
      * @param context
-     * the context for errors messages (e.g., "Shift", "Bit")
+     * the context for error messages (e.g., "Shift", "Bit")
      *
-     * @return errors Value if invalid, null if valid
+     * @return error Value if invalid, null if valid
      */
     private static Value validatePosition(NumberValue position, String context) {
         val value = position.value();

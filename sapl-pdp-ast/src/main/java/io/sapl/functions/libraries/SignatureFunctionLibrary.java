@@ -286,7 +286,7 @@ public class SignatureFunctionLibrary {
      * the key algorithm name
      *
      * @return Value containing true if signature is valid, FALSE if invalid, or an
-     * errors
+     * error
      */
     private static Value verifySignature(String message, String signatureString, String publicKeyPem,
             String signatureAlgorithm, String keyAlgorithm) {

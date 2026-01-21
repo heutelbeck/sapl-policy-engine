@@ -66,9 +66,9 @@ public class FilterFunctionLibrary {
      *
      * @param parameters
      * STRING (original textual Value), DISCLOSE_LEFT leave this number of
-     * characters original on the lp
+     * characters original on the left
      * side of the string, DISCLOSE_RIGHT leave this number of characters original
-     * on the rp side of the
+     * on the right side of the
      * string, REPLACEMENT the replacement characters, defaulting to X,
      * BLACKEN_LENGTH the number of
      * replacement characters to use, overriding the calculated length.
@@ -100,9 +100,9 @@ public class FilterFunctionLibrary {
      * @param replacement
      * the replacement character(s)
      * @param discloseRight
-     * number of characters to keep on the rp
+     * number of characters to keep on the right
      * @param discloseLeft
-     * number of characters to keep on the lp
+     * number of characters to keep on the left
      * @param blackenLength
      * override length for replacement characters, or null to use calculated length
      *
@@ -140,7 +140,7 @@ public class FilterFunctionLibrary {
      * @param defaultValue
      * the default value if parameter is not present
      * @param errorMessage
-     * the errors message if parameter is invalid
+     * the error message if parameter is invalid
      *
      * @return the extracted integer or the default value
      *
@@ -228,13 +228,13 @@ public class FilterFunctionLibrary {
      * Replaces the original with another value.
      *
      * @param original
-     * the original value, which is ignored unless it's an errors.
+     * the original value, which is ignored unless it's an error.
      * @param replacement
      * a replacement value.
      *
-     * @return the replacement value, or the original if it's an errors.
+     * @return the replacement value, or the original if it's an error.
      */
-    @Function(docs = "Replace a value with another value (errors bubble up)")
+    @Function(docs = "Replace a value with another value (error bubbles up)")
     public static Value replace(Value original, Value replacement) {
         if (original instanceof ErrorValue) {
             return original;

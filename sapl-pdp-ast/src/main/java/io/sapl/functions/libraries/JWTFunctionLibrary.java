@@ -139,7 +139,7 @@ public class JWTFunctionLibrary {
      * @param rawToken
      * the Base64-encoded JWT string
      *
-     * @return Value containing header and payload, or errors if parsing fails
+     * @return Value containing header and payload, or error if parsing fails
      */
     @Function(docs = """
             ```parseJwt(TEXT rawToken)```: Parses the raw encoded JWT token and converts it into a SAPL

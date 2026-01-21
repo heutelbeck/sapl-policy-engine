@@ -266,7 +266,7 @@ public class MacFunctionLibrary {
      * @param algorithm
      * the HMAC algorithm name
      *
-     * @return a Value containing the hexadecimal MAC or an errors
+     * @return a Value containing the hexadecimal MAC or an error
      */
     private static Value computeHmac(String message, String key, String algorithm) {
         try {

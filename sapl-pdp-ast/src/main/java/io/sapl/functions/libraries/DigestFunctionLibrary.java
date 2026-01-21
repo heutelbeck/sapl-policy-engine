@@ -227,7 +227,7 @@ public class DigestFunctionLibrary {
      * @param algorithm
      * the digest algorithm name
      *
-     * @return a Value containing the hexadecimal hash or an errors
+     * @return a Value containing the hexadecimal hash or an error
      */
     private static Value computeDigest(String data, String algorithm) {
         try {

@@ -638,9 +638,9 @@ public class NumeralFunctionLibrary {
      * @param radix
      * the base (2, 8, or 16)
      * @param baseName
-     * the name of the base for errors messages
+     * the name of the base for error messages
      *
-     * @return a Value containing the parsed number or an errors
+     * @return a Value containing the parsed number or an error
      */
     private static Value parseWithBase(String input, int radix, String baseName) {
         if (input == null || input.isBlank()) {

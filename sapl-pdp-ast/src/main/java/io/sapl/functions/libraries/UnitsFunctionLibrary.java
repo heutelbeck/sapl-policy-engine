@@ -298,7 +298,7 @@ public class UnitsFunctionLibrary {
     }
 
     /**
-     * Creates a standardized format errors message.
+     * Creates a standardized format error message.
      */
     private static Value createFormatError(String text, boolean isByteContext) {
         val formatType = isByteContext ? FORMAT_TYPE_BYTE : FORMAT_TYPE_UNIT;

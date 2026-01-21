@@ -53,7 +53,7 @@ public class JWTKeyProvider {
     static final long          DEFAULT_CACHING_TTL    = 300000L;
 
     /**
-     * Exception indication a caching errors.
+     * Exception indicating a caching error.
      */
     @StandardException
     public static class CachingException extends Exception {

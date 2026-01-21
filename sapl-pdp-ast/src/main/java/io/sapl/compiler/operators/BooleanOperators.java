@@ -37,7 +37,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class BooleanOperators {
 
-    private static final String ERROR_TYPE_MISMATCH = "Logical op requires boolean value, but found: %s.";
+    private static final String ERROR_TYPE_MISMATCH = "Logical operation requires boolean value, but found: %s.";
 
     /**
      * Logical negation.

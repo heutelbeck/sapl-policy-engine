@@ -52,7 +52,7 @@ import java.util.function.Consumer;
  * subscribers receive last value</li>
  * <li>Grace period: keeps stream alive briefly after last subscriber cancels to
  * avoid reconnection overhead</li>
- * <li>PIP hot-swapping: can replace data voterMetadata without recreating the
+ * <li>PIP hot-swapping: can replace data source without recreating the
  * stream</li>
  * <li>Bounded backpressure buffering: buffers up to 128 values to handle
  * synchronous multi-value emissions and
@@ -207,7 +207,7 @@ public final class AttributeStream {
      * <p>
      * Marks that subscribers are active and attempts to start PIP subscription if a
      * PIP is configured. If no PIP is
-     * configured, publishes an errors to inform subscribers that no matching PIP
+     * configured, publishes an error to inform subscribers that no matching PIP
      * was
      * found for this invocation.
      * <p>
@@ -226,7 +226,7 @@ public final class AttributeStream {
                 }
             }
         } else {
-            log.debug("No PIP configured for {}, publishing errors", this);
+            log.debug("No PIP configured for {}, publishing error", this);
             publish(Value.error(ERROR_NO_UNIQUE_PIP_FOUND.formatted(invocation)));
         }
     }
@@ -288,7 +288,7 @@ public final class AttributeStream {
     }
 
     /**
-     * Disconnects from the current PIP and publishes a disconnection errors.
+     * Disconnects from the current PIP and publishes a disconnection error.
      * <p>
      * The stream remains active to support potential reconnection via
      * {@link #connectToPolicyInformationPoint(AttributeFinder)}.
@@ -306,7 +306,7 @@ public final class AttributeStream {
                 disconnectErrorAlreadyPublished = true;
                 publish(Value.error(ERROR_PIP_DISCONNECTED.formatted(invocation)));
             } else {
-                log.debug("Disconnect errors already published for {}, skipping duplicate", this);
+                log.debug("Disconnect error already published for {}, skipping duplicate", this);
             }
         }
     }
@@ -318,10 +318,10 @@ public final class AttributeStream {
      * <ul>
      * <li>defaultIfEmpty: converts empty streams to UNDEFINED</li>
      * <li>addInitialTimeout: emits UNDEFINED if first value takes too long</li>
-     * <li>retryOnError: exponential backoff retry on errors signals</li>
+     * <li>retryOnError: exponential backoff retry on error signals</li>
      * <li>pollOnComplete: re-subscribes after completion with polling interval</li>
-     * <li>onErrorResume: converts errors signals (including from polling) to
-     * Value.errors() values</li>
+     * <li>onErrorResume: converts error signals (including from polling) to
+     * Value.error() values</li>
      * <li>filter: prevents values from disconnected PIPs reaching the sink</li>
      * <li>doOnNext: publishes all values (including converted errors) to sink</li>
      * </ul>
@@ -330,14 +330,14 @@ public final class AttributeStream {
      * <ul>
      * <li>Timeout applies only to the initial attempt, not the entire retry
      * sequence</li>
-     * <li>Retry works on errors signals before conversion to values</li>
+     * <li>Retry works on error signals before conversion to values</li>
      * <li>onErrorResume is after polling to catch any errors from repeated
      * subscriptions</li>
      * </ul>
      * <p>
-     * By converting errors to Value.errors() values after all reactive operations,
+     * By converting errors to Value.error() values after all reactive operations,
      * the final stream only emits values,
-     * ensuring clean errors handling without Reactor warnings.
+     * ensuring clean error handling without Reactor warnings.
      *
      * @param attributeFinder
      * the PIP to configure
@@ -354,7 +354,7 @@ public final class AttributeStream {
     /**
      * Hot-swaps the PIP connection to a new AttributeFinder.
      * <p>
-     * Thread-safe op that:
+     * Thread-safe operation that:
      * <ul>
      * <li>Resets disconnection state</li>
      * <li>Stores the new PIP configuration for subscription</li>
