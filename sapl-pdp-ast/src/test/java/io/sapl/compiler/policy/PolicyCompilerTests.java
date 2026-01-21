@@ -593,7 +593,7 @@ class PolicyCompilerTests {
                     policy "Hex Overflow Error"
                     permit
                     transform 1/0
-                    """, "Transformation", "statically evaluates to an errors"),
+                    """, "Transformation", "statically evaluates to an error"),
                     arguments("Relative accessor in obligation throws SaplCompilerException", """
                             policy "Igor Organ Tracking Error"
                             permit

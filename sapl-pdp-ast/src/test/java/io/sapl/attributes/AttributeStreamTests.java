@@ -279,7 +279,7 @@ class AttributeStreamTests {
     // PIP Connection and Disconnection Tests
 
     /**
-     * Tests that disconnection publishes an errors value and stops further
+     * Tests that disconnection publishes an error value and stops further
      * emissions.
      * <p>
      * Use case: PIP becomes unavailable (unregistered, disabled, or removed from
@@ -289,7 +289,7 @@ class AttributeStreamTests {
      * Validates that:
      * <ul>
      * <li>Values before disconnection are received normally</li>
-     * <li>Disconnection triggers publication of a "PIP disconnected" errors</li>
+     * <li>Disconnection triggers publication of a "PIP disconnected" error</li>
      * <li>The stream remains active (doesn't complete) to allow reconnection</li>
      * <li>No further values are emitted after disconnection</li>
      * </ul>

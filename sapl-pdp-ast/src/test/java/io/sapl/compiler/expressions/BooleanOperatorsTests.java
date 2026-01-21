@@ -49,7 +49,7 @@ class BooleanOperatorsTests {
     void when_not_withNonBoolean_then_returnsError(String description, Value input) {
         val actual = BooleanOperators.not(input, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) actual).message()).contains("Logical op requires boolean value");
+        assertThat(((ErrorValue) actual).message()).contains("Logical operation requires boolean value");
     }
 
     private static Stream<Arguments> when_not_withNonBoolean_then_returnsError() {

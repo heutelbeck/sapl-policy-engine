@@ -98,17 +98,17 @@ class ArithmeticOperatorsTests {
     // @formatter:off
     private static Stream<Arguments> when_binaryOp_withInvalidInput_then_returnsError() {
         return Stream.of(
-            arguments("add number + text", ADD, Value.of(5), Value.of("text"), "Numeric op"),
-            arguments("subtract type errors", SUB, Value.of(5), Value.of("text"), "Numeric op"),
-            arguments("multiply type errors", MUL, Value.of(5), Value.of("text"), "Numeric op"),
-            arguments("divide type errors", DIV, Value.of(5), Value.of("text"), "Numeric op"),
+            arguments("add number + text", ADD, Value.of(5), Value.of("text"), "Numeric operation"),
+            arguments("subtract type errors", SUB, Value.of(5), Value.of("text"), "Numeric operation"),
+            arguments("multiply type errors", MUL, Value.of(5), Value.of("text"), "Numeric operation"),
+            arguments("divide type errors", DIV, Value.of(5), Value.of("text"), "Numeric operation"),
             arguments("divide by zero", DIV, Value.of(5), Value.of(0), "Division by zero"),
-            arguments("modulo type errors", MOD, Value.of(5), Value.of("text"), "Numeric op"),
+            arguments("modulo type errors", MOD, Value.of(5), Value.of("text"), "Numeric operation"),
             arguments("modulo by zero", MOD, Value.of(5), Value.of(0), "Division by zero"),
-            arguments("add with null", ADD, Value.of(5), Value.NULL, "Numeric op"),
-            arguments("add with undefined", ADD, Value.of(5), Value.UNDEFINED, "Numeric op"),
-            arguments("add with array", ADD, Value.of(5), Value.EMPTY_ARRAY, "Numeric op"),
-            arguments("compare with null", LT, Value.of(5), Value.NULL, "Numeric op"));
+            arguments("add with null", ADD, Value.of(5), Value.NULL, "Numeric operation"),
+            arguments("add with undefined", ADD, Value.of(5), Value.UNDEFINED, "Numeric operation"),
+            arguments("add with array", ADD, Value.of(5), Value.EMPTY_ARRAY, "Numeric operation"),
+            arguments("compare with null", LT, Value.of(5), Value.NULL, "Numeric operation"));
     }
     // @formatter:on
 
