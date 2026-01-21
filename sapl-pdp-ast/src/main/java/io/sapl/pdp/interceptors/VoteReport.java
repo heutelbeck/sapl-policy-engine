@@ -22,7 +22,7 @@ import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.compiler.pdp.Vote;
 import lombok.val;

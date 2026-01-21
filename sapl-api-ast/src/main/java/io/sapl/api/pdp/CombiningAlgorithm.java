@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.ast;
+package io.sapl.api.pdp;
 
 /**
  * Combining algorithm for policy sets, composed of voting mode, default
@@ -27,6 +27,30 @@ package io.sapl.ast;
  */
 public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
 
+    /**
+     * Default combining algorithm: priority deny, default deny, errors propagate.
+     */
+    public static final CombiningAlgorithm DEFAULT = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+
+    /**
+     * Returns a canonical string representation for hashing and comparison.
+     * <p>
+     * Format: {@code votingMode:defaultDecision:errorHandling}
+     * <br>
+     * Example: {@code PRIORITY_DENY:DENY:ABSTAIN}
+     * </p>
+     * <p>
+     * This format is stable and used in configuration ID generation.
+     * Changes to this format are breaking changes.
+     * </p>
+     *
+     * @return canonical string representation
+     */
+    public String toCanonicalString() {
+        return votingMode.name() + ":" + defaultDecision.name() + ":" + errorHandling.name();
+    }
+
     public enum VotingMode {
         FIRST,
         PRIORITY_DENY,
@@ -37,8 +61,8 @@ public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultD
     }
 
     public enum DefaultDecision {
-        DENY,
         ABSTAIN,
+        DENY,
         PERMIT
     }
 

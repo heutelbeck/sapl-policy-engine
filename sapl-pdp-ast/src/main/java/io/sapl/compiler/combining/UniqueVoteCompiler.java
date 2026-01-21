@@ -22,8 +22,8 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
-import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
@@ -108,7 +108,7 @@ public class UniqueVoteCompiler {
         });
     }
 
-    private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
+    public static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             DefaultDecision defaultDecision, ErrorHandling errorHandling) {
 
         val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);

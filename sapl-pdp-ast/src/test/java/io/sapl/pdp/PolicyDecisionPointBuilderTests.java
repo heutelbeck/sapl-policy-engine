@@ -20,9 +20,11 @@ package io.sapl.pdp;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.TraceLevel;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.val;
@@ -48,6 +50,11 @@ class PolicyDecisionPointBuilderTests {
 
     private static final String DEFAULT_PDP_ID = "default";
 
+    private static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm DENY_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+
     private static BundleSecurityPolicy developmentPolicy;
 
     @TempDir
@@ -64,7 +71,7 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withDefaults().build();
 
         assertThat(components.pdp()).isNotNull();
-        assertThat(components.configurationRegister()).isNotNull();
+        assertThat(components.pdpRegister()).isNotNull();
         assertThat(components.functionBroker()).isNotNull();
         assertThat(components.attributeBroker()).isNotNull();
         assertThat(components.source()).isNull();
@@ -77,7 +84,7 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
 
         assertThat(components.pdp()).isNotNull();
-        assertThat(components.configurationRegister()).isNotNull();
+        assertThat(components.pdpRegister()).isNotNull();
         assertThat(components.source()).isNull();
 
         disposeSource(components);
@@ -86,8 +93,7 @@ class PolicyDecisionPointBuilderTests {
     @Test
     void whenBuildingWithConfiguration_thenConfigurationIsLoaded() throws Exception {
         val policy = "policy \"permit-all\" permit";
-        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", CombiningAlgorithm.PERMIT_OVERRIDES,
-                TraceLevel.STANDARD, List.of(policy), Map.of());
+        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", PERMIT_OVERRIDES, List.of(policy), Map.of());
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config).build();
 
@@ -167,16 +173,14 @@ class PolicyDecisionPointBuilderTests {
 
     @Test
     void whenBuildingWithMultipleConfigurations_thenAllAreLoaded() throws Exception {
-        val config1 = new PDPConfiguration("pdp1", "v1", CombiningAlgorithm.PERMIT_OVERRIDES, TraceLevel.STANDARD,
-                List.of("policy \"p1\" permit"), Map.of());
-        val config2 = new PDPConfiguration("pdp2", "v1", CombiningAlgorithm.DENY_OVERRIDES, TraceLevel.STANDARD,
-                List.of("policy \"p2\" deny"), Map.of());
+        val config1 = new PDPConfiguration("pdp1", "v1", PERMIT_OVERRIDES, List.of("policy \"p1\" permit"), Map.of());
+        val config2 = new PDPConfiguration("pdp2", "v1", DENY_OVERRIDES, List.of("policy \"p2\" deny"), Map.of());
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config1)
                 .withConfiguration(config2).build();
 
         // Both configurations should be loaded
-        assertThat(components.configurationRegister()).isNotNull();
+        assertThat(components.pdpRegister()).isNotNull();
 
         disposeSource(components);
     }
@@ -292,15 +296,12 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithTraceLevelOverride_thenOverrideIsUsed() throws Exception {
+    void whenBuildingWithPoliciesAndAlgorithm_thenPdpBuildsSuccessfully() throws Exception {
         val policy = "policy \"elder-wards\" permit";
-        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", CombiningAlgorithm.DENY_OVERRIDES, TraceLevel.STANDARD,
-                List.of(policy), Map.of());
+        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", DENY_OVERRIDES, List.of(policy), Map.of());
 
-        val components = PolicyDecisionPointBuilder.withoutDefaults().withTraceLevel(TraceLevel.COVERAGE)
-                .withConfiguration(config).build();
+        val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config).build();
 
-        // The PDP should work - the traceLevel override is used during compilation
         StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
 
@@ -308,9 +309,9 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithTraceLevelCoverage_thenPdpBuildsSuccessfully() throws Exception {
-        val components = PolicyDecisionPointBuilder.withoutDefaults().withTraceLevel(TraceLevel.COVERAGE)
-                .withPolicies(CombiningAlgorithm.PERMIT_OVERRIDES, "policy \"test\" permit").build();
+    void whenBuildingWithPolicies_thenPdpBuildsSuccessfully() throws Exception {
+        val components = PolicyDecisionPointBuilder.withoutDefaults().withCombiningAlgorithm(PERMIT_OVERRIDES)
+                .withPolicy("policy \"test\" permit").build();
 
         assertThat(components.pdp()).isNotNull();
 

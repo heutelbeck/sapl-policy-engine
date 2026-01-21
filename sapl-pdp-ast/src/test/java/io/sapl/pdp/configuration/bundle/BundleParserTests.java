@@ -18,6 +18,9 @@
 package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
@@ -47,6 +50,11 @@ class BundleParserTests {
     private static final String TEST_PDP_ID    = "cthulhu-pdp";
     private static final String TEST_CONFIG_ID = "eldritch-v1";
 
+    private static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
+    private static final CombiningAlgorithm DENY_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.ABSTAIN);
+
     private static BundleSecurityPolicy developmentPolicy;
 
     @TempDir
@@ -60,15 +68,18 @@ class BundleParserTests {
 
     @Test
     void whenParsingValidBundle_thenExtractsAllContent() throws IOException {
-        val bundleBytes = createBundleWithConfigId("""
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "%s" }
-                """.formatted(TEST_CONFIG_ID), "elder-sign.sapl", "policy \"elder-sign\" permit true;");
+        val bundleBytes = createBundleWithConfigId(
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" }, "configurationId": "%s" }
+                        """
+                        .formatted(TEST_CONFIG_ID),
+                "elder-sign.sapl", "policy \"elder-sign\" permit true;");
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.pdpId()).isEqualTo(TEST_PDP_ID);
         assertThat(config.configurationId()).isEqualTo(TEST_CONFIG_ID);
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(config.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
         assertThat(config.saplDocuments()).hasSize(1);
     }
 
@@ -82,9 +93,11 @@ class BundleParserTests {
 
     @Test
     void whenParsingBundleWithoutConfigurationId_thenThrowsException() throws IOException {
-        val bundleBytes = createBundleWithConfigId("""
-                { "algorithm": "DENY_OVERRIDES" }
-                """, "cultist.sapl", "policy \"cultist\" deny true;");
+        val bundleBytes = createBundleWithConfigId(
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                        """,
+                "cultist.sapl", "policy \"cultist\" deny true;");
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("configurationId");
@@ -102,13 +115,17 @@ class BundleParserTests {
     @Test
     void whenParsingFromPath_thenConfigurationIsExtracted() throws IOException {
         val bundlePath = tempDir.resolve("test.saplbundle");
-        Files.write(bundlePath, createBundleWithConfigId("""
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "%s" }
-                """.formatted(TEST_CONFIG_ID), "shoggoth.sapl", "policy \"shoggoth\" deny true;"));
+        Files.write(bundlePath,
+                createBundleWithConfigId(
+                        """
+                                { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }, "configurationId": "%s" }
+                                """
+                                .formatted(TEST_CONFIG_ID),
+                        "shoggoth.sapl", "policy \"shoggoth\" deny true;"));
 
         val config = BundleParser.parse(bundlePath, TEST_PDP_ID, developmentPolicy);
 
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(config.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
         assertThat(config.saplDocuments()).hasSize(1);
     }
 
@@ -208,7 +225,7 @@ class BundleParserTests {
         val pdpJsonConfig = BundleParser.parse(pdpJsonBundle, TEST_PDP_ID, developmentPolicy);
 
         assertThat(pdpJsonConfig.saplDocuments()).isEmpty();
-        assertThat(pdpJsonConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(pdpJsonConfig.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
     }
 
     @Test
@@ -361,7 +378,10 @@ class BundleParserTests {
     private byte[] createBundleWithOnlyPdpJson() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
-            val pdpJson = "{\"algorithm\":\"DENY_OVERRIDES\",\"configurationId\":\"%s\"}".formatted(TEST_CONFIG_ID);
+            val pdpJson = """
+                    {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"ABSTAIN"},"configurationId":"%s"}
+                    """
+                    .formatted(TEST_CONFIG_ID);
             zos.putNextEntry(new ZipEntry("pdp.json"));
             zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();

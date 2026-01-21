@@ -17,6 +17,7 @@
  */
 package io.sapl.ast;
 
+import io.sapl.api.pdp.CombiningAlgorithm;
 import lombok.NonNull;
 
 public record PolicySetVoterMetadata(

@@ -21,10 +21,10 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.CombiningAlgorithm;
-import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
-import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
-import io.sapl.ast.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.ast.PolicyVoterMetadata;
@@ -69,7 +69,7 @@ class ReportBuilderUtilTests {
     void whenExtractReport_thenObligationsAreExtracted() {
         val obligation    = Value.of("log_access");
         val obligations   = ArrayValue.builder().add(obligation).build();
-        val authzDecision = new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, null);
+        val authzDecision = new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED);
         val voter         = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, true);
         val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
@@ -84,8 +84,8 @@ class ReportBuilderUtilTests {
     void whenVoteHasContributingVotes_thenContributingDocumentsAreExtracted() {
         val policyVoter = new PolicyVoterMetadata("forbidden-knowledge-access", "cthulhu-pdp", "test-security", "doc-1",
                 Outcome.PERMIT, false);
-        val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, policyVoter,
-                List.of());
+        val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                policyVoter, List.of());
 
         val setVoter = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, false);
@@ -148,18 +148,18 @@ class ReportBuilderUtilTests {
     @DisplayName("flattens nested policy sets into contributing documents")
     void whenNestedPolicySets_thenAllAreFlattened() {
         val innerPolicyVoter = new PolicyVoterMetadata("inner-policy", "pdp", "config", null, Outcome.DENY, false);
-        val innerPolicyVote  = Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null,
+        val innerPolicyVote  = Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 innerPolicyVoter, List.of());
 
         val innerSetVoter = new PolicySetVoterMetadata("inner-set", "pdp", "config", null, DENY_OVERRIDES, Outcome.DENY,
                 false);
-        val innerSetVote  = Vote.combinedVote(AuthorizationDecision.DENY, innerSetVoter,
-                List.of(innerPolicyVote), Outcome.DENY);
+        val innerSetVote  = Vote.combinedVote(AuthorizationDecision.DENY, innerSetVoter, List.of(innerPolicyVote),
+                Outcome.DENY);
 
         val outerSetVoter = new PolicySetVoterMetadata("outer-set", "pdp", "config", null, DENY_OVERRIDES, Outcome.DENY,
                 false);
-        val vote          = Vote.combinedVote(AuthorizationDecision.DENY, outerSetVoter,
-                List.of(innerSetVote), Outcome.DENY);
+        val vote          = Vote.combinedVote(AuthorizationDecision.DENY, outerSetVoter, List.of(innerSetVote),
+                Outcome.DENY);
 
         val report = ReportBuilderUtil.extractReport(vote);
 

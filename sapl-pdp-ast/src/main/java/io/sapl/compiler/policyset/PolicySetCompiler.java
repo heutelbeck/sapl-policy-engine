@@ -28,14 +28,20 @@ import io.sapl.compiler.combining.UniqueVoteCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.CompiledDocument;
+import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.HashSet;
+import java.util.List;
+
 @UtilityClass
 public class PolicySetCompiler {
 
+    public static final String ERROR_NAME_COLLISION        = "Name collision during compilation of policy set. The policy with the name \"%s\" is defined at least twice.";
     public static final String ERROR_VARIABLE_REDEFINITION = "Redefinition of variable %s not permitted.";
 
     public static CompiledPolicySet compilePolicySet(PolicySet policySet, CompilationContext ctx) {
@@ -43,6 +49,7 @@ public class PolicySetCompiler {
         val metadata         = policySet.metadata();
         val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
                 .toList();
+        assertPolicyNamesAreUnique(compiledPolicies);
         val schemaValidator  = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
         val isApplicable     = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
                 ctx);
@@ -68,6 +75,16 @@ public class PolicySetCompiler {
                 metadata);
         return new CompiledPolicySet(isApplicable, voterAndCoverage.voter(), applicabilityAndVoter,
                 voterAndCoverage.coverage(), metadata);
+    }
+
+    private static void assertPolicyNamesAreUnique(List<? extends CompiledDocument> compiledDocuments) {
+        val usedNames = new HashSet<>(compiledDocuments.size());
+        for (val compiledPolicy : compiledDocuments) {
+            val name = compiledPolicy.metadata().name();
+            if (!usedNames.add(name)) {
+                throw new SaplCompilerException(ERROR_NAME_COLLISION.formatted(name));
+            }
+        }
     }
 
     private static void compilePolicySetVariables(PolicySet policySet, CompilationContext ctx) {

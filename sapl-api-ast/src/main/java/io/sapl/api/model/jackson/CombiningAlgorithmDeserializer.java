@@ -21,17 +21,19 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import io.sapl.ast.CombiningAlgorithm;
-import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
-import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
-import io.sapl.ast.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 
 import java.io.IOException;
 
 /**
- * Deserializer for {@link CombiningAlgorithm} that parses the record from JSON object format.
+ * Deserializer for {@link CombiningAlgorithm} that parses the record from JSON
+ * object format.
  * <p>
  * Expected format:
+ *
  * <pre>
  * {
  *   "votingMode": "PRIORITY_DENY",

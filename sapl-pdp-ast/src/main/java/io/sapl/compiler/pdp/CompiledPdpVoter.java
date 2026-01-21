@@ -37,27 +37,28 @@ public record CompiledPdpVoter(
         FunctionBroker functionBroker,
         Supplier<String> timestampSupplier) {
 
-    public Vote voteOnce(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
+    public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
         if (pdpVoter instanceof Vote vote) {
-            return vote;
+            return new TimestampedVote(vote, timestampSupplier.get());
         }
         val evaluationContext = evaluationContext(authorizationSubscription, subscriptionId);
         if (pdpVoter instanceof PureVoter pureVoter) {
-            return pureVoter.vote(evaluationContext);
+            return new TimestampedVote(pureVoter.vote(evaluationContext), timestampSupplier.get());
         }
         return ((StreamVoter) pdpVoter).vote()
-                .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext)).take(1).blockFirst();
+                .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext)).take(1)
+                .map(vote -> new TimestampedVote(vote, timestampSupplier.get())).blockFirst();
     }
 
-    public Flux<Vote> vote(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
+    public Flux<TimestampedVote> vote(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
         if (pdpVoter instanceof Vote vote) {
-            return Flux.just(vote);
+            return Flux.just(new TimestampedVote(vote, timestampSupplier.get()));
         }
         val evaluationContext = evaluationContext(authorizationSubscription, subscriptionId);
         if (pdpVoter instanceof PureVoter pureVoter) {
-            return Flux.just(pureVoter.vote(evaluationContext));
+            return Flux.just(new TimestampedVote(pureVoter.vote(evaluationContext), timestampSupplier.get()));
         }
-        return ((StreamVoter) pdpVoter).vote()
+        return ((StreamVoter) pdpVoter).vote().map(vote -> new TimestampedVote(vote, timestampSupplier.get()))
                 .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext));
     }
 

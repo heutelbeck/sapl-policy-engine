@@ -17,15 +17,4 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.ast.Outcome;
-import io.sapl.ast.VoterMetadata;
-import lombok.NonNull;
-
-public record PdpVoterMetadata(
-        @NonNull String name,
-        @NonNull String pdpId,
-        @NonNull String configurationId,
-        CombiningAlgorithm combiningAlgorithm,
-        @NonNull Outcome outcome,
-        boolean hasConstraints) implements VoterMetadata {}
+public record TimestampedVote(Vote vote, String timestamp) {}

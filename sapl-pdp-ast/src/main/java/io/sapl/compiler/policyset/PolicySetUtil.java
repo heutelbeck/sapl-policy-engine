@@ -19,7 +19,7 @@ package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;

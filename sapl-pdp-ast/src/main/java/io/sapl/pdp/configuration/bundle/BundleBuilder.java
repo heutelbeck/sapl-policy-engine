@@ -60,7 +60,7 @@ import java.util.zip.ZipOutputStream;
  * <pre>{@code
  * // Create a bundle with explicit pdp.json content
  * byte[] bundle = BundleBuilder.create().withPdpJson("""
- *         { "algorithm": "DENY_OVERRIDES" }
+ *         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
  *         """).withPolicy("access-control.sapl", """
  *         policy "admin-access"
  *         permit subject.role == "admin"
@@ -70,23 +70,19 @@ import java.util.zip.ZipOutputStream;
  *         advice { "action": "log" }
  *         """).build();
  *
- * // Create a bundle using combining algorithm enum
- * byte[] bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+ * // Create a bundle using combining algorithm record
+ * var algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
+ * byte[] bundle = BundleBuilder.create().withCombiningAlgorithm(algorithm)
  *         .withPolicy("permissive.sapl", "policy \"allow-all\" permit true").build();
  *
- * // Write bundle directly to a file
- * BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+ * // Write bundle directly to a file using default algorithm
+ * BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
  *         .withPolicy("strict.sapl", "policy \"deny-default\" deny true")
  *         .writeTo(Path.of("/policies/production.saplbundle"));
  *
- * // Stream bundle to an HTTP response
- * BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE)
- *         .withPolicy("api-access.sapl", "policy \"api\" permit resource.type == \"api\"")
- *         .writeTo(response.getOutputStream());
- *
  * // Create a signed bundle with Ed25519
  * PrivateKey signingKey = loadPrivateKey();
- * byte[] signedBundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+ * byte[] signedBundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
  *         .withPolicy("secure.sapl", "policy \"secure\" permit subject.verified == true")
  *         .signWith(signingKey, "production-key-2024").build();
  * }</pre>
@@ -183,8 +179,8 @@ public final class BundleBuilder {
      */
     public BundleBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm, String configurationId) {
         this.pdpJson = """
-                { "algorithm": "%s", "configurationId": "%s" }
-                """.formatted(algorithm.name(), configurationId);
+                { "algorithm": %s, "configurationId": "%s" }
+                """.formatted(algorithmToJson(algorithm), configurationId);
         return this;
     }
 
@@ -237,8 +233,8 @@ public final class BundleBuilder {
         variablesJson.append(" }");
 
         this.pdpJson = """
-                { "algorithm": "%s", "configurationId": "%s", "variables": %s }
-                """.formatted(algorithm.name(), configurationId, variablesJson);
+                { "algorithm": %s, "configurationId": "%s", "variables": %s }
+                """.formatted(algorithmToJson(algorithm), configurationId, variablesJson);
         return this;
     }
 
@@ -387,9 +383,7 @@ public final class BundleBuilder {
                 allFiles.put(PDP_JSON, pdpJson);
             }
 
-            for (val entry : policies.entrySet()) {
-                allFiles.put(entry.getKey(), entry.getValue());
-            }
+            allFiles.putAll(policies);
 
             // Write all content files
             for (val entry : allFiles.entrySet()) {
@@ -420,6 +414,12 @@ public final class BundleBuilder {
         zipStream.putNextEntry(entry);
         zipStream.write(content.getBytes(StandardCharsets.UTF_8));
         zipStream.closeEntry();
+    }
+
+    private static String algorithmToJson(CombiningAlgorithm algorithm) {
+        return """
+                { "votingMode": "%s", "defaultDecision": "%s", "errorHandling": "%s" }""".formatted(
+                algorithm.votingMode().name(), algorithm.defaultDecision().name(), algorithm.errorHandling().name());
     }
 
 }

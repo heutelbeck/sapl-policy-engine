@@ -25,9 +25,9 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.CombiningAlgorithm;
-import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
-import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.ast.PolicyVoterMetadata;
@@ -45,7 +45,7 @@ public record Vote(
         VoterMetadata voter,
         Outcome outcome) implements Voter {
 
-    // Field name constants (alphabetical)
+    // Field name constants
     private static final String FIELD_ADVICE = "advice";
     private static final String FIELD_ALGORITHM = "algorithm";
     private static final String FIELD_ARGUMENTS = "arguments";
@@ -74,7 +74,7 @@ public record Vote(
     private static final String FIELD_VOTER = "voter";
     private static final String FIELD_VOTING_MODE = "votingMode";
 
-    // Type value constants (alphabetical)
+    // Type value constants
     private static final String TYPE_POLICY = "policy";
     private static final String TYPE_SET = "set";
     private static final String TYPE_UNKNOWN = "unknown";

@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
+import io.sapl.compiler.pdp.TimestampedVote;
 import io.sapl.compiler.pdp.Vote;
 import io.sapl.pdp.VoteInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -51,32 +52,32 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void intercept(Vote vote) {
+    public void intercept(TimestampedVote vote) {
         if (printTrace) {
             logTrace(vote);
         }
         if (printJsonReport || printTextReport) {
-            val report = ReportBuilderUtil.extractReport(vote);
+            val report = ReportBuilderUtil.extractReport(vote.vote());
             if (printJsonReport) {
-                logJsonReport(report);
+                logJsonReport(vote.timestamp(), report);
             }
             if (printTextReport) {
-                logTextReport(report);
+                logTextReport(vote.timestamp(), report);
             }
         }
     }
 
-    private void logTrace(Vote vote) {
-        val trace = vote.toTrace();
-        multiLineLog("New Decision (trace) : " + trace);
+    private void logTrace(TimestampedVote vote) {
+        val trace = vote.vote().toTrace();
+        multiLineLog(vote.timestamp() + ": New Decision (trace) : " + trace);
     }
 
-    private void logJsonReport(VoteReport report) {
+    private void logJsonReport(String timestamp, VoteReport report) {
         val reportValue = ReportBuilderUtil.toObjectValue(report);
         multiLineLog("New Decision (report): " + reportValue);
     }
 
-    private void logTextReport(VoteReport report) {
+    private void logTextReport(String timestamp, VoteReport report) {
         multiLineLog(ReportTextRenderUtil.textReport(report));
     }
 

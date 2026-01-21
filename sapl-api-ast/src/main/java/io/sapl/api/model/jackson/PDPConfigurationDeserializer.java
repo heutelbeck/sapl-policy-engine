@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.ast.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ import java.util.Map;
  */
 public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfiguration> {
 
-    private final ValueDeserializer               valueDeserializer               = new ValueDeserializer();
+    private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
     private final CombiningAlgorithmDeserializer combiningAlgorithmDeserializer = new CombiningAlgorithmDeserializer();
 
     @Override
@@ -71,7 +71,8 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
             switch (fieldName) {
             case "pdpId"              -> pdpId = parser.getText();
             case "configurationId"    -> configurationId = parser.getText();
-            case "combiningAlgorithm" -> combiningAlgorithm = combiningAlgorithmDeserializer.deserialize(parser, context);
+            case "combiningAlgorithm" ->
+                combiningAlgorithm = combiningAlgorithmDeserializer.deserialize(parser, context);
             case "saplDocuments"      -> saplDocuments = deserializeStringList(parser);
             case "variables"          -> variables = deserializeVariablesMap(parser, context);
             default                   -> parser.skipChildren();

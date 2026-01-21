@@ -19,19 +19,17 @@ package io.sapl.pdp;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.PDPConfiguration;
-
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
-import io.sapl.prp.NaivePolicyRetrievalPoint;
+import io.sapl.compiler.pdp.PdpCompiler;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,7 +71,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * </ul>
  */
 @RequiredArgsConstructor
-public class ConfigurationRegister implements CompiledPDPConfigurationSource {
+public class PdpRegister implements CompiledPDPConfigurationSource {
 
     private final FunctionBroker  functionBroker;
     private final AttributeBroker attributeBroker;
@@ -107,42 +105,18 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
      * if compilation fails or document names collide
      */
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
-        val namesInUse                = new HashSet<String>();
-        val alwaysApplicableDocuments = new ArrayList<CompiledPolicy>();
-        val maybeApplicableDocuments  = new ArrayList<CompiledPolicy>();
-
-        val effectiveTraceLevel = traceLevelOverride != null ? traceLevelOverride : pdpConfiguration.traceLevel();
-        val compilationContext  = new CompilationContext(functionBroker, attributeBroker, effectiveTraceLevel);
-        for (String saplDocument : pdpConfiguration.saplDocuments()) {
-            CompiledPolicy compiledDocument;
-            try {
-                compiledDocument = SaplCompiler.compile(saplDocument, compilationContext);
-            } catch (SaplCompilerException exception) {
-                if (!keepOldConfigOnError) {
-                    removeConfigurationForPdp(pdpConfiguration.pdpId());
-                }
-                throw new IllegalArgumentException("Configuration rejected. Error compiling document.", exception);
+        val              compilationContext = new CompilationContext(pdpConfiguration.pdpId(),
+                pdpConfiguration.configurationId(), functionBroker, attributeBroker);
+        CompiledPdpVoter newConfiguration;
+        try {
+            newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext);
+        } catch (SaplCompilerException compilerException) {
+            if (!keepOldConfigOnError) {
+                removeConfigurationForPdp(pdpConfiguration.pdpId());
             }
-            if (namesInUse.contains(compiledDocument.name())) {
-                if (!keepOldConfigOnError) {
-                    removeConfigurationForPdp(pdpConfiguration.pdpId());
-                }
-                throw new IllegalArgumentException(
-                        "Configuration rejected. Document name collision: %s".formatted(compiledDocument.name()));
-            }
-            namesInUse.add(compiledDocument.name());
-            if (Value.TRUE.equals(compiledDocument.matchExpression())) {
-                alwaysApplicableDocuments.add(compiledDocument);
-            } else if (!Value.FALSE.equals(compiledDocument.matchExpression())) {
-                maybeApplicableDocuments.add(compiledDocument);
-            }
+            throw new IllegalArgumentException("Configuration rejected. Error compiling document.", compilerException);
         }
-
-        val policyRetrievalPoint = new NaivePolicyRetrievalPoint(alwaysApplicableDocuments, maybeApplicableDocuments);
-        val newConfiguration     = new CompiledPDPConfiguration(pdpConfiguration.pdpId(),
-                pdpConfiguration.configurationId(), pdpConfiguration.combiningAlgorithm(), pdpConfiguration.variables(),
-                functionBroker, attributeBroker, policyRetrievalPoint);
-        val optionalConfig       = Optional.of(newConfiguration);
+        val optionalConfig = Optional.of(newConfiguration);
 
         // Update cache atomically, then notify streaming subscribers
         getConfigRef(pdpConfiguration.pdpId()).set(optionalConfig);

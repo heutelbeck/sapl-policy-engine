@@ -1,5 +1,9 @@
 {
-  "algorithm": "DENY_OVERRIDES",
+  "algorithm": {
+    "votingMode": "PRIORITY_DENY",
+    "defaultDecision": "DENY",
+    "errorHandling": "PROPAGATE"
+  },
   "variables": {
     "tenant": "default"
   }

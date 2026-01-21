@@ -18,6 +18,9 @@
 package io.sapl.pdp.configuration;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -46,6 +49,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 class BundlePDPConfigurationSourceTests {
+
+    private static final CombiningAlgorithm PERMIT_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm DENY_OVERRIDES     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm PERMIT_UNLESS_DENY = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
 
     private static KeyPair              elderKeyPair;
     private static BundleSecurityPolicy developmentPolicy;
@@ -76,9 +86,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenLoadingSingleBundle_thenCallbackIsInvokedWithDerivedPdpId() throws IOException {
-        createBundle(tempDir.resolve("necronomicon.saplbundle"), """
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "necronomicon-v1" }
-                """, "forbidden.sapl", "policy \"forbidden\" deny true;");
+        createBundle(tempDir.resolve("necronomicon.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "necronomicon-v1" }
+                        """,
+                "forbidden.sapl", "policy \"forbidden\" deny true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -86,19 +98,23 @@ class BundlePDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("necronomicon");
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
         assertThat(configs.getFirst().saplDocuments()).hasSize(1);
     }
 
     @Test
     void whenLoadingMultipleBundles_thenCallbackIsInvokedForEach() throws IOException {
-        createBundle(tempDir.resolve("rlyeh.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "rlyeh-v1" }
-                """, "cthulhu.sapl", "policy \"cthulhu\" deny true;");
+        createBundle(tempDir.resolve("rlyeh.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "rlyeh-v1" }
+                        """,
+                "cthulhu.sapl", "policy \"cthulhu\" deny true;");
 
-        createBundle(tempDir.resolve("yuggoth.saplbundle"), """
-                { "algorithm": "PERMIT_UNLESS_DENY", "configurationId": "yuggoth-v1" }
-                """, "migo.sapl", "policy \"migo\" permit true;");
+        createBundle(tempDir.resolve("yuggoth.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" }, "configurationId": "yuggoth-v1" }
+                        """,
+                "migo.sapl", "policy \"migo\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -110,10 +126,10 @@ class BundlePDPConfigurationSourceTests {
         assertThat(pdpIds).containsExactlyInAnyOrder("rlyeh", "yuggoth");
 
         val rlyehConfig = configs.stream().filter(c -> "rlyeh".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(rlyehConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(rlyehConfig.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
 
         val yuggothConfig = configs.stream().filter(c -> "yuggoth".equals(c.pdpId())).findFirst().orElseThrow();
-        assertThat(yuggothConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_UNLESS_DENY);
+        assertThat(yuggothConfig.combiningAlgorithm()).isEqualTo(PERMIT_UNLESS_DENY);
     }
 
     @Test
@@ -144,9 +160,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenBundleHasExplicitConfigurationId_thenConfigurationIdIsUsed() throws IOException {
-        createBundle(tempDir.resolve("arkham.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "eldritch-bundle-v1" }
-                """, "policy.sapl", "policy \"test\" permit true;");
+        createBundle(tempDir.resolve("arkham.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "eldritch-bundle-v1" }
+                        """,
+                "policy.sapl", "policy \"test\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -171,24 +189,28 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenBundleIsModified_thenCallbackIsInvokedAgain() throws IOException {
-        createBundle(tempDir.resolve("innsmouth.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "innsmouth-v1" }
-                """, "policy.sapl", "policy \"test\" permit true;");
+        createBundle(tempDir.resolve("innsmouth.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "innsmouth-v1" }
+                        """,
+                "policy.sapl", "policy \"test\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
 
-        createBundle(tempDir.resolve("innsmouth.saplbundle"), """
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "innsmouth-v2" }
-                """, "policy.sapl", "policy \"updated\" deny true;");
+        createBundle(tempDir.resolve("innsmouth.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "innsmouth-v2" }
+                        """,
+                "policy.sapl", "policy \"updated\" deny true;");
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(configs.size()).isGreaterThanOrEqualTo(2);
-            assertThat(configs.getLast().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+            assertThat(configs.getLast().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
         });
     }
 
@@ -238,9 +260,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenDisposeIsCalled_thenIsDisposedReturnsTrue() throws IOException {
-        createBundle(tempDir.resolve("disposable.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "disposable-v1" }
-                """, "policy.sapl", "policy \"test\" permit true;");
+        createBundle(tempDir.resolve("disposable.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v1" }
+                        """,
+                "policy.sapl", "policy \"test\" permit true;");
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, config -> {});
 
@@ -253,9 +277,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenDisposeIsCalledTwice_thenIsIdempotent() throws IOException {
-        createBundle(tempDir.resolve("disposable.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "disposable-v2" }
-                """, "policy.sapl", "policy \"test\" permit true;");
+        createBundle(tempDir.resolve("disposable.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v2" }
+                        """,
+                "policy.sapl", "policy \"test\" permit true;");
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, config -> {});
 
@@ -284,9 +310,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenSymlinkBundleFilePresent_thenItIsSkipped() throws IOException {
-        createBundle(tempDir.resolve("real.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "real-v1" }
-                """, "policy.sapl", "policy \"real\" permit true;");
+        createBundle(tempDir.resolve("real.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "real-v1" }
+                        """,
+                "policy.sapl", "policy \"real\" permit true;");
 
         val target = tempDir.resolve("real.saplbundle");
         val link   = tempDir.resolve("link.saplbundle");
@@ -308,9 +336,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenNewBundleIsAdded_thenCallbackIsInvoked() throws IOException {
-        createBundle(tempDir.resolve("initial.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "initial-v1" }
-                """, "policy.sapl", "policy \"initial\" permit true;");
+        createBundle(tempDir.resolve("initial.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v1" }
+                        """,
+                "policy.sapl", "policy \"initial\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -318,9 +348,11 @@ class BundlePDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1);
 
-        createBundle(tempDir.resolve("added.saplbundle"), """
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "added-v1" }
-                """, "policy.sapl", "policy \"added\" deny true;");
+        createBundle(tempDir.resolve("added.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "added-v1" }
+                        """,
+                "policy.sapl", "policy \"added\" deny true;");
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(configs).hasSizeGreaterThanOrEqualTo(2);
@@ -332,9 +364,11 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenBundleIsDeleted_thenNoExceptionIsThrown() throws IOException {
         val bundlePath = tempDir.resolve("deletable.saplbundle");
-        createBundle(bundlePath, """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "deletable-v1" }
-                """, "policy.sapl", "policy \"deletable\" permit true;");
+        createBundle(bundlePath,
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "deletable-v1" }
+                        """,
+                "policy.sapl", "policy \"deletable\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -352,9 +386,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenNonBundleFilesPresent_thenTheyAreIgnored() throws IOException {
-        createBundle(tempDir.resolve("valid.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "valid-v1" }
-                """, "policy.sapl", "policy \"valid\" permit true;");
+        createBundle(tempDir.resolve("valid.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v1" }
+                        """,
+                "policy.sapl", "policy \"valid\" permit true;");
 
         Files.writeString(tempDir.resolve("readme.txt"), "This should be ignored.");
         Files.writeString(tempDir.resolve("security.json"), "{}");
@@ -384,10 +420,12 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenManyBundles_thenAllAreLoaded() throws IOException {
         for (int i = 0; i < 10; i++) {
-            createBundle(tempDir.resolve("tenant" + i + ".saplbundle"), """
-                    { "algorithm": "DENY_OVERRIDES", "configurationId": "tenant%d-v1" }
-                    """.formatted(i), "policy.sapl",
-                    "policy \"tenant%d\" permit subject.tenant == %d;".formatted(i, i));
+            createBundle(tempDir.resolve("tenant" + i + ".saplbundle"),
+                    """
+                            { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "tenant%d-v1" }
+                            """
+                            .formatted(i),
+                    "policy.sapl", "policy \"tenant%d\" permit subject.tenant == %d;".formatted(i, i));
         }
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -447,8 +485,9 @@ class BundlePDPConfigurationSourceTests {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write("{\"algorithm\":\"DENY_OVERRIDES\",\"configurationId\":\"nested-v1\"}"
-                    .getBytes(StandardCharsets.UTF_8));
+            zos.write(
+                    "{\"algorithm\":{\"votingMode\":\"PRIORITY_DENY\",\"defaultDecision\":\"DENY\",\"errorHandling\":\"PROPAGATE\"},\"configurationId\":\"nested-v1\"}"
+                            .getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
 
             zos.putNextEntry(new ZipEntry("root.sapl"));
@@ -468,9 +507,11 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenBundleChangesAfterDispose_thenTheyAreIgnored() throws IOException {
         val bundlePath = tempDir.resolve("disposable.saplbundle");
-        createBundle(bundlePath, """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "disposable-v3" }
-                """, "policy.sapl", "policy \"original\" permit true;");
+        createBundle(bundlePath,
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v3" }
+                        """,
+                "policy.sapl", "policy \"original\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -481,12 +522,16 @@ class BundlePDPConfigurationSourceTests {
         source.dispose();
 
         // Modify existing bundle and add new bundle after dispose
-        createBundle(bundlePath, """
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "disposable-v4" }
-                """, "policy.sapl", "policy \"modified\" deny true;");
-        createBundle(tempDir.resolve("new.saplbundle"), """
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "new-v1" }
-                """, "policy.sapl", "policy \"new\" deny true;");
+        createBundle(bundlePath,
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v4" }
+                        """,
+                "policy.sapl", "policy \"modified\" deny true;");
+        createBundle(tempDir.resolve("new.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "new-v1" }
+                        """,
+                "policy.sapl", "policy \"new\" deny true;");
 
         // Wait - changes should be ignored
         await().during(Duration.ofMillis(800)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
@@ -497,14 +542,18 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenBundleHasInvalidName_thenItIsSkipped() throws IOException {
         // Create bundle with valid name
-        createBundle(tempDir.resolve("valid.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "valid-v2" }
-                """, "policy.sapl", "policy \"valid\" permit true;");
+        createBundle(tempDir.resolve("valid.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v2" }
+                        """,
+                "policy.sapl", "policy \"valid\" permit true;");
 
         // Create bundle with invalid name (spaces)
-        createBundle(tempDir.resolve("invalid name.saplbundle"), """
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "invalid-v1" }
-                """, "policy.sapl", "policy \"invalid\" deny true;");
+        createBundle(tempDir.resolve("invalid name.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "invalid-v1" }
+                        """,
+                "policy.sapl", "policy \"invalid\" deny true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -517,9 +566,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenBundleIsCorrupt_thenItIsSkipped() throws IOException {
-        createBundle(tempDir.resolve("valid.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "valid-v3" }
-                """, "policy.sapl", "policy \"valid\" permit true;");
+        createBundle(tempDir.resolve("valid.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v3" }
+                        """,
+                "policy.sapl", "policy \"valid\" permit true;");
 
         // Create corrupt "bundle" that's not a valid ZIP
         Files.writeString(tempDir.resolve("corrupt.saplbundle"), "This is not a ZIP file!");
@@ -537,15 +588,19 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenSymlinkBundleAddedAfterStart_thenItIsIgnored(@TempDir Path externalDir) throws IOException {
-        createBundle(tempDir.resolve("initial.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "initial-v2" }
-                """, "policy.sapl", "policy \"initial\" permit true;");
+        createBundle(tempDir.resolve("initial.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v2" }
+                        """,
+                "policy.sapl", "policy \"initial\" permit true;");
 
         // Create target bundle OUTSIDE the watched directory
         val targetBundle = externalDir.resolve("target.saplbundle");
-        createBundle(targetBundle, """
-                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "target-v1" }
-                """, "policy.sapl", "policy \"target\" deny true;");
+        createBundle(targetBundle,
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "target-v1" }
+                        """,
+                "policy.sapl", "policy \"target\" deny true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -586,7 +641,7 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenLoadingSignedBundleWithCorrectKey_thenSucceeds() throws IOException {
-        val signedBundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+        val signedBundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                 .withPolicy("signed.sapl", "policy \"signed\" permit true")
                 .signWith(elderKeyPair.getPrivate(), "test-key").build();
 
@@ -602,9 +657,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenLoadingUnsignedBundleWithRequiredSignature_thenBundleIsSkipped() throws IOException {
-        createBundle(tempDir.resolve("unsigned.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES", "configurationId": "unsigned-v1" }
-                """, "policy.sapl", "policy \"unsigned\" permit true;");
+        createBundle(tempDir.resolve("unsigned.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "unsigned-v1" }
+                        """,
+                "policy.sapl", "policy \"unsigned\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -618,16 +675,18 @@ class BundlePDPConfigurationSourceTests {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write("""
-                    {
-                      "algorithm": "DENY_OVERRIDES",
-                      "configurationId": "cultist-v1",
-                      "variables": {
-                        "realm": "arkham",
-                        "accessLevel": 5
-                      }
-                    }
-                    """.getBytes(StandardCharsets.UTF_8));
+            zos.write(
+                    """
+                            {
+                              "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                              "configurationId": "cultist-v1",
+                              "variables": {
+                                "realm": "arkham",
+                                "accessLevel": 5
+                              }
+                            }
+                            """
+                            .getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
 
             zos.putNextEntry(new ZipEntry("policy.sapl"));

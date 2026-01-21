@@ -85,7 +85,7 @@ public class JWTPolicyInformationPoint {
 
             ```json
             {
-              "algorithm": "DENY_UNLESS_PERMIT",
+              "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" },
               "variables": {
                 "jwt": {
                   "publicKeyServer": {

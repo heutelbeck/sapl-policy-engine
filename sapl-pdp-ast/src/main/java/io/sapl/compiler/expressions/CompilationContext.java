@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
@@ -54,6 +55,7 @@ public class CompilationContext {
     final AttributeBroker                   attributeBroker;
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
+    private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
 
     public CompilationContext(String pdpId,
             String configurationId,
@@ -63,6 +65,18 @@ public class CompilationContext {
         this.configurationId = configurationId;
         this.functionBroker  = functionBroker;
         this.attributeBroker = attributeBroker;
+    }
+
+    public CompilationContext(String pdpId,
+            String configurationId,
+            FunctionBroker functionBroker,
+            AttributeBroker attributeBroker,
+            Supplier<String> timestampSupplier) {
+        this.pdpId             = pdpId;
+        this.configurationId   = configurationId;
+        this.functionBroker    = functionBroker;
+        this.attributeBroker   = attributeBroker;
+        this.timestampSupplier = timestampSupplier;
     }
 
     /**

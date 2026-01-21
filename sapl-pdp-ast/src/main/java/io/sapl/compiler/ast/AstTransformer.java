@@ -19,10 +19,11 @@ package io.sapl.compiler.ast;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.ast.*;
-import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
-import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
-import io.sapl.ast.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySetVoterMetadata;

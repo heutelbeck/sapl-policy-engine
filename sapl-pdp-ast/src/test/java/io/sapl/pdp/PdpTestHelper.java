@@ -105,11 +105,11 @@ public class PdpTestHelper {
      */
     public static PDPConfiguration configuration(CombiningAlgorithm algorithm, String... policies) {
         return new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(), algorithm,
-                TraceLevel.STANDARD, List.of(policies), Map.of());
+                List.of(policies), Map.of());
     }
 
     /**
-     * Creates a PDPConfiguration with DENY_OVERRIDES algorithm.
+     * Creates a PDPConfiguration with DEFAULT algorithm.
      *
      * @param policies
      * the SAPL policy documents
@@ -117,7 +117,7 @@ public class PdpTestHelper {
      * @return the PDP configuration
      */
     public static PDPConfiguration configuration(String... policies) {
-        return configuration(CombiningAlgorithm.DENY_OVERRIDES, policies);
+        return configuration(CombiningAlgorithm.DEFAULT, policies);
     }
 
     /**
@@ -172,7 +172,10 @@ public class PdpTestHelper {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             // Add pdp.json with configurationId (required for bundles)
-            val pdpJson = "{\"configurationId\":\"%s\",\"algorithm\":\"DENY_OVERRIDES\"}".formatted(configurationId);
+            val pdpJson = """
+                    {"configurationId":"%s","algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"}}
+                    """
+                    .formatted(configurationId);
             zos.putNextEntry(new ZipEntry("pdp.json"));
             zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();

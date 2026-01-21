@@ -19,8 +19,8 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.CombiningAlgorithm.DefaultDecision;
-import io.sapl.ast.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
@@ -93,7 +93,7 @@ public class PriorityVoteCompiler {
         });
     }
 
-    private static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
+    public static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             Decision priorityDecision, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
 
         val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);

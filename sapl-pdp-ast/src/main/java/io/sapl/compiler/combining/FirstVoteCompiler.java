@@ -21,7 +21,7 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.ast.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
@@ -41,7 +41,7 @@ import java.util.function.Function;
 
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
-import static io.sapl.ast.CombiningAlgorithm.ErrorHandling.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.ABSTAIN;
 import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
 
 /**

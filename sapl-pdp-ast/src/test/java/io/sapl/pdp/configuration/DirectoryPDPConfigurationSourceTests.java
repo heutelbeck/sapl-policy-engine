@@ -18,6 +18,9 @@
 package io.sapl.pdp.configuration;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +40,11 @@ import static org.awaitility.Awaitility.await;
 
 class DirectoryPDPConfigurationSourceTests {
 
+    private static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+    private static final CombiningAlgorithm DENY_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+
     @TempDir
     Path tempDir;
 
@@ -51,12 +59,13 @@ class DirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenLoadingFromDirectory_thenCallbackIsInvokedWithConfiguration() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), """
-                {
-                  "algorithm": "PERMIT_OVERRIDES",
-                  "variables": { "realm": "arkham" }
-                }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" },
+                          "variables": { "realm": "arkham" }
+                        }
+                        """);
         createFile(tempDir.resolve("forbidden.sapl"), """
                 policy "forbidden-knowledge"
                 deny action == "access" where resource.category == "forbidden";
@@ -68,7 +77,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         assertThat(receivedConfig.get()).isNotNull();
         assertThat(receivedConfig.get().pdpId()).isEqualTo("default");
-        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
         assertThat(receivedConfig.get().saplDocuments()).hasSize(1);
     }
 
@@ -135,14 +144,15 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
 
-        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
     }
 
     @Test
     void whenFileIsModified_thenCallbackIsInvokedAgain() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), """
-                { "algorithm": "DENY_OVERRIDES" }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -150,15 +160,16 @@ class DirectoryPDPConfigurationSourceTests {
         source = new DirectoryPDPConfigurationSource(tempDir, configs::add);
 
         assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
 
-        createFile(tempDir.resolve("pdp.json"), """
-                { "algorithm": "PERMIT_OVERRIDES" }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
+                        """);
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(configs.size()).isGreaterThanOrEqualTo(2);
-            assertThat(configs.getLast().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+            assertThat(configs.getLast().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
         });
     }
 
@@ -339,16 +350,17 @@ class DirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenPdpJsonHasVariables_thenVariablesAreLoaded() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), """
-                {
-                  "algorithm": "DENY_OVERRIDES",
-                  "variables": {
-                    "tenant": "miskatonic",
-                    "department": "antiquities",
-                    "accessLevel": 5
-                  }
-                }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "variables": {
+                            "tenant": "miskatonic",
+                            "department": "antiquities",
+                            "accessLevel": 5
+                          }
+                        }
+                        """);
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         val receivedConfig = new AtomicReference<PDPConfiguration>();
@@ -404,16 +416,17 @@ class DirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenPdpJsonOnlyNoSaplFiles_thenConfigHasEmptyDocuments() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), """
-                { "algorithm": "PERMIT_OVERRIDES" }
-                """);
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
+                        """);
 
         val receivedConfig = new AtomicReference<PDPConfiguration>();
 
         source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
 
         assertThat(receivedConfig.get().saplDocuments()).isEmpty();
-        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
     private void createFile(Path path, String content) throws IOException {

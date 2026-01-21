@@ -244,7 +244,7 @@ public class PDPConfigurationLoader {
             val sorted  = new TreeMap<>(saplContents);
             val builder = new StringBuilder();
 
-            builder.append("algorithm:").append(pdpJson.algorithm().name()).append('\n');
+            builder.append("algorithm:").append(pdpJson.algorithm().toCanonicalString()).append('\n');
 
             for (val entry : sorted.entrySet()) {
                 builder.append(entry.getKey()).append(':').append(entry.getValue()).append('\n');
@@ -276,7 +276,7 @@ public class PDPConfigurationLoader {
         try {
             val node = MAPPER.readTree(content);
 
-            CombiningAlgorithm algorithm = CombiningAlgorithm.DENY_OVERRIDES;
+            CombiningAlgorithm algorithm = CombiningAlgorithm.DEFAULT;
             if (node.has("algorithm")) {
                 algorithm = MAPPER.treeToValue(node.get("algorithm"), CombiningAlgorithm.class);
             }
@@ -349,7 +349,7 @@ public class PDPConfigurationLoader {
 
     private record PdpJsonContent(CombiningAlgorithm algorithm, String configurationId, Map<String, Value> variables) {
         static PdpJsonContent defaults() {
-            return new PdpJsonContent(CombiningAlgorithm.DENY_OVERRIDES, null, Map.of());
+            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, null, Map.of());
         }
     }
 

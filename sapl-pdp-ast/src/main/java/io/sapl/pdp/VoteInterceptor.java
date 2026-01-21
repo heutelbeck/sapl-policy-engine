@@ -17,12 +17,12 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.pdp.TimestampedVote;
 
 public interface VoteInterceptor extends Comparable<VoteInterceptor> {
     int priority();
 
-    void intercept(Vote vote);
+    void intercept(TimestampedVote vote);
 
     default int compareTo(VoteInterceptor otherInterceptor) {
         return Integer.compare(priority(), otherInterceptor.priority());

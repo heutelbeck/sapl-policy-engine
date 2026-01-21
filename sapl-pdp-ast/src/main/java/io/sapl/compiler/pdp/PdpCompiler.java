@@ -21,39 +21,91 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.Policy;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.SaplDocument;
+import io.sapl.compiler.ast.SAPLCompiler;
+import io.sapl.compiler.combining.FirstVoteCompiler;
+import io.sapl.compiler.combining.PriorityVoteCompiler;
+import io.sapl.compiler.combining.UnanimousVoteCompiler;
+import io.sapl.compiler.combining.UniqueVoteCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.PolicyCompiler;
+import io.sapl.compiler.policy.SchemaValidatorCompiler;
+import io.sapl.compiler.policyset.CompiledPolicySet;
 import io.sapl.compiler.policyset.PolicySetCompiler;
-import lombok.NonNull;
+import io.sapl.compiler.policyset.PolicySetUtil;
+import io.sapl.compiler.policyset.TargetExpressionCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
 @UtilityClass
 public class PdpCompiler {
 
+    public static final String ERROR_NAME_COLLISION         = "Name collision during compilation of PDP. The policy or policy set with the name \"%s\" is defined at least twice.";
+    public static final String ERROR_FIRST_IS_NOT_ALLOWED_S = "FIRST is not allowed as combining algorithm option on PDP level as it is implying an ordering that is not present here. Got: %s.";
+
     public static CompiledPdpVoter compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
-        Outcome outcome = Outcome.PERMIT_OR_DENY;
-        boolean hasConstraints = true;
-        val voterMetadata = new PdpVoterMetadata("pdp voter",
-                pdpConfiguration.pdpId(),
-                pdpConfiguration.pdpId(),
-                pdpConfiguration.combiningAlgorithm(),
-                outcome, hasConstraints);
-        Voter pdpVoter,
-        Map<String, Value> variables,
-        AttributeBroker attributeBroker,
-        FunctionBroker functionBroker,
-        Supplier<String> timestampSupplier
-        throw new SaplCompilerException("PDP configuration not implemented %s %s".formatted(pdpConfiguration, ctx));
+        Outcome outcome           = Outcome.PERMIT_OR_DENY;
+        boolean hasConstraints    = true;
+        var     voterMetadata     = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(),
+                pdpConfiguration.pdpId(), pdpConfiguration.combiningAlgorithm(), outcome, hasConstraints);
+        val     compiledDocuments = pdpConfiguration.saplDocuments().stream().map(SAPLCompiler::parseDocument)
+                .map(d -> compileDocument(d.saplDocument(), ctx)).toList();
+        assertDocumentNamesAreUnique(compiledDocuments);
+        val algorithm = pdpConfiguration.combiningAlgorithm();
+
+        val defaultDecision  = algorithm.defaultDecision();
+        val errorHandling    = algorithm.errorHandling();
+        val voter = switch (algorithm.votingMode()) {
+                             case FIRST            -> throw new SaplCompilerException(
+                                     ERROR_FIRST_IS_NOT_ALLOWED_S.formatted(algorithm.votingMode()));
+                             case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments,voterMetadata,
+                                     Decision.DENY, defaultDecision, errorHandling);
+                             case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments,
+                                     voterMetadata, Decision.PERMIT, defaultDecision, errorHandling);
+                             case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
+                                     voterMetadata, defaultDecision, errorHandling, false);
+                             case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
+                                     voterMetadata, defaultDecision, errorHandling, true);
+                             case UNIQUE           -> UniqueVoteCompiler.compileVoter( compiledDocuments,
+                                     voterMetadata, defaultDecision, errorHandling);
+                             };
+        val coverageStream = switch (algorithm.votingMode()) {
+            case FIRST            -> throw new SaplCompilerException(
+                    ERROR_FIRST_IS_NOT_ALLOWED_S.formatted(algorithm.votingMode()));
+            case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments,voterMetadata,
+                    Decision.DENY, defaultDecision, errorHandling);
+            case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments,
+                    voterMetadata, Decision.PERMIT, defaultDecision, errorHandling);
+            case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
+                    voterMetadata, defaultDecision, errorHandling, false);
+            case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments,
+                    voterMetadata, defaultDecision, errorHandling, true);
+            case UNIQUE           -> UniqueVoteCompiler.compileVoter( compiledDocuments,
+                    voterMetadata, defaultDecision, errorHandling);
+        };
+        return new CompiledPdpVoter(voterMetadata, voter, pdpConfiguration.variables(),
+                ctx.getAttributeBroker(), ctx.getFunctionBroker(), ctx.getTimestampSupplier());
+    }
+
+    private static void assertDocumentNamesAreUnique(List<? extends CompiledDocument> compiledDocuments) {
+        val usedNames = new HashSet<>(compiledDocuments.size());
+        for (val compiledPolicy : compiledDocuments) {
+            val name = compiledPolicy.metadata().name();
+            if (!usedNames.add(name)) {
+                throw new SaplCompilerException(ERROR_NAME_COLLISION.formatted(name));
+            }
+        }
     }
 
     public static CompiledDocument compileDocument(SaplDocument saplDocument, CompilationContext ctx) {

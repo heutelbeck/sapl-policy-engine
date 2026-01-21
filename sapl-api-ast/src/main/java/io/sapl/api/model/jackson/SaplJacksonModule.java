@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.CombiningAlgorithm;
 
 import java.io.Serial;
 
@@ -88,7 +89,8 @@ public class SaplJacksonModule extends SimpleModule {
         addSerializer(MultiAuthorizationDecision.class, new MultiAuthorizationDecisionSerializer());
         addDeserializer(MultiAuthorizationDecision.class, new MultiAuthorizationDecisionDeserializer());
 
-        // CombiningAlgorithm (case-insensitive deserialization)
+        // CombiningAlgorithm
+        addSerializer(CombiningAlgorithm.class, new CombiningAlgorithmSerializer());
         addDeserializer(CombiningAlgorithm.class, new CombiningAlgorithmDeserializer());
 
         // PDPConfiguration
