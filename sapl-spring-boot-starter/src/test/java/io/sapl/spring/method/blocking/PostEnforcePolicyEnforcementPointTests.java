@@ -169,8 +169,9 @@ class PostEnforcePolicyEnforcementPointTests {
                 FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
                 UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                        Value.of(CHANGED_RETURN_OBJECT))));
         assertThat(testService.doSomething(), is(CHANGED_RETURN_OBJECT));
     }
 
@@ -182,8 +183,9 @@ class PostEnforcePolicyEnforcementPointTests {
                 UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                        Value.of(CHANGED_RETURN_OBJECT))));
         assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
     }
 
@@ -206,8 +208,9 @@ class PostEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         final var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
 
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                        Value.of(CHANGED_RETURN_OBJECT))));
         assertThat(testService.doSomethingOptionalEmpty(), is(expectedReturnObject));
     }
 

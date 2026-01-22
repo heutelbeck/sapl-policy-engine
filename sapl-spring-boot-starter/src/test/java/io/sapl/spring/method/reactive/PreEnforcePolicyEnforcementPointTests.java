@@ -18,6 +18,7 @@
 package io.sapl.spring.method.reactive;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -301,15 +302,15 @@ class PreEnforcePolicyEnforcementPointTests {
             }
         });
         this.globalMappingHandlerProviders.add(handler);
-        final var         constraintsService  = buildConstraintHandlerService();
-        final List<Value> obligations         = List.of(Value.of(420));
-        final var         decisions           = Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, obligations, List.of(), Value.of(69)));
-        final var         resourceAccessPoint = resourceAccessPointInvocation();
-        final var         onErrorContinue     = errorAndCauseConsumer();
-        final var         doOnError           = errorConsumer();
-        final var         sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService)
-                .enforce(decisions, resourceAccessPoint, Integer.class);
+        final var constraintsService  = buildConstraintHandlerService();
+        final var obligations         = Value.ofArray(Value.of(420));
+        final var decisions           = Flux
+                .just(new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.of(69)));
+        final var resourceAccessPoint = resourceAccessPointInvocation();
+        final var onErrorContinue     = errorAndCauseConsumer();
+        final var doOnError           = errorConsumer();
+        final var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+                resourceAccessPoint, Integer.class);
 
         StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(489).verifyComplete();
 
@@ -320,8 +321,8 @@ class PreEnforcePolicyEnforcementPointTests {
     @Test
     void when_PermitWithResource_and_typeMismatch_thenAccessIsDenied() throws Throwable {
         final var constraintsService  = buildConstraintHandlerService();
-        final var decisions           = Flux.just(
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of("I CAUSE A TYPE MISMATCH")));
+        final var decisions           = Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+                Value.EMPTY_ARRAY, Value.of("I CAUSE A TYPE MISMATCH")));
         final var resourceAccessPoint = resourceAccessPointInvocation();
         final var onErrorContinue     = errorAndCauseConsumer();
         final var doOnError           = errorConsumer();
@@ -336,13 +337,13 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-        return Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, List.of(Value.of(10000)), List.of(), Value.UNDEFINED));
+        return Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of(10000)), Value.EMPTY_ARRAY,
+                Value.UNDEFINED));
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
-        return Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(Value.of(10000)), Value.UNDEFINED));
+        return Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(Value.of(10000)),
+                Value.UNDEFINED));
     }
 
     @SuppressWarnings("unchecked")

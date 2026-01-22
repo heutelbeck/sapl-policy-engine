@@ -19,6 +19,7 @@ package io.sapl.spring.data.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -58,7 +59,8 @@ class ConstraintQueryEnforcementServiceTests {
     private MockedStatic<ConstraintResponsibility> constraintResponsibilityMock;
 
     private static AuthorizationDecision createDecision(List<Value> obligations) {
-        return new AuthorizationDecision(Decision.PERMIT, obligations, List.of(), Value.UNDEFINED);
+        return new AuthorizationDecision(Decision.PERMIT, new ArrayValue(obligations), Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
     }
 
     @Test

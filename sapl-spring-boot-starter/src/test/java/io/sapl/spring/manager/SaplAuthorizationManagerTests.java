@@ -20,6 +20,7 @@ package io.sapl.spring.manager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -95,7 +96,7 @@ class SaplAuthorizationManagerTests {
     void whenHasResource_thenDenied() {
         final var sut        = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         final var objectNode = mapper.createObjectNode();
-        final var decision   = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(),
+        final var decision   = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                 ValueJsonMarshaller.fromJsonNode(objectNode));
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
         final var ctx = mock(RequestAuthorizationContext.class);

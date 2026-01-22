@@ -18,7 +18,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
+import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -36,7 +36,7 @@ class InterceptorAutoConfigurationTests {
     void whenPrintTraceIsEnabled_thenReportingInterceptorIsCreated() {
         contextRunner.withPropertyValues("io.sapl.pdp.embedded.print-trace=true", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(TracedDecisionInterceptor.class)
+                    assertThat(context).hasNotFailed().hasSingleBean(VoteInterceptor.class)
                             .hasSingleBean(ReportingDecisionInterceptor.class);
                 });
     }
@@ -46,7 +46,7 @@ class InterceptorAutoConfigurationTests {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.embedded.print-json-report=true", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(TracedDecisionInterceptor.class)
+                    assertThat(context).hasNotFailed().hasSingleBean(VoteInterceptor.class)
                             .hasSingleBean(ReportingDecisionInterceptor.class);
                 });
     }
@@ -56,7 +56,7 @@ class InterceptorAutoConfigurationTests {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.embedded.print-text-report=true", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(TracedDecisionInterceptor.class)
+                    assertThat(context).hasNotFailed().hasSingleBean(VoteInterceptor.class)
                             .hasSingleBean(ReportingDecisionInterceptor.class);
                 });
     }

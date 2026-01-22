@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
+import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -69,7 +69,7 @@ public class InterceptorAutoConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Conditional(ReportingEnabledCondition.class)
     @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
-    TracedDecisionInterceptor reportingDecisionInterceptor() {
+    VoteInterceptor reportingDecisionInterceptor() {
         return new ReportingDecisionInterceptor(properties.isPrettyPrintReports(), properties.isPrintTrace(),
                 properties.isPrintJsonReport(), properties.isPrintTextReport());
     }

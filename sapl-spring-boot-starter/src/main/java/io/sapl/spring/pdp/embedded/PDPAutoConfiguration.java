@@ -22,9 +22,9 @@ import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.traced.TracedDecisionInterceptor;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.configuration.PDPConfigurationSource;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import jakarta.annotation.PreDestroy;
@@ -56,7 +56,7 @@ import java.util.List;
  * <li>Custom policy information points (beans annotated with
  * {@link PolicyInformationPoint})</li>
  * <li>Decision interceptors (beans implementing
- * {@link TracedDecisionInterceptor})</li>
+ * {@link VoteInterceptor})</li>
  * </ul>
  * <p>
  * Configuration is controlled via {@link EmbeddedPDPProperties} with prefix
@@ -82,7 +82,7 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PolicyDecisionPoint policyDecisionPoint(ObjectMapper mapper, Clock clock,
-            ObjectProvider<TracedDecisionInterceptor> interceptorProvider,
+            ObjectProvider<VoteInterceptor> interceptorProvider,
             ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
             ApplicationContext applicationContext, EmbeddedPDPProperties properties) {
 

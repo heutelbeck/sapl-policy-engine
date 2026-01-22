@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.compiler.pdp.TimestampedVote;
 import io.sapl.compiler.pdp.Vote;
 import io.sapl.pdp.VoteInterceptor;
@@ -42,6 +43,7 @@ import lombok.val;
 @RequiredArgsConstructor
 public class ReportingDecisionInterceptor implements VoteInterceptor {
 
+    private final boolean prettyPrint;
     private final boolean printTrace;
     private final boolean printJsonReport;
     private final boolean printTextReport;
@@ -68,13 +70,15 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     private void logTrace(TimestampedVote vote) {
-        val trace = vote.vote().toTrace();
-        multiLineLog(vote.timestamp() + ": New Decision (trace) : " + trace);
+        val trace  = vote.vote().toTrace();
+        val output = prettyPrint ? ValueJsonMarshaller.toPrettyString(trace) : trace.toString();
+        multiLineLog(vote.timestamp() + ": New Decision (trace): " + output);
     }
 
     private void logJsonReport(String timestamp, VoteReport report) {
         val reportValue = ReportBuilderUtil.toObjectValue(report);
-        multiLineLog("New Decision (report): " + reportValue);
+        val output      = prettyPrint ? ValueJsonMarshaller.toPrettyString(reportValue) : reportValue.toString();
+        multiLineLog(timestamp + ": New Decision (report): " + output);
     }
 
     private void logTextReport(String timestamp, VoteReport report) {

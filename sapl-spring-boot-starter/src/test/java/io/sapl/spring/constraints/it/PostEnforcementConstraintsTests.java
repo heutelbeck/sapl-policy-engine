@@ -40,6 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -66,18 +67,16 @@ class PostEnforcementConstraintsTests {
     private static final String KNOWN_CONSTRAINT   = "known constraint";
 
     private static AuthorizationDecision permitWithObligations(Value... obligations) {
-        return new AuthorizationDecision(Decision.PERMIT, java.util.List.of(obligations), java.util.List.of(),
+        return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligations), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
     }
 
     private static AuthorizationDecision denyWithObligations(Value... obligations) {
-        return new AuthorizationDecision(Decision.DENY, java.util.List.of(obligations), java.util.List.of(),
-                Value.UNDEFINED);
+        return new AuthorizationDecision(Decision.DENY, Value.ofArray(obligations), Value.EMPTY_ARRAY, Value.UNDEFINED);
     }
 
     private static AuthorizationDecision permitWithAdvice(Value... advice) {
-        return new AuthorizationDecision(Decision.PERMIT, java.util.List.of(), java.util.List.of(advice),
-                Value.UNDEFINED);
+        return new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(advice), Value.UNDEFINED);
     }
 
     @MockitoBean
@@ -338,8 +337,8 @@ class PostEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
         final var knownConstraint = Value.of(KNOWN_CONSTRAINT);
-        final var decision        = new AuthorizationDecision(Decision.PERMIT, java.util.List.of(knownConstraint),
-                java.util.List.of(knownConstraint), Value.UNDEFINED);
+        final var decision        = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(knownConstraint),
+                Value.ofArray(knownConstraint), Value.UNDEFINED);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));

@@ -20,6 +20,7 @@ package io.sapl.spring.manager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -106,7 +107,7 @@ class ReactiveSaplAuthorizationManagerTests {
     @Test
     void when_PdpPermitWithResource_then_NotGranted() {
         final var objectNode = mapper.createObjectNode();
-        final var decision   = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(),
+        final var decision   = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                 ValueJsonMarshaller.fromJsonNode(objectNode));
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
         StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();

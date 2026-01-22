@@ -19,6 +19,7 @@ package io.sapl.spring.method.reactive;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -277,12 +278,12 @@ class PostEnforcePolicyEnforcementPointTests {
             }
         });
         this.globalMappingHandlerProviders.add(handler);
-        final var         constraintsService = buildConstraintHandlerService();
-        final List<Value> obligations        = List.of(Value.of(-69));
-        final var         decisions          = Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, obligations, List.of(), Value.of(69)));
-        final var         onErrorContinue    = errorAndCauseConsumer();
-        final var         doOnError          = errorConsumer();
+        final var constraintsService = buildConstraintHandlerService();
+        final var obligations        = Value.ofArray(Value.of(-69));
+        final var decisions          = Flux
+                .just(new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.of(69)));
+        final var onErrorContinue    = errorAndCauseConsumer();
+        final var doOnError          = errorConsumer();
 
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
         final var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
@@ -299,8 +300,8 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_PermitWithResource_and_typeMismatch_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
 
         final var constraintsService = buildConstraintHandlerService();
-        final var decisions          = Flux.just(
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of("I CAUSE A TYPE MISMATCH")));
+        final var decisions          = Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+                Value.EMPTY_ARRAY, Value.of("I CAUSE A TYPE MISMATCH")));
         final var onErrorContinue    = errorAndCauseConsumer();
         final var doOnError          = errorConsumer();
 
@@ -316,8 +317,8 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-        return Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, List.of(Value.of(10000)), List.of(), Value.UNDEFINED));
+        return Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of(10000)), Value.EMPTY_ARRAY,
+                Value.UNDEFINED));
     }
 
     @SuppressWarnings("unchecked")

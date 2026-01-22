@@ -1,9 +1,8 @@
 set "query methods, age > 18"
-first-applicable
+first or abstain errors propagate
 
 policy "permit method name query (1)"
 permit
-where
     action == "findAll";
     subject.age >= 18;
 obligation {
@@ -17,14 +16,12 @@ obligation {
 					"firstname": "UPPER"
 					}
              }
-    
+
 policy "permit method name query (2)"
 permit
-where
     action == "findAllByAgeAfter";
     resource.age >= 18;
 obligation {
                "type": "r2dbcQueryManipulation",
                "conditions": [ "active = true" ]
              }
-

@@ -17,27 +17,6 @@
  */
 package io.sapl.spring.method.blocking;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.function.UnaryOperator;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.stereotype.Service;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -51,7 +30,26 @@ import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests.Appl
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests.MethodSecurityConfiguration;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests.TestService;
 import io.sapl.spring.method.metadata.PreEnforce;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.stereotype.Service;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Flux;
+
+import java.util.Optional;
+import java.util.function.UnaryOperator;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class }, properties = {
         "spring.main.web-application-type=servlet" })
@@ -183,8 +181,9 @@ class PreEnforcePolicyEnforcementPointTests {
                 UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                        Value.of(CHANGED_RETURN_OBJECT))));
         assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
     }
 

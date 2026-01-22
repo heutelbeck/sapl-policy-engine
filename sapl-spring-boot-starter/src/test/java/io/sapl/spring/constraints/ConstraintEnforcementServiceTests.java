@@ -35,6 +35,7 @@ import java.util.function.LongConsumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
+import io.sapl.api.model.ArrayValue;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,19 +63,20 @@ import reactor.test.StepVerifier;
 
 class ConstraintEnforcementServiceTests {
 
-    private static final ObjectMapper MAPPER     = new ObjectMapper();
-    private static final Value        CONSTRAINT = Value.of("a constraint");
+    private static final ObjectMapper MAPPER      = new ObjectMapper();
+    private static final Value        CONSTRAINT  = Value.of("a constraint");
+    private static final ArrayValue   CONSTRAINTS = ArrayValue.builder().add(CONSTRAINT).build();
 
     private static AuthorizationDecision permitWithObligation() {
-        return new AuthorizationDecision(Decision.PERMIT, List.of(CONSTRAINT), List.of(), Value.UNDEFINED);
+        return new AuthorizationDecision(Decision.PERMIT, CONSTRAINTS, Value.EMPTY_ARRAY, Value.UNDEFINED);
     }
 
     private static AuthorizationDecision permitWithAdvice() {
-        return new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(CONSTRAINT), Value.UNDEFINED);
+        return new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, CONSTRAINTS, Value.UNDEFINED);
     }
 
     private static AuthorizationDecision permitWithResource(Value resource) {
-        return new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), resource);
+        return new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource);
     }
 
     List<RunnableConstraintHandlerProvider> globalRunnableProviders;

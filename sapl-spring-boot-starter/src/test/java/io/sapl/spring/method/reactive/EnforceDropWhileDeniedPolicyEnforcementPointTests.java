@@ -39,6 +39,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -131,7 +132,7 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
     void when_onlyOnePermitWithResource_thenOnlyResourceGetThrough() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of(420)));
+                .just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(420)));
         final var data               = Flux.just(1, 2, 3);
         final var sut                = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data,
                 constraintsService, Integer.class);
@@ -141,8 +142,8 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
     @Test
     void when_onlyOnePermitWithResourceTypeMismatch_thenAllDropped() {
         final var constraintsService = buildConstraintHandlerService();
-        final var decisions          = Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of("NOT A NUMBER")));
+        final var decisions          = Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+                Value.EMPTY_ARRAY, Value.of("NOT A NUMBER")));
         final var data               = Flux.just(1, 2, 3);
         final var sut                = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data,
                 constraintsService, Integer.class);
@@ -159,7 +160,7 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
     private Flux<Integer> scenario_when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.PERMIT,
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of(69)),
+                new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(69)),
                 AuthorizationDecision.PERMIT).delayElements(Duration.ofMillis(500L));
         final var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(200L));
         return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
@@ -174,9 +175,12 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 
     private Flux<Integer> scenario_when_permit_thenPermitWithResourceThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
         final var constraintService = buildConstraintHandlerService();
-        final var decisions         = Flux.just(AuthorizationDecision.PERMIT,
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of("NOT A NUMBER")),
-                AuthorizationDecision.PERMIT).delayElements(Duration.ofMillis(500L));
+        final var decisions         = Flux
+                .just(AuthorizationDecision.PERMIT,
+                        new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                                Value.of("NOT A NUMBER")),
+                        AuthorizationDecision.PERMIT)
+                .delayElements(Duration.ofMillis(500L));
         final var data              = Flux.range(0, 10).delayElements(Duration.ofMillis(200L));
         return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintService, Integer.class);
     }
@@ -354,8 +358,8 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
         globalMappingHandlerProviders.add(handler);
 
         final var constraint         = Value.of(10000);
-        final var decisions          = Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(constraint), Value.UNDEFINED));
+        final var decisions          = Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+                Value.ofArray(constraint), Value.UNDEFINED));
         final var constraintsService = buildConstraintHandlerService();
 
         final var data = Flux.range(0, 10);
@@ -390,8 +394,8 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
         });
         globalRunnableProviders.add(handler);
         final var constraint         = Value.of(10000);
-        final var decisions          = Flux
-                .just(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(constraint), Value.UNDEFINED));
+        final var decisions          = Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+                Value.ofArray(constraint), Value.UNDEFINED));
         final var constraintsService = buildConstraintHandlerService();
 
         final var data = Flux.range(0, 10);
@@ -913,12 +917,14 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
         final var obligation = Value.of(10000);
-        return Flux.just(new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(), Value.UNDEFINED));
+        return Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
+                Value.UNDEFINED));
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
         final var advice = Value.of(10000);
-        return Flux.just(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advice), Value.UNDEFINED));
+        return Flux.just(
+                new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(advice), Value.UNDEFINED));
     }
 
     public Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
@@ -926,16 +932,21 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
         final var advicePlus50000 = Value.of(50000);
 
         return Flux.just(
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advicePlus10000), Value.UNDEFINED),
-                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advicePlus50000), Value.UNDEFINED));
+                new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(advicePlus10000),
+                        Value.UNDEFINED),
+                new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(advicePlus50000),
+                        Value.UNDEFINED));
     }
 
     public Flux<AuthorizationDecision> decisionFluxWithChangingObligations() {
         final var plus10000 = Value.of(10000);
         final var plus50000 = Value.of(50000);
 
-        return Flux.just(new AuthorizationDecision(Decision.PERMIT, List.of(plus10000), List.of(), Value.UNDEFINED),
-                new AuthorizationDecision(Decision.PERMIT, List.of(plus50000), List.of(), Value.UNDEFINED));
+        return Flux.just(
+                new AuthorizationDecision(Decision.PERMIT, Value.ofArray(plus10000), Value.EMPTY_ARRAY,
+                        Value.UNDEFINED),
+                new AuthorizationDecision(Decision.PERMIT, Value.ofArray(plus50000), Value.EMPTY_ARRAY,
+                        Value.UNDEFINED));
     }
 
 }
