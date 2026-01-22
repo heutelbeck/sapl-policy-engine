@@ -44,8 +44,7 @@ public class ExamplesCollection {
             "Simple time-based access control using the time policy information point", List.of("""
                     policy "business_hours_access"
                     permit
-                        action == "access"
-                    where
+                        action == "access";
                         var now = <time.now>;
                         var hour = time.hourOf(now);
                         hour >= 9 && hour < 17;
@@ -68,11 +67,10 @@ public class ExamplesCollection {
                      */
                     policy "compartmentalize read access by department"
                     permit
-                        // This policy is evaluated if this expression evaluates to true.
+                        // This policy is evaluated if this expression and the following evaluate to true.
                         // I.e., the policy is applicable if the resource is of type "patient_record"
                         // and a user, i.e., subject, is attempting to read it.
-                        resource.type == "patient_record" & action == "read"
-                    where
+                        resource.type == "patient_record" & action == "read";
                         // In this case the subject must have the attribute role with value "doctor"
                         // Note, that "role" is just like any other attribute here.
                         subject.role == "doctor";
@@ -106,8 +104,7 @@ public class ExamplesCollection {
                     // dynamic attributes without polling data.
                     policy "deny access outside business hours"
                     deny // If this policy's expressions evaluate to true, it will emit a DENY
-                        resource.type == "patient_record" & action == "read"
-                    where
+                        resource.type == "patient_record" & action == "read";
                         // The <> operator denotes access to external attributes.
                         // The following is a Boolean attribute of the current time
                         // time.localTimeIsBetween emits a single event when the attribute
@@ -140,15 +137,15 @@ public class ExamplesCollection {
             "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.", List.of("""
                     policy "permit authenticated users"
                     permit
-                        subject.authenticated == true
+                        subject.authenticated == true;
                     """, """
                     policy "deny suspended users"
                     deny
-                        subject.status == "suspended"
+                        subject.status == "suspended";
                     """, """
                     policy "permit regular users"
                     permit
-                        subject.role == "user"
+                        subject.role == "user";
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                        "subject"     : { "authenticated": true, "role": "user", "status": "suspended" },
@@ -174,8 +171,7 @@ public class ExamplesCollection {
                     // abused outside of its intended use.
                     policy "emergency override"
                     permit
-                        resource.type == "patient_record"
-                    where
+                        resource.type == "patient_record";
                         // ensures that this policy and obligation only triggers if the doctor would otherwise not have access.
                         resource.department != subject.department;
                         // check if access happens from the emergency room.
@@ -192,8 +188,7 @@ public class ExamplesCollection {
                     """
                             policy "compartmentalize read access by department"
                             permit
-                                resource.type == "patient_record" & action == "read"
-                            where
+                                resource.type == "patient_record" & action == "read";
                                 subject.role == "doctor";
                                 resource.department == subject.department;
                             """),
@@ -217,8 +212,7 @@ public class ExamplesCollection {
                     policy "permit-inside-perimeter"
                     permit
                         // Policy is applicable for the 'access' action
-                        action == "access"
-                    where
+                        action == "access";
                         // Containment check: subject.location âˆˆ resource.perimeter
                         geo.within(subject.location, resource.perimeter);
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
@@ -241,8 +235,7 @@ public class ExamplesCollection {
 
                     policy "permit-near-facility"
                     permit
-                        action == "access"
-                    where
+                        action == "access";
                         // Geodesic proximity check in meters (WGS84)
                         geo.isWithinGeodesicDistance(subject.location, resource.facility.location, 200);
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
@@ -264,8 +257,7 @@ public class ExamplesCollection {
 
                     policy "deny-over-restricted-area"
                     deny
-                        action.type == "export"
-                    where
+                        action.type == "export";
                         // Block if there is any spatial overlap with restricted zones
                         geo.intersects(action.requestedArea, environment.restrictedArea);
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
@@ -290,8 +282,7 @@ public class ExamplesCollection {
 
                     policy "permit-authorized-waypoints"
                     permit
-                        action.type == "navigate"
-                    where
+                        action.type == "navigate";
                         // All action.waypoints must be elements of subject.authorizedPoints
                         geo.subset(action.waypoints, subject.authorizedPoints);
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
@@ -320,8 +311,7 @@ public class ExamplesCollection {
 
                     policy "permit-adjacent-buffer-touch"
                     permit
-                        action.type == "inspect"
-                    where
+                        action.type == "inspect";
                         // Buffer width is in same units as coordinates; for planar toy data this is fine
                         geo.touches(geo.buffer(resource.assetFootprint, 10), action.inspectionPath);
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
@@ -343,8 +333,7 @@ public class ExamplesCollection {
 
                     policy "permit-wkt-inside-zone"
                     permit
-                        action.type == "ingest"
-                    where
+                        action.type == "ingest";
                         var geom = geo.wktToGeoJSON(action.geometryWkt);
                         geo.within(geom, resource.allowedZone);
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
@@ -381,16 +370,14 @@ public class ExamplesCollection {
 
                     policy "bell-lapadula read access"
                     permit
-                        action == "read"
-                    where
+                        action == "read";
                         // Simple Security Property: subject clearance >= object classification
                         // This implements "no read up" - cannot read above clearance level
                         subject.clearance_level >= resource.classification_level;
                     """, """
                     policy "bell-lapadula write access"
                     permit
-                        action == "write"
-                    where
+                        action == "write";
                         // *-Property (Star Property): subject clearance <= object classification
                         // This implements "no write down" - cannot write below clearance level
                         // Prevents information from flowing downward to less secure levels
@@ -437,8 +424,7 @@ public class ExamplesCollection {
 
                     policy "compartmentalized read access"
                     permit
-                        action == "read"
-                    where
+                        action == "read";
                         // Must satisfy clearance level (no read up)
                         subject.clearance_level >= resource.classification_level;
 
@@ -448,8 +434,7 @@ public class ExamplesCollection {
                     """, """
                     policy "compartmentalized write access"
                     permit
-                        action == "write"
-                    where
+                        action == "write";
                         // *-Property: no write down
                         subject.clearance_level <= resource.classification_level;
 
@@ -513,8 +498,6 @@ public class ExamplesCollection {
 
                     policy "brewer-nash-guard"
                     deny
-                        // No target expression - applies to ALL requests
-                    where
                         // Determine which COI classes contain the requested entity
                         var requestedCoiClasses = array.flatten(
                             coiClasses[?(resource.entity in @.entities)].conflict_class
@@ -537,8 +520,7 @@ public class ExamplesCollection {
                     """, """
                     policy "financial-analysts-read-company-data"
                     permit
-                        action == "read" & resource.type == "financial_report"
-                    where
+                        action == "read" & resource.type == "financial_report";
                         subject.role == "financial_analyst";
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
@@ -605,8 +587,6 @@ public class ExamplesCollection {
 
                     policy "brewer-nash-guard"
                     deny
-                        // No target expression - applies to ALL requests
-                    where
                         // Determine which COI classes contain the requested entity
                         var requestedCoiClasses = array.flatten(
                             coiClasses[?(resource.entity in @.entities)].conflict_class
@@ -629,8 +609,7 @@ public class ExamplesCollection {
                     """, """
                     policy "consultants-access-client-data"
                     permit
-                        action == "access"
-                    where
+                        action == "access";
                         subject.role == "consultant";
                     obligation
                         {
@@ -705,8 +684,7 @@ public class ExamplesCollection {
 
                     policy "biba read integrity"
                     permit
-                        action == "read"
-                    where
+                        action == "read";
                         // Simple Integrity Property: subject integrity >= object integrity
                         // "no read down" - prevents reading less trustworthy data
                         // High-integrity processes should not consume low-integrity data
@@ -714,8 +692,7 @@ public class ExamplesCollection {
                     """, """
                     policy "biba write integrity"
                     permit
-                        action == "write"
-                    where
+                        action == "write";
                         // *-Integrity Property: subject integrity <= object integrity
                         // "no write up" - prevents writing to more trustworthy data
                         // Low-integrity processes cannot corrupt high-integrity data
@@ -768,14 +745,13 @@ public class ExamplesCollection {
                        // This RBAC expression can be combined with any other access control model to implement
                        // hybrid approaches.
 
-                       { "type" : resource.type, "action": action } in permissions[(subject.role)]
+                       { "type" : resource.type, "action": action } in permissions[(subject.role)];
 
                        // Note: if the permissions are only relevant for this one policy, they can also be
                        // embedded into the policy by defining a constant variable 'permissions':
                        //
                        // policy "RBAC"
                        // permit
-                       // where
                        //   var permissions = { ... };
                        //   { "type" : resource.type, "action": action } in permissions[(subject.role)];
                     """), CombiningAlgorithm.DENY_OVERRIDES, """
@@ -810,7 +786,6 @@ public class ExamplesCollection {
             "Hierarchical RBAC", "Hierarchical Demonstrates implementing RBAC in SAPL", List.of("""
                     policy "Hierarchical RBAC"
                     permit
-                    where
                       // take the role graph from the variables and calculate the reachable roles
                       var effectiveRoles = graph.reachable(rolesHierarchy, subject.roles);
 

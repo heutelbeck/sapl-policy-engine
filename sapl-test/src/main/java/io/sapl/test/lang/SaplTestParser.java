@@ -17,7 +17,7 @@
  */
 package io.sapl.test.lang;
 
-import io.sapl.parser.InputStreamHelper;
+import io.sapl.compiler.util.InputStreamUtil;
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 import lombok.experimental.UtilityClass;
@@ -65,8 +65,8 @@ public class SaplTestParser {
     }
 
     private static InputStream secureInputStream(InputStream inputStream) throws IOException {
-        var converted = InputStreamHelper.detectAndConvertEncodingOfStream(inputStream);
-        return InputStreamHelper.convertToTrojanSourceSecureStream(converted);
+        var converted = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
+        return InputStreamUtil.convertToTrojanSourceSecureStream(converted);
     }
 
     private static SaplTestContext parseStream(InputStream inputStream) throws IOException {

@@ -62,7 +62,8 @@ public record CompiledPdpVoter(
                 .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext));
     }
 
-    public Flux<VoteWithCoverage> voteWithCoverage(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
+    public Flux<VoteWithCoverage> voteWithCoverage(AuthorizationSubscription authorizationSubscription,
+            String subscriptionId) {
         val evaluationContext = evaluationContext(authorizationSubscription, subscriptionId);
         return coverageStream().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext));
     }

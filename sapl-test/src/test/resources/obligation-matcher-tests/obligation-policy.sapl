@@ -1,6 +1,6 @@
 policy "obligation-policy"
 permit
-    action == "read"
+    action == "read";
 obligation
     {
         "type": "audit",

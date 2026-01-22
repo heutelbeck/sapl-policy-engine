@@ -1,6 +1,6 @@
 policy "resource-transform-policy"
 permit
-    action == "transform"
+    action == "transform";
 transform
     {
         "status": "filtered",

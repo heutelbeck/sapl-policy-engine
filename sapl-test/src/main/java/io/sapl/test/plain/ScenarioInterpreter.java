@@ -29,7 +29,6 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.antlr.SAPLTestParser.*;
 import io.sapl.test.verification.Times;
 import lombok.RequiredArgsConstructor;
-import org.antlr.v4.runtime.Token;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
@@ -441,7 +440,7 @@ public class ScenarioInterpreter {
      * Builds an attribute name from the grammar context.
      */
     private String buildAttributeName(AttributeNameContext ctx) {
-        return ctx.parts.stream().map(Token::getText).collect(Collectors.joining("."));
+        return ctx.parts.stream().map(TestIdContext::getText).collect(Collectors.joining("."));
     }
 
     /**

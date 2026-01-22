@@ -1,5 +1,4 @@
 policy "role-policy"
 permit
-    action == "admin"
-where
+    action == "admin";
     subject.<user.role> == "admin";

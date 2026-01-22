@@ -309,7 +309,7 @@ class SaplTestFixtureTests {
 
     @Test
     void whenDisablingCoverage_thenReturnsFixtureForChaining() {
-        var fixture = SaplTestFixture.createSingleTest().withCoverageDisabled().withPolicy(PERMIT_ALL_POLICY);
+        var fixture = SaplTestFixture.createSingleTest().withCoverageFileWriteDisabled().withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }

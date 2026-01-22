@@ -59,7 +59,7 @@ class ExamplesCollectionTests {
             Decision expectedDecision) throws Exception {
         val subscription = parseSubscription(example.subscription());
         val fixture      = SaplTestFixture.createIntegrationTest().withCombiningAlgorithm(example.combiningAlgorithm())
-                .withCoverageDisabled().withFunctionLibrary(StandardFunctionLibrary.class)
+                .withCoverageFileWriteDisabled().withFunctionLibrary(StandardFunctionLibrary.class)
                 .withFunctionLibrary(ArrayFunctionLibrary.class).withFunctionLibrary(FilterFunctionLibrary.class)
                 .withFunctionLibrary(GraphFunctionLibrary.class).withFunctionLibrary(GeographicFunctionLibrary.class);
 
@@ -125,7 +125,7 @@ class ExamplesCollectionTests {
     void defaultExamplePermitsDuringBusinessHours() throws Exception {
         val example      = ExamplesCollection.DEFAULT_SETTINGS;
         val subscription = parseSubscription(example.subscription());
-        val fixture      = SaplTestFixture.createSingleTest().withCoverageDisabled()
+        val fixture      = SaplTestFixture.createSingleTest().withCoverageFileWriteDisabled()
                 .withFunctionLibrary(TemporalFunctionLibrary.class)
                 .givenEnvironmentAttribute("timeMock", "time.now", args(), Value.of("2025-01-06T10:00:00Z"))
                 .withPolicy(example.policies().getFirst());
@@ -140,7 +140,7 @@ class ExamplesCollectionTests {
     void defaultExampleNotApplicableOutsideBusinessHours() throws Exception {
         val example      = ExamplesCollection.DEFAULT_SETTINGS;
         val subscription = parseSubscription(example.subscription());
-        val fixture      = SaplTestFixture.createSingleTest().withCoverageDisabled()
+        val fixture      = SaplTestFixture.createSingleTest().withCoverageFileWriteDisabled()
                 .withFunctionLibrary(TemporalFunctionLibrary.class)
                 .givenEnvironmentAttribute("timeMock", "time.now", args(), Value.of("2025-01-06T20:00:00Z"))
                 .withPolicy(example.policies().getFirst());

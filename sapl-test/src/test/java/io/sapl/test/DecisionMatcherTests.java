@@ -17,6 +17,7 @@
  */
 package io.sapl.test;
 
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -27,7 +28,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.test.Matchers.isDeny;
@@ -47,7 +47,7 @@ class DecisionMatcherTests {
     @EnumSource(Decision.class)
     void whenDecisionMatches_thenReturnsTrue(Decision decision) {
         var matcher       = isDecision(decision);
-        var authzDecision = new AuthorizationDecision(decision, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
 
         assertThat(matcher.test(authzDecision)).isTrue();
     }
@@ -56,7 +56,7 @@ class DecisionMatcherTests {
     @MethodSource("decisionMismatchCases")
     void whenDecisionDoesNotMatch_thenReturnsFalse(Decision expected, Decision actual) {
         var matcher       = isDecision(expected);
-        var authzDecision = new AuthorizationDecision(actual, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(actual, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
 
         assertThat(matcher.test(authzDecision)).isFalse();
     }
@@ -75,7 +75,7 @@ class DecisionMatcherTests {
     @Test
     void whenContainsObligation_thenMatchesIfPresent() {
         var cultistObligation = Value.of("summon_shoggoth");
-        var authzDecision     = new AuthorizationDecision(Decision.PERMIT, List.of(cultistObligation), List.of(),
+        var authzDecision     = new AuthorizationDecision(Decision.PERMIT, array(cultistObligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
 
         assertThat(isPermit().containsObligation(cultistObligation).test(authzDecision)).isTrue();
@@ -84,7 +84,8 @@ class DecisionMatcherTests {
     @Test
     void whenContainsObligation_thenFailsIfMissing() {
         var elderSign     = Value.of("ward_against_great_old_ones");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
 
         assertThat(isPermit().containsObligation(elderSign).test(authzDecision)).isFalse();
     }
@@ -94,7 +95,7 @@ class DecisionMatcherTests {
         var chantRitual    = Value.of("chant_ritual");
         var offerSacrifice = Value.of("offer_sacrifice");
         var authzDecision  = new AuthorizationDecision(Decision.DENY,
-                List.of(chantRitual, offerSacrifice, Value.of("extra")), List.of(), Value.UNDEFINED);
+                array(chantRitual, offerSacrifice, Value.of("extra")), Value.EMPTY_ARRAY, Value.UNDEFINED);
 
         assertThat(isDeny().containsObligations(chantRitual, offerSacrifice).test(authzDecision)).isTrue();
     }
@@ -102,7 +103,8 @@ class DecisionMatcherTests {
     @Test
     void whenContainsMultipleObligations_thenFailsIfAnyMissing() {
         var openPortal    = Value.of("open_portal");
-        var authzDecision = new AuthorizationDecision(Decision.DENY, List.of(openPortal), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.DENY, array(openPortal), Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
 
         assertThat(isDeny().containsObligations(openPortal, Value.of("close_portal")).test(authzDecision)).isFalse();
     }
@@ -110,7 +112,7 @@ class DecisionMatcherTests {
     @Test
     void whenContainsObligationMatching_thenMatchesWithPredicate() {
         var necronomicon  = Value.of("necronomicon_page_42");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(necronomicon), List.of(),
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, array(necronomicon), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
 
         assertThat(isPermit()
@@ -121,7 +123,7 @@ class DecisionMatcherTests {
     @Test
     void whenContainsAdvice_thenMatchesIfPresent() {
         var warningAdvice = Value.of("beware_the_thing_on_the_doorstep");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(warningAdvice),
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, array(warningAdvice),
                 Value.UNDEFINED);
 
         assertThat(isPermit().containsAdvice(warningAdvice).test(authzDecision)).isTrue();
@@ -130,7 +132,8 @@ class DecisionMatcherTests {
     @Test
     void whenContainsAdvice_thenFailsIfMissing() {
         var advice        = Value.of("consult_miskatonic_archives");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
 
         assertThat(isPermit().containsAdvice(advice).test(authzDecision)).isFalse();
     }
@@ -139,7 +142,7 @@ class DecisionMatcherTests {
     void whenContainsMultipleAdvices_thenMatchesIfAllPresent() {
         var advice1       = Value.of("avoid_innsmouth");
         var advice2       = Value.of("never_read_aloud");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advice1, advice2),
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, array(advice1, advice2),
                 Value.UNDEFINED);
 
         assertThat(isPermit().containsAdvices(advice1, advice2).test(authzDecision)).isTrue();
@@ -148,7 +151,8 @@ class DecisionMatcherTests {
     @Test
     void whenContainsAdviceMatching_thenMatchesWithPredicate() {
         var advice        = Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advice), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, array(advice),
+                Value.UNDEFINED);
 
         assertThat(isPermit().containsAdviceMatching(v -> v instanceof TextValue tv && tv.value().contains("Cthulhu"))
                 .test(authzDecision)).isTrue();
@@ -157,7 +161,8 @@ class DecisionMatcherTests {
     @Test
     void whenWithResource_thenMatchesExactly() {
         var forbiddenTome = Value.of("de_vermis_mysteriis");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), forbiddenTome);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                forbiddenTome);
 
         assertThat(isPermit().withResource(forbiddenTome).test(authzDecision)).isTrue();
     }
@@ -166,7 +171,7 @@ class DecisionMatcherTests {
     void whenWithResource_thenFailsOnMismatch() {
         var expected      = Value.of("pnakotic_manuscripts");
         var actual        = Value.of("book_of_eibon");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), actual);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, actual);
 
         assertThat(isPermit().withResource(expected).test(authzDecision)).isFalse();
     }
@@ -176,7 +181,7 @@ class DecisionMatcherTests {
         var resource      = Value.of("arkham_sanitarium_records");
         var obligation    = Value.of("log_access");
         var advice        = Value.of("consult_dr_armitage");
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(advice), resource);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, array(obligation), array(advice), resource);
 
         assertThat(isPermit().withResource(resource).containsObligation(obligation).containsAdvice(advice)
                 .test(authzDecision)).isTrue();
@@ -194,7 +199,8 @@ class DecisionMatcherTests {
     @Test
     void whenDescribeMismatch_thenExplainsFailure() {
         var matcher       = isDeny().containsObligation(Value.of("required"));
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
 
         assertThat(matcher.describeMismatch(authzDecision)).contains("expected DENY").contains("PERMIT");
     }
@@ -208,7 +214,8 @@ class DecisionMatcherTests {
     void whenDescribeMismatchMissingObligation_thenExplainsWhichMissing() {
         var required      = Value.of("elder_sign_ward");
         var matcher       = isDeny().containsObligation(required);
-        var authzDecision = new AuthorizationDecision(Decision.DENY, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
 
         assertThat(matcher.describeMismatch(authzDecision)).contains("missing obligation");
     }
@@ -217,21 +224,23 @@ class DecisionMatcherTests {
     void whenDescribeMismatchMissingAdvice_thenExplainsWhichMissing() {
         var required      = Value.of("flee_immediately");
         var matcher       = isIndeterminate().containsAdvice(required);
-        var authzDecision = new AuthorizationDecision(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
 
         assertThat(matcher.describeMismatch(authzDecision)).contains("missing advice");
     }
 
     @Test
     void whenIsNotApplicable_thenMatchesNotApplicableDecision() {
-        var authzDecision = new AuthorizationDecision(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
 
         assertThat(isNotApplicable().test(authzDecision)).isTrue();
     }
 
     @Test
     void whenPredicatesDoNotMatch_thenReturnsFalse() {
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(Value.of("normal")), List.of(),
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, array(Value.of("normal")), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
 
         assertThat(isPermit()
@@ -241,11 +250,19 @@ class DecisionMatcherTests {
 
     @Test
     void whenAdvicePredicateDoesNotMatch_thenReturnsFalse() {
-        var authzDecision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(Value.of("mundane_advice")),
-                Value.UNDEFINED);
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+                array(Value.of("mundane_advice")), Value.UNDEFINED);
 
         assertThat(isPermit()
                 .containsAdviceMatching(v -> v instanceof TextValue tv && tv.value().contains("cosmic_horror"))
                 .test(authzDecision)).isFalse();
+    }
+
+    private static ArrayValue array(Value... values) {
+        var builder = ArrayValue.builder();
+        for (var v : values) {
+            builder.add(v);
+        }
+        return builder.build();
     }
 }

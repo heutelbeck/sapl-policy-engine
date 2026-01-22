@@ -18,9 +18,7 @@
 package io.sapl.test;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueMetadata;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -543,7 +541,7 @@ class MatchersTests {
 
     @Test
     void whenObjectContainingKey_thenMatchesObjectsWithKey() {
-        var obj = new ObjectValue(Map.of("name", Value.of("Alice"), "age", Value.of(30)), ValueMetadata.EMPTY);
+        var obj = Value.ofObject(Map.of("name", Value.of("Alice"), "age", Value.of(30)));
 
         assertThat(objectContainingKey("name").matches(obj)).isTrue();
         assertThat(objectContainingKey("age").matches(obj)).isTrue();
@@ -558,7 +556,7 @@ class MatchersTests {
 
     @Test
     void whenObjectContainingKeyWithMatcher_thenMatchesKeyAndValue() {
-        var obj = new ObjectValue(Map.of("name", Value.of("Alice"), "age", Value.of(30)), ValueMetadata.EMPTY);
+        var obj = Value.ofObject(Map.of("name", Value.of("Alice"), "age", Value.of(30)));
 
         assertThat(objectContainingKey("name", eq(Value.of("Alice"))).matches(obj)).isTrue();
         assertThat(objectContainingKey("name", eq(Value.of("Bob"))).matches(obj)).isFalse();
@@ -568,7 +566,7 @@ class MatchersTests {
 
     @Test
     void whenObjectContainingKeys_thenMatchesObjectsWithAllKeys() {
-        var obj = new ObjectValue(Map.of("a", Value.of(1), "b", Value.of(2), "c", Value.of(3)), ValueMetadata.EMPTY);
+        var obj = Value.ofObject(Map.of("a", Value.of(1), "b", Value.of(2), "c", Value.of(3)));
 
         assertThat(objectContainingKeys("a", "b").matches(obj)).isTrue();
         assertThat(objectContainingKeys("a", "b", "c").matches(obj)).isTrue();
@@ -577,8 +575,8 @@ class MatchersTests {
 
     @Test
     void whenObjectIsEmpty_thenMatchesEmptyObjects() {
-        var emptyObj = new ObjectValue(Map.of(), ValueMetadata.EMPTY);
-        var nonEmpty = new ObjectValue(Map.of("key", Value.of("value")), ValueMetadata.EMPTY);
+        var emptyObj = Value.ofObject(Map.of());
+        var nonEmpty = Value.ofObject(Map.of("key", Value.of("value")));
 
         assertThat(objectIsEmpty().matches(emptyObj)).isTrue();
         assertThat(objectIsEmpty().matches(nonEmpty)).isFalse();

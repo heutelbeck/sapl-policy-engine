@@ -118,7 +118,7 @@ class PlainTestAdapterTests {
     @DisplayName("execute runs multiple scenarios in one requirement")
     void whenMultipleScenariosInRequirement_thenAllAreExecuted() {
         var policy   = SaplDocument.of("permit-read", """
-                policy "permit-read" permit action == "read"
+                policy "permit-read" permit action == "read";
                 """);
         var testCode = """
                 requirement "read access" {

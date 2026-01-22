@@ -160,7 +160,7 @@ class PolicyCoverageDataTests {
     void whenGetLineCount_thenCountsSourceLines() {
         val coverage = new PolicyCoverageData("test", CULTIST_POLICY, "policy");
 
-        assertThat(coverage.getLineCount()).isEqualTo(5);
+        assertThat(coverage.getLineCount()).isEqualTo(4);
     }
 
     @Test

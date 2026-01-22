@@ -23,12 +23,13 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.traced.TracedDecision;
-import io.sapl.compiler.SaplCompilerException;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.TimestampedVote;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -64,22 +65,22 @@ public class PlaygroundPolicyDecisionPoint {
     public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
         this.configurationSource = new PlaygroundConfigurationSource(functionBroker, attributeBroker);
         this.policyDecisionPoint = new DynamicPolicyDecisionPoint(configurationSource,
-                () -> UUID.randomUUID().toString());
+                () -> UUID.randomUUID().toString(), ctx -> Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));
     }
 
     /**
-     * Evaluates an authorization subscription and returns traced decisions. The
-     * returned flux emits a decision whenever
+     * Evaluates an authorization subscription and returns timestamped votes. The
+     * returned flux emits a vote whenever
      * the result changes based on policy updates, variable changes, or attribute
      * stream updates.
      *
      * @param authorizationSubscription
      * the authorization subscription to evaluate
      *
-     * @return flux of traced authorization decisions with evaluation details
+     * @return flux of timestamped votes with evaluation details
      */
-    public Flux<TracedDecision> decide(AuthorizationSubscription authorizationSubscription) {
-        return policyDecisionPoint.decideTraced(authorizationSubscription);
+    public Flux<TimestampedVote> decide(AuthorizationSubscription authorizationSubscription) {
+        return policyDecisionPoint.gatherVotes(authorizationSubscription);
     }
 
     /**

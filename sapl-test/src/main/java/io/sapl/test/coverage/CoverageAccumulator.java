@@ -17,9 +17,6 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.traced.TracedDecision;
 import io.sapl.compiler.pdp.VoteWithCoverage;
 import lombok.Getter;
 import lombok.val;
@@ -108,24 +105,14 @@ public class CoverageAccumulator {
     }
 
     /**
-     * Records coverage from a traced decision.
+     * Records coverage from a vote with coverage data.
      *
-     * @param tracedDecision the traced decision containing coverage data
+     * @param voteWithCoverage the vote containing coverage information
      */
-    public void recordCoverage(VoteWithCoverage tracedDecision) {
-        recordCoverage(tracedDecision.originalTrace(), tracedDecision.currentDecision());
-    }
-
-    /**
-     * Records coverage from a traced PDP decision Value.
-     *
-     * @param tracedPdpDecision the traced decision Value
-     * @param decision the authorization decision outcome
-     */
-    public void recordCoverage(VoteWithCoverage tracedPdpDecision, AuthorizationDecision decision) {
+    public void recordCoverage(VoteWithCoverage voteWithCoverage) {
         synchronized (lock) {
             // Extract and accumulate policy coverage
-            val coverages = CoverageExtractor.extractCoverage(tracedPdpDecision, policySources);
+            val coverages = CoverageExtractor.extractCoverage(voteWithCoverage, policySources);
             for (val coverage : coverages) {
                 // Set file path if registered
                 val filePath = policyFilePaths.get(coverage.getDocumentName());
@@ -136,31 +123,7 @@ public class CoverageAccumulator {
             }
 
             // Record decision outcome
-            coverageRecord.recordDecision(decision.decision());
-        }
-    }
-
-    /**
-     * Records coverage from an authorization decision that may contain trace data.
-     * <p>
-     * This method extracts the trace from the decision's resource field if present,
-     * which is how traced decisions are typically transported.
-     *
-     * @param decision the authorization decision
-     * @param trace the trace Value (from TracedPdpDecision)
-     */
-    public void recordCoverageFromTrace(AuthorizationDecision decision, Value trace) {
-        synchronized (lock) {
-            val coverages = CoverageExtractor.extractCoverage(trace, policySources);
-            for (val coverage : coverages) {
-                // Set file path if registered
-                val filePath = policyFilePaths.get(coverage.getDocumentName());
-                if (filePath != null) {
-                    coverage.setFilePath(filePath);
-                }
-                coverageRecord.addPolicyCoverage(coverage);
-            }
-            coverageRecord.recordDecision(decision.decision());
+            coverageRecord.recordDecision(voteWithCoverage.vote().authorizationDecision().decision());
         }
     }
 

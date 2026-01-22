@@ -1,5 +1,5 @@
 policy "resource-number-policy"
 permit
-    action == "number-transform"
+    action == "number-transform";
 transform
     99

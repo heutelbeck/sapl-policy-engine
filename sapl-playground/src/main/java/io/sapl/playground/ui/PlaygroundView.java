@@ -59,11 +59,10 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.traced.TracedDecision;
-import io.sapl.api.pdp.traced.TracedPdpDecision;
-import io.sapl.compiler.TracedPolicyDecision;
-import io.sapl.parser.DefaultSAPLParser;
-import io.sapl.parser.SAPLParser;
+import io.sapl.compiler.ast.Document;
+import io.sapl.compiler.ast.SAPLCompiler;
+import io.sapl.compiler.pdp.TimestampedVote;
+import io.sapl.compiler.pdp.Vote;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
@@ -285,8 +284,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             permit false%n\
             """;
 
-    private static final SAPLParser PARSER = new DefaultSAPLParser();
-
     private final ObjectMapper                            mapper;
     private final transient PlaygroundValidator           validator;
     private final transient DocumentationDrawer           documentationDrawer;
@@ -294,7 +291,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private final transient PermalinkService              permalinkService;
     private final transient PermalinkConfiguration        permalinkConfiguration;
 
-    private final transient ArrayList<TracedDecision> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
+    private final transient ArrayList<TimestampedVote> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
 
     private TabSheet                leftTabSheet;
     private Tab                     variablesTab;
@@ -304,13 +301,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private JsonEditorLsp           subscriptionEditor;
     private ValidationStatusDisplay subscriptionValidationDisplay;
 
-    private Button                           playStopButton;
-    private Button                           scrollLockButton;
-    private IntegerField                     bufferSizeField;
-    private DecisionsGrid                    decisionsGrid;
-    private GridListDataView<TracedDecision> decisionsGridView;
-    private Checkbox                         clearOnNewSubscriptionCheckBox;
-    private Checkbox                         followLatestDecisionCheckbox;
+    private Button                            playStopButton;
+    private Button                            scrollLockButton;
+    private IntegerField                      bufferSizeField;
+    private DecisionsGrid                     decisionsGrid;
+    private GridListDataView<TimestampedVote> decisionsGridView;
+    private Checkbox                          clearOnNewSubscriptionCheckBox;
+    private Checkbox                          followLatestDecisionCheckbox;
 
     private JsonEditorLsp          decisionJsonEditorLsp;
     private JsonEditorLsp          decisionJsonReportEditor;
@@ -445,8 +442,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Handles new authorization decisions from the PDP. Ensures UI updates occur on
      * the UI thread.
      */
-    private void handleNewDecisionOnUiThread(final TracedDecision tracedDecision) {
-        getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(tracedDecision)));
+    private void handleNewDecisionOnUiThread(final TimestampedVote timestampedVote) {
+        getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(timestampedVote)));
     }
 
     /*
@@ -993,44 +990,44 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Handles selection of decision in the grid.
      */
-    private void handleDecisionSelected(SelectionEvent<Grid<TracedDecision>, TracedDecision> selection) {
+    private void handleDecisionSelected(SelectionEvent<Grid<TimestampedVote>, TimestampedVote> selection) {
         updateDecisionDetailsView(selection.getFirstSelectedItem());
     }
 
     /*
      * Updates the decision details view with selected decision.
      */
-    private void updateDecisionDetailsView(Optional<TracedDecision> maybeTracedDecision) {
-        if (maybeTracedDecision.isEmpty()) {
+    private void updateDecisionDetailsView(Optional<TimestampedVote> maybeTimestampedVote) {
+        if (maybeTimestampedVote.isEmpty()) {
             clearDecisionDetailsView();
             return;
         }
 
-        val tracedDecision = maybeTracedDecision.get();
-        displayDecisionJson(tracedDecision);
-        displayDecisionTrace(tracedDecision);
-        displayDecisionReport(tracedDecision);
-        displayDecisionErrors(tracedDecision);
+        val timestampedVote = maybeTimestampedVote.get();
+        displayDecisionJson(timestampedVote);
+        displayDecisionTrace(timestampedVote);
+        displayDecisionReport(timestampedVote);
+        displayDecisionErrors(timestampedVote);
     }
 
     /*
      * Displays decision JSON in the editor.
      */
-    private void displayDecisionJson(TracedDecision tracedDecision) {
+    private void displayDecisionJson(TimestampedVote timestampedVote) {
         try {
             val prettyJson = mapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(tracedDecision.authorizationDecision());
+                    .writeValueAsString(timestampedVote.vote().authorizationDecision());
             decisionJsonEditorLsp.setDocument(prettyJson);
         } catch (JsonProcessingException exception) {
-            decisionJsonEditorLsp.setDocument(MESSAGE_ERROR_READING_DECISION + tracedDecision);
+            decisionJsonEditorLsp.setDocument(MESSAGE_ERROR_READING_DECISION + timestampedVote);
         }
     }
 
     /*
      * Displays decision trace information.
      */
-    private void displayDecisionTrace(TracedDecision tracedDecision) {
-        val trace = tracedDecision.originalTrace();
+    private void displayDecisionTrace(TimestampedVote timestampedVote) {
+        val trace = timestampedVote.vote().toTrace();
         decisionJsonTraceEditor.setDocument(ValueJsonMarshaller.toPrettyString(trace));
         traceGraphVisualization.setValueData(trace);
     }
@@ -1038,18 +1035,19 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays decision report information.
      */
-    private void displayDecisionReport(TracedDecision tracedDecision) {
-        val report = ReportBuilderUtil.extractReport(tracedDecision);
+    private void displayDecisionReport(TimestampedVote timestampedVote) {
+        val report      = ReportBuilderUtil.extractReport(timestampedVote.vote());
+        val reportValue = ReportBuilderUtil.extractReportAsValue(timestampedVote.vote());
 
-        decisionJsonReportEditor.setDocument(ValueJsonMarshaller.toPrettyString(report));
-        reportTextArea.setValue(ReportTextRenderUtil.textReport(report, false));
+        decisionJsonReportEditor.setDocument(ValueJsonMarshaller.toPrettyString(reportValue));
+        reportTextArea.setValue(ReportTextRenderUtil.textReport(report));
     }
 
     /*
      * Displays errors from the decision.
      */
-    private void displayDecisionErrors(TracedDecision tracedDecision) {
-        val errors          = extractErrorsFromTrace(tracedDecision.originalTrace());
+    private void displayDecisionErrors(TimestampedVote timestampedVote) {
+        val errors          = extractErrorsFromVote(timestampedVote.vote());
         val plainTextReport = buildAggregatedErrorReport(errors);
 
         errorsDisplayArea.removeAll();
@@ -1064,20 +1062,24 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /*
-     * Extracts all errors from a trace Value by traversing documents.
+     * Extracts all errors from a Vote by traversing the contributing votes tree.
      */
-    private List<Value> extractErrorsFromTrace(Value trace) {
-        val errors    = new ArrayList<Value>();
-        val documents = TracedPdpDecision.getDocuments(trace);
-        for (val document : documents) {
-            if (document instanceof ObjectValue docObj) {
-                val docErrors = TracedPolicyDecision.getErrors(docObj);
-                errors.addAll(docErrors);
-            }
-        }
-        val retrievalErrors = TracedPdpDecision.getRetrievalErrors(trace);
-        errors.addAll(retrievalErrors);
+    private List<Value> extractErrorsFromVote(Vote vote) {
+        val errors = new ArrayList<Value>();
+        collectErrorsRecursively(vote, errors);
         return errors;
+    }
+
+    /*
+     * Recursively collects errors from a vote and all its contributing votes.
+     */
+    private void collectErrorsRecursively(Vote vote, List<Value> accumulator) {
+        for (val error : vote.errors()) {
+            accumulator.add(Value.of(error.message()));
+        }
+        for (val childVote : vote.contributingVotes()) {
+            collectErrorsRecursively(childVote, accumulator);
+        }
     }
 
     /*
@@ -1113,8 +1115,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * latest decision is active, automatically
      * selects the new decision.
      */
-    private void handleNewDecision(TracedDecision decision) {
-        decisionBuffer.add(decision);
+    private void handleNewDecision(TimestampedVote timestampedVote) {
+        decisionBuffer.add(timestampedVote);
 
         val bufferSize = getBufferSize();
         if (decisionBuffer.size() > bufferSize) {
@@ -1124,7 +1126,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         decisionsGridView.refreshAll();
 
         if (isFollowLatestDecisionActive) {
-            decisionsGrid.select(decision);
+            decisionsGrid.select(timestampedVote);
         }
 
         if (isScrollLockActive) {
@@ -1381,7 +1383,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 .addValidationFinishedListener(event -> handlePolicyValidation(components.context, event));
         components.context.editor.setDocument(policyDocument);
 
-        val parsedDocument = PARSER.parseDocument(policyDocument);
+        val parsedDocument = SAPLCompiler.parseDocument(policyDocument);
         if (!parsedDocument.isInvalid()) {
             components.context.documentName = parsedDocument.name();
             components.context.titleLabel.setText(truncateTitle(parsedDocument.name()));
@@ -1507,7 +1509,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             log.debug("  Issue: {} (severity: {})", issue.getDescription(), issue.getSeverity());
         }
         val hasErrors      = PlaygroundValidator.hasErrorSeverityIssues(issues);
-        val parsedDocument = PARSER.parseDocument(document);
+        val parsedDocument = SAPLCompiler.parseDocument(document);
 
         updatePolicyDocumentName(context, parsedDocument);
         updatePolicyValidationState(context, hasErrors, issues);
@@ -1542,7 +1544,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Updates policy document name in tab context.
      */
-    private void updatePolicyDocumentName(PolicyTabContext context, io.sapl.parser.Document parsedDocument) {
+    private void updatePolicyDocumentName(PolicyTabContext context, Document parsedDocument) {
         if (!parsedDocument.isInvalid()) {
             context.documentName = parsedDocument.name();
         }
@@ -1809,13 +1811,18 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         dialog.open();
     }
 
+    private static final List<CombiningAlgorithm> STANDARD_COMBINING_ALGORITHMS = List.of(
+            CombiningAlgorithm.DENY_OVERRIDES, CombiningAlgorithm.PERMIT_OVERRIDES,
+            CombiningAlgorithm.ONLY_ONE_APPLICABLE, CombiningAlgorithm.DENY_UNLESS_PERMIT,
+            CombiningAlgorithm.PERMIT_UNLESS_DENY, CombiningAlgorithm.FIRST_APPLICABLE);
+
     /*
      * Creates combining algorithm selection combobox.
      */
     private ComboBox<CombiningAlgorithm> createCombiningAlgorithmComboBox() {
         val comboBox = new ComboBox<CombiningAlgorithm>();
         comboBox.setPlaceholder(LABEL_COMBINING_ALGORITHM);
-        comboBox.setItems(CombiningAlgorithm.values());
+        comboBox.setItems(STANDARD_COMBINING_ALGORITHMS);
         comboBox.setItemLabelGenerator(PlaygroundView::formatAlgorithmName);
         comboBox.addValueChangeListener(this::handleAlgorithmChange);
         comboBox.setWidth(CSS_VALUE_SIZE_16EM);
@@ -2076,7 +2083,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Formats algorithm name for display.
      */
     private static String formatAlgorithmName(CombiningAlgorithm algorithm) {
-        var name = algorithm.toString().replace('_', ' ').toLowerCase();
+        var name = algorithm.votingMode().name().replace('_', ' ').toLowerCase();
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 

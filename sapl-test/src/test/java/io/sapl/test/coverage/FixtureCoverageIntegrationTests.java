@@ -74,7 +74,7 @@ class FixtureCoverageIntegrationTests {
     @DisplayName("collects no coverage when disabled")
     void whenCoverageDisabled_thenNoCoverageFile() {
         val fixture = SaplTestFixture.createSingleTest().withPolicy(MISKATONIC_POLICY).withCoverageOutput(tempDir)
-                .withCoverageDisabled();
+                .withCoverageFileWriteDisabled();
 
         fixture.whenDecide(facultySubscription()).expectPermit().verify();
 
