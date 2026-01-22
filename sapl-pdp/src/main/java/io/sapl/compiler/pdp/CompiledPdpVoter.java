@@ -62,6 +62,11 @@ public record CompiledPdpVoter(
                 .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext));
     }
 
+    public Flux<VoteWithCoverage> voteWithCoverage(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
+        val evaluationContext = evaluationContext(authorizationSubscription, subscriptionId);
+        return coverageStream().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext));
+    }
+
     private EvaluationContext evaluationContext(AuthorizationSubscription authorizationSubscription,
             String subscriptionId) {
         return EvaluationContext.of(voterMetadata().pdpId(), voterMetadata.configurationId(), subscriptionId,

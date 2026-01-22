@@ -60,7 +60,8 @@ public class CoverageExtractor {
      * @return list of policy coverage data for top-level documents only (inner
      * policies within sets are merged into their containing set)
      */
-    public static List<PolicyCoverageData> extractCoverage(VoteWithCoverage tracedPdpDecision, Map<String, String> policySources) {
+    public static List<PolicyCoverageData> extractCoverage(VoteWithCoverage tracedPdpDecision,
+            Map<String, String> policySources) {
         val result    = new ArrayList<PolicyCoverageData>();
         val documents = TracedPdpDecision.getDocuments(tracedPdpDecision);
 

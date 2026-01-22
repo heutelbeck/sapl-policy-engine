@@ -21,6 +21,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.compiler.pdp.TimestampedVote;
+import io.sapl.compiler.pdp.VoteWithCoverage;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -74,6 +75,14 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
     @Override
     public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
         return voteOnce(authorizationSubscription).vote().authorizationDecision();
+    }
+
+    public Flux<VoteWithCoverage> coverageStream(AuthorizationSubscription authorizationSubscription, String pdpId) {
+        val subscriptionId = idFactory.newRandom();
+        return pdpConfigurationSource.getPDPConfigurations(pdpId)
+                .switchMap(optionalConfig -> optionalConfig
+                        .map(config -> config.voteWithCoverage(authorizationSubscription, subscriptionId))
+                        .orElseThrow(() -> new IllegalArgumentException(ERROR_NO_PDP_CONFIGURATION)));
     }
 
     public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription) {

@@ -34,6 +34,7 @@ import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
+import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
@@ -827,10 +828,9 @@ public class SaplTestFixture {
             CoverageContext coverageContext) {
         Flux<AuthorizationDecision> decisionFlux;
         Flux<VoteWithCoverage>      voteWithCoverageFlux = null;
-
-        if (coverageEnabled && components.pdp() instanceof TracedPolicyDecisionPoint tracedPdp) {
-            voteWithCoverageFlux   = tracedPdp.decideTraced(subscription);
-            decisionFlux = voteWithCoverageFlux.map(TracedDecision::authorizationDecision);
+        if (components.pdp() instanceof DynamicPolicyDecisionPoint tracedPdp) {
+            voteWithCoverageFlux = tracedPdp.coverageStream(subscription, "default");
+            decisionFlux         = voteWithCoverageFlux.map(vwc -> vwc.vote().authorizationDecision());
         } else {
             decisionFlux = components.pdp().decide(subscription);
         }
@@ -1092,7 +1092,8 @@ public class SaplTestFixture {
         private final CoverageWriter                           coverageWriter;
         private final boolean                                  coverageFileWriteEnabled;
 
-        DecisionResult(Flux<AuthorizationDecision> decisionFlux, Flux<VoteWithCoverage> voteWithCoverageFlux,
+        DecisionResult(Flux<AuthorizationDecision> decisionFlux,
+                Flux<VoteWithCoverage> voteWithCoverageFlux,
                 MockingAttributeBroker attributeBroker,
                 PolicyDecisionPointBuilder.PDPComponents components,
                 CoverageAccumulator coverageAccumulator,
@@ -1108,7 +1109,8 @@ public class SaplTestFixture {
             Flux<AuthorizationDecision> wrappedFlux;
             if (voteWithCoverageFlux != null && coverageAccumulator != null) {
                 // Record coverage from traced decisions, then map to authorization decisions
-                wrappedFlux = voteWithCoverageFlux.doOnNext(this::recordCoverage).map(vAndC -> vAndC.vote().authorizationDecision());
+                wrappedFlux = voteWithCoverageFlux.doOnNext(this::recordCoverage)
+                        .map(vAndC -> vAndC.vote().authorizationDecision());
             } else if (coverageAccumulator != null) {
                 // Fallback: just record decision outcomes without coverage data
                 wrappedFlux = decisionFlux
@@ -1119,11 +1121,11 @@ public class SaplTestFixture {
             this.step = StepVerifier.create(wrappedFlux);
         }
 
-        private void recordCoverage(VoteWithCoverage tracedDecision) {
+        private void recordCoverage(VoteWithCoverage voteWithCoverage) {
             if (coverageAccumulator == null) {
                 return;
             }
-            coverageAccumulator.recordCoverage(tracedDecision);
+            coverageAccumulator.recordCoverage(voteWithCoverage);
         }
 
         /**
