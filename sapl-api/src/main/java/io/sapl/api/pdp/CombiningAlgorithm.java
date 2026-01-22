@@ -33,6 +33,51 @@ public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultD
     public static final CombiningAlgorithm DEFAULT = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
             DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
+    // Convenience constants for common combining algorithms (backwards
+    // compatibility)
+
+    /**
+     * Deny overrides: if any policy denies, the result is deny.
+     * Equivalent to: priority deny or deny errors propagate
+     */
+    public static final CombiningAlgorithm DENY_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
+            DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+
+    /**
+     * Permit overrides: if any policy permits, the result is permit.
+     * Equivalent to: priority permit or permit errors propagate
+     */
+    public static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
+            DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+
+    /**
+     * Only one applicable: exactly one policy must match, otherwise indeterminate.
+     * Equivalent to: unique or abstain errors propagate
+     */
+    public static final CombiningAlgorithm ONLY_ONE_APPLICABLE = new CombiningAlgorithm(VotingMode.UNIQUE,
+            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+
+    /**
+     * Deny unless permit: default is deny, first matching policy wins.
+     * Equivalent to: first or deny errors abstain
+     */
+    public static final CombiningAlgorithm DENY_UNLESS_PERMIT = new CombiningAlgorithm(VotingMode.FIRST,
+            DefaultDecision.DENY, ErrorHandling.ABSTAIN);
+
+    /**
+     * Permit unless deny: default is permit, first matching policy wins.
+     * Equivalent to: first or permit errors abstain
+     */
+    public static final CombiningAlgorithm PERMIT_UNLESS_DENY = new CombiningAlgorithm(VotingMode.FIRST,
+            DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
+
+    /**
+     * First applicable: first matching policy wins, abstain if none match.
+     * Equivalent to: first or abstain errors propagate
+     */
+    public static final CombiningAlgorithm FIRST_APPLICABLE = new CombiningAlgorithm(VotingMode.FIRST,
+            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+
     /**
      * Returns a canonical string representation for hashing and comparison.
      * <p>

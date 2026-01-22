@@ -43,8 +43,7 @@ class FixtureCoverageIntegrationTests {
     private static final String MISKATONIC_POLICY = """
             policy "miskatonic-library-access"
             permit
-                subject.role == "faculty"
-            where
+                subject.role == "faculty";
                 resource.department == "occult studies";
             """;
 

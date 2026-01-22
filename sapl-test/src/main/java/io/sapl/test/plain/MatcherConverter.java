@@ -27,7 +27,7 @@ import lombok.experimental.UtilityClass;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 import static io.sapl.test.Matchers.*;
 
 /**

@@ -116,42 +116,42 @@ class SAPLTestParserTests {
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
                 }
-                """), arguments("deny-overrides algorithm", """
+                """), arguments("priority deny algorithm", """
                 requirement "Test" {
                     given
-                        - deny-overrides
+                        - priority deny or deny errors propagate
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
                 }
-                """), arguments("permit-overrides algorithm", """
+                """), arguments("priority permit algorithm", """
                 requirement "Test" {
                     given
-                        - permit-overrides
+                        - priority permit or permit errors propagate
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
                 }
-                """), arguments("only-one-applicable algorithm", """
+                """), arguments("unique algorithm", """
                 requirement "Test" {
                     given
-                        - only-one-applicable
+                        - unique or abstain errors propagate
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
                 }
-                """), arguments("deny-unless-permit algorithm", """
+                """), arguments("first or deny algorithm", """
                 requirement "Test" {
                     given
-                        - deny-unless-permit
+                        - first or deny errors abstain
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
                 }
-                """), arguments("permit-unless-deny algorithm", """
+                """), arguments("first or permit algorithm", """
                 requirement "Test" {
                     given
-                        - permit-unless-deny
+                        - first or permit errors abstain
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -902,7 +902,7 @@ class SAPLTestParserTests {
                     given
                         - documents "base_policy", "library_policy"
                         - variables { "institution": "Miskatonic", "founded": 1797 }
-                        - deny-overrides
+                        - priority deny or deny errors propagate
                         - function library.checkAccess() maps to true
                         - attribute "statusMock" <student.status> emits "enrolled"
 

@@ -39,8 +39,7 @@ class PortedDemoTests {
     private static final String POLICY_SIMPLE = """
             policy "policySimple"
             permit
-                action == "read"
-            where
+                action == "read";
                 subject == "willi";
             """;
 
@@ -48,27 +47,24 @@ class PortedDemoTests {
     private static final String POLICY_WITH_FUNCTION = """
             policy "policyWithSimpleFunction"
             permit
-                action == "read"
-            where
+                action == "read";
                 time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
             """;
 
     // Policy set with "for" clause to test target expression coverage
     private static final String POLICY_SET_WITH_FOR = """
             set "forbidden-tomes-access"
-            deny-unless-permit
+            first or deny errors abstain
             for resource == "necronomicon"
 
             policy "allow-cultist-access"
             permit
-                action == "read"
-            where
+                action == "read";
                 subject.role == "cultist";
 
             policy "allow-researcher-with-clearance"
             permit
-                action == "read"
-            where
+                action == "read";
                 subject.role == "researcher";
                 subject.clearanceLevel > 3;
             """;

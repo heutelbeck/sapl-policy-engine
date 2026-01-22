@@ -27,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
  * Converts grammar value nodes to SAPL Value objects.

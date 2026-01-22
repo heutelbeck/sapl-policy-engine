@@ -436,7 +436,7 @@ class SAPLTestValidatorTests {
                 requirement "New Syntax Test" {
                     given
                         - document "unit_test_policy"
-                        - only-one-applicable
+                        - unique or abstain errors propagate
                         - variables { "key": "value" }
 
                     scenario "unit test scenario"
@@ -447,7 +447,7 @@ class SAPLTestValidatorTests {
                 requirement "Integration Test" {
                     given
                         - documents "policy1", "policy2"
-                        - deny-overrides
+                        - priority deny or deny errors propagate
 
                     scenario "integration scenario"
                         when "admin" attempts "delete" on "sensitive"

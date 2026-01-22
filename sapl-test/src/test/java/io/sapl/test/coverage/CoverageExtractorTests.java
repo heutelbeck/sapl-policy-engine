@@ -37,8 +37,7 @@ class CoverageExtractorTests {
     private static final String CULTIST_POLICY_SOURCE = """
             policy "cultist-access"
             permit
-                subject.role == "cultist"
-            where
+                subject.role == "cultist";
                 resource.artifact == "necronomicon";
             """;
 

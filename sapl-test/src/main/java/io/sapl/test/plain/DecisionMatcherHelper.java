@@ -29,7 +29,7 @@ import io.sapl.test.grammar.antlr.SAPLTestParser.MatchingObjectMatcherContext;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 @UtilityClass
 class DecisionMatcherHelper {

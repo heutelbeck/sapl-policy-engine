@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
  * JUnit 5 test adapter for executing SAPL test definitions.

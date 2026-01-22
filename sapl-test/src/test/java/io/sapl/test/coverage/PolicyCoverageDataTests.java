@@ -34,8 +34,7 @@ class PolicyCoverageDataTests {
     private static final String CULTIST_POLICY = """
             policy "cultist-access"
             permit
-                subject.role == "cultist"
-            where
+                subject.role == "cultist";
                 resource.artifact == "necronomicon";
             """;
 
@@ -299,7 +298,7 @@ class PolicyCoverageDataTests {
     @Test
     @DisplayName("records two-branch policy outcome for policy with conditions")
     void whenRecordPolicyOutcomeWithConditions_thenTwoBranch() {
-        val coverage = new PolicyCoverageData("conditional-permit", "policy \"test\" permit where x > 0;", "policy");
+        val coverage = new PolicyCoverageData("conditional-permit", "policy \"test\" permit x > 0;", "policy");
 
         coverage.recordPolicyOutcome(1, 1, 0, 30, true, true);
 
@@ -318,7 +317,7 @@ class PolicyCoverageDataTests {
     @Test
     @DisplayName("merges policy outcome hits for same policy")
     void whenRecordMultiplePolicyOutcomes_thenMerged() {
-        val coverage = new PolicyCoverageData("test-policy", "policy \"test\" permit where x > 0;", "policy");
+        val coverage = new PolicyCoverageData("test-policy", "policy \"test\" permit x > 0;", "policy");
 
         // First evaluation: entitlement returned
         coverage.recordPolicyOutcome(1, 1, 0, 30, true, true);
@@ -350,7 +349,7 @@ class PolicyCoverageDataTests {
     @Test
     @DisplayName("two-branch policy needs both outcomes for full coverage")
     void whenTwoBranchPolicyOnlyOneOutcome_thenPartiallyCovered() {
-        val source   = "policy \"conditional\" permit where x;";
+        val source   = "policy \"conditional\" permit x;";
         val coverage = new PolicyCoverageData("conditional", source, "policy");
 
         coverage.recordPolicyOutcome(1, 1, 0, 35, true, true);

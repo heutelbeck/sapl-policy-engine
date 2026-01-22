@@ -72,18 +72,30 @@ documentSpecification
     | DOCUMENTS identifiers+=STRING (COMMA identifiers+=STRING)*    # multipleDocuments
     ;
 
-// Combining algorithm - simplified syntax
-// - deny-overrides
-// - permit-overrides
-// - only-one-applicable
-// - deny-unless-permit
-// - permit-unless-deny
+// Combining algorithm - same syntax as sapl-parser
+// Example: first or abstain errors propagate
 combiningAlgorithm
-    : DENY_OVERRIDES      # denyOverridesAlgorithm
-    | PERMIT_OVERRIDES    # permitOverridesAlgorithm
-    | ONLY_ONE_APPLICABLE # onlyOneApplicableAlgorithm
-    | DENY_UNLESS_PERMIT  # denyUnlessPermitAlgorithm
-    | PERMIT_UNLESS_DENY  # permitUnlessDenyAlgorithm
+    : votingMode KW_OR defaultDecision (COMMA? ERRORS errorHandling)?
+    ;
+
+votingMode
+    : FIRST            # first
+    | PRIORITY DENY    # priorityDeny
+    | PRIORITY PERMIT  # priorityPermit
+    | UNANIMOUS STRICT # unanimousStrict
+    | UNANIMOUS        # unanimous
+    | UNIQUE           # unique
+    ;
+
+defaultDecision
+    : DENY    # denyDefault
+    | ABSTAIN # abstainDefault
+    | PERMIT  # permitDefault
+    ;
+
+errorHandling
+    : ABSTAIN   # abstainErrors
+    | PROPAGATE # propagateErrors
     ;
 
 // Variables definition - local test variables override security variables
@@ -103,7 +115,7 @@ mockDefinition
 
 // Dotted identifier for function names (e.g., time.dayOfWeek, filter.blacken)
 functionName
-    : parts+=ID (DOT parts+=ID)*
+    : parts+=testId (DOT parts+=testId)*
     ;
 
 // Function parameters - matchers for arguments
@@ -123,7 +135,7 @@ attributeReference
 
 // Dotted identifier for attribute names (e.g., pip.attr, user.location)
 attributeName
-    : parts+=ID (DOT parts+=ID)*
+    : parts+=testId (DOT parts+=testId)*
     ;
 
 // Parameters are only needed when there are matchers to specify
@@ -310,4 +322,17 @@ stringLiteral
 
 numberLiteral
     : NUMBER
+    ;
+
+// Identifiers - allows combining algorithm keywords to be used as identifiers
+testId
+    : ID
+    | ABSTAIN
+    | ERRORS
+    | FIRST
+    | PRIORITY
+    | PROPAGATE
+    | STRICT
+    | UNANIMOUS
+    | UNIQUE
     ;

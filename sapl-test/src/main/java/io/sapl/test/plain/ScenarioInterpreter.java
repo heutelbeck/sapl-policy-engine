@@ -19,6 +19,9 @@ package io.sapl.test.plain;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.DecisionMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
@@ -35,7 +38,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 import static io.sapl.test.Matchers.*;
 import io.sapl.api.model.Value;
 
@@ -281,14 +284,42 @@ public class ScenarioInterpreter {
      * Parses a combining algorithm from grammar context.
      */
     private CombiningAlgorithm parseCombiningAlgorithm(CombiningAlgorithmContext ctx) {
+        var votingMode      = parseVotingMode(ctx.votingMode());
+        var defaultDecision = parseDefaultDecision(ctx.defaultDecision());
+        var errorHandling   = ctx.errorHandling() != null ? parseErrorHandling(ctx.errorHandling())
+                : ErrorHandling.PROPAGATE;
+        return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);
+    }
+
+    private VotingMode parseVotingMode(VotingModeContext ctx) {
         return switch (ctx) {
-        case DenyOverridesAlgorithmContext ignored     -> CombiningAlgorithm.DENY_OVERRIDES;
-        case PermitOverridesAlgorithmContext ignored   -> CombiningAlgorithm.PERMIT_OVERRIDES;
-        case OnlyOneApplicableAlgorithmContext ignored -> CombiningAlgorithm.ONLY_ONE_APPLICABLE;
-        case DenyUnlessPermitAlgorithmContext ignored  -> CombiningAlgorithm.DENY_UNLESS_PERMIT;
-        case PermitUnlessDenyAlgorithmContext ignored  -> CombiningAlgorithm.PERMIT_UNLESS_DENY;
-        default                                        ->
-            throw new IllegalArgumentException(ERROR_UNKNOWN_COMBINING_ALG.formatted(ctx.getText()));
+        case FirstContext ignored           -> VotingMode.FIRST;
+        case PriorityDenyContext ignored    -> VotingMode.PRIORITY_DENY;
+        case PriorityPermitContext ignored  -> VotingMode.PRIORITY_PERMIT;
+        case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
+        case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
+        case UniqueContext ignored          -> VotingMode.UNIQUE;
+        default                             ->
+            throw new IllegalArgumentException("Unknown voting mode: " + ctx.getText());
+        };
+    }
+
+    private DefaultDecision parseDefaultDecision(DefaultDecisionContext ctx) {
+        return switch (ctx) {
+        case DenyDefaultContext ignored    -> DefaultDecision.DENY;
+        case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
+        case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
+        default                            ->
+            throw new IllegalArgumentException("Unknown default decision: " + ctx.getText());
+        };
+    }
+
+    private ErrorHandling parseErrorHandling(ErrorHandlingContext ctx) {
+        return switch (ctx) {
+        case AbstainErrorsContext ignored   -> ErrorHandling.ABSTAIN;
+        case PropagateErrorsContext ignored -> ErrorHandling.PROPAGATE;
+        default                             ->
+            throw new IllegalArgumentException("Unknown error handling: " + ctx.getText());
         };
     }
 

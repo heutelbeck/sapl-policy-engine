@@ -91,7 +91,7 @@ class CoverageAccumulatorTests {
     @DisplayName("records coverage from trace with policy source correlation")
     void whenRecordCoverageWithSource_thenSourceAttached() {
         val accumulator = new CoverageAccumulator("test");
-        val source      = "policy \"summoning\" permit where resource.type == \"scroll\";";
+        val source      = "policy \"summoning\" permit resource.type == \"scroll\";";
 
         accumulator.registerPolicySource("summoning", source);
 

@@ -62,12 +62,16 @@ ERROR         : 'error';
 // PDP configuration keywords
 VARIABLES : 'variables';
 
-// Combining algorithms
-DENY_OVERRIDES      : 'deny-overrides';
-PERMIT_OVERRIDES    : 'permit-overrides';
-ONLY_ONE_APPLICABLE : 'only-one-applicable';
-DENY_UNLESS_PERMIT  : 'deny-unless-permit';
-PERMIT_UNLESS_DENY  : 'permit-unless-deny';
+// Combining algorithm components (same as sapl-parser)
+KW_OR     : 'or';
+ERRORS    : 'errors';
+ABSTAIN   : 'abstain';
+PROPAGATE : 'propagate';
+FIRST     : 'first';
+PRIORITY  : 'priority';
+STRICT    : 'strict';
+UNANIMOUS : 'unanimous';
+UNIQUE    : 'unique';
 
 // Document keywords
 DOCUMENT  : 'document';
