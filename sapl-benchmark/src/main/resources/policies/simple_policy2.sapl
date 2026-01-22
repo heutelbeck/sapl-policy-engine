@@ -1,6 +1,5 @@
 policy "simple_policy2"
 permit
-    action == "requests"
-where
+    action == "requests";
     resource == "information";
     resource.<echo.delayed> == resource;
