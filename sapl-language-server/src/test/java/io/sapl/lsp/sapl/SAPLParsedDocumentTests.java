@@ -51,11 +51,13 @@ class SAPLParsedDocumentTests {
     }
 
     @Test
-    void whenLazyOperatorInTarget_thenParsesSuccessfully() {
+    void whenLazyOperatorInCondition_thenParsesSuccessfully() {
         // Both & and && (| and ||) are now treated identically - no validation error
+        // Note: Standalone policies don't have target expressions in the new grammar
         var content = """
                 policy "test"
-                permit subject == "admin" || action == "read"
+                permit
+                  subject == "admin" || action == "read";
                 """;
 
         var document = new SAPLParsedDocument("test.sapl", content);
@@ -65,12 +67,14 @@ class SAPLParsedDocumentTests {
 
     @Test
     void whenPolicySet_thenParsesSuccessfully() {
+        // Note: Policy body statements require trailing semicolons
         var content = """
                 set "test policies"
-                first-applicable
+                first or abstain
 
                 policy "policy 1"
-                permit subject == "admin"
+                permit
+                  subject == "admin";
 
                 policy "policy 2"
                 deny
@@ -84,10 +88,12 @@ class SAPLParsedDocumentTests {
 
     @Test
     void whenPolicyWithBody_thenParsesSuccessfully() {
+        // Note: Standalone policies don't have target expressions in the new grammar
+        // Policy body statements require trailing semicolons
         var content = """
                 policy "complex policy"
-                permit action == "read"
-                where
+                permit
+                  action == "read";
                   var user = subject.name;
                   user == "admin";
                 obligation "log access"
@@ -101,10 +107,12 @@ class SAPLParsedDocumentTests {
     }
 
     @Test
-    void whenAttributeInTarget_thenCapturesValidationError() {
+    void whenAttributeInSchemaExpression_thenCapturesValidationError() {
+        // Attributes are not allowed in schema expressions
         var content = """
+                subject schema <time.now>
                 policy "test"
-                permit <time.now>
+                permit
                 """;
 
         var document = new SAPLParsedDocument("test.sapl", content);

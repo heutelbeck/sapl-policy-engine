@@ -98,9 +98,7 @@ public class VariablesProposalsGenerator {
         var proposals = new ArrayList<String>();
         config.variables().forEach((name, value) -> {
             proposals.add(name);
-            if (!value.isSecret()) {
-                generatePathProposalsForValue(value).forEach(suffix -> proposals.add(name + "." + suffix));
-            }
+            generatePathProposalsForValue(value).forEach(suffix -> proposals.add(name + "." + suffix));
         });
         return proposals;
     }

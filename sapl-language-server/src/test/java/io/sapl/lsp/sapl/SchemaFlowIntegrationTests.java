@@ -121,9 +121,8 @@ class SchemaFlowIntegrationTests {
                 environment schema { "type": "object", "properties": { "time": {} } }
                 policy "test"
                 permit
-                where
                   """;
-        var position    = new Position(7, 2);
+        var position    = new Position(6, 2);
         var completions = getCompletions(document, position);
 
         var labels = completionLabels(completions);

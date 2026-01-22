@@ -18,11 +18,14 @@
 package io.sapl.server.ce.model.pdpconfiguration;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * The selected combining algorithm.
+ * The selected combining algorithm, stored as three separate components.
  */
 @Getter
 @Setter
@@ -32,12 +35,18 @@ import lombok.*;
 @AllArgsConstructor
 @Table(name = "SelectedCombiningAlgorithm")
 public class SelectedCombiningAlgorithm {
-    public SelectedCombiningAlgorithm(@NonNull CombiningAlgorithm selection) {
-        this.selection = selection;
+
+    /**
+     * Creates entity from a CombiningAlgorithm record.
+     */
+    public SelectedCombiningAlgorithm(@NonNull CombiningAlgorithm algorithm) {
+        this.votingMode      = algorithm.votingMode();
+        this.defaultDecision = algorithm.defaultDecision();
+        this.errorHandling   = algorithm.errorHandling();
     }
 
     /**
-     * The unique identifier of the SAPL document.
+     * The unique identifier.
      */
     @Id
     @GeneratedValue
@@ -45,8 +54,30 @@ public class SelectedCombiningAlgorithm {
     private Long id;
 
     /**
-     * The selection.
+     * The voting mode component.
      */
     @Column
-    private CombiningAlgorithm selection;
+    @Enumerated(EnumType.STRING)
+    private VotingMode votingMode;
+
+    /**
+     * The default decision component.
+     */
+    @Column
+    @Enumerated(EnumType.STRING)
+    private DefaultDecision defaultDecision;
+
+    /**
+     * The error handling component.
+     */
+    @Column
+    @Enumerated(EnumType.STRING)
+    private ErrorHandling errorHandling;
+
+    /**
+     * Builds the CombiningAlgorithm record from the stored components.
+     */
+    public CombiningAlgorithm toCombiningAlgorithm() {
+        return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);
+    }
 }

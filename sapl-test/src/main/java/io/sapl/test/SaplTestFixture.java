@@ -24,12 +24,14 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.*;
-import io.sapl.api.pdp.traced.TracedDecision;
-import io.sapl.api.pdp.traced.TracedPolicyDecisionPoint;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -137,7 +139,6 @@ public class SaplTestFixture {
     // Coverage configuration
     private String  testIdentifier;
     private Path    coverageOutputPath;
-    private boolean coverageEnabled          = true;
     private boolean coverageFileWriteEnabled = true;
 
     private SaplTestFixture(boolean singleTestMode) {
@@ -271,7 +272,7 @@ public class SaplTestFixture {
             if (is == null) {
                 throw new IllegalStateException("Resource not found: " + resourcePath);
             }
-            var content    = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            var content    = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             var policyName = extractPolicyName(content);
             if (policyName != null) {
                 // Convert resource path to a reasonable file path for SonarQube
@@ -544,19 +545,6 @@ public class SaplTestFixture {
     }
 
     /**
-     * Disables coverage collection for this test.
-     * <p>
-     * Use this when coverage data is not needed or would interfere
-     * with specific testing scenarios.
-     *
-     * @return this fixture for chaining
-     */
-    public SaplTestFixture withCoverageDisabled() {
-        this.coverageEnabled = false;
-        return this;
-    }
-
-    /**
      * Disables writing coverage data to files.
      * <p>
      * Coverage is still collected and returned from {@code verify()},
@@ -814,19 +802,14 @@ public class SaplTestFixture {
     private PDPComponents buildPdpComponents(PolicyDecisionPointBuilder pdpBuilder, List<String> effectivePolicies) {
         var effectiveAlgorithm = resolveAlgorithm();
         var effectiveVariables = resolveVariables();
-        var traceLevel         = coverageEnabled ? TraceLevel.COVERAGE : TraceLevel.STANDARD;
         var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
-                effectiveAlgorithm, traceLevel, effectivePolicies, effectiveVariables);
+                effectiveAlgorithm, effectivePolicies, effectiveVariables);
 
         return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeBroker(mockingAttributeBroker)
                 .withConfiguration(configuration).build();
     }
 
     private CoverageContext createCoverageContext(List<String> effectivePolicies) {
-        if (!coverageEnabled) {
-            return new CoverageContext(null, null);
-        }
-
         val effectiveTestId     = testIdentifier != null ? testIdentifier : generateTestIdentifier();
         var coverageAccumulator = new CoverageAccumulator(effectiveTestId);
         coverageAccumulator.registerPolicySources(buildPolicySourceMap(effectivePolicies));
@@ -843,16 +826,16 @@ public class SaplTestFixture {
     private DecisionResult createDecisionResult(AuthorizationSubscription subscription, PDPComponents components,
             CoverageContext coverageContext) {
         Flux<AuthorizationDecision> decisionFlux;
-        Flux<TracedDecision>        tracedFlux = null;
+        Flux<VoteWithCoverage>      voteWithCoverageFlux = null;
 
         if (coverageEnabled && components.pdp() instanceof TracedPolicyDecisionPoint tracedPdp) {
-            tracedFlux   = tracedPdp.decideTraced(subscription);
-            decisionFlux = tracedFlux.map(TracedDecision::authorizationDecision);
+            voteWithCoverageFlux   = tracedPdp.decideTraced(subscription);
+            decisionFlux = voteWithCoverageFlux.map(TracedDecision::authorizationDecision);
         } else {
             decisionFlux = components.pdp().decide(subscription);
         }
 
-        return new DecisionResult(decisionFlux, tracedFlux, mockingAttributeBroker, components,
+        return new DecisionResult(decisionFlux, voteWithCoverageFlux, mockingAttributeBroker, components,
                 coverageContext.accumulator(), coverageContext.writer(), coverageFileWriteEnabled);
     }
 
@@ -1109,8 +1092,7 @@ public class SaplTestFixture {
         private final CoverageWriter                           coverageWriter;
         private final boolean                                  coverageFileWriteEnabled;
 
-        DecisionResult(Flux<AuthorizationDecision> decisionFlux,
-                Flux<TracedDecision> tracedFlux,
+        DecisionResult(Flux<AuthorizationDecision> decisionFlux, Flux<VoteWithCoverage> voteWithCoverageFlux,
                 MockingAttributeBroker attributeBroker,
                 PolicyDecisionPointBuilder.PDPComponents components,
                 CoverageAccumulator coverageAccumulator,
@@ -1124,9 +1106,9 @@ public class SaplTestFixture {
 
             // Use traced flux for coverage collection if available
             Flux<AuthorizationDecision> wrappedFlux;
-            if (tracedFlux != null && coverageAccumulator != null) {
+            if (voteWithCoverageFlux != null && coverageAccumulator != null) {
                 // Record coverage from traced decisions, then map to authorization decisions
-                wrappedFlux = tracedFlux.doOnNext(this::recordCoverage).map(TracedDecision::authorizationDecision);
+                wrappedFlux = voteWithCoverageFlux.doOnNext(this::recordCoverage).map(vAndC -> vAndC.vote().authorizationDecision());
             } else if (coverageAccumulator != null) {
                 // Fallback: just record decision outcomes without coverage data
                 wrappedFlux = decisionFlux
@@ -1137,7 +1119,7 @@ public class SaplTestFixture {
             this.step = StepVerifier.create(wrappedFlux);
         }
 
-        private void recordCoverage(TracedDecision tracedDecision) {
+        private void recordCoverage(VoteWithCoverage tracedDecision) {
             if (coverageAccumulator == null) {
                 return;
             }

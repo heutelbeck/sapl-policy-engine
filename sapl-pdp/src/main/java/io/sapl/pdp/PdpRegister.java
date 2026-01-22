@@ -25,6 +25,7 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
 import io.sapl.compiler.pdp.PdpCompiler;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -70,9 +71,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * <li>Full reactive semantics - configuration updates propagate correctly</li>
  * </ul>
  */
+@Slf4j
 @RequiredArgsConstructor
 public class PdpRegister implements CompiledPDPConfigurationSource {
 
+    public static final String    ERROR_COMPILING_DOCUMENT = "Configuration rejected. Error compiling document.";
     private final FunctionBroker  functionBroker;
     private final AttributeBroker attributeBroker;
 
@@ -114,7 +117,8 @@ public class PdpRegister implements CompiledPDPConfigurationSource {
             if (!keepOldConfigOnError) {
                 removeConfigurationForPdp(pdpConfiguration.pdpId());
             }
-            throw new IllegalArgumentException("Configuration rejected. Error compiling document.", compilerException);
+            log.warn("Encountered compiler error while loading a PDP configuration: " + compilerException.getMessage());
+            throw new IllegalArgumentException(ERROR_COMPILING_DOCUMENT, compilerException);
         }
         val optionalConfig = Optional.of(newConfiguration);
 

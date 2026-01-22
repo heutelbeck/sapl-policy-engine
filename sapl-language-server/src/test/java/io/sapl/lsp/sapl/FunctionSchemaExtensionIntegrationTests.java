@@ -192,8 +192,9 @@ class FunctionSchemaExtensionIntegrationTests {
         var authPip     = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, "auth", "Auth PIP", "Docs",
                 List.of(authUser, currentUser));
 
-        var bundle = new DocumentationBundle(List.of(timeLib, standardLib, authPip));
-        return new LSPConfiguration("", bundle, Map.of(), null, null);
+        var bundle  = new DocumentationBundle(List.of(timeLib, standardLib, authPip));
+        var minimal = LSPConfiguration.minimal();
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
     }
 
 }

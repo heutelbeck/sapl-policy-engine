@@ -17,16 +17,26 @@
  */
 package io.sapl.lsp.configuration;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.CachingAttributeBroker;
+import io.sapl.attributes.InMemoryAttributeRepository;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
+import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
+import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -97,13 +107,14 @@ public class StandardLibrariesLoader {
      * @return a fully configured LSPConfiguration with all standard libraries
      */
     public static LSPConfiguration loadStandardConfiguration(String configurationId) {
-        var functionBroker = createFunctionBroker();
-        var documentation  = createDocumentationBundle();
+        var functionBroker  = createFunctionBroker();
+        var attributeBroker = createAttributeBroker();
+        var documentation   = createDocumentationBundle();
 
         log.info("Loaded {} function libraries and {} PIPs for LSP configuration", FUNCTION_LIBRARIES.size(),
                 POLICY_INFORMATION_POINTS.size());
 
-        return new LSPConfiguration(configurationId, documentation, Map.of(), functionBroker, null);
+        return new LSPConfiguration(configurationId, documentation, Map.of(), functionBroker, attributeBroker);
     }
 
     /**
@@ -114,10 +125,11 @@ public class StandardLibrariesLoader {
      * @return a fully configured LSPConfiguration
      */
     public static LSPConfiguration loadStandardConfiguration(String configurationId, Map<String, Value> variables) {
-        var functionBroker = createFunctionBroker();
-        var documentation  = createDocumentationBundle();
+        var functionBroker  = createFunctionBroker();
+        var attributeBroker = createAttributeBroker();
+        var documentation   = createDocumentationBundle();
 
-        return new LSPConfiguration(configurationId, documentation, variables, functionBroker, null);
+        return new LSPConfiguration(configurationId, documentation, variables, functionBroker, attributeBroker);
     }
 
     private static FunctionBroker createFunctionBroker() {
@@ -129,6 +141,35 @@ public class StandardLibrariesLoader {
                 log.warn("Failed to load function library {}: {}", libraryClass.getSimpleName(), e.getMessage());
             }
         }
+        return broker;
+    }
+
+    private static AttributeBroker createAttributeBroker() {
+        var clock      = Clock.systemUTC();
+        var repository = new InMemoryAttributeRepository(clock);
+        var broker     = new CachingAttributeBroker(repository);
+
+        // Load standard PIPs
+        try {
+            broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(clock));
+        } catch (Exception e) {
+            log.warn("Failed to load TimePolicyInformationPoint: {}", e.getMessage());
+        }
+
+        try {
+            var reactiveWebClient = new ReactiveWebClient(new ObjectMapper());
+            broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(reactiveWebClient));
+        } catch (Exception e) {
+            log.warn("Failed to load HttpPolicyInformationPoint: {}", e.getMessage());
+        }
+
+        try {
+            var jwtKeyProvider = new JWTKeyProvider(WebClient.builder());
+            broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(jwtKeyProvider));
+        } catch (Exception e) {
+            log.warn("Failed to load JWTPolicyInformationPoint: {}", e.getMessage());
+        }
+
         return broker;
     }
 

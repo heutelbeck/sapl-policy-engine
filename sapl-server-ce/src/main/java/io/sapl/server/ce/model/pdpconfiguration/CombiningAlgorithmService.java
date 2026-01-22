@@ -18,6 +18,9 @@
 package io.sapl.server.ce.model.pdpconfiguration;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.pdp.PDPConfigurationPublisher;
 import jakarta.annotation.PostConstruct;
@@ -27,16 +30,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-
 /**
- * Service for managing the combining algorithm.
+ * Service for managing the combining algorithm components.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Conditional(SetupFinishedCondition.class)
 public class CombiningAlgorithmService {
+
+    /**
+     * Default combining algorithm: DENY_UNLESS_PERMIT semantics.
+     */
     public static final CombiningAlgorithm DEFAULT = CombiningAlgorithm.DENY_UNLESS_PERMIT;
 
     private final SelectedCombiningAlgorithmRepository selectedCombiningAlgorithmRepository;
@@ -53,28 +58,65 @@ public class CombiningAlgorithmService {
      * @return the selected combining algorithm
      */
     public CombiningAlgorithm getSelected() {
-        Collection<SelectedCombiningAlgorithm> entities = selectedCombiningAlgorithmRepository.findAll();
+        var entities = selectedCombiningAlgorithmRepository.findAll();
         if (entities.isEmpty()) {
-            selectedCombiningAlgorithmRepository
-                    .save(new SelectedCombiningAlgorithm(CombiningAlgorithmService.DEFAULT));
-            return CombiningAlgorithmService.DEFAULT;
+            var defaultEntity = new SelectedCombiningAlgorithm(DEFAULT);
+            selectedCombiningAlgorithmRepository.save(defaultEntity);
+            return DEFAULT;
         }
-
-        var relevantEntity = entities.iterator().next();
-        return relevantEntity.getSelection();
+        return entities.iterator().next().toCombiningAlgorithm();
     }
 
     /**
-     * Gets the available / selectable combining algorithms.
-     *
-     * @return the algorithm types
+     * Gets the current voting mode.
      */
-    public CombiningAlgorithm[] getAvailable() {
-        return CombiningAlgorithm.values();
+    public VotingMode getVotingMode() {
+        return getSelected().votingMode();
     }
 
     /**
-     * Sets the combining algorithm.
+     * Gets the current default decision.
+     */
+    public DefaultDecision getDefaultDecision() {
+        return getSelected().defaultDecision();
+    }
+
+    /**
+     * Gets the current error handling strategy.
+     */
+    public ErrorHandling getErrorHandling() {
+        return getSelected().errorHandling();
+    }
+
+    /**
+     * Sets the voting mode component.
+     */
+    public void setVotingMode(@NonNull VotingMode votingMode) {
+        var current = getSelected();
+        var updated = new CombiningAlgorithm(votingMode, current.defaultDecision(), current.errorHandling());
+        setSelected(updated);
+    }
+
+    /**
+     * Sets the default decision component.
+     */
+    public void setDefaultDecision(@NonNull DefaultDecision defaultDecision) {
+        var current = getSelected();
+        var updated = new CombiningAlgorithm(current.votingMode(), defaultDecision, current.errorHandling());
+        setSelected(updated);
+    }
+
+    /**
+     * Sets the error handling component.
+     */
+    public void setErrorHandling(@NonNull ErrorHandling errorHandling) {
+        var current = getSelected();
+        var updated = new CombiningAlgorithm(current.votingMode(), current.defaultDecision(), errorHandling);
+        setSelected(updated);
+    }
+
+    /**
+     * Sets the complete combining algorithm.
      *
      * @param combiningAlgorithm the combining algorithm to set
      */
@@ -82,7 +124,6 @@ public class CombiningAlgorithmService {
         selectedCombiningAlgorithmRepository.deleteAll();
         selectedCombiningAlgorithmRepository.save(new SelectedCombiningAlgorithm(combiningAlgorithm));
         pdpConfigurationPublisher.publishCombiningAlgorithm(combiningAlgorithm);
-
-        log.info("set policy document combining algorithm: {}", combiningAlgorithm);
+        log.info("set combining algorithm: {}", combiningAlgorithm.toCanonicalString());
     }
 }

@@ -82,7 +82,7 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     private void logTextReport(String timestamp, VoteReport report) {
-        multiLineLog(ReportTextRenderUtil.textReport(report));
+        multiLineLog(timestamp + ": " + ReportTextRenderUtil.textReport(report));
     }
 
     private void multiLineLog(String message) {

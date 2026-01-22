@@ -86,16 +86,16 @@ public class SAPLSemanticTokensProvider {
 
         // Keywords
         case SAPLLexer.IMPORT, SAPLLexer.AS, SAPLLexer.SET, SAPLLexer.FOR, SAPLLexer.POLICY, SAPLLexer.PERMIT,
-                SAPLLexer.DENY, SAPLLexer.WHERE, SAPLLexer.VAR, SAPLLexer.SCHEMA, SAPLLexer.ENFORCED,
-                SAPLLexer.OBLIGATION, SAPLLexer.ADVICE, SAPLLexer.TRANSFORM, SAPLLexer.TRUE, SAPLLexer.FALSE,
-                SAPLLexer.NULL, SAPLLexer.UNDEFINED, SAPLLexer.IN,
-                SAPLLexer.EACH                                                                                                                                                                                                                                                                                                                                       ->
+                SAPLLexer.DENY, SAPLLexer.VAR, SAPLLexer.SCHEMA, SAPLLexer.ENFORCED, SAPLLexer.OBLIGATION,
+                SAPLLexer.ADVICE, SAPLLexer.TRANSFORM, SAPLLexer.TRUE, SAPLLexer.FALSE, SAPLLexer.NULL,
+                SAPLLexer.UNDEFINED, SAPLLexer.IN,
+                SAPLLexer.EACH                                                                                                                                                                                                                                                                                                                      ->
             SAPLSemanticTokenTypes.KEYWORD;
 
-        // Combining algorithms
-        case SAPLLexer.DENY_OVERRIDES, SAPLLexer.PERMIT_OVERRIDES, SAPLLexer.FIRST_APPLICABLE,
-                SAPLLexer.ONLY_ONE_APPLICABLE, SAPLLexer.DENY_UNLESS_PERMIT,
-                SAPLLexer.PERMIT_UNLESS_DENY                                                                                                                                             ->
+        // Combining algorithm keywords
+        case SAPLLexer.FIRST, SAPLLexer.PRIORITY, SAPLLexer.UNANIMOUS, SAPLLexer.UNIQUE, SAPLLexer.KW_OR,
+                SAPLLexer.ERRORS, SAPLLexer.ABSTAIN,
+                SAPLLexer.PROPAGATE                                                                                                                                ->
             SAPLSemanticTokenTypes.MACRO;
 
         // Subscription elements as parameters

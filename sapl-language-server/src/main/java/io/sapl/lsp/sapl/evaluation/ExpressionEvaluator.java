@@ -23,12 +23,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureExpression;
-import io.sapl.api.model.StreamExpression;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.CompilationContext;
-import io.sapl.compiler.ExpressionCompiler;
+import io.sapl.ast.Expression;
+import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
 import io.sapl.lsp.configuration.LSPConfiguration;
 import lombok.experimental.UtilityClass;
@@ -42,31 +44,39 @@ public class ExpressionEvaluator {
 
     private static final String CONTENT_ASSIST_ID = "contentAssistEvaluation";
 
+    private static final AstTransformer AST_TRANSFORMER = new AstTransformer();
+
     /**
      * Evaluates an ANTLR expression parse tree to a JSON node.
      * Only pure expressions (non-streaming) can be evaluated.
      *
-     * @param expression the ANTLR expression context to evaluate
+     * @param expressionCtx the ANTLR expression context to evaluate
      * @param config the LSP configuration containing brokers and variables
      * @return the evaluated result as JsonNode, or empty if evaluation fails
      */
-    public static Optional<JsonNode> evaluateExpressionToJsonNode(ExpressionContext expression,
+    public static Optional<JsonNode> evaluateExpressionToJsonNode(ExpressionContext expressionCtx,
             LSPConfiguration config) {
-        if (expression == null || config == null) {
+        if (expressionCtx == null || config == null) {
+            return Optional.empty();
+        }
+
+        // Convert ANTLR context to AST Expression
+        var expression = (Expression) AST_TRANSFORMER.visit(expressionCtx);
+        if (expression == null) {
             return Optional.empty();
         }
 
         var compilationContext = new CompilationContext(config.functionBroker(), config.attributeBroker());
 
-        var compiledExpression = ExpressionCompiler.compileExpression(expression, compilationContext);
+        var compiledExpression = ExpressionCompiler.compile(expression, compilationContext);
 
-        if (compiledExpression == null || compiledExpression instanceof StreamExpression) {
+        if (compiledExpression == null || compiledExpression instanceof StreamOperator) {
             return Optional.empty();
         }
 
-        if (compiledExpression instanceof PureExpression pureExpression) {
+        if (compiledExpression instanceof PureOperator pureOperator) {
             var evaluationContext = createEvaluationContext(config);
-            compiledExpression = pureExpression.evaluate(evaluationContext);
+            compiledExpression = pureOperator.evaluate(evaluationContext);
         }
 
         if (!(compiledExpression instanceof ObjectValue schemaObject)) {

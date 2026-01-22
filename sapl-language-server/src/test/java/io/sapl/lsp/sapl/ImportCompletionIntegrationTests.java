@@ -161,8 +161,9 @@ class ImportCompletionIntegrationTests {
         var authPip  = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, "auth", "Auth PIP", "Docs",
                 List.of(authUser));
 
-        var bundle = new DocumentationBundle(List.of(timeLib, clockLib, authPip));
-        return new LSPConfiguration("", bundle, Map.of(), null, null);
+        var bundle  = new DocumentationBundle(List.of(timeLib, clockLib, authPip));
+        var minimal = LSPConfiguration.minimal();
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
     }
 
 }

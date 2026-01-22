@@ -154,24 +154,30 @@ class LibraryProposalsGeneratorTests {
     }
 
     private static LSPConfiguration configWithFunction(String library, String name, String schema) {
-        var entry  = new EntryDocumentation(EntryType.FUNCTION, name, "Documentation", schema, List.of());
-        var lib    = new LibraryDocumentation(LibraryType.FUNCTION_LIBRARY, library, "Library", "Docs", List.of(entry));
-        var bundle = new DocumentationBundle(List.of(lib));
-        return new LSPConfiguration("", bundle, Map.of(), null, null);
+        var entry   = new EntryDocumentation(EntryType.FUNCTION, name, "Documentation", schema, List.of());
+        var lib     = new LibraryDocumentation(LibraryType.FUNCTION_LIBRARY, library, "Library", "Docs",
+                List.of(entry));
+        var bundle  = new DocumentationBundle(List.of(lib));
+        var minimal = LSPConfiguration.minimal();
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
     }
 
     private static LSPConfiguration configWithAttribute(String pip, String name, String schema) {
-        var entry  = new EntryDocumentation(EntryType.ATTRIBUTE, name, "Documentation", schema, List.of());
-        var lib    = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, pip, "PIP", "Docs", List.of(entry));
-        var bundle = new DocumentationBundle(List.of(lib));
-        return new LSPConfiguration("", bundle, Map.of(), null, null);
+        var entry   = new EntryDocumentation(EntryType.ATTRIBUTE, name, "Documentation", schema, List.of());
+        var lib     = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, pip, "PIP", "Docs",
+                List.of(entry));
+        var bundle  = new DocumentationBundle(List.of(lib));
+        var minimal = LSPConfiguration.minimal();
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
     }
 
     private static LSPConfiguration configWithEnvAttribute(String pip, String name, String schema) {
-        var entry  = new EntryDocumentation(EntryType.ENVIRONMENT_ATTRIBUTE, name, "Documentation", schema, List.of());
-        var lib    = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, pip, "PIP", "Docs", List.of(entry));
-        var bundle = new DocumentationBundle(List.of(lib));
-        return new LSPConfiguration("", bundle, Map.of(), null, null);
+        var entry   = new EntryDocumentation(EntryType.ENVIRONMENT_ATTRIBUTE, name, "Documentation", schema, List.of());
+        var lib     = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, pip, "PIP", "Docs",
+                List.of(entry));
+        var bundle  = new DocumentationBundle(List.of(lib));
+        var minimal = LSPConfiguration.minimal();
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
     }
 
     private static SaplContext parse(String content) {

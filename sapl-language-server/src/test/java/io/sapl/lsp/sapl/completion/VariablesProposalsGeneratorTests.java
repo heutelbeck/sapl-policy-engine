@@ -79,7 +79,9 @@ class VariablesProposalsGeneratorTests {
         // Create security with environment variables
         var variables = new HashMap<String, Value>();
         variables.put("appConfig", Value.of("test"));
-        var config = new LSPConfiguration("", LSPConfiguration.minimal().documentationBundle(), variables, null, null);
+        var minimal = LSPConfiguration.minimal();
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
+                minimal.attributeBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, true);
 
@@ -93,7 +95,9 @@ class VariablesProposalsGeneratorTests {
         var variables = new HashMap<String, Value>();
         variables.put("serverUrl", Value.of("https://api.example.com"));
         variables.put("apiKey", Value.of("secret"));
-        var config = new LSPConfiguration("", LSPConfiguration.minimal().documentationBundle(), variables, null, null);
+        var minimal = LSPConfiguration.minimal();
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
+                minimal.attributeBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, false);
 
@@ -106,8 +110,9 @@ class VariablesProposalsGeneratorTests {
         var config    = ObjectValue.builder().put("host", Value.of("localhost")).put("port", Value.of(8080)).build();
         var variables = new HashMap<String, Value>();
         variables.put("serverConfig", config);
-        var lspConfig = new LSPConfiguration("", LSPConfiguration.minimal().documentationBundle(), variables, null,
-                null);
+        var minimal   = LSPConfiguration.minimal();
+        var lspConfig = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
+                minimal.attributeBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, lspConfig, false);
 
@@ -192,7 +197,9 @@ class VariablesProposalsGeneratorTests {
         var outerObject = ObjectValue.builder().put("address", innerObject).put("name", Value.of("Test")).build();
         var variables   = new HashMap<String, Value>();
         variables.put("person", outerObject);
-        var config = new LSPConfiguration("", LSPConfiguration.minimal().documentationBundle(), variables, null, null);
+        var minimal = LSPConfiguration.minimal();
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
+                minimal.attributeBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, false);
 
@@ -206,7 +213,9 @@ class VariablesProposalsGeneratorTests {
         var array     = ArrayValue.builder().add(Value.of("item1")).add(Value.of("item2")).build();
         var variables = new HashMap<String, Value>();
         variables.put("items", array);
-        var config = new LSPConfiguration("", LSPConfiguration.minimal().documentationBundle(), variables, null, null);
+        var minimal = LSPConfiguration.minimal();
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
+                minimal.attributeBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, false);
 

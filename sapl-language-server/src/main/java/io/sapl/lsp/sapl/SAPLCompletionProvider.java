@@ -481,11 +481,6 @@ public class SAPLCompletionProvider {
             return CompletionContext.POLICY_AFTER_ENTITLEMENT;
         }
 
-        // After where keyword
-        if (tokenType == SAPLLexer.WHERE) {
-            return CompletionContext.POLICY_BODY_START;
-        }
-
         // After semicolon or typing after semicolon
         if (tokenType == SAPLLexer.SEMI || (previousToken != null && previousToken.getType() == SAPLLexer.SEMI)) {
             return CompletionContext.POLICY_BODY_AFTER_STATEMENT;
@@ -576,7 +571,7 @@ public class SAPLCompletionProvider {
 
     private boolean isStructuralKeyword(int tokenType) {
         return tokenType == SAPLLexer.SET || tokenType == SAPLLexer.POLICY || tokenType == SAPLLexer.PERMIT
-                || tokenType == SAPLLexer.DENY || tokenType == SAPLLexer.WHERE;
+                || tokenType == SAPLLexer.DENY;
     }
 
     /**

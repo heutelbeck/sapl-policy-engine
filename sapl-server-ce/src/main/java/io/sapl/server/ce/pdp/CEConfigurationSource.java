@@ -24,12 +24,12 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.compiler.CompilationContext;
-import io.sapl.compiler.CompiledPolicy;
-import io.sapl.compiler.SaplCompiler;
-import io.sapl.pdp.CompiledPDPConfiguration;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.CompiledPdpVoter;
+import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.pdp.CompiledPDPConfigurationSource;
-import io.sapl.prp.NaivePolicyRetrievalPoint;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.model.sapldocument.PolicyChangeListener;
 import io.sapl.server.ce.model.sapldocument.PublishedSaplDocumentRepository;
@@ -64,15 +64,14 @@ public class CEConfigurationSource
     private final FunctionBroker                  functionBroker;
     private final AttributeBroker                 attributeBroker;
 
-    private final Sinks.Many<Optional<CompiledPDPConfiguration>> configurationSink;
-    private final Flux<Optional<CompiledPDPConfiguration>>       configurationFlux;
+    private final Sinks.Many<Optional<CompiledPdpVoter>> configurationSink;
+    private final Flux<Optional<CompiledPdpVoter>>       configurationFlux;
 
-    private final AtomicReference<Map<String, Value>>                 currentVariables     = new AtomicReference<>(
-            Map.of());
-    private final AtomicReference<CombiningAlgorithm>                 currentAlgorithm     = new AtomicReference<>(
+    private final AtomicReference<Map<String, Value>>         currentVariables     = new AtomicReference<>(Map.of());
+    private final AtomicReference<CombiningAlgorithm>         currentAlgorithm     = new AtomicReference<>(
             CombiningAlgorithm.DENY_UNLESS_PERMIT);
-    private final AtomicLong                                          configurationVersion = new AtomicLong(0);
-    private final AtomicReference<Optional<CompiledPDPConfiguration>> currentConfiguration = new AtomicReference<>(
+    private final AtomicLong                                  configurationVersion = new AtomicLong(0);
+    private final AtomicReference<Optional<CompiledPdpVoter>> currentConfiguration = new AtomicReference<>(
             Optional.empty());
 
     public CEConfigurationSource(PublishedSaplDocumentRepository publishedSaplDocumentRepository,
@@ -109,12 +108,12 @@ public class CEConfigurationSource
     }
 
     @Override
-    public Flux<Optional<CompiledPDPConfiguration>> getPDPConfigurations(String pdpId) {
+    public Flux<Optional<CompiledPdpVoter>> getPDPConfigurations(String pdpId) {
         return configurationFlux;
     }
 
     @Override
-    public Optional<CompiledPDPConfiguration> getCurrentConfiguration(String pdpId) {
+    public Optional<CompiledPdpVoter> getCurrentConfiguration(String pdpId) {
         return currentConfiguration.get();
     }
 
@@ -124,36 +123,25 @@ public class CEConfigurationSource
         configurationSink.tryEmitNext(configuration);
     }
 
-    private Optional<CompiledPDPConfiguration> buildConfiguration() {
-        val configId = String.valueOf(configurationVersion.incrementAndGet());
-        val prp      = buildPolicyRetrievalPoint();
+    private Optional<CompiledPdpVoter> buildConfiguration() {
+        val configId           = String.valueOf(configurationVersion.incrementAndGet());
+        val publishedDocuments = publishedSaplDocumentRepository.findAll();
+        val documentStrings    = new ArrayList<String>();
 
-        return Optional.of(new CompiledPDPConfiguration(PDP_ID, configId, currentAlgorithm.get(),
-                currentVariables.get(), functionBroker, attributeBroker, prp));
-    }
-
-    private NaivePolicyRetrievalPoint buildPolicyRetrievalPoint() {
-        val compilationContext = new CompilationContext(functionBroker, attributeBroker);
-        val alwaysApplicable   = new ArrayList<CompiledPolicy>();
-        val maybeApplicable    = new ArrayList<CompiledPolicy>();
-
-        var publishedDocuments = publishedSaplDocumentRepository.findAll();
         for (var publishedDocument : publishedDocuments) {
-            try {
-                compilationContext.resetForNextDocument();
-                val compiled = SaplCompiler.compile(publishedDocument.getDocument(), compilationContext);
-                if (compiled.matchExpression().equals(Value.TRUE)) {
-                    alwaysApplicable.add(compiled);
-                } else {
-                    maybeApplicable.add(compiled);
-                }
-            } catch (Exception exception) {
-                log.error("Failed to compile policy '{}': {}", publishedDocument.getDocumentName(),
-                        exception.getMessage());
-            }
+            documentStrings.add(publishedDocument.getDocument());
         }
 
-        return new NaivePolicyRetrievalPoint(alwaysApplicable, maybeApplicable);
+        val pdpConfiguration   = new PDPConfiguration(PDP_ID, configId, currentAlgorithm.get(), documentStrings,
+                currentVariables.get());
+        val compilationContext = new CompilationContext(PDP_ID, configId, functionBroker, attributeBroker);
+
+        try {
+            return Optional.of(PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext));
+        } catch (SaplCompilerException e) {
+            log.error("Failed to compile PDP configuration: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 
     private static Map<String, Value> variablesCollectionToMap(@NonNull Collection<Variable> variables) {

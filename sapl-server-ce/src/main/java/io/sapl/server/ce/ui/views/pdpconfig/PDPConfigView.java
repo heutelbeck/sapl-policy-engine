@@ -21,6 +21,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -29,7 +30,9 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.api.SaplVersion;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.server.ce.model.pdpconfiguration.CombiningAlgorithmService;
 import io.sapl.server.ce.model.pdpconfiguration.DuplicatedVariableNameException;
 import io.sapl.server.ce.model.pdpconfiguration.InvalidVariableNameException;
@@ -59,46 +62,83 @@ public class PDPConfigView extends VerticalLayout {
     private transient CombiningAlgorithmService combiningAlgorithmService;
     private transient VariablesService          variablesService;
 
-    private final ComboBox<String> comboBoxCombAlgo     = new ComboBox<>("Combining Algorithm");
-    private final Grid<Variable>   variablesGrid        = new Grid<>();
-    private final Button           createVariableButton = new Button("New Variable");
+    private final ComboBox<VotingMode>      votingModeCombo      = new ComboBox<>("Voting Mode");
+    private final ComboBox<DefaultDecision> defaultDecisionCombo = new ComboBox<>("Default Decision");
+    private final ComboBox<ErrorHandling>   errorHandlingCombo   = new ComboBox<>("Error Handling");
+    private final Grid<Variable>            variablesGrid        = new Grid<>();
+    private final Button                    createVariableButton = new Button("New Variable");
 
-    private boolean isIgnoringNextCombiningAlgorithmComboBoxChange;
+    private boolean isIgnoringNextVotingModeChange;
+    private boolean isIgnoringNextDefaultDecisionChange;
+    private boolean isIgnoringNextErrorHandlingChange;
 
     public PDPConfigView(VariablesService variablesService, CombiningAlgorithmService combiningAlgorithmService) {
         this.combiningAlgorithmService = combiningAlgorithmService;
         this.variablesService          = variablesService;
 
-        add(comboBoxCombAlgo, createVariableButton, variablesGrid);
+        var algorithmSection = new VerticalLayout();
+        algorithmSection.add(new H3("Combining Algorithm"));
+        var algorithmRow = new HorizontalLayout(votingModeCombo, defaultDecisionCombo, errorHandlingCombo);
+        algorithmSection.add(algorithmRow);
+
+        add(algorithmSection, createVariableButton, variablesGrid);
 
         initUiForCombiningAlgorithm();
         initUiForVariables();
     }
 
     private void initUiForCombiningAlgorithm() {
-        CombiningAlgorithm[] availableCombiningAlgorithms          = combiningAlgorithmService.getAvailable();
-        String[]             availableCombiningAlgorithmsAsStrings = CombiningAlgorithmEncoding
-                .encode(availableCombiningAlgorithms);
-
-        comboBoxCombAlgo.setItems(availableCombiningAlgorithmsAsStrings);
-
-        CombiningAlgorithm selectedCombiningAlgorithm = combiningAlgorithmService.getSelected();
-        comboBoxCombAlgo.setValue(CombiningAlgorithmEncoding.encode(selectedCombiningAlgorithm));
-
-        comboBoxCombAlgo.addValueChangeListener(changedEvent -> {
-            if (isIgnoringNextCombiningAlgorithmComboBoxChange) {
-                isIgnoringNextCombiningAlgorithmComboBoxChange = false;
+        // Voting Mode
+        votingModeCombo.setItems(VotingMode.values());
+        votingModeCombo.setItemLabelGenerator(VotingMode::name);
+        votingModeCombo.setValue(combiningAlgorithmService.getVotingMode());
+        votingModeCombo.addValueChangeListener(event -> {
+            if (isIgnoringNextVotingModeChange) {
+                isIgnoringNextVotingModeChange = false;
                 return;
             }
+            var newValue = event.getValue();
+            ConfirmUtils.letConfirm("Change Voting Mode",
+                    "Changing the voting mode affects how policy decisions are combined.\n\nConfirm?",
+                    () -> combiningAlgorithmService.setVotingMode(newValue), () -> {
+                        isIgnoringNextVotingModeChange = true;
+                        votingModeCombo.setValue(event.getOldValue());
+                    });
+        });
 
-            var encodedEntry          = changedEvent.getValue();
-            var newCombiningAlgorithm = CombiningAlgorithmEncoding.decode(encodedEntry);
+        // Default Decision
+        defaultDecisionCombo.setItems(DefaultDecision.values());
+        defaultDecisionCombo.setItemLabelGenerator(DefaultDecision::name);
+        defaultDecisionCombo.setValue(combiningAlgorithmService.getDefaultDecision());
+        defaultDecisionCombo.addValueChangeListener(event -> {
+            if (isIgnoringNextDefaultDecisionChange) {
+                isIgnoringNextDefaultDecisionChange = false;
+                return;
+            }
+            var newValue = event.getValue();
+            ConfirmUtils.letConfirm("Change Default Decision",
+                    "Changing the default decision affects what happens when no policy applies.\n\nConfirm?",
+                    () -> combiningAlgorithmService.setDefaultDecision(newValue), () -> {
+                        isIgnoringNextDefaultDecisionChange = true;
+                        defaultDecisionCombo.setValue(event.getOldValue());
+                    });
+        });
 
-            ConfirmUtils.letConfirm("",
-                    "The combining algorithm describes how to come to the final decision while evaluating all published policies.\n\nPlease consider the consequences and confirm the action.",
-                    () -> combiningAlgorithmService.setSelected(newCombiningAlgorithm), () -> {
-                        isIgnoringNextCombiningAlgorithmComboBoxChange = true;
-                        comboBoxCombAlgo.setValue(changedEvent.getOldValue());
+        // Error Handling
+        errorHandlingCombo.setItems(ErrorHandling.values());
+        errorHandlingCombo.setItemLabelGenerator(ErrorHandling::name);
+        errorHandlingCombo.setValue(combiningAlgorithmService.getErrorHandling());
+        errorHandlingCombo.addValueChangeListener(event -> {
+            if (isIgnoringNextErrorHandlingChange) {
+                isIgnoringNextErrorHandlingChange = false;
+                return;
+            }
+            var newValue = event.getValue();
+            ConfirmUtils.letConfirm("Change Error Handling",
+                    "Changing error handling affects how errors are treated during evaluation.\n\nConfirm?",
+                    () -> combiningAlgorithmService.setErrorHandling(newValue), () -> {
+                        isIgnoringNextErrorHandlingChange = true;
+                        errorHandlingCombo.setValue(event.getOldValue());
                     });
         });
     }

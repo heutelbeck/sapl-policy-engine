@@ -20,6 +20,7 @@ package io.sapl.test.coverage;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.traced.TracedDecision;
+import io.sapl.compiler.pdp.VoteWithCoverage;
 import lombok.Getter;
 import lombok.val;
 
@@ -111,7 +112,7 @@ public class CoverageAccumulator {
      *
      * @param tracedDecision the traced decision containing coverage data
      */
-    public void recordCoverage(TracedDecision tracedDecision) {
+    public void recordCoverage(VoteWithCoverage tracedDecision) {
         recordCoverage(tracedDecision.originalTrace(), tracedDecision.currentDecision());
     }
 
@@ -121,7 +122,7 @@ public class CoverageAccumulator {
      * @param tracedPdpDecision the traced decision Value
      * @param decision the authorization decision outcome
      */
-    public void recordCoverage(Value tracedPdpDecision, AuthorizationDecision decision) {
+    public void recordCoverage(VoteWithCoverage tracedPdpDecision, AuthorizationDecision decision) {
         synchronized (lock) {
             // Extract and accumulate policy coverage
             val coverages = CoverageExtractor.extractCoverage(tracedPdpDecision, policySources);

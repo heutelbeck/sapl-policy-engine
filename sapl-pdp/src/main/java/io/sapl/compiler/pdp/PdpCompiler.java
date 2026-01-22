@@ -55,7 +55,6 @@ public class PdpCompiler {
         for (val saplDocument : pdpConfiguration.saplDocuments()) {
             val parsedDocument = SAPLCompiler.parseDocument(saplDocument);
             if (parsedDocument.isInvalid()) {
-                System.err.println("Parsing of SAPL document failed: %s.".formatted(parsedDocument.syntaxErrors()));
                 throw new SaplCompilerException(
                         "Parsing of SAPL document failed: %s.".formatted(parsedDocument.syntaxErrors()));
             }

@@ -31,8 +31,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import io.sapl.parser.DefaultSAPLParser;
-import io.sapl.parser.SAPLParser;
+import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +49,6 @@ public class SaplDocumentService {
     private final SaplDocumentsRepository         saplDocumentRepository;
     private final SaplDocumentsVersionRepository  saplDocumentVersionRepository;
     private final PublishedSaplDocumentRepository publishedSaplDocumentRepository;
-    private final SAPLParser                      saplParser;
     private final List<PolicyChangeListener>      policyChangeListeners;
 
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
@@ -63,7 +61,6 @@ public class SaplDocumentService {
         this.saplDocumentRepository          = saplDocumentRepository;
         this.saplDocumentVersionRepository   = saplDocumentVersionRepository;
         this.publishedSaplDocumentRepository = publishedSaplDocumentRepository;
-        this.saplParser                      = new DefaultSAPLParser();
         this.policyChangeListeners           = policyChangeListeners != null ? policyChangeListeners : List.of();
     }
 
@@ -82,7 +79,7 @@ public class SaplDocumentService {
     public SaplDocument createDefault() {
         var documentValue = DEFAULT_DOCUMENT_VALUE;
 
-        var parsedDocument = saplParser.parseDocument(documentValue);
+        var parsedDocument = SAPLCompiler.parseDocument(documentValue);
 
         var type = parsedDocument.type();
         var name = parsedDocument.name();
@@ -101,7 +98,7 @@ public class SaplDocumentService {
     public SaplDocumentVersion createVersion(long saplDocumentId, @NonNull String documentValue) {
         var saplDocument = getExistingById(saplDocumentId);
 
-        var parsedDocument = saplParser.parseDocument(documentValue);
+        var parsedDocument = SAPLCompiler.parseDocument(documentValue);
         if (parsedDocument.isInvalid()) {
             throw new IllegalArgumentException("document value is invalid (value: %s)".formatted(documentValue));
         }

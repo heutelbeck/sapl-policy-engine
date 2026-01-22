@@ -89,10 +89,10 @@ public class SAPLTestSemanticTokensProvider {
                 SAPLTestLexer.DECISION                                                                                                   ->
             SAPLTestSemanticTokenTypes.MACRO;
 
-        // Combining algorithms (macro styling)
-        case SAPLTestLexer.DENY_OVERRIDES, SAPLTestLexer.PERMIT_OVERRIDES, SAPLTestLexer.ONLY_ONE_APPLICABLE,
-                SAPLTestLexer.DENY_UNLESS_PERMIT,
-                SAPLTestLexer.PERMIT_UNLESS_DENY                                                                                                                                 ->
+        // Combining algorithm keywords (macro styling)
+        case SAPLTestLexer.FIRST, SAPLTestLexer.PRIORITY, SAPLTestLexer.UNANIMOUS, SAPLTestLexer.UNIQUE,
+                SAPLTestLexer.KW_OR, SAPLTestLexer.ERRORS, SAPLTestLexer.ABSTAIN,
+                SAPLTestLexer.PROPAGATE                                                                                                                                                            ->
             SAPLTestSemanticTokenTypes.MACRO;
 
         // Authorization keywords

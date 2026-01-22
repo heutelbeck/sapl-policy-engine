@@ -163,9 +163,8 @@ class SchemaFlowDemoTests {
                 environment schema { "type": "object", "properties": { "time": {} } }
                 policy "test"
                 permit
-                where
                 """;
-        var position = new Position(7, 2);
+        var position = new Position(6, 2);
 
         log.debug("=== All Subscription Elements with Schemas ===");
         log.debug("Document:\n{}", document);

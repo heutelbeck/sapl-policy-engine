@@ -205,6 +205,8 @@
 										<exclude>META-INF/*.SF</exclude>
 										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
+										<!-- Duplicate manifests from dependencies -->
+										<exclude>META-INF/MANIFEST.MF</exclude>
 										<!-- JPMS module info (breaks shading anyway) -->
 										<exclude>module-info.class</exclude>
 										<exclude>META-INF/versions/*/module-info.class</exclude>

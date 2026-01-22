@@ -17,7 +17,7 @@
  */
 package io.sapl.lsp.sapl.completion;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 import java.util.ArrayList;
 import java.util.Collection;

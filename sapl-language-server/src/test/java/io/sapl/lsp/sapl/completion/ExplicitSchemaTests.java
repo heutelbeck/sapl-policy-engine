@@ -179,7 +179,9 @@ class ExplicitSchemaTests {
         var schemaNode   = mapper.readTree(schemaJson);
         var variables    = new HashMap<String, Value>();
         variables.put("serverConfigSchema", ValueJsonMarshaller.fromJsonNode(schemaNode));
-        var config = new LSPConfiguration("", LSPConfiguration.minimal().documentationBundle(), variables, null, null);
+        var minimal = LSPConfiguration.minimal();
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
+                minimal.attributeBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 

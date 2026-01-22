@@ -18,7 +18,7 @@
 package io.sapl.server.ce.model.sapldocument;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.parser.DocumentType;
+import io.sapl.compiler.ast.DocumentType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.Accessors;
