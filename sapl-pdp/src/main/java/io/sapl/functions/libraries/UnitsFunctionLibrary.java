@@ -114,7 +114,6 @@ public class UnitsFunctionLibrary {
             ```sapl
             policy "demonstrate_unit_parsing"
             permit
-            where
               // Basic decimal units
               var fiveThousand = units.parse("5K");           // Returns 5000
               var fourMillion = units.parse("4M");            // Returns 4000000
@@ -185,7 +184,6 @@ public class UnitsFunctionLibrary {
             ```sapl
             policy "demonstrate_byte_parsing"
             permit
-            where
               // Basic decimal byte units
               var tenKilobytes = units.parseBytes("10KB");        // Returns 10000
               var fiveKilo = units.parseBytes("5K");              // Returns 5000 (B is optional)

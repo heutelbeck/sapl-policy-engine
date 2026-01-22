@@ -65,8 +65,7 @@ public class CsvFunctionLibrary {
 
             ```sapl
             policy "check_allowlist"
-            permit action == "access_resource"
-            where
+            permit action == "access_resource";
                 var allowlistCsv = resource.config.allowedUsers;
                 var allowlist = csv.csvToVal(allowlistCsv);
                 var usernames = allowlist.map(entry -> entry.username);
@@ -79,7 +78,6 @@ public class CsvFunctionLibrary {
             ```sapl
             policy "permission_matrix"
             permit
-            where
                 var matrixCsv = environment.permissionMatrix;
                 var matrix = csv.csvToVal(matrixCsv);
                 var matchingEntry = matrix.filter(row ->
@@ -95,8 +93,7 @@ public class CsvFunctionLibrary {
 
             ```sapl
             policy "bulk_import"
-            permit action == "import_users"
-            where
+            permit action == "import_users";
                 var uploadedCsv = resource.fileContent;
                 var users = csv.csvToVal(uploadedCsv);
                 var invalidUsers = users.filter(user ->
@@ -129,8 +126,7 @@ public class CsvFunctionLibrary {
 
             ```sapl
             policy "hierarchical_access"
-            permit action == "view_employee_data"
-            where
+            permit action == "view_employee_data";
                 var orgStructure = csv.csvToVal(environment.organizationCsv);
                 var subordinates = orgStructure.filter(row ->
                     row.managerId == subject.employeeId
@@ -145,7 +141,6 @@ public class CsvFunctionLibrary {
             ```sapl
             policy "resource_permissions"
             permit
-            where
                 var configCsv = environment.resourcePermissionConfig;
                 var config = csv.csvToVal(configCsv);
                 var resourceConfig = config.filter(row ->
@@ -187,7 +182,6 @@ public class CsvFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var csvText = "username,department\\nalice,engineering\\nbob,sales";
                 var users = csv.csvToVal(csvText);
                 var usernames = users.map(u -> u.username);

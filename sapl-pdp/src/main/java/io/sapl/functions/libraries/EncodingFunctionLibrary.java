@@ -112,7 +112,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.base64Encode("hello") == "aGVsbG8=";
               encoding.base64Encode("hello world") == "aGVsbG8gd29ybGQ=";
             ```
@@ -144,7 +143,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.base64Decode("aGVsbG8=") == "hello";
               encoding.base64Decode("aGVsbG8") == "hello";  // lenient: missing padding accepted
             ```
@@ -185,7 +183,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.base64DecodeStrict("aGVsbG8=") == "hello";
               // encoding.base64DecodeStrict("aGVsbG8") results in error (missing padding)
             ```
@@ -216,7 +213,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.isValidBase64("aGVsbG8=") == true;
               encoding.isValidBase64("aGVsbG8") == true;  // lenient: missing padding accepted
               encoding.isValidBase64("invalid!@#") == false;
@@ -249,7 +245,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.isValidBase64Strict("aGVsbG8=") == true;
               encoding.isValidBase64Strict("aGVsbG8") == false;  // strict: missing padding rejected
               encoding.isValidBase64Strict("invalid!@#") == false;
@@ -271,7 +266,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.base64UrlEncode("hello") == "aGVsbG8=";
               encoding.base64UrlEncode("test?data") == "dGVzdD9kYXRh";
             ```
@@ -303,7 +297,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.base64UrlDecode("aGVsbG8=") == "hello";
               encoding.base64UrlDecode("aGVsbG8") == "hello";  // lenient: missing padding accepted
             ```
@@ -344,7 +337,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.base64UrlDecodeStrict("aGVsbG8=") == "hello";
               // encoding.base64UrlDecodeStrict("aGVsbG8") results in error (missing padding)
             ```
@@ -375,7 +367,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.isValidBase64Url("aGVsbG8=") == true;
               encoding.isValidBase64Url("aGVsbG8") == true;  // lenient: unpadded accepted
               encoding.isValidBase64Url("invalid+/") == false;  // wrong alphabet
@@ -408,7 +399,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.isValidBase64UrlStrict("aGVsbG8=") == true;
               encoding.isValidBase64UrlStrict("aGVsbG8") == false;  // strict: missing padding rejected
               encoding.isValidBase64UrlStrict("invalid+/") == false;
@@ -430,7 +420,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.hexEncode("hello") == "68656c6c6f";
               encoding.hexEncode("A") == "41";
             ```
@@ -462,7 +451,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.hexDecode("68656c6c6f") == "hello";
               encoding.hexDecode("68656C6C6F") == "hello";  // uppercase works
               encoding.hexDecode("68_65_6c_6c_6f") == "hello";  // underscores allowed
@@ -501,7 +489,6 @@ public class EncodingFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               encoding.isValidHex("68656c6c6f") == true;
               encoding.isValidHex("68656C6C6F") == true;
               encoding.isValidHex("68_65_6c_6c_6f") == true;

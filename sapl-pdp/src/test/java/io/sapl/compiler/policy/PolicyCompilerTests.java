@@ -106,7 +106,7 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Patrician Palace Sealed"
                     permit
-                    where false;
+                    false;
                     """;
             val voter  = compileToVoter(policy);
             assertThat(voter).isInstanceOf(Vote.class);
@@ -120,7 +120,7 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Mended Drum Open Hours"
                     permit
-                    where true;
+                    true;
                     """;
             val voter  = compileToVoter(policy);
             assertThat(voter).isInstanceOf(Vote.class);
@@ -134,7 +134,7 @@ class PolicyCompilerTests {
             val policy   = """
                     policy "Wizard Guild Verification"
                     permit
-                    where subject.guild == "wizard";
+                    subject.guild == "wizard";
                           subject.level > 5;
                     """;
             val compiled = compileToVoter(policy);
@@ -182,7 +182,7 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Thieves Guild Membership Verification"
                     permit
-                    where false;
+                    false;
                     """;
             val voter  = compileToVoter(policy);
             assertThat(voter).isInstanceOf(Vote.class);
@@ -196,7 +196,7 @@ class PolicyCompilerTests {
             val policy   = """
                     policy "Librarian Species Verification"
                     permit
-                    where subject.species == "orangutan";
+                    subject.species == "orangutan";
                     """;
             val compiled = compileToVoter(policy);
             assertThat(compiled).isInstanceOf(PureVoter.class);
@@ -208,7 +208,7 @@ class PolicyCompilerTests {
             val policy   = """
                     policy "Ankh-Morpork Weather Advisory"
                     permit
-                    where subject.<weather.current> == "foggy";
+                    subject.<weather.current> == "foggy";
                     """;
             val ctx      = compilationContext(attributeBroker("weather.current", Value.of("foggy")));
             val compiled = compileToVoter(policy, ctx);
@@ -221,7 +221,7 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Hex Arithmetic Failure"
                     permit
-                    where 1/0 == 0;
+                    1/0 == 0;
                     """;
             val voter  = compileToVoter(policy);
             assertThat(voter).isInstanceOf(Vote.class);
@@ -238,58 +238,58 @@ class PolicyCompilerTests {
             return Stream.of(
                     // Value stratum only
                     arguments("Value body with value constraints yields AuthorizationDecision",
-                            "permit where true; obligation \"follow_owner\" advice \"dont_eat_anyone\" transform \"sapient_pearwood\"",
+                            "permit true; obligation \"follow_owner\" advice \"dont_eat_anyone\" transform \"sapient_pearwood\"",
                             Vote.class, null),
 
                     // Pure body, no constraints -> PureVoter
                     // (ApplicabilityCheckingPureVoter)
-                    arguments("Pure body without constraints yields PureVoter",
-                            "permit where subject.hasHeadology == true;", PureVoter.class, null),
+                    arguments("Pure body without constraints yields PureVoter", "permit subject.hasHeadology == true;",
+                            PureVoter.class, null),
 
                     // Value body, Pure obligation -> PureVoter
                     arguments("Value body with pure obligation yields PureVoter",
-                            "permit where true; obligation subject.kitchen", PureVoter.class, null),
+                            "permit true; obligation subject.kitchen", PureVoter.class, null),
 
                     // Value body, Pure advice -> PureVoter
-                    arguments("Value body with pure advice yields PureVoter",
-                            "permit where true; advice subject.herbLore", PureVoter.class, null),
+                    arguments("Value body with pure advice yields PureVoter", "permit true; advice subject.herbLore",
+                            PureVoter.class, null),
 
                     // Value body, Pure transform -> PureVoter
                     arguments("Value body with pure transform yields PureVoter",
-                            "permit where true; transform subject.census", PureVoter.class, null),
+                            "permit true; transform subject.census", PureVoter.class, null),
 
                     // Pure body, Value constraints -> PureVoter
                     arguments("Pure body with value obligation yields PureVoter",
-                            "permit where subject.age > 80; obligation \"record_saga\"", PureVoter.class, null),
+                            "permit subject.age > 80; obligation \"record_saga\"", PureVoter.class, null),
 
                     // Pure body, Pure obligation -> PureVoter
                     arguments("Pure body with pure obligation yields PureVoter",
-                            "permit where subject.title == \"Archchancellor\"; obligation subject.staffLog",
-                            PureVoter.class, null),
+                            "permit subject.title == \"Archchancellor\"; obligation subject.staffLog", PureVoter.class,
+                            null),
 
                     // Pure body, Stream obligation -> PureStreamPolicyBody
                     arguments("Pure body with stream obligation yields PureStreamPolicyBody",
-                            "permit where subject.department == \"HEM\"; obligation <audit.hex>", StreamVoter.class,
+                            "permit subject.department == \"HEM\"; obligation <audit.hex>", StreamVoter.class,
                             "audit.hex"),
 
                     // Stream body, no constraints -> StreamPolicyBodyPolicy
                     arguments("Stream body without constraints yields StreamPolicyBodyPolicy",
-                            "permit where subject.<death.available> == true;", StreamVoter.class, "death.available"),
+                            "permit subject.<death.available> == true;", StreamVoter.class, "death.available"),
 
                     // Stream body, Value constraints -> StreamValuePolicyBodyPolicy
                     arguments("Stream body with value constraints yields StreamValuePolicyBodyPolicy",
-                            "permit where subject.<hogfather.status> == \"delivering\"; obligation \"wrap_gift\" advice \"check_list\"",
+                            "permit subject.<hogfather.status> == \"delivering\"; obligation \"wrap_gift\" advice \"check_list\"",
                             StreamVoter.class, "hogfather.status"),
 
                     // Stream body, Pure constraints -> StreamPurePolicyBody
                     arguments("Stream body with pure obligation yields StreamPurePolicyBody",
-                            "permit where subject.<location.current> == \"running\"; obligation subject.equipment",
+                            "permit subject.<location.current> == \"running\"; obligation subject.equipment",
                             StreamVoter.class, "location.current"),
 
                     // Stream body, Stream constraints -> StreamStreamPolicyBodyPolicy
                     arguments("Stream body with stream obligation yields StreamStreamPolicyBodyPolicy",
-                            "permit where subject.<guild.war> == \"active\"; obligation <audit.combat>",
-                            StreamVoter.class, "guild.war,audit.combat"));
+                            "permit subject.<guild.war> == \"active\"; obligation <audit.combat>", StreamVoter.class,
+                            "guild.war,audit.combat"));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -317,12 +317,11 @@ class PolicyCompilerTests {
         static Stream<Arguments> strataLiftingWithMixedConstraints() {
             return Stream.of(
                     arguments("Pure obligation with value advice yields PureVoter",
-                            "permit where true; obligation subject.organ advice \"wash_hands\"", PureVoter.class),
+                            "permit true; obligation subject.organ advice \"wash_hands\"", PureVoter.class),
                     arguments("Value obligation with pure advice yields PureVoter",
-                            "permit where true; obligation \"show_certificate\" advice subject.species",
-                            PureVoter.class),
+                            "permit true; obligation \"show_certificate\" advice subject.species", PureVoter.class),
                     arguments("Pure body with pure obligation and transform yields PureVoter",
-                            "permit where subject.clearance > 9; obligation subject.log transform subject.redacted",
+                            "permit subject.clearance > 9; obligation subject.log transform subject.redacted",
                             PureVoter.class));
         }
 
@@ -347,7 +346,7 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Rincewind Emergency Escape Protocol"
                     permit
-                    where subject == "Rincewind";
+                    subject == "Rincewind";
                     """;
             val voter  = compileToVoter(policy);
             assertThat(voter).isInstanceOf(PureVoter.class);
@@ -364,7 +363,7 @@ class PolicyCompilerTests {
             val policy                = """
                     policy "Twoflower Tourist Visa Check"
                     permit
-                    where subject == "Twoflower";
+                    subject == "Twoflower";
                     """;
             val voter                 = compileToVoter(policy);
             val pureVoter             = (PureVoter) voter;
@@ -380,7 +379,7 @@ class PolicyCompilerTests {
             val policy                = """
                     policy "Luggage Inventory Check"
                     permit
-                    where subject.nonexistent.compartment == true;
+                    subject.nonexistent.compartment == true;
                     """;
             val voter                 = compileToVoter(policy);
             val pureVoter             = (PureVoter) voter;
@@ -395,7 +394,7 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Lord Vetinari Executive Order"
                     permit
-                    where subject == "Rincewind";
+                    subject == "Rincewind";
                     obligation "report_to_patrician"
                     advice "avoid_politics"
                     transform "classified"
@@ -419,7 +418,7 @@ class PolicyCompilerTests {
             val policy                = """
                     policy "Forbidden Octavo Section"
                     deny
-                    where subject == "Rincewind";
+                    subject == "Rincewind";
                     """;
             val voter                 = compileToVoter(policy);
             val pureVoter             = (PureVoter) voter;
@@ -434,7 +433,7 @@ class PolicyCompilerTests {
             val policy                = """
                     policy "Clacks Tower Duty Roster"
                     permit
-                    where subject == "Rincewind";
+                    subject == "Rincewind";
                     obligation "send_overhead"
                     """;
             val voter                 = compileToVoter(policy);
@@ -456,7 +455,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Luggage Proximity Alert"
                     permit
-                    where subject.<luggage.nearby> == true;
+                    subject.<luggage.nearby> == true;
                     """;
             val attrBroker = attributeBroker("luggage.nearby", Value.TRUE, Value.FALSE, Value.TRUE);
             val ctx        = compilationContext(attrBroker);
@@ -482,7 +481,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Captain Carrot Patrol Protocol"
                     permit
-                    where subject.<patrol.active> == true;
+                    subject.<patrol.active> == true;
                     obligation "log_patrol"
                     advice "stay_polite"
                     """;
@@ -506,7 +505,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Commander Vimes Duty Protocol"
                     permit
-                    where subject.<duty.status> == "on_duty";
+                    subject.<duty.status> == "on_duty";
                     obligation subject
                     """;
             val attrBroker = attributeBroker("duty.status", Value.of("on_duty"));
@@ -528,7 +527,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Guild Membership Continuous Verification"
                     permit
-                    where subject.<guild.active> == true;
+                    subject.<guild.active> == true;
                     obligation <audit.guild>
                     """;
             val attrBroker = attributeBroker(Map.of("guild.active", new Value[] { Value.TRUE }, "audit.guild",
@@ -551,7 +550,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Dynamic Guild Access Revocation"
                     permit
-                    where subject.<access.valid> == true;
+                    subject.<access.valid> == true;
                     """;
             val attrBroker = attributeBroker("access.valid", Value.TRUE, Value.FALSE);
 
@@ -571,7 +570,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Clacks Network Error Handling"
                     permit
-                    where subject.<clacks.signal> == true;
+                    subject.<clacks.signal> == true;
                     """;
             val attrBroker = attributeBroker("clacks.signal", Value.error("GNU Terry Pratchett"));
 
@@ -626,7 +625,6 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Unseen University Library Access Control"
                     permit
-                    where
                         subject.title == "Librarian";
                         subject.species == "orangutan";
                         subject.hasLibraryCard == true;
@@ -663,7 +661,6 @@ class PolicyCompilerTests {
             val policy = """
                     policy "City Watch Commander Patrol Restriction"
                     deny
-                    where
                         subject.rank == "Commander";
                         subject.onDuty == true;
                         subject.patrolArea == "Shades";
@@ -696,7 +693,6 @@ class PolicyCompilerTests {
             val policy   = """
                     policy "Assassins Guild Active Contract Protocol"
                     permit
-                    where
                         subject.guild == "Assassins";
                         subject.<contract.status> == "active";
                     obligation <audit.inhumation>
@@ -714,7 +710,6 @@ class PolicyCompilerTests {
             val policy = """
                     policy "DEATH Duty Verification Protocol"
                     permit
-                    where
                         subject.name == "DEATH";
                         subject.currentTask != undefined;
                     obligation "update_lifetimers"
@@ -745,7 +740,6 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Patrician Surveillance Network Access"
                     permit
-                    where
                         subject == "Lord Vetinari";
                         action == "observe";
                     transform {
@@ -857,7 +851,6 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Hex Safety Short-Circuit"
                     permit
-                    where
                         false && (1/0 == 0);
                     """;
             val voter  = compileToVoter(policy);
@@ -872,7 +865,7 @@ class PolicyCompilerTests {
             val policy = """
                     policy "Morporkian Citizen Records"
                     permit
-                    where subject.taxRecord == undefined;
+                    subject.taxRecord == undefined;
                     """;
             val voter  = compileToVoter(policy);
 
@@ -898,7 +891,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "History Monks Time Stream Monitoring"
                     permit
-                    where subject.name == "Lu-Tze";
+                    subject.name == "Lu-Tze";
                     obligation <temporal.audit>
                     """;
             val attrBroker = attributeBroker("temporal.audit", Value.of("time_recorded"));
@@ -923,7 +916,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Susan Sto Helit Death Duty Check"
                     permit
-                    where subject.name == "DEATH";
+                    subject.name == "DEATH";
                     obligation <death.audit>
                     """;
             val attrBroker = attributeBroker("death.audit", Value.of("logged"));
@@ -976,7 +969,7 @@ class PolicyCompilerTests {
             val policy     = """
                     policy "Rincewind Spell Attempt"
                     permit
-                    where 1/subject.magicPower == 1;
+                    1/subject.magicPower == 1;
                     obligation <spell.audit>
                     """;
             val attrBroker = attributeBroker("spell.audit", Value.of("recorded"));

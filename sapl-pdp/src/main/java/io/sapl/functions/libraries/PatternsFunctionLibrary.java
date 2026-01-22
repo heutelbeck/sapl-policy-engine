@@ -182,35 +182,30 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "api_paths"
             permit
-            where
               patterns.matchGlob("/api/*/users/*", resource.path, ["/"]);
             ```
 
             ```sapl
             policy "domain_matching"
             permit
-            where
               patterns.matchGlob("*.company.com", request.host, ["."]);
             ```
 
             ```sapl
             policy "permission_hierarchy"
             permit
-            where
               patterns.matchGlob("document:*:read", subject.permission, [":"]);
             ```
 
             ```sapl
             policy "file_extensions"
             permit
-            where
               patterns.matchGlob("report.{pdf,docx,xlsx}", resource.filename, ["."]);
             ```
 
             ```sapl
             policy "cross_segment"
             permit
-            where
               patterns.matchGlob("/api/**/admin", resource.path, ["/"]);
             ```
             """)
@@ -239,21 +234,18 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "filename_only"
             permit
-            where
               patterns.matchGlobWithoutDelimiters("report_*.pdf", resource.filename);
             ```
 
             ```sapl
             policy "simple_wildcard"
             permit
-            where
               patterns.matchGlobWithoutDelimiters("user_*_token", subject.sessionToken);
             ```
 
             ```sapl
             policy "alternatives"
             permit
-            where
               patterns.matchGlobWithoutDelimiters("status_{active,pending}", resource.status);
             ```
             """)
@@ -276,7 +268,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "safe_user_input"
             permit
-            where
               var safeUsername = patterns.escapeGlob(request.username);
               var pattern = string.concat("/users/", safeUsername, "/*");
               patterns.matchGlob(pattern, resource.path, ["/"]);
@@ -285,7 +276,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "literal_match"
             permit
-            where
               var escaped = patterns.escapeGlob(resource.tag);
               escaped == "literal*text";
             ```
@@ -303,14 +293,12 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "validate_pattern"
             permit
-            where
               patterns.isValidRegex(resource.customPattern);
             ```
 
             ```sapl
             policy "check_before_use"
             permit
-            where
               var pattern = request.filterPattern;
               patterns.isValidRegex(pattern) && patterns.findMatches(pattern, resource.text) != [];
             ```
@@ -338,7 +326,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "extract_emails"
             permit
-            where
               var emails = patterns.findMatches("[a-z0-9._%+-]+@[a-z0-9.-]+\\\\.[a-z]{2,}", resource.text);
               array.size(emails) > 0;
             ```
@@ -346,7 +333,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "find_tags"
             permit
-            where
               var tags = patterns.findMatches("#[a-zA-Z0-9]+", resource.content);
               array.containsAll(tags, subject.allowedTags);
             ```
@@ -354,7 +340,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "extract_numbers"
             permit
-            where
               var numbers = patterns.findMatches("\\\\d+", resource.input);
               array.size(numbers) <= 10;
             ```
@@ -373,7 +358,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "first_ten_matches"
             permit
-            where
               var matches = patterns.findMatchesLimited("\\\\b\\\\w+\\\\b", resource.text, 10);
               array.size(matches) == 10;
             ```
@@ -381,7 +365,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "limited_extraction"
             permit
-            where
               var urls = patterns.findMatchesLimited("https://[^\\\\s]+", resource.document, 5);
               array.size(urls) <= 5;
             ```
@@ -405,7 +388,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "parse_permissions"
             permit
-            where
               var matches = patterns.findAllSubmatch("(\\\\w+):(\\\\w+):(\\\\w+)", subject.permissions);
               array.size(matches) > 0;
             ```
@@ -413,7 +395,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "extract_structured"
             permit
-            where
               var data = patterns.findAllSubmatch("user=([^,]+),role=([^,]+)", resource.metadata);
               var firstMatch = data[0];
               firstMatch[2] == "admin";
@@ -433,7 +414,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "limited_parsing"
             permit
-            where
               var matches = patterns.findAllSubmatchLimited("(\\\\d{4})-(\\\\d{2})-(\\\\d{2})", resource.dates, 3);
               array.size(matches) <= 3;
             ```
@@ -458,7 +438,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "redact_emails"
             permit
-            where
               var redacted = patterns.replaceAll(resource.text, "[a-z0-9._%+-]+@[a-z0-9.-]+\\\\.[a-z]{2,}", "[REDACTED]");
               resource.publicText == redacted;
             ```
@@ -466,7 +445,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "normalize_paths"
             permit
-            where
               var normalized = patterns.replaceAll(resource.path, "/+", "/");
               string.startsWith(normalized, "/api");
             ```
@@ -474,7 +452,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "swap_format"
             permit
-            where
               var swapped = patterns.replaceAll(resource.date, "(\\\\d{2})/(\\\\d{2})/(\\\\d{4})", "$3-$1-$2");
               swapped == resource.expectedFormat;
             ```
@@ -505,7 +482,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "parse_csv"
             permit
-            where
               var fields = patterns.split(",", resource.csvLine);
               array.size(fields) == 5;
             ```
@@ -513,7 +489,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "split_whitespace"
             permit
-            where
               var tokens = patterns.split("\\\\s+", resource.input);
               array.containsAll(tokens, subject.requiredTokens);
             ```
@@ -521,7 +496,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "split_delimiters"
             permit
-            where
               var parts = patterns.split("[;,|]", resource.delimitedData);
               array.size(parts) > 0;
             ```
@@ -568,21 +542,18 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "api_version"
             permit
-            where
               patterns.matchTemplate("/api/{{v[12]}}/users", resource.path, "{{", "}}");
             ```
 
             ```sapl
             policy "structured_id"
             permit
-            where
               patterns.matchTemplate("tenant:{{\\\\d+}}:resource", resource.id, "{{", "}}");
             ```
 
             ```sapl
             policy "mixed_format"
             permit
-            where
               var template = "user-{{[a-z]+}}-{{\\\\d{4}}}";
               patterns.matchTemplate(template, resource.userId, "{{", "}}");
             ```
@@ -590,7 +561,6 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "escaped_literals"
             permit
-            where
               patterns.matchTemplate("file\\\\*{{\\\\d+}}\\\\.txt", resource.filename, "{{", "}}");
             ```
             """)

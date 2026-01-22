@@ -51,7 +51,6 @@ public class UuidFunctionLibrary {
             ```sapl
             policy "audit_with_request_id"
             permit
-            where
               var requestId = uuid.random();
               // Use requestId for audit correlation
             obligation
@@ -147,7 +146,6 @@ public class UuidFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var parsedUuid = uuid.parse("550e8400-e29b-41d4-a716-446655440000");
               // Returns object with leastSignificantBits, mostSignificantBits, version, variant
 
@@ -200,7 +198,6 @@ public class UuidFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var randomUuid = uuid.random();
               // Generates a new random UUID like "a3bb189e-8bf9-3888-9912-ace4e6543002"
 
@@ -241,7 +238,6 @@ public class UuidFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var testUuid = uuid.seededRandom(12345);
               // Always generates the same UUID for seed 12345
 

@@ -104,7 +104,6 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "api signature check"
             permit
-            where
               var message = "request payload";
               var signature = "signature_from_header";
               var publicKey = "-----BEGIN PUBLIC KEY-----\\n...\\n-----END PUBLIC KEY-----";
@@ -131,7 +130,6 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "document signature"
             permit
-            where
               signature.isValidRsaSha384(document, documentSignature, trustedPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -155,7 +153,6 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "secure signature check"
             permit
-            where
               signature.isValidRsaSha512(criticalData, dataSignature, certifiedPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -182,7 +179,6 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "transaction signature"
             permit
-            where
               signature.isValidEcdsaP256(transaction, transactionSig, userPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -206,7 +202,6 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "ecdsa p384 check"
             permit
-            where
               signature.isValidEcdsaP384(sensitiveData, dataSig, trustedEcKey);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -230,7 +225,6 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "ecdsa p521 check"
             permit
-            where
               signature.isValidEcdsaP521(highSecurityData, dataSig, ecPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -258,7 +252,6 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "ed25519 signature check"
             permit
-            where
               signature.isValidEd25519(blockData, blockSignature, validatorKey);
             ```
             """, schema = RETURNS_BOOLEAN)

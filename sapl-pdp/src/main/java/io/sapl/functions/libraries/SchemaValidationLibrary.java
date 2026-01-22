@@ -122,7 +122,6 @@ public class SchemaValidationLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var jsonSchema = {
                                  "type": "boolean"
                                };
@@ -162,7 +161,6 @@ public class SchemaValidationLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var externals = {
                     "$id": "https://example.com/coordinates",
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -229,8 +227,7 @@ public class SchemaValidationLibrary {
             **Example:**
             ```sapl
             policy "validate_document_metadata"
-            permit action == "upload:document"
-            where
+            permit action == "upload:document";
               var metadataSchema = {
                 "type": "object",
                 "properties": {
@@ -267,8 +264,7 @@ public class SchemaValidationLibrary {
             **Example:**
             ```sapl
             policy "validate_api_request_with_shared_schemas"
-            permit action == "api:call"
-            where
+            permit action == "api:call";
               var addressSchema = {
                 "$id": "https://schemas.company.com/address",
                 "$schema": "https://json-schema.org/draft/2020-12/schema",

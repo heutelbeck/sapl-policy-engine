@@ -88,7 +88,6 @@ public class ObjectFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var user = {"name": "Alice", "role": "admin", "active": true};
               var fields = object.keys(user);
               // Returns ["name", "role", "active"]
@@ -101,7 +100,6 @@ public class ObjectFunctionLibrary {
             ```sapl
             policy "check-admin-access"
             permit
-            where
               var permissions = object.keys(subject.permissions);
               "admin:write" in permissions;
             ```
@@ -141,7 +139,6 @@ public class ObjectFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var user = {"name": "Alice", "role": "admin", "active": true};
               var data = object.values(user);
               // Returns ["Alice", "admin", true]
@@ -181,7 +178,6 @@ public class ObjectFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var user = {"name": "Alice", "role": "admin", "active": true};
               object.size(user) == 3;
 
@@ -227,7 +223,6 @@ public class ObjectFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var user = {"name": "Alice", "role": "admin", "active": null};
 
               object.hasKey(user, "name");    // true
@@ -241,7 +236,6 @@ public class ObjectFunctionLibrary {
             ```sapl
             policy "check-optional-field"
             permit
-            where
               object.hasKey(subject, "department");
               subject.department == "sales";
             ```
@@ -276,7 +270,6 @@ public class ObjectFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               object.isEmpty({});                          // true
               object.isEmpty({"name": "Alice"});           // false
               object.isEmpty({"a": 1, "b": 2});            // false

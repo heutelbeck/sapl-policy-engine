@@ -10,7 +10,6 @@ first or abstain errors propagate
  */
 policy "all authenticated users may see patient list"
 permit
-where
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "getPatients";
     resource.http.requestedURI == "/patients";
@@ -23,7 +22,6 @@ where
  */
 policy "all authenticated users may access patient records"
 permit
-where
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "getPatient";
     resource.http.requestedURI =~ "^/patients/[0-9]+$";
@@ -34,7 +32,6 @@ where
  */
 policy "delete controller for doctors and administrators"
 permit
-where
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "deletePatient";
     resource.http.requestedURI =~ "^/patients/[0-9]+$";
@@ -45,7 +42,6 @@ where
  */
 policy "doctors may register new patients"
 permit
-where
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "newPatient";
     resource.http.requestedURI =~ "^/patients/new.*";
@@ -57,7 +53,6 @@ where
  */
 policy "doctors may register new patients POST"
 permit
-where
     "UIController" in action.java.instanceof..simpleName;
     action.http.method == "POST";
     resource.http.requestedURI == "/patients";
@@ -68,7 +63,6 @@ where
  */
 policy "staff may access update patient view"
 permit
-where
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "updatePatient";
     resource.http.requestedURI =~ "^/patients/[0-9]+/update.*"

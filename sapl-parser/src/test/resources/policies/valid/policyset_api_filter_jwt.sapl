@@ -11,7 +11,6 @@ first or abstain errors propagate
 //reject JWTs from unknown issuers
 policy "api_filter_jwt:untrusted_issuer"
 deny
-where
 	action.path.requestPath =~ "^/api.*";
 	!(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"]);
 
@@ -34,14 +33,12 @@ where
 // no role has access to nothing
 policy "api_filter_jwt:nothing_allow_none"
 deny
-where
     action.path.requestPath =~ "^/api.*";
     jwt.payload(subject).authorities == [];
 
 // admin has access to everything
 policy "api_filter_jwt:admin_allow_all"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     "ROLE_ADMIN" in jwt.payload(subject).authorities;
     "ROLE_ADMIN" in subject.<jwt.payload>.authorities;
@@ -49,14 +46,12 @@ where
 // customers
 policy "api_filter_jwt:client_deny_customer"
 deny
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/customers.*";
     "ROLE_CLIENT" in jwt.payload(subject).authorities;
 
 policy "api_filter_jwt:nonclient_allow_customer"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/customers.*";
     !("ROLE_CLIENT" in jwt.payload(subject).authorities);
@@ -65,14 +60,12 @@ where
 // orders
 policy "api_filter_jwt:client_deny_order"
 deny
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/orders.*";
     "ROLE_CLIENT" in jwt.payload(subject).authorities;
 
 policy "api_filter_jwt:nonclient_allow_order"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/orders.*";
     !("ROLE_CLIENT" in jwt.payload(subject).authorities);
@@ -81,7 +74,6 @@ where
 // print jobs
 policy "api_filter_jwt:engineer_operator_allow_all_printjob"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/printjobs.*";
     "ROLE_ENGINEER" in jwt.payload(subject).authorities
@@ -91,7 +83,6 @@ where
 
 policy "api_filter_jwt:authenticated_allow_get_printjob"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     "GET" == action.method;
     action.path.requestPath =~ "^/api/printjobs.*";
@@ -100,7 +91,6 @@ where
 // production plans
 policy "api_filter_jwt:client_deny_original_or_annotated_3mf"
 deny
-where
     action.path.requestPath =~ "^/api.*";
     "GET" == action.method;
     action.path.requestPath =~ "^/api/production-plans/.*/threemf-file"
@@ -109,7 +99,6 @@ where
 
 policy "api_filter_jwt:client_blacken_printobject"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     "GET" == action.method;
     action.path.requestPath =~ "^/api/production-plans/.*/print-objects";
@@ -120,7 +109,6 @@ transform
 
 policy "api_filter_jwt:authenticated_allow_get_productionplan"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     "GET" == action.method;
     action.path.requestPath =~ "^/api/production-plans.*";
@@ -129,14 +117,12 @@ where
 // files
 policy "api_filter_jwt:client_deny_file"
 deny
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/files.*";
     "ROLE_CLIENT" in jwt.payload(subject).authorities;
 
 policy "api_filter_jwt:engineer_allow_all_file"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/files.*";
     "ROLE_ENGINEER" in jwt.payload(subject).authorities;
@@ -144,7 +130,6 @@ where
 
 policy "api_filter_jwt:authenticated_allow_get_file"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     "GET" == action.method;
     action.path.requestPath =~ "^/api/files.*";
@@ -153,7 +138,6 @@ where
 // machines
 policy "api_filter_jwt:engineer_operator_allow_all_machine"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/machines.*";
     "ROLE_ENGINEER" in jwt.payload(subject).authorities
@@ -163,7 +147,6 @@ where
 
 policy "api_filter_jwt:authenticated_allow_get_machines"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     "GET" == action.method;
     action.path.requestPath =~ "^/api/machines.*";
@@ -172,14 +155,12 @@ where
 // subscriptions
 policy "api_filter_jwt:client_deny_subscription_anomaly"
 deny
-where
     action.path.requestPath =~ "^/api.*";
     action.path.requestPath =~ "^/api/subscriptions.*/anomaly";
     "ROLE_CLIENT" in jwt.payload(subject).authorities;
 
 policy "api_filter_jwt:authenticated_allow_get_subscription"
 permit
-where
     action.path.requestPath =~ "^/api.*";
     "GET" == action.method;
     action.path.requestPath =~ "^/api/subscriptions.*";

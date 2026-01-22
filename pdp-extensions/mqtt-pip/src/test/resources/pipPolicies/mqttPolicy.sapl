@@ -1,24 +1,21 @@
 set "mqttPipPolicySet"
-first-applicable
+first or abstain errors propagate
 
 policy "mqttPolicyWithoutParams"
 permit
-  action == "actionWithoutParams"
-where
+  action == "actionWithoutParams";
   subject == "subjectName";
   resource.topic.<mqtt.messages> == "message";
 
 policy "mqttPolicyWithQos"
 permit
-  action == "actionWithQos"
-where
+  action == "actionWithQos";
   subject == "subjectName";
   resource.topic.<mqtt.messages(0)> == "message";
 
 policy "mqttPolicyWithQosAndConfig"
 permit
-  action == "actionNameWithQosAndConfig"
-where
+  action == "actionNameWithQosAndConfig";
   subject == "subjectName";
   var config = {"brokerAddress": "localhost", "brokerPort": 1883, "clientId": mqtt_pip, "defaultResponse": "undefined"};
   resource.topic.<mqtt.messages(0, config)> == "message";

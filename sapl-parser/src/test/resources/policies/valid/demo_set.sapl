@@ -4,7 +4,6 @@ first or abstain errors propagate
 
 policy "Change Resource Example"
 permit
-where
     action.http.contextPath == "/changedstring";
 obligation
 	{
@@ -15,7 +14,6 @@ transform "***" + resource + "***"
 
 policy "Time based obligation and deny (1/3)"
 permit
-where
     action.http.contextPath == "/enforcetilldeny"
         | action.http.contextPath == "/enforcedropwhiledeny"
         | action.http.contextPath == "/enforcerecoverableifdeny";
@@ -28,7 +26,6 @@ obligation
 
 policy "Time based obligation and deny (2/3)"
 permit
-where
     action.http.contextPath == "/enforcetilldeny"
         | action.http.contextPath == "/enforcedropwhiledeny"
         | action.http.contextPath == "/enforcerecoverableifdeny";
@@ -41,7 +38,6 @@ obligation
 
 policy "Time based obligation and deny (3/3)"
 deny
-where
     action.http.contextPath == "/enforcetilldeny"
         | action.http.contextPath == "/enforcedropwhiledeny"
         | action.http.contextPath == "/enforcerecoverableifdeny";
@@ -54,7 +50,6 @@ obligation
 
 policy "Permit Numbers"
 permit
-where
     action.http.contextPath == "/numbers";
 obligation
 	{

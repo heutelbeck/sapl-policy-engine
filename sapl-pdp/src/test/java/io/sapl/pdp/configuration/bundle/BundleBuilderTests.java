@@ -270,7 +270,7 @@ class BundleBuilderTests {
         val originalPolicy = """
                 policy "arkham-asylum"
                 permit subject.role == "doctor"
-                where resource.ward != "forbidden"
+                resource.ward != "forbidden"
                 """;
         val algorithm      = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.DENY,
                 ErrorHandling.ABSTAIN);

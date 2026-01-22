@@ -71,7 +71,6 @@ public class TraccarFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var position = {
                     "id": 123,
                     "deviceId": 456,
@@ -153,7 +152,6 @@ public class TraccarFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                  var geofence = {
                      "id": 789,
                      "name": "Test Geofence",

@@ -79,14 +79,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "normalize_role"
             permit
-            where
               string.toLowerCase(subject.role) == "administrator";
             ```
 
             ```sapl
             policy "case_insensitive_path"
             permit
-            where
               var normalizedPath = string.toLowerCase(resource.path);
               normalizedPath in ["/api/public", "/api/health"];
             ```
@@ -105,14 +103,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "normalize_department"
             permit
-            where
               string.toUpperCase(subject.department) == "ENGINEERING";
             ```
 
             ```sapl
             policy "uppercase_code"
             permit
-            where
               var code = string.toUpperCase(resource.code);
               code in ["ADMIN", "SUPER", "ROOT"];
             ```
@@ -131,14 +127,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "role_check"
             permit
-            where
               string.equalsIgnoreCase(subject.role, "Administrator");
             ```
 
             ```sapl
             policy "resource_type"
             permit
-            where
               string.equalsIgnoreCase(resource.type, "DOCUMENT") && action.name == "read";
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -156,7 +150,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "clean_username"
             permit
-            where
               var cleanUsername = string.trim(subject.name);
               cleanUsername in resource.allowedUsers;
             ```
@@ -164,7 +157,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "sanitize_path"
             permit
-            where
               var cleanPath = string.trim(resource.path);
               string.startsWith(cleanPath, "/api/");
             ```
@@ -182,7 +174,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "trim_leading"
             permit
-            where
               var cleanInput = string.trimStart(resource.input);
               string.startsWith(cleanInput, "valid-prefix");
             ```
@@ -200,7 +191,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "trim_trailing"
             permit
-            where
               var cleanInput = string.trimEnd(resource.input);
               string.endsWith(cleanInput, "valid-suffix");
             ```
@@ -219,7 +209,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "require_reason"
             deny
-            where
               action.name == "delete";
               string.isBlank(request.reason);
             ```
@@ -227,7 +216,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "validate_input"
             permit
-            where
               !string.isBlank(subject.username);
               !string.isBlank(resource.documentId);
             ```
@@ -246,14 +234,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "permission_check"
             permit
-            where
               string.contains(subject.permissions, "read:documents");
             ```
 
             ```sapl
             policy "path_validation"
             permit
-            where
               string.contains(resource.path, "/public/") || string.contains(resource.path, "/shared/");
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -271,14 +257,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "api_path"
             permit
-            where
               string.startsWith(resource.path, "/api/public");
             ```
 
             ```sapl
             policy "role_prefix"
             permit
-            where
               string.startsWith(subject.role, "ADMIN_");
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -296,14 +280,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "document_type"
             permit
-            where
               string.endsWith(resource.filename, ".pdf") || string.endsWith(resource.filename, ".docx");
             ```
 
             ```sapl
             policy "domain_check"
             permit
-            where
               string.endsWith(subject.email, "@company.com");
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -320,14 +302,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "password_length"
             permit
-            where
               string.length(request.password) >= 12;
             ```
 
             ```sapl
             policy "comment_limit"
             permit
-            where
               action.name == "comment";
               string.length(request.text) <= 500;
             ```
@@ -345,14 +325,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "optional_field"
             permit
-            where
               string.isEmpty(resource.optionalTag) || resource.optionalTag in resource.allowedTags;
             ```
 
             ```sapl
             policy "require_id"
             deny
-            where
               string.isEmpty(resource.id);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -370,7 +348,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "extract_suffix"
             permit
-            where
               var suffix = string.substring(resource.id, 8);
               suffix == subject.tenantId;
             ```
@@ -378,7 +355,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "skip_prefix"
             permit
-            where
               var withoutPrefix = string.substring(resource.path, 5);
               withoutPrefix in resource.allowedPaths;
             ```
@@ -405,7 +381,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "extract_tenant"
             permit
-            where
               var tenantId = string.substringRange(resource.id, 0, 8);
               tenantId == subject.tenantId;
             ```
@@ -413,7 +388,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "middle_segment"
             permit
-            where
               var segment = string.substringRange(resource.path, 5, 15);
               segment == "authorized";
             ```
@@ -446,7 +420,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "find_separator"
             permit
-            where
               var separatorPosition = string.indexOf(resource.id, ":");
               separatorPosition > 0;
             ```
@@ -454,7 +427,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "check_presence"
             permit
-            where
               string.indexOf(subject.permissions, "admin") != -1;
             ```
             """, schema = RETURNS_NUMBER)
@@ -472,7 +444,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "find_extension"
             permit
-            where
               var dotPosition = string.lastIndexOf(resource.filename, ".");
               var extension = string.substring(resource.filename, dotPosition + 1);
               extension in ["pdf", "docx", "txt"];
@@ -481,7 +452,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "last_segment"
             permit
-            where
               var lastSlash = string.lastIndexOf(resource.path, "/");
               var filename = string.substring(resource.path, lastSlash + 1);
               filename == "allowed.txt";
@@ -502,7 +472,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "build_permission"
             permit
-            where
               var permission = string.join([resource.type, action.name], ":");
               permission in subject.permissions;
             ```
@@ -510,7 +479,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "format_roles"
             permit
-            where
               var roleList = string.join(subject.roles, ",");
               string.contains(roleList, "admin");
             ```
@@ -552,7 +520,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "build_path"
             permit
-            where
               var fullPath = string.concat("/api/", subject.tenant, "/", resource.type);
               fullPath in resource.allowedPaths;
             ```
@@ -560,7 +527,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "construct_id"
             permit
-            where
               var resourceId = string.concat(subject.tenant, ":", resource.type, ":", resource.id);
               resourceId in subject.accessibleResources;
             ```
@@ -583,7 +549,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "normalize_separators"
             permit
-            where
               var normalized = string.replace(resource.path, "\\\\", "/");
               string.startsWith(normalized, "/api/");
             ```
@@ -591,7 +556,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "remove_prefix"
             permit
-            where
               var cleaned = string.replace(subject.role, "ROLE_", "");
               cleaned in ["admin", "user", "guest"];
             ```
@@ -618,7 +582,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "remove_first_slash"
             permit
-            where
               var path = string.replaceFirst(resource.path, "/", "");
               string.startsWith(path, "api");
             ```
@@ -626,7 +589,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "replace_prefix"
             permit
-            where
               var updated = string.replaceFirst(resource.type, "legacy_", "");
               updated in resource.allowedTypes;
             ```
@@ -654,7 +616,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "format_id"
             permit
-            where
               var paddedId = string.leftPad(resource.numericId, 8, "0");
               paddedId == "00001234";
             ```
@@ -662,7 +623,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "align_code"
             permit
-            where
               var aligned = string.leftPad(resource.code, 10, " ");
               string.length(aligned) == 10;
             ```
@@ -689,7 +649,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "format_label"
             permit
-            where
               var padded = string.rightPad(subject.name, 20, " ");
               string.length(padded) == 20;
             ```
@@ -697,7 +656,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "align_right"
             permit
-            where
               var aligned = string.rightPad(resource.tag, 15, "-");
               string.endsWith(aligned, "-");
             ```
@@ -723,7 +681,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "generate_separator"
             permit
-            where
               var separator = string.repeat("-", 40);
               string.length(separator) == 40;
             ```
@@ -731,7 +688,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "build_pattern"
             permit
-            where
               var pattern = string.repeat("x", 5);
               pattern == "xxxxx";
             ```
@@ -765,14 +721,12 @@ public class StringFunctionLibrary {
             ```sapl
             policy "check_palindrome"
             permit
-            where
               string.reverse(resource.code) == resource.code;
             ```
 
             ```sapl
             policy "reverse_match"
             permit
-            where
               var reversed = string.reverse(subject.token);
               reversed == resource.expectedToken;
             ```

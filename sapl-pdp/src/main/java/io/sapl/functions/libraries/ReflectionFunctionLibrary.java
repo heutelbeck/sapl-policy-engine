@@ -61,7 +61,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "validate_permissions_array"
             permit
-            where
               var permissions = subject.permissions;
               reflect.isArray(permissions);      // true if permissions is an array
               reflect.isArray([]);               // true (empty array)
@@ -89,7 +88,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "validate_user_object"
             permit
-            where
               var user = resource.owner;
               reflect.isObject(user);              // true if user is an object
               reflect.isObject({});                // true
@@ -116,7 +114,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "validate_username"
             permit
-            where
               var username = subject.username;
               reflect.isText(username);          // true if username is a string
               reflect.isText("");                // true
@@ -144,7 +141,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "validate_age_threshold"
             permit
-            where
               var ageLimit = resource.minimumAge;
               reflect.isNumber(ageLimit);        // true if numeric
               reflect.isNumber(18);              // true
@@ -174,7 +170,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "validate_permission_mask"
             permit
-            where
               var mask = subject.permissionMask;
               reflect.isInteger(mask);           // true for integer permission values
               reflect.isInteger(7);              // true
@@ -206,7 +201,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "validate_flag"
             permit
-            where
               var isActive = subject.isActive;
               reflect.isBoolean(isActive);       // true if isActive is boolean
               reflect.isBoolean(true);           // true
@@ -235,7 +229,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "check_optional_field"
             permit
-            where
               var department = subject.department;
               reflect.isNull(department);        // true if explicitly set to null
               reflect.isNull(null);              // true
@@ -263,7 +256,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "check_missing_attribute"
             permit
-            where
               var attribute = subject.optionalAttr;
               reflect.isUndefined(attribute);    // true if attribute not present
               reflect.isUndefined(undefined);    // true
@@ -290,7 +282,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "require_attribute"
             permit
-            where
               var role = subject.role;
               reflect.isDefined(role);           // true if role exists (even if null)
               reflect.isDefined(null);           // true
@@ -316,7 +307,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "handle_computation_errors"
             permit
-            where
               var result = resource.computedValue;
               !reflect.isError(result);          // deny if computation failed
               reflect.isError(10 / 0);           // true (division by zero)
@@ -345,7 +335,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "require_permissions"
             permit
-            where
               var permissions = subject.permissions;
               !reflect.isEmpty(permissions);     // deny if no permissions
               reflect.isEmpty([]);               // true
@@ -381,7 +370,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "dynamic_type_validation"
             permit
-            where
               var data = resource.metadata;
               reflect.typeOf(data.tags) == "ARRAY";
               reflect.typeOf(data) == "OBJECT";

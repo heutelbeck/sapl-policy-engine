@@ -105,8 +105,7 @@ public class GraphQLFunctionLibrary {
             **Example:**
             ```sapl
             policy "validate-graphql-query"
-            permit action == "execute"
-            where
+            permit action == "execute";
               var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.valid && gql.depth <= 5 && !("ssn" in gql.fields);
             ```
@@ -122,8 +121,7 @@ public class GraphQLFunctionLibrary {
             **Example:**
             ```sapl
             policy "analyze-query-structure"
-            permit action == "execute"
-            where
+            permit action == "execute";
               var gql = graphql.analyzeQuery(resource.query);
               gql.depth <= 5 && gql.security.aliasCount <= 10;
             ```
@@ -157,8 +155,7 @@ public class GraphQLFunctionLibrary {
 
             ```sapl
             policy "restrict-pii-fields"
-            deny action == "execute"
-            where
+            deny action == "execute";
               var gql = graphql.validateQuery(resource.query, resource."schema");
               var piiFields = ["ssn", "creditCard", "taxId"];
               array.containsAny(gql.fields, piiFields);
@@ -168,8 +165,7 @@ public class GraphQLFunctionLibrary {
 
             ```sapl
             policy "enforce-limits"
-            permit action == "execute"
-            where
+            permit action == "execute";
               var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.valid && gql.depth <= 5 && gql.complexity <= 100;
             ```
@@ -178,8 +174,7 @@ public class GraphQLFunctionLibrary {
 
             ```sapl
             policy "mutations-require-admin"
-            permit action == "execute"
-            where
+            permit action == "execute";
               var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.operation != "mutation" || subject.role == "admin";
             ```
@@ -188,8 +183,7 @@ public class GraphQLFunctionLibrary {
 
             ```sapl
             policy "prevent-batching"
-            deny action == "execute"
-            where
+            deny action == "execute";
               var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.security.aliasCount > 10 || gql.security.batchingScore > 50;
             ```
@@ -198,8 +192,7 @@ public class GraphQLFunctionLibrary {
 
             ```sapl
             policy "comprehensive-security"
-            permit action == "execute"
-            where
+            permit action == "execute";
               var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.valid &&
               gql.depth <= 5 &&

@@ -96,8 +96,8 @@ class SAPLCompilerTests {
 
     @ParameterizedTest
     @ValueSource(strings = { "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432",
-            "policy \"p\" permit where var subject = {};", "policy \"p\" permit where var action = {};",
-            "policy \"p\" permit where var resource = {};", "policy \"p\" permit where var environment = {};" })
+            "policy \"p\" permit var subject = {};", "policy \"p\" permit var action = {};",
+            "policy \"p\" permit var resource = {};", "policy \"p\" permit var environment = {};" })
     void whenInvalidPolicyDefinitions_thenParsingThrowsException(String policyDefinition) {
         assertThatThrownBy(() -> SAPLCompiler.parse(policyDefinition)).isInstanceOf(SaplCompilerException.class);
     }
@@ -112,7 +112,7 @@ class SAPLCompilerTests {
     }
 
     static Stream<Arguments> validPolicyDefinitions() {
-        return Stream.of(arguments("policy with where clause", "policy \"test\" permit where true;"),
+        return Stream.of(arguments("policy with clause", "policy \"test\" permit true;"),
                 arguments("policy with transform", "policy \"test\" permit transform null"),
                 arguments("policy with obligation", "policy \"test\" permit obligation null"),
                 arguments("policy with advice", "policy \"test\" permit advice null"),
@@ -123,15 +123,13 @@ class SAPLCompilerTests {
                 arguments("policy with complex expression", """
                         policy "complex"
                         permit
-                        where
                             resource.type == "document";
                             var owner = resource.owner;
                             subject.id == owner;
                         """),
                 arguments("policy with attribute finder",
-                        "policy \"test\" permit where \"test\".<pip.attribute> == \"test\";"),
-                arguments("policy with environment attribute",
-                        "policy \"test\" permit where <time.now> != undefined;"));
+                        "policy \"test\" permit \"test\".<pip.attribute> == \"test\";"),
+                arguments("policy with environment attribute", "policy \"test\" permit <time.now> != undefined;"));
     }
 
     @ParameterizedTest(name = "{0}")

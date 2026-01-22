@@ -122,7 +122,6 @@ class FirstVoteCompilerTests {
 
                     policy "never-matches"
                     permit
-                    where
                       false;
                     """);
             val ctx      = subscriptionContext("""
@@ -182,7 +181,6 @@ class FirstVoteCompilerTests {
 
                             policy "body-not-applicable"
                             permit
-                            where
                               false;
 
                             policy "fallback-deny"
@@ -201,7 +199,6 @@ class FirstVoteCompilerTests {
 
                             policy "never-matches"
                             permit
-                            where
                               false;
 
                             policy "always-deny"
@@ -220,7 +217,6 @@ class FirstVoteCompilerTests {
 
                             policy "captain-only"
                             permit
-                            where
                               subject == "Vimes";
 
                             policy "default-deny"
@@ -239,12 +235,10 @@ class FirstVoteCompilerTests {
 
                             policy "captain-only"
                             permit
-                            where
                               subject == "Vimes";
 
                             policy "sergeant-fallback"
                             permit
-                            where
                               subject == "Colon";
 
                             policy "default-deny"
@@ -263,12 +257,10 @@ class FirstVoteCompilerTests {
 
                             policy "captain-only"
                             permit
-                            where
                               subject == "Vimes";
 
                             policy "sergeant-fallback"
                             permit
-                            where
                               subject == "Colon";
 
                             policy "default-deny"
@@ -287,7 +279,6 @@ class FirstVoteCompilerTests {
 
                             policy "wizards-reading"
                             permit
-                            where
                               subject == "Rincewind";
                               action == "read";
 
@@ -307,7 +298,6 @@ class FirstVoteCompilerTests {
 
                             policy "wizards-reading"
                             permit
-                            where
                               subject == "Rincewind";
                               action == "read";
 
@@ -331,7 +321,6 @@ class FirstVoteCompilerTests {
 
                             policy "check-allowed"
                             permit
-                            where
                               allowed;
 
                             policy "fallback"
@@ -352,7 +341,6 @@ class FirstVoteCompilerTests {
 
                             policy "managers-permit"
                             permit
-                            where
                               isManager;
 
                             policy "fallback"
@@ -373,7 +361,6 @@ class FirstVoteCompilerTests {
 
                             policy "managers-permit"
                             permit
-                            where
                               isManager;
 
                             policy "fallback"
@@ -395,12 +382,10 @@ class FirstVoteCompilerTests {
 
                             policy "admin-access"
                             permit
-                            where
                               isAdmin;
 
                             policy "same-department"
                             permit
-                            where
                               dept == resource.department;
 
                             policy "fallback"
@@ -421,7 +406,6 @@ class FirstVoteCompilerTests {
 
                             policy "level-check"
                             permit
-                            where
                               subject.level >= requiredLevel;
 
                             policy "fallback"
@@ -442,7 +426,6 @@ class FirstVoteCompilerTests {
 
                             policy "level-check"
                             permit
-                            where
                               subject.level >= requiredLevel;
 
                             policy "fallback"
@@ -463,12 +446,10 @@ class FirstVoteCompilerTests {
 
                             policy "never-matches-1"
                             permit
-                            where
                               subject == "nobody";
 
                             policy "never-matches-2"
                             permit
-                            where
                               subject == "ghost";
                             """, """
                             {
@@ -484,7 +465,6 @@ class FirstVoteCompilerTests {
 
                             policy "errors-policy"
                             permit
-                            where
                               subject.missing.deeply.nested;
 
                             policy "fallback"
@@ -504,12 +484,10 @@ class FirstVoteCompilerTests {
 
                                     policy "first"
                                     permit
-                                    where
                                       false;
 
                                     policy "second"
                                     permit
-                                    where
                                       false;
                                     """, """
                                     {
@@ -660,7 +638,6 @@ class FirstVoteCompilerTests {
 
                             policy "time-check"
                             permit
-                            where
                               <test.attr>;
 
                             policy "fallback"
@@ -680,7 +657,6 @@ class FirstVoteCompilerTests {
 
                             policy "wizards-reading"
                             permit
-                            where
                               subject == "Rincewind";
                               <test.action> == "read";
 
@@ -705,7 +681,6 @@ class FirstVoteCompilerTests {
 
                             policy "time-check"
                             permit
-                            where
                               currentTime == "day";
 
                             policy "fallback"
@@ -727,7 +702,6 @@ class FirstVoteCompilerTests {
 
                             policy "time-check"
                             permit
-                            where
                               currentTime == "day";
 
                             policy "fallback"
@@ -747,12 +721,10 @@ class FirstVoteCompilerTests {
 
                             policy "never-matches"
                             permit
-                            where
                               false;
 
                             policy "fallback"
                             deny
-                            where
                               <test.attr>;
                             """, """
                             {
@@ -769,7 +741,6 @@ class FirstVoteCompilerTests {
 
                             policy "errors-policy"
                             permit
-                            where
                               subject.missing.deeply.nested;
                               <test.attr>;
 
@@ -790,7 +761,6 @@ class FirstVoteCompilerTests {
 
                             policy "number-target"
                             permit
-                            where
                               subject;
                               <test.attr>;
 
@@ -814,7 +784,6 @@ class FirstVoteCompilerTests {
 
                             policy "stream-policy"
                             permit
-                            where
                               <test.attr>;
                             """, """
                             {
@@ -832,7 +801,6 @@ class FirstVoteCompilerTests {
 
                             policy "stream-policy"
                             permit
-                            where
                               <test.attr>;
                             """, """
                             {
@@ -850,7 +818,6 @@ class FirstVoteCompilerTests {
 
                             policy "stream-policy"
                             permit
-                            where
                               <test.attr>;
                             """, """
                             {
@@ -913,7 +880,6 @@ class FirstVoteCompilerTests {
 
                     policy "never-matches"
                     %s
-                    where
                       false;
                     """.formatted(algorithm, entitlement));
             val ctx      = subscriptionContext("""
@@ -944,17 +910,14 @@ class FirstVoteCompilerTests {
 
                     policy "policy-a"
                     permit
-                    where
                       <test.attrA>;
 
                     policy "policy-b"
                     permit
-                    where
                       <test.attrB>;
 
                     policy "policy-c"
                     permit
-                    where
                       <test.attrC>;
                     """, attrBroker);
 
@@ -986,12 +949,10 @@ class FirstVoteCompilerTests {
 
                     policy "permits-immediately"
                     permit
-                    where
                       <test.attr1>;
 
                     policy "never-evaluated"
                     deny
-                    where
                       <test.never>;
                     """, attrBroker);
 
@@ -1025,12 +986,10 @@ class FirstVoteCompilerTests {
 
                     policy "policy-x"
                     permit
-                    where
                       <test.attrX>;
 
                     policy "policy-y"
                     permit
-                    where
                       <test.attrY>;
                     """, attrBroker);
 
@@ -1067,7 +1026,6 @@ class FirstVoteCompilerTests {
 
                     policy "errors-policy"
                     permit
-                    where
                       subject.missing.field;
 
                     policy "fallback"
@@ -1095,7 +1053,6 @@ class FirstVoteCompilerTests {
 
                     policy "errors-policy"
                     permit
-                    where
                       subject.missing.field;
 
                     policy "fallback"
@@ -1126,7 +1083,6 @@ class FirstVoteCompilerTests {
 
                     policy "errors-policy"
                     %s
-                    where
                       subject.missing.field;
                     """.formatted(algorithm, entitlement));
             val ctx      = subscriptionContext("""
@@ -1153,7 +1109,6 @@ class FirstVoteCompilerTests {
 
                     policy "errors-policy"
                     %s
-                    where
                       subject.missing.field;
 
                     policy "fallback"

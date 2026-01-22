@@ -81,7 +81,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.min(5, 3) == 3;
               math.min(-10, -5) == -10;
               math.min(2.5, 2.7) == 2.5;
@@ -108,7 +107,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.max(5, 3) == 5;
               math.max(-10, -5) == -5;
               math.max(2.5, 2.7) == 2.7;
@@ -133,7 +131,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.abs(-5) == 5;
               math.abs(3.7) == 3.7;
               math.abs(0) == 0;
@@ -158,7 +155,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.ceil(3.2) == 4.0;
               math.ceil(3.8) == 4.0;
               math.ceil(-3.2) == -3.0;
@@ -184,7 +180,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.floor(3.2) == 3.0;
               math.floor(3.8) == 3.0;
               math.floor(-3.2) == -4.0;
@@ -211,7 +206,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.round(3.2) == 3.0;
               math.round(3.8) == 4.0;
               math.round(3.5) == 4.0;
@@ -239,7 +233,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.pow(2, 3) == 8.0;
               math.pow(5, 2) == 25.0;
               math.pow(2, -1) == 0.5;
@@ -269,7 +262,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.sqrt(16) == 4.0;
               math.sqrt(2) == 1.4142135623730951;
               math.sqrt(0) == 0.0;
@@ -299,7 +291,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.sign(-5) == -1.0;
               math.sign(0) == 0.0;
               math.sign(3.7) == 1.0;
@@ -330,7 +321,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.clamp(5, 0, 10) == 5;      // within range
               math.clamp(-5, 0, 10) == 0;     // below minimum
               math.clamp(15, 0, 10) == 10;    // above maximum
@@ -368,7 +358,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var diceRoll = math.randomInteger(6) + 1;       // 1-6 inclusive
               var randomPercent = math.randomInteger(101);    // 0-100 inclusive
             ```
@@ -405,7 +394,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.randomIntegerSeeded(10, 42) == math.randomIntegerSeeded(10, 42);  // same seed produces same result
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
@@ -441,7 +429,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var probability = math.randomFloat();           // 0.0 <= probability < 1.0
               var percentage = math.randomFloat() * 100;      // 0.0 <= percentage < 100.0
               var range = math.randomFloat() * 50 + 10;       // 10.0 <= range < 60.0
@@ -474,7 +461,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.randomFloatSeeded(42) == math.randomFloatSeeded(42);  // same seed produces same result
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
@@ -501,7 +487,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var circumference = 2 * math.pi() * radius;
               var area = math.pi() * math.pow(radius, 2);
             ```
@@ -523,7 +508,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var exponentialGrowth = math.pow(math.e(), rate * time);
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
@@ -547,7 +531,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.log(math.e()) == 1.0;
               math.log(1) == 0.0;
               math.log(10) == 2.302585092994046;
@@ -577,7 +560,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.log10(100) == 2.0;
               math.log10(1000) == 3.0;
               math.log10(1) == 0.0;
@@ -610,7 +592,6 @@ public class MathFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               math.logb(8, 2) == 3.0;     // log base 2 of 8
               math.logb(27, 3) == 3.0;    // log base 3 of 27
               math.logb(100, 10) == 2.0;  // equivalent to log10(100)

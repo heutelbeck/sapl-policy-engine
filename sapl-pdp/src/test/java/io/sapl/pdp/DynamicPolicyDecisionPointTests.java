@@ -128,7 +128,6 @@ class DynamicPolicyDecisionPointTests {
                 arguments("deny-unless-permit with no matching policies returns DENY", DENY_UNLESS_PERMIT, List.of("""
                         policy "never matches"
                         permit
-                        where
                             subject == "elder_thing";
                         """), cultistSubscription, Decision.DENY),
 
@@ -140,7 +139,6 @@ class DynamicPolicyDecisionPointTests {
                 arguments("permit-unless-deny with no matching policies returns PERMIT", PERMIT_UNLESS_DENY, List.of("""
                         policy "never matches"
                         deny
-                        where
                             subject == "mi_go";
                         """), investigatorSubscription, Decision.PERMIT),
 
@@ -164,12 +162,10 @@ class DynamicPolicyDecisionPointTests {
                         List.of("""
                                 policy "permit cultists"
                                 permit
-                                where
                                     subject == "cultist";
                                 """, """
                                 policy "permit investigators"
                                 permit
-                                where
                                     subject == "investigator";
                                 """), cultistSubscription, Decision.PERMIT),
 
@@ -188,12 +184,10 @@ class DynamicPolicyDecisionPointTests {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit investigators"
                 permit
-                where
                     subject == "investigator";
                 """, """
                 policy "deny cultists"
                 deny
-                where
                     subject == "cultist";
                 """);
 
@@ -268,7 +262,6 @@ class DynamicPolicyDecisionPointTests {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit only for specific action"
                 permit
-                where
                     action == "read";
                 """);
 
@@ -287,7 +280,6 @@ class DynamicPolicyDecisionPointTests {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on environment"
                 permit
-                where
                     environment.location == "miskatonic_university";
                 """);
 
@@ -351,7 +343,6 @@ class DynamicPolicyDecisionPointTests {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with local variable"
                 permit
-                where
                     var threshold = 5;
                     threshold > 3;
                 transform {"threshold_used": threshold}
@@ -371,7 +362,6 @@ class DynamicPolicyDecisionPointTests {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on subject role"
                 permit
-                where
                     subject.role == "elder_sign_bearer";
                 """);
 

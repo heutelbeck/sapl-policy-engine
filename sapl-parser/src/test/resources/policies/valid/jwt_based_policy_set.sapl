@@ -18,7 +18,6 @@ first or abstain errors propagate
  */
 policy "Scopes as Authority in Principal"
 permit
-where
     resource == "books";
 	"SCOPE_books.read" in subject..authority;
 
@@ -32,7 +31,6 @@ where
  */
 policy "Reading scopes as a claim from JWT JSON in the 'token' attribute of the subject"
 permit
-where
     resource == "faculty";
 	"faculty.read" in subject.token.claims.scope;
 
@@ -47,7 +45,6 @@ where
  */
 policy "Reading scopes a raw JWT token available as a subject attribute"
 permit
-where
     resource == "bestiary";
     "bestiary.read" in jwt.parseJwt(subject.principal.tokenValue).payload.scope;
 
@@ -56,6 +53,5 @@ where
  */
 policy "Policy to test timeout of token"
 permit
-where
     resource == "mysteries";
 	subject.principal.tokenValue.<jwt.valid>;

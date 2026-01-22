@@ -57,41 +57,41 @@ class SAPLParserTests {
                 arguments("simple write denial", """
                         policy "policy 2"
                         deny
-                        where
+
                             action == "write";
                         """), arguments("simple read permit", """
                         policy "policy read"
                         permit
-                        where
+
                             action == "read";
                         """), arguments("apple eating permit", """
                         policy "policy1"
                         permit
-                        where
+
                             action == "eat";
                             resource == "apple";
                         """), arguments("read with variable comparison", """
                         policy "policy read"
                         permit
-                        where
+
                             action == "read";
                             test == 1;
                         """), arguments("read for subject willi", """
                         policy "policySimple"
                         permit
-                        where
+
                             action == "read";
                             subject == "willi";
                         """), arguments("deny foo for WILLI", """
                         policy "policy_A"
                         deny
-                        where
+
                             resource == "foo";
                             "WILLI" == subject;
                         """), arguments("permit foo for WILLI", """
                         policy "policy_B"
                         permit
-                        where
+
                             resource == "foo";
                             "WILLI" == subject;
                         """), arguments("empty permit", """
@@ -103,27 +103,27 @@ class SAPLParserTests {
                         """), arguments("body with regex", """
                         policy "test policy"
                         deny
-                        where
+
                             action =~ "some regex";
                         """), arguments("complex boolean body with conjunction", """
                         policy "test policy"
                         permit
-                        where
+
                             subject == "aSubject" & target == "aTarget";
                         """), arguments("disjunction in body", """
                         policy "test policy"
                         permit
-                        where
+
                             (subject == "aSubject") | (target == "aTarget");
                         """), arguments("negation in body", """
                         policy "test policy"
                         permit
-                        where
+
                             !(subject == "aSubject" | target == "aTarget");
                         """), arguments("variable definition in body", """
                         policy "test policy"
                         permit
-                        where
+
                             var subject_id = subject.metadata.id;
                             !("a" == "b");
                             action =~ "HTTP.GET";
@@ -134,7 +134,7 @@ class SAPLParserTests {
                         """
                                 policy "policyWithSimpleFunction"
                                 permit
-                                where
+
                                     action == "read";
                                     time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
                                 """),
@@ -144,7 +144,7 @@ class SAPLParserTests {
                         """
                                 policy "policy 1"
                                 permit
-                                where
+
                                     action == "read";
                                     subject.<test.upper> == "WILLI";
                                     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
@@ -153,7 +153,7 @@ class SAPLParserTests {
                         """
                                 policy "policy 1"
                                 permit
-                                where
+
                                     action == "read";
                                     subject.<test.upper> == "WILLI";
                                     var test = 1;
@@ -163,7 +163,7 @@ class SAPLParserTests {
                         """
                                 policy "policy eat icecream"
                                 permit
-                                where
+
                                     action == "eat" & resource == "icecream";
                                     subject.<test.upper> == "WILLI";
                                     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
@@ -171,13 +171,13 @@ class SAPLParserTests {
                 arguments("environment attribute", """
                         policy "policyWithEnvironmentAttribute"
                         permit
-                        where
+
                             action == "write";
                             <org.emergencyLevel> == 0;
                         """), arguments("simple upper case PIP", """
                         policy "policyWithSimplePIP"
                         permit
-                        where
+
                             action == "read";
                             subject.<test.upper> == "WILLI";
                         """),
@@ -185,7 +185,7 @@ class SAPLParserTests {
                         """
                                 policy "policyWithMultipleFunctionsOrPIPs"
                                 permit
-                                where
+
                                     action == "read";
                                     subject.<test.upper> == "WILLI";
                                     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
@@ -193,7 +193,7 @@ class SAPLParserTests {
                 arguments("streaming time attribute", """
                         policy "policyStreaming"
                         permit
-                        where
+
                           resource == "heartBeatData";
                           subject == "ROLE_DOCTOR";
                           var interval = 2;
@@ -201,7 +201,7 @@ class SAPLParserTests {
                         """), arguments("streaming time attribute variant", """
                         policy "policyStreaming"
                         permit
-                        where
+
                           resource == "bar";
                           subject == "WILLI";
                           var interval = 2;
@@ -209,13 +209,13 @@ class SAPLParserTests {
                         """), arguments("head attribute finder", """
                         policy "headAttribute"
                         permit
-                        where
+
                             |<clock.ticker> != undefined;
                             subject.|<user.updates> == true;
                         """), arguments("attribute finder with options", """
                         policy "attributeWithOptions"
                         permit
-                        where
+
                             subject.<user.data[{"option": true, "timeout": 5000}]> == "data";
                         """),
 
@@ -223,7 +223,7 @@ class SAPLParserTests {
                 arguments("mongo query manipulation with obligation", """
                         policy "permit query method (1)"
                         permit
-                        where
+
                             action == "fetchingByQueryMethod";
                             subject.age > 18;
                         obligation {
@@ -233,7 +233,7 @@ class SAPLParserTests {
                         """), arguments("mongo with blacklist selection", """
                         policy "permit method name query (1)"
                         permit
-                        where
+
                             action == "findAll";
                             subject.age > 18;
                         obligation {
@@ -247,7 +247,7 @@ class SAPLParserTests {
                         """), arguments("streaming with obligation A", """
                         policy "policy 1"
                         permit
-                        where
+
                              action == "read";
                              subject == "WILLI";
                              time.secondOf(<time.now>) < 20;
@@ -257,7 +257,7 @@ class SAPLParserTests {
                         """
                                 policy "policyWithObligationAndResource"
                                 permit
-                                where
+
                                     action.java.name == "findById";
                                     "ROLE_ADMIN" in subject..authority;
                                 obligation
@@ -294,7 +294,7 @@ class SAPLParserTests {
                         """), arguments("obligation advice and transform combined", """
                         policy "p"
                         permit
-                        where
+
                             true;
                         obligation
                             "wash your hands"
@@ -305,7 +305,7 @@ class SAPLParserTests {
                         """), arguments("transform with body expression", """
                         policy "p"
                         permit
-                        where
+
                             true && true;
                         transform
                             "aaa"
@@ -340,7 +340,7 @@ class SAPLParserTests {
                         }
                         policy "test"
                         permit
-                        where
+
                             true;
                         """), arguments("multiple schemas", """
                         subject enforced schema {
@@ -369,15 +369,15 @@ class SAPLParserTests {
                         permit
                         """), arguments("variable with schema", """
                         policy "p" permit
-                        where
+
                            var x = 123 schema { "type": "number" };
                         """), arguments("variable with multiple schemas", """
                         policy "p" permit
-                        where
+
                            var x = 123 schema { "type": "number" }, { "minimum": 0 };
                         """), arguments("combining algorithm keywords as identifiers", """
                         policy "keywords as variables" permit
-                        where
+
                            var priority = 5;
                            var first = true;
                            var unique = "value";
@@ -407,7 +407,7 @@ class SAPLParserTests {
                 policy "testp" deny
                 """), arguments("policy set with body condition", """
                 set "tests" priority deny or abstain errors propagate
-                policy "testp" deny where subject == "non-matching";
+                policy "testp" deny subject == "non-matching";
                 """), arguments("policy set with multiple policies", """
                 set "tests" priority deny or abstain errors propagate
                 policy "testp1" permit
@@ -416,33 +416,33 @@ class SAPLParserTests {
                 import filter.replace
                 import filter.replace
                 set "tests" priority deny or abstain errors propagate
-                policy "testp1" permit where true;
+                policy "testp1" permit true;
                 """), arguments("policy set with set-level variables", """
                 set "tests" priority deny or abstain errors propagate
                 var var1 = true;
-                policy "testp1" permit where var1 == true;
+                policy "testp1" permit var1 == true;
                 """), arguments("policy set with policy-level variables", """
                 set "tests" priority deny or abstain errors propagate
                 var var1 = true;
-                policy "testp1" permit where var var2 = 10; var2 == 10;
-                policy "testp2" deny where !(var1 == true);
+                policy "testp1" permit var var2 = 10; var2 == 10;
+                policy "testp2" deny !(var1 == true);
                 """), arguments("priority permit algorithm", """
                 set "test" priority permit or abstain errors propagate
                 policy "deny policy" deny
                 policy "permit policy" permit
                 """), arguments("priority permit or deny algorithm", """
                 set "test" priority permit or deny
-                policy "not applicable" permit where subject == "non-matching";
+                policy "not applicable" permit subject == "non-matching";
                 """), arguments("priority deny or permit algorithm", """
                 set "test" priority deny or permit
-                policy "not applicable" deny where subject == "non-matching";
+                policy "not applicable" deny subject == "non-matching";
                 """), arguments("unique algorithm", """
                 set "test" unique or abstain errors propagate
                 policy "permit policy" permit
                 policy "deny policy" deny
                 """), arguments("first algorithm", """
                 set "test" first or abstain errors propagate
-                policy "not applicable" permit where subject == "non-matching";
+                policy "not applicable" permit subject == "non-matching";
                 policy "permit policy" permit
                 policy "deny policy" deny
                 """), arguments("policy set with obligation", """
@@ -458,7 +458,7 @@ class SAPLParserTests {
                 set "test" priority deny or abstain errors propagate
                 var setVar = true;
                 policy "complex policy" permit
-                where
+
                   var policyVar = 10;
                   setVar == true;
                   policyVar > 5;
@@ -479,24 +479,24 @@ class SAPLParserTests {
                         """
                                 policy "api_filter_jwt:untrusted_issuer"
                                 deny
-                                where
+
                                     !(jwt.payload(subject).iss in ["https://www.ftk.de/", "http://192.168.2.115:8080/", "http://localhost:8090"]);
                                 """),
                 arguments("JWT no authorities denial", """
                         policy "api_filter_jwt:nothing_allow_none"
                         deny
-                        where
+
                             jwt.payload(subject).authorities == [];
                         """), arguments("JWT admin allow all", """
                         policy "api_filter_jwt:admin_allow_all"
                         permit
-                        where
+
                             "ROLE_ADMIN" in jwt.payload(subject).authorities;
                             "ROLE_ADMIN" in subject.<jwt.payload>.authorities;
                         """), arguments("JWT client blacken print object", """
                         policy "api_filter_jwt:client_blacken_printobject"
                         permit
-                        where
+
                             "GET" == action.method;
                             action.path.requestPath =~ "^/api/production-plans/.*/print-objects";
                             "ROLE_CLIENT" in jwt.payload(subject).authorities;
@@ -519,7 +519,7 @@ class SAPLParserTests {
                 /* Any subject with an e-mail name in the med.example.com
                    domain can perform any action on any resource. */
                 permit
-                where
+
                     subject =~ "(?i).*@med\\\\.example\\\\.com";
                 """), arguments("XACML rule 1 patient read record", """
                 policy "rule_1"
@@ -528,7 +528,7 @@ class SAPLParserTests {
                     for which he or she is the designated patient */
 
                 permit
-                where
+
                     resource._type == "urn:example:med:schemas:record";
                     string.starts_with(resource._selector, "@");
                     action == "read";
@@ -544,7 +544,7 @@ class SAPLParserTests {
                                     and for which the patient is under 16 years of age */
 
                                 permit
-                                where
+
                                     resource._type == "urn:example:med:schemas:record";
                                     string.starts_with(resource._selector, "@");
                                     action == "read";
@@ -559,7 +559,7 @@ class SAPLParserTests {
                             physician, provided an email is sent to the patient */
 
                         permit
-                        where
+
                             subject.role == "physician";
                             string.starts_with(resource._selector, "@.medical");
                             action == "write";
@@ -597,7 +597,7 @@ class SAPLParserTests {
                 // Operators
                 arguments("all operator", """
                         policy "operator" permit
-                        where
+
                             true || false; true && false; true | false; true ^ false; true & false;
                             1 == 1; 1 != 2; "test" =~ "t.*";
                             1 < 2; 1 <= 2; 1 > 0; 1 >= 0; 1 in [1, 2, 3];
@@ -620,7 +620,7 @@ class SAPLParserTests {
                 // Steps and Path Expressions
                 arguments("all step types", """
                         policy "steps" permit
-                        where
+
                             subject.name; subject["name"]; subject.*; subject[0]; subject[-1];
                             subject[0:10]; subject[0:10:2]; subject[:10]; subject[0:];
                             subject[(expression)]; subject[?(@ > 5)];
@@ -628,7 +628,7 @@ class SAPLParserTests {
                             subject..name; subject..*; subject..[0]; subject..["escaped"];
                         """), arguments("recursive descent", """
                         policy "recursive descent" permit
-                        where
+
                             "ROLE_ADMIN" in subject..authority;
                             resource..customerName == "test";
                         """),
@@ -651,7 +651,7 @@ class SAPLParserTests {
                 arguments("json values",
                         """
                                 policy "json values" permit
-                                where
+
                                     var obj = { "string": "value", "number": 42, "float": 3.14, "bool": true, "null": null, "undefined": undefined };
                                     var arr = [1, 2, 3, "mixed", true, null];
                                     var nested = { "array": [1, 2], "object": { "deep": "value" } };
@@ -659,7 +659,7 @@ class SAPLParserTests {
                                     var emptyObj = {}; var emptyArr = [];
                                 """),
                 arguments("identifier as object key", """
-                        policy "identifier keys" permit where var obj = { key: "value", anotherKey: 42 };
+                        policy "identifier keys" permit var obj = { key: "value", anotherKey: 42 };
                         """),
 
                 // Comments
@@ -667,13 +667,13 @@ class SAPLParserTests {
                         // Single line comment
                         /* Multi-line comment */
                         policy "comments" // inline comment
-                        permit /* block */ where action == "test";
+                        permit /* block */ action == "test";
                         """),
 
                 // Reserved Identifiers as Field Names
                 arguments("reserved identifiers as field names", """
                         policy "reserved identifiers" permit
-                        where
+
                             subject.subject; action.action; resource.resource; environment.environment;
                         """));
     }
@@ -689,43 +689,43 @@ class SAPLParserTests {
         return Stream.of(
                 // Core test: :: without whitespace should parse as slice, not subtemplate
                 arguments("slice with negative step [::-1]", """
-                        policy "test" permit where var x = array[::-1];
+                        policy "test" permit var x = array[::-1];
                         """), arguments("slice with negative step [::-2]", """
-                        policy "test" permit where var x = array[::-2];
+                        policy "test" permit var x = array[::-2];
                         """), arguments("slice with positive step [::1]", """
-                        policy "test" permit where var x = array[::1];
+                        policy "test" permit var x = array[::1];
                         """), arguments("slice with positive step [::3]", """
-                        policy "test" permit where var x = array[::3];
+                        policy "test" permit var x = array[::3];
                         """), arguments("slice with empty step [::]", """
-                        policy "test" permit where var x = array[::];
+                        policy "test" permit var x = array[::];
                         """),
 
                 // With start index
                 arguments("slice with start and negative step [1::-1]", """
-                        policy "test" permit where var x = array[1::-1];
+                        policy "test" permit var x = array[1::-1];
                         """), arguments("slice with start and positive step [2::2]", """
-                        policy "test" permit where var x = array[2::2];
+                        policy "test" permit var x = array[2::2];
                         """),
 
                 // Negative indices combined with :: token
                 arguments("slice with negative start and step [-1::-1]", """
-                        policy "test" permit where var x = array[-1::-1];
+                        policy "test" permit var x = array[-1::-1];
                         """), arguments("slice with negative start [-3::]", """
-                        policy "test" permit where var x = array[-3::];
+                        policy "test" permit var x = array[-3::];
                         """),
 
                 // Equivalent forms with whitespace (uses COLON COLON instead of SUBTEMPLATE)
                 arguments("slice with whitespace [: :-1]", """
-                        policy "test" permit where var x = array[: :-1];
+                        policy "test" permit var x = array[: :-1];
                         """), arguments("slice with whitespace [: :2]", """
-                        policy "test" permit where var x = array[: :2];
+                        policy "test" permit var x = array[: :2];
                         """),
 
                 // Full slice syntax (all three parts)
                 arguments("full slice [1:5:2]", """
-                        policy "test" permit where var x = array[1:5:2];
+                        policy "test" permit var x = array[1:5:2];
                         """), arguments("full slice with negatives [-5:-1:1]", """
-                        policy "test" permit where var x = array[-5:-1:1];
+                        policy "test" permit var x = array[-5:-1:1];
                         """),
 
                 // In transform context (where :: subtemplate would also be valid)
@@ -737,7 +737,7 @@ class SAPLParserTests {
 
                 // Multiple slices chained
                 arguments("chained slices [::2][::-1]", """
-                        policy "test" permit where var x = array[::2][::-1];
+                        policy "test" permit var x = array[::2][::-1];
                         """));
     }
 
@@ -757,16 +757,14 @@ class SAPLParserTests {
                 arguments("incomplete import", "import "), arguments("incomplete policy - missing name", "policy "),
                 arguments("incomplete policy - missing entitlement trimmed", "policy \"test\""),
                 arguments("incomplete policy - missing entitlement with whitespace", "policy \"test\" "),
-                arguments("incomplete variable - missing name trimmed", "policy \"\" deny where var"),
-                arguments("incomplete variable - missing name with whitespace", "policy \"\" deny where var "),
-                arguments("incomplete variable - missing assignment trimmed", "policy \"\" deny where var abc"),
-                arguments("incomplete variable - missing assignment with whitespace",
-                        "policy \"\" deny where var abc "),
-                arguments("incomplete variable - missing value trimmed", "policy \"\" deny where var abc ="),
-                arguments("incomplete variable - missing value with whitespace", "policy \"\" deny where var abc = "),
-                arguments("incomplete variable - missing semicolon trimmed", "policy \"\" deny where var abc = 5"),
-                arguments("incomplete variable - missing semicolon with whitespace",
-                        "policy \"\" deny where var abc = 5 "),
+                arguments("incomplete variable - missing name trimmed", "policy \"\" deny var"),
+                arguments("incomplete variable - missing name with whitespace", "policy \"\" deny var "),
+                arguments("incomplete variable - missing assignment trimmed", "policy \"\" deny var abc"),
+                arguments("incomplete variable - missing assignment with whitespace", "policy \"\" deny var abc "),
+                arguments("incomplete variable - missing value trimmed", "policy \"\" deny var abc ="),
+                arguments("incomplete variable - missing value with whitespace", "policy \"\" deny var abc = "),
+                arguments("incomplete variable - missing semicolon trimmed", "policy \"\" deny var abc = 5"),
+                arguments("incomplete variable - missing semicolon with whitespace", "policy \"\" deny var abc = 5 "),
                 // From SAPLValidatorTests
                 arguments("invalid keyword", "defect"),
                 // From DefaultSAPLParserTests
@@ -791,9 +789,8 @@ class SAPLParserTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "policy \"p\" permit where var subject = {};",
-            "policy \"p\" permit where var action = {};", "policy \"p\" permit where var resource = {};",
-            "policy \"p\" permit where var environment = {};" })
+    @ValueSource(strings = { "policy \"p\" permit var subject = {};", "policy \"p\" permit var action = {};",
+            "policy \"p\" permit var resource = {};", "policy \"p\" permit var environment = {};" })
     void whenUsingReservedWordAsVariableName_thenSyntaxErrorIsReported(String policy) {
         var errors = parseAndCollectErrors(policy);
         assertThat(errors).as("Using reserved word as variable name should produce syntax error").isNotEmpty();
@@ -805,10 +802,10 @@ class SAPLParserTests {
                 arguments("attribute finder in schema", "subject schema subject.<pip.test> policy \"test\" permit"),
                 arguments("environment attribute in schema", "subject schema <time.now> policy \"test\" permit"),
                 // Division by zero in body (runtime error, not syntax)
-                arguments("division by zero in body", "policy \"test\" permit where 17 / 0;"),
+                arguments("division by zero in body", "policy \"test\" permit 17 / 0;"),
                 // JSON object comparison in body (runtime behavior, not syntax)
                 arguments("JSON object comparison in body",
-                        "policy \"test\" permit where { \"key\" : \"value\" } == { \"key\": \"value\" };"));
+                        "policy \"test\" permit { \"key\" : \"value\" } == { \"key\": \"value\" };"));
     }
 
     @ParameterizedTest(name = "syntactically valid: {0}")

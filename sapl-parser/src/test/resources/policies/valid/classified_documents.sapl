@@ -3,7 +3,6 @@ first or abstain errors propagate
 
 policy "Clearance (1/3)"
 permit
-where
   action.java.name == "getDocuments";
   time.secondOf(<time.now>) < 20;
 obligation
@@ -14,7 +13,6 @@ obligation
 
 policy "Clearance (2/3)"
 permit
-where
   action.java.name == "getDocuments";
   time.secondOf(<time.now>) < 40;
 obligation
@@ -25,7 +23,6 @@ obligation
 
 policy "Clearance (3/3)"
 permit
-where
   action.java.name == "getDocuments";
 obligation
 	{

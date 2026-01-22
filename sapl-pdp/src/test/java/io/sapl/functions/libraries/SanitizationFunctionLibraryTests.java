@@ -200,9 +200,8 @@ class SanitizationFunctionLibraryTests {
                 arguments("ＤＲＯＰ ＴＡＢＬＥ servitors", "Unicode fullwidth DROP"),
                 arguments("Yog-Sothoth'; \nDROP TABLE dimensions;--", "Newline with injection"),
                 arguments("' oR '1'='1", "Mixed case OR"),
-                arguments("ShubNiggurath' UnIoN SeLeCt *", "Mixed case UNION SELECT"),
-                arguments("Select * from table where name < 'test-1' and date > 12-12-2000",
-                        "Complex SELECT with comparison"));
+                arguments("ShubNiggurath' UnIoN SeLeCt *", "Mixed case UNION SELECT"), arguments(
+                        "Select * from table name < 'test-1' and date > 12-12-2000", "Complex SELECT with comparison"));
     }
 
     private static Stream<Arguments> strictModeValidIdentifiers() {

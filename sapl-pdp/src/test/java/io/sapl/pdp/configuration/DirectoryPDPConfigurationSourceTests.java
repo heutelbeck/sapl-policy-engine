@@ -68,7 +68,8 @@ class DirectoryPDPConfigurationSourceTests {
                         """);
         createFile(tempDir.resolve("forbidden.sapl"), """
                 policy "forbidden-knowledge"
-                deny action == "access" where resource.category == "forbidden";
+                deny action == "access";
+                  resource.category == "forbidden";
                 """);
 
         val receivedConfig = new AtomicReference<PDPConfiguration>();

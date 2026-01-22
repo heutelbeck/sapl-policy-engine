@@ -82,7 +82,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "enforce_minimum_secure_version"
             deny
-            where
               semver.isLower(subject.clientVersion, "2.5.0");
             ```
 
@@ -90,8 +89,7 @@ public class SemVerFunctionLibrary {
 
             ```sapl
             policy "advanced_analytics_feature"
-            permit action.name == "useAdvancedAnalytics"
-            where
+            permit action.name == "useAdvancedAnalytics";
               semver.isAtLeast(subject.appVersion, "3.2.0");
             ```
 
@@ -99,8 +97,7 @@ public class SemVerFunctionLibrary {
 
             ```sapl
             policy "service_compatibility"
-            permit action.name == "invokeService"
-            where
+            permit action.name == "invokeService";
               semver.isCompatibleWith(subject.serviceVersion, resource.requiredApiVersion);
             ```
 
@@ -108,8 +105,7 @@ public class SemVerFunctionLibrary {
 
             ```sapl
             policy "production_stable_only"
-            deny action.name == "deployToProduction"
-            where
+            deny action.name == "deployToProduction";
               semver.isPreRelease(resource.version);
               subject.role != "release-manager";
             ```
@@ -119,7 +115,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "migration_compatibility_window"
             permit
-            where
               semver.isBetween(subject.clientVersion, "2.0.0", "3.5.0");
             ```
             """;
@@ -236,7 +231,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "require_stable_major_2"
             permit
-            where
               var parsed = semver.parse(request.clientVersion);
               parsed.major >= 2;
               parsed.isStable;
@@ -286,7 +280,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "require_valid_version"
             deny
-            where
               !semver.isValid(resource.serviceVersion);
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -313,7 +306,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "minimum_version"
             permit
-            where
               semver.compare(resource.version, "2.0.0") >= 0;
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
@@ -345,7 +337,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "exact_version_required"
             permit
-            where
               semver.equals(resource.apiVersion, "2.1.0");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -376,7 +367,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "block_outdated_clients"
             deny
-            where
               semver.isLower(subject.clientVersion, "2.0.0");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -407,7 +397,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "early_access_features"
             permit
-            where
               semver.isHigher(subject.clientVersion, "3.0.0");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -438,7 +427,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "version_ceiling"
             permit
-            where
               semver.isLowerOrEqual(resource.apiVersion, "3.5.0");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -469,7 +457,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "feature_gate"
             permit
-            where
               action.name == "advancedFeature";
               semver.isHigherOrEqual(request.version, "2.5.0");
             ```
@@ -501,7 +488,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "api_v2_only"
             permit
-            where
               semver.haveSameMajor(resource.apiVersion, "2.0.0");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -532,7 +518,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "minor_version_match"
             permit
-            where
               semver.haveSameMinor(resource.version, "2.3.0");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -563,7 +548,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "exact_patch_match"
             permit
-            where
               semver.haveSamePatch(resource.version, "2.3.5");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -599,7 +583,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "api_compatibility"
             permit
-            where
               semver.isCompatibleWith(subject.clientVersion, resource.apiVersion);
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -637,7 +620,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "security_requirement"
             permit
-            where
               semver.isAtLeast(request.version, resource.minimumSecureVersion);
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -664,7 +646,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "deprecated_after"
             deny
-            where
               !semver.isAtMost(subject.apiVersion, "2.9.9");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -693,7 +674,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "compatibility_window"
             permit
-            where
               semver.isBetween(request.version, resource.minVersion, resource.maxVersion);
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -727,7 +707,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "block_unstable"
             deny
-            where
               semver.isPreRelease(resource.version);
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -757,7 +736,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "production_ready"
             permit
-            where
               semver.isStable(resource.version);
               action.name == "production";
             ```
@@ -785,7 +763,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "api_v3_only"
             permit
-            where
               semver.getMajor(subject.apiVersion) == 3;
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
@@ -812,7 +789,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "feature_availability"
             permit
-            where
               semver.getMajor(subject.version) == 2;
               semver.getMinor(subject.version) >= 3;
             ```
@@ -840,7 +816,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "specific_patch"
             permit
-            where
               semver.getMajor(subject.version) == 1;
               semver.getMinor(subject.version) == 0;
               semver.getPatch(subject.version) >= 5;
@@ -876,7 +851,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "version_range"
             permit
-            where
               semver.satisfies(subject.clientVersion, ">=2.0.0 <3.0.0");
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
@@ -908,7 +882,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "use_latest_compatible"
             permit
-            where
               var compatible = semver.maxSatisfying(resource.availableVersions, "^2.0.0");
               compatible != null;
             ```
@@ -953,7 +926,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "require_minimum"
             permit
-            where
               var minimum = semver.minSatisfying(resource.supportedVersions, ">=1.0.0");
               semver.isAtLeast(subject.clientVersion, minimum);
             ```
@@ -996,7 +968,6 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "normalize_version"
             permit
-            where
               var normalized = semver.coerce(request.version);
               semver.isAtLeast(normalized, "2.0.0");
             ```
@@ -1033,8 +1004,7 @@ public class SemVerFunctionLibrary {
 
             ```sapl
             policy "breaking_change_approval"
-            permit action.name == "deploy"
-            where
+            permit action.name == "deploy";
               var changeType = semver.diff(resource.currentVersion, resource.newVersion);
               changeType == "major" implies subject.role == "architect";
             ```

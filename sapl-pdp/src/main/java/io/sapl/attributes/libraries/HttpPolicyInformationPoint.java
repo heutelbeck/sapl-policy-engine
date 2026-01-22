@@ -96,7 +96,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status"
@@ -118,7 +117,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
@@ -141,7 +139,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
@@ -164,7 +161,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
@@ -187,7 +183,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status"
@@ -209,7 +204,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
@@ -233,7 +227,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               "https://example.com/resources/123".<http.get({ })>.status == "HEALTHY";
             ```
             """)
@@ -252,7 +245,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               "https://example.com/resources/123".<http.post({ body = "\\"test\\"" })>.status == "OK";
             ```
             """)
@@ -271,7 +263,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               "https://example.com/resources/123".<http.put({ body = "\\"test\\"" })>.status == "OK";
             ```
             """)
@@ -290,7 +281,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               "https://example.com/resources/123".<http.patch({ body = "\\"test\\"" })>.status == "OK";
             ```
             """)
@@ -309,7 +299,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               "https://example.com/resources/123".<http.delete({})> != undefined;
             ```
             """)
@@ -328,7 +317,6 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-            where
               var request = { "body": "message" }
              "baseUrl": "https://example.com/status".<http.websocket(request)>.health == "GOOD";
             ```

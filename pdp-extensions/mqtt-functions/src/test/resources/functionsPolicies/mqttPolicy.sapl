@@ -3,12 +3,10 @@ first or abstain errors propagate
 
 policy "allTopicsMatchMultilevelWildcardTopic"
 permit
-where
   subject == "firstSubject";
   mqtt.isMatchingAllTopics(resource, ["first/second/third", "first/second/fourth"]);
 
 policy "atLeastOneTopicMatchesMultilevelWildcardTopic"
 permit
-where
   subject == "secondSubject";
   mqtt.isMatchingAtLeastOneTopic(resource, ["first/second/third", "first/third"]);

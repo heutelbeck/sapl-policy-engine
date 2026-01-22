@@ -3,7 +3,6 @@ first or abstain errors propagate
 
 policy "permit query method (1)"
 permit
-where
     action == "fetchingByQueryMethod";
     subject.age > 18;
 obligation {

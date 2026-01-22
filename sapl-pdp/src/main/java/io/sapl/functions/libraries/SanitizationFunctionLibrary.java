@@ -73,8 +73,7 @@ public class SanitizationFunctionLibrary {
             Example with HTTP PIP:
             ```
             policy "fetch_user_profile"
-            permit action == "read"
-            where
+            permit action == "read";
                 var userId = sanitize.assertNoSqlInjection(environment.userId);
                 var request = {
                     "baseUrl": "https://api.example.com",
@@ -90,8 +89,7 @@ public class SanitizationFunctionLibrary {
             Example with strict mode for structured identifiers:
             ```
             policy "device_access"
-            permit action == "control"
-            where
+            permit action == "control";
                 var deviceId = sanitize.assertNoSqlInjectionStrict(environment.deviceId);
                 var request = {
                     "baseUrl": "https://api.example.com",
@@ -249,8 +247,7 @@ public class SanitizationFunctionLibrary {
             Example usage:
             ```
             policy "fetch_user_profile"
-            permit action == "read"
-            where
+            permit action == "read";
                 var userId = sanitize.assertNoSqlInjection(environment.userId);
                 var request = {
                     "baseUrl": "https://api.example.com",
@@ -308,8 +305,7 @@ public class SanitizationFunctionLibrary {
             Example usage:
             ```
             policy "device_access"
-            permit action == "control"
-            where
+            permit action == "control";
                 var deviceId = sanitize.assertNoSqlInjectionStrict(environment.deviceId);
                 var request = {
                     "baseUrl": "https://api.example.com",

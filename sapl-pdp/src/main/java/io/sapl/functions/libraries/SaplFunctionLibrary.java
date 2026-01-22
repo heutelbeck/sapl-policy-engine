@@ -106,8 +106,7 @@ public class SaplFunctionLibrary {
             **Example - Enforce Minimum JDK Version:**
             ```sapl
             policy "require_jdk21"
-            permit action == "system:deploy"
-            where
+            permit action == "system:deploy";
               var info = sapl.info();
               info.jdkVersion >= "21";
             ```
@@ -115,8 +114,7 @@ public class SaplFunctionLibrary {
             **Example - Platform-Specific Access Control:**
             ```sapl
             policy "linux_only_operations"
-            permit action == "admin:configure-network"
-            where
+            permit action == "admin:configure-network";
               var info = sapl.info();
               info.osName =~ "Linux";
             ```
@@ -124,7 +122,7 @@ public class SaplFunctionLibrary {
             **Example - Audit Logging with Environment Context:**
             ```sapl
             policy "audit_with_environment"
-            permit action == "data:access"
+            permit action == "data:access";
             obligation
               {
                 "type": "log-access",

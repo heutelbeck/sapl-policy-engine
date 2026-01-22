@@ -130,8 +130,7 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "temperature_monitoring"
             permit
-                action == "monitor"
-            where
+                action == "monitor";
                 var sensors = ["sensors/room1/temp", "sensors/room2/temp"];
                 sensors.<mqtt.messages>.celsius < 30.0;
             ```
@@ -165,7 +164,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "single_temperature_sensor"
             permit
-            where
               "home/livingroom/temperature".<mqtt.messages>.celsius > 22.0;
             ```
 
@@ -173,7 +171,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "multiple_sensors"
             permit
-            where
               var topics = ["sensors/temperature", "sensors/humidity"];
               topics.<mqtt.messages> != undefined;
             ```
@@ -182,7 +179,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "all_room_temperatures"
             permit
-            where
               "building/+/temperature".<mqtt.messages>.value > 25.0;
             ```
 
@@ -190,7 +186,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "all_building_sensors"
             permit
-            where
               "building/#".<mqtt.messages>.alert == true;
             ```
             """)
@@ -220,7 +215,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "critical_alarm_monitoring"
             permit
-            where
               "alarms/critical".<mqtt.messages(1)>.severity == "HIGH";
             ```
 
@@ -228,7 +222,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "device_command_processing"
             permit
-            where
               var commandTopics = ["device/shutdown", "device/restart"];
               commandTopics.<mqtt.messages(2)>.confirmed == true;
             ```
@@ -237,7 +230,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "sensor_stream"
             permit
-            where
               "sensors/motion/#".<mqtt.messages(0)> != undefined;
             ```
             """)
@@ -275,7 +267,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "staging_environment_monitoring"
             permit
-            where
               var topics = ["sensors/data", "actuators/status"];
               topics.<mqtt.messages(1, "staging")>.operational == true;
             ```
@@ -284,7 +275,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "custom_broker_connection"
             permit
-            where
               var brokerConfig = {
                   "brokerAddress": "mqtt.internal.example.com",
                   "brokerPort": 1883,
@@ -299,7 +289,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "distributed_mqtt_network"
             permit
-            where
               var brokers = [
                   {
                       "name": "datacenter1",

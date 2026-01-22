@@ -96,7 +96,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "p1" permit where subject == "alice";
+                    policy "p1" permit subject == "alice";
                     """);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(PureVoter.class);
         }
@@ -109,7 +109,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "p1" permit where <test.attr>;
+                    policy "p1" permit <test.attr>;
                     """, attrBroker);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
@@ -121,7 +121,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "skipped" permit where false;
+                    policy "skipped" permit false;
                     policy "active" deny
                     """);
             val ctx      = subscriptionContext("""
@@ -139,7 +139,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain errors propagate
 
-                    policy "error-applicable" permit where (1/0) > 0;
+                    policy "error-applicable" permit (1/0) > 0;
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -160,7 +160,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "p1" permit where subject == "alice";
+                    policy "p1" permit subject == "alice";
                     policy "p2" deny
                     """);
             val ctx      = subscriptionContext("""
@@ -177,8 +177,8 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority deny or abstain
 
-                    policy "p1" permit where subject == "alice";
-                    policy "p2" deny where subject == "bob";
+                    policy "p1" permit subject == "alice";
+                    policy "p2" deny subject == "bob";
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -195,7 +195,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain errors propagate
 
-                    policy "p1" permit where subject.missing.field;
+                    policy "p1" permit subject.missing.field;
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
@@ -211,7 +211,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "p1" permit where subject == "bob";
+                    policy "p1" permit subject == "bob";
                     policy "p2" deny
                     """);
             val ctx      = subscriptionContext("""
@@ -230,7 +230,7 @@ class PriorityVoteCompilerTests {
                     priority permit or abstain
 
                     policy "p1"
-                    permit where subject == "alice";
+                    permit subject == "alice";
                     obligation "log"
                     """);
             val ctx      = subscriptionContext("""
@@ -256,7 +256,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "stream" permit where <test.attr>;
+                    policy "stream" permit <test.attr>;
                     """, attrBroker);
 
             val subscription = parseSubscription("""
@@ -279,7 +279,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "stream" permit where subject == "alice" && <test.attr>;
+                    policy "stream" permit subject == "alice" && <test.attr>;
                     """, attrBroker);
 
             val subscription = parseSubscription("""
@@ -302,7 +302,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain errors propagate
 
-                    policy "error" permit where subject.missing && <test.attr>;
+                    policy "error" permit subject.missing && <test.attr>;
                     """, attrBroker);
 
             val subscription = parseSubscription("""
@@ -326,7 +326,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority deny or abstain
 
-                    policy "skipped" permit where subject == "bob" && <test.attr>;
+                    policy "skipped" permit subject == "bob" && <test.attr>;
                     policy "active" deny
                     """, attrBroker);
 
@@ -350,8 +350,8 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "pure" deny where subject == "alice";
-                    policy "stream" permit where <test.attr>;
+                    policy "pure" deny subject == "alice";
+                    policy "stream" permit <test.attr>;
                     """, attrBroker);
 
             val subscription = parseSubscription("""
@@ -375,8 +375,8 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority deny or abstain
 
-                    policy "stream1" permit where <test.attr1>;
-                    policy "stream2" deny where <test.attr2>;
+                    policy "stream1" permit <test.attr1>;
+                    policy "stream2" deny <test.attr2>;
                     """, attrBroker);
 
             val subscription = parseSubscription("""
@@ -400,7 +400,7 @@ class PriorityVoteCompilerTests {
                     priority deny or abstain
 
                     policy "foldable" deny
-                    policy "stream" permit where <test.attr>;
+                    policy "stream" permit <test.attr>;
                     """, attrBroker);
 
             val subscription = parseSubscription("""
@@ -447,7 +447,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     %s
 
-                    policy "p1" %s where %s;
+                    policy "p1" %s %s;
                     """.formatted(algorithm, entitlement, whereClause));
             val ctx         = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
@@ -491,7 +491,7 @@ class PriorityVoteCompilerTests {
                     priority permit or abstain errors propagate
 
                     policy "applicable" permit
-                    policy "not-applicable" deny where false;
+                    policy "not-applicable" deny false;
                     """);
             val ctx                = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -512,8 +512,8 @@ class PriorityVoteCompilerTests {
                     set "streaming"
                     priority permit or abstain errors propagate
 
-                    policy "stream1" permit where <test.attr1>;
-                    policy "stream2" deny where <test.attr2>;
+                    policy "stream1" permit <test.attr1>;
+                    policy "stream2" deny <test.attr2>;
                     """, attrBroker);
 
             val subscription = parseSubscription("""
@@ -593,17 +593,17 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "p1" permit where false;
+                    policy "p1" permit false;
                     """, "alice"), arguments("all NOT_APPLICABLE with deny", """
                     set "test"
                     priority permit or deny
 
-                    policy "p1" permit where false;
+                    policy "p1" permit false;
                     """, "alice"), arguments("all NOT_APPLICABLE with permit", """
                     set "test"
                     priority deny or permit
 
-                    policy "p1" deny where false;
+                    policy "p1" deny false;
                     """, "alice"), arguments("target TRUE", """
                     set "test"
                     priority permit or abstain errors propagate
@@ -643,24 +643,24 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain
 
-                    policy "p1" permit where subject.missing.field;
+                    policy "p1" permit subject.missing.field;
                     """, "simple-string"), arguments("policy error with propagate", """
                     set "test"
                     priority permit or abstain errors propagate
 
-                    policy "p1" permit where subject.missing.field;
+                    policy "p1" permit subject.missing.field;
                     """, "simple-string"), arguments("priority wins over error", """
                     set "test"
                     priority permit or abstain errors propagate
 
                     policy "p1" permit
-                    policy "p2" deny where subject.missing.field;
+                    policy "p2" deny subject.missing.field;
                     """, "simple-string"), arguments("mixed applicable and not applicable", """
                     set "test"
                     priority deny or abstain errors propagate
 
                     policy "p1" permit
-                    policy "p2" deny where false;
+                    policy "p2" deny false;
                     policy "p3" deny
                     """, "alice"));
         }
@@ -689,8 +689,8 @@ class PriorityVoteCompilerTests {
                     set "test"
                     priority permit or abstain errors propagate
 
-                    policy "stream1" permit where <test.attr1>;
-                    policy "stream2" deny where <test.attr2>;
+                    policy "stream1" permit <test.attr1>;
+                    policy "stream2" deny <test.attr2>;
                     """, attrBroker);
 
             val subscription   = parseSubscription("""
@@ -758,7 +758,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     %s or %s
 
-                    policy "never-matches" permit where false;
+                    policy "never-matches" permit false;
                     """.formatted(algorithm, defaultDecision));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -788,7 +788,7 @@ class PriorityVoteCompilerTests {
                     set "test"
                     %s
 
-                    policy "errors" permit where subject.missing.field;
+                    policy "errors" permit subject.missing.field;
                     """.formatted(algorithm));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
@@ -814,7 +814,7 @@ class PriorityVoteCompilerTests {
                     %s or abstain errors propagate
 
                     policy "winning-policy" %s
-                    policy "error-policy" %s where subject.missing.field;
+                    policy "error-policy" %s subject.missing.field;
                     """.formatted(algorithm, winningEntitlement, errorEntitlement));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }

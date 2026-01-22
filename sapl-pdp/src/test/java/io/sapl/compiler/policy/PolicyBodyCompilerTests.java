@@ -139,7 +139,6 @@ class PolicyBodyCompilerTests {
         val policySource = """
                 policy "test"
                 permit
-                where
                     %s
                 """.formatted(bodyContent);
         val document     = SAPLCompiler.parse(policySource);
@@ -293,7 +292,7 @@ class PolicyBodyCompilerTests {
             val pureSection   = compiledBody.isApplicable();
             val streamSection = compiledBody.streamingSectionOfBody();
 
-            // Test the appropriate section based on where error originates
+            // Test the appropriate section based on error originates
             if (tc.errorInPureSection()) {
                 val pureValue = evaluateExpression(pureSection, evalCtx);
                 assertThat(pureValue).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())

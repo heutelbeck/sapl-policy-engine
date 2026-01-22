@@ -28,7 +28,6 @@ You can use the "within" function from the GeoFunctions-library to check if the 
 #### Example policy
 ```
 permit
-where
   var positionAndGeoFences = <geo.traccar({"user":"TraccarUser", "password":"123Secret", "server":"123.45.67.1:8082", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
   var position = positionAndGeoFences.position;
   var geofence = positionAndGeoFences.geoFences[0].area;
@@ -85,7 +84,6 @@ The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks ha
 #### Example policy
 ```
 permit
-where
   var response = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
   "home" in response.geoFences..name;
 ```
@@ -145,7 +143,6 @@ Query:
 ```
 policy "postgis"
 permit
-where
   var position = <postGis.geometry({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase"}, {"table":"position", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "singleResult": true, "where": "name = 'position1'"})>;
   var geofences = <postGis.geometry({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase"}, "table":"geofences", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "columns": ["name", "text"]})>;
  geoFunctions.within(position.geo, geofences[0].geo);
@@ -268,7 +265,6 @@ All function parameters are Vals containing a JsonNode with the GeoJSON-represen
 #### Example policy
 ```
 permit
-where
   var p = <geo.postGIS({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase", "table":"position", "geoColumn":"geom", "responseFormat":"WKT", "singleResult": true, "where": "name = 'position1'"})>;
   var fences = <geo.mySQL({"user":"mysql", "password":"abcdefg", "server":"localhost", "dataBase":"test", "table":"fences", "geoColumn":"geom", "responseFormat":"GML"})>;
   var pos = geoConverter.wktToGeoJsonString(p.geo);

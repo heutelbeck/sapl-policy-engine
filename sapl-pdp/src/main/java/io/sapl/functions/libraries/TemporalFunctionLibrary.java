@@ -71,7 +71,6 @@ public class TemporalFunctionLibrary {
             ```sapl
             policy "working_hours"
             permit
-            where
               var currentTime = time.timeOf(environment.currentDateTime);
               time.after(currentTime, "09:00:00");
               time.before(currentTime, "17:00:00");
@@ -80,7 +79,6 @@ public class TemporalFunctionLibrary {
             ```sapl
             policy "age_restriction"
             permit
-            where
               var age = time.ageInYears(subject.birthDate, environment.currentDate);
               age >= 18;
             ```

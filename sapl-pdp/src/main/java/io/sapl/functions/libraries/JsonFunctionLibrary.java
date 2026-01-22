@@ -63,7 +63,6 @@ public class JsonFunctionLibrary {
             ```sapl
             policy "check-feature-flags"
             permit
-            where
               var config = json.jsonToVal(resource.configJson);
               config.featureEnabled == true;
               config.minVersion <= subject.appVersion;
@@ -72,8 +71,7 @@ public class JsonFunctionLibrary {
             Parse embedded permissions:
             ```sapl
             policy "validate-permissions"
-            permit resource.type == "document"
-            where
+            permit resource.type == "document";
               var userPerms = json.jsonToVal(subject.permissionsJson);
               userPerms.canRead == true;
             ```
@@ -120,8 +118,7 @@ public class JsonFunctionLibrary {
             **Example:**
             ```sapl
             policy "check-embedded-role"
-            permit action.method == "read"
-            where
+            permit action.method == "read";
               var userMetadata = json.jsonToVal(subject.metadataJson);
               userMetadata.role == "admin";
             ```

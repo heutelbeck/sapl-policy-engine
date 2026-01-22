@@ -42,7 +42,6 @@ public class StandardFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               standard.length([1, 2, 3, 4]) == 4;
               standard.length("example") == 7;
               standard.length({ "key1" : 1, "key2" : 2}) == 2;
@@ -69,7 +68,6 @@ public class StandardFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               standard.asString([1,2,3]) == "[1,2,3]";
             ```
             """, schema = """
@@ -92,7 +90,6 @@ public class StandardFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               standard.onErrorMap(1/0,999) == 999;
             ```
             """)

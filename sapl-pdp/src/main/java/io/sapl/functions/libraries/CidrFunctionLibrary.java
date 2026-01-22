@@ -63,8 +63,7 @@ public class CidrFunctionLibrary {
 
             ```sapl
             policy "corporate_only"
-            permit action == "access_api"
-            where
+            permit action == "access_api";
                 cidr.contains("10.0.0.0/8", subject.ipAddress);
             ```
 
@@ -72,8 +71,7 @@ public class CidrFunctionLibrary {
 
             ```sapl
             policy "block_ssrf"
-            deny action == "fetch_url"
-            where
+            deny action == "fetch_url";
                 var ip = resource.url.resolvedIp;
                 cidr.isPrivateIpv4(ip) || cidr.isLoopback(ip);
             ```
@@ -96,8 +94,7 @@ public class CidrFunctionLibrary {
 
             ```sapl
             policy "no_dmz_overlap"
-            permit action == "create_subnet"
-            where
+            permit action == "create_subnet";
                 !cidr.intersects(resource.cidr, "203.0.113.0/24");
             ```
             """;
@@ -171,8 +168,7 @@ public class CidrFunctionLibrary {
 
             ```sapl
             policy "corporate_api"
-            permit action == "call_api"
-            where
+            permit action == "call_api";
                 cidr.contains("198.51.100.0/24", subject.ipAddress);
             ```
             """)
@@ -219,7 +215,6 @@ public class CidrFunctionLibrary {
             ```sapl
             policy "multi_location"
             permit
-            where
                 var trusted = ["10.0.0.0/8", "172.16.0.0/12"];
                 var matches = cidr.containsMatches(trusted, subject.recentIps);
                 matches != [];
@@ -745,7 +740,6 @@ public class CidrFunctionLibrary {
             ```sapl
             policy "rate_limit"
             deny
-            where
                 var hash = cidr.hashIpPrefix(subject.ipAddress, 24, environment.salt);
                 var count = cache.get(hash);
                 count > 100;

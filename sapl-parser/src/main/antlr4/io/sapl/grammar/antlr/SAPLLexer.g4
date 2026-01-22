@@ -24,7 +24,6 @@ SET         : 'set';
 POLICY      : 'policy';
 PERMIT      : 'permit';
 DENY        : 'deny';
-WHERE       : 'where';
 VAR         : 'var';
 SCHEMA      : 'schema';
 ENFORCED    : 'enforced';

@@ -63,7 +63,7 @@ import java.util.zip.ZipOutputStream;
  *         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
  *         """).withPolicy("access-control.sapl", """
  *         policy "admin-access"
- *         permit subject.role == "admin"
+ *         permit subject.role == "admin";
  *         """).withPolicy("audit.sapl", """
  *         policy "audit-logging"
  *         permit true

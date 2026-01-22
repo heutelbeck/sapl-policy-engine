@@ -130,7 +130,6 @@ public class JWTPolicyInformationPoint {
             ```sapl
             policy "require_valid_jwt"
             permit
-            where
               var token = subject.jwt;
               token.<jwt.valid>;
             ```
@@ -138,8 +137,7 @@ public class JWTPolicyInformationPoint {
             Check specific validity state:
             ```sapl
             policy "allow_immature_tokens_for_testing"
-            permit action == "test:access"
-            where
+            permit action == "test:access";
               var token = subject.jwt;
               var state = token.<jwt.validity>;
               state == "VALID" || state == "IMMATURE";
@@ -148,8 +146,7 @@ public class JWTPolicyInformationPoint {
             Grant access only when token is valid, deny when expired:
             ```sapl
             policy "time_sensitive_access"
-            permit action == "document:read"
-            where
+            permit action == "document:read";
               var token = subject.credentials.bearer;
               var state = token.<jwt.validity>;
               state == "VALID";
@@ -165,7 +162,6 @@ public class JWTPolicyInformationPoint {
             ```sapl
             policy "reject_untrusted_tokens"
             deny
-            where
               var token = subject.jwt;
               var state = token.<jwt.validity>;
               state == "UNTRUSTED" || state == "MALFORMED";
@@ -266,8 +262,7 @@ public class JWTPolicyInformationPoint {
             Example:
             ```sapl
             policy "api_access"
-            permit action == "api:call"
-            where
+            permit action == "api:call";
               var token = subject.credentials.bearer;
               token.<jwt.valid>;
             ```
@@ -275,8 +270,7 @@ public class JWTPolicyInformationPoint {
             Example with token extracted from authorization header:
             ```sapl
             policy "rest_api_access"
-            permit action.http.method == "GET"
-            where
+            permit action.http.method == "GET";
               var authHeader = resource.http.headers.Authorization;
               var token = authHeader.substring(7);
               token.<jwt.valid>;
@@ -316,8 +310,7 @@ public class JWTPolicyInformationPoint {
             Example checking for multiple acceptable states:
             ```sapl
             policy "grace_period_access"
-            permit action == "service:use"
-            where
+            permit action == "service:use";
               var token = subject.jwt;
               var state = token.<jwt.validity>;
               state == "VALID" || state == "IMMATURE";
@@ -326,8 +319,7 @@ public class JWTPolicyInformationPoint {
             Example with state-specific obligations:
             ```sapl
             policy "monitored_access"
-            permit action == "resource:access"
-            where
+            permit action == "resource:access";
               var token = subject.credentials.jwt;
               var state = token.<jwt.validity>;
               state == "VALID" || state == "IMMATURE";
@@ -344,7 +336,6 @@ public class JWTPolicyInformationPoint {
             ```sapl
             policy "deny_tampered_tokens"
             deny
-            where
               var token = subject.jwt;
               var state = token.<jwt.validity>;
               state == "UNTRUSTED" || state == "MALFORMED" || state == "INCOMPATIBLE";
@@ -360,8 +351,7 @@ public class JWTPolicyInformationPoint {
             Example handling expiration gracefully:
             ```sapl
             policy "token_refresh_hint"
-            permit action == "api:call"
-            where
+            permit action == "api:call";
               var token = subject.jwt;
               var state = token.<jwt.validity>;
               state == "VALID";

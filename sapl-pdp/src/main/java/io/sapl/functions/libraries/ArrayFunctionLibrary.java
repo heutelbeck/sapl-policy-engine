@@ -61,8 +61,7 @@ public class ArrayFunctionLibrary {
 
             ```sapl
             policy "require_admin_or_editor"
-            permit action == "modify_content"
-            where
+            permit action == "modify_content";
                 var required = ["admin", "editor"];
                 array.containsAny(subject.roles, required);
             ```
@@ -73,7 +72,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "aggregate_permissions"
             permit
-            where
                 var direct = subject.directPermissions;
                 var inherited = subject.groupPermissions;
                 var allOfSubjectsPermissions = array.union(direct, inherited);
@@ -86,7 +84,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "intersection_access"
             permit
-            where
                 var allowed = array.intersect(subject.capabilities, resource.requirements);
                 !array.isEmpty(allowed);
             obligation
@@ -101,8 +98,7 @@ public class ArrayFunctionLibrary {
 
             ```sapl
             policy "approval_sequence"
-            permit action == "finalize_transaction"
-            where
+            permit action == "finalize_transaction";
                 var required = ["manager", "director", "cfo"];
                 array.containsAllInOrder(resource.approvals, required);
             ```
@@ -112,8 +108,7 @@ public class ArrayFunctionLibrary {
 
             ```sapl
             policy "rate_limit"
-            deny action == "api_call"
-            where
+            deny action == "api_call";
                 var counts = subject.requestsPerMinute;
                 array.sum(counts) > 100;
             ```
@@ -179,7 +174,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.concatenate([1, 2], [3, 4], [5]) == [1, 2, 3, 4, 5];
             ```
             """, schema = RETURNS_ARRAY)
@@ -217,7 +211,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var granted = subject.grantedPermissions;
                 var revoked = subject.revokedPermissions;
                 var effective = array.difference(granted, revoked);
@@ -260,7 +253,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var all = array.union(subject.directPermissions, subject.groupPermissions);
                 array.containsAll(all, ["read", "write"]);
             ```
@@ -296,7 +288,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.toSet([1, 2, 3, 4, 3, 2, 1]) == [1, 2, 3, 4];
             ```
             """, schema = RETURNS_ARRAY)
@@ -328,7 +319,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var adminPerms = ["read", "write", "delete"];
                 var editorPerms = ["read", "write"];
                 var viewerPerms = ["read"];
@@ -380,8 +370,7 @@ public class ArrayFunctionLibrary {
             Example - check if user has any admin role:
             ```sapl
             policy "example"
-            permit action == "admin_panel"
-            where
+            permit action == "admin_panel";
                 var adminRoles = ["superadmin", "admin", "moderator"];
                 array.containsAny(subject.roles, adminRoles);
             ```
@@ -421,8 +410,7 @@ public class ArrayFunctionLibrary {
             Example - verify user has all required permissions:
             ```sapl
             policy "example"
-            permit action == "publish_article"
-            where
+            permit action == "publish_article";
                 var required = ["write", "publish", "notify"];
                 array.containsAll(subject.permissions, required);
             ```
@@ -465,8 +453,7 @@ public class ArrayFunctionLibrary {
             Example - verify approval workflow sequence:
             ```sapl
             policy "example"
-            permit action == "finalize_contract"
-            where
+            permit action == "finalize_contract";
                 var required = ["legal_review", "manager_approval", "director_signature"];
                 array.containsAllInOrder(resource.approvalSteps, required);
             ```
@@ -515,7 +502,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.sort([3, 1, 4, 1, 5, 9, 2, 6]) == [1, 1, 2, 3, 4, 5, 6, 9];
                 array.sort(["dog", "cat", "bird", "ant"]) == ["ant", "bird", "cat", "dog"];
             ```
@@ -607,7 +593,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.flatten([1, [2, 3], 4, [5]]) == [1, 2, 3, 4, 5];
             ```
             """, schema = RETURNS_ARRAY)
@@ -645,7 +630,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.size(subject.roles) >= 2;
             ```
             """, schema = """
@@ -678,7 +662,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.reverse([1, 2, 3, 4]) == [4, 3, 2, 1];
             ```
             """, schema = RETURNS_ARRAY)
@@ -714,7 +697,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.isSet([1, 2, 3, 4]);
                 !array.isSet([1, 2, 3, 2]);
             ```
@@ -751,7 +733,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 !array.isEmpty(subject.permissions);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -781,7 +762,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.head(subject.roles) == "admin";
             ```
             """)
@@ -813,8 +793,7 @@ public class ArrayFunctionLibrary {
             Example:
             ```sapl
             policy "example"
-            permit action == "finalize"
-            where
+            permit action == "finalize";
                 array.last(resource.approvals) == "cfo_signature";
             ```
             """)
@@ -850,7 +829,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.max([3, 1, 4, 1, 5, 9]) == 9;
             ```
             """, schema = RETURNS_NUMBER)
@@ -883,7 +861,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.min(subject.securityLevels) >= 3;
             ```
             """, schema = RETURNS_NUMBER)
@@ -967,8 +944,7 @@ public class ArrayFunctionLibrary {
             Example - enforce rate limit:
             ```sapl
             policy "example"
-            deny action == "api_call"
-            where
+            deny action == "api_call";
                 array.sum(subject.requestCounts) > 1000;
             ```
             """, schema = RETURNS_NUMBER)
@@ -999,7 +975,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.multiply([2, 3, 4]) == 24;
             ```
             """, schema = RETURNS_NUMBER)
@@ -1048,7 +1023,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.avg(subject.performanceScores) >= 8.0;
             ```
             """, schema = RETURNS_NUMBER)
@@ -1092,7 +1066,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.median([1, 2, 3, 4, 5]) == 3;
                 array.median([1, 2, 3, 4]) == 2.5;
             ```
@@ -1142,7 +1115,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.range(1, 5) == [1, 2, 3, 4, 5];
             ```
             """, schema = RETURNS_ARRAY)
@@ -1183,7 +1155,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.rangeStepped(1, 10, 2) == [1, 3, 5, 7, 9];
                 array.rangeStepped(10, 1, -2) == [10, 8, 6, 4, 2];
             ```
@@ -1252,7 +1223,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var actions = ["read", "write"];
                 var resources = ["doc1", "doc2"];
                 var combinations = array.crossProduct(actions, resources);
@@ -1302,7 +1272,6 @@ public class ArrayFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 array.zip([1, 2, 3], ["a", "b", "c"]) == [[1, "a"], [2, "b"], [3, "c"]];
             ```
             """, schema = RETURNS_ARRAY)

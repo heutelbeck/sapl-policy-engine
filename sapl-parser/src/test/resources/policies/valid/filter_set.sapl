@@ -12,7 +12,6 @@ priority deny or permit
  */
 policy "deny_secret"
 deny
-where
     action.method == "GET";
     "ROLE_ANONYMOUS" in subject..authority;
     resource.requestedURI == "/secret";

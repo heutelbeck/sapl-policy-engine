@@ -57,8 +57,7 @@ public class MqttFunctionLibrary {
             ```sapl
             policy "allTopicsMatchMultilevelWildcardTopic"
             permit
-              subject == "firstSubject"
-            where
+              subject == "firstSubject";
               mqtt.isMatchingAllTopics(resource, ["first/second/third", "first/second/fourth"]);
             ```
 
@@ -66,8 +65,7 @@ public class MqttFunctionLibrary {
             ```sapl
             policy "topicMatchesMultilevelWildcardTopic"
             permit
-              subject == "firstSubject"
-            where
+              subject == "firstSubject";
               mqtt.isMatchingAllTopics(resource, "first/second/third");
             ```
             """)
@@ -100,8 +98,7 @@ public class MqttFunctionLibrary {
             ```sapl
             policy "atLeastOneTopicMatchesMultilevelWildcardTopic"
             permit
-              subject == "secondSubject"
-            where
+              subject == "secondSubject";
               mqtt.isMatchingAtLeastOneTopic(resource, ["first/second/third", "first/third"]);
             ```
 
@@ -109,8 +106,7 @@ public class MqttFunctionLibrary {
             ```sapl
             policy "topicMatchesMultilevelWildcardTopic"
             permit
-              subject == "secondSubject"
-            where
+              subject == "secondSubject";
               mqtt.isMatchingAtLeastOneTopic(resource, "first/second/third");
             ```
             """)

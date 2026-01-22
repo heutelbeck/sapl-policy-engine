@@ -73,7 +73,6 @@ public class TomlFunctionLibrary {
             ```sapl
             policy "permit_based_on_config"
             permit
-            where
                var configToml = "[resource]\\nowner = \\"alice\\"\\nclassification = \\"CONFIDENTIAL\\"\\naccessLevel = 3";
                var config = toml.tomlToVal(configToml);
                config.resource.owner == subject.name;
@@ -104,7 +103,6 @@ public class TomlFunctionLibrary {
             ```sapl
             policy "export_policy_config"
             permit
-            where
                var policyConfig = {"permissions":{"user":"bob","actions":["READ","WRITE"],"resources":["/api/data"]}};
                var configToml = toml.valToToml(policyConfig);
                // configToml contains TOML-formatted configuration

@@ -107,7 +107,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "skipped" permit where false;
+                    policy "skipped" permit false;
                     policy "active" deny
                     """);
             val ctx      = subscriptionContext("""
@@ -125,7 +125,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "never" permit where false;
+                    policy "never" permit false;
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -141,7 +141,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain errors propagate
 
-                    policy "error-applicable" permit where (1/0) > 0;
+                    policy "error-applicable" permit (1/0) > 0;
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -162,7 +162,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "p1" permit where subject == "alice";
+                    policy "p1" permit subject == "alice";
                     """);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(PureVoter.class);
         }
@@ -174,7 +174,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "p1" permit where subject == "alice";
+                    policy "p1" permit subject == "alice";
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -190,7 +190,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "p1" permit where subject == "bob";
+                    policy "p1" permit subject == "bob";
                     policy "p2" deny
                     """);
             val ctx      = subscriptionContext("""
@@ -207,7 +207,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain errors propagate
 
-                    policy "p1" permit where subject.missing.field;
+                    policy "p1" permit subject.missing.field;
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
@@ -224,7 +224,7 @@ class UniqueVoteCompilerTests {
                     unique or abstain
 
                     policy "p1"
-                    permit where subject == "alice";
+                    permit subject == "alice";
                     obligation subject
                     """);
             val ctx      = subscriptionContext("""
@@ -244,8 +244,8 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain errors propagate
 
-                    policy "p1" permit where subject == "alice";
-                    policy "p2" deny where subject == "alice";
+                    policy "p1" permit subject == "alice";
+                    policy "p2" deny subject == "alice";
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -261,8 +261,8 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "foldable" permit where false;
-                    policy "pure" deny where subject == "alice";
+                    policy "foldable" permit false;
+                    policy "pure" deny subject == "alice";
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -278,8 +278,8 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or deny
 
-                    policy "p1" permit where subject == "bob";
-                    policy "p2" permit where subject == "charlie";
+                    policy "p1" permit subject == "bob";
+                    policy "p2" permit subject == "charlie";
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -302,7 +302,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "p1" permit where <test.attr>;
+                    policy "p1" permit <test.attr>;
                     """, attrBroker);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
@@ -315,7 +315,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "stream" permit where <test.attr>;
+                    policy "stream" permit <test.attr>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -332,7 +332,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "stream" permit where subject == "alice" && <test.attr>;
+                    policy "stream" permit subject == "alice" && <test.attr>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -349,7 +349,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain errors propagate
 
-                    policy "stream" permit where subject.missing.field && <test.attr>;
+                    policy "stream" permit subject.missing.field && <test.attr>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
@@ -366,7 +366,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "skipped" permit where subject == "bob" && <test.attr>;
+                    policy "skipped" permit subject == "bob" && <test.attr>;
                     policy "active" deny
                     """, attrBroker);
             val subscription = parseSubscription("""
@@ -384,8 +384,8 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "pure" deny where subject == "bob";
-                    policy "stream" permit where <test.attr>;
+                    policy "pure" deny subject == "bob";
+                    policy "stream" permit <test.attr>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -403,8 +403,8 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain errors propagate
 
-                    policy "stream1" permit where <test.attr1>;
-                    policy "stream2" deny where <test.attr2>;
+                    policy "stream1" permit <test.attr1>;
+                    policy "stream2" deny <test.attr2>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -422,7 +422,7 @@ class UniqueVoteCompilerTests {
                     unique or abstain errors propagate
 
                     policy "foldable" deny
-                    policy "stream" permit where <test.attr>;
+                    policy "stream" permit <test.attr>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -439,7 +439,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain
 
-                    policy "only" deny where <test.attr>;
+                    policy "only" deny <test.attr>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -456,9 +456,9 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain errors propagate
 
-                    policy "pure1" permit where subject == "alice";
-                    policy "pure2" deny where subject == "alice";
-                    policy "stream" permit where <test.attr>;
+                    policy "pure1" permit subject == "alice";
+                    policy "pure2" deny subject == "alice";
+                    policy "stream" permit <test.attr>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -476,8 +476,8 @@ class UniqueVoteCompilerTests {
                     set "test"
                     unique or abstain errors propagate
 
-                    policy "error" permit where subject.missing && <test.attr1>;
-                    policy "stream" deny where <test.attr2>;
+                    policy "error" permit subject.missing && <test.attr1>;
+                    policy "stream" deny <test.attr2>;
                     """, attrBroker);
             val subscription = parseSubscription("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
@@ -504,7 +504,7 @@ class UniqueVoteCompilerTests {
                     set "test"
                     %s
 
-                    policy "never" permit where false;
+                    policy "never" permit false;
                     """.formatted(algorithm));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }

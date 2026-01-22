@@ -126,7 +126,7 @@ class UnanimousVoteCompilerTests {
                     set "test"
                     unanimous or abstain
 
-                    policy "skipped" deny where false;
+                    policy "skipped" deny false;
                     policy "active" permit
                     """);
             val ctx      = subscriptionContext("""
@@ -144,7 +144,7 @@ class UnanimousVoteCompilerTests {
                     set "test"
                     unanimous or abstain
 
-                    policy "never" permit where false;
+                    policy "never" permit false;
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -160,7 +160,7 @@ class UnanimousVoteCompilerTests {
                     set "test"
                     unanimous or abstain errors propagate
 
-                    policy "error-applicable" permit where (1/0) > 0;
+                    policy "error-applicable" permit (1/0) > 0;
                     """);
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
@@ -181,7 +181,7 @@ class UnanimousVoteCompilerTests {
                     set "test"
                     unanimous or abstain
 
-                    policy "p1" permit where subject == "alice";
+                    policy "p1" permit subject == "alice";
                     """);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(PureVoter.class);
         }
@@ -191,13 +191,13 @@ class UnanimousVoteCompilerTests {
             return Stream.of(
                 arguments("runtime TRUE applicability with constant vote",
                     """
-                    policy "p1" permit where subject == "alice";
+                    policy "p1" permit subject == "alice";
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Decision.PERMIT),
                 arguments("runtime FALSE applicability skips policy",
                     """
-                    policy "p1" deny where subject == "bob";
+                    policy "p1" deny subject == "bob";
                     policy "p2" permit
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
@@ -205,14 +205,14 @@ class UnanimousVoteCompilerTests {
                 arguments("mixed foldable and pure policies - all agree",
                     """
                     policy "foldable" permit
-                    policy "pure" permit where subject == "alice";
+                    policy "pure" permit subject == "alice";
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Decision.PERMIT),
                 arguments("all pure policies NOT_APPLICABLE returns default deny",
                     """
-                    policy "p1" permit where subject == "bob";
-                    policy "p2" permit where subject == "charlie";
+                    policy "p1" permit subject == "bob";
+                    policy "p2" permit subject == "charlie";
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Decision.DENY)
@@ -242,20 +242,20 @@ class UnanimousVoteCompilerTests {
             return Stream.of(
                 arguments("runtime ERROR applicability produces error vote",
                     """
-                    policy "p1" permit where subject.missing.field;
+                    policy "p1" permit subject.missing.field;
                     """,
                     "{ \"subject\": \"simple-string\", \"action\": \"read\", \"resource\": \"data\" }"),
                 arguments("disagreement with runtime applicability",
                     """
-                    policy "p1" permit where subject == "alice";
-                    policy "p2" deny where subject == "alice";
+                    policy "p1" permit subject == "alice";
+                    policy "p2" deny subject == "alice";
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
                 arguments("short-circuit on terminal INDETERMINATE (disagreement)",
                     """
-                    policy "p1" permit where subject == "alice";
-                    policy "p2" deny where subject == "alice";
-                    policy "p3" permit where subject == "alice";
+                    policy "p1" permit subject == "alice";
+                    policy "p2" deny subject == "alice";
+                    policy "p3" permit subject == "alice";
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }")
             );
@@ -285,7 +285,7 @@ class UnanimousVoteCompilerTests {
                     unanimous or abstain
 
                     policy "p1"
-                    permit where subject == "alice";
+                    permit subject == "alice";
                     obligation subject
                     """);
             val ctx      = subscriptionContext("""
@@ -311,7 +311,7 @@ class UnanimousVoteCompilerTests {
                     set "test"
                     unanimous or abstain
 
-                    policy "p1" permit where <test.attr>;
+                    policy "p1" permit <test.attr>;
                     """, attrBroker);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
@@ -321,30 +321,30 @@ class UnanimousVoteCompilerTests {
             return Stream.of(
                 arguments("stream voter with constant TRUE applicability",
                     """
-                    policy "stream" permit where <test.attr>;
+                    policy "stream" permit <test.attr>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
                 arguments("stream voter with runtime applicability",
                     """
-                    policy "stream" permit where subject == "alice" && <test.attr>;
+                    policy "stream" permit subject == "alice" && <test.attr>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
                 arguments("stream voter with FALSE applicability skips stream",
                     """
-                    policy "skipped" deny where subject == "bob" && <test.attr>;
+                    policy "skipped" deny subject == "bob" && <test.attr>;
                     policy "active" permit
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
                 arguments("mixed pure and stream policies - all agree",
                     """
-                    policy "pure" permit where subject == "alice";
-                    policy "stream" permit where <test.attr>;
+                    policy "pure" permit subject == "alice";
+                    policy "stream" permit <test.attr>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
                 arguments("stream voter with foldable accumulator - all agree",
                     """
                     policy "foldable" permit
-                    policy "stream" permit where <test.attr>;
+                    policy "stream" permit <test.attr>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }")
             );
@@ -372,29 +372,29 @@ class UnanimousVoteCompilerTests {
             return Stream.of(
                 arguments("stream voter with error in applicability",
                     """
-                    policy "stream" permit where subject.missing.field && <test.attr>;
+                    policy "stream" permit subject.missing.field && <test.attr>;
                     """,
                     "{ \"subject\": \"simple-string\", \"action\": \"read\", \"resource\": \"data\" }",
                     Map.of("test.attr", new Value[] { Value.TRUE })),
                 arguments("disagreement with stream policies",
                     """
-                    policy "stream1" permit where <test.attr1>;
-                    policy "stream2" deny where <test.attr2>;
+                    policy "stream1" permit <test.attr1>;
+                    policy "stream2" deny <test.attr2>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE })),
                 arguments("stream voter with foldable accumulator - disagree",
                     """
                     policy "foldable" deny
-                    policy "stream" permit where <test.attr>;
+                    policy "stream" permit <test.attr>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Map.of("test.attr", new Value[] { Value.TRUE })),
                 arguments("pure disagreement short-circuits before evaluating streams",
                     """
-                    policy "pure1" permit where subject == "alice";
-                    policy "pure2" deny where subject == "alice";
-                    policy "stream" permit where <test.attr>;
+                    policy "pure1" permit subject == "alice";
+                    policy "pure2" deny subject == "alice";
+                    policy "stream" permit <test.attr>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Map.of("test.attr", new Value[] { Value.TRUE }))
@@ -476,7 +476,7 @@ class UnanimousVoteCompilerTests {
                     set "test"
                     unanimous strict or abstain errors propagate
 
-                    policy "error" permit where (1/0) > 0;
+                    policy "error" permit (1/0) > 0;
                     policy "good" permit
                     """);
             val ctx      = subscriptionContext("""
@@ -513,7 +513,7 @@ class UnanimousVoteCompilerTests {
                     set "test"
                     %s
 
-                    policy "never" permit where false;
+                    policy "never" permit false;
                     """.formatted(algorithm));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }

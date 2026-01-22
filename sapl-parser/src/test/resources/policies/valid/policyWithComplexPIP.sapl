@@ -1,5 +1,4 @@
 policy "policyWithComplexPIP"
 permit
-where
   var parentValue = true;
   parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;

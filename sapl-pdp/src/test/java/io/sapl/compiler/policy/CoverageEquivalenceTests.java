@@ -42,8 +42,8 @@ class CoverageEquivalenceTests {
     static Stream<Arguments> staticPolicies() {
         return Stream.of(arguments("empty permit", "policy \"test\" permit"),
                 arguments("empty deny", "policy \"test\" deny"),
-                arguments("true body condition", "policy \"test\" permit where true;"),
-                arguments("false body condition", "policy \"test\" permit where false;"));
+                arguments("true body condition", "policy \"test\" permit true;"),
+                arguments("false body condition", "policy \"test\" permit false;"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -55,25 +55,24 @@ class CoverageEquivalenceTests {
 
     // Pure target tests removed - coverage path skips target evaluation
     static Stream<Arguments> purePolicies() {
-        return Stream.of(arguments("pure body matches", "policy \"test\" permit where subject == \"alice\";"),
-                arguments("pure body fails", "policy \"test\" permit where subject == \"bob\";"),
+        return Stream.of(arguments("pure body matches", "policy \"test\" permit subject == \"alice\";"),
+                arguments("pure body fails", "policy \"test\" permit subject == \"bob\";"),
                 arguments("pure target and body (target true)", """
                         policy "test" permit
-                        where
                         subject == "alice";
                         action == "read";
                         """), arguments("multiple conditions all true", """
                         policy "test" permit
-                        where subject == "alice";
+                        subject == "alice";
                               action == "read";
                               resource == "document";
                         """), arguments("multiple conditions one false", """
                         policy "test" permit
-                        where subject == "alice";
+                        subject == "alice";
                               action == "write";
                         """), arguments("undefined field access", """
                         policy "test" permit
-                        where subject.nonexistent.field == true;
+                        subject.nonexistent.field == true;
                         """));
     }
 
@@ -99,7 +98,7 @@ class CoverageEquivalenceTests {
                         transform "filtered"
                         """), arguments("pure body with constraints", """
                         policy "test" permit
-                        where subject == "alice";
+                        subject == "alice";
                         obligation "log"
                         advice "hint"
                         """), arguments("pure constraints", """
@@ -125,10 +124,10 @@ class CoverageEquivalenceTests {
     static Stream<Arguments> errorCases() {
         return Stream.of(
                 // Short circuit prevents undefined access being an issue
-                arguments("short circuit false", "policy \"test\" permit where false && subject.a.b.c;"),
-                arguments("undefined equality check", "policy \"test\" permit where subject.missing == undefined;"),
+                arguments("short circuit false", "policy \"test\" permit false && subject.a.b.c;"),
+                arguments("undefined equality check", "policy \"test\" permit subject.missing == undefined;"),
                 // OR short circuit
-                arguments("short circuit true", "policy \"test\" permit where true || subject.a.b.c;"));
+                arguments("short circuit true", "policy \"test\" permit true || subject.a.b.c;"));
     }
 
     @MethodSource("errorCases")
@@ -143,7 +142,7 @@ class CoverageEquivalenceTests {
     void runtimeErrorFromAttribute() {
         val policy = """
                 policy "test" permit
-                where subject.<attr.value> == true;
+                subject.<attr.value> == true;
                 """;
         val broker = attributeBroker("attr.value", Value.error("Service unavailable"));
         assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
@@ -154,7 +153,7 @@ class CoverageEquivalenceTests {
     void streamPolicySingleEmission() {
         val policy = """
                 policy "test" permit
-                where subject.<attr.check> == true;
+                subject.<attr.check> == true;
                 """;
         val broker = attributeBroker("attr.check", Value.TRUE);
         assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
@@ -165,7 +164,7 @@ class CoverageEquivalenceTests {
     void streamPolicyMultipleEmissions() {
         val policy = """
                 policy "test" permit
-                where subject.<attr.status> == "active";
+                subject.<attr.status> == "active";
                 """;
         val broker = attributeBroker("attr.status", Value.of("active"), Value.of("inactive"), Value.of("active"));
         assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
@@ -176,7 +175,7 @@ class CoverageEquivalenceTests {
     void streamPolicyWithStaticConstraints() {
         val policy = """
                 policy "test" permit
-                where subject.<attr.valid> == true;
+                subject.<attr.valid> == true;
                 obligation "log"
                 advice "cache"
                 """;
@@ -189,7 +188,7 @@ class CoverageEquivalenceTests {
     void streamPolicyWithPureConstraints() {
         val policy = """
                 policy "test" permit
-                where subject.<attr.allowed> == true;
+                subject.<attr.allowed> == true;
                 obligation subject
                 advice action
                 """;
@@ -202,7 +201,7 @@ class CoverageEquivalenceTests {
     void streamPolicyWithStreamConstraints() {
         val policy = """
                 policy "test" permit
-                where subject.<body.attr> == true;
+                subject.<body.attr> == true;
                 obligation <constraint.attr>
                 """;
         val broker = attributeBroker(
@@ -215,7 +214,7 @@ class CoverageEquivalenceTests {
     void pureBodyStreamObligation() {
         val policy = """
                 policy "test" permit
-                where subject == "alice";
+                subject == "alice";
                 obligation <audit.log>
                 """;
         val broker = attributeBroker("audit.log", Value.of("recorded"));
@@ -227,7 +226,7 @@ class CoverageEquivalenceTests {
     void denyPolicyWithConstraints() {
         val policy = """
                 policy "test" deny
-                where subject == "alice";
+                subject == "alice";
                 obligation "block_access"
                 advice "contact_admin"
                 """;

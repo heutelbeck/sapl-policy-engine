@@ -65,8 +65,7 @@ public class BitwiseFunctionLibrary {
 
             ```sapl
             policy "check_read_permission"
-            permit action == "read_document"
-            where
+            permit action == "read_document";
                 var READ_PERMISSION = 0;
                 bitwise.testBit(subject.permissions, READ_PERMISSION);
             ```
@@ -77,7 +76,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "merge_permissions"
             permit
-            where
                 var direct = subject.directPermissions;
                 var inherited = subject.groupPermissions;
                 var combined = bitwise.bitwiseOr(direct, inherited);
@@ -91,8 +89,7 @@ public class BitwiseFunctionLibrary {
 
             ```sapl
             policy "require_all_permissions"
-            permit action == "admin_panel"
-            where
+            permit action == "admin_panel";
                 var ADMIN_PERMS = 240;
                 bitwise.bitwiseAnd(subject.permissions, ADMIN_PERMS) == ADMIN_PERMS;
             ```
@@ -102,8 +99,7 @@ public class BitwiseFunctionLibrary {
 
             ```sapl
             policy "feature_access"
-            permit action == "use_beta_feature"
-            where
+            permit action == "use_beta_feature";
                 var BETA_FEATURES_BIT = 5;
                 bitwise.testBit(subject.featureFlags, BETA_FEATURES_BIT);
             ```
@@ -124,8 +120,7 @@ public class BitwiseFunctionLibrary {
 
             ```sapl
             policy "limit_permission_count"
-            deny action == "grant_permission"
-            where
+            deny action == "grant_permission";
                 bitwise.bitCount(subject.permissions) >= 10;
             ```
 
@@ -134,7 +129,7 @@ public class BitwiseFunctionLibrary {
 
             ```sapl
             policy "toggle_debug_mode"
-            permit action == "toggle_debug"
+            permit action == "toggle_debug";
             transform
                 var DEBUG_BIT = 7;
                 subject.flags = bitwise.toggleBit(subject.flags, DEBUG_BIT);
@@ -206,7 +201,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var REQUIRED = 15;
                 bitwise.bitwiseAnd(subject.permissions, REQUIRED) == REQUIRED;
             ```
@@ -246,7 +240,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var all = bitwise.bitwiseOr(subject.directPermissions, subject.inheritedPermissions);
                 bitwise.testBit(all, 5);
             ```
@@ -286,7 +279,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var differences = bitwise.bitwiseXor(subject.permissions, resource.requiredPermissions);
                 differences == 0;
             ```
@@ -323,7 +315,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var allowed = 15;
                 var denied = bitwise.bitwiseNot(allowed);
                 bitwise.bitwiseAnd(subject.permissions, denied) == 0;
@@ -362,8 +353,7 @@ public class BitwiseFunctionLibrary {
             Example - check specific permission:
             ```sapl
             policy "example"
-            permit action == "delete"
-            where
+            permit action == "delete";
                 var DELETE_BIT = 3;
                 bitwise.testBit(subject.permissions, DELETE_BIT);
             ```
@@ -409,7 +399,7 @@ public class BitwiseFunctionLibrary {
             Example - grant specific permission:
             ```sapl
             policy "example"
-            permit action == "grant_read"
+            permit action == "grant_read";
             transform
                 var READ_BIT = 0;
                 subject.permissions = bitwise.setBit(subject.permissions, READ_BIT);
@@ -456,7 +446,7 @@ public class BitwiseFunctionLibrary {
             Example - revoke specific permission:
             ```sapl
             policy "example"
-            permit action == "revoke_write"
+            permit action == "revoke_write";
             transform
                 var WRITE_BIT = 1;
                 subject.permissions = bitwise.clearBit(subject.permissions, WRITE_BIT);
@@ -504,7 +494,7 @@ public class BitwiseFunctionLibrary {
             Example - toggle debug mode:
             ```sapl
             policy "example"
-            permit action == "toggle_feature"
+            permit action == "toggle_feature";
             transform
                 var FEATURE_BIT = 5;
                 subject.flags = bitwise.toggleBit(subject.flags, FEATURE_BIT);
@@ -548,8 +538,7 @@ public class BitwiseFunctionLibrary {
             Example - enforce permission limit:
             ```sapl
             policy "example"
-            deny action == "grant_permission"
-            where
+            deny action == "grant_permission";
                 bitwise.bitCount(subject.permissions) >= 10;
             ```
             """, schema = RETURNS_NUMBER)
@@ -588,7 +577,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.leftShift(1, 3) == 8;
             ```
             """, schema = RETURNS_NUMBER)
@@ -635,7 +623,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.rightShift(16, 2) == 4;
             ```
             """, schema = RETURNS_NUMBER)
@@ -681,7 +668,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.unsignedRightShift(16, 2) == 4;
             ```
             """, schema = RETURNS_NUMBER)
@@ -727,7 +713,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.rotateLeft(1, 3) == 8;
             ```
             """, schema = RETURNS_NUMBER)
@@ -773,7 +758,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.rotateRight(8, 3) == 1;
             ```
             """, schema = RETURNS_NUMBER)
@@ -817,7 +801,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.leadingZeros(0) == 64;
                 bitwise.leadingZeros(1) == 63;
                 bitwise.leadingZeros(8) == 60;
@@ -856,7 +839,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.trailingZeros(0) == 64;
                 bitwise.trailingZeros(1) == 0;
                 bitwise.trailingZeros(8) == 3;
@@ -894,7 +876,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.reverseBits(0) == 0;
             ```
             """, schema = RETURNS_NUMBER)
@@ -930,7 +911,6 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 bitwise.isPowerOfTwo(1);
                 bitwise.isPowerOfTwo(8);
                 bitwise.isPowerOfTwo(1024);

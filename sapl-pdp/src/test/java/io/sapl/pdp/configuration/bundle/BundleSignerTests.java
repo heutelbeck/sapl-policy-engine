@@ -284,7 +284,7 @@ class BundleSignerTests {
         files.put("ritual.sapl", """
                 policy "elder-ritual"
                 permit subject.cultRank == "elder"
-                where action.type == "summon"
+                action.type == "summon"
                 """);
         files.put("access-control.sapl", """
                 policy "arkham-library"

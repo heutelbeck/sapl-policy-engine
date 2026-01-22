@@ -54,9 +54,8 @@ import java.time.Instant;
  *
  * <pre>
  * policy "secure-jwt-access"
- * permit action == "read"
- *   where "admin" in jwt.parseJwt(subject.token).payload.roles;
- * where
+ * permit action == "read";
+ *   "admin" in jwt.parseJwt(subject.token).payload.roles;
  *   subject.token.&lt;jwt.valid&gt;;
  * </pre>
  */
@@ -95,9 +94,8 @@ public class JWTFunctionLibrary {
 
             ```sapl
             policy "secure-resource-access"
-            permit action.method == "GET"
-              where "documents:read" in jwt.parseJwt(subject.token).payload.scope;
-            where
+            permit action.method == "GET";
+              "documents:read" in jwt.parseJwt(subject.token).payload.scope;
               subject.token.<jwt.valid>;
             ```
 
@@ -122,9 +120,8 @@ public class JWTFunctionLibrary {
             Target expression for policy selection:
             ```sapl
             policy "api-scope-filter"
-            permit action.api == "documents"
-              where "docs:write" in jwt.parseJwt(subject.credentials).payload.scope;
-            where
+            permit action.api == "documents";
+              "docs:write" in jwt.parseJwt(subject.credentials).payload.scope;
               var token = subject.credentials;
               token.<jwt.validity> == "VALID";
             ```
@@ -160,8 +157,7 @@ public class JWTFunctionLibrary {
             ```sapl
             policy "check-token-scope"
             permit
-              where "admin" in jwt.parseJwt(subject.token).payload.roles;
-            where
+              "admin" in jwt.parseJwt(subject.token).payload.roles;
               subject.token.<jwt.valid>;
             ```
             """)

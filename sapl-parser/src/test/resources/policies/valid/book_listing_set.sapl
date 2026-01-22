@@ -4,19 +4,16 @@ first or abstain errors propagate
 
 policy "deny if scope null"
 deny
-where
   action.java.name == "findAll";
   subject.principal.dataScope in [null, undefined];
 
 policy "empty scope means no limit"
 permit
-where
   action.java.name == "findAll";
   subject.principal.dataScope == [];
 
 policy "enforce filtering"
 permit
-where
   action.java.name == "findAll";
 obligation 	{
 			"limitCategoriesTo" : subject.principal.dataScope

@@ -94,7 +94,6 @@ public class GraphFunctionLibrary {
             ```sapl
             policy "evaluate-effective-permissions"
             permit
-            where
               var effectiveRoles = graph.reachable(roleHierarchy, subject.assignedRoles);
               "db-viewer" in effectiveRoles;
             ```
@@ -106,7 +105,6 @@ public class GraphFunctionLibrary {
             ```sapl
             policy "audit-permission-delegation"
             permit
-            where
               var delegationPaths = graph.reachable_paths(roleHierarchy, ["system-admin"]);
               ["system-admin","db-admin","db-operator","db-viewer"] in delegationPaths;
             ```
@@ -162,7 +160,6 @@ public class GraphFunctionLibrary {
             ```sapl
             policy "require-elevated-access"
             permit
-            where
               var effectiveRoles = graph.reachable(roleHierarchy, subject.assignedRoles);
               "security-analyst" in effectiveRoles;
             ```
@@ -229,7 +226,6 @@ public class GraphFunctionLibrary {
             ```sapl
             policy "audit-role-delegation-path"
             permit
-            where
               var delegationPaths = graph.reachable_paths(roleHierarchy, subject.primaryRole);
               ["db-admin","db-operator","db-viewer"] in delegationPaths;
             ```

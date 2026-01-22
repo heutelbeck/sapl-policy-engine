@@ -59,8 +59,7 @@ import java.util.List;
  *
  * <pre>{@code
  * policy "allow known clients"
- * permit action == "api.call"
- * where
+ * permit action == "api.call";
  *   var clientCert = x509.parseCertificate(request.clientCertificate);
  *   clientCert.subject =~ "O=Trusted Partners";
  *   !x509.isExpired(request.clientCertificate);
@@ -138,8 +137,7 @@ public class X509FunctionLibrary {
             Example - Validate multiple certificate properties for mTLS:
             ```sapl
             policy "require valid partner certificate"
-            permit action == "api.call"
-            where
+            permit action == "api.call";
               var cert = x509.parseCertificate(request.clientCertificate);
               cert.subject =~ "O=Trusted Partners Inc";
               cert.issuer =~ "CN=Internal CA";
@@ -164,7 +162,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "allow hr department only"
             permit action == "read" && resource.type == "personnel-records"
-            where
               var subjectDn = x509.extractSubjectDn(request.clientCertificate);
               subjectDn =~ "OU=Human Resources,O=Acme Corp";
             ```
@@ -185,7 +182,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "internal ca only"
             permit
-            where
               var issuerDn = x509.extractIssuerDn(request.clientCertificate);
               issuerDn =~ "CN=Acme Internal CA,O=Acme Corp";
             ```
@@ -205,8 +201,7 @@ public class X509FunctionLibrary {
             Example - Verify service identity in mTLS:
             ```sapl
             policy "service-to-service auth"
-            permit action == "invoke"
-            where
+            permit action == "invoke";
               var serviceName = x509.extractCommonName(request.clientCertificate);
               serviceName in resource.allowedServices;
             ```
@@ -232,7 +227,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "check revocation list"
             deny
-            where
               var serial = x509.extractSerialNumber(request.clientCertificate);
               serial in data.revokedSerials;
             ```
@@ -252,7 +246,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "new certificates only after cutover"
             permit
-            where
               var notBefore = x509.extractNotBefore(request.clientCertificate);
               notBefore >= "2025-01-01T00:00:00Z";
             ```
@@ -273,7 +266,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "certificate expiring soon"
             permit
-            where
               var notAfter = x509.extractNotAfter(request.clientCertificate);
               notAfter < time.plusDays(time.now(), 30);
             advice
@@ -299,7 +291,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "pin database certificate"
             permit action == "query" && resource.type == "production-db"
-            where
               var fingerprint = x509.extractFingerprint(request.clientCertificate, "SHA-256");
               x509.matchesFingerprint(request.clientCertificate, resource.expectedFingerprint, "SHA-256");
             ```
@@ -320,7 +311,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "verify pinned certificate"
             permit action == "connect" && resource.type == "payment-gateway"
-            where
               x509.matchesFingerprint(
                 request.clientCertificate,
                 "a1b2c3d4e5f6...",
@@ -352,8 +342,7 @@ public class X509FunctionLibrary {
             Example - Check SAN for virtual hosts:
             ```sapl
             policy "allow san-based routing"
-            permit action == "route"
-            where
+            permit action == "route";
               var sans = x509.extractSubjectAltNames(request.clientCertificate);
               resource.hostname in sans[*].value;
             ```
@@ -388,8 +377,7 @@ public class X509FunctionLibrary {
             Example - Verify certificate is valid for accessed domain:
             ```sapl
             policy "validate domain match"
-            permit action == "connect"
-            where
+            permit action == "connect";
               x509.hasDnsName(request.serverCertificate, resource.domain);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -426,8 +414,7 @@ public class X509FunctionLibrary {
             Example - Authorize by client IP:
             ```sapl
             policy "allow specific ips"
-            permit action == "connect"
-            where
+            permit action == "connect";
               x509.hasIpAddress(request.clientCertificate, request.sourceIp);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -474,7 +461,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "reject expired certificates"
             deny
-            where
               x509.isExpired(request.clientCertificate);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -497,7 +483,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "maintenance window access"
             permit action == "admin" && resource.type == "production"
-            where
               var maintenanceStart = "2025-06-15T02:00:00Z";
               x509.isValidAt(request.adminCertificate, maintenanceStart);
             ```
@@ -526,7 +511,6 @@ public class X509FunctionLibrary {
             ```sapl
             policy "certificate renewal warning"
             permit
-            where
               var daysRemaining = x509.remainingValidityDays(request.clientCertificate);
               daysRemaining > 0;
             advice

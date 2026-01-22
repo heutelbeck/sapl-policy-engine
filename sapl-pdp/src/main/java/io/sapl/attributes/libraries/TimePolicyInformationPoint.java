@@ -57,7 +57,6 @@ public class TimePolicyInformationPoint {
             ```sapl
             policy "time example"
             permit
-            where
                time.dayOfWeek(<now>) == "MONDAY";
             ```
             """)
@@ -75,7 +74,6 @@ public class TimePolicyInformationPoint {
             ```sapl
             policy "time example"
             permit
-            where
                time.dayOfWeek(<now(time.durationOfMinutes(5)>) == "MONDAY";
             ```
             """)
@@ -135,8 +133,7 @@ public class TimePolicyInformationPoint {
             Example:
             ```sapl
             policy "time example"
-            permit action == "work"
-            where
+            permit action == "work";
               <time.nowIsAfter(subject.employmentStart)>;
             ```
 
@@ -161,8 +158,7 @@ public class TimePolicyInformationPoint {
             Example:
             ```sapl
             policy "time example"
-            permit action == "work"
-            where
+            permit action == "work";
               <time.nowIsAfter(subject.startTimeOfShift)>;
             ```
 
@@ -225,8 +221,7 @@ public class TimePolicyInformationPoint {
             Example:
             ```sapl
             policy "time example"
-            permit action == "work"
-            where
+            permit action == "work";
               <time.localTimeIsBetween(subject.shiftStarts, subject.shiftEnds)>;
             ```
             """)
@@ -307,8 +302,7 @@ public class TimePolicyInformationPoint {
             Example:
             ```sapl
             policy "time example"
-            permit action == "work"
-            where
+            permit action == "work";
               <time.localTimeIsBefore(subject.endTimeOfShift)>;
             ```
 
@@ -332,8 +326,7 @@ public class TimePolicyInformationPoint {
             Example:
             ```sapl
             policy "time example"
-            permit action == "work"
-            where
+            permit action == "work";
               <time.nowIsBefore(subject.employmentEnds)>;
             ```
 
@@ -377,8 +370,7 @@ public class TimePolicyInformationPoint {
             Example:
             ```sapl
             policy "time example"
-            permit action == "work"
-            where
+            permit action == "work";
               <time.nowIsBetween(subject.employmentStarts, subject.employmentEnds)>;
             ```
             """)
@@ -419,8 +411,7 @@ public class TimePolicyInformationPoint {
             Example:
             ```sapl
             policy "time example"
-            permit action == "read"
-            where
+            permit action == "read";
               <time.toggle(1000, 2000)>;
             ```
 

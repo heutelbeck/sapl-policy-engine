@@ -1,5 +1,4 @@
 policy "archive-access"
 permit
-where
     action == "read";
     subject.department == "archives";

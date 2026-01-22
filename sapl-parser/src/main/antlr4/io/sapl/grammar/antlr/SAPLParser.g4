@@ -82,7 +82,7 @@ entitlement
     ;
 
 policyBody
-    : WHERE (statements+=statement SEMI)+
+    : (statements+=statement SEMI)+
     ;
 
 statement

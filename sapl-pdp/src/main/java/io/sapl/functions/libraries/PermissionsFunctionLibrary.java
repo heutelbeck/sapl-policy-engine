@@ -100,7 +100,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var CREATE = permissions.bit(0);
               var UPDATE = permissions.bit(1);
               var DELETE = permissions.bit(2);
@@ -128,7 +127,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var ADMIN = permissions.bit(0);
               var MODERATOR = permissions.bit(1);
               permissions.hasAny(subject.roles, [ADMIN, MODERATOR]);
@@ -155,7 +153,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var SUSPENDED = permissions.bit(0);
               var BANNED = permissions.bit(1);
               permissions.hasNone(subject.flags, [SUSPENDED, BANNED]);
@@ -182,7 +179,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var READ_ONLY = permissions.bit(0);
               permissions.hasExact(subject.permissions, READ_ONLY);
             ```
@@ -202,7 +198,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var READ = permissions.bit(0);
               var WRITE = permissions.bit(1);
               permissions.hasOnly(subject.permissions, [READ, WRITE]);
@@ -229,7 +224,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var CREATE = permissions.bit(0);
               var READ = permissions.bit(1);
               var UPDATE = permissions.bit(2);
@@ -250,7 +244,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var mask1 = numeral.fromHex("0x07");
               var mask2 = numeral.fromHex("0x03");
               var common = permissions.combineAll([mask1, mask2]);  // Result: 0x03
@@ -269,8 +262,7 @@ public class PermissionsFunctionLibrary {
             **Examples:**
             ```sapl
             policy "example"
-            permit action.name == "delegate"
-            where
+            permit action.name == "delegate";
               permissions.isSubsetOf(action.permissionsToDelegate, subject.permissions);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -289,7 +281,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               permissions.overlaps(subject.permissions, resource.requiredPermissions);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -308,7 +299,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               permissions.areDisjoint(subject.permissions, resource.forbiddenPermissions);
             ```
             """, schema = RETURNS_BOOLEAN)
@@ -330,7 +320,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var mode = numeral.fromOctal("755");
               var ownerPerms = permissions.unixOwner(mode);  // Returns 7 (rwx)
             ```
@@ -350,7 +339,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var mode = numeral.fromOctal("755");
               var groupPerms = permissions.unixGroup(mode);  // Returns 5 (r-x)
             ```
@@ -370,7 +358,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var mode = numeral.fromOctal("755");
               var otherPerms = permissions.unixOther(mode);  // Returns 5 (r-x)
             ```
@@ -392,7 +379,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var mode = permissions.unixMode(7, 5, 5);
               mode == numeral.fromOctal("755");  // true
             ```
@@ -424,7 +410,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var perms = permissions.unixOwner(resource.mode);
               permissions.unixCanRead(perms);
             ```
@@ -442,7 +427,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var perms = permissions.unixOwner(resource.mode);
               permissions.unixCanWrite(perms);
             ```
@@ -460,7 +444,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var perms = permissions.unixOwner(resource.mode);
               permissions.unixCanExecute(perms);
             ```
@@ -480,7 +463,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               permissions.hasAny(ownerPerms, [permissions.posixRead()]);
             ```
             """, schema = RETURNS_NUMBER)
@@ -497,7 +479,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               permissions.hasAny(ownerPerms, [permissions.posixWrite()]);
             ```
             """, schema = RETURNS_NUMBER)
@@ -514,7 +495,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               permissions.hasAny(ownerPerms, [permissions.posixExecute()]);
             ```
             """, schema = RETURNS_NUMBER)
@@ -531,7 +511,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               permissions.hasAll(ownerPerms, [permissions.posixAll()]);
             ```
             """, schema = RETURNS_NUMBER)
@@ -548,7 +527,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               otherPerms == permissions.posixNone();
             ```
             """, schema = RETURNS_NUMBER)
@@ -565,7 +543,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               ownerPerms == permissions.posixRW();
             ```
             """, schema = RETURNS_NUMBER)
@@ -582,7 +559,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               groupPerms == permissions.posixRX();
             ```
             """, schema = RETURNS_NUMBER)
@@ -599,7 +575,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               permissions.hasAll(perms, [permissions.posixWX()]);
             ```
             """, schema = RETURNS_NUMBER)
@@ -619,7 +594,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               resource.mode == permissions.posixMode755();
               // Equivalent to: resource.mode == numeral.fromOctal("755");
             ```
@@ -638,7 +612,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               resource.mode == permissions.posixMode644();
               // Equivalent to: resource.mode == numeral.fromOctal("644");
             ```
@@ -657,7 +630,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               resource.mode == permissions.posixMode777();
               // Equivalent to: resource.mode == numeral.fromOctal("777");
             ```
@@ -676,7 +648,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               resource.mode == permissions.posixMode600();
               // Equivalent to: resource.mode == numeral.fromOctal("600");
             ```
@@ -695,7 +666,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               resource.mode == permissions.posixMode666();
               // Equivalent to: resource.mode == numeral.fromOctal("666");
             ```
@@ -716,7 +686,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var READ = permissions.bit(0);
               var WRITE = permissions.bit(1);
               var newPerms = permissions.grant(subject.currentPermissions, [READ, WRITE]);
@@ -743,7 +712,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var DELETE = permissions.bit(2);
               var ADMIN = permissions.bit(3);
               var newPerms = permissions.revoke(subject.currentPermissions, [DELETE, ADMIN]);
@@ -770,7 +738,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var FLAG_A = permissions.bit(0);
               var FLAG_B = permissions.bit(1);
               var newFlags = permissions.toggle(subject.flags, [FLAG_A, FLAG_B]);
@@ -798,7 +765,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               subject.permissions != permissions.none();
             ```
             """, schema = RETURNS_NUMBER)
@@ -816,7 +782,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               subject.permissions == permissions.all();
             ```
             """, schema = RETURNS_NUMBER)
@@ -838,7 +803,6 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var CREATE = permissions.bit(0);
               var READ = permissions.bit(1);
               var UPDATE = permissions.bit(2);

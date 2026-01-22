@@ -64,8 +64,7 @@ public class MacFunctionLibrary {
             Verify webhook signatures from external services:
             ```sapl
             policy "verify-github-webhook"
-            permit action == "process_webhook"
-            where
+            permit action == "process_webhook";
               var payload = resource.body;
               var receivedSignature = resource.headers["X-Hub-Signature-256"];
               var secret = environment.webhookSecret;
@@ -75,8 +74,7 @@ public class MacFunctionLibrary {
             Generate and verify signatures for API authentication:
             ```sapl
             policy "verify-api-request"
-            permit action == "api_call"
-            where
+            permit action == "api_call";
               var requestData = resource.method + resource.path + resource.body;
               var expectedMac = mac.hmacSha256(requestData, subject.apiSecret);
               var receivedMac = resource.headers["X-Signature"];
@@ -86,8 +84,7 @@ public class MacFunctionLibrary {
             Validate signed resource identifiers to ensure integrity:
             ```sapl
             policy "verify-signed-resource-id"
-            permit action == "access_resource"
-            where
+            permit action == "access_resource";
               var resourceData = resource.id + "|" + resource.permissions;
               var expectedMac = mac.hmacSha256(resourceData, environment.signingKey);
               mac.timingSafeEquals(resource.signature, expectedMac);
@@ -136,7 +133,6 @@ public class MacFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var message = "hello world";
               var key = "secret";
               var mac = mac.hmacSha256(message, key);
@@ -158,7 +154,6 @@ public class MacFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var message = "hello world";
               var key = "secret";
               var mac = mac.hmacSha384(message, key);
@@ -180,7 +175,6 @@ public class MacFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
               var message = "hello world";
               var key = "secret";
               var mac = mac.hmacSha512(message, key);
@@ -206,7 +200,6 @@ public class MacFunctionLibrary {
             ```sapl
             policy "verify webhook"
             permit
-            where
               var receivedMac = "abc123";
               var computedMac = "abc123";
               mac.timingSafeEquals(receivedMac, computedMac);
@@ -239,7 +232,6 @@ public class MacFunctionLibrary {
             ```sapl
             policy "verify webhook signature"
             permit
-            where
               var payload = "webhook payload";
               var signature = "expected_signature_from_header";
               var secret = "webhook_secret";

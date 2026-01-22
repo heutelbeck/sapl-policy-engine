@@ -72,7 +72,6 @@ public class XmlFunctionLibrary {
             ```sapl
             policy "permit_with_resource_attributes"
             permit
-            where
                var resourceXml = "<Resource><owner>alice</owner><classification>PUBLIC</classification></Resource>";
                var resource = xml.xmlToVal(resourceXml);
                resource.owner == subject.name;
@@ -103,7 +102,6 @@ public class XmlFunctionLibrary {
             ```sapl
             policy "log_access_attempt"
             permit
-            where
                var accessLog = {"user":"bob","resource":"/documents/report.pdf","action":"READ","timestamp":"2025-01-15T10:30:00Z"};
                var logXml = xml.valToXml(accessLog);
                // logXml contains XML-formatted access log

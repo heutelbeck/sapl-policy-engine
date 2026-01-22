@@ -3,12 +3,10 @@ first or abstain errors propagate
 
 policy "permit_test"
 permit
-where
     action == "permitTest";
 
 policy "deny_test"
 deny
-where
     action == "denyTest";
 
 

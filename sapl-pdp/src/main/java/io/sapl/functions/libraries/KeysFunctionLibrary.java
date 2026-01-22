@@ -86,8 +86,7 @@ public class KeysFunctionLibrary {
 
             ```sapl
             policy "validate access token"
-            permit action == "api.call"
-            where
+            permit action == "api.call";
               // Assume JWKS already retrieved via HTTP PIP
               var signingKey = keys.publicKeyFromJwk(resource.jwks.keys[0]);
               jwt.verify(request.token, signingKey);
@@ -99,8 +98,7 @@ public class KeysFunctionLibrary {
 
             ```sapl
             policy "require strong client cert"
-            permit action == "admin.access"
-            where
+            permit action == "admin.access";
               var publicKey = keys.publicKeyFromCertificate(request.clientCert);
               var algorithm = keys.algorithmFromKey(publicKey);
               var keySize = keys.sizeFromKey(publicKey);
@@ -116,7 +114,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "require modern crypto"
             permit
-            where
               var algorithm = keys.algorithmFromKey(subject.publicKey);
               var keyInfo = keys.publicKeyFromPem(subject.publicKey);
 
@@ -131,8 +128,7 @@ public class KeysFunctionLibrary {
 
             ```sapl
             policy "register service"
-            permit action == "service.register"
-            where
+            permit action == "service.register";
               var serviceKey = keys.publicKeyFromPem(subject.publicKey);
               var jwk = keys.jwkFromPublicKey(subject.publicKey);
 
@@ -148,7 +144,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "enforce key policy"
             permit
-            where
               var key = keys.publicKeyFromPem(resource.encryptionKey);
               var size = keys.sizeFromKey(resource.encryptionKey);
 
@@ -163,7 +158,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "validate cert chain"
             permit
-            where
               var leafKey = keys.publicKeyFromCertificate(request.cert);
               var caKey = keys.publicKeyFromCertificate(trust.caCert);
 
@@ -178,7 +172,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "safe key handling"
             permit
-            where
               var keyResult = keys.publicKeyFromPem(untrustedInput);
               keyResult.isDefined();  // Check before using
               keyResult.algorithm == "RSA";
@@ -197,7 +190,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "complete auth flow"
             permit
-            where
               // Assume JWKS already retrieved via HTTP PIP
               var key = keys.publicKeyFromJwk(resource.jwks.keys[0]);
 
@@ -276,7 +268,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "parse key"
             permit
-            where
               var key = keys.publicKeyFromPem(publicKeyPem);
               key.algorithm == "RSA";
               key.format == "X.509";
@@ -302,7 +293,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "extract key from cert"
             permit
-            where
               var publicKey = keys.publicKeyFromCertificate(clientCert);
               signature.verifyRsaSha256(message, sig, publicKey);
             ```
@@ -331,7 +321,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "check key type"
             permit
-            where
               keys.algorithmFromKey(publicKey) == "RSA";
             ```
             """, schema = RETURNS_TEXT)
@@ -354,7 +343,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "require strong keys"
             permit
-            where
               keys.sizeFromKey(publicKey) >= 2048;
             ```
             """, schema = RETURNS_NUMBER)
@@ -378,7 +366,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "require p256 curve"
             permit
-            where
               keys.curveFromKey(publicKey) == "secp256r1";
             ```
             """, schema = RETURNS_TEXT)
@@ -412,7 +399,6 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "convert to jwk"
             permit
-            where
               var jwk = keys.jwkFromPublicKey(publicKeyPem);
               jwk.kty == "RSA";
               jwk.n != null;
@@ -440,15 +426,13 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "convert from jwk"
             permit
-            where
               var publicKeyPem = keys.publicKeyFromJwk(jwkObject);
               signature.verifyRsaSha256(message, sig, publicKeyPem);
             ```
 
             ```sapl
             policy "validate oauth token"
-            permit action == "api.access"
-            where
+            permit action == "api.access";
               // Assume JWKS already retrieved via HTTP PIP
               var publicKey = keys.publicKeyFromJwk(resource.jwks.keys[0]);
               var publicKey = keys.publicKeyFromJwk(jwk);
