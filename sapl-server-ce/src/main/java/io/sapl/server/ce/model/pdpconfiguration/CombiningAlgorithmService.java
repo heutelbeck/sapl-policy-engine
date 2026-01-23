@@ -17,6 +17,10 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.DENY;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -40,9 +44,9 @@ import org.springframework.stereotype.Service;
 public class CombiningAlgorithmService {
 
     /**
-     * Default combining algorithm: DENY_UNLESS_PERMIT semantics.
+     * Default combining algorithm: priority permit or deny errors abstain.
      */
-    public static final CombiningAlgorithm DEFAULT = CombiningAlgorithm.DENY_UNLESS_PERMIT;
+    public static final CombiningAlgorithm DEFAULT = new CombiningAlgorithm(PRIORITY_PERMIT, DENY, ABSTAIN);
 
     private final SelectedCombiningAlgorithmRepository selectedCombiningAlgorithmRepository;
     private final PDPConfigurationPublisher            pdpConfigurationPublisher;

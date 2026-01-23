@@ -34,8 +34,8 @@ import io.sapl.server.ce.model.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
-import io.sapl.vaadin.lsp.JsonEditorLsp;
-import io.sapl.vaadin.lsp.JsonEditorLspConfiguration;
+import io.sapl.vaadin.lsp.JsonEditor;
+import io.sapl.vaadin.lsp.JsonEditorConfiguration;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
@@ -63,7 +63,7 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
     private final Button    saveButton    = new Button("Save");
     private final Button    cancelButton  = new Button("Cancel");
 
-    private JsonEditorLsp jsonEditor;
+    private JsonEditor jsonEditor;
 
     /**
      * The {@link Variable} to edit.
@@ -73,11 +73,11 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
     public EditVariableView(VariablesService variableService) {
         this.variableService = variableService;
 
-        var jsonEditorConfig = new JsonEditorLspConfiguration();
+        var jsonEditorConfig = new JsonEditorConfiguration();
         jsonEditorConfig.setHasLineNumbers(true);
         jsonEditorConfig.setDarkTheme(true);
         jsonEditorConfig.setLint(true);
-        this.jsonEditor = new JsonEditorLsp(jsonEditorConfig);
+        this.jsonEditor = new JsonEditor(jsonEditorConfig);
         add(nameTextField, jsonEditor, new HorizontalLayout(cancelButton, saveButton));
     }
 

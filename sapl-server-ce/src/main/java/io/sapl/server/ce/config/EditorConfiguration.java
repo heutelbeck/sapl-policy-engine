@@ -17,7 +17,7 @@
  */
 package io.sapl.server.ce.config;
 
-import io.sapl.vaadin.lsp.JsonEditorLspConfiguration;
+import io.sapl.vaadin.lsp.JsonEditorConfiguration;
 import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,13 +49,13 @@ class EditorConfiguration {
     }
 
     /**
-     * Registers the bean {@link JsonEditorLspConfiguration} for JSON editing.
+     * Registers the bean {@link JsonEditorConfiguration} for JSON editing.
      *
      * @return the editor configuration
      */
     @Bean
-    JsonEditorLspConfiguration jsonEditorLspConfiguration() {
-        var configuration = new JsonEditorLspConfiguration();
+    JsonEditorConfiguration jsonEditorLspConfiguration() {
+        var configuration = new JsonEditorConfiguration();
         configuration.setHasLineNumbers(true);
         configuration.setLint(true);
         return configuration;

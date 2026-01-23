@@ -17,6 +17,10 @@
  */
 package io.sapl.test.junit;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
@@ -99,12 +103,12 @@ public class JUnitTestAdapter {
 
     /**
      * Override to specify a custom combining algorithm for integration tests.
-     * Default is DENY_OVERRIDES.
+     * Default is priority deny or abstain errors propagate.
      *
      * @return the combining algorithm to use
      */
     protected CombiningAlgorithm getDefaultCombiningAlgorithm() {
-        return CombiningAlgorithm.DENY_OVERRIDES;
+        return new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE);
     }
 
     /**

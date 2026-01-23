@@ -34,6 +34,10 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicyVoterMetadata;
 import io.sapl.ast.PolicySetVoterMetadata;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.BodyCoverage;
@@ -227,7 +231,7 @@ class CoverageExtractorTests {
     private VoteWithCoverage buildPolicySetVoteWithCoverage(String setName, Outcome outcome, Decision decision,
             boolean targetMatched) {
         val voter     = new PolicySetVoterMetadata(setName, "default", "config", null,
-                CombiningAlgorithm.DENY_OVERRIDES, outcome, false);
+                new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), outcome, false);
         val targetHit = targetMatched ? new Coverage.TargetResult(Value.TRUE, sourceLocation(1))
                 : new Coverage.TargetResult(Value.FALSE, sourceLocation(1));
 

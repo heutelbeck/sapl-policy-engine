@@ -17,6 +17,10 @@
  */
 package io.sapl.test.plain;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 
@@ -33,7 +37,8 @@ import java.util.Map;
  *
  * <pre>{@code
  * var security = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2)
- *         .withSaplTestDocument(testDoc).withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+ *         .withSaplTestDocument(testDoc)
+ *         .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE))
  *         .withFunctionLibrary(TemporalFunctionLibrary.class).build();
  * }</pre>
  */
@@ -66,7 +71,8 @@ public record TestConfiguration(
     public static class Builder {
         private final List<SaplDocument>     saplDocuments           = new ArrayList<>();
         private final List<SaplTestDocument> saplTestDocuments       = new ArrayList<>();
-        private CombiningAlgorithm           defaultAlgorithm        = CombiningAlgorithm.DENY_OVERRIDES;
+        private CombiningAlgorithm           defaultAlgorithm        = new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN,
+                PROPAGATE);
         private final Map<String, Value>     pdpVariables            = new HashMap<>();
         private final List<Class<?>>         functionLibraries       = new ArrayList<>();
         private final List<Object>           policyInformationPoints = new ArrayList<>();

@@ -44,7 +44,7 @@ import java.util.Map;
  * <pre>{@code
  * var security = TestConfiguration.builder().withSaplDocument(SaplDocument.of("myPolicy", policySource))
  *         .withSaplTestDocument(SaplTestDocument.of("myTest", testSource))
- *         .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).build();
+ *         .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).build();
  *
  * var adapter = new PlainTestAdapter();
  *

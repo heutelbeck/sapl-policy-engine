@@ -17,6 +17,13 @@
  */
 package io.sapl.compiler.pdp;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.FIRST;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -73,8 +80,8 @@ class PdpCompilerTests {
         @Test
         @DisplayName("parsing failure returns INDETERMINATE with coverage")
         void whenParsingFails_thenReturnsIndeterminateWithCoverage() {
-            val config = new PDPConfiguration("test-pdp", "config-1", CombiningAlgorithm.DENY_OVERRIDES,
-                    List.of(INVALID_POLICY), Map.of());
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(INVALID_POLICY), Map.of());
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
 
@@ -97,7 +104,8 @@ class PdpCompilerTests {
         @Test
         @DisplayName("name collision returns INDETERMINATE with coverage")
         void whenNameCollision_thenReturnsIndeterminateWithCoverage() {
-            val config = new PDPConfiguration("test-pdp", "config-1", CombiningAlgorithm.DENY_OVERRIDES,
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE),
                     List.of(DUPLICATE_NAME_POLICY, DUPLICATE_NAME_POLICY), Map.of());
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
@@ -118,7 +126,7 @@ class PdpCompilerTests {
         @Test
         @DisplayName("FIRST algorithm at PDP level returns INDETERMINATE with coverage")
         void whenFirstAlgorithmAtPdpLevel_thenReturnsIndeterminateWithCoverage() {
-            val config = new PDPConfiguration("test-pdp", "config-1", CombiningAlgorithm.FIRST_APPLICABLE,
+            val config = new PDPConfiguration("test-pdp", "config-1", new CombiningAlgorithm(FIRST, ABSTAIN, PROPAGATE),
                     List.of(VALID_POLICY), Map.of());
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
@@ -164,8 +172,8 @@ class PdpCompilerTests {
         }
 
         static Stream<Arguments> priorityAlgorithmCases() {
-            return Stream.of(arguments(CombiningAlgorithm.DENY_OVERRIDES, Decision.DENY),
-                    arguments(CombiningAlgorithm.PERMIT_OVERRIDES, Decision.PERMIT));
+            return Stream.of(arguments(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), Decision.DENY),
+                    arguments(new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE), Decision.PERMIT));
         }
 
         @ParameterizedTest(name = "{0} with conflicting policies returns {1}")
@@ -183,8 +191,8 @@ class PdpCompilerTests {
         @Test
         @DisplayName("unique algorithm with single policy returns that policy's decision")
         void whenUniqueWithSinglePolicy_thenReturnsPolicyDecision() {
-            val config = new PDPConfiguration("test-pdp", "config-1", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
-                    List.of(VALID_POLICY), Map.of());
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(VALID_POLICY), Map.of());
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
 
@@ -197,8 +205,8 @@ class PdpCompilerTests {
         @Test
         @DisplayName("unique algorithm with multiple applicable policies returns INDETERMINATE")
         void whenUniqueWithMultipleApplicable_thenReturnsIndeterminate() {
-            val config = new PDPConfiguration("test-pdp", "config-1", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
-                    List.of(POLICY_A, POLICY_B), Map.of());
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(POLICY_A, POLICY_B), Map.of());
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
 

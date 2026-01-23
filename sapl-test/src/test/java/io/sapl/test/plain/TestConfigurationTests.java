@@ -18,6 +18,12 @@
 package io.sapl.test.plain;
 
 import io.sapl.api.model.Value;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +44,7 @@ class TestConfigurationTests {
 
         assertThat(config.saplDocuments()).isEmpty();
         assertThat(config.saplTestDocuments()).isEmpty();
-        assertThat(config.defaultAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(config.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
         assertThat(config.pdpVariables()).isEmpty();
         assertThat(config.functionLibraries()).isEmpty();
         assertThat(config.policyInformationPoints()).isEmpty();
@@ -93,9 +99,10 @@ class TestConfigurationTests {
     @Test
     @DisplayName("builder with custom combining algorithm")
     void whenSettingCombiningAlgorithm_thenConfigurationUsesIt() {
-        var config = TestConfiguration.builder().withDefaultAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES).build();
+        var config = TestConfiguration.builder()
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE)).build();
 
-        assertThat(config.defaultAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(config.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE));
     }
 
     @Test
@@ -185,13 +192,13 @@ class TestConfigurationTests {
         var timeout  = Duration.ofSeconds(5);
 
         var config = TestConfiguration.builder().withSaplDocument(document).withSaplTestDocument(testDoc)
-                .withDefaultAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE).withVariable("key", Value.of("value"))
-                .withFunctionLibrary(Object.class).withPolicyInformationPoint(pip).withFailFast(true)
-                .withVerificationTimeout(timeout).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE))
+                .withVariable("key", Value.of("value")).withFunctionLibrary(Object.class)
+                .withPolicyInformationPoint(pip).withFailFast(true).withVerificationTimeout(timeout).build();
 
         assertThat(config.saplDocuments()).containsExactly(document);
         assertThat(config.saplTestDocuments()).containsExactly(testDoc);
-        assertThat(config.defaultAlgorithm()).isEqualTo(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
+        assertThat(config.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE));
         assertThat(config.pdpVariables()).containsEntry("key", Value.of("value"));
         assertThat(config.functionLibraries()).containsExactly(Object.class);
         assertThat(config.policyInformationPoints()).containsExactly(pip);

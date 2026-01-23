@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.vaadin.flow.component.*;
-import com.vaadin.flow.component.HasValue.ValueChangeEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -53,11 +52,15 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.ast.Document;
 import io.sapl.compiler.ast.SAPLCompiler;
 import io.sapl.compiler.pdp.TimestampedVote;
@@ -73,8 +76,8 @@ import io.sapl.playground.examples.ExamplesCollection;
 import io.sapl.playground.ui.components.DecisionsGrid;
 import io.sapl.playground.ui.components.DocumentationDrawer;
 import io.sapl.vaadin.*;
-import io.sapl.vaadin.lsp.JsonEditorLsp;
-import io.sapl.vaadin.lsp.JsonEditorLspConfiguration;
+import io.sapl.vaadin.lsp.JsonEditor;
+import io.sapl.vaadin.lsp.JsonEditorConfiguration;
 import io.sapl.vaadin.lsp.SaplEditorLsp;
 import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
 import io.sapl.vaadin.lsp.graph.JsonGraphVisualization;
@@ -211,10 +214,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_AUTHORIZATION_SUBSCRIPTION = "Authorization Subscription";
     private static final String LABEL_BUFFER                     = "Buffer";
     private static final String LABEL_CLOSE                      = "Close";
-    private static final String LABEL_COMBINING_ALGORITHM        = "Combining Algorithm";
+    private static final String LABEL_COMBINING_ALGORITHM        = "Combining Algorithm:";
     private static final String LABEL_COPY_TO_CLIPBOARD          = "Copy to Clipboard";
     private static final String LABEL_DECISIONS                  = "Decisions";
     private static final String LABEL_ERRORS                     = "Errors";
+    private static final String LABEL_ERRORS_SEPARATOR           = "errors";
     private static final String LABEL_EXAMPLES                   = "Examples";
     private static final String LABEL_FOLLOW_LATEST_DECISION     = "Follow Latest";
     private static final String LABEL_FORMAT_JSON                = "Format JSON";
@@ -222,6 +226,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_JSON_REPORT                = "JSON Report";
     private static final String LABEL_LOAD_EXAMPLE               = "Load Example";
     private static final String LABEL_NEW_POLICY                 = "+ New Policy";
+    private static final String LABEL_OR                         = "or";
     private static final String LABEL_REPORT                     = "Report";
     private static final String LABEL_SAPL_HOMEPAGE              = "SAPL Homepage";
     private static final String LABEL_SAPL_LOGO                  = "SAPL Logo";
@@ -294,10 +299,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private TabSheet                leftTabSheet;
     private Tab                     variablesTab;
-    private JsonEditorLsp           variablesEditor;
+    private JsonEditor              variablesEditor;
     private ValidationStatusDisplay variablesValidationDisplay;
 
-    private JsonEditorLsp           subscriptionEditor;
+    private JsonEditor              subscriptionEditor;
     private ValidationStatusDisplay subscriptionValidationDisplay;
 
     private Button                            playStopButton;
@@ -308,14 +313,16 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Checkbox                          clearOnNewSubscriptionCheckBox;
     private Checkbox                          followLatestDecisionCheckbox;
 
-    private JsonEditorLsp          decisionJsonEditorLsp;
-    private JsonEditorLsp          decisionJsonReportEditor;
-    private JsonEditorLsp          decisionJsonTraceEditor;
+    private JsonEditor             decisionJsonEditor;
+    private JsonEditor             decisionJsonReportEditor;
+    private JsonEditor             decisionJsonTraceEditor;
     private JsonGraphVisualization traceGraphVisualization;
     private Div                    errorsDisplayArea;
     private TextArea               reportTextArea;
 
-    private ComboBox<CombiningAlgorithm> combiningAlgorithmComboBox;
+    private ComboBox<VotingMode>      votingModeComboBox;
+    private ComboBox<DefaultDecision> defaultDecisionComboBox;
+    private ComboBox<ErrorHandling>   errorHandlingComboBox;
 
     private boolean              isScrollLockActive;
     private boolean              isFollowLatestDecisionActive;
@@ -611,7 +618,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates the subscription JSON editor.
      */
-    private JsonEditorLsp createSubscriptionEditor() {
+    private JsonEditor createSubscriptionEditor() {
         val editor = createJsonEditorLsp(true);
         editor.setWidthFull();
         editor.setHeight(CSS_VALUE_SIZE_200PX);
@@ -687,7 +694,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Formats JSON content in an editor.
      */
-    private void formatJsonEditorLsp(JsonEditorLsp editor) {
+    private void formatJsonEditorLsp(JsonEditor editor) {
         val jsonString = editor.getDocument();
         try {
             val json = mapper.readTree(jsonString);
@@ -1016,9 +1023,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         try {
             val prettyJson = mapper.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(timestampedVote.vote().authorizationDecision());
-            decisionJsonEditorLsp.setDocument(prettyJson);
+            decisionJsonEditor.setDocument(prettyJson);
         } catch (JsonProcessingException exception) {
-            decisionJsonEditorLsp.setDocument(MESSAGE_ERROR_READING_DECISION + timestampedVote);
+            decisionJsonEditor.setDocument(MESSAGE_ERROR_READING_DECISION + timestampedVote);
         }
     }
 
@@ -1085,7 +1092,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Clears all decision detail displays.
      */
     private void clearDecisionDetailsView() {
-        decisionJsonEditorLsp.setDocument("");
+        decisionJsonEditor.setDocument("");
         decisionJsonTraceEditor.setDocument("");
         decisionJsonReportEditor.setDocument("");
         reportTextArea.setValue("");
@@ -1153,8 +1160,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates the decision JSON tab.
      */
     private Component createDecisionJsonTab() {
-        decisionJsonEditorLsp = createReadOnlyJsonEditorLsp();
-        return createLayoutWithClipboard(decisionJsonEditorLsp, decisionJsonEditorLsp::getDocument);
+        decisionJsonEditor = createReadOnlyJsonEditorLsp();
+        return createLayoutWithClipboard(decisionJsonEditor, decisionJsonEditor::getDocument);
     }
 
     /*
@@ -1676,12 +1683,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         title.getStyle().set(CSS_FONT_SIZE, CSS_VALUE_FONT_SIZE_XL).set(CSS_FONT_WEIGHT, CSS_VALUE_WEIGHT_600)
                 .set(CSS_TEXT_ALIGN, CSS_VALUE_CENTER).set(CSS_FLEX_GROW, CSS_VALUE_ONE);
 
-        combiningAlgorithmComboBox = createCombiningAlgorithmComboBox();
-        val examplesMenu = createExamplesMenu();
-        val shareButton  = createShareButton();
-        val homepageLink = createHomepageLink();
+        val combiningAlgorithmLayout = createCombiningAlgorithmLayout();
+        val examplesMenu             = createExamplesMenu();
+        val shareButton              = createShareButton();
+        val homepageLink             = createHomepageLink();
 
-        val leftSection = new HorizontalLayout(logo, examplesMenu, combiningAlgorithmComboBox);
+        val leftSection = new HorizontalLayout(logo, examplesMenu, combiningAlgorithmLayout);
         leftSection.setAlignItems(FlexComponent.Alignment.CENTER);
         leftSection.setSpacing(true);
 
@@ -1737,7 +1744,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val policies            = collectAllPolicyDocuments();
         val subscription        = subscriptionEditor.getDocument();
         val variables           = variablesEditor.getDocument();
-        val combiningAlgorithm  = combiningAlgorithmComboBox.getValue();
+        val combiningAlgorithm  = getCurrentCombiningAlgorithm();
         val selectedPolicyIndex = getSelectedPolicyIndex();
 
         return new PermalinkService.PlaygroundState(policies, subscription, variables, combiningAlgorithm,
@@ -1810,23 +1817,55 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         dialog.open();
     }
 
-    private static final List<CombiningAlgorithm> STANDARD_COMBINING_ALGORITHMS = List.of(
-            CombiningAlgorithm.DENY_OVERRIDES, CombiningAlgorithm.PERMIT_OVERRIDES,
-            CombiningAlgorithm.ONLY_ONE_APPLICABLE, CombiningAlgorithm.DENY_UNLESS_PERMIT,
-            CombiningAlgorithm.PERMIT_UNLESS_DENY, CombiningAlgorithm.FIRST_APPLICABLE);
+    private static final List<VotingMode> VOTING_MODES = List.of(VotingMode.PRIORITY_DENY, VotingMode.PRIORITY_PERMIT,
+            VotingMode.UNANIMOUS, VotingMode.UNANIMOUS_STRICT, VotingMode.UNIQUE);
 
     /*
-     * Creates combining algorithm selection combobox.
+     * Creates combining algorithm selection layout with 3 comboboxes.
      */
-    private ComboBox<CombiningAlgorithm> createCombiningAlgorithmComboBox() {
-        val comboBox = new ComboBox<CombiningAlgorithm>();
-        comboBox.setPlaceholder(LABEL_COMBINING_ALGORITHM);
-        comboBox.setItems(STANDARD_COMBINING_ALGORITHMS);
-        comboBox.setItemLabelGenerator(PlaygroundView::formatAlgorithmName);
-        comboBox.addValueChangeListener(this::handleAlgorithmChange);
-        comboBox.setWidth(CSS_VALUE_SIZE_16EM);
-        comboBox.setValue(CombiningAlgorithm.DENY_OVERRIDES);
-        return comboBox;
+    private HorizontalLayout createCombiningAlgorithmLayout() {
+        votingModeComboBox = new ComboBox<>();
+        votingModeComboBox.setItems(VOTING_MODES);
+        votingModeComboBox.setItemLabelGenerator(PlaygroundView::formatVotingMode);
+        votingModeComboBox.setValue(VotingMode.PRIORITY_DENY);
+        votingModeComboBox.addValueChangeListener(event -> handleAlgorithmComponentChange());
+
+        defaultDecisionComboBox = new ComboBox<>();
+        defaultDecisionComboBox.setItems(DefaultDecision.values());
+        defaultDecisionComboBox.setItemLabelGenerator(PlaygroundView::formatDefaultDecision);
+        defaultDecisionComboBox.setValue(DefaultDecision.ABSTAIN);
+        defaultDecisionComboBox.addValueChangeListener(event -> handleAlgorithmComponentChange());
+
+        errorHandlingComboBox = new ComboBox<>();
+        errorHandlingComboBox.setItems(ErrorHandling.values());
+        errorHandlingComboBox.setItemLabelGenerator(PlaygroundView::formatErrorHandling);
+        errorHandlingComboBox.setValue(ErrorHandling.PROPAGATE);
+        errorHandlingComboBox.addValueChangeListener(event -> handleAlgorithmComponentChange());
+
+        val algorithmLabel = new Span(LABEL_COMBINING_ALGORITHM);
+        val orLabel        = new Span(LABEL_OR);
+        val errorsLabel    = new Span(LABEL_ERRORS_SEPARATOR);
+
+        val layout = new HorizontalLayout(algorithmLabel, votingModeComboBox, orLabel, defaultDecisionComboBox,
+                errorsLabel, errorHandlingComboBox);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+        layout.setSpacing(true);
+        layout.addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.BorderRadius.MEDIUM,
+                LumoUtility.Padding.SMALL);
+
+        return layout;
+    }
+
+    private static String formatVotingMode(VotingMode mode) {
+        return mode.name().replace('_', ' ').toLowerCase();
+    }
+
+    private static String formatDefaultDecision(DefaultDecision decision) {
+        return decision.name().toLowerCase();
+    }
+
+    private static String formatErrorHandling(ErrorHandling handling) {
+        return handling.name().toLowerCase();
     }
 
     /*
@@ -2058,10 +2097,20 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Sets combining algorithm without triggering change event.
      */
     private void setCombiningAlgorithmQuietly(CombiningAlgorithm algorithm) {
-        if (combiningAlgorithmComboBox != null) {
-            combiningAlgorithmComboBox.setValue(algorithm);
+        if (votingModeComboBox != null && defaultDecisionComboBox != null && errorHandlingComboBox != null) {
+            votingModeComboBox.setValue(algorithm.votingMode());
+            defaultDecisionComboBox.setValue(algorithm.defaultDecision());
+            errorHandlingComboBox.setValue(algorithm.errorHandling());
             policyDecisionPoint.setCombiningAlgorithm(algorithm);
         }
+    }
+
+    /*
+     * Gets the current combining algorithm from the 3 comboboxes.
+     */
+    private CombiningAlgorithm getCurrentCombiningAlgorithm() {
+        return new CombiningAlgorithm(votingModeComboBox.getValue(), defaultDecisionComboBox.getValue(),
+                errorHandlingComboBox.getValue());
     }
 
     /*
@@ -2072,24 +2121,16 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /*
-     * Handles combining algorithm change.
+     * Handles change in any combining algorithm component.
      */
-    private void handleAlgorithmChange(ValueChangeEvent<CombiningAlgorithm> event) {
-        this.policyDecisionPoint.setCombiningAlgorithm(event.getValue());
-    }
-
-    /*
-     * Formats algorithm name for display.
-     */
-    private static String formatAlgorithmName(CombiningAlgorithm algorithm) {
-        var name = algorithm.votingMode().name().replace('_', ' ').toLowerCase();
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    private void handleAlgorithmComponentChange() {
+        this.policyDecisionPoint.setCombiningAlgorithm(getCurrentCombiningAlgorithm());
     }
 
     /*
      * Creates read-only JSON editor.
      */
-    private JsonEditorLsp createReadOnlyJsonEditorLsp() {
+    private JsonEditor createReadOnlyJsonEditorLsp() {
         val editor = createJsonEditorLsp(false);
         editor.getElement().getStyle().set(CSS_WIDTH, CSS_VALUE_SIZE_100PCT);
         return editor;
@@ -2098,13 +2139,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates JSON editor with specified configuration.
      */
-    private JsonEditorLsp createJsonEditorLsp(boolean hasLineNumbers) {
-        val config = new JsonEditorLspConfiguration();
+    private JsonEditor createJsonEditorLsp(boolean hasLineNumbers) {
+        val config = new JsonEditorConfiguration();
         config.setHasLineNumbers(hasLineNumbers);
         config.setDarkTheme(true);
         config.setReadOnly(!hasLineNumbers);
         config.setLint(hasLineNumbers);
-        return new JsonEditorLsp(config);
+        return new JsonEditor(config);
     }
 
     /*

@@ -23,7 +23,7 @@ import lombok.Data;
  * Configuration object to initialize the JSON Editor.
  */
 @Data
-public class JsonEditorLspConfiguration {
+public class JsonEditorConfiguration {
     private boolean darkTheme;
     private boolean readOnly;
     private boolean hasLineNumbers = true;

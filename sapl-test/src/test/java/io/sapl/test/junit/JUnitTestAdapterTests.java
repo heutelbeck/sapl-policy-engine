@@ -17,6 +17,11 @@
  */
 package io.sapl.test.junit;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,10 +50,11 @@ class JUnitTestAdapterTests {
     }
 
     @Test
-    @DisplayName("returns DENY_OVERRIDES as default combining algorithm")
-    void whenGettingDefaultCombiningAlgorithm_thenReturnsDenyOverrides() {
+    @DisplayName("returns priority deny or abstain errors propagate as default combining algorithm")
+    void whenGettingDefaultCombiningAlgorithm_thenReturnsPriorityDenyAbstainPropagate() {
         var adapter = new JUnitTestAdapter();
-        assertThat(adapter.getDefaultCombiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(adapter.getDefaultCombiningAlgorithm())
+                .isEqualTo(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
     }
 
     @Test
@@ -68,11 +74,12 @@ class JUnitTestAdapterTests {
             var adapter = new JUnitTestAdapter() {
                 @Override
                 protected CombiningAlgorithm getDefaultCombiningAlgorithm() {
-                    return CombiningAlgorithm.PERMIT_OVERRIDES;
+                    return new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE);
                 }
             };
 
-            assertThat(adapter.getDefaultCombiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+            assertThat(adapter.getDefaultCombiningAlgorithm())
+                    .isEqualTo(new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE));
         }
 
         @Test

@@ -19,6 +19,11 @@ package io.sapl.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.Value;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import org.junit.jupiter.api.DisplayName;
@@ -97,7 +102,8 @@ class SaplTestFixtureTests {
                 .build();
         return Stream.of(
                 arguments("withCombiningAlgorithm",
-                        (Consumer<SaplTestFixture>) f -> f.withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)),
+                        (Consumer<SaplTestFixture>) f -> f
+                                .withCombiningAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE))),
                 arguments("withConfigurationFromDirectory",
                         (Consumer<SaplTestFixture>) f -> f.withConfigurationFromDirectory("/some/path")),
                 arguments("withConfigFile", (Consumer<SaplTestFixture>) f -> f.withConfigFile("/some/pdp.json")),
@@ -116,7 +122,7 @@ class SaplTestFixtureTests {
     @Test
     void whenAddingMultiplePoliciesInIntegrationMode_thenSucceeds() {
         var fixture = SaplTestFixture.createIntegrationTest().withPolicy(PERMIT_ALL_POLICY).withPolicy(DENY_ALL_POLICY)
-                .withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES);
+                .withCombiningAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
 
         assertThat(fixture).isNotNull();
     }
@@ -195,8 +201,8 @@ class SaplTestFixtureTests {
     @Test
     void whenChainingConfigurationMethods_thenAllAreApplied() {
         var fixture = SaplTestFixture.createIntegrationTest().withPolicy(PERMIT_ALL_POLICY).withPolicy(DENY_ALL_POLICY)
-                .withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES).givenVariable("maxRetries", Value.of(5))
-                .givenFunction("time.dayOfWeek", args(), Value.of("MONDAY"))
+                .withCombiningAlgorithm(new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE))
+                .givenVariable("maxRetries", Value.of(5)).givenFunction("time.dayOfWeek", args(), Value.of("MONDAY"))
                 .givenEnvironmentAttribute("currentTemp", "env.temperature", args(), Value.of(25));
 
         assertThat(fixture.getMockingFunctionBroker().hasMock("time.dayOfWeek")).isTrue();

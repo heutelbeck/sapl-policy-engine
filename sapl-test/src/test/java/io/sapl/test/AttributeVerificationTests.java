@@ -17,6 +17,10 @@
  */
 package io.sapl.test;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.test.plain.PlainTestAdapter;
 import io.sapl.test.plain.SaplDocument;
@@ -53,7 +57,7 @@ class AttributeVerificationTests {
                 .withSaplDocuments(List.of(SaplDocument.of("location-policy", locationPolicy),
                         SaplDocument.of("role-policy", rolePolicy), SaplDocument.of("bypass-policy", bypassPolicy)))
                 .withSaplTestDocuments(List.of(SaplTestDocument.of("positive-tests", tests)))
-                .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).build();
 
         var adapter = new PlainTestAdapter();
         var results = adapter.execute(config);
@@ -72,7 +76,7 @@ class AttributeVerificationTests {
                 .withSaplDocuments(List.of(SaplDocument.of("location-policy", locationPolicy),
                         SaplDocument.of("role-policy", rolePolicy)))
                 .withSaplTestDocuments(List.of(SaplTestDocument.of("negative-tests", tests)))
-                .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).build();
 
         var adapter = new PlainTestAdapter();
         var results = adapter.execute(config);

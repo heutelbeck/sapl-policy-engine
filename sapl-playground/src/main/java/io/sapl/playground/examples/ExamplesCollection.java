@@ -17,6 +17,10 @@
  */
 package io.sapl.playground.examples;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import lombok.experimental.UtilityClass;
 
@@ -48,7 +52,7 @@ public class ExamplesCollection {
                         var now = <time.now>;
                         var hour = time.hourOf(now);
                         hour >= 9 && hour < 17;
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "alice", "role": "employee" },
                        "action"      : "access",
@@ -76,7 +80,7 @@ public class ExamplesCollection {
                         subject.role == "doctor";
                         // And the patient record and the subject must both originate from the same department.
                         resource.department == subject.department;
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "alice",
@@ -124,7 +128,7 @@ public class ExamplesCollection {
                         // and does not require any polling. This is an example for a temporal
                         // logic policy.
                     """),
-            CombiningAlgorithm.DENY_OVERRIDES, """
+            new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "role": "doctor", "department": "cardiology"},
                        "action"      : "read",
@@ -146,7 +150,7 @@ public class ExamplesCollection {
                     policy "permit regular users"
                     permit
                         subject.role == "user";
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "authenticated": true, "role": "user", "status": "suspended" },
                        "action"      : "access",
@@ -192,7 +196,7 @@ public class ExamplesCollection {
                                 subject.role == "doctor";
                                 resource.department == subject.department;
                             """),
-            CombiningAlgorithm.DENY_OVERRIDES, """
+            new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "house", "position": "doctor", "department": "diagnostics" },
                        "action"      : "read",
@@ -215,7 +219,7 @@ public class ExamplesCollection {
                         action == "access";
                         // Containment check: subject.location âˆˆ resource.perimeter
                         geo.within(subject.location, resource.perimeter);
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "alice",
                                         "location": { "type": "Point", "coordinates": [5, 5] } },
@@ -238,7 +242,7 @@ public class ExamplesCollection {
                         action == "access";
                         // Geodesic proximity check in meters (WGS84)
                         geo.isWithinGeodesicDistance(subject.location, resource.facility.location, 200);
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "bob",
                                         "location": { "type": "Point",
@@ -260,7 +264,7 @@ public class ExamplesCollection {
                         action.type == "export";
                         // Block if there is any spatial overlap with restricted zones
                         geo.intersects(action.requestedArea, environment.restrictedArea);
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "carol" },
                       "action"      : { "type": "export",
@@ -285,7 +289,7 @@ public class ExamplesCollection {
                         action.type == "navigate";
                         // All action.waypoints must be elements of subject.authorizedPoints
                         geo.subset(action.waypoints, subject.authorizedPoints);
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "dave",
                                         "authorizedPoints": { "type": "GeometryCollection",
@@ -314,7 +318,7 @@ public class ExamplesCollection {
                         action.type == "inspect";
                         // Buffer width is in same units as coordinates; for planar toy data this is fine
                         geo.touches(geo.buffer(resource.assetFootprint, 10), action.inspectionPath);
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "erin" },
                       "action"      : { "type": "inspect",
@@ -336,7 +340,7 @@ public class ExamplesCollection {
                         action.type == "ingest";
                         var geom = geo.wktToGeoJSON(action.geometryWkt);
                         geo.within(geom, resource.allowedZone);
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "frank" },
                       "action"      : { "type": "ingest", "geometryWkt": "POINT (5 5)" },
@@ -382,7 +386,7 @@ public class ExamplesCollection {
                         // This implements "no write down" - cannot write below clearance level
                         // Prevents information from flowing downward to less secure levels
                         subject.clearance_level <= resource.classification_level;
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "alice",
@@ -440,7 +444,7 @@ public class ExamplesCollection {
 
                         // Compartment check for write operations
                         array.containsAny(subject.departments, resource.required_departments);
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "bob",
@@ -522,7 +526,7 @@ public class ExamplesCollection {
                     permit
                         action == "read" & resource.type == "financial_report";
                         subject.role == "financial_analyst";
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "analyst_sarah",
@@ -617,7 +621,7 @@ public class ExamplesCollection {
                             "message": "Consultant " + subject.username + " accessed client " + resource.entity,
                             "audit": true
                         }
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "consultant_mike",
@@ -697,7 +701,7 @@ public class ExamplesCollection {
                         // "no write up" - prevents writing to more trustworthy data
                         // Low-integrity processes cannot corrupt high-integrity data
                         subject.integrity_level <= resource.integrity_level;
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "build_service",
@@ -754,7 +758,7 @@ public class ExamplesCollection {
                        // permit
                        //   var permissions = { ... };
                        //   { "type" : resource.type, "action": action } in permissions[(subject.role)];
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "alice", "role": "customer" },
                        "action"      : "read",
@@ -797,7 +801,7 @@ public class ExamplesCollection {
                       // Finally check if the required permission action is contained in the
                       // effectivePermission of the subject.
                       { "action" : action, "type" : resource.type } in effectivePermissions;
-                    """), CombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "alice", "roles": [ "cso", "market-analyst" ] },
                        "action"      : "read",

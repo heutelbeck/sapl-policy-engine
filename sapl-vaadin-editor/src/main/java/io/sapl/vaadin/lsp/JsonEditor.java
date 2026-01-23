@@ -45,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @JsModule("./json-editor-lsp.js")
 @NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
 @NpmPackage(value = "@codemirror/merge", version = "6.11.2")
-public class JsonEditorLsp extends Component implements HasSize {
+public class JsonEditor extends Component implements HasSize {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
@@ -69,8 +69,8 @@ public class JsonEditorLsp extends Component implements HasSize {
     /**
      * Creates a JSON editor with default configuration.
      */
-    public JsonEditorLsp() {
-        this(new JsonEditorLspConfiguration());
+    public JsonEditor() {
+        this(new JsonEditorConfiguration());
     }
 
     /**
@@ -78,13 +78,13 @@ public class JsonEditorLsp extends Component implements HasSize {
      *
      * @param config the editor configuration
      */
-    public JsonEditorLsp(JsonEditorLspConfiguration config) {
+    public JsonEditor(JsonEditorConfiguration config) {
         getElement().getStyle().set(ElementConstants.STYLE_WIDTH, "100%");
         getElement().getStyle().set(ElementConstants.STYLE_HEIGHT, "100%");
         applyConfiguration(config);
     }
 
-    private void applyConfiguration(JsonEditorLspConfiguration config) {
+    private void applyConfiguration(JsonEditorConfiguration config) {
         Element element = getElement();
         element.setProperty(PROP_IS_DARK_THEME, config.isDarkTheme());
         element.setProperty(PROP_IS_READ_ONLY, config.isReadOnly());

@@ -17,6 +17,10 @@
  */
 package io.sapl.test;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.test.plain.PlainTestAdapter;
 import io.sapl.test.plain.PlainTestResults;
@@ -103,7 +107,7 @@ class ResourceMatcherTests {
                         new SaplDocument("resource-text-policy", "resource-text-policy", textPolicy, null),
                         new SaplDocument("resource-number-policy", "resource-number-policy", numberPolicy, null)))
                 .withSaplTestDocuments(List.of(new SaplTestDocument("positive-tests", "positive-tests", tests)))
-                .withDefaultAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE)).build();
 
         return new PlainTestAdapter().execute(config);
     }
@@ -121,7 +125,7 @@ class ResourceMatcherTests {
                         new SaplDocument("resource-text-policy", "resource-text-policy", textPolicy, null),
                         new SaplDocument("no-resource-policy", "no-resource-policy", noResourcePolicy, null)))
                 .withSaplTestDocuments(List.of(new SaplTestDocument("negative-tests", "negative-tests", tests)))
-                .withDefaultAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_PERMIT, ABSTAIN, PROPAGATE)).build();
 
         return new PlainTestAdapter().execute(config);
     }

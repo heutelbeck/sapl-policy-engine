@@ -20,6 +20,10 @@ package io.sapl.playground.domain;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.compiler.ast.SAPLCompiler;
@@ -60,7 +64,7 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
     private final AtomicReference<List<String>>               currentPolicySources = new AtomicReference<>(List.of());
     private final AtomicReference<Map<String, Value>>         currentVariables     = new AtomicReference<>(Map.of());
     private final AtomicReference<CombiningAlgorithm>         currentAlgorithm     = new AtomicReference<>(
-            CombiningAlgorithm.DENY_OVERRIDES);
+            new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
     private final AtomicLong                                  configurationVersion = new AtomicLong(0);
     private final AtomicReference<Optional<CompiledPdpVoter>> currentConfiguration = new AtomicReference<>(
             Optional.empty());

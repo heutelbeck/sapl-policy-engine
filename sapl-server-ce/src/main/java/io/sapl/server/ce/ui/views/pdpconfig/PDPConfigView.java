@@ -21,10 +21,12 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
@@ -47,6 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.Serial;
+import java.util.List;
 
 @Slf4j
 @RolesAllowed("ADMIN")
@@ -59,12 +62,19 @@ public class PDPConfigView extends VerticalLayout {
 
     public static final String ROUTE = "pdp-security";
 
+    private static final String LABEL_COMBINING_ALGORITHM = "Combining Algorithm:";
+    private static final String LABEL_ERRORS_SEPARATOR    = "errors";
+    private static final String LABEL_OR                  = "or";
+
+    private static final List<VotingMode> VOTING_MODES = List.of(VotingMode.PRIORITY_DENY, VotingMode.PRIORITY_PERMIT,
+            VotingMode.UNANIMOUS, VotingMode.UNANIMOUS_STRICT, VotingMode.UNIQUE);
+
     private transient CombiningAlgorithmService combiningAlgorithmService;
     private transient VariablesService          variablesService;
 
-    private final ComboBox<VotingMode>      votingModeCombo      = new ComboBox<>("Voting Mode");
-    private final ComboBox<DefaultDecision> defaultDecisionCombo = new ComboBox<>("Default Decision");
-    private final ComboBox<ErrorHandling>   errorHandlingCombo   = new ComboBox<>("Error Handling");
+    private final ComboBox<VotingMode>      votingModeCombo      = new ComboBox<>();
+    private final ComboBox<DefaultDecision> defaultDecisionCombo = new ComboBox<>();
+    private final ComboBox<ErrorHandling>   errorHandlingCombo   = new ComboBox<>();
     private final Grid<Variable>            variablesGrid        = new Grid<>();
     private final Button                    createVariableButton = new Button("New Variable");
 
@@ -76,21 +86,32 @@ public class PDPConfigView extends VerticalLayout {
         this.combiningAlgorithmService = combiningAlgorithmService;
         this.variablesService          = variablesService;
 
-        var algorithmSection = new VerticalLayout();
-        algorithmSection.add(new H3("Combining Algorithm"));
-        var algorithmRow = new HorizontalLayout(votingModeCombo, defaultDecisionCombo, errorHandlingCombo);
-        algorithmSection.add(algorithmRow);
+        var algorithmLayout = createCombiningAlgorithmLayout();
 
-        add(algorithmSection, createVariableButton, variablesGrid);
+        add(algorithmLayout, createVariableButton, variablesGrid);
 
         initUiForCombiningAlgorithm();
         initUiForVariables();
     }
 
+    private HorizontalLayout createCombiningAlgorithmLayout() {
+        var algorithmLabel = new Span(LABEL_COMBINING_ALGORITHM);
+        var orLabel        = new Span(LABEL_OR);
+        var errorsLabel    = new Span(LABEL_ERRORS_SEPARATOR);
+
+        var layout = new HorizontalLayout(algorithmLabel, votingModeCombo, orLabel, defaultDecisionCombo, errorsLabel,
+                errorHandlingCombo);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+        layout.setSpacing(true);
+        layout.addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.BorderRadius.MEDIUM,
+                LumoUtility.Padding.SMALL);
+
+        return layout;
+    }
+
     private void initUiForCombiningAlgorithm() {
-        // Voting Mode
-        votingModeCombo.setItems(VotingMode.values());
-        votingModeCombo.setItemLabelGenerator(VotingMode::name);
+        votingModeCombo.setItems(VOTING_MODES);
+        votingModeCombo.setItemLabelGenerator(PDPConfigView::formatVotingMode);
         votingModeCombo.setValue(combiningAlgorithmService.getVotingMode());
         votingModeCombo.addValueChangeListener(event -> {
             if (isIgnoringNextVotingModeChange) {
@@ -106,9 +127,8 @@ public class PDPConfigView extends VerticalLayout {
                     });
         });
 
-        // Default Decision
         defaultDecisionCombo.setItems(DefaultDecision.values());
-        defaultDecisionCombo.setItemLabelGenerator(DefaultDecision::name);
+        defaultDecisionCombo.setItemLabelGenerator(PDPConfigView::formatDefaultDecision);
         defaultDecisionCombo.setValue(combiningAlgorithmService.getDefaultDecision());
         defaultDecisionCombo.addValueChangeListener(event -> {
             if (isIgnoringNextDefaultDecisionChange) {
@@ -124,9 +144,8 @@ public class PDPConfigView extends VerticalLayout {
                     });
         });
 
-        // Error Handling
         errorHandlingCombo.setItems(ErrorHandling.values());
-        errorHandlingCombo.setItemLabelGenerator(ErrorHandling::name);
+        errorHandlingCombo.setItemLabelGenerator(PDPConfigView::formatErrorHandling);
         errorHandlingCombo.setValue(combiningAlgorithmService.getErrorHandling());
         errorHandlingCombo.addValueChangeListener(event -> {
             if (isIgnoringNextErrorHandlingChange) {
@@ -141,6 +160,18 @@ public class PDPConfigView extends VerticalLayout {
                         errorHandlingCombo.setValue(event.getOldValue());
                     });
         });
+    }
+
+    private static String formatVotingMode(VotingMode mode) {
+        return mode.name().replace('_', ' ').toLowerCase();
+    }
+
+    private static String formatDefaultDecision(DefaultDecision decision) {
+        return decision.name().toLowerCase();
+    }
+
+    private static String formatErrorHandling(ErrorHandling handling) {
+        return handling.name().toLowerCase();
     }
 
     private void initUiForVariables() {

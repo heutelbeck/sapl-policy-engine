@@ -27,6 +27,10 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.attributes.CachingAttributeBroker;
@@ -946,7 +950,7 @@ public class SaplTestFixture {
 
     private CombiningAlgorithm resolveAlgorithm() {
         if (singleTestMode) {
-            return CombiningAlgorithm.ONLY_ONE_APPLICABLE;
+            return new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE);
         }
         if (combiningAlgorithm != null) {
             return combiningAlgorithm;

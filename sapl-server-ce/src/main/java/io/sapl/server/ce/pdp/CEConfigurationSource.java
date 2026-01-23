@@ -23,6 +23,10 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.DENY;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -69,7 +73,7 @@ public class CEConfigurationSource
 
     private final AtomicReference<Map<String, Value>>         currentVariables     = new AtomicReference<>(Map.of());
     private final AtomicReference<CombiningAlgorithm>         currentAlgorithm     = new AtomicReference<>(
-            CombiningAlgorithm.DENY_UNLESS_PERMIT);
+            new CombiningAlgorithm(PRIORITY_PERMIT, DENY, ABSTAIN));
     private final AtomicLong                                  configurationVersion = new AtomicLong(0);
     private final AtomicReference<Optional<CompiledPdpVoter>> currentConfiguration = new AtomicReference<>(
             Optional.empty());

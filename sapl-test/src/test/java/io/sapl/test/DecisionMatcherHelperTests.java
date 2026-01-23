@@ -17,6 +17,10 @@
  */
 package io.sapl.test;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.test.plain.*;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +48,7 @@ class DecisionMatcherHelperTests {
         var config = TestConfiguration.builder()
                 .withSaplDocuments(List.of(new SaplDocument("obligation-policy", "obligation-policy", policy, null)))
                 .withSaplTestDocuments(List.of(new SaplTestDocument("positive-tests", "positive-tests", tests)))
-                .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).build();
 
         var adapter = new PlainTestAdapter();
         var results = adapter.execute(config);
@@ -61,7 +65,7 @@ class DecisionMatcherHelperTests {
         var config = TestConfiguration.builder()
                 .withSaplDocuments(List.of(new SaplDocument("obligation-policy", "obligation-policy", policy, null)))
                 .withSaplTestDocuments(List.of(new SaplTestDocument("negative-tests", "negative-tests", tests)))
-                .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).build();
 
         var adapter = new PlainTestAdapter();
         var results = adapter.execute(config);
@@ -117,7 +121,7 @@ class DecisionMatcherHelperTests {
         var config = TestConfiguration.builder()
                 .withSaplDocuments(List.of(new SaplDocument("obligation-policy", "obligation-policy", policy, null)))
                 .withSaplTestDocuments(List.of(new SaplTestDocument("negative-tests", "negative-tests", tests)))
-                .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).build();
+                .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).build();
 
         var adapter = new PlainTestAdapter();
         var results = adapter.execute(config);
