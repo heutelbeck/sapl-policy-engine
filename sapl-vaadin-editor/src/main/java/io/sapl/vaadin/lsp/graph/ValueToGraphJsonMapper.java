@@ -57,7 +57,7 @@ public class ValueToGraphJsonMapper {
      * @return JSON string representation
      */
     public static String toJsonString(Value value) {
-        return ValueJsonMarshaller.toJsonNode(value).toString();
+        return ValueJsonMarshaller.toJsonNodeLenient(value).toString();
     }
 
     /**
@@ -71,7 +71,7 @@ public class ValueToGraphJsonMapper {
      * @return pretty-printed JSON string representation
      */
     public static String toPrettyJsonString(Value value) {
-        val json = ValueJsonMarshaller.toJsonNode(value);
+        val json = ValueJsonMarshaller.toJsonNodeLenient(value);
         try {
             return OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
         } catch (Exception exception) {

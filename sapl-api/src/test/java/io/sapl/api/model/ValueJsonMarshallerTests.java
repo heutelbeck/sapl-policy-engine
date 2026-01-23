@@ -51,7 +51,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "round-trip null: {0}")
     @MethodSource("nullValues")
     @DisplayName("Round-trip null preserves value")
-    void when_roundTripNull_then_preservesValue(String description, Value value) {
+    void whenRoundTripNullThenPreservesValue(String description, Value value) {
         var node   = ValueJsonMarshaller.toJsonNode(value);
         var result = ValueJsonMarshaller.fromJsonNode(node);
 
@@ -65,7 +65,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "round-trip boolean: {0}")
     @ValueSource(booleans = { true, false })
     @DisplayName("Round-trip boolean preserves value")
-    void when_roundTripBoolean_then_preservesValue(boolean value) {
+    void whenRoundTripBooleanThenPreservesValue(boolean value) {
         var original = Value.of(value);
         var node     = ValueJsonMarshaller.toJsonNode(original);
         var result   = ValueJsonMarshaller.fromJsonNode(node);
@@ -78,7 +78,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "round-trip number: {0}")
     @MethodSource("numberValues")
     @DisplayName("Round-trip number preserves value")
-    void when_roundTripNumber_then_preservesValue(BigDecimal value) {
+    void whenRoundTripNumberThenPreservesValue(BigDecimal value) {
         var original = Value.of(value);
         var node     = ValueJsonMarshaller.toJsonNode(original);
         var result   = ValueJsonMarshaller.fromJsonNode(node);
@@ -100,7 +100,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "round-trip text: {0}")
     @MethodSource("textValues")
     @DisplayName("Round-trip text preserves value")
-    void when_roundTripText_then_preservesValue(String description, String value) {
+    void whenRoundTripTextThenPreservesValue(String description, String value) {
         var original = Value.of(value);
         var node     = ValueJsonMarshaller.toJsonNode(original);
         var result   = ValueJsonMarshaller.fromJsonNode(node);
@@ -121,7 +121,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "round-trip double: {0}")
     @MethodSource("doubleValues")
     @DisplayName("Round-trip double preserves value")
-    void when_roundTripDouble_then_preservesValue(String description, double value) {
+    void whenRoundTripDoubleThenPreservesValue(String description, double value) {
         var original = Value.of(value);
         var node     = ValueJsonMarshaller.toJsonNode(original);
         var result   = ValueJsonMarshaller.fromJsonNode(node);
@@ -139,7 +139,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "round-trip empty: {0}")
     @MethodSource("emptyCollections")
     @DisplayName("Round-trip empty collection preserves value")
-    void when_roundTripEmptyCollection_then_preservesValue(String description, Value original, Class<?> expectedType) {
+    void whenRoundTripEmptyCollectionThenPreservesValue(String description, Value original, Class<?> expectedType) {
         var node   = ValueJsonMarshaller.toJsonNode(original);
         var result = ValueJsonMarshaller.fromJsonNode(node);
 
@@ -154,7 +154,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("Round-trip simple array preserves value")
-    void when_roundTripSimpleArray_then_preservesValue() {
+    void whenRoundTripSimpleArrayThenPreservesValue() {
         var original = Value.ofArray(Value.of(ENTITY_CTHULHU), Value.of(ENTITY_AZATHOTH),
                 Value.of(ENTITY_NYARLATHOTEP));
         var node     = ValueJsonMarshaller.toJsonNode(original);
@@ -167,7 +167,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("Round-trip mixed type array preserves value")
-    void when_roundTripMixedTypeArray_then_preservesValue() {
+    void whenRoundTripMixedTypeArrayThenPreservesValue() {
         var original = Value.ofArray(Value.of(true), Value.of(SANITY_THRESHOLD), Value.of(LOCATION_RLYEH), Value.NULL,
                 Value.ofArray(Value.of("nested")));
         var node     = ValueJsonMarshaller.toJsonNode(original);
@@ -179,7 +179,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("Round-trip simple object preserves value")
-    void when_roundTripSimpleObject_then_preservesValue() {
+    void whenRoundTripSimpleObjectThenPreservesValue() {
         var original = Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU), "location", Value.of(LOCATION_RLYEH),
                 "sanity", Value.of(SANITY_THRESHOLD), "awakened", Value.of(false)));
         var node     = ValueJsonMarshaller.toJsonNode(original);
@@ -192,7 +192,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("Round-trip nested object preserves value")
-    void when_roundTripNestedObject_then_preservesValue() {
+    void whenRoundTripNestedObjectThenPreservesValue() {
         var original = Value.ofObject(Map.of("cultist",
                 Value.ofObject(Map.of("name", Value.of("Abdul Alhazred"), "title", Value.of("Mad Arab"), "sanity",
                         Value.of(0))),
@@ -205,7 +205,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("Round-trip complex structure preserves value")
-    void when_roundTripComplexStructure_then_preservesValue() {
+    void whenRoundTripComplexStructureThenPreservesValue() {
         var original = Value.ofObject(Map.of("entities",
                 Value.ofArray(
                         Value.ofObject(Map.of("name", Value.of(ENTITY_CTHULHU), "location", Value.of(LOCATION_RLYEH),
@@ -222,7 +222,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("Round-trip access control policy preserves value")
-    void when_roundTripAccessControlPolicy_then_preservesValue() {
+    void whenRoundTripAccessControlPolicyThenPreservesValue() {
         var original = Value.ofObject(Map.of("subject",
                 Value.ofObject(Map.of("userId", Value.of("alice"), "clearanceLevel", Value.of(3), "roles",
                         Value.ofArray(Value.of("analyst"), Value.of("viewer")))),
@@ -239,14 +239,14 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toJsonNode with null rejects null")
-    void when_toJsonNodeWithNull_then_rejectsNull() {
+    void whenToJsonNodeWithNullThenRejectsNull() {
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonNode(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Cannot marshall null to JsonNode.");
     }
 
     @Test
     @DisplayName("toJsonNode with undefined rejects undefined")
-    void when_toJsonNodeWithUndefined_then_rejectsUndefinedValue() {
+    void whenToJsonNodeWithUndefinedThenRejectsUndefinedValue() {
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonNode(Value.UNDEFINED))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Cannot marshall UndefinedValue to JSON");
@@ -254,7 +254,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toJsonNode with error rejects error")
-    void when_toJsonNodeWithError_then_rejectsErrorValue() {
+    void whenToJsonNodeWithErrorThenRejectsErrorValue() {
         var error = Value.error("Eldritch horror encountered");
 
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonNode(error)).isInstanceOf(IllegalArgumentException.class)
@@ -264,7 +264,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toJsonNode with nested undefined rejects")
-    void when_toJsonNodeWithNestedUndefined_then_rejectsNestedUndefined() {
+    void whenToJsonNodeWithNestedUndefinedThenRejectsNestedUndefined() {
         var arrayWithUndefined = Value.ofArray(Value.of(ENTITY_CTHULHU), Value.UNDEFINED);
 
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonNode(arrayWithUndefined))
@@ -273,7 +273,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toJsonNode with nested error rejects")
-    void when_toJsonNodeWithNestedError_then_rejectsNestedError() {
+    void whenToJsonNodeWithNestedErrorThenRejectsNestedError() {
         var objectWithError = Value
                 .ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU), "status", Value.error("Gone mad")));
 
@@ -284,7 +284,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "fromJsonNode handles: {0}")
     @MethodSource("specialJsonNodes")
     @DisplayName("fromJsonNode handles special nodes correctly")
-    void when_fromJsonNodeWithSpecialNodes_then_handlesCorrectly(String description, JsonNode node, Value expected) {
+    void whenFromJsonNodeWithSpecialNodesThenHandlesCorrectly(String description, JsonNode node, Value expected) {
         var result = ValueJsonMarshaller.fromJsonNode(node);
 
         assertThat(result).isEqualTo(expected);
@@ -299,7 +299,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "fromJsonNode returns error for: {0}")
     @MethodSource("unsupportedJsonNodes")
     @DisplayName("fromJsonNode returns error for unsupported types")
-    void when_fromJsonNodeWithUnsupportedType_then_returnsError(String description, JsonNode node) {
+    void whenFromJsonNodeWithUnsupportedTypeThenReturnsError(String description, JsonNode node) {
         var result = ValueJsonMarshaller.fromJsonNode(node);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -316,7 +316,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "isJsonCompatible true for: {0}")
     @MethodSource("jsonCompatibleValues")
     @DisplayName("isJsonCompatible returns true for compatible values")
-    void when_isJsonCompatibleWithCompatibleValue_then_returnsTrue(String description, Value value) {
+    void whenIsJsonCompatibleWithCompatibleValueThenReturnsTrue(String description, Value value) {
         assertThat(ValueJsonMarshaller.isJsonCompatible(value)).isTrue();
     }
 
@@ -335,7 +335,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "isJsonCompatible false for: {0}")
     @MethodSource("jsonIncompatibleValues")
     @DisplayName("isJsonCompatible returns false for incompatible values")
-    void when_isJsonCompatibleWithIncompatibleValue_then_returnsFalse(String description, Value value) {
+    void whenIsJsonCompatibleWithIncompatibleValueThenReturnsFalse(String description, Value value) {
         assertThat(ValueJsonMarshaller.isJsonCompatible(value)).isFalse();
     }
 
@@ -351,13 +351,13 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("isJsonCompatible with null returns false")
-    void when_isJsonCompatibleWithNull_then_returnsFalse() {
+    void whenIsJsonCompatibleWithNullThenReturnsFalse() {
         assertThat(ValueJsonMarshaller.isJsonCompatible(null)).isFalse();
     }
 
     @Test
     @DisplayName("isJsonCompatible with incompatible value does not throw")
-    void when_isJsonCompatibleWithIncompatible_then_doesNotThrow() {
+    void whenIsJsonCompatibleWithIncompatibleThenDoesNotThrow() {
         assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(Value.UNDEFINED)).doesNotThrowAnyException();
         assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(Value.error("test"))).doesNotThrowAnyException();
         assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(null)).doesNotThrowAnyException();
@@ -368,7 +368,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "toJsonNode rejects excessive depth: {0}")
     @MethodSource("excessivelyDeepValueStructures")
     @DisplayName("toJsonNode rejects excessive depth")
-    void when_toJsonNodeWithExcessiveDepth_then_rejects(String description, Value deepStructure) {
+    void whenToJsonNodeWithExcessiveDepthThenRejects(String description, Value deepStructure) {
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonNode(deepStructure))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("Maximum nesting depth exceeded.");
     }
@@ -381,7 +381,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toJsonNode with max depth accepts")
-    void when_toJsonNodeWithMaxDepth_then_accepts() {
+    void whenToJsonNodeWithMaxDepthThenAccepts() {
         var deepArray = createDeeplyNestedArray(ValueJsonMarshaller.MAX_DEPTH);
 
         assertThatCode(() -> ValueJsonMarshaller.toJsonNode(deepArray)).doesNotThrowAnyException();
@@ -390,7 +390,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "fromJsonNode rejects excessive depth: {0}")
     @MethodSource("excessivelyDeepJsonNodes")
     @DisplayName("fromJsonNode returns error for excessive depth")
-    void when_fromJsonNodeWithExcessiveDepth_then_returnsError(String description, JsonNode deepNode) {
+    void whenFromJsonNodeWithExcessiveDepthThenReturnsError(String description, JsonNode deepNode) {
         var result = ValueJsonMarshaller.fromJsonNode(deepNode);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -404,7 +404,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("fromJsonNode with max depth accepts")
-    void when_fromJsonNodeWithMaxDepth_then_accepts() {
+    void whenFromJsonNodeWithMaxDepthThenAccepts() {
         var deepNode = createDeeplyNestedJsonArray(ValueJsonMarshaller.MAX_DEPTH);
         var result   = ValueJsonMarshaller.fromJsonNode(deepNode);
 
@@ -460,7 +460,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("json() with empty string returns error")
-    void when_jsonWithEmptyString_then_returnsErrorForMissingNode() {
+    void whenJsonWithEmptyStringThenReturnsErrorForMissingNode() {
         var result = ValueJsonMarshaller.json("");
 
         assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
@@ -490,21 +490,21 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toJsonString with null throws")
-    void when_toJsonStringWithNull_then_throws() {
+    void whenToJsonStringWithNullThenThrows() {
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonString(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Cannot marshall null to JsonNode.");
     }
 
     @Test
     @DisplayName("toJsonString with undefined throws")
-    void when_toJsonStringWithUndefined_then_throws() {
+    void whenToJsonStringWithUndefinedThenThrows() {
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonString(Value.UNDEFINED))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("UndefinedValue");
     }
 
     @Test
     @DisplayName("toJsonString with error throws")
-    void when_toJsonStringWithError_then_throws() {
+    void whenToJsonStringWithErrorThenThrows() {
         var error = Value.error("Eldritch horror");
 
         assertThatThrownBy(() -> ValueJsonMarshaller.toJsonString(error)).isInstanceOf(IllegalArgumentException.class)
@@ -516,7 +516,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "round-trip edge case: {0}")
     @MethodSource("edgeCaseStructures")
     @DisplayName("Round-trip edge cases preserve value")
-    void when_roundTripEdgeCase_then_preservesValue(String description, Value original) {
+    void whenRoundTripEdgeCaseThenPreservesValue(String description, Value original) {
         var node   = ValueJsonMarshaller.toJsonNode(original);
         var result = ValueJsonMarshaller.fromJsonNode(node);
 
@@ -619,7 +619,7 @@ class ValueJsonMarshallerTests {
     @ParameterizedTest(name = "toPrettyString primitive: {0}")
     @MethodSource("primitivePrettyStringCases")
     @DisplayName("toPrettyString formats primitives correctly")
-    void when_toPrettyStringWithPrimitive_then_formatsCorrectly(String description, Value value, String expected) {
+    void whenToPrettyStringWithPrimitiveThenFormatsCorrectly(String description, Value value, String expected) {
         assertThat(ValueJsonMarshaller.toPrettyString(value)).isEqualTo(expected);
     }
 
@@ -638,14 +638,14 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toPrettyString with empty collections formats compact")
-    void when_toPrettyStringWithEmptyCollections_then_formatsCompact() {
+    void whenToPrettyStringWithEmptyCollectionsThenFormatsCompact() {
         assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_ARRAY)).isNotNull().isEqualTo("[]");
         assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_OBJECT)).isNotNull().isEqualTo("{}");
     }
 
     @Test
     @DisplayName("toPrettyString with simple array formats on one line")
-    void when_toPrettyStringWithSimpleArray_then_formatsOnOneLine() {
+    void whenToPrettyStringWithSimpleArrayThenFormatsOnOneLine() {
         var array = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
 
         assertThat(ValueJsonMarshaller.toPrettyString(array)).isNotNull().isEqualTo("[1, 2, 3]");
@@ -653,7 +653,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toPrettyString with complex array formats with indentation")
-    void when_toPrettyStringWithComplexArray_then_formatsWithIndentation() {
+    void whenToPrettyStringWithComplexArrayThenFormatsWithIndentation() {
         var array = Value.ofArray(Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU))),
                 Value.ofObject(Map.of("entity", Value.of(ENTITY_AZATHOTH))));
 
@@ -673,7 +673,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toPrettyString with object formats with indentation")
-    void when_toPrettyStringWithObject_then_formatsWithIndentation() {
+    void whenToPrettyStringWithObjectThenFormatsWithIndentation() {
         var object = Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU), "location", Value.of(LOCATION_RLYEH),
                 "sanity", Value.of(SANITY_THRESHOLD)));
 
@@ -685,7 +685,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toPrettyString with nested object formats with proper indentation")
-    void when_toPrettyStringWithNestedObject_then_formatsWithProperIndentation() {
+    void whenToPrettyStringWithNestedObjectThenFormatsWithProperIndentation() {
         var nested = Value.ofObject(Map.of("outer", Value.ofObject(Map.of("inner", Value.of("deep horror")))));
 
         var result   = ValueJsonMarshaller.toPrettyString(nested);
@@ -701,7 +701,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toPrettyString with mixed structure formats correctly")
-    void when_toPrettyStringWithMixedStructure_then_formatsCorrectly() {
+    void whenToPrettyStringWithMixedStructureThenFormatsCorrectly() {
         var decision = Value.ofObject(Map.of("decision", Value.of("PERMIT"), "obligations",
                 Value.ofArray(Value.of("log"), Value.of("notify")), "resource",
                 Value.ofObject(Map.of("filtered", Value.TRUE))));
@@ -715,7 +715,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toPrettyString with error with location includes location")
-    void when_toPrettyStringWithErrorWithLocation_then_includesLocation() {
+    void whenToPrettyStringWithErrorWithLocationThenIncludesLocation() {
         var error = new ErrorValue("Access denied", null, new SourceLocation("policy.sapl", null, 5, 20, 10, 10));
 
         var result = ValueJsonMarshaller.toPrettyString(error);
@@ -726,7 +726,7 @@ class ValueJsonMarshallerTests {
 
     @Test
     @DisplayName("toPrettyString with traced decision produces readable output")
-    void when_toPrettyStringWithTracedDecision_then_producesReadableOutput() {
+    void whenToPrettyStringWithTracedDecisionThenProducesReadableOutput() {
         var traced = Value.ofObject(Map.of("name", Value.of("permit-all"), "entitlement", Value.of("PERMIT"),
                 "decision", Value.of("PERMIT"), "obligations", Value.EMPTY_ARRAY, "advice", Value.EMPTY_ARRAY,
                 "resource", Value.UNDEFINED, "attributes",
@@ -738,5 +738,97 @@ class ValueJsonMarshallerTests {
 
         assertThat(result).isNotNull().contains("\"name\": \"permit-all\"").contains("\"decision\": \"PERMIT\"")
                 .contains("\"resource\": undefined").contains("\"time.now\"");
+    }
+
+    // Lenient Marshalling Tests
+
+    @Test
+    @DisplayName("toJsonNodeLenient serializes undefined as typed object")
+    void whenUndefinedThenToJsonNodeLenientSerializesAsTypedObject() {
+        var result = ValueJsonMarshaller.toJsonNodeLenient(Value.UNDEFINED);
+
+        assertThat(result.isObject()).isTrue();
+        assertThat(result).hasSize(1);
+        assertThat(result.get("_type").asText()).isEqualTo("undefined");
+    }
+
+    @Test
+    @DisplayName("toJsonNodeLenient serializes error as typed object with message")
+    void whenErrorThenToJsonNodeLenientSerializesAsTypedObjectWithMessage() {
+        var error  = Value.error("Something went wrong");
+        var result = ValueJsonMarshaller.toJsonNodeLenient(error);
+
+        assertThat(result.isObject()).isTrue();
+        assertThat(result.get("_type").asText()).isEqualTo("error");
+        assertThat(result.get("message").asText()).isEqualTo("Something went wrong");
+    }
+
+    @Test
+    @DisplayName("toJsonNodeLenient serializes error with location fields")
+    void whenErrorWithLocationThenToJsonNodeLenientIncludesLocationFields() {
+        var location = new SourceLocation("policy.sapl", "source code here", 10, 50, 5, 10, 5, 30);
+        var error    = new ErrorValue("Parse error", null, location);
+
+        var result = ValueJsonMarshaller.toJsonNodeLenient(error);
+
+        assertThat(result.get("_type").asText()).isEqualTo("error");
+        assertThat(result.get("message").asText()).isEqualTo("Parse error");
+        assertThat(result.get("documentName").asText()).isEqualTo("policy.sapl");
+        assertThat(result.get("line").asInt()).isEqualTo(5);
+        assertThat(result.get("column").asInt()).isEqualTo(10);
+        assertThat(result.get("endLine").asInt()).isEqualTo(5);
+        assertThat(result.get("endColumn").asInt()).isEqualTo(30);
+        assertThat(result.has("documentSource")).isFalse();
+    }
+
+    @Test
+    @DisplayName("toJsonNodeLenient serializes nested undefined in array")
+    void whenArrayWithUndefinedThenToJsonNodeLenientSerializesNestedUndefined() {
+        var array  = Value.ofArray(Value.of("visible"), Value.UNDEFINED, Value.of(42));
+        var result = ValueJsonMarshaller.toJsonNodeLenient(array);
+
+        assertThat(result.isArray()).isTrue();
+        assertThat(result.get(0).asText()).isEqualTo("visible");
+        assertThat(result.get(1).get("_type").asText()).isEqualTo("undefined");
+        assertThat(result.get(2).asInt()).isEqualTo(42);
+    }
+
+    @Test
+    @DisplayName("toJsonNodeLenient serializes nested error in object")
+    void whenObjectWithErrorThenToJsonNodeLenientSerializesNestedError() {
+        var object = Value.ofObject(Map.of("status", Value.of("failed"), "error", Value.error("Database timeout")));
+        var result = ValueJsonMarshaller.toJsonNodeLenient(object);
+
+        assertThat(result.isObject()).isTrue();
+        assertThat(result.get("status").asText()).isEqualTo("failed");
+        assertThat(result.get("error").get("_type").asText()).isEqualTo("error");
+        assertThat(result.get("error").get("message").asText()).isEqualTo("Database timeout");
+    }
+
+    @Test
+    @DisplayName("toJsonStringLenient returns valid JSON for error")
+    void whenErrorThenToJsonStringLenientReturnsValidJson() {
+        var error  = Value.error("Test error");
+        var result = ValueJsonMarshaller.toJsonStringLenient(error);
+
+        assertThat(result).contains("\"_type\":\"error\"").contains("\"message\":\"Test error\"");
+    }
+
+    @Test
+    @DisplayName("toJsonNodeLenient with null throws")
+    void whenNullThenToJsonNodeLenientThrows() {
+        assertThatThrownBy(() -> ValueJsonMarshaller.toJsonNodeLenient(null))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Cannot marshall null to JsonNode.");
+    }
+
+    @Test
+    @DisplayName("toJsonNodeLenient handles regular values unchanged")
+    void whenRegularValueThenToJsonNodeLenientBehavesLikeToJsonNode() {
+        var value = Value.ofObject(Map.of("name", Value.of(ENTITY_CTHULHU), "sanity", Value.of(0)));
+
+        var lenientResult = ValueJsonMarshaller.toJsonNodeLenient(value);
+        var strictResult  = ValueJsonMarshaller.toJsonNode(value);
+
+        assertThat(lenientResult).isEqualTo(strictResult);
     }
 }

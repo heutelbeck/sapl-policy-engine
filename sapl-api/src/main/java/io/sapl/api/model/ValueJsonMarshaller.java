@@ -28,6 +28,8 @@ import java.io.Serial;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
+import static java.util.stream.Collectors.joining;
+
 /**
  * Marshalling between SAPL Value types and JSON.
  * <p>
@@ -44,6 +46,10 @@ public class ValueJsonMarshaller {
 
     private static final String ERROR_FAILED_TO_PARSE_JSON   = "Failed to parse JSON: %s";
     private static final String ERROR_UNKNOWN_JSON_NODE_TYPE = "Unknown JsonNode type: %s.";
+
+    private static final String TYPE_FIELD     = "_type";
+    private static final String TYPE_UNDEFINED = "undefined";
+    private static final String TYPE_ERROR     = "error";
 
     /**
      * Checks whether a Value can be marshalled to JSON without throwing.
@@ -73,34 +79,62 @@ public class ValueJsonMarshaller {
     /**
      * Converts a Value to a Jackson JsonNode.
      *
-     * @param value
-     * the value to convert
-     *
+     * @param value the value to convert
      * @return JsonNode representation
-     *
-     * @throws IllegalArgumentException
-     * if value is null, UndefinedValue, ErrorValue, or depth exceeds limit
+     * @throws IllegalArgumentException if value is null, UndefinedValue,
+     * ErrorValue, or depth exceeds limit
      */
     public static JsonNode toJsonNode(Value value) {
         if (value == null) {
             throw new IllegalArgumentException("Cannot marshall null to JsonNode.");
         }
-        return toJsonNode(value, 0);
+        return toJsonNode(value, 0, false);
+    }
+
+    /**
+     * Converts a Value to a Jackson JsonNode, including UndefinedValue and
+     * ErrorValue as JSON objects.
+     * <p>
+     * UndefinedValue is serialized as: {@code { "_type": "undefined" }}
+     * <p>
+     * ErrorValue is serialized as:
+     * {@code { "_type": "error", "message": "...", ... }} with location fields
+     * if available. The cause and document source are excluded.
+     *
+     * @param value the value to convert
+     * @return JsonNode representation
+     * @throws IllegalArgumentException if value is null or depth exceeds limit
+     */
+    public static JsonNode toJsonNodeLenient(Value value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Cannot marshall null to JsonNode.");
+        }
+        return toJsonNode(value, 0, true);
     }
 
     /**
      * Converts a Value to a JSON string.
      *
-     * @param value
-     * the value to convert
-     *
+     * @param value the value to convert
      * @return JSON string representation
-     *
-     * @throws IllegalArgumentException
-     * if value is null, UndefinedValue, ErrorValue, or depth exceeds limit
+     * @throws IllegalArgumentException if value is null, UndefinedValue,
+     * ErrorValue, or depth exceeds limit
      */
     public static String toJsonString(Value value) {
         return toJsonNode(value).toString();
+    }
+
+    /**
+     * Converts a Value to a JSON string, including UndefinedValue and
+     * ErrorValue as JSON objects.
+     *
+     * @param value the value to convert
+     * @return JSON string representation
+     * @throws IllegalArgumentException if value is null or depth exceeds limit
+     * @see #toJsonNodeLenient(Value)
+     */
+    public static String toJsonStringLenient(Value value) {
+        return toJsonNodeLenient(value).toString();
     }
 
     /**
@@ -164,9 +198,7 @@ public class ValueJsonMarshaller {
             return "[]";
         }
         if (isSimpleArray(array)) {
-            return "["
-                    + array.stream().map(v -> toPrettyString(v, 0)).collect(java.util.stream.Collectors.joining(", "))
-                    + "]";
+            return "[" + array.stream().map(v -> toPrettyString(v, 0)).collect(joining(", ")) + "]";
         }
         var result      = new StringBuilder("[\n");
         var childIndent = indent + 1;
@@ -263,20 +295,51 @@ public class ValueJsonMarshaller {
         }
     }
 
-    private static JsonNode toJsonNode(Value value, int depth) {
+    private static JsonNode toJsonNode(Value value, int depth, boolean lenient) {
         checkDepthForMarshalling(depth);
         return switch (value) {
         case NullValue ignored           -> FACTORY.nullNode();
         case BooleanValue(boolean b)     -> FACTORY.booleanNode(b);
         case NumberValue(BigDecimal num) -> FACTORY.numberNode(num);
         case TextValue(String text)      -> FACTORY.textNode(text);
-        case ArrayValue array            -> toJsonArray(array, depth + 1);
-        case ObjectValue object          -> toJsonObject(object, depth + 1);
-        case UndefinedValue ignored      ->
+        case ArrayValue array            -> toJsonArray(array, depth + 1, lenient);
+        case ObjectValue object          -> toJsonObject(object, depth + 1, lenient);
+        case UndefinedValue ignored      -> {
+            if (lenient) {
+                yield toUndefinedJsonNode();
+            }
             throw new IllegalArgumentException("Cannot marshall UndefinedValue to JSON.");
-        case ErrorValue e                ->
+        }
+        case ErrorValue e                -> {
+            if (lenient) {
+                yield toErrorJsonNode(e);
+            }
             throw new IllegalArgumentException("Cannot marshall ErrorValue to JSON: " + e.message() + ".");
+        }
         };
+    }
+
+    private static JsonNode toUndefinedJsonNode() {
+        var node = FACTORY.objectNode();
+        node.put(TYPE_FIELD, TYPE_UNDEFINED);
+        return node;
+    }
+
+    private static JsonNode toErrorJsonNode(ErrorValue error) {
+        var node = FACTORY.objectNode();
+        node.put(TYPE_FIELD, TYPE_ERROR);
+        node.put("message", error.message());
+        if (error.location() != null) {
+            var loc = error.location();
+            if (loc.documentName() != null) {
+                node.put("documentName", loc.documentName());
+            }
+            node.put("line", loc.line());
+            node.put("column", loc.column());
+            node.put("endLine", loc.endLine());
+            node.put("endColumn", loc.endColumn());
+        }
+        return node;
     }
 
     private static Value fromJsonNode(JsonNode node, int depth) {
@@ -294,20 +357,20 @@ public class ValueJsonMarshaller {
         };
     }
 
-    private static JsonNode toJsonArray(ArrayValue array, int depth) {
+    private static JsonNode toJsonArray(ArrayValue array, int depth, boolean lenient) {
         checkDepthForMarshalling(depth);
         var arrayNode = FACTORY.arrayNode();
         for (var item : array) {
-            arrayNode.add(toJsonNode(item, depth));
+            arrayNode.add(toJsonNode(item, depth, lenient));
         }
         return arrayNode;
     }
 
-    private static JsonNode toJsonObject(ObjectValue object, int depth) {
+    private static JsonNode toJsonObject(ObjectValue object, int depth, boolean lenient) {
         checkDepthForMarshalling(depth);
         var objectNode = FACTORY.objectNode();
         for (var entry : object.entrySet()) {
-            objectNode.set(entry.getKey(), toJsonNode(entry.getValue(), depth));
+            objectNode.set(entry.getKey(), toJsonNode(entry.getValue(), depth, lenient));
         }
         return objectNode;
     }

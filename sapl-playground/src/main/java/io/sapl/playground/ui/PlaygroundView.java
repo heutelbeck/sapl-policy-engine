@@ -54,7 +54,6 @@ import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.api.SaplVersion;
-import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -221,7 +220,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_FORMAT_JSON                = "Format JSON";
     private static final String LABEL_JSON                       = "JSON";
     private static final String LABEL_JSON_REPORT                = "JSON Report";
-    private static final String LABEL_JSON_TRACE                 = "JSON Trace";
     private static final String LABEL_LOAD_EXAMPLE               = "Load Example";
     private static final String LABEL_NEW_POLICY                 = "+ New Policy";
     private static final String LABEL_REPORT                     = "Report";
@@ -232,6 +230,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_SHARE                      = "Share";
     private static final String LABEL_SHARE_PLAYGROUND_STATE     = "Share Playground State";
     private static final String LABEL_SUBSCRIBE                  = "Subscribe";
+    private static final String LABEL_TRACE                      = "Trace";
     private static final String LABEL_TRACE_GRAPH                = "Trace Graph";
     private static final String LABEL_UNSUBSCRIBE                = "Unsubscribe";
     private static final String LABEL_VARIABLES                  = "Variables";
@@ -1145,7 +1144,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         tabSheet.add(LABEL_ERRORS, createDecisionErrorsTab());
         tabSheet.add(LABEL_REPORT, createTextReportTab());
         tabSheet.add(LABEL_JSON_REPORT, createDecisionJsonReportTab());
-        tabSheet.add(LABEL_JSON_TRACE, createDecisionJsonTraceTab());
+        tabSheet.add(LABEL_TRACE, createDecisionJsonTraceTab());
         tabSheet.add(LABEL_TRACE_GRAPH, createTraceGraphTab());
         return tabSheet;
     }
