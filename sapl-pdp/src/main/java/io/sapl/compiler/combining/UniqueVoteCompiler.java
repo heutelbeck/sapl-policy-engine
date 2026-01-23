@@ -197,8 +197,7 @@ public class UniqueVoteCompiler {
                     return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }
 
-                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
-                streamVoters.add(Flux.empty());
+                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size());
                 for (CompiledDocument document : streamDocuments) {
                     // Short-circuit on INDETERMINATE - uniqueness cannot be determined
                     if (pureVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
@@ -212,10 +211,13 @@ public class UniqueVoteCompiler {
                         streamVoters.add(((StreamVoter) document.voter()).vote());
                     }
                 }
-                streamVoters.set(0, Flux.just(pureVote));
+                if (streamVoters.isEmpty()) {
+                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
+                }
+                val accumulator = pureVote;
                 return Flux
-                        .combineLatest(streamVoters,
-                                votes -> UniqueVoteCombiner.combineMultipleVotes(asTypedList(votes), voterMetadata))
+                        .combineLatest(streamVoters, votes -> UniqueVoteCombiner.combineMultipleVotes(accumulator,
+                                asTypedList(votes), voterMetadata))
                         .map(vote -> vote.finalizeVote(defaultDecision, errorHandling));
             });
         }

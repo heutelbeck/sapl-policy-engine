@@ -81,6 +81,33 @@ public class UnanimousVoteCombiner {
     }
 
     /**
+     * Combines votes into an existing accumulator using unanimous semantics.
+     * <p>
+     * Unlike {@link #combineMultipleVotes(List, VoterMetadata, boolean)}, this
+     * method treats the accumulator as a pre-existing collection state. Votes are
+     * folded INTO the accumulator without the accumulator itself becoming a
+     * contribution.
+     *
+     * @param accumulator the existing accumulator to fold into
+     * @param votes the votes to combine into the accumulator
+     * @param voterMetadata metadata for the combined vote
+     * @param strictMode if true, requires exact equality; if false, only
+     * entitlement agreement
+     * @return combined vote
+     */
+    public static Vote combineMultipleVotes(Vote accumulator, List<Vote> votes, VoterMetadata voterMetadata,
+            boolean strictMode) {
+        var result = accumulator;
+        for (Vote vote : votes) {
+            if (isTerminal(result, strictMode)) {
+                break;
+            }
+            result = combineVotes(result, vote, voterMetadata, strictMode);
+        }
+        return result;
+    }
+
+    /**
      * Wraps a single vote as an accumulator for fold operations.
      *
      * @param vote the vote to wrap

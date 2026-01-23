@@ -207,8 +207,7 @@ public class UnanimousVoteCompiler {
                     return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }
 
-                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
-                streamVoters.add(Flux.empty());
+                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size());
                 for (CompiledDocument document : streamDocuments) {
                     // Short-circuit on terminal INDETERMINATE
                     if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
@@ -222,10 +221,14 @@ public class UnanimousVoteCompiler {
                         streamVoters.add(((StreamVoter) document.voter()).vote());
                     }
                 }
-                streamVoters.set(0, Flux.just(pureVote));
+                if (streamVoters.isEmpty()) {
+                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
+                }
+                val accumulator = pureVote;
                 return Flux
-                        .combineLatest(streamVoters, votes -> UnanimousVoteCombiner
-                                .combineMultipleVotes(asTypedList(votes), voterMetadata, strictMode))
+                        .combineLatest(streamVoters,
+                                votes -> UnanimousVoteCombiner.combineMultipleVotes(accumulator, asTypedList(votes),
+                                        voterMetadata, strictMode))
                         .map(vote -> vote.finalizeVote(defaultDecision, errorHandling));
             });
         }

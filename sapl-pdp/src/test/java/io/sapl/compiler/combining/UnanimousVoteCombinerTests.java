@@ -554,4 +554,132 @@ class UnanimousVoteCombinerTests {
         }
     }
 
+    @Nested
+    @DisplayName("combineMultipleVotes with accumulator")
+    class CombineMultipleVotesWithAccumulatorTests {
+
+        @Test
+        @DisplayName("empty list returns accumulator unchanged")
+        void whenEmptyListThenReturnsAccumulatorUnchanged() {
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, List.of(), TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.contributingVotes()).hasSize(1).extracting(v -> v.voter().name())
+                        .containsExactly("pre-existing");
+            });
+        }
+
+        @Test
+        @DisplayName("accumulator contributing votes are preserved")
+        void whenAccumulatorHasContributingVotesThenPreserved() {
+            val preExisting = permitVote("pre-existing");
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(preExisting, TEST_METADATA);
+            val newVotes    = List.of(permitVote("p1"), permitVote("p2"));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, false);
+
+            assertThat(result.contributingVotes()).hasSize(3).extracting(v -> v.voter().name())
+                    .containsExactly("pre-existing", "p1", "p2");
+        }
+
+        @Test
+        @DisplayName("accumulator itself is not added as contribution")
+        void whenAccumulatorUsedThenNotAddedAsContribution() {
+            val preExisting = permitVote("pre-existing");
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(preExisting, TEST_METADATA);
+            val newVotes    = List.of(permitVote("p1"));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, false);
+
+            assertThat(result.contributingVotes()).hasSize(2).extracting(v -> v.voter().name())
+                    .containsExactly("pre-existing", "p1");
+        }
+
+        @Test
+        @DisplayName("agreement with accumulator decision continues")
+        void whenNewVotesAgreeWithAccumulatorThenContinues() {
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(permitVote("p1"), permitVote("p2"));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, false);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+        }
+
+        @Test
+        @DisplayName("disagreement with accumulator returns INDETERMINATE")
+        void whenNewVotesDisagreeWithAccumulatorThenIndeterminate() {
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(denyVote("p1"));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_DENY);
+            });
+        }
+
+        @Test
+        @DisplayName("short-circuits on disagreement")
+        void whenDisagreementThenShortCircuits() {
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(denyVote("p1"), permitVote("p2"));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.contributingVotes()).hasSize(2).extracting(v -> v.voter().name())
+                        .containsExactly("pre-existing", "p1");
+            });
+        }
+
+        @Test
+        @DisplayName("constraints from accumulator and new votes are merged")
+        void whenBothHaveConstraintsThenMerged() {
+            val ob1         = Value.of("{\"action\":\"log\"}");
+            val ob2         = Value.of("{\"action\":\"notify\"}");
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(permitVoteWithObligations("pre-existing", ob1),
+                    TEST_METADATA);
+            val newVotes    = List.of(permitVoteWithObligations("p1", ob2));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, false);
+
+            assertThat(result.authorizationDecision().obligations().size()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("strict mode works with accumulator")
+        void whenStrictModeAndDifferentConstraintsThenIndeterminate() {
+            val ob1         = Value.of("{\"action\":\"log\"}");
+            val ob2         = Value.of("{\"action\":\"notify\"}");
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(permitVoteWithObligations("pre-existing", ob1),
+                    TEST_METADATA);
+            val newVotes    = List.of(permitVoteWithObligations("p1", ob2));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, true);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE in accumulator short-circuits in strict mode")
+        void whenAccumulatorIndeterminateInStrictModeThenShortCircuits() {
+            val errorVote   = indeterminateVote("pre-existing", Outcome.PERMIT);
+            val accumulator = UnanimousVoteCombiner.accumulatorVoteFrom(errorVote, TEST_METADATA);
+            val newVotes    = List.of(permitVote("p1"));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA, true);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.contributingVotes()).hasSize(1);
+            });
+        }
+    }
+
 }

@@ -630,4 +630,113 @@ class PriorityBasedVoteCombinerTests {
                     .containsExactly("policy-1", "policy-2", "policy-3");
         }
     }
+
+    @Nested
+    @DisplayName("combineMultipleVotes with accumulator")
+    class CombineMultipleVotesWithAccumulatorTests {
+
+        @Test
+        @DisplayName("empty list returns accumulator unchanged")
+        void whenEmptyListThenReturnsAccumulatorUnchanged() {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, List.of(), Decision.PERMIT,
+                    TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.contributingVotes()).hasSize(1).extracting(v -> v.voter().name())
+                        .containsExactly("pre-existing");
+            });
+        }
+
+        @Test
+        @DisplayName("accumulator contributing votes are preserved")
+        void whenAccumulatorHasContributingVotesThenPreserved() {
+            val preExisting = permitVote("pre-existing");
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(preExisting, TEST_METADATA);
+            val newVotes    = List.of(denyVote("policy-1"), permitVote("policy-2"));
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, newVotes, Decision.PERMIT,
+                    TEST_METADATA);
+
+            assertThat(result.contributingVotes()).hasSize(3).extracting(v -> v.voter().name())
+                    .containsExactly("pre-existing", "policy-1", "policy-2");
+        }
+
+        @Test
+        @DisplayName("accumulator itself is not added as contribution")
+        void whenAccumulatorUsedThenNotAddedAsContribution() {
+            val preExisting = permitVote("pre-existing");
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(preExisting, TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"));
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, newVotes, Decision.PERMIT,
+                    TEST_METADATA);
+
+            assertThat(result.contributingVotes()).hasSize(2).extracting(v -> v.voter().name())
+                    .containsExactly("pre-existing", "policy-1");
+        }
+
+        @Test
+        @DisplayName("priority decision is correctly determined with accumulator")
+        void whenPriorityInNewVotesThenWins() {
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(denyVote("policy-1"), permitVote("policy-2"));
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, newVotes, Decision.PERMIT,
+                    TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+        }
+
+        @Test
+        @DisplayName("short-circuits on critical INDETERMINATE in accumulator")
+        void whenAccumulatorHasCriticalIndeterminateThenShortCircuits() {
+            val errorVote   = indeterminateVote("pre-existing", Outcome.PERMIT);
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(errorVote, TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"), permitVote("policy-2"));
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, newVotes, Decision.PERMIT,
+                    TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.contributingVotes()).hasSize(1).extracting(v -> v.voter().name())
+                        .containsExactly("pre-existing");
+            });
+        }
+
+        @Test
+        @DisplayName("non-critical INDETERMINATE in accumulator continues processing")
+        void whenAccumulatorHasNonCriticalIndeterminateThenContinues() {
+            val errorVote   = indeterminateVote("pre-existing", Outcome.DENY);
+            val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(errorVote, TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"));
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, newVotes, Decision.PERMIT,
+                    TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.contributingVotes()).hasSize(2);
+            });
+        }
+
+        @Test
+        @DisplayName("constraints from accumulator and new votes are merged")
+        void whenBothHaveConstraintsThenMerged() {
+            val obligation1 = Value.of("obligation-1");
+            val obligation2 = Value.of("obligation-2");
+            val accumulator = PriorityBasedVoteCombiner
+                    .accumulatorVoteFrom(permitWithObligations("pre-existing", obligation1), TEST_METADATA);
+            val newVotes    = List.of(permitWithObligations("policy-1", obligation2));
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, newVotes, Decision.PERMIT,
+                    TEST_METADATA);
+
+            assertThat((List<Value>) result.authorizationDecision().obligations()).containsExactly(obligation1,
+                    obligation2);
+        }
+    }
 }

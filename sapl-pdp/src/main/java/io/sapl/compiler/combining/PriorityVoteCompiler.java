@@ -154,8 +154,7 @@ public class PriorityVoteCompiler {
                 val evalCtx      = ctxView.get(EvaluationContext.class);
                 var pureVote     = combinePureVoters(accumulatorVote, pureDocuments, priorityDecision, voterMetadata,
                         evalCtx);
-                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size() + 1);
-                streamVoters.add(Flux.empty());
+                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size());
                 for (CompiledDocument document : streamDocuments) {
                     val isApplicable = evaluateApplicability(document.isApplicable(), evalCtx);
                     if (isApplicable instanceof ErrorValue error) {
@@ -166,10 +165,13 @@ public class PriorityVoteCompiler {
                         streamVoters.add(((StreamVoter) document.voter()).vote());
                     }
                 }
-                streamVoters.set(0, Flux.just(pureVote));
+                if (streamVoters.isEmpty()) {
+                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
+                }
+                val accumulator = pureVote;
                 return Flux
                         .combineLatest(streamVoters,
-                                votes -> PriorityBasedVoteCombiner.combineMultipleVotes(asTypedList(votes),
+                                votes -> PriorityBasedVoteCombiner.combineMultipleVotes(accumulator, asTypedList(votes),
                                         priorityDecision, voterMetadata))
                         .map(vote -> vote.finalizeVote(defaultDecision, errorHandling));
             });

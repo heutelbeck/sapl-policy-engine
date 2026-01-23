@@ -409,4 +409,120 @@ class UniqueVoteCombinerTests {
             assertThat(result.voter().name()).isEqualTo("combined-result");
         }
     }
+
+    @Nested
+    @DisplayName("combineMultipleVotes with accumulator")
+    class CombineMultipleVotesWithAccumulatorTests {
+
+        @Test
+        @DisplayName("empty list returns accumulator unchanged")
+        void whenEmptyListThenReturnsAccumulatorUnchanged() {
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, List.of(), TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.contributingVotes()).hasSize(1).extracting(v -> v.voter().name())
+                        .containsExactly("pre-existing");
+            });
+        }
+
+        @Test
+        @DisplayName("accumulator contributing votes are preserved")
+        void whenAccumulatorHasContributingVotesThenPreserved() {
+            val preExisting = notApplicableVote("pre-existing");
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(preExisting, TEST_METADATA);
+            val newVotes    = List.of(notApplicableVote("policy-1"), permitVote("policy-2"));
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA);
+
+            assertThat(result.contributingVotes()).hasSize(3).extracting(v -> v.voter().name())
+                    .containsExactly("pre-existing", "policy-1", "policy-2");
+        }
+
+        @Test
+        @DisplayName("accumulator itself is not added as contribution")
+        void whenAccumulatorUsedThenNotAddedAsContribution() {
+            val preExisting = notApplicableVote("pre-existing");
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(preExisting, TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"));
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA);
+
+            assertThat(result.contributingVotes()).hasSize(2).extracting(v -> v.voter().name())
+                    .containsExactly("pre-existing", "policy-1");
+        }
+
+        @Test
+        @DisplayName("single applicable in new votes with NOT_APPLICABLE accumulator returns that decision")
+        void whenAccumulatorNotApplicableAndSingleApplicableThenReturnsThatDecision() {
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(notApplicableVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"));
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+        }
+
+        @Test
+        @DisplayName("collision with accumulator returns INDETERMINATE")
+        void whenNewVoteCollidesWithAccumulatorThenIndeterminate() {
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"));
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.errors()).hasSize(1).first()
+                        .satisfies(e -> assertThat(e.message()).contains("Multiple applicable"));
+            });
+        }
+
+        @Test
+        @DisplayName("short-circuits on INDETERMINATE in accumulator")
+        void whenAccumulatorIndeterminateThenShortCircuits() {
+            val errorVote   = indeterminateVote("pre-existing", Outcome.PERMIT);
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(errorVote, TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"), permitVote("policy-2"));
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.contributingVotes()).hasSize(1).extracting(v -> v.voter().name())
+                        .containsExactly("pre-existing");
+            });
+        }
+
+        @Test
+        @DisplayName("short-circuits on collision in new votes")
+        void whenCollisionInNewVotesThenShortCircuits() {
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(notApplicableVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(permitVote("policy-1"), permitVote("policy-2"), denyVote("policy-3"));
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.contributingVotes()).hasSize(3).extracting(v -> v.voter().name())
+                        .containsExactly("pre-existing", "policy-1", "policy-2");
+            });
+        }
+
+        @Test
+        @DisplayName("NOT_APPLICABLE votes in new list do not cause collision")
+        void whenOnlyNotApplicableInNewVotesThenNoCollision() {
+            val accumulator = UniqueVoteCombiner.accumulatorVoteFrom(permitVote("pre-existing"), TEST_METADATA);
+            val newVotes    = List.of(notApplicableVote("policy-1"), notApplicableVote("policy-2"));
+
+            val result = UniqueVoteCombiner.combineMultipleVotes(accumulator, newVotes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.contributingVotes()).hasSize(3);
+            });
+        }
+    }
 }

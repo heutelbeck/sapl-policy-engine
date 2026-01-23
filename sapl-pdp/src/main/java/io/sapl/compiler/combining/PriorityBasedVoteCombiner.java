@@ -93,6 +93,34 @@ public class PriorityBasedVoteCombiner {
     }
 
     /**
+     * Combines votes into an existing accumulator using priority-based logic.
+     * <p>
+     * Unlike {@link #combineMultipleVotes(List, Decision, VoterMetadata)}, this
+     * method treats the accumulator as a pre-existing collection state. Votes are
+     * folded INTO the accumulator without the accumulator itself becoming a
+     * contribution.
+     *
+     * @param accumulator the existing accumulator to fold into
+     * @param votes the votes to combine into the accumulator
+     * @param priorityDecision the decision that wins when PERMIT conflicts with
+     * DENY
+     * @param voterMetadata metadata for the combined vote
+     * @return combined vote
+     */
+    public static Vote combineMultipleVotes(Vote accumulator, List<Vote> votes, Decision priorityDecision,
+            VoterMetadata voterMetadata) {
+        var result = accumulator;
+        for (Vote vote : votes) {
+            if (result.authorizationDecision().decision() == Decision.INDETERMINATE
+                    && isCritical(result.outcome(), priorityDecision)) {
+                break;
+            }
+            result = combineVotes(result, vote, priorityDecision, voterMetadata);
+        }
+        return result;
+    }
+
+    /**
      * Wraps a single vote as an accumulator for fold operations.
      * <p>
      * The original vote becomes the sole entry in the contributing votes list.
