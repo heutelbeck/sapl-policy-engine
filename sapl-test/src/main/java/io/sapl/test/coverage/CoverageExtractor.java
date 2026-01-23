@@ -181,7 +181,8 @@ public class CoverageExtractor {
         }
         case Coverage.BlankTargetHit ignored            -> {
             // Blank target (no "for" clause) - implicitly matches everything
-            // Don't record as a target hit since there's no target expression
+            // Record as a target hit since blank target = always applicable
+            coverage.recordTargetHit(true);
         }
         case Coverage.NoTargetHit ignored               -> {
             // Target was not evaluated (policy not reached)

@@ -146,14 +146,17 @@ public class AggregatedCoverageData {
     }
 
     /**
-     * Returns the count of standalone policies that were matched.
+     * Returns the count of standalone policies that were activated.
+     * <p>
+     * A policy is "activated" when it returned its declared entitlement
+     * (PERMIT/DENY) rather than NOT_APPLICABLE.
      *
-     * @return matched standalone policy count
+     * @return activated standalone policy count
      */
     public int getMatchedStandalonePolicyCount() {
         return (int) policyCoverageByName.values().stream()
                 .filter(coverage -> "policy".equals(coverage.getDocumentType()))
-                .filter(PolicyCoverageData::wasTargetMatched).count();
+                .filter(PolicyCoverageData::wasActivated).count();
     }
 
     /**

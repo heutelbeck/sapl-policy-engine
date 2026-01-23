@@ -236,6 +236,9 @@ public class PolicyCoverageData {
 
     /**
      * Checks if the target expression was ever matched.
+     * <p>
+     * For policy sets, this tracks the "for" clause match.
+     * For standalone policies, use {@link #wasActivated()} instead.
      *
      * @return true if targetTrueHits is greater than zero
      */
@@ -250,6 +253,22 @@ public class PolicyCoverageData {
      */
     public boolean wasTargetEvaluated() {
         return targetTrueHits > 0 || targetFalseHits > 0;
+    }
+
+    /**
+     * Checks if this policy was activated (returned its declared entitlement).
+     * <p>
+     * A policy is "activated" when its conditions pass and it returns PERMIT or
+     * DENY (not NOT_APPLICABLE). This is the appropriate "hit" metric for
+     * standalone policies that don't have explicit target expressions.
+     * <p>
+     * For policy sets, use {@link #wasTargetMatched()} to check the "for" clause.
+     *
+     * @return true if policy returned its entitlement at least once
+     */
+    public boolean wasActivated() {
+        return branchHitsByPosition.values().stream().filter(BranchHit::isPolicyOutcome)
+                .anyMatch(hit -> hit.trueHits() > 0);
     }
 
     /**
