@@ -78,14 +78,16 @@ public class ReportBuilderUtil {
         putArray(builder, FIELD_CONTRIBUTING_DOCUMENTS, report.contributingDocuments(),
                 ReportBuilderUtil::documentToValue);
         putArray(builder, FIELD_ERRORS, report.errors(), ReportBuilderUtil::errorToValue);
-        putArray(builder, FIELD_ATTRIBUTES, report.attributes(), ReportBuilderUtil::attributeToValue);
 
         return builder.build();
     }
 
     private static ObjectValue documentToValue(ContributingDocument doc) {
-        return ObjectValue.builder().put(FIELD_NAME, Value.of(doc.name()))
-                .put(FIELD_DECISION, Value.of(doc.decision().name())).build();
+        var builder = ObjectValue.builder().put(FIELD_NAME, Value.of(doc.name())).put(FIELD_DECISION,
+                Value.of(doc.decision().name()));
+        putArray(builder, FIELD_ATTRIBUTES, doc.attributes(), ReportBuilderUtil::attributeToValue);
+        putArray(builder, FIELD_ERRORS, doc.errors(), ReportBuilderUtil::errorToValue);
+        return builder.build();
     }
 
     private static ObjectValue errorToValue(ErrorValue error) {

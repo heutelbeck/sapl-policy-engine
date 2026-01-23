@@ -18,11 +18,10 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.compiler.pdp.Vote;
 import lombok.val;
@@ -45,9 +44,8 @@ import java.util.List;
  * @param configurationId the configuration identifier
  * @param algorithm combining algorithm (for policy sets)
  * @param contributingDocuments all documents that contributed to the decision
- * (flattened)
+ * (flattened), each with its own attributes
  * @param errors errors encountered during evaluation
- * @param attributes attributes accessed during evaluation
  */
 public record VoteReport(
         Decision decision,
@@ -59,8 +57,7 @@ public record VoteReport(
         String configurationId,
         CombiningAlgorithm algorithm,
         List<ContributingDocument> contributingDocuments,
-        List<ErrorValue> errors,
-        List<AttributeRecord> attributes) {
+        List<ErrorValue> errors) {
 
     /**
      * Extracts a concise report from a Vote.
@@ -78,8 +75,7 @@ public record VoteReport(
         }
 
         return new VoteReport(authz.decision(), authz.obligations(), authz.advice(), authz.resource(), voter.name(),
-                voter.pdpId(), voter.configurationId(), algorithm, collectContributingDocuments(vote), vote.errors(),
-                vote.aggregatedContributingAttributes());
+                voter.pdpId(), voter.configurationId(), algorithm, collectContributingDocuments(vote), vote.errors());
     }
 
     private static List<ContributingDocument> collectContributingDocuments(Vote vote) {
@@ -90,7 +86,8 @@ public record VoteReport(
 
     private static void collectDocumentsRecursively(List<Vote> votes, List<ContributingDocument> accumulator) {
         for (val v : votes) {
-            accumulator.add(new ContributingDocument(v.voter().name(), v.authorizationDecision().decision()));
+            accumulator.add(new ContributingDocument(v.voter().name(), v.authorizationDecision().decision(),
+                    v.contributingAttributes(), v.errors()));
             collectDocumentsRecursively(v.contributingVotes(), accumulator);
         }
     }

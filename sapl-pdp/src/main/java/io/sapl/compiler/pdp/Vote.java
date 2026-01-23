@@ -45,76 +45,103 @@ public record Vote(
         VoterMetadata voter,
         Outcome outcome) implements Voter {
 
-    // Field name constants
-    private static final String FIELD_ADVICE = "advice";
-    private static final String FIELD_ALGORITHM = "algorithm";
-    private static final String FIELD_ARGUMENTS = "arguments";
-    private static final String FIELD_ATTRIBUTE_NAME = "attributeName";
-    private static final String FIELD_ATTRIBUTES = "attributes";
-    private static final String FIELD_CONFIGURATION_ID = "configurationId";
-    private static final String FIELD_CONTRIBUTING_VOTES = "contributingVotes";
-    private static final String FIELD_DECISION = "decision";
-    private static final String FIELD_DEFAULT_DECISION = "defaultDecision";
-    private static final String FIELD_DOCUMENT_ID = "documentId";
-    private static final String FIELD_END = "end";
-    private static final String FIELD_ENTITY = "entity";
-    private static final String FIELD_ERROR_HANDLING = "errorHandling";
-    private static final String FIELD_ERRORS = "errors";
-    private static final String FIELD_LINE = "line";
-    private static final String FIELD_MESSAGE = "message";
-    private static final String FIELD_NAME = "name";
-    private static final String FIELD_OBLIGATIONS = "obligations";
-    private static final String FIELD_OUTCOME = "outcome";
-    private static final String FIELD_PDP_ID = "pdpId";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_RETRIEVED_AT = "retrievedAt";
-    private static final String FIELD_START = "start";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_VALUE = "value";
-    private static final String FIELD_VOTER = "voter";
-    private static final String FIELD_VOTING_MODE = "votingMode";
-
-    // Type value constants
-    private static final String TYPE_POLICY = "policy";
-    private static final String TYPE_SET = "set";
-    private static final String TYPE_UNKNOWN = "unknown";
-
+    /**
+     * Creates a combined vote from multiple contributing votes.
+     *
+     * @param authorizationDecision the authorization decision
+     * @param voter the voter metadata
+     * @param contributingVotes the votes that contributed to this decision
+     * @param outcome the extended indeterminate outcome
+     * @return a new combined vote
+     */
     public static Vote combinedVote(AuthorizationDecision authorizationDecision, VoterMetadata voter,
             List<Vote> contributingVotes, Outcome outcome) {
         return new Vote(authorizationDecision, List.of(), List.of(), contributingVotes, voter, outcome);
     }
 
+    /**
+     * Creates a vote with traced attributes.
+     *
+     * @param decision the decision
+     * @param obligations the obligations
+     * @param advice the advice
+     * @param resource the resource transformation
+     * @param voter the voter metadata
+     * @param contributingAttributes the attributes accessed during evaluation
+     * @return a new traced vote
+     */
     public static Vote tracedVote(Decision decision, ArrayValue obligations, ArrayValue advice, Value resource,
             VoterMetadata voter, List<AttributeRecord> contributingAttributes) {
         return new Vote(new AuthorizationDecision(decision, obligations, advice, resource), List.of(),
                 contributingAttributes, List.of(), voter, voter.outcome());
     }
 
+    /**
+     * Creates an error vote with INDETERMINATE decision.
+     *
+     * @param error the error that occurred
+     * @param voter the voter metadata
+     * @return a new error vote
+     */
     public static Vote error(ErrorValue error, VoterMetadata voter) {
         return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), List.of(), List.of(), voter,
                 voter.outcome());
     }
 
+    /**
+     * Creates an error vote with traced attributes.
+     *
+     * @param error the error that occurred
+     * @param voter the voter metadata
+     * @param contributingAttributes the attributes accessed before the error
+     * @return a new traced error vote
+     */
     public static Vote tracedError(ErrorValue error, VoterMetadata voter,
             List<AttributeRecord> contributingAttributes) {
         return new Vote(AuthorizationDecision.INDETERMINATE, List.of(error), contributingAttributes, List.of(), voter,
                 voter.outcome());
     }
 
+    /**
+     * Creates an abstain vote with NOT_APPLICABLE decision.
+     *
+     * @param voter the voter metadata
+     * @return a new abstain vote
+     */
     public static Vote abstain(VoterMetadata voter) {
         return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), List.of(), voter, voter.outcome());
     }
 
+    /**
+     * Creates an abstain vote with traced attributes.
+     *
+     * @param voter the voter metadata
+     * @param contributingAttributes the attributes accessed during evaluation
+     * @return a new traced abstain vote
+     */
     public static Vote tracedAbstain(VoterMetadata voter, List<AttributeRecord> contributingAttributes) {
         return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), contributingAttributes, List.of(), voter,
                 voter.outcome());
     }
 
+    /**
+     * Creates an abstain vote with contributing votes.
+     *
+     * @param voter the voter metadata
+     * @param contributingVotes the votes that contributed to this abstain
+     * @return a new abstain vote with contributing votes
+     */
     public static Vote abstain(VoterMetadata voter, List<Vote> contributingVotes) {
         return new Vote(AuthorizationDecision.NOT_APPLICABLE, List.of(), List.of(), contributingVotes, voter,
                 voter.outcome());
     }
 
+    /**
+     * Creates a new vote with an additional contributing vote.
+     *
+     * @param newVote the vote to add
+     * @return a new vote with the additional contributing vote
+     */
     public Vote withVote(Vote newVote) {
         val mergedVotes = new ArrayList<>(contributingVotes);
         mergedVotes.add(newVote);
@@ -176,120 +203,85 @@ public record Vote(
     }
 
     /**
-     * Converts this vote to a detailed trace ObjectValue for debugging and
-     * auditing.
-     * <p>
-     * The trace includes the complete recursive structure of the decision tree,
-     * showing all contributing votes, errors, and attributes.
+     * Converts this vote to a trace ObjectValue.
      *
-     * @return an ObjectValue containing the full hierarchical trace
+     * @return an ObjectValue containing the vote structure
      */
     public ObjectValue toTrace() {
         val builder = ObjectValue.builder();
-
-        builder.put(FIELD_DECISION, Value.of(authorizationDecision.decision().name()));
+        builder.put("decision", Value.of(authorizationDecision.decision().name()));
         if (!authorizationDecision.obligations().isEmpty()) {
-            builder.put(FIELD_OBLIGATIONS, authorizationDecision.obligations());
+            builder.put("obligations", authorizationDecision.obligations());
         }
         if (!authorizationDecision.advice().isEmpty()) {
-            builder.put(FIELD_ADVICE, authorizationDecision.advice());
+            builder.put("advice", authorizationDecision.advice());
         }
         if (!(authorizationDecision.resource() instanceof UndefinedValue)) {
-            builder.put(FIELD_RESOURCE, authorizationDecision.resource());
+            builder.put("resource", authorizationDecision.resource());
         }
-
-        builder.put(FIELD_VOTER, voterToTrace(voter));
-        builder.put(FIELD_OUTCOME, Value.of(outcome.name()));
-
+        builder.put("voter", voterToTrace(voter));
+        builder.put("outcome", Value.of(outcome.name()));
         if (!errors.isEmpty()) {
-            val errArray = ArrayValue.builder();
-            for (val err : errors) {
-                errArray.add(errorToTrace(err));
-            }
-            builder.put(FIELD_ERRORS, errArray.build());
+            builder.put("errors", ArrayValue.builder().addAll(errors).build());
         }
-
         if (!contributingAttributes.isEmpty()) {
             val attrArray = ArrayValue.builder();
             for (val attr : contributingAttributes) {
                 attrArray.add(attributeToTrace(attr));
             }
-            builder.put(FIELD_ATTRIBUTES, attrArray.build());
+            builder.put("attributes", attrArray.build());
         }
-
         if (!contributingVotes.isEmpty()) {
             val votesArray = ArrayValue.builder();
             for (val child : contributingVotes) {
                 votesArray.add(child.toTrace());
             }
-            builder.put(FIELD_CONTRIBUTING_VOTES, votesArray.build());
+            builder.put("contributingVotes", votesArray.build());
         }
-
         return builder.build();
     }
 
     private static ObjectValue voterToTrace(VoterMetadata voterMetadata) {
-        val builder = ObjectValue.builder().put(FIELD_NAME, Value.of(voterMetadata.name()))
-                .put(FIELD_PDP_ID, Value.of(voterMetadata.pdpId()))
-                .put(FIELD_CONFIGURATION_ID, Value.of(voterMetadata.configurationId()))
-                .put(FIELD_OUTCOME, Value.of(voterMetadata.outcome().name()));
-
+        val builder = ObjectValue.builder().put("name", Value.of(voterMetadata.name()))
+                .put("pdpId", Value.of(voterMetadata.pdpId()))
+                .put("configurationId", Value.of(voterMetadata.configurationId()))
+                .put("outcome", Value.of(voterMetadata.outcome().name()));
         switch (voterMetadata) {
-        case PolicyVoterMetadata p     -> {
-            builder.put(FIELD_TYPE, Value.of(TYPE_POLICY));
-            if (p.documentId() != null) {
-                builder.put(FIELD_DOCUMENT_ID, Value.of(p.documentId()));
+        case PolicyVoterMetadata(var nameIgnored, var pdpIdIgnored, var configIdIgnored, var docId, var outcomeIgnored, var hasConstraintsIgnored) when docId != null ->
+            builder.put("documentId", Value.of(docId));
+        case PolicySetVoterMetadata(var nameIgnored, var pdpIdIgnored, var configIdIgnored, var docId, var algo, var outcomeIgnored, var hasConstraintsIgnored)       -> {
+            if (docId != null) {
+                builder.put("documentId", Value.of(docId));
+            }
+            if (algo != null) {
+                builder.put("algorithm", algorithmToTrace(algo));
             }
         }
-        case PolicySetVoterMetadata ps -> {
-            builder.put(FIELD_TYPE, Value.of(TYPE_SET));
-            if (ps.documentId() != null) {
-                builder.put(FIELD_DOCUMENT_ID, Value.of(ps.documentId()));
-            }
-            if (ps.combiningAlgorithm() != null) {
-                builder.put(FIELD_ALGORITHM, algorithmToTrace(ps.combiningAlgorithm()));
-            }
+        case PdpVoterMetadata(var nameIgnored, var pdpIdIgnored, var configIdIgnored, var algo, var outcomeIgnored, var hasConstraintsIgnored) when algo != null      ->
+            builder.put("algorithm", algorithmToTrace(algo));
+        default                                                                                                                                                       ->
+            {}
         }
-        default                        -> builder.put(FIELD_TYPE, Value.of(TYPE_UNKNOWN));
-        }
-
         return builder.build();
     }
 
     private static ObjectValue algorithmToTrace(CombiningAlgorithm algorithm) {
-        return ObjectValue.builder().put(FIELD_VOTING_MODE, Value.of(algorithm.votingMode().name()))
-                .put(FIELD_DEFAULT_DECISION, Value.of(algorithm.defaultDecision().name()))
-                .put(FIELD_ERROR_HANDLING, Value.of(algorithm.errorHandling().name())).build();
-    }
-
-    private static ObjectValue errorToTrace(ErrorValue error) {
-        val builder = ObjectValue.builder().put(FIELD_MESSAGE, Value.of(error.message()));
-        if (error.location() != null) {
-            builder.put(FIELD_LINE, Value.of(error.location().line()))
-                    .put(FIELD_START, Value.of(error.location().start()))
-                    .put(FIELD_END, Value.of(error.location().end()));
-        }
-        return builder.build();
+        return ObjectValue.builder().put("votingMode", Value.of(algorithm.votingMode().name()))
+                .put("defaultDecision", Value.of(algorithm.defaultDecision().name()))
+                .put("errorHandling", Value.of(algorithm.errorHandling().name())).build();
     }
 
     private static ObjectValue attributeToTrace(AttributeRecord attr) {
-        val builder = ObjectValue.builder().put(FIELD_ATTRIBUTE_NAME, Value.of(attr.invocation().attributeName()))
-                .put(FIELD_CONFIGURATION_ID, Value.of(attr.invocation().configurationId()))
-                .put(FIELD_VALUE, attr.attributeValue())
-                .put(FIELD_RETRIEVED_AT, Value.of(attr.retrievedAt().toString()));
-
-        if (attr.invocation().entity() != null) {
-            builder.put(FIELD_ENTITY, attr.invocation().entity());
+        val invocation = attr.invocation();
+        val builder    = ObjectValue.builder().put("attributeName", Value.of(invocation.attributeName()))
+                .put("configurationId", Value.of(invocation.configurationId())).put("value", attr.attributeValue())
+                .put("retrievedAt", Value.of(attr.retrievedAt().toString()));
+        if (invocation.entity() != null) {
+            builder.put("entity", invocation.entity());
         }
-        if (!attr.invocation().arguments().isEmpty()) {
-            builder.put(FIELD_ARGUMENTS, ArrayValue.builder().addAll(attr.invocation().arguments()).build());
+        if (!invocation.arguments().isEmpty()) {
+            builder.put("arguments", ArrayValue.builder().addAll(invocation.arguments()).build());
         }
-        if (attr.location() != null) {
-            builder.put(FIELD_LINE, Value.of(attr.location().line()))
-                    .put(FIELD_START, Value.of(attr.location().start()))
-                    .put(FIELD_END, Value.of(attr.location().end()));
-        }
-
         return builder.build();
     }
 }

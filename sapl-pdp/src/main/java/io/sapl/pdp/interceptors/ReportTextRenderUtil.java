@@ -55,11 +55,30 @@ public class ReportTextRenderUtil {
             sb.append("Documents:\n");
             for (var doc : report.contributingDocuments()) {
                 sb.append("  ").append(doc.name()).append(" -> ").append(doc.decision()).append('\n');
+                if (!doc.attributes().isEmpty()) {
+                    sb.append("    Attributes:\n");
+                    for (var attr : doc.attributes()) {
+                        var name   = attr.invocation().attributeName();
+                        var entity = attr.invocation().entity();
+                        if (entity != null) {
+                            sb.append("      ").append(entity).append(".<").append(name).append("> = ");
+                        } else {
+                            sb.append("      <").append(name).append("> = ");
+                        }
+                        sb.append(attr.attributeValue()).append(" @ ").append(attr.retrievedAt()).append('\n');
+                    }
+                }
+                if (!doc.errors().isEmpty()) {
+                    sb.append("    Errors:\n");
+                    for (var err : doc.errors()) {
+                        sb.append("      - ").append(err.message()).append('\n');
+                    }
+                }
             }
         }
 
         if (!report.errors().isEmpty()) {
-            sb.append("Errors:\n");
+            sb.append("PDP Errors:\n");
             for (var err : report.errors()) {
                 sb.append("  - ").append(err.message()).append('\n');
             }

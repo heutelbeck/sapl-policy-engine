@@ -48,15 +48,15 @@ import java.util.List;
 @Slf4j
 @Tag("sapl-editor-lsp")
 @JsModule("./sapl-editor-lsp.js")
-@NpmPackage(value = "codemirror", version = "6.0.1")
-@NpmPackage(value = "@codemirror/state", version = "6.4.1")
-@NpmPackage(value = "@codemirror/view", version = "6.26.3")
-@NpmPackage(value = "@codemirror/language", version = "6.10.2")
-@NpmPackage(value = "@codemirror/commands", version = "6.5.0")
-@NpmPackage(value = "@codemirror/autocomplete", version = "6.16.2")
-@NpmPackage(value = "@codemirror/lint", version = "6.8.0")
-@NpmPackage(value = "@codemirror/theme-one-dark", version = "6.1.2")
-@NpmPackage(value = "@codemirror/merge", version = "6.8.0")
+@NpmPackage(value = "codemirror", version = "6.0.2")
+@NpmPackage(value = "@codemirror/state", version = "6.5.4")
+@NpmPackage(value = "@codemirror/view", version = "6.39.11")
+@NpmPackage(value = "@codemirror/language", version = "6.12.1")
+@NpmPackage(value = "@codemirror/commands", version = "6.10.1")
+@NpmPackage(value = "@codemirror/autocomplete", version = "6.20.0")
+@NpmPackage(value = "@codemirror/lint", version = "6.9.2")
+@NpmPackage(value = "@codemirror/theme-one-dark", version = "6.1.3")
+@NpmPackage(value = "@codemirror/merge", version = "6.11.2")
 public class SaplEditorLsp extends Component implements HasSize {
 
     @Serial

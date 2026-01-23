@@ -43,8 +43,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Tag("json-editor-lsp")
 @JsModule("./json-editor-lsp.js")
-@NpmPackage(value = "@codemirror/lang-json", version = "6.0.1")
-@NpmPackage(value = "@codemirror/merge", version = "6.8.0")
+@NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
+@NpmPackage(value = "@codemirror/merge", version = "6.11.2")
 public class JsonEditorLsp extends Component implements HasSize {
 
     @Serial
