@@ -24,6 +24,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
 import io.sapl.compiler.pdp.PdpCompiler;
+import io.sapl.compiler.util.CompilationErrorFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -117,7 +118,9 @@ public class PdpRegister implements CompiledPDPConfigurationSource {
             if (!keepOldConfigOnError) {
                 removeConfigurationForPdp(pdpConfiguration.pdpId());
             }
-            throw new IllegalArgumentException(ERROR_COMPILING_DOCUMENT, compilerException);
+            val formattedError = CompilationErrorFormatter.format(compilerException);
+            log.error("Configuration rejected:\n{}", formattedError);
+            throw new IllegalArgumentException(formattedError, compilerException);
         }
         val optionalConfig = Optional.of(newConfiguration);
 

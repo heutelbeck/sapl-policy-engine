@@ -24,6 +24,7 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
@@ -40,6 +41,8 @@ import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.interceptors.ReportTextRenderUtil;
+import io.sapl.pdp.interceptors.VoteReport;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.coverage.CoverageAccumulator;
 import io.sapl.test.coverage.CoverageWriter;
@@ -58,6 +61,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1091,6 +1095,7 @@ public class SaplTestFixture {
         private final CoverageAccumulator                      coverageAccumulator;
         private final CoverageWriter                           coverageWriter;
         private final boolean                                  coverageFileWriteEnabled;
+        private final AtomicReference<VoteWithCoverage>        lastVoteWithCoverage = new AtomicReference<>();
 
         DecisionResult(Flux<AuthorizationDecision> decisionFlux,
                 Flux<VoteWithCoverage> voteWithCoverageFlux,
@@ -1122,10 +1127,10 @@ public class SaplTestFixture {
         }
 
         private void recordCoverage(VoteWithCoverage voteWithCoverage) {
-            if (coverageAccumulator == null) {
-                return;
+            lastVoteWithCoverage.set(voteWithCoverage);
+            if (coverageAccumulator != null) {
+                coverageAccumulator.recordCoverage(voteWithCoverage);
             }
-            coverageAccumulator.recordCoverage(voteWithCoverage);
         }
 
         /**
@@ -1146,7 +1151,12 @@ public class SaplTestFixture {
          * @return this result for chaining
          */
         public DecisionResult expectDecisionMatches(@NonNull DecisionMatcher matcher) {
-            step = step.expectNextMatches(matcher);
+            step = step.assertNext(decision -> {
+                if (!matcher.test(decision)) {
+                    throw new AssertionError("Expected: " + matcher.describe() + "\n" + "Actual:   " + decision + "\n"
+                            + "Reason:   " + matcher.describeMismatch(decision));
+                }
+            });
             return this;
         }
 
@@ -1161,7 +1171,11 @@ public class SaplTestFixture {
          */
         public DecisionResult expectDecisionMatches(
                 @NonNull java.util.function.Predicate<AuthorizationDecision> predicate) {
-            step = step.expectNextMatches(predicate);
+            step = step.assertNext(decision -> {
+                if (!predicate.test(decision)) {
+                    throw new AssertionError("Decision did not match predicate.\nActual: " + decision);
+                }
+            });
             return this;
         }
 
@@ -1255,7 +1269,7 @@ public class SaplTestFixture {
                 return TestResult.success(coverageRecord);
             } catch (AssertionError e) {
                 writeCoverage();
-                throw e;
+                throw enhanceWithVoteTrace(e);
             } catch (Exception e) {
                 writeCoverage();
                 return TestResult.failure(e, coverageRecord);
@@ -1275,6 +1289,22 @@ public class SaplTestFixture {
             if (components != null) {
                 components.dispose();
             }
+        }
+
+        private AssertionError enhanceWithVoteTrace(AssertionError original) {
+            var voteWithCoverage = lastVoteWithCoverage.get();
+            if (voteWithCoverage == null) {
+                return original;
+            }
+            var vote       = voteWithCoverage.vote();
+            var report     = VoteReport.from(vote);
+            var textReport = ReportTextRenderUtil.textReport(report);
+            var jsonTrace  = ValueJsonMarshaller.toPrettyString(vote.toTrace());
+
+            var enhanced = original.getMessage() + "\n\n" + textReport + "\n=== Full Vote Trace (JSON) ===\n"
+                    + jsonTrace;
+
+            return new AssertionError(enhanced, original);
         }
     }
 }
