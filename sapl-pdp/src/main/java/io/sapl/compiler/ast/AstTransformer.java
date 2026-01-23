@@ -442,11 +442,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
                         : BinaryOperatorType.SUB);
             }
         }
-        // Only use Sum for homogeneous addition chains (all +)
-        if (operands.size() >= 3 && operators.stream().allMatch(op -> op == BinaryOperatorType.ADD)) {
-            var exprs = operands.stream().map(this::expr).toList();
-            return new Sum(exprs, fromContext(ctx));
-        }
+        // Note: We do NOT use Sum for addition chains because + is overloaded
+        // for string concatenation, which is not commutative. Always use
+        // left-associative binary operators to preserve evaluation order.
         return buildLeftAssociativeBinaryWithOps(operands, operators, ctx);
     }
 

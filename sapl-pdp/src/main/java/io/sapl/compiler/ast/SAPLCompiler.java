@@ -94,10 +94,10 @@ public class SAPLCompiler {
                 ast = astTransformer.visitSapl(result.parseTree());
             } catch (SaplCompilerException e) {
                 val location = e.getLocation();
-                if(location != null) {
-                    validationErrors.add(new ValidationError(e.getMessage(),location.line(), location.column(), ""));
+                if (location != null) {
+                    validationErrors.add(new ValidationError(e.getMessage(), location.line(), location.column(), ""));
                 } else {
-                    validationErrors.add(new ValidationError(e.getMessage(),0, 0, ""));
+                    validationErrors.add(new ValidationError(e.getMessage(), 0, 0, ""));
                 }
                 astException = e;
             }

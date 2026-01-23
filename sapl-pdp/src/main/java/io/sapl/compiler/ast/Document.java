@@ -72,17 +72,17 @@ public record Document(
 
     public String errors() {
         val errors = new StringBuilder();
-        if(errorMessage != null) {
+        if (errorMessage != null) {
             errors.append(errorMessage);
             errors.append('\n');
         }
-        if(syntaxErrors != null) {
+        if (syntaxErrors != null) {
             for (val syntaxError : syntaxErrors) {
                 errors.append(errorMessage);
                 errors.append('\n');
             }
         }
-        if(validationErrors != null) {
+        if (validationErrors != null) {
             for (val validationError : validationErrors) {
                 errors.append(validationError.toString());
                 errors.append('\n');

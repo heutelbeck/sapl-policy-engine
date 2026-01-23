@@ -56,7 +56,7 @@ public class PdpCompiler {
                 throw new SaplCompilerException(
                         "Parsing of SAPL document failed: %s.".formatted(parsedDocument.errors()));
             }
-            if(parsedDocument.saplDocument() == null) {
+            if (parsedDocument.saplDocument() == null) {
                 throw new SaplCompilerException("Parsing of SAPL document failed AST was null.");
             }
             compiledDocuments.add(compileDocument(parsedDocument.saplDocument(), ctx));
