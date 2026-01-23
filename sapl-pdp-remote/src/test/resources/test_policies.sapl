@@ -1,5 +1,4 @@
 policy "policy1"
 permit
-    action == "eat"
-where
+    action == "eat";
     resource == "apple";

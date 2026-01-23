@@ -220,6 +220,7 @@ class AggregatedCoverageDataTests {
         val coverageRecord = new TestCoverageRecord("standalone-test");
         val policy1        = new PolicyCoverageData("policy1", null, "policy");
         policy1.recordTargetHit(true);
+        policy1.recordPolicyOutcome(1, 1, 0, 0, true, false);
         val policy2 = new PolicyCoverageData("policy2", null, "policy");
         policy2.recordTargetHit(false);
         coverageRecord.addPolicyCoverage(policy1);

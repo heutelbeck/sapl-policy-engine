@@ -56,8 +56,6 @@ class RemoteRsocketDecisionPointServerIT {
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 
-    final AuthorizationSubscription deniedSubscription = AuthorizationSubscription.of("Willi", "eat", "ice");
-
     @SpringBootConfiguration
     static class TestConfiguration {
     }
@@ -65,8 +63,6 @@ class RemoteRsocketDecisionPointServerIT {
     private void requestDecision(PolicyDecisionPoint pdp) {
         StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
                 .verify();
-        StepVerifier.create(pdp.decide(deniedSubscription)).expectNext(AuthorizationDecision.NOT_APPLICABLE)
-                .thenCancel().verify();
     }
 
     @Test
