@@ -51,6 +51,7 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
  */
 public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
+    private static final String ERROR_UNHANDLED_CONTEXT            = "Unhandled parse context: %s - visitor method not implemented";
     private static final String ERROR_ATTRIBUTE_IN_FILTER_TARGET   = "Attribute finder steps not allowed in filter targets";
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
@@ -95,6 +96,24 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public void resetContext() {
         this.pdpId           = DEFAULT_PDP_ID;
         this.configurationId = DEFAULT_CONFIGURATION_ID;
+    }
+
+    /**
+     * Override to fail fast when a visitor method is missing.
+     * The default ANTLR behavior silently returns null, which causes
+     * hard-to-debug NullPointerExceptions later.
+     */
+    @Override
+    public AstNode visit(org.antlr.v4.runtime.tree.ParseTree tree) {
+        if (tree == null) {
+            return null;
+        }
+        var result = tree.accept(this);
+        if (result == null && tree instanceof ParserRuleContext ctx) {
+            throw new SaplCompilerException(ERROR_UNHANDLED_CONTEXT.formatted(ctx.getClass().getSimpleName()),
+                    fromContext(ctx));
+        }
+        return result;
     }
 
     private static String toDocumentId(String name) {

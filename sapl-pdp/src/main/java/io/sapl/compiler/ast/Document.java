@@ -22,7 +22,9 @@ import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.grammar.antlr.validation.ValidationError;
+import lombok.val;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -68,4 +70,24 @@ public record Document(
         };
     }
 
+    public String errors() {
+        val errors = new StringBuilder();
+        if(errorMessage != null) {
+            errors.append(errorMessage);
+            errors.append('\n');
+        }
+        if(syntaxErrors != null) {
+            for (val syntaxError : syntaxErrors) {
+                errors.append(errorMessage);
+                errors.append('\n');
+            }
+        }
+        if(validationErrors != null) {
+            for (val validationError : validationErrors) {
+                errors.append(validationError.toString());
+                errors.append('\n');
+            }
+        }
+        return errors.toString();
+    }
 }

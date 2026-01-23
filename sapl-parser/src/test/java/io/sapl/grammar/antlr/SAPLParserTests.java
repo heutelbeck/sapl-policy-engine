@@ -46,8 +46,8 @@ class SAPLParserTests {
     @MethodSource("validPolicyFiles")
     void whenParsingValidPolicyFile_thenNoSyntaxErrors(Path policyPath) throws IOException {
         var policyContent = Files.readString(policyPath, StandardCharsets.UTF_8);
-        var errors        = parseAndCollectErrors(policyContent);
-
+        var ctxAndErrors  = parseAndCollectErrors(policyContent);
+        var errors        = ctxAndErrors.errors();
         assertThat(errors).as("Parsing '%s' should produce no syntax errors", policyPath.getFileName()).isEmpty();
     }
 
@@ -388,13 +388,44 @@ class SAPLParserTests {
                            var propagate = null;
                            priority > 3;
                            first == true;
-                        """));
+                        """), arguments("complex expressions",
+                        """
+                                import filter.blacken
+                                import simple.append
+                                import simple.length
+
+
+                                    policy "policy read"
+                                    permit
+                                    action == "read";
+                                    subject == "willi" & resource =~ "some.+";
+                                  1 in [0, [{"text": 1, "arr": [3, 4, 5]}, 1, 2 / 2]]..[2];
+                                  [0, [{"text": 1, "arr": [3, 4, 5]}, 1, 2], 6]..* == [0, [{"text": 1, "arr": [3, 4, 5]}, 1, 2], {"text": 1, "arr": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];
+
+                                    var a = {"name": "Felix", "origin": "Zurich"};
+                                var b = {"name": "Hans", "origin": "Hagen"};
+                                        [a, b] |- { each @..name : append(" from ", @.origin), each @..origin : remove } == [{"name": "Felix from Zurich"}, {"name": "Hans from Hagen"}];
+
+                                var input = "SAPL rocks";
+                                input.<echo.echo> == "SAPL rocks";
+
+                                obligation
+                                {
+                                    "type" : "logAccess",
+                                        "message" : subject + " has read " + resource
+                                }
+
+                                transform
+                                {"name": "Homer"} |- { @.name : blacken(2,0,"\\u2588") }
+                                """));
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("policies")
     void whenParsingPolicy_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        assertThat(ctxAndErrors.saplContext).isNotNull();
+        var errors = ctxAndErrors.errors();
         assertThat(errors).as("Policy '%s' should parse without errors", description).isEmpty();
     }
 
@@ -469,7 +500,8 @@ class SAPLParserTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("policySets")
     void whenParsingPolicySet_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors).as("Policy set '%s' should parse without errors", description).isEmpty();
     }
 
@@ -509,7 +541,8 @@ class SAPLParserTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("jwtPolicies")
     void whenParsingJwtPolicy_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors).as("JWT policy '%s' should parse without errors", description).isEmpty();
     }
 
@@ -576,7 +609,8 @@ class SAPLParserTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("xacmlStylePolicies")
     void whenParsingXacmlStylePolicy_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors).as("XACML-style policy '%s' should parse without errors", description).isEmpty();
     }
 
@@ -681,7 +715,8 @@ class SAPLParserTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("languageFeatureSyntax")
     void whenParsingLanguageFeature_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors).as("Language feature '%s' should parse without errors", description).isEmpty();
     }
 
@@ -744,7 +779,8 @@ class SAPLParserTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("arraySlicingWithDoubleColon")
     void whenParsingArraySlicingWithDoubleColon_thenNoSyntaxErrors(String description, String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors).as("Array slicing '%s' should parse without errors", description).isEmpty();
     }
 
@@ -784,7 +820,8 @@ class SAPLParserTests {
     @ParameterizedTest(name = "reject: {0}")
     @MethodSource("invalidSyntaxSnippets")
     void whenParsingInvalidSyntax_thenSyntaxErrorsAreReported(String description, String snippet) {
-        var errors = parseAndCollectErrors(snippet);
+        var ctxAndErrors = parseAndCollectErrors(snippet);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors).as("Parsing invalid SAPL (%s) should produce syntax errors", description).isNotEmpty();
     }
 
@@ -792,7 +829,8 @@ class SAPLParserTests {
     @ValueSource(strings = { "policy \"p\" permit var subject = {};", "policy \"p\" permit var action = {};",
             "policy \"p\" permit var resource = {};", "policy \"p\" permit var environment = {};" })
     void whenUsingReservedWordAsVariableName_thenSyntaxErrorIsReported(String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors).as("Using reserved word as variable name should produce syntax error").isNotEmpty();
     }
 
@@ -812,13 +850,16 @@ class SAPLParserTests {
     @MethodSource("syntacticallyValidButSemanticallyInvalidPolicies")
     void whenParsingSyntacticallyValidButSemanticallyInvalidPolicy_thenNoSyntaxErrors(String description,
             String policy) {
-        var errors = parseAndCollectErrors(policy);
+        var ctxAndErrors = parseAndCollectErrors(policy);
+        var errors       = ctxAndErrors.errors();
         assertThat(errors)
                 .as("Policy '%s' is syntactically valid (semantic errors are checked separately)", description)
                 .isEmpty();
     }
 
-    private List<String> parseAndCollectErrors(String input) {
+    record CtxAndErrors(SAPLParser.SaplContext saplContext, List<String> errors, SAPLParser parser) {}
+
+    private CtxAndErrors parseAndCollectErrors(String input) {
         var errors      = new ArrayList<String>();
         var charStream  = CharStreams.fromString(input);
         var lexer       = new SAPLLexer(charStream);
@@ -838,9 +879,9 @@ class SAPLParserTests {
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
 
-        parser.sapl();
+        var saplContext = parser.sapl();
 
-        return errors;
+        return new CtxAndErrors(saplContext, errors, parser);
     }
 
 }

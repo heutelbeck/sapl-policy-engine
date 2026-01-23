@@ -117,7 +117,6 @@ public class PdpRegister implements CompiledPDPConfigurationSource {
             if (!keepOldConfigOnError) {
                 removeConfigurationForPdp(pdpConfiguration.pdpId());
             }
-            log.warn("Encountered compiler error while loading a PDP configuration: " + compilerException.getMessage());
             throw new IllegalArgumentException(ERROR_COMPILING_DOCUMENT, compilerException);
         }
         val optionalConfig = Optional.of(newConfiguration);

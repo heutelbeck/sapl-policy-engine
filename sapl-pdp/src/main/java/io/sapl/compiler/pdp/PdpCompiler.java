@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.ast.Outcome;
@@ -32,7 +31,6 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policyset.PolicySetCompiler;
-import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -56,7 +54,10 @@ public class PdpCompiler {
             val parsedDocument = SAPLCompiler.parseDocument(saplDocument);
             if (parsedDocument.isInvalid()) {
                 throw new SaplCompilerException(
-                        "Parsing of SAPL document failed: %s.".formatted(parsedDocument.syntaxErrors()));
+                        "Parsing of SAPL document failed: %s.".formatted(parsedDocument.errors()));
+            }
+            if(parsedDocument.saplDocument() == null) {
+                throw new SaplCompilerException("Parsing of SAPL document failed AST was null.");
             }
             compiledDocuments.add(compileDocument(parsedDocument.saplDocument(), ctx));
         }
