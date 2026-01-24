@@ -26,7 +26,7 @@ This jar file can easily be copied to another host to execute the benchmark agai
 
 Execute the following command to run the benchmark:
 ```
-java -jar target/sapl-demo-benchmark-3.0.0-SNAPSHOT-jar-with-dependencies.jar
+java -jar target/sapl-demo-benchmark-4.0.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
 The benchmark accepts the following command line parameters:
@@ -49,21 +49,21 @@ Examples
 # "small" sample benchmarks are basically only useful for functional tests
 # ------------------------------------------------------------------------
 # small_embedded_benchmark
-java -jar target/sapl-demo-benchmark-3.0.0-SNAPSHOT-jar-with-dependencies.jar --cfg examples/small_embedded_benchmark.yaml --output results/small_embedded_benchmark/
+java -jar target/sapl-demo-benchmark-4.0.0-SNAPSHOT-jar-with-dependencies.jar --cfg examples/small_embedded_benchmark.yaml --output results/small_embedded_benchmark/
 
 # small_docker_benchmark
-java -jar target/sapl-demo-benchmark-3.0.0-SNAPSHOT-jar-with-dependencies.jar --output results/small_docker_benchmark --cfg examples/small_docker_benchmark.yaml
+java -jar target/sapl-demo-benchmark-4.0.0-SNAPSHOT-jar-with-dependencies.jar --output results/small_docker_benchmark --cfg examples/small_docker_benchmark.yaml
 
 # small_docker_benchmark_oauth2
-java -jar target/sapl-demo-benchmark-3.0.0-SNAPSHOT-jar-with-dependencies.jar --output results/small_docker_benchmark_oauth2 --cfg examples/small_docker_benchmark_oauth2.yaml
+java -jar target/sapl-demo-benchmark-4.0.0-SNAPSHOT-jar-with-dependencies.jar --output results/small_docker_benchmark_oauth2 --cfg examples/small_docker_benchmark_oauth2.yaml
 
 # small_remote_benchmark
-java -jar target/sapl-demo-benchmark-3.0.0-SNAPSHOT-jar-with-dependencies.jar --cfg examples/small_remote_benchmark.yaml --output results/small_remote_benchmark/
+java -jar target/sapl-demo-benchmark-4.0.0-SNAPSHOT-jar-with-dependencies.jar --cfg examples/small_remote_benchmark.yaml --output results/small_remote_benchmark/
 
 
 # --------------------------------------------------------------------------
 # "large" sample benchmarks representative enough to compare pdp performance
 # --------------------------------------------------------------------------
 # large_docker_benchmark
-java -jar target/target/sapl-demo-benchmark-3.0.0-SNAPSHOT-jar-with-dependencies.jar --cfg examples/large_docker_benchmark.yaml --output results/large_docker_benchmark/
+java -jar target/target/sapl-demo-benchmark-4.0.0-SNAPSHOT-jar-with-dependencies.jar --cfg examples/large_docker_benchmark.yaml --output results/large_docker_benchmark/
 ```
