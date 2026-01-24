@@ -30,7 +30,7 @@ import picocli.CommandLine.Option;
 
 @Slf4j
 @ToString
-@Command(name = "sapl-demo-benchmark", version = "3.0.0-SNAPSHOT", mixinStandardHelpOptions = true, description = "Performs a benchmark against an embedded, docker or remote PDP.")
+@Command(name = "sapl-demo-benchmark", version = "4.0.0-SNAPSHOT", mixinStandardHelpOptions = true, description = "Performs a benchmark against an embedded, docker or remote PDP.")
 public class BenchmarkCommand implements Callable<Integer> {
 
     private final LocalDateTime     dateTime  = LocalDateTime.now();
