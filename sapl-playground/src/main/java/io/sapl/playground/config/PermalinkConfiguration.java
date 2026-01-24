@@ -32,6 +32,8 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "sapl.playground")
 public class PermalinkConfiguration {
 
+    private static final String LSP_ENDPOINT = "/sapl-lsp";
+
     /**
      * Base URL for generating permalinks. Should include protocol and hostname,
      * without trailing slash. Example:
@@ -39,4 +41,33 @@ public class PermalinkConfiguration {
      * <a href="https://playground.sapl.io">https://playground.sapl.io</a>
      */
     private String baseUrl = "http://localhost:8080";
+
+    /**
+     * Base URL for LSP WebSocket connections. Should include ws:// or wss://
+     * protocol and hostname, without trailing slash. Example: ws://localhost:8080
+     * or wss://playground.sapl.io. If not set, defaults to deriving from baseUrl.
+     */
+    private String lspBaseUrl;
+
+    /**
+     * Returns the full LSP WebSocket URL including the endpoint suffix.
+     *
+     * @return the complete LSP WebSocket URL
+     */
+    public String getLspUrl() {
+        if (lspBaseUrl != null && !lspBaseUrl.isBlank()) {
+            return lspBaseUrl + LSP_ENDPOINT;
+        }
+        return deriveWsUrlFromBaseUrl() + LSP_ENDPOINT;
+    }
+
+    private String deriveWsUrlFromBaseUrl() {
+        if (baseUrl.startsWith("https://")) {
+            return "wss://" + baseUrl.substring(8);
+        }
+        if (baseUrl.startsWith("http://")) {
+            return "ws://" + baseUrl.substring(7);
+        }
+        return "ws://" + baseUrl;
+    }
 }

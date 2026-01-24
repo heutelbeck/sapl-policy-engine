@@ -464,6 +464,13 @@ class SaplEditorLsp extends LitElement {
         }
     }
 
+    updated(changedProperties) {
+        // Handle dynamic wsUrl changes after initial render
+        if (changedProperties.has('wsUrl') && this.wsUrl && !this._ws) {
+            this._connectLsp();
+        }
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
         this._disconnectLsp();

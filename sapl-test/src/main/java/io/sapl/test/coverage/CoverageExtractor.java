@@ -154,7 +154,7 @@ public class CoverageExtractor {
             // Record nested policy outcome
             recordPolicyOutcome(voter, vote, bodyCoverage, setCoverage);
         }
-        case PolicySetCoverage nestedSet -> {
+        case PolicySetCoverage nestedSet                 -> {
             // Extract nested set's target
             extractTargetHit(nestedSet.targetHit(), setCoverage);
             // Flatten nested set's policies into parent (don't recurse deeper)
@@ -183,7 +183,7 @@ public class CoverageExtractor {
             // Blank target (no "for" clause) - implicitly matches everything
             // Record as a target hit since blank target = always applicable
             coverage.recordTargetHit(true);
-        case Coverage.NoTargetHit ignored               -> {
+        case Coverage.NoTargetHit ignored -> {
             // Target was not evaluated (policy not reached)
             // Don't record anything
         }

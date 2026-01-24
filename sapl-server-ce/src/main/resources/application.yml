@@ -40,6 +40,8 @@ io.sapl:
     enabled: true
 
 logging.level:
+  "[io.sapl.lsp]": WARN
+  "[io.sapl.vaadin.lsp]": WARN
   "[org.atmosphere]": WARN
   web: INFO
 #  org:

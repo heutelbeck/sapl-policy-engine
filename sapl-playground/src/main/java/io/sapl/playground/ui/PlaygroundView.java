@@ -129,7 +129,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final double SUBSCRIPTION_SECTION_HEIGHT = 35.0D;
 
     private static final String EDITOR_CONFIGURATION_ID = "playground";
-    private static final String LSP_WEBSOCKET_URL       = "ws://localhost:8080/sapl-lsp";
 
     private static final String COLOR_GREEN  = "green";
     private static final String COLOR_ORANGE = "orange";
@@ -1465,7 +1464,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val config = new SaplEditorLspConfiguration();
         config.setHasLineNumbers(true);
         config.setDarkTheme(true);
-        config.setWsUrl(LSP_WEBSOCKET_URL);
+        config.setWsUrl(permalinkConfiguration.getLspUrl());
 
         val editor = new SaplEditorLsp(config);
         editor.setConfigurationId(EDITOR_CONFIGURATION_ID);
