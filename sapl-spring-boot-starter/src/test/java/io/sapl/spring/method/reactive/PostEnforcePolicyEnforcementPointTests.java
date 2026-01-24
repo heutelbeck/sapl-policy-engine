@@ -19,7 +19,6 @@ package io.sapl.spring.method.reactive;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;

@@ -139,6 +139,7 @@ public class CompilationErrorFormatter {
         val startLine       = Math.max(1, errorLine - CONTEXT_LINES_BEFORE);
         val endLine         = Math.min(lines.length, errorLine + CONTEXT_LINES_AFTER);
         val maxLineNumWidth = String.valueOf(endLine).length();
+        val lineNumFormat   = "%" + maxLineNumWidth + "d";
         val sb              = new StringBuilder();
 
         for (int lineNum = startLine; lineNum <= endLine; lineNum++) {
@@ -147,8 +148,8 @@ public class CompilationErrorFormatter {
             val isErrorLine = lineNum == errorLine;
             val marker      = isErrorLine ? LINE_MARKER : NO_MARKER;
 
-            sb.append(marker).append(String.format("%" + maxLineNumWidth + "d", lineNum)).append(" | ")
-                    .append(lineContent).append('\n');
+            sb.append(marker).append(String.format(lineNumFormat, lineNum)).append(" | ").append(lineContent)
+                    .append('\n');
 
             if (isErrorLine && errorColumn > 0) {
                 val caretPadding = marker.length() + maxLineNumWidth + 3 + errorColumn - 1;
@@ -172,6 +173,7 @@ public class CompilationErrorFormatter {
         val startLine       = Math.max(1, errorLine - CONTEXT_LINES_BEFORE);
         val endLine         = Math.min(lines.length, errorLine + CONTEXT_LINES_AFTER);
         val maxLineNumWidth = String.valueOf(endLine).length();
+        val lineNumFormat   = "%" + maxLineNumWidth + "d";
         val sb              = new StringBuilder();
 
         for (int lineNum = startLine; lineNum <= endLine; lineNum++) {
@@ -183,8 +185,7 @@ public class CompilationErrorFormatter {
                 sb.append("<span class=\"error-line\">");
             }
 
-            sb.append("<span class=\"line-number\">").append(String.format("%" + maxLineNumWidth + "d", lineNum))
-                    .append("</span> ");
+            sb.append("<span class=\"line-number\">").append(String.format(lineNumFormat, lineNum)).append("</span> ");
 
             if (isErrorLine && errorColumn > 0 && errorColumn <= lineContent.length()) {
                 val before = escapeHtml(lineContent.substring(0, errorColumn - 1));
