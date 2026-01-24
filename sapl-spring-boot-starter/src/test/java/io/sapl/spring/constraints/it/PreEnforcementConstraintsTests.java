@@ -17,18 +17,17 @@
  */
 package io.sapl.spring.constraints.it;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.function.Consumer;
-
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.config.EnableSaplMethodSecurity;
+import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.*;
+import io.sapl.spring.method.metadata.PreEnforce;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
@@ -43,26 +42,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.config.EnableSaplMethodSecurity;
-import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.Application;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.ConstraintHandlerOne;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.ConstraintHandlerTwo;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.FailingConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.MethodSecurityConfiguration;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.SuccessfulMethodInvocationConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.TestService;
-import io.sapl.spring.method.metadata.PreEnforce;
 import reactor.core.publisher.Flux;
+
+import java.util.Arrays;
+import java.util.function.Consumer;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
         ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class,

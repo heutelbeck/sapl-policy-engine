@@ -84,7 +84,7 @@ public record Document(
         }
         if (validationErrors != null) {
             for (val validationError : validationErrors) {
-                errors.append(validationError.toString());
+                errors.append(validationError);
                 errors.append('\n');
             }
         }

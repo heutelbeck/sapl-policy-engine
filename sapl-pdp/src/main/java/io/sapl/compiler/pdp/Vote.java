@@ -260,7 +260,7 @@ public record Vote(
         case PdpVoterMetadata(var nameIgnored, var pdpIdIgnored, var configIdIgnored, var algo, var outcomeIgnored, var hasConstraintsIgnored) when algo != null      ->
             builder.put("algorithm", algorithmToTrace(algo));
         default                                                                                                                                                       ->
-            {}
+            { /* NO-OP */}
         }
         return builder.build();
     }

@@ -171,7 +171,7 @@ public class ValueJsonMarshaller {
         case BooleanValue b   -> String.valueOf(b.value());
         case NumberValue n    -> n.value().toPlainString();
         case TextValue t      -> quoteString(t.value());
-        case UndefinedValue u -> "undefined";
+        case UndefinedValue u -> TYPE_UNDEFINED;
         case ErrorValue e     -> formatError(e);
         case ArrayValue a     -> formatArray(a, indent);
         case ObjectValue o    -> formatObject(o, indent);

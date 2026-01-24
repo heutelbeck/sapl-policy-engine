@@ -178,7 +178,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_SIZE_100            = "100";
     private static final String CSS_VALUE_SIZE_100PCT         = "100%";
     private static final String CSS_VALUE_SIZE_15PX           = "15px";
-    private static final String CSS_VALUE_SIZE_16EM           = "16em";
     private static final String CSS_VALUE_SIZE_200PX          = "200px";
     private static final String CSS_VALUE_SIZE_25PX           = "25px";
     private static final String CSS_VALUE_SIZE_2_5EM          = "2.5em";

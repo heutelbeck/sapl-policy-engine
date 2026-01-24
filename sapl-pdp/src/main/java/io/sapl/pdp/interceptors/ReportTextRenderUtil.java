@@ -17,6 +17,10 @@
  */
 package io.sapl.pdp.interceptors;
 
+import java.util.Collection;
+
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
 import lombok.experimental.UtilityClass;
 
@@ -26,6 +30,10 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ReportTextRenderUtil {
 
+    private static final String INDENT_1 = "  ";
+    private static final String INDENT_2 = "    ";
+    private static final String INDENT_3 = "      ";
+
     /**
      * Renders a VoteReport as a compact human-readable text string.
      *
@@ -33,57 +41,84 @@ public class ReportTextRenderUtil {
      * @return the formatted text report
      */
     public static String textReport(VoteReport report) {
-        var sb = new StringBuilder("--- PDP Decision ---\n");
+        var sb = new StringBuilder();
+        appendHeader(sb, report);
+        appendComponents(sb, report);
+        appendDocuments(sb, report.contributingDocuments());
+        appendErrors(sb, "PDP Errors:\n", "", report.errors());
+        return sb.toString();
+    }
+
+    private static void appendHeader(StringBuilder sb, VoteReport report) {
+        sb.append("--- PDP Decision ---\n");
         sb.append("Decision : ").append(report.decision()).append('\n');
         sb.append("PDP ID   : ").append(report.pdpId()).append('\n');
-
         if (report.algorithm() != null) {
             sb.append("Algorithm: ").append(report.algorithm().votingMode()).append('\n');
         }
+    }
 
-        if (report.obligations() != null && !report.obligations().isEmpty()) {
-            sb.append("Obligations: ").append(report.obligations()).append('\n');
-        }
-        if (report.advice() != null && !report.advice().isEmpty()) {
-            sb.append("Advice: ").append(report.advice()).append('\n');
-        }
+    private static void appendComponents(StringBuilder sb, VoteReport report) {
+        appendIfNotEmpty(sb, "Obligations: ", report.obligations());
+        appendIfNotEmpty(sb, "Advice: ", report.advice());
         if (report.resource() != null && !(report.resource() instanceof UndefinedValue)) {
             sb.append("Resource: ").append(report.resource()).append('\n');
         }
-
-        if (!report.contributingDocuments().isEmpty()) {
-            sb.append("Documents:\n");
-            for (var doc : report.contributingDocuments()) {
-                sb.append("  ").append(doc.name()).append(" -> ").append(doc.decision()).append('\n');
-                if (!doc.attributes().isEmpty()) {
-                    sb.append("    Attributes:\n");
-                    for (var attr : doc.attributes()) {
-                        var name   = attr.invocation().attributeName();
-                        var entity = attr.invocation().entity();
-                        if (entity != null) {
-                            sb.append("      ").append(entity).append(".<").append(name).append("> = ");
-                        } else {
-                            sb.append("      <").append(name).append("> = ");
-                        }
-                        sb.append(attr.attributeValue()).append(" @ ").append(attr.retrievedAt()).append('\n');
-                    }
-                }
-                if (!doc.errors().isEmpty()) {
-                    sb.append("    Errors:\n");
-                    for (var err : doc.errors()) {
-                        sb.append("      - ").append(err.message()).append('\n');
-                    }
-                }
-            }
-        }
-
-        if (!report.errors().isEmpty()) {
-            sb.append("PDP Errors:\n");
-            for (var err : report.errors()) {
-                sb.append("  - ").append(err.message()).append('\n');
-            }
-        }
-
-        return sb.toString();
     }
+
+    private static void appendIfNotEmpty(StringBuilder sb, String label, Collection<?> items) {
+        if (items != null && !items.isEmpty()) {
+            sb.append(label).append(items).append('\n');
+        }
+    }
+
+    private static void appendDocuments(StringBuilder sb, Collection<ContributingDocument> documents) {
+        if (documents.isEmpty()) {
+            return;
+        }
+        sb.append("Documents:\n");
+        for (var doc : documents) {
+            appendDocument(sb, doc);
+        }
+    }
+
+    private static void appendDocument(StringBuilder sb, ContributingDocument doc) {
+        sb.append(INDENT_1).append(doc.name()).append(" -> ").append(doc.decision()).append('\n');
+        appendAttributes(sb, doc.attributes());
+        appendErrors(sb, INDENT_2 + "Errors:\n", INDENT_3, doc.errors());
+    }
+
+    private static void appendAttributes(StringBuilder sb, Collection<AttributeRecord> attributes) {
+        if (attributes.isEmpty()) {
+            return;
+        }
+        sb.append(INDENT_2).append("Attributes:\n");
+        for (var attr : attributes) {
+            appendAttribute(sb, attr);
+        }
+    }
+
+    private static void appendAttribute(StringBuilder sb, AttributeRecord attr) {
+        var invocation = attr.invocation();
+        var name       = invocation.attributeName();
+        var entity     = invocation.entity();
+        sb.append(INDENT_3);
+        if (entity != null) {
+            sb.append(entity).append(".<").append(name).append("> = ");
+        } else {
+            sb.append('<').append(name).append("> = ");
+        }
+        sb.append(attr.attributeValue()).append(" @ ").append(attr.retrievedAt()).append('\n');
+    }
+
+    private static void appendErrors(StringBuilder sb, String header, String indent, Collection<ErrorValue> errors) {
+        if (errors.isEmpty()) {
+            return;
+        }
+        sb.append(header);
+        for (var err : errors) {
+            sb.append(indent).append(INDENT_1).append("- ").append(err.message()).append('\n');
+        }
+    }
+
 }

@@ -117,7 +117,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private static String toDocumentId(String name) {
-        return name.replace(" ", "_");
+        return name.replace(' ', '_');
     }
 
     /**
@@ -258,7 +258,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
                 return Outcome.PERMIT_OR_DENY;
             }
         }
-        return outcome;
+        return outcome == null ? Outcome.PERMIT_OR_DENY : outcome;
     }
 
     @Override

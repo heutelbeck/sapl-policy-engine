@@ -148,11 +148,11 @@ public class CoverageExtractor {
     private static void extractNestedDocumentCoverage(DocumentCoverage nestedDoc, Vote vote,
             PolicyCoverageData setCoverage) {
         switch (nestedDoc) {
-        case PolicyCoverage nestedPolicy -> {
+        case PolicyCoverage(var voter, var bodyCoverage) -> {
             // Extract body coverage (conditions) into parent set
-            extractBodyCoverage(nestedPolicy.bodyCoverage(), setCoverage);
+            extractBodyCoverage(bodyCoverage, setCoverage);
             // Record nested policy outcome
-            recordPolicyOutcome(nestedPolicy.voter(), vote, nestedPolicy.bodyCoverage(), setCoverage);
+            recordPolicyOutcome(voter, vote, bodyCoverage, setCoverage);
         }
         case PolicySetCoverage nestedSet -> {
             // Extract nested set's target
@@ -179,11 +179,10 @@ public class CoverageExtractor {
             val matched = Value.TRUE.equals(tr.match());
             coverage.recordTargetHit(matched);
         }
-        case Coverage.BlankTargetHit ignored            -> {
+        case Coverage.BlankTargetHit ignored            ->
             // Blank target (no "for" clause) - implicitly matches everything
             // Record as a target hit since blank target = always applicable
             coverage.recordTargetHit(true);
-        }
         case Coverage.NoTargetHit ignored               -> {
             // Target was not evaluated (policy not reached)
             // Don't record anything
@@ -204,13 +203,12 @@ public class CoverageExtractor {
         val result = hit.result();
 
         // Only record boolean results - skip errors
-        if (!(result instanceof BooleanValue boolResult)) {
+        if (!(result instanceof BooleanValue(boolean boolValue))) {
             return;
         }
 
         val statementId = (int) hit.statementId();
         val location    = hit.location();
-        val boolValue   = boolResult.value();
 
         if (location != null) {
             val startLine = location.line();
