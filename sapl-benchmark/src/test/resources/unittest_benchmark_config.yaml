@@ -3,7 +3,7 @@
 # ---------------------------
 target: docker # docker or remote
 docker:
-  pdp_image: "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT"
+  pdp_image: "ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT"
   use_ssl: true
 
 remote:
