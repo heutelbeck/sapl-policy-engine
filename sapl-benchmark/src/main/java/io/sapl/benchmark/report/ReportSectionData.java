@@ -61,9 +61,9 @@ public class ReportSectionData {
     }
 
     public Map<String, Object> getMap() {
-        return Map.of("benchmark", getBenchmarkName(), "pdpName", getPdpName(), "threads", getThreads(),
-                "thrpt", getThroughputAvg(), "thrpt_stddev", getThroughputStdDev(), "rspt", getResponseTimeAvg(),
-                "rspt_stddev", getResponseTimeStdDev(), "rspt_min", benchmarkResult.getResponseTimeMin(), "rspt_max",
+        return Map.of("benchmark", getBenchmarkName(), "pdpName", getPdpName(), "threads", getThreads(), "thrpt",
+                getThroughputAvg(), "thrpt_stddev", getThroughputStdDev(), "rspt", getResponseTimeAvg(), "rspt_stddev",
+                getResponseTimeStdDev(), "rspt_min", benchmarkResult.getResponseTimeMin(), "rspt_max",
                 benchmarkResult.getResponseTimeMax(), "chart", chartFilePath);
     }
 }

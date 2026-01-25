@@ -17,6 +17,7 @@
  */
 package io.sapl.test;
 
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
@@ -35,7 +36,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static io.sapl.test.Matchers.*;
 import static io.sapl.test.verification.Times.once;
@@ -49,12 +49,14 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MockingAttributeBrokerTests {
 
-    private static final String   TEST_CONFIG_ID  = "test-security";
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
-    private static final Duration DEFAULT_POLL    = Duration.ofSeconds(1);
-    private static final Duration DEFAULT_BACKOFF = Duration.ofMillis(100);
-    private static final long     DEFAULT_RETRIES = 3;
-    private static final boolean  DEFAULT_FRESH   = false;
+    private static final String                 TEST_CONFIG_ID  = "test-security";
+    private static final Duration               DEFAULT_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration               DEFAULT_POLL    = Duration.ofSeconds(1);
+    private static final Duration               DEFAULT_BACKOFF = Duration.ofMillis(100);
+    private static final long                   DEFAULT_RETRIES = 3;
+    private static final boolean                DEFAULT_FRESH   = false;
+    private static final AttributeAccessContext EMPTY_CTX       = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
     @Mock
     private AttributeBroker        delegate;
@@ -66,13 +68,13 @@ class MockingAttributeBrokerTests {
     }
 
     private static AttributeFinderInvocation envInvocation(String name, List<Value> arguments) {
-        return new AttributeFinderInvocation(TEST_CONFIG_ID, name, arguments, Map.of(), DEFAULT_TIMEOUT, DEFAULT_POLL,
-                DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH);
+        return new AttributeFinderInvocation(TEST_CONFIG_ID, name, arguments, DEFAULT_TIMEOUT, DEFAULT_POLL,
+                DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX);
     }
 
     private static AttributeFinderInvocation entityInvocation(String name, Value entity, List<Value> arguments) {
-        return new AttributeFinderInvocation(TEST_CONFIG_ID, name, entity, arguments, Map.of(), DEFAULT_TIMEOUT,
-                DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH);
+        return new AttributeFinderInvocation(TEST_CONFIG_ID, name, entity, arguments, DEFAULT_TIMEOUT, DEFAULT_POLL,
+                DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX);
     }
 
     @Test

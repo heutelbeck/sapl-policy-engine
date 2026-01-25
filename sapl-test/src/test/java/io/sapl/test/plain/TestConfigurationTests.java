@@ -46,6 +46,7 @@ class TestConfigurationTests {
         assertThat(config.saplTestDocuments()).isEmpty();
         assertThat(config.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
         assertThat(config.pdpVariables()).isEmpty();
+        assertThat(config.pdpSecrets()).isEmpty();
         assertThat(config.functionLibraries()).isEmpty();
         assertThat(config.policyInformationPoints()).isEmpty();
         assertThat(config.failFast()).isFalse();
@@ -126,6 +127,26 @@ class TestConfigurationTests {
     }
 
     @Test
+    @DisplayName("builder with single secret")
+    void whenAddingSingleSecret_thenConfigurationContainsIt() {
+        var config = TestConfiguration.builder().withSecret("apiKey", Value.of("secret123")).build();
+
+        assertThat(config.pdpSecrets()).containsEntry("apiKey", Value.of("secret123"));
+    }
+
+    @Test
+    @DisplayName("builder with multiple secrets via map")
+    void whenAddingMultipleSecrets_thenConfigurationContainsAll() {
+        var secrets = new HashMap<String, Value>();
+        secrets.put("apiKey", Value.of("key123"));
+        secrets.put("dbPassword", Value.of("pass456"));
+
+        var config = TestConfiguration.builder().withSecrets(secrets).build();
+
+        assertThat(config.pdpSecrets()).containsAllEntriesOf(secrets);
+    }
+
+    @Test
     @DisplayName("builder with single function library")
     void whenAddingSingleFunctionLibrary_thenConfigurationContainsIt() {
         var config = TestConfiguration.builder().withFunctionLibrary(Object.class).build();
@@ -193,13 +214,15 @@ class TestConfigurationTests {
 
         var config = TestConfiguration.builder().withSaplDocument(document).withSaplTestDocument(testDoc)
                 .withDefaultAlgorithm(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE))
-                .withVariable("key", Value.of("value")).withFunctionLibrary(Object.class)
-                .withPolicyInformationPoint(pip).withFailFast(true).withVerificationTimeout(timeout).build();
+                .withVariable("key", Value.of("value")).withSecret("apiKey", Value.of("secret"))
+                .withFunctionLibrary(Object.class).withPolicyInformationPoint(pip).withFailFast(true)
+                .withVerificationTimeout(timeout).build();
 
         assertThat(config.saplDocuments()).containsExactly(document);
         assertThat(config.saplTestDocuments()).containsExactly(testDoc);
         assertThat(config.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE));
         assertThat(config.pdpVariables()).containsEntry("key", Value.of("value"));
+        assertThat(config.pdpSecrets()).containsEntry("apiKey", Value.of("secret"));
         assertThat(config.functionLibraries()).containsExactly(Object.class);
         assertThat(config.policyInformationPoints()).containsExactly(pip);
         assertThat(config.failFast()).isTrue();

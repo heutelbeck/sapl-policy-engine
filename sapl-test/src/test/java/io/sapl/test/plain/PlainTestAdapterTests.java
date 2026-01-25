@@ -17,6 +17,7 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.api.model.Value;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -169,5 +170,80 @@ class PlainTestAdapterTests {
         assertThat(results.passed()).isOne();
         assertThat(results.failed()).isOne();
         assertThat(results.allPassed()).isFalse();
+    }
+
+    @Test
+    @DisplayName("execute handles secrets in given block")
+    void whenSecretsInGivenBlock_thenScenarioExecutesSuccessfully() {
+        var policy   = SaplDocument.of("permit-all", "policy \"permit-all\" permit");
+        var testCode = """
+                requirement "secrets test" {
+                    given
+                        - document "permit-all"
+                        - secrets { "apiKey": "secret123", "dbPassword": "pass456" }
+                    scenario "with secrets"
+                        when "alice" attempts "read" on "data"
+                        expect decision is permit;
+                }
+                """;
+        var testDoc  = new SaplTestDocument("test", "test", testCode);
+        var config   = TestConfiguration.builder().withSaplDocument(policy).withSaplTestDocument(testDoc).build();
+        var adapter  = new PlainTestAdapter();
+
+        var results = adapter.execute(config);
+
+        assertThat(results.total()).isOne();
+        assertThat(results.passed()).isOne();
+        assertThat(results.allPassed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("execute handles secrets in authorization subscription")
+    void whenSecretsInSubscription_thenScenarioExecutesSuccessfully() {
+        var policy   = SaplDocument.of("permit-all", "policy \"permit-all\" permit");
+        var testCode = """
+                requirement "subscription secrets test" {
+                    given
+                        - document "permit-all"
+                    scenario "with subscription secrets"
+                        when "alice" attempts "read" on "data" with secrets { "token": "abc123" }
+                        expect decision is permit;
+                }
+                """;
+        var testDoc  = new SaplTestDocument("test", "test", testCode);
+        var config   = TestConfiguration.builder().withSaplDocument(policy).withSaplTestDocument(testDoc).build();
+        var adapter  = new PlainTestAdapter();
+
+        var results = adapter.execute(config);
+
+        assertThat(results.total()).isOne();
+        assertThat(results.passed()).isOne();
+        assertThat(results.allPassed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("execute handles secrets from config and scenario level")
+    void whenSecretsFromConfigAndScenario_thenBothAreApplied() {
+        var policy   = SaplDocument.of("permit-all", "policy \"permit-all\" permit");
+        var testCode = """
+                requirement "combined secrets test" {
+                    given
+                        - document "permit-all"
+                        - secrets { "scenarioSecret": "value1" }
+                    scenario "with combined secrets"
+                        when "alice" attempts "read" on "data"
+                        expect decision is permit;
+                }
+                """;
+        var testDoc  = new SaplTestDocument("test", "test", testCode);
+        var config   = TestConfiguration.builder().withSaplDocument(policy).withSaplTestDocument(testDoc)
+                .withSecret("configSecret", Value.of("configValue")).build();
+        var adapter  = new PlainTestAdapter();
+
+        var results = adapter.execute(config);
+
+        assertThat(results.total()).isOne();
+        assertThat(results.passed()).isOne();
+        assertThat(results.allPassed()).isTrue();
     }
 }

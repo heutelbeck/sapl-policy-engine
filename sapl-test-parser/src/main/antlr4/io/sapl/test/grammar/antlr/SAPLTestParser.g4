@@ -60,6 +60,7 @@ givenItem
     : DASH documentSpecification  # documentGivenItem
     | DASH combiningAlgorithm     # algorithmGivenItem
     | DASH variablesDefinition    # variablesGivenItem
+    | DASH secretsDefinition      # secretsGivenItem
     | DASH mockDefinition         # mockGivenItem
     ;
 
@@ -98,9 +99,14 @@ errorHandling
     | PROPAGATE # propagateErrors
     ;
 
-// Variables definition - local test variables override security variables
+// Variables definition - local test variables override config variables
 variablesDefinition
     : VARIABLES variables=objectValue
+    ;
+
+// Secrets definition - local test secrets override config secrets
+secretsDefinition
+    : SECRETS secrets=objectValue
     ;
 
 // Mock definitions
@@ -171,6 +177,7 @@ whenStep
 authorizationSubscription
     : SUBJECT? subject=value ATTEMPTS ACTION? action=value
       ON RESOURCE? resource=value (IN ENVIRONMENT? env=objectValue)?
+      (WITH SECRETS subscriptionSecrets=objectValue)?
     ;
 
 // Expectation

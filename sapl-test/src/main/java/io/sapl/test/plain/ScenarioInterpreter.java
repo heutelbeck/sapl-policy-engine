@@ -39,6 +39,8 @@ import java.util.stream.Collectors;
 
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 import static io.sapl.test.Matchers.*;
+
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 
 /**
@@ -113,6 +115,9 @@ public class ScenarioInterpreter {
 
             // Apply variables (if specified)
             applyVariables(fixture, mergedGiven);
+
+            // Apply secrets (if specified)
+            applySecrets(fixture, mergedGiven);
 
             // Apply function mocks
             applyFunctionMocks(fixture, mergedGiven);
@@ -343,6 +348,30 @@ public class ScenarioInterpreter {
     }
 
     /**
+     * Applies secrets to the fixture.
+     * <p>
+     * Secrets are applied in order: config-level first, then test-level.
+     * Test-level secrets override config-level secrets with the same name.
+     * <p>
+     * Secrets are only accessible to PIPs, not policies. This protects against
+     * accidental leakage through misconfigured policies or logging.
+     */
+    private void applySecrets(SaplTestFixture fixture, MergedGiven given) {
+        // First apply config-level secrets (from programmatic config)
+        for (var entry : config.pdpSecrets().entrySet()) {
+            fixture.givenSecret(entry.getKey(), entry.getValue());
+        }
+
+        // Then apply test-level secrets (these override config-level secrets)
+        if (given.secrets != null) {
+            var testSecrets = ValueConverter.convertObjectToMap(given.secrets.secrets);
+            for (var entry : testSecrets.entrySet()) {
+                fixture.givenSecret(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    /**
      * Applies function mocks to the fixture.
      */
     private void applyFunctionMocks(SaplTestFixture fixture, MergedGiven given) {
@@ -459,17 +488,15 @@ public class ScenarioInterpreter {
     private SaplTestFixture.DecisionResult executeWhenClause(SaplTestFixture fixture, WhenStepContext whenStep) {
         var authSub = whenStep.authorizationSubscription();
 
-        var subject  = ValueConverter.convert(authSub.subject);
-        var action   = ValueConverter.convert(authSub.action);
-        var resource = ValueConverter.convert(authSub.resource);
+        var subject     = ValueConverter.convert(authSub.subject);
+        var action      = ValueConverter.convert(authSub.action);
+        var resource    = ValueConverter.convert(authSub.resource);
+        var environment = authSub.env != null ? ValueConverter.convertObject(authSub.env) : Value.UNDEFINED;
+        var secrets     = authSub.subscriptionSecrets != null
+                ? (ObjectValue) ValueConverter.convertObject(authSub.subscriptionSecrets)
+                : Value.EMPTY_OBJECT;
 
-        AuthorizationSubscription subscription;
-        if (authSub.env != null) {
-            var environment = ValueConverter.convertObject(authSub.env);
-            subscription = AuthorizationSubscription.of(subject, action, resource, environment);
-        } else {
-            subscription = AuthorizationSubscription.of(subject, action, resource);
-        }
+        var subscription = new AuthorizationSubscription(subject, action, resource, environment, secrets);
 
         return fixture.whenDecide(subscription);
     }
@@ -788,6 +815,8 @@ public class ScenarioInterpreter {
         CombiningAlgorithmContext    combiningAlgorithm;
         @Nullable
         VariablesDefinitionContext   variables;
+        @Nullable
+        SecretsDefinitionContext     secrets;
         List<FunctionMockContext>    functionMocks  = new ArrayList<>();
         List<AttributeMockContext>   attributeMocks = new ArrayList<>();
 
@@ -806,6 +835,7 @@ public class ScenarioInterpreter {
             }
             case AlgorithmGivenItemContext algItem -> this.combiningAlgorithm = algItem.combiningAlgorithm();
             case VariablesGivenItemContext varItem -> this.variables = varItem.variablesDefinition();
+            case SecretsGivenItemContext secItem   -> this.secrets = secItem.secretsDefinition();
             case MockGivenItemContext mockItem     -> addMock(mockItem.mockDefinition());
             default                                -> { /* NO-OP */ }
             }

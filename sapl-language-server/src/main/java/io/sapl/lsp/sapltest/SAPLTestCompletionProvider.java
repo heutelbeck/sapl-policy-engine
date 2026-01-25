@@ -41,7 +41,7 @@ public class SAPLTestCompletionProvider {
             "stream", "virtual-time", "error", "once", "times", "is", "called", "timing", "of");
     private static final List<String> IMPORT_KEYWORDS    = List.of("pip", "static-pip", "function-library",
             "static-function-library");
-    private static final List<String> PDP_KEYWORDS       = List.of("pdp", "variables", "combining-algorithm",
+    private static final List<String> PDP_KEYWORDS       = List.of("pdp", "variables", "secrets", "combining-algorithm",
             "configuration", "policy", "set", "policies");
     private static final List<String> ALGORITHM_KEYWORDS = List.of("deny-overrides", "permit-overrides",
             "only-one-applicable", "deny-unless-permit", "permit-unless-deny");

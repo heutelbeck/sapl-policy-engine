@@ -61,6 +61,7 @@ ERROR         : 'error';
 
 // PDP configuration keywords
 VARIABLES : 'variables';
+SECRETS   : 'secrets';
 
 // Combining algorithm components (same as sapl-parser)
 KW_OR     : 'or';

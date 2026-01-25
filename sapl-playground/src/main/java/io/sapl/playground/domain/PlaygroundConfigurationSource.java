@@ -155,7 +155,8 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
      * successful
      */
     public Optional<SaplCompilerException> tryCompile(String source) {
-        val compilationContext = new CompilationContext(new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT), functionBroker, attributeBroker);
+        val compilationContext = new CompilationContext(new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT),
+                functionBroker, attributeBroker);
         try {
             compilationContext.resetForNextDocument();
             DocumentCompiler.compileDocument(source, compilationContext);
@@ -173,11 +174,12 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
 
     private ObjectValue varablesAsObjectValue() {
         val variables = ObjectValue.builder();
-        for(val entry : currentVariables.get().entrySet()) {
+        for (val entry : currentVariables.get().entrySet()) {
             variables.put(entry.getKey(), entry.getValue());
         }
         return variables.build();
     }
+
     @PreDestroy
     public void destroy() {
         configurationSink.tryEmitComplete();

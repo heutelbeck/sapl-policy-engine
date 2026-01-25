@@ -22,11 +22,13 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PdpData;
 import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
 import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
@@ -128,6 +130,7 @@ public class SaplTestFixture {
     private final Map<String, String> policyFilePaths = new HashMap<>();
     private CombiningAlgorithm        combiningAlgorithm;
     private final Map<String, Value>  variables       = new HashMap<>();
+    private final Map<String, Value>  secrets         = new HashMap<>();
     private PDPConfiguration          loadedConfiguration;
 
     private FunctionBroker  customFunctionBroker;
@@ -734,6 +737,27 @@ public class SaplTestFixture {
     }
 
     /**
+     * Registers a secret in the evaluation context.
+     * <p>
+     * Secrets are only accessible to PIPs, not policies. This protects against
+     * accidental leakage through misconfigured policies or logging.
+     * <p>
+     * If a secret with the same name already exists, it will be overwritten.
+     * This allows scenario-level secrets to override requirement-level secrets.
+     * <p>
+     * Unlike variables, secret names are not checked against reserved identifiers
+     * since policies cannot access secrets directly.
+     *
+     * @param name the secret name
+     * @param value the secret value
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture givenSecret(@NonNull String name, @NonNull Value value) {
+        secrets.put(name, value);
+        return this;
+    }
+
+    /**
      * Submits an authorization subscription for evaluation and returns the decision
      * result.
      * <p>
@@ -811,11 +835,22 @@ public class SaplTestFixture {
     private PDPComponents buildPdpComponents(PolicyDecisionPointBuilder pdpBuilder, List<String> effectivePolicies) {
         var effectiveAlgorithm = resolveAlgorithm();
         var effectiveVariables = resolveVariables();
+        var effectiveSecrets   = resolveSecrets();
+        var pdpData            = new PdpData(toObjectValue(effectiveVariables), toObjectValue(effectiveSecrets));
         var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
-                effectiveAlgorithm, effectivePolicies, effectiveVariables);
+                effectiveAlgorithm, effectivePolicies, pdpData);
 
         return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeBroker(mockingAttributeBroker)
                 .withConfiguration(configuration).build();
+    }
+
+    private ObjectValue toObjectValue(Map<String, Value> map) {
+        if (map.isEmpty()) {
+            return Value.EMPTY_OBJECT;
+        }
+        var builder = ObjectValue.builder();
+        map.forEach(builder::put);
+        return builder.build();
     }
 
     private CoverageContext createCoverageContext(List<String> effectivePolicies) {
@@ -964,10 +999,21 @@ public class SaplTestFixture {
 
     private Map<String, Value> resolveVariables() {
         var result = new HashMap<String, Value>();
-        if (loadedConfiguration != null && loadedConfiguration.variables() != null) {
-            result.putAll(loadedConfiguration.variables());
+        if (loadedConfiguration != null && loadedConfiguration.data() != null
+                && loadedConfiguration.data().variables() != null) {
+            result.putAll(loadedConfiguration.data().variables());
         }
         result.putAll(variables);
+        return result;
+    }
+
+    private Map<String, Value> resolveSecrets() {
+        var result = new HashMap<String, Value>();
+        if (loadedConfiguration != null && loadedConfiguration.data() != null
+                && loadedConfiguration.data().secrets() != null) {
+            result.putAll(loadedConfiguration.data().secrets());
+        }
+        result.putAll(secrets);
         return result;
     }
 

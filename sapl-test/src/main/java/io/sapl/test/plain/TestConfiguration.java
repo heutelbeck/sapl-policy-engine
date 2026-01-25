@@ -47,6 +47,7 @@ public record TestConfiguration(
         List<SaplTestDocument> saplTestDocuments,
         CombiningAlgorithm defaultAlgorithm,
         Map<String, Value> pdpVariables,
+        Map<String, Value> pdpSecrets,
         List<Class<?>> functionLibraries,
         List<Object> policyInformationPoints,
         boolean failFast,
@@ -74,6 +75,7 @@ public record TestConfiguration(
         private CombiningAlgorithm           defaultAlgorithm        = new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN,
                 PROPAGATE);
         private final Map<String, Value>     pdpVariables            = new HashMap<>();
+        private final Map<String, Value>     pdpSecrets              = new HashMap<>();
         private final List<Class<?>>         functionLibraries       = new ArrayList<>();
         private final List<Object>           policyInformationPoints = new ArrayList<>();
         private boolean                      failFast                = false;
@@ -136,6 +138,22 @@ public record TestConfiguration(
         }
 
         /**
+         * Adds a PDP secret. Secrets are only accessible to PIPs, not policies.
+         */
+        public Builder withSecret(String name, Value value) {
+            this.pdpSecrets.put(name, value);
+            return this;
+        }
+
+        /**
+         * Adds multiple PDP secrets. Secrets are only accessible to PIPs, not policies.
+         */
+        public Builder withSecrets(Map<String, Value> secrets) {
+            this.pdpSecrets.putAll(secrets);
+            return this;
+        }
+
+        /**
          * Adds a function library class.
          */
         public Builder withFunctionLibrary(Class<?> libraryClass) {
@@ -192,8 +210,8 @@ public record TestConfiguration(
          */
         public TestConfiguration build() {
             return new TestConfiguration(List.copyOf(saplDocuments), List.copyOf(saplTestDocuments), defaultAlgorithm,
-                    Map.copyOf(pdpVariables), List.copyOf(functionLibraries), List.copyOf(policyInformationPoints),
-                    failFast, verificationTimeout);
+                    Map.copyOf(pdpVariables), Map.copyOf(pdpSecrets), List.copyOf(functionLibraries),
+                    List.copyOf(policyInformationPoints), failFast, verificationTimeout);
         }
     }
 }

@@ -62,6 +62,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.document.Document;
+import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
@@ -1386,7 +1387,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 .addValidationFinishedListener(event -> handlePolicyValidation(components.context, event));
         components.context.editor.setDocument(policyDocument);
 
-        val parsedDocument = SAPLCompiler.parseDocument(policyDocument);
+        val parsedDocument = DocumentCompiler.parseDocument(policyDocument);
         if (!parsedDocument.isInvalid()) {
             components.context.documentName = parsedDocument.name();
             components.context.titleLabel.setText(truncateTitle(parsedDocument.name()));
@@ -1512,7 +1513,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             log.debug("  Issue: {} (severity: {})", issue.getDescription(), issue.getSeverity());
         }
         val hasErrors      = PlaygroundValidator.hasErrorSeverityIssues(issues);
-        val parsedDocument = SAPLCompiler.parseDocument(document);
+        val parsedDocument = DocumentCompiler.parseDocument(document);
 
         updatePolicyDocumentName(context, parsedDocument);
         updatePolicyValidationState(context, hasErrors, issues);

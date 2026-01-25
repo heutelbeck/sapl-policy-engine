@@ -329,8 +329,8 @@ public class Matchers {
      * @param expected the expected number
      */
     public static ArgumentMatcher numberEqualTo(@NonNull BigDecimal expected) {
-        return matching(
-                v -> v instanceof NumberValue(BigDecimal value) && expected.compareTo(new BigDecimal(value.toString())) == 0);
+        return matching(v -> v instanceof NumberValue(BigDecimal value)
+                && expected.compareTo(new BigDecimal(value.toString())) == 0);
     }
 
     /**

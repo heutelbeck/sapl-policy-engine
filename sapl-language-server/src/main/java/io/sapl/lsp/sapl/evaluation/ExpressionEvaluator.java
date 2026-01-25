@@ -28,6 +28,7 @@ import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PdpData;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -67,7 +68,8 @@ public class ExpressionEvaluator {
             return Optional.empty();
         }
 
-        var compilationContext = new CompilationContext(config.functionBroker(), config.attributeBroker());
+        var pdpData            = new PdpData(Value.ofObject(config.variables()), Value.EMPTY_OBJECT);
+        var compilationContext = new CompilationContext(pdpData, config.functionBroker(), config.attributeBroker());
 
         var compiledExpression = ExpressionCompiler.compile(expression, compilationContext);
 

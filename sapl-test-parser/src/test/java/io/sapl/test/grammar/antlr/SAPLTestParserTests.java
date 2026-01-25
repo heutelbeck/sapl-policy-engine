@@ -167,6 +167,69 @@ class SAPLTestParserTests {
         assertThat(errors).as("PDP security '%s' should parse without errors", description).isEmpty();
     }
 
+    static Stream<Arguments> secretsDefinitions() {
+        return Stream.of(arguments("single secret", """
+                requirement "Test" {
+                    given
+                        - secrets { "apiKey": "secret123" }
+                    scenario "test"
+                        when "cultist" attempts "invoke" on "ritual"
+                        expect permit;
+                }
+                """), arguments("multiple secrets", """
+                requirement "Test" {
+                    given
+                        - secrets { "apiKey": "key1", "token": "token2", "password": "pass3" }
+                    scenario "test"
+                        when "cultist" attempts "invoke" on "ritual"
+                        expect permit;
+                }
+                """), arguments("nested secret objects", """
+                requirement "Test" {
+                    given
+                        - secrets { "database": { "user": "admin", "pass": "secret" }, "api": { "key": "xyz" } }
+                    scenario "test"
+                        when "cultist" attempts "invoke" on "ritual"
+                        expect permit;
+                }
+                """), arguments("secrets with variables", """
+                requirement "Test" {
+                    given
+                        - variables { "env": "production" }
+                        - secrets { "apiKey": "prodKey" }
+                    scenario "test"
+                        when "cultist" attempts "invoke" on "ritual"
+                        expect permit;
+                }
+                """), arguments("secrets at scenario level", """
+                requirement "Test" {
+                    given
+                        - secrets { "globalSecret": "value1" }
+                    scenario "test"
+                        given
+                            - secrets { "localSecret": "value2" }
+                        when "cultist" attempts "invoke" on "ritual"
+                        expect permit;
+                }
+                """), arguments("empty secrets object", """
+                requirement "Test" {
+                    given
+                        - secrets { }
+                    scenario "test"
+                        when "cultist" attempts "invoke" on "ritual"
+                        expect permit;
+                }
+                """));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("secretsDefinitions")
+    @DisplayName("secrets definitions parse without syntax errors")
+    void whenParsingSecretsDefinition_thenNoSyntaxErrors(String description, String document) {
+        var errors = parseAndCollectErrors(document);
+        assertThat(errors).as("Secrets '%s' should parse without errors", description).isEmpty();
+    }
+
     static Stream<Arguments> mockDefinitions() {
         return Stream.of(arguments("simple function mock (no params)", """
                 requirement "Test" {
@@ -313,6 +376,28 @@ class SAPLTestParserTests {
                     scenario "test"
                         when undefined attempts "test" on undefined
                         expect not-applicable;
+                }
+                """), arguments("subscription with secrets", """
+                requirement "Test" {
+                    scenario "test"
+                        when "user" attempts "api-call" on "service"
+                            with secrets { "token": "bearer123" }
+                        expect permit;
+                }
+                """), arguments("subscription with environment and secrets", """
+                requirement "Test" {
+                    scenario "test"
+                        when "user" attempts "api-call" on "service"
+                            in environment { "region": "us-east" }
+                            with secrets { "apiKey": "xyz", "token": "abc" }
+                        expect permit;
+                }
+                """), arguments("subscription with nested secrets", """
+                requirement "Test" {
+                    scenario "test"
+                        when "admin" attempts "deploy" on "production"
+                            with secrets { "credentials": { "user": "deploy", "key": "secret" } }
+                        expect permit;
                 }
                 """));
     }
