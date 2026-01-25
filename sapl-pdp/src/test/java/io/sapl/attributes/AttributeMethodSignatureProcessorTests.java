@@ -35,6 +35,7 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.List;
 
+import static io.sapl.compiler.util.DummyEvaluationContextFactory.DUMMY_SUBSCRIPTION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -256,8 +257,8 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     private EvaluationContext createEvaluationContext() {
-        return EvaluationContext.of("id", "test-security", "test-subscription", null, DEFAULT_FUNCTION_BROKER,
-                DEFAULT_ATTRIBUTE_BROKER);
+        return EvaluationContext.of("id", "test-security", "test-subscription", DUMMY_SUBSCRIPTION,
+                DEFAULT_FUNCTION_BROKER, DEFAULT_ATTRIBUTE_BROKER);
     }
 
     static class TestPIP {

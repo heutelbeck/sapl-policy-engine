@@ -17,7 +17,11 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -37,98 +41,71 @@ public class AttributeOptionsCompiler {
     public static final String OPTION_RETRIES         = "retries";
     public static final String OPTION_FRESH           = "fresh";
 
-    record Options(CompiledExpression policyLocalSettings, SourceLocation location) implements PureOperator {
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            // Get PDP-level settings from environment.attributeFinderOptions (may be null)
-            ObjectValue pdpSettings = null;
-            var         environment = ctx.environment();
-            if (environment instanceof ObjectValue envObj) {
-                var pdpLocalSettings = envObj.get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
-                if (pdpLocalSettings != null && !(pdpLocalSettings instanceof UndefinedValue)) {
-                    if (!(pdpLocalSettings instanceof ObjectValue ov)) {
-                        return Value.errorAt(location,
-                                "Attribute options in variable '%s' type mismatch. Must be an Object or absent. But got: %s.",
-                                OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpLocalSettings);
-                    }
-                    pdpSettings = ov;
-                }
-            }
+    private static final String ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED          = "Attribute access not permitted in attribute options.";
+    private static final String ERROR_OPTIONS_MUST_BE_OBJECT                  = "Attribute options must be an object, but was: %s.";
+    private static final String ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION = "Attribute options must not depend on any element of the authorization subscription";
+    private static final String ERROR_PDP_DEFAULTS_MUST_BE_OBJECT             = "If defined, PDP wide defaults (%s) for attribute options must be an object, but was: %s.";
 
-            // Get policy-level settings (may be null if no options expression)
-            ObjectValue policySettings = null;
-            if (policyLocalSettings instanceof ObjectValue ov) {
-                policySettings = ov;
-            } else if (policyLocalSettings instanceof PureOperator pureOptions) {
-                val value = pureOptions.evaluate(ctx);
-                if (value instanceof ErrorValue) {
-                    return value;
-                }
-                if (!(value instanceof ObjectValue ov)) {
-                    return Value.errorAt(location, "Attribute options type mismatch. Must be an Object. But got: %s.",
-                            value);
-                }
-                policySettings = ov;
-            }
-            // null policyLocalSettings is valid - just use PDP settings
+    private static final ObjectValue DEFAULT_SETTINGS = ObjectValue.builder()
+            .put(OPTION_INITIAL_TIMEOUT, Value.of(DEFAULT_TIMEOUT_MS))
+            .put(OPTION_POLL_INTERVAL, Value.of(DEFAULT_POLL_INTERVAL_MS))
+            .put(OPTION_BACKOFF, Value.of(DEFAULT_BACKOFF_MS)).put(OPTION_RETRIES, Value.of(DEFAULT_RETRIES))
+            .put(OPTION_FRESH, Value.FALSE).build();
 
-            // Merge: policy > PDP (defaults applied in AttributeCompiler)
-            val builder = ObjectValue.builder();
-            setOption(builder, OPTION_INITIAL_TIMEOUT, policySettings, pdpSettings);
-            setOption(builder, OPTION_POLL_INTERVAL, policySettings, pdpSettings);
-            setOption(builder, OPTION_BACKOFF, policySettings, pdpSettings);
-            setOption(builder, OPTION_RETRIES, policySettings, pdpSettings);
-            setOption(builder, OPTION_FRESH, policySettings, pdpSettings);
-            return builder.build();
-        }
-
-        private void setOption(ObjectValue.Builder builder, String option, ObjectValue policySettings,
-                ObjectValue pdpSettings) {
-            Value value = null;
-            if (policySettings != null) {
-                value = policySettings.get(option);
+    /**
+     * Compiles attribute finder options by merging policy-level options with
+     * PDP-level defaults.
+     * <p>
+     * Priority chain: policy options > PDP options > built-in defaults.
+     *
+     * @param optionsExpression the options expression from the policy, or null if
+     * none specified
+     * @param ctx the compilation context containing PDP-level settings
+     * @return an ObjectValue containing the merged options
+     * @throws SaplCompilerException if options are invalid, depend on subscription,
+     * or use attributes
+     */
+    public CompiledExpression compileOptions(Expression optionsExpression, CompilationContext ctx) {
+        var settings    = DEFAULT_SETTINGS;
+        var pdpSettings = ctx.data.variables().get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
+        if (pdpSettings != null) {
+            if (!(pdpSettings instanceof ObjectValue pdpSettingsObjectValue)) {
+                throw new SaplCompilerException(
+                        ERROR_PDP_DEFAULTS_MUST_BE_OBJECT.formatted(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpSettings),
+                        optionsExpression.location());
             }
-            if (value == null && pdpSettings != null) {
-                value = pdpSettings.get(option);
-            }
-            if (value != null) {
-                builder.put(option, value);
-            }
+            settings = mergeSettings(settings, pdpSettingsObjectValue);
         }
-
-        @Override
-        public boolean isDependingOnSubscription() {
-            return true;
+        if (optionsExpression == null) {
+            return settings;
         }
-    }
-
-    public CompiledExpression compileOptions(Expression optionsExpression, SourceLocation location,
-            CompilationContext ctx) {
-        CompiledExpression policyLocalSettings = null;
-        if (optionsExpression != null) {
-            policyLocalSettings = ExpressionCompiler.compile(optionsExpression, ctx);
-        }
-        if (policyLocalSettings instanceof ErrorValue) {
-            return policyLocalSettings;
-        }
+        val policyLocalSettings = ExpressionCompiler.compile(optionsExpression, ctx);
         if (policyLocalSettings instanceof StreamOperator) {
-            return Value.errorAt(location, "Attribute access not permitted in attribute options.");
+            throw new SaplCompilerException(ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED, optionsExpression.location());
         }
-        if (policyLocalSettings instanceof Value && !(policyLocalSettings instanceof ObjectValue)) {
-            return Value.errorAt(location, "Attribute options type mismatch. Must evaluate to Object. But got: %s.",
-                    policyLocalSettings);
+        if (policyLocalSettings instanceof PureOperator) {
+            throw new SaplCompilerException(ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION,
+                    optionsExpression.location());
         }
-
-        if (policyLocalSettings instanceof ObjectValue ov && setsAllOptionsManually(ov)) {
-            return ov;
+        if (!(policyLocalSettings instanceof ObjectValue localOverrides)) {
+            throw new SaplCompilerException(ERROR_OPTIONS_MUST_BE_OBJECT.formatted(policyLocalSettings),
+                    optionsExpression.location());
         }
-        return new Options(policyLocalSettings, location);
+        return mergeSettings(settings, localOverrides);
     }
 
-    private static boolean setsAllOptionsManually(ObjectValue optionsValue) {
-        return optionsValue.containsKey(OPTION_INITIAL_TIMEOUT) && optionsValue.containsKey(OPTION_POLL_INTERVAL)
-                && optionsValue.containsKey(OPTION_BACKOFF) && optionsValue.containsKey(OPTION_RETRIES)
-                && optionsValue.containsKey(OPTION_FRESH);
+    private ObjectValue mergeSettings(ObjectValue original, ObjectValue override) {
+        val builder = ObjectValue.builder();
+        mergeKey(builder, OPTION_INITIAL_TIMEOUT, original, override);
+        mergeKey(builder, OPTION_POLL_INTERVAL, original, override);
+        mergeKey(builder, OPTION_BACKOFF, original, override);
+        mergeKey(builder, OPTION_RETRIES, original, override);
+        mergeKey(builder, OPTION_FRESH, original, override);
+        return builder.build();
+    }
+
+    private void mergeKey(ObjectValue.Builder builder, String key, ObjectValue original, ObjectValue override) {
+        builder.put(key, override.containsKey(key) ? override.get(key) : original.get(key));
     }
 
 }

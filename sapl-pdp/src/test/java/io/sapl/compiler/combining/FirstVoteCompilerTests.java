@@ -590,8 +590,8 @@ class FirstVoteCompilerTests {
                             """, Decision.INDETERMINATE, TARGET_ERROR, List.of()));
         }
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource
+        @ParameterizedTest(name = "{0}")
         void pureTestCases(PureTestCase testCase) {
             val compiled           = compilePolicySet(testCase.policySet());
             val ctx                = subscriptionContext(testCase.subscription());

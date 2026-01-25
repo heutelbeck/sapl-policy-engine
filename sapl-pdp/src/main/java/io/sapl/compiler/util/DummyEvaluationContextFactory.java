@@ -25,7 +25,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class DummyEvaluationContextFactory {
-    private static final AuthorizationSubscription DUMMY_SUBSCRIPTION = new AuthorizationSubscription(Value.UNDEFINED,
+    public static final AuthorizationSubscription DUMMY_SUBSCRIPTION = new AuthorizationSubscription(Value.UNDEFINED,
             Value.UNDEFINED, Value.UNDEFINED, Value.UNDEFINED, Value.EMPTY_OBJECT);
 
     public EvaluationContext dummyContext(CompilationContext ctx) {

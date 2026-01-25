@@ -70,6 +70,7 @@ public record EvaluationContext(
     public Value get(String identifier) {
         return switch (identifier) {
         case SUBJECT           -> subject();
+        case ACTION            -> action();
         case RESOURCE          -> resource();
         case ENVIRONMENT       -> environment();
         case RELATIVE_LOCATION -> relativeLocation;

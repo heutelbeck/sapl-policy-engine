@@ -76,7 +76,7 @@ public class AttributeCompiler {
             @NonNull List<Expression> arguments, Expression optionsExpr, boolean head, @NonNull SourceLocation location,
             CompilationContext ctx) {
 
-        val compiledOptions = AttributeOptionsCompiler.compileOptions(optionsExpr, location, ctx);
+        val compiledOptions = AttributeOptionsCompiler.compileOptions(optionsExpr, ctx);
         if (compiledOptions instanceof ErrorValue err) {
             return errorStream(err);
         }

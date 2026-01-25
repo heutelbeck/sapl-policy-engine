@@ -21,6 +21,7 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -29,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;
@@ -913,40 +915,41 @@ class ExpressionCompilerTests {
     @ParameterizedTest(name = "pure operator: {0}")
     void when_containsVariableReference_then_returnsPureOperatorWithCorrectValue(String description, String expression,
             Value varValue, Value expected) {
-        val ctx      = compilationContext(toObjectValue(java.util.Map.of("x", varValue)));
+        val ctx      = compilationContext();
         val compiled = compileExpression(expression, ctx);
         assertThat(compiled).as("should be PureOperator when containing variable reference")
                 .isInstanceOf(PureOperator.class);
 
-        val result = ((PureOperator) compiled).evaluate(evaluationContext());
+        val result = ((PureOperator) compiled).evaluate(evaluationContext(new AuthorizationSubscription(varValue,
+                Value.of("action"), Value.of("resource"), Value.UNDEFINED, Value.EMPTY_OBJECT)));
         assertThat(result).isEqualTo(expected);
     }
 
     private static Stream<Arguments> pureOperatorCases() {
         return Stream.of(
                 // Arrays with variable
-                arguments("array with single var", "[x]", Value.of(42), Value.ofArray(Value.of(42))),
-                arguments("array with var and literal", "[1, x, 3]", Value.of(2),
+                arguments("array with single var", "[subject]", Value.of(42), Value.ofArray(Value.of(42))),
+                arguments("array with var and literal", "[1, subject, 3]", Value.of(2),
                         Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-                arguments("array with undefined var dropped", "[1, x, 3]", Value.UNDEFINED,
+                arguments("array with undefined var dropped", "[1, subject, 3]", Value.UNDEFINED,
                         Value.ofArray(Value.of(1), Value.of(3))),
-                arguments("array with var at start", "[x, 2, 3]", Value.of(1),
+                arguments("array with var at start", "[subject, 2, 3]", Value.of(1),
                         Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-                arguments("array with var at end", "[1, 2, x]", Value.of(3),
+                arguments("array with var at end", "[1, 2, subject]", Value.of(3),
                         Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
                 // Objects with variable
-                arguments("object with single var value", "{a: x}", Value.of(42), obj("a", Value.of(42))),
-                arguments("object with var and literal", "{a: 1, b: x, c: 3}", Value.of(2),
+                arguments("object with single var value", "{a: subject}", Value.of(42), obj("a", Value.of(42))),
+                arguments("object with var and literal", "{a: 1, b: subject, c: 3}", Value.of(2),
                         obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3))),
-                arguments("object with undefined var dropped", "{a: 1, b: x, c: 3}", Value.UNDEFINED,
+                arguments("object with undefined var dropped", "{a: 1, b: subject, c: 3}", Value.UNDEFINED,
                         obj("a", Value.of(1), "c", Value.of(3))),
                 // Nested with variable
-                arguments("nested array with var", "[[x, 2], [3, 4]]", Value.of(1),
+                arguments("nested array with var", "[[subject, 2], [3, 4]]", Value.of(1),
                         Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
                                 Value.ofArray(Value.of(3), Value.of(4)))),
-                arguments("nested object with var", "{outer: {inner: x}}", Value.of(99),
+                arguments("nested object with var", "{outer: {inner: subject}}", Value.of(99),
                         obj("outer", obj("inner", Value.of(99)))),
-                arguments("object with array containing var", "{arr: [x, 2]}", Value.of(1),
+                arguments("object with array containing var", "{arr: [subject, 2]}", Value.of(1),
                         obj("arr", Value.ofArray(Value.of(1), Value.of(2)))));
     }
 

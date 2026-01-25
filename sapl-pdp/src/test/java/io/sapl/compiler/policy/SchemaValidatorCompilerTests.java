@@ -144,12 +144,12 @@ class SchemaValidatorCompilerTests {
     class CompileTimeValidationErrorTests {
 
         @Test
-        @DisplayName("when schema is variable reference then throws SaplCompilerException")
+        @DisplayName("when schema is an undefined variable reference then throws SaplCompilerException")
         void whenSchemaIsVariableReference_thenThrowsCompilerException() {
             val schemas = List.of(enforcedVariableSchema(SubscriptionElement.SUBJECT, "mySchema"));
             val ctx     = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Schema must be a constant object literal");
+                    .hasMessageContaining("Schema must be an object, got: UndefinedValue");
         }
 
         @ParameterizedTest(name = "when schema is {0} then throws SaplCompilerException")

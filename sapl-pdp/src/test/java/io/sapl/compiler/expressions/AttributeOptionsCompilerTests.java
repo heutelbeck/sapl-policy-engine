@@ -17,254 +17,186 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.ast.Expression;
 import io.sapl.ast.Literal;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.MockedStatic;
 
-import java.util.Map;
+import java.util.stream.Stream;
 
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.*;
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_TIMEOUT_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_BACKOFF;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FRESH;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_INITIAL_TIMEOUT;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_POLL_INTERVAL;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRIES;
+import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.TestPureOperator;
+import static io.sapl.util.SaplTesting.TestStreamOperator;
+import static io.sapl.util.SaplTesting.compilationContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mockStatic;
 
-@ExtendWith(MockitoExtension.class)
+@DisplayName("AttributeOptionsCompiler")
 class AttributeOptionsCompilerTests {
 
-    @Mock
-    private CompilationContext compilationCtx;
-
     @Nested
-    class CompileOptionsTests {
+    @DisplayName("when null options expression")
+    class WhenNullOptionsExpression {
 
         @Test
-        void when_nullOptionsExpression_then_returnsOptionsRecord() {
-            val result = AttributeOptionsCompiler.compileOptions(null, TEST_LOCATION, compilationCtx);
+        @DisplayName("with no PDP settings returns all defaults")
+        void withNoPdpSettings_returnsDefaultSettings() {
+            val ctx    = compilationContext();
+            val result = AttributeOptionsCompiler.compileOptions(null, ctx);
 
-            assertThat(result).isInstanceOf(PureOperator.class);
+            assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
+                val obj = (ObjectValue) r;
+                assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(DEFAULT_TIMEOUT_MS));
+                assertThat(obj.get(OPTION_POLL_INTERVAL)).isEqualTo(Value.of(DEFAULT_POLL_INTERVAL_MS));
+                assertThat(obj.get(OPTION_BACKOFF)).isEqualTo(Value.of(DEFAULT_BACKOFF_MS));
+                assertThat(obj.get(OPTION_RETRIES)).isEqualTo(Value.of(DEFAULT_RETRIES));
+                assertThat(obj.get(OPTION_FRESH)).isEqualTo(Value.FALSE);
+            });
         }
 
         @Test
-        void when_objectValueWithAllOptions_then_returnsObjectValueDirectly() {
-            val allOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L))
-                    .put(OPTION_POLL_INTERVAL, Value.of(60000L)).put(OPTION_BACKOFF, Value.of(2000L))
-                    .put(OPTION_RETRIES, Value.of(5L)).put(OPTION_FRESH, Value.TRUE).build();
-            val expr       = new Literal(allOptions, TEST_LOCATION);
+        @DisplayName("with PDP settings merges them into defaults")
+        void withPdpSettings_mergesPdpIntoDefaults() {
+            val pdpOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(9999L))
+                    .put(OPTION_RETRIES, Value.of(10L)).build();
+            val variables  = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpOptions).build();
+            val ctx        = compilationContext(variables);
+            val result     = AttributeOptionsCompiler.compileOptions(null, ctx);
 
-            try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
-                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(allOptions);
-
-                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
-
-                assertThat(result).isSameAs(allOptions);
-            }
+            assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
+                val obj = (ObjectValue) r;
+                assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(9999L));
+                assertThat(obj.get(OPTION_RETRIES)).isEqualTo(Value.of(10L));
+                assertThat(obj.get(OPTION_POLL_INTERVAL)).isEqualTo(Value.of(DEFAULT_POLL_INTERVAL_MS));
+            });
         }
 
         @Test
-        void when_objectValueWithPartialOptions_then_returnsOptionsRecord() {
-            val partialOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L)).build();
-            val expr           = new Literal(partialOptions, TEST_LOCATION);
+        @DisplayName("with invalid PDP settings throws exception")
+        void withInvalidPdpSettings_throwsException() {
+            val invalidPdpOptions = Value.of("not an object");
+            val variables         = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, invalidPdpOptions)
+                    .build();
+            val ctx               = compilationContext(variables);
+            val expr              = new Literal(Value.NULL, TEST_LOCATION);
 
-            try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
-                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(partialOptions);
-
-                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
-
-                assertThat(result).isInstanceOf(PureOperator.class);
-            }
-        }
-
-        @Test
-        void when_pureOperator_then_returnsOptionsRecord() {
-            val pureOp = new TestPureOperator(ctx -> Value.NULL);
-            val expr   = new Literal(Value.NULL, TEST_LOCATION);
-
-            try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
-                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(pureOp);
-
-                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
-
-                assertThat(result).isInstanceOf(PureOperator.class);
-            }
-        }
-
-        @Test
-        void when_streamOperator_then_returnsError() {
-            val streamOp = new TestStreamOperator(Value.NULL);
-            val expr     = new Literal(Value.NULL, TEST_LOCATION);
-
-            try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
-                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(streamOp);
-
-                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
-
-                assertThat(result).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) result).message()).contains("Attribute access not permitted");
-            }
-        }
-
-        @Test
-        void when_nonObjectValue_then_returnsError() {
-            val expr = new Literal(Value.NULL, TEST_LOCATION);
-
-            try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
-                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(Value.of(123));
-
-                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
-
-                assertThat(result).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) result).message()).contains("type mismatch");
-            }
-        }
-
-        @Test
-        void when_errorValue_then_propagatesError() {
-            val error = Value.error("compilation errors");
-            val expr  = new Literal(Value.NULL, TEST_LOCATION);
-
-            try (var mockedCompiler = mockStatic(ExpressionCompiler.class)) {
-                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, compilationCtx)).thenReturn(error);
-
-                val result = AttributeOptionsCompiler.compileOptions(expr, TEST_LOCATION, compilationCtx);
-
-                assertThat(result).isSameAs(error);
-            }
+            assertThatThrownBy(() -> AttributeOptionsCompiler.compileOptions(expr, ctx))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("PDP wide defaults");
         }
     }
 
     @Nested
-    class OptionsEvaluateTests {
+    @DisplayName("when options expression provided")
+    class WhenOptionsExpressionProvided {
 
-        private EvaluationContext evalContextWith(Value attributeFinderOptions) {
-            Map<String, Value> variables = attributeFinderOptions != null
-                    ? Map.of(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, attributeFinderOptions)
-                    : Map.of();
-            return evaluationContext(DEFAULT_FUNCTION_BROKER, variables);
+        @Test
+        @DisplayName("with all options returns merged ObjectValue")
+        void withAllOptions_returnsMergedObjectValue() {
+            val allOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L))
+                    .put(OPTION_POLL_INTERVAL, Value.of(60000L)).put(OPTION_BACKOFF, Value.of(2000L))
+                    .put(OPTION_RETRIES, Value.of(5L)).put(OPTION_FRESH, Value.TRUE).build();
+            val expr       = new Literal(allOptions, TEST_LOCATION);
+            val ctx        = compilationContext();
+
+            val result = compileWithMockedExpression(expr, ctx, allOptions);
+
+            assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
+                val obj = (ObjectValue) r;
+                assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(5000L));
+                assertThat(obj.get(OPTION_FRESH)).isEqualTo(Value.TRUE);
+            });
         }
 
         @Test
-        void when_policySettingsTakePriority_then_usesPolicyValues() {
-            val policyOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(9999L)).build();
-            val pdpOptions    = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(1111L)).build();
-            val evalCtx       = evalContextWith(pdpOptions);
+        @DisplayName("with partial options merges with defaults")
+        void withPartialOptions_mergesWithDefaults() {
+            val partialOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L)).build();
+            val expr           = new Literal(partialOptions, TEST_LOCATION);
+            val ctx            = compilationContext();
 
-            val options = new AttributeOptionsCompiler.Options(policyOptions, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
+            val result = compileWithMockedExpression(expr, ctx, partialOptions);
 
-            assertThat(result).isInstanceOf(ObjectValue.class);
-            val obj = (ObjectValue) result;
-            assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(9999L));
+            assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
+                val obj = (ObjectValue) r;
+                assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(5000L));
+                assertThat(obj.get(OPTION_POLL_INTERVAL)).isEqualTo(Value.of(DEFAULT_POLL_INTERVAL_MS));
+            });
         }
 
         @Test
-        void when_policyMissingOption_then_fallsBackToPdp() {
-            val policyOptions = ObjectValue.builder().put(OPTION_RETRIES, Value.of(10L)).build();
-            val pdpOptions    = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L))
-                    .put(OPTION_RETRIES, Value.of(1L)).build();
-            val evalCtx       = evalContextWith(pdpOptions);
-
-            val options = new AttributeOptionsCompiler.Options(policyOptions, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
-
-            assertThat(result).isInstanceOf(ObjectValue.class);
-            val obj = (ObjectValue) result;
-            assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(5000L));
-            assertThat(obj.get(OPTION_RETRIES)).isEqualTo(Value.of(10L));
-        }
-
-        @Test
-        void when_noPolicyAndNoPdp_then_returnsEmptyObject() {
-            val evalCtx = evalContextWith(null);
-
-            val options = new AttributeOptionsCompiler.Options(null, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
-
-            assertThat(result).isInstanceOf(ObjectValue.class);
-            val obj = (ObjectValue) result;
-            assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isNull();
-        }
-
-        @Test
-        void when_pdpSettingsNotObject_then_returnsError() {
-            val evalCtx = evalContextWith(Value.of("invalid"));
-
-            val options = new AttributeOptionsCompiler.Options(null, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
-
-            assertThat(result).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) result).message()).contains("type mismatch");
-        }
-
-        @Test
-        void when_policyIsPureOperator_then_evaluatesIt() {
-            val evaluatedOptions = ObjectValue.builder().put(OPTION_FRESH, Value.TRUE).build();
-            val pureOp           = new TestPureOperator(ctx -> evaluatedOptions);
-            val evalCtx          = evalContextWith(null);
-
-            val options = new AttributeOptionsCompiler.Options(pureOp, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
-
-            assertThat(result).isInstanceOf(ObjectValue.class);
-            val obj = (ObjectValue) result;
-            assertThat(obj.get(OPTION_FRESH)).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_policyPureOperatorReturnsError_then_propagatesError() {
-            val error   = Value.error("evaluation failed");
-            val pureOp  = new TestPureOperator(ctx -> error);
-            val evalCtx = evalContextWith(null);
-
-            val options = new AttributeOptionsCompiler.Options(pureOp, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
-
-            assertThat(result).isSameAs(error);
-        }
-
-        @Test
-        void when_policyPureOperatorReturnsNonObject_then_returnsError() {
-            val pureOp  = new TestPureOperator(ctx -> Value.of(42));
-            val evalCtx = evalContextWith(null);
-
-            val options = new AttributeOptionsCompiler.Options(pureOp, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
-
-            assertThat(result).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) result).message()).contains("type mismatch");
-        }
-
-        @Test
-        void when_allOptionsFromPolicy_then_ignoresPdp() {
-            val policyOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(1L))
-                    .put(OPTION_POLL_INTERVAL, Value.of(2L)).put(OPTION_BACKOFF, Value.of(3L))
-                    .put(OPTION_RETRIES, Value.of(4L)).put(OPTION_FRESH, Value.TRUE).build();
+        @DisplayName("policy options take priority over PDP options")
+        void withPolicyAndPdpOptions_policyTakesPriority() {
+            val policyOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(1111L)).build();
             val pdpOptions    = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(9999L))
-                    .put(OPTION_POLL_INTERVAL, Value.of(9999L)).put(OPTION_BACKOFF, Value.of(9999L))
-                    .put(OPTION_RETRIES, Value.of(9999L)).put(OPTION_FRESH, Value.FALSE).build();
-            val evalCtx       = evalContextWith(pdpOptions);
+                    .put(OPTION_RETRIES, Value.of(10L)).build();
+            val variables     = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpOptions).build();
+            val expr          = new Literal(policyOptions, TEST_LOCATION);
+            val ctx           = compilationContext(variables);
 
-            val options = new AttributeOptionsCompiler.Options(policyOptions, TEST_LOCATION);
-            val result  = options.evaluate(evalCtx);
+            val result = compileWithMockedExpression(expr, ctx, policyOptions);
 
-            assertThat(result).isInstanceOf(ObjectValue.class);
-            val obj = (ObjectValue) result;
-            assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(1L));
-            assertThat(obj.get(OPTION_POLL_INTERVAL)).isEqualTo(Value.of(2L));
-            assertThat(obj.get(OPTION_BACKOFF)).isEqualTo(Value.of(3L));
-            assertThat(obj.get(OPTION_RETRIES)).isEqualTo(Value.of(4L));
-            assertThat(obj.get(OPTION_FRESH)).isEqualTo(Value.TRUE);
+            assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
+                val obj = (ObjectValue) r;
+                assertThat(obj.get(OPTION_INITIAL_TIMEOUT)).isEqualTo(Value.of(1111L));
+                assertThat(obj.get(OPTION_RETRIES)).isEqualTo(Value.of(10L));
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("when expression compiles to invalid type")
+    class WhenExpressionCompilesToInvalidType {
+
+        @MethodSource
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("throws exception")
+        void throwsException(String description, CompiledExpression compiled, String expectedMessage) {
+            val expr = new Literal(Value.NULL, TEST_LOCATION);
+            val ctx  = compilationContext();
+
+            try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
+                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(compiled);
+
+                assertThatThrownBy(() -> AttributeOptionsCompiler.compileOptions(expr, ctx))
+                        .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedMessage);
+            }
         }
 
-        @Test
-        void when_isDependingOnSubscription_then_returnsTrue() {
-            val options = new AttributeOptionsCompiler.Options(null, TEST_LOCATION);
+        static Stream<Arguments> throwsException() {
+            return Stream.of(
+                    arguments("StreamOperator", new TestStreamOperator(Value.NULL), "Attribute access not permitted"),
+                    arguments("PureOperator", new TestPureOperator(evalCtx -> Value.NULL),
+                            "must not depend on any element of the authorization subscription"),
+                    arguments("non-object Value", Value.of(123), "must be an object"));
+        }
+    }
 
-            assertThat(options.isDependingOnSubscription()).isTrue();
+    private static CompiledExpression compileWithMockedExpression(Expression expr, CompilationContext ctx,
+            CompiledExpression returnValue) {
+        try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
+            mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(returnValue);
+            return AttributeOptionsCompiler.compileOptions(expr, ctx);
         }
     }
 }
