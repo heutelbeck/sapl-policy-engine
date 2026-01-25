@@ -365,7 +365,7 @@ public class PDPConfigurationLoader {
             ObjectValue variables,
             ObjectValue secrets) {
         static PdpJsonContent defaults() {
-            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, "defaultId", Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, null, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
     }
 

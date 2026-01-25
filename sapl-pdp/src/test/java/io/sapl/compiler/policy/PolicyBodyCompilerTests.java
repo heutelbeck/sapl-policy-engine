@@ -255,8 +255,8 @@ class PolicyBodyCompilerTests {
                     TestCase.pureWithVars("values and pures - all true", "flag; true; otherFlag;",
                             Map.of("flag", Value.TRUE, "otherFlag", Value.TRUE), Value.TRUE, 3L, 3),
                     TestCase.pureWithVars("value false short-circuits before pure", "flag; false; otherFlag;",
-                            Map.of("flag", Value.TRUE, "otherFlag", Value.error("should not see")), Value.FALSE, 3L, 1,
-                            1L),
+                            Map.of("flag", Value.TRUE, "otherFlag", Value.error("should not see")), Value.FALSE, 3L, 2,
+                            0L, 1L),
 
                     // Mixed strata - pures and streams (separate expectations)
                     TestCase.mixed("pure and stream - all true", "flag; <test.attr>;", Map.of("flag", Value.TRUE),
