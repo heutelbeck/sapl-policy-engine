@@ -17,24 +17,23 @@
  */
 package io.sapl.api.pdp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
-import lombok.NonNull;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
+import lombok.NonNull;
+
 /**
  * A container for multiple authorization subscriptions, each identified by a
- * unique ID. This enables batch
- * authorization requests where multiple access control decisions can be
- * requested and correlated with their
- * subscriptions.
+ * unique ID. This enables batch authorization requests where multiple access
+ * control decisions can be requested and correlated with their subscriptions.
  * <p>
  * Example usage:
  *
@@ -91,8 +90,9 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
         validateValue(subject, "Subject");
         validateValue(action, "Action");
         validateValue(resource, "Resource");
-        validateValue(environment, "Environment");
-        return addSubscription(subscriptionId, new AuthorizationSubscription(subject, action, resource, environment));
+        validateNotError(environment, "Environment");
+        return addSubscription(subscriptionId,
+                new AuthorizationSubscription(subject, action, resource, environment, Value.EMPTY_OBJECT));
     }
 
     /**
@@ -171,13 +171,17 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource, Object environment, ObjectMapper mapper) {
         return addSubscription(subscriptionId,
-                AuthorizationSubscription.of(subject, action, resource, environment, mapper));
+                AuthorizationSubscription.of(subject, action, resource, environment, null, mapper));
     }
 
     private static void validateValue(Value value, String fieldName) {
         if (value instanceof UndefinedValue) {
             throw new IllegalArgumentException(fieldName + " cannot be undefined.");
         }
+        validateNotError(value, fieldName);
+    }
+
+    private static void validateNotError(Value value, String fieldName) {
         if (value instanceof ErrorValue) {
             throw new IllegalArgumentException(fieldName + " cannot be an error value.");
         }
@@ -186,8 +190,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     /**
      * Returns the subscription with the given ID, or null if not found.
      *
-     * @param subscriptionId
-     * the subscription ID
+     * @param subscriptionId the subscription ID
      *
      * @return the subscription or null
      */
@@ -234,11 +237,8 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     public String toString() {
         var builder = new StringBuilder("MultiAuthorizationSubscription {");
         for (var subscription : this) {
-            builder.append("\n\t[ID: ").append(subscription.subscriptionId()).append(" | SUBJECT: ")
-                    .append(subscription.subscription().subject()).append(" | ACTION: ")
-                    .append(subscription.subscription().action()).append(" | RESOURCE: ")
-                    .append(subscription.subscription().resource()).append(" | ENVIRONMENT: ")
-                    .append(subscription.subscription().environment()).append(']');
+            builder.append("\n\t[ID: ").append(subscription.subscriptionId()).append(" | ")
+                    .append(subscription.subscription()).append(']');
         }
         builder.append("\n}");
         return builder.toString();

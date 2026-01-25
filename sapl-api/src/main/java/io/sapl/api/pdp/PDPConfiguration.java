@@ -17,20 +17,18 @@
  */
 package io.sapl.api.pdp;
 
-import io.sapl.api.SaplVersion;
-import io.sapl.api.model.Value;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
+
+import io.sapl.api.SaplVersion;
 
 public record PDPConfiguration(
         String pdpId,
         String configurationId,
         CombiningAlgorithm combiningAlgorithm,
         List<String> saplDocuments,
-        Map<String, Value> variables) implements Serializable {
+        PdpData data) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

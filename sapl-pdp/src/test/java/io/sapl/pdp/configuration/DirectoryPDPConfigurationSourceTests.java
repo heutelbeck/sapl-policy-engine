@@ -368,7 +368,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
 
-        assertThat(receivedConfig.get().variables()).containsKey("tenant").containsKey("department")
+        assertThat(receivedConfig.get().data().variables()).containsKey("tenant").containsKey("department")
                 .containsKey("accessLevel");
     }
 

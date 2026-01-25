@@ -25,7 +25,7 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
-import io.sapl.compiler.pdp.TimestampedVote;
+import io.sapl.compiler.document.TimestampedVote;
 import lombok.val;
 
 import java.io.Serial;

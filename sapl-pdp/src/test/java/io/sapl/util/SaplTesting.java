@@ -17,33 +17,59 @@
  */
 package io.sapl.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PdpData;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
-import io.sapl.compiler.ast.AstTransformer;
-import io.sapl.compiler.ast.Document;
-import io.sapl.compiler.ast.SAPLCompiler;
+import io.sapl.compiler.document.AstTransformer;
+import io.sapl.compiler.document.Document;
+import io.sapl.compiler.document.DocumentCompiler;
+import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.StreamVoter;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.pdp.*;
-import io.sapl.compiler.pdp.PureVoter;
-import io.sapl.compiler.pdp.Voter;
 import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policyset.CompiledPolicySet;
 import io.sapl.compiler.policyset.PolicySetCompiler;
-import io.sapl.compiler.pdp.VoteWithCoverage;
 import io.sapl.compiler.util.Stratum;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
@@ -57,20 +83,9 @@ import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.StatementContext;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
+import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unified test utilities for SAPL expression parsing, compilation, evaluation,
@@ -79,22 +94,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 @UtilityClass
 public class SaplTesting {
 
-    public static final String TEST_TIMESTAMP = "2025-01-01T00:00:00Z";
+    private static final String DEFAULT_PDP_ID    = "testPdp";
+    private static final String DEFAULT_CONFIG_ID = "testConfig";
+    private static final String DEFAULT_SUB_ID    = "testSubscription";
 
-    public static final SourceLocation TEST_LOCATION = new SourceLocation("test", "", 0, 0, 1, 1, 1, 1);
-
-    public static final FunctionBroker FUNCTION_BROKER;
-
-    public static final AttributeBroker ATTRIBUTE_BROKER;
-
+    public static final SourceLocation        TEST_LOCATION           = new SourceLocation("test", "", 0, 0, 1, 1, 1,
+            1);
+    public static final FunctionBroker        FUNCTION_BROKER;
+    public static final AttributeBroker       ATTRIBUTE_BROKER;
     public static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
 
-    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new SaplJacksonModule());
-
+    private static final ObjectMapper          MAPPER      = new ObjectMapper().registerModule(new SaplJacksonModule());
     private static final StandaloneTransformer TRANSFORMER = new StandaloneTransformer();
 
+    public static final AuthorizationSubscription DEFAULT_SUBSCRIPTION = AuthorizationSubscription
+            .of(Value.of("testSubject"), Value.of("testAction"), Value.of("testResource"), Value.of("testEnvironment"));
+
     static {
-        var functionBroker = new DefaultFunctionBroker();
+        val functionBroker = new DefaultFunctionBroker();
         functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class);
         functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
         functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
@@ -115,28 +132,32 @@ public class SaplTesting {
         };
     }
 
+    // ========================================================================
+    // PARSING UTILITIES
+    // ========================================================================
+
     public static Expression parseExpression(String expressionSource) {
-        var parser = createParser(expressionSource);
+        val parser = createParser(expressionSource);
         return TRANSFORMER.expression(parser.expression());
     }
 
     public static Statement parseStatement(String statementSource) {
-        var parser = createParser(statementSource);
+        val parser = createParser(statementSource);
         return TRANSFORMER.statement(parser.statement());
     }
 
     public static Document parseDocument(String documentSource) {
-        return SAPLCompiler.parseDocument(documentSource);
+        return DocumentCompiler.parseDocument(documentSource);
     }
 
     public static SaplDocument document(String documentSource) {
-        var parsed = SAPLCompiler.parseDocument(documentSource);
+        val parsed = DocumentCompiler.parseDocument(documentSource);
         if (!parsed.syntaxErrors().isEmpty()) {
             throw new IllegalArgumentException("Syntax errors(s): " + String.join("; ", parsed.syntaxErrors()));
         }
         if (!parsed.validationErrors().isEmpty()) {
-            throw new IllegalArgumentException("Validation errors(s): " + parsed.validationErrors().stream()
-                    .map(Object::toString).collect(java.util.stream.Collectors.joining("; ")));
+            throw new IllegalArgumentException("Validation errors(s): "
+                    + parsed.validationErrors().stream().map(Object::toString).collect(Collectors.joining("; ")));
         }
         return parsed.saplDocument();
     }
@@ -147,259 +168,109 @@ public class SaplTesting {
     }
 
     public static Policy parsePolicy(String policySource) {
-        var document = SAPLCompiler.parse(policySource);
-        var element  = document.policyElement();
+        val document = DocumentCompiler.parseDocument(policySource);
+        val element  = document.sapl().policyElement();
         if (element instanceof PolicyOnlyElementContext policyOnly) {
             return (Policy) TRANSFORMER.visit(policyOnly.policy());
         }
         throw new IllegalArgumentException("Expected a single policy, not a policy set");
     }
 
-    public static Voter compilePolicy(String policySource) {
-        return compilePolicy(policySource, compilationContext());
+    private static SAPLParser createParser(String source) {
+        val charStream  = CharStreams.fromString(source);
+        val lexer       = new SAPLLexer(charStream);
+        val tokenStream = new CommonTokenStream(lexer);
+        val parser      = new SAPLParser(tokenStream);
+        lexer.removeErrorListeners();
+        parser.removeErrorListeners();
+        return parser;
     }
 
-    public static Voter compilePolicy(String policySource, AttributeBroker attrBroker) {
-        return compilePolicy(policySource, compilationContext(attrBroker));
-    }
-
-    public static Voter compilePolicy(String policySource, CompilationContext ctx) {
-        var policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndVote();
-    }
-
-    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource) {
-        return evaluatePolicy(subscriptionJson, policySource, ATTRIBUTE_BROKER);
-    }
-
-    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource, AttributeBroker attrBroker) {
-        return evaluatePolicy(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
-    }
-
-    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource,
-            CompilationContext compilationCtx, AttributeBroker attrBroker) {
-        var subscription  = parseSubscription(subscriptionJson);
-        var compiled      = compilePolicy(policySource, compilationCtx);
-        var evaluationCtx = evaluationContext(subscription, attrBroker);
-        return evaluatePolicyVoter(compiled, evaluationCtx);
-    }
-
-    public static Flux<Vote> evaluatePolicyVoter(Voter compiled, EvaluationContext evalCtx) {
-        return switch (compiled) {
-        case Vote vote          -> Flux.just(vote);
-        case PureVoter pure     -> Flux.just(pure.vote(evalCtx));
-        case StreamVoter stream -> stream.vote().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-        };
-    }
-
-    public static CompiledPolicySet compilePolicySet(String source) {
-        return compilePolicySet(source, compilationContext());
-    }
-
-    public static CompiledPolicySet compilePolicySet(String source, AttributeBroker attrBroker) {
-        return compilePolicySet(source, compilationContext(attrBroker));
-    }
-
-    public static CompiledPolicySet compilePolicySet(String source, CompilationContext ctx) {
-        var parsed = SAPLCompiler.parseDocument(source);
-        if (!parsed.syntaxErrors().isEmpty()) {
-            var errors = String.join("; ", parsed.syntaxErrors());
-            throw new IllegalArgumentException("Syntax errors(s) in policy set: " + errors);
+    private static class StandaloneTransformer extends AstTransformer {
+        StandaloneTransformer() {
+            initializeImportMap(Map.of());
         }
-        if (!parsed.validationErrors().isEmpty()) {
-            var errors = parsed.validationErrors().stream().map(Object::toString)
-                    .collect(java.util.stream.Collectors.joining("; "));
-            throw new IllegalArgumentException("Validation error(s) in policy set: " + errors);
+
+        Expression expression(ExpressionContext ctx) {
+            return (Expression) visit(ctx);
         }
-        var document = parsed.saplDocument();
-        if (!(document instanceof io.sapl.ast.PolicySet policySet)) {
-            throw new IllegalArgumentException("Expected a policy set document, got: "
-                    + (document == null ? "null" : document.getClass().getSimpleName()) + " | type: " + parsed.type()
-                    + " | errorMessage: " + parsed.errorMessage());
+
+        Statement statement(StatementContext ctx) {
+            return (Statement) visit(ctx);
         }
-        return PolicySetCompiler.compilePolicySet(policySet, ctx);
     }
 
-    public static Vote evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
-        var voter = compiled.applicabilityAndVote();
-        return switch (voter) {
-        case Vote vote          -> vote;
-        case PureVoter pure     -> pure.vote(ctx);
-        case StreamVoter stream ->
-            stream.vote().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
-        };
+    // ========================================================================
+    // CONTEXT FACTORIES
+    // ========================================================================
+
+    public static CompilationContext compilationContext() {
+        return new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
     }
 
-    public static VoteWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled, EvaluationContext ctx) {
-        return compiled.coverage().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+    public static CompilationContext compilationContext(AttributeBroker attrBroker) {
+        return new CompilationContext(FUNCTION_BROKER, attrBroker);
     }
 
-    public static Vote evaluatePolicySetWithPathEquivalenceCheck(CompiledPolicySet compiled, EvaluationContext ctx) {
-        var productionVote = evaluatePolicySet(compiled, ctx);
-        var coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
-        assertThat(productionVote.authorizationDecision().decision())
-                .as("Production and coverage paths must produce same decision")
-                .isEqualTo(coverageVote.authorizationDecision().decision());
-        return productionVote;
+    public static CompilationContext compilationContext(FunctionBroker fnBroker) {
+        return new CompilationContext(fnBroker, ATTRIBUTE_BROKER);
     }
 
-    public static void assertStreamPathEquivalence(CompiledPolicySet compiled, EvaluationContext ctx,
-            Decision expectedDecision) {
-        var productionVote = ((StreamVoter) compiled.applicabilityAndVote()).vote()
-                .contextWrite(c -> c.put(EvaluationContext.class, ctx)).blockFirst();
-        var coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
-        assertThat(productionVote.authorizationDecision().decision()).as("Production path decision")
-                .isEqualTo(expectedDecision);
-        assertThat(productionVote.authorizationDecision().decision())
-                .as("Production and coverage paths must produce same decision")
-                .isEqualTo(coverageVote.authorizationDecision().decision());
+    public static CompilationContext compilationContext(FunctionBroker fnBroker, AttributeBroker attrBroker) {
+        return new CompilationContext(fnBroker, attrBroker);
     }
 
-    public static CompiledPolicy compilePolicyFull(String policySource) {
-        return compilePolicyFull(policySource, compilationContext());
+    public static CompilationContext compilationContext(ObjectValue variables) {
+        val data = new PdpData(variables, Value.EMPTY_OBJECT);
+        return new CompilationContext(data, FUNCTION_BROKER, ATTRIBUTE_BROKER);
     }
 
-    public static CompiledPolicy compilePolicyFull(String policySource, AttributeBroker attrBroker) {
-        return compilePolicyFull(policySource, compilationContext(attrBroker));
+    public static CompilationContext compilationContext(ObjectValue variables, AttributeBroker attrBroker) {
+        val data = new PdpData(variables, Value.EMPTY_OBJECT);
+        return new CompilationContext(data, FUNCTION_BROKER, attrBroker);
     }
 
-    public static CompiledPolicy compilePolicyFull(String policySource, CompilationContext ctx) {
-        var policy = parsePolicy(policySource);
-        return PolicyCompiler.compilePolicy(policy, ctx);
-    }
-
-    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource) {
-        return evaluatePolicyWithCoverage(subscriptionJson, policySource, ATTRIBUTE_BROKER);
-    }
-
-    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
+    public static CompilationContext compilationContext(ObjectValue variables, FunctionBroker fnBroker,
             AttributeBroker attrBroker) {
-        return evaluatePolicyWithCoverage(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
+        val data = new PdpData(variables, Value.EMPTY_OBJECT);
+        return new CompilationContext(data, fnBroker, attrBroker);
     }
 
-    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
-            CompilationContext compilationCtx, AttributeBroker attrBroker) {
-        var subscription  = parseSubscription(subscriptionJson);
-        var compiled      = compilePolicyFull(policySource, compilationCtx);
-        var evaluationCtx = evaluationContext(subscription, attrBroker);
-        return compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, evaluationCtx));
-    }
-
-    public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource) {
-        assertCoverageMatchesProduction(subscriptionJson, policySource, ATTRIBUTE_BROKER);
-    }
-
-    public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource,
-            AttributeBroker attrBroker) {
-        // Collect both streams to lists (blocking) to avoid timing issues
-        var prodList = evaluatePolicy(subscriptionJson, policySource, attrBroker).collectList()
-                .block(Duration.ofSeconds(5));
-        var covList  = evaluatePolicyWithCoverage(subscriptionJson, policySource, attrBroker)
-                .map(VoteWithCoverage::vote).collectList().block(Duration.ofSeconds(5));
-
-        assertThat(covList).as("Number of emissions").hasSameSizeAs(prodList);
-        for (int i = 0; i < Objects.requireNonNull(prodList).size(); i++) {
-            var prod = prodList.get(i);
-            var cov  = Objects.requireNonNull(covList).get(i);
-            assertThat(decisionsEquivalent(prod, cov)).as("Emission[%d]: production=%s, coverage=%s", i, prod, cov)
-                    .isTrue();
-        }
-    }
-
-    private static boolean decisionsEquivalent(Vote a, Vote b) {
-        var authzA = a.authorizationDecision();
-        var authzB = b.authorizationDecision();
-        return authzA.decision() == authzB.decision() && Objects.equals(authzA.obligations(), authzB.obligations())
-                && Objects.equals(authzA.advice(), authzB.advice())
-                && Objects.equals(authzA.resource(), authzB.resource());
-    }
-
-    public static CompiledExpression compileExpression(String expressionSource) {
-        return compileExpression(expressionSource, FUNCTION_BROKER, ATTRIBUTE_BROKER);
-    }
-
-    public static CompiledExpression compileExpression(String expressionSource, AttributeBroker attributeBroker) {
-        return compileExpression(expressionSource, FUNCTION_BROKER, attributeBroker);
-    }
-
-    public static CompiledExpression compileExpression(String expressionSource, CompilationContext ctx) {
-        var expression = parseExpression(expressionSource);
-        return ExpressionCompiler.compile(expression, ctx);
-    }
-
-    public static CompiledExpression compileExpression(String expressionSource, FunctionBroker functionBroker,
-            AttributeBroker attributeBroker) {
-        var expression = parseExpression(expressionSource);
-        var ctx        = new CompilationContext(functionBroker, attributeBroker);
-        return ExpressionCompiler.compile(expression, ctx);
-    }
-
-    public static CompiledExpression evaluateExpression(String source) {
-        var compiled = compileExpression(source);
-        return evaluate(compiled, evaluationContext());
-    }
-
-    public static CompiledExpression evaluateExpression(String source, EvaluationContext ctx) {
-        var compiled = compileExpression(source, ctx.functionBroker(), ctx.attributeBroker());
-        return evaluate(compiled, ctx);
-    }
-
-    private static CompiledExpression evaluate(CompiledExpression compiled, EvaluationContext ctx) {
-        return switch (compiled) {
-        case Value v         -> v;
-        case PureOperator op -> op.evaluate(ctx);
-        default              -> compiled;
-        };
+    public static CompilationContext compilationContextWithSecrets(ObjectValue variables, ObjectValue secrets) {
+        val data = new PdpData(variables, secrets);
+        return new CompilationContext(data, FUNCTION_BROKER, ATTRIBUTE_BROKER);
     }
 
     public static EvaluationContext evaluationContext() {
-        return new EvaluationContext(null, null, null, null, Map.of(), FUNCTION_BROKER, ATTRIBUTE_BROKER,
-                () -> TEST_TIMESTAMP);
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
+                FUNCTION_BROKER, ATTRIBUTE_BROKER);
     }
 
     public static EvaluationContext evaluationContext(AttributeBroker attributeBroker) {
-        return new EvaluationContext(null, null, null, null, Map.of(), FUNCTION_BROKER, attributeBroker,
-                () -> TEST_TIMESTAMP);
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
+                FUNCTION_BROKER, attributeBroker);
     }
 
     public static EvaluationContext evaluationContext(AuthorizationSubscription subscription) {
-        return new EvaluationContext(null, null, null, subscription, FUNCTION_BROKER, ATTRIBUTE_BROKER);
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER,
+                ATTRIBUTE_BROKER);
     }
 
     public static EvaluationContext evaluationContext(AuthorizationSubscription subscription,
             AttributeBroker attributeBroker) {
-        return new EvaluationContext(null, null, null, subscription, FUNCTION_BROKER, attributeBroker);
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER,
+                attributeBroker);
     }
 
-    public static EvaluationContext evaluationContext(AttributeBroker attributeBroker, Map<String, Value> variables) {
-        return new EvaluationContext(null, null, null, null, variables, FUNCTION_BROKER, attributeBroker,
-                () -> TEST_TIMESTAMP);
-    }
-
-    public static EvaluationContext evaluationContext(AttributeBroker attributeBroker, Value subject) {
-        return new EvaluationContext(null, null, null, null, Map.of("subject", subject), FUNCTION_BROKER,
-                attributeBroker, () -> TEST_TIMESTAMP);
-    }
-
-    public static EvaluationContext evaluationContext(FunctionBroker functionBroker, Map<String, Value> variables) {
-        return new EvaluationContext(null, null, null, null, variables, functionBroker, ATTRIBUTE_BROKER,
-                () -> TEST_TIMESTAMP);
-    }
-
-    public static EvaluationContext evaluationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker,
-            Map<String, Value> variables) {
-        return new EvaluationContext(null, null, null, null, variables, functionBroker, attributeBroker,
-                () -> TEST_TIMESTAMP);
-    }
-
-    public static EvaluationContext evaluationContext(Map<String, Value> variables) {
-        return new EvaluationContext(null, null, null, null, variables, FUNCTION_BROKER, ATTRIBUTE_BROKER,
-                () -> TEST_TIMESTAMP);
+    public static EvaluationContext evaluationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
+                functionBroker, attributeBroker);
     }
 
     public static EvaluationContext subscriptionContext(String subscriptionJson) {
-        var subscription = parseSubscription(subscriptionJson);
-        return new EvaluationContext(null, null, null, subscription, FUNCTION_BROKER, ATTRIBUTE_BROKER);
+        val subscription = parseSubscription(subscriptionJson);
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER,
+                ATTRIBUTE_BROKER);
     }
 
     public static EvaluationContext subscriptionContext() {
@@ -412,6 +283,10 @@ public class SaplTesting {
                 }
                 """);
     }
+
+    // ========================================================================
+    // BROKER FACTORIES
+    // ========================================================================
 
     public static AttributeBroker attributeBroker(String expectedName, Value... values) {
         return new AttributeBroker() {
@@ -433,7 +308,7 @@ public class SaplTesting {
         return new AttributeBroker() {
             @Override
             public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                var values = attributes.get(invocation.attributeName());
+                val values = attributes.get(invocation.attributeName());
                 if (values != null)
                     return Flux.fromArray(values);
                 return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
@@ -495,7 +370,7 @@ public class SaplTesting {
         return new AttributeBroker() {
             @Override
             public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                var values = attributeSequences.get(invocation.attributeName());
+                val values = attributeSequences.get(invocation.attributeName());
                 if (values != null)
                     return Flux.fromIterable(values);
                 return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
@@ -527,7 +402,7 @@ public class SaplTesting {
         return new AttributeBroker() {
             @Override
             public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                var value = attributeValues.get(invocation.attributeName());
+                val value = attributeValues.get(invocation.attributeName());
                 if (value != null)
                     return Flux.just(value);
                 return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
@@ -538,26 +413,6 @@ public class SaplTesting {
                 return List.of();
             }
         };
-    }
-
-    public static CompilationContext compilationContext() {
-        return new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
-    }
-
-    public static CompilationContext compilationContext(AttributeBroker attrBroker) {
-        return new CompilationContext(FUNCTION_BROKER, attrBroker);
-    }
-
-    public static CompilationContext compilationContext(FunctionBroker fnBroker) {
-        return new CompilationContext(fnBroker, ATTRIBUTE_BROKER);
-    }
-
-    public static CompilationContext compilationContext(FunctionBroker fnBroker, AttributeBroker attrBroker) {
-        return new CompilationContext(fnBroker, attrBroker);
-    }
-
-    public static CompilationContext emptyCompilationContext() {
-        return new CompilationContext(null, null);
     }
 
     public static FunctionBroker functionBroker(String expectedName, Function<List<Value>, Value> fn) {
@@ -580,7 +435,7 @@ public class SaplTesting {
         return new FunctionBroker() {
             @Override
             public Value evaluateFunction(FunctionInvocation invocation) {
-                var fn = functions.get(invocation.functionName());
+                val fn = functions.get(invocation.functionName());
                 if (fn == null)
                     return Value.error("Unknown function: " + invocation.functionName());
                 return fn.apply(invocation.arguments());
@@ -624,8 +479,242 @@ public class SaplTesting {
         };
     }
 
+    // ========================================================================
+    // EXPRESSION COMPILATION AND EVALUATION
+    // ========================================================================
+
+    public static CompiledExpression compileExpression(String expressionSource) {
+        return compileExpression(expressionSource, FUNCTION_BROKER, ATTRIBUTE_BROKER);
+    }
+
+    public static CompiledExpression compileExpression(String expressionSource, AttributeBroker attributeBroker) {
+        return compileExpression(expressionSource, FUNCTION_BROKER, attributeBroker);
+    }
+
+    public static CompiledExpression compileExpression(String expressionSource, CompilationContext ctx) {
+        val expression = parseExpression(expressionSource);
+        return ExpressionCompiler.compile(expression, ctx);
+    }
+
+    public static CompiledExpression compileExpression(String expressionSource, FunctionBroker functionBroker,
+            AttributeBroker attributeBroker) {
+        val expression = parseExpression(expressionSource);
+        val ctx        = new CompilationContext(functionBroker, attributeBroker);
+        return ExpressionCompiler.compile(expression, ctx);
+    }
+
+    public static CompiledExpression evaluateExpression(String source) {
+        val compiled = compileExpression(source);
+        return evaluate(compiled, evaluationContext());
+    }
+
+    public static CompiledExpression evaluateExpression(String source, EvaluationContext ctx) {
+        val compiled = compileExpression(source, ctx.functionBroker(), ctx.attributeBroker());
+        return evaluate(compiled, ctx);
+    }
+
+    public static CompiledExpression evaluateExpression(String source, FunctionBroker fnBroker,
+            Map<String, Value> variables) {
+        val vars     = toObjectValue(variables);
+        val ctx      = compilationContext(vars, fnBroker, ATTRIBUTE_BROKER);
+        val compiled = compileExpression(source, ctx);
+        return evaluate(compiled, evaluationContext(fnBroker, ATTRIBUTE_BROKER));
+    }
+
+    public static CompiledExpression evaluateExpression(String source, FunctionBroker fnBroker,
+            AttributeBroker attrBroker, Map<String, Value> variables) {
+        val vars     = toObjectValue(variables);
+        val ctx      = compilationContext(vars, fnBroker, attrBroker);
+        val compiled = compileExpression(source, ctx);
+        return evaluate(compiled, evaluationContext(fnBroker, attrBroker));
+    }
+
+    private static CompiledExpression evaluate(CompiledExpression compiled, EvaluationContext ctx) {
+        return switch (compiled) {
+        case Value v         -> v;
+        case PureOperator op -> op.evaluate(ctx);
+        default              -> compiled;
+        };
+    }
+
+    public static ObjectValue toObjectValue(Map<String, Value> map) {
+        val builder = ObjectValue.builder();
+        map.forEach(builder::put);
+        return builder.build();
+    }
+
+    // ========================================================================
+    // POLICY COMPILATION AND EVALUATION
+    // ========================================================================
+
+    public static Voter compilePolicy(String policySource) {
+        return compilePolicy(policySource, compilationContext());
+    }
+
+    public static Voter compilePolicy(String policySource, AttributeBroker attrBroker) {
+        return compilePolicy(policySource, compilationContext(attrBroker));
+    }
+
+    public static Voter compilePolicy(String policySource, CompilationContext ctx) {
+        val policy = parsePolicy(policySource);
+        return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndVote();
+    }
+
+    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource) {
+        return evaluatePolicy(subscriptionJson, policySource, ATTRIBUTE_BROKER);
+    }
+
+    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource, AttributeBroker attrBroker) {
+        return evaluatePolicy(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
+    }
+
+    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource,
+            CompilationContext compilationCtx, AttributeBroker attrBroker) {
+        val subscription  = parseSubscription(subscriptionJson);
+        val compiled      = compilePolicy(policySource, compilationCtx);
+        val evaluationCtx = evaluationContext(subscription, attrBroker);
+        return evaluatePolicyVoter(compiled, evaluationCtx);
+    }
+
+    public static Flux<Vote> evaluatePolicyVoter(Voter compiled, EvaluationContext evalCtx) {
+        return switch (compiled) {
+        case Vote vote          -> Flux.just(vote);
+        case PureVoter pure     -> Flux.just(pure.vote(evalCtx));
+        case StreamVoter stream -> stream.vote().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        };
+    }
+
+    public static CompiledPolicy compilePolicyFull(String policySource) {
+        return compilePolicyFull(policySource, compilationContext());
+    }
+
+    public static CompiledPolicy compilePolicyFull(String policySource, AttributeBroker attrBroker) {
+        return compilePolicyFull(policySource, compilationContext(attrBroker));
+    }
+
+    public static CompiledPolicy compilePolicyFull(String policySource, CompilationContext ctx) {
+        val policy = parsePolicy(policySource);
+        return PolicyCompiler.compilePolicy(policy, ctx);
+    }
+
+    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource) {
+        return evaluatePolicyWithCoverage(subscriptionJson, policySource, ATTRIBUTE_BROKER);
+    }
+
+    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
+            AttributeBroker attrBroker) {
+        return evaluatePolicyWithCoverage(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
+    }
+
+    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
+            CompilationContext compilationCtx, AttributeBroker attrBroker) {
+        val subscription  = parseSubscription(subscriptionJson);
+        val compiled      = compilePolicyFull(policySource, compilationCtx);
+        val evaluationCtx = evaluationContext(subscription, attrBroker);
+        return compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, evaluationCtx));
+    }
+
+    // ========================================================================
+    // POLICY SET COMPILATION AND EVALUATION
+    // ========================================================================
+
+    public static CompiledPolicySet compilePolicySet(String source) {
+        return compilePolicySet(source, compilationContext());
+    }
+
+    public static CompiledPolicySet compilePolicySet(String source, AttributeBroker attrBroker) {
+        return compilePolicySet(source, compilationContext(attrBroker));
+    }
+
+    public static CompiledPolicySet compilePolicySet(String source, CompilationContext ctx) {
+        val parsed = DocumentCompiler.parseDocument(source);
+        if (!parsed.syntaxErrors().isEmpty()) {
+            val errors = String.join("; ", parsed.syntaxErrors());
+            throw new IllegalArgumentException("Syntax errors(s) in policy set: " + errors);
+        }
+        if (!parsed.validationErrors().isEmpty()) {
+            val errors = parsed.validationErrors().stream().map(Object::toString).collect(Collectors.joining("; "));
+            throw new IllegalArgumentException("Validation error(s) in policy set: " + errors);
+        }
+        val document = parsed.saplDocument();
+        if (!(document instanceof io.sapl.ast.PolicySet policySet)) {
+            throw new IllegalArgumentException("Expected a policy set document, got: "
+                    + (document == null ? "null" : document.getClass().getSimpleName()) + " | type: " + parsed.type()
+                    + " | errorMessage: " + parsed.errorMessage());
+        }
+        return PolicySetCompiler.compilePolicySet(policySet, ctx);
+    }
+
+    public static Vote evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
+        val voter = compiled.applicabilityAndVote();
+        return switch (voter) {
+        case Vote vote          -> vote;
+        case PureVoter pure     -> pure.vote(ctx);
+        case StreamVoter stream ->
+            stream.vote().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+        };
+    }
+
+    public static VoteWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled, EvaluationContext ctx) {
+        return compiled.coverage().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+    }
+
+    public static Vote evaluatePolicySetWithPathEquivalenceCheck(CompiledPolicySet compiled, EvaluationContext ctx) {
+        val productionVote = evaluatePolicySet(compiled, ctx);
+        val coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
+        assertThat(productionVote.authorizationDecision().decision())
+                .as("Production and coverage paths must produce same decision")
+                .isEqualTo(coverageVote.authorizationDecision().decision());
+        return productionVote;
+    }
+
+    public static void assertStreamPathEquivalence(CompiledPolicySet compiled, EvaluationContext ctx,
+            Decision expectedDecision) {
+        val productionVote = ((StreamVoter) compiled.applicabilityAndVote()).vote()
+                .contextWrite(c -> c.put(EvaluationContext.class, ctx)).blockFirst();
+        val coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
+        assertThat(productionVote).isNotNull();
+        assertThat(productionVote.authorizationDecision().decision()).as("Production path decision")
+                .isEqualTo(expectedDecision);
+        assertThat(productionVote.authorizationDecision().decision())
+                .as("Production and coverage paths must produce same decision")
+                .isEqualTo(coverageVote.authorizationDecision().decision());
+    }
+
+    public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource) {
+        assertCoverageMatchesProduction(subscriptionJson, policySource, ATTRIBUTE_BROKER);
+    }
+
+    public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource,
+            AttributeBroker attrBroker) {
+        val prodList = evaluatePolicy(subscriptionJson, policySource, attrBroker).collectList()
+                .block(Duration.ofSeconds(5));
+        val covList  = evaluatePolicyWithCoverage(subscriptionJson, policySource, attrBroker)
+                .map(VoteWithCoverage::vote).collectList().block(Duration.ofSeconds(5));
+
+        assertThat(covList).as("Number of emissions").hasSameSizeAs(prodList);
+        for (int i = 0; i < Objects.requireNonNull(prodList).size(); i++) {
+            val prod = prodList.get(i);
+            val cov  = Objects.requireNonNull(covList).get(i);
+            assertThat(decisionsEquivalent(prod, cov)).as("Emission[%d]: production=%s, coverage=%s", i, prod, cov)
+                    .isTrue();
+        }
+    }
+
+    private static boolean decisionsEquivalent(Vote a, Vote b) {
+        val authzA = a.authorizationDecision();
+        val authzB = b.authorizationDecision();
+        return authzA.decision() == authzB.decision() && Objects.equals(authzA.obligations(), authzB.obligations())
+                && Objects.equals(authzA.advice(), authzB.advice())
+                && Objects.equals(authzA.resource(), authzB.resource());
+    }
+
+    // ========================================================================
+    // VALUE BUILDERS
+    // ========================================================================
+
     public static Value obj(Object... keysAndValues) {
-        var builder = ObjectValue.builder();
+        val builder = ObjectValue.builder();
         for (int i = 0; i < keysAndValues.length; i += 2) {
             builder.put((String) keysAndValues[i], (Value) keysAndValues[i + 1]);
         }
@@ -633,12 +722,16 @@ public class SaplTesting {
     }
 
     public static ArrayValue array(Value... values) {
-        var builder = ArrayValue.builder();
-        for (var v : values) {
+        val builder = ArrayValue.builder();
+        for (val v : values) {
             builder.add(v);
         }
         return builder.build();
     }
+
+    // ========================================================================
+    // EXPRESSION ASSERTIONS
+    // ========================================================================
 
     public static void assertCompilesTo(String source, Value expected) {
         assertThat(compileExpression(source)).isInstanceOf(Value.class).isEqualTo(expected);
@@ -649,27 +742,95 @@ public class SaplTesting {
     }
 
     public static void assertCompilesToError(String source, String errorMessageContains) {
-        var compiled = compileExpression(source);
+        val compiled = compileExpression(source);
         assertThat(compiled).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) compiled).message()).contains(errorMessageContains);
     }
 
-    public static void assertPureEvaluatesTo(String source, Map<String, Value> variables, Value expected) {
-        var compiled = compileExpression(source);
+    public static void assertPureEvaluatesTo(String source, EvaluationContext ctx, Value expected) {
+        val compiled = compileExpression(source);
         assertThat(compiled).isInstanceOf(PureOperator.class);
-        assertThat(((PureOperator) compiled).evaluate(evaluationContext().withVariables(variables)))
-                .isEqualTo(expected);
+        assertThat(((PureOperator) compiled).evaluate(ctx)).isEqualTo(expected);
+    }
+
+    public static void assertPureEvaluatesTo(String source, Map<String, Value> variables, Value expected) {
+        val vars     = toObjectValue(variables);
+        val ctx      = compilationContext(vars);
+        val compiled = compileExpression(source, ctx);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        assertThat(((PureOperator) compiled).evaluate(evaluationContext())).isEqualTo(expected);
+    }
+
+    public static void assertEvaluatesTo(String source, Map<String, Value> variables, Value expected) {
+        val vars     = toObjectValue(variables);
+        val ctx      = compilationContext(vars);
+        val compiled = compileExpression(source, ctx);
+        val result   = evaluate(compiled, evaluationContext());
+        assertThat(result).isEqualTo(expected);
+    }
+
+    public static void assertEvaluatesToError(String source, Map<String, Value> variables) {
+        val vars     = toObjectValue(variables);
+        val ctx      = compilationContext(vars);
+        val compiled = compileExpression(source, ctx);
+        val result   = evaluate(compiled, evaluationContext());
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    public static void assertPureEvaluatesToError(String source, EvaluationContext ctx) {
+        val compiled = compileExpression(source);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        assertThat(((PureOperator) compiled).evaluate(ctx)).isInstanceOf(ErrorValue.class);
     }
 
     public static void assertPureEvaluatesToError(String source, Map<String, Value> variables) {
-        var compiled = compileExpression(source);
+        val vars     = toObjectValue(variables);
+        val ctx      = compilationContext(vars);
+        val compiled = compileExpression(source, ctx);
         assertThat(compiled).isInstanceOf(PureOperator.class);
-        assertThat(((PureOperator) compiled).evaluate(evaluationContext().withVariables(variables)))
-                .isInstanceOf(ErrorValue.class);
+        assertThat(((PureOperator) compiled).evaluate(evaluationContext())).isInstanceOf(ErrorValue.class);
+    }
+
+    public static void assertPureEvaluatesToWithSubject(String source, Value subject, Value expected) {
+        val subscription = AuthorizationSubscription.of(subject, Value.NULL, Value.NULL, Value.NULL);
+        val evalCtx      = evaluationContext(subscription);
+        val compiled     = compileExpression(source);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        assertThat(((PureOperator) compiled).evaluate(evalCtx)).isEqualTo(expected);
+    }
+
+    public static void assertPureEvaluatesToWithResource(String source, Value resource, Value expected) {
+        val subscription = AuthorizationSubscription.of(Value.NULL, Value.NULL, resource, Value.NULL);
+        val evalCtx      = evaluationContext(subscription);
+        val compiled     = compileExpression(source);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        assertThat(((PureOperator) compiled).evaluate(evalCtx)).isEqualTo(expected);
+    }
+
+    public static void assertPureEvaluatesToErrorWithResource(String source, Value resource) {
+        val subscription = AuthorizationSubscription.of(Value.NULL, Value.NULL, resource, Value.NULL);
+        val evalCtx      = evaluationContext(subscription);
+        val compiled     = compileExpression(source);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        assertThat(((PureOperator) compiled).evaluate(evalCtx)).isInstanceOf(ErrorValue.class);
+    }
+
+    public static CompiledExpression evaluateWithSubject(String source, Value subject) {
+        val subscription = AuthorizationSubscription.of(subject, Value.NULL, Value.NULL, Value.NULL);
+        val evalCtx      = evaluationContext(subscription);
+        val compiled     = compileExpression(source);
+        return evaluate(compiled, evalCtx);
+    }
+
+    public static CompiledExpression evaluateWithResource(String source, Value resource) {
+        val subscription = AuthorizationSubscription.of(Value.NULL, Value.NULL, resource, Value.NULL);
+        val evalCtx      = evaluationContext(subscription);
+        val compiled     = compileExpression(source);
+        return evaluate(compiled, evalCtx);
     }
 
     public static void assertPureDependsOnSubscription(String source, boolean expected) {
-        var compiled = compileExpression(source);
+        val compiled = compileExpression(source);
         assertThat(compiled).isInstanceOf(PureOperator.class);
         assertThat(((PureOperator) compiled).isDependingOnSubscription()).isEqualTo(expected);
     }
@@ -679,7 +840,7 @@ public class SaplTesting {
     }
 
     public static void assertEvaluatesToError(String source, String messageFragment) {
-        var result = evaluateExpression(source);
+        val result = evaluateExpression(source);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(messageFragment);
     }
@@ -690,8 +851,8 @@ public class SaplTesting {
 
     public static void assertIsErrorContaining(CompiledExpression result, String... fragments) {
         assertThat(result).isInstanceOf(ErrorValue.class);
-        var message = ((ErrorValue) result).message().toLowerCase();
-        for (var fragment : fragments) {
+        val message = ((ErrorValue) result).message().toLowerCase();
+        for (val fragment : fragments) {
             assertThat(message).contains(fragment.toLowerCase());
         }
     }
@@ -701,13 +862,17 @@ public class SaplTesting {
         return ((ErrorValue) result).message();
     }
 
+    // ========================================================================
+    // STRATUM ASSERTIONS
+    // ========================================================================
+
     public static Stratum getStratum(CompiledExpression compiled) {
         return switch (compiled) {
-        case ErrorValue e      -> null;
-        case PureOperator p    -> p.isDependingOnSubscription() ? Stratum.PURE_SUB : Stratum.PURE_NON_SUB;
-        case StreamOperator so -> Stratum.STREAM;
-        case Value v           -> Stratum.VALUE;
-        default                -> null;
+        case ErrorValue ignored    -> null;
+        case PureOperator p        -> p.isDependingOnSubscription() ? Stratum.PURE_SUB : Stratum.PURE_NON_SUB;
+        case StreamOperator ignore -> Stratum.STREAM;
+        case Value ignored         -> Stratum.VALUE;
+        default                    -> null;
         };
     }
 
@@ -736,7 +901,7 @@ public class SaplTesting {
 
     public static Stratum expectedStratum(Stratum... inputs) {
         int maxLevel = 1;
-        for (var s : inputs) {
+        for (val s : inputs) {
             if (s.level > maxLevel) {
                 maxLevel = s.level;
             }
@@ -747,11 +912,15 @@ public class SaplTesting {
         return maxLevel == 3 ? Stratum.PURE_SUB : Stratum.STREAM;
     }
 
+    // ========================================================================
+    // STREAM VERIFICATION
+    // ========================================================================
+
     @SafeVarargs
     public static void verifyStream(StreamOperator op, EvaluationContext ctx, Consumer<TracedValue>... assertions) {
-        var                            stream   = op.stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        val                            stream   = op.stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.Step<TracedValue> verifier = StepVerifier.create(stream);
-        for (var assertion : assertions) {
+        for (val assertion : assertions) {
             verifier = verifier.assertNext(assertion);
         }
         verifier.verifyComplete();
@@ -765,7 +934,7 @@ public class SaplTesting {
         @SuppressWarnings("unchecked")
         Consumer<TracedValue>[] assertions = new Consumer[expected.length];
         for (int i = 0; i < expected.length; i++) {
-            final var exp = expected[i];
+            val exp = expected[i];
             assertions[i] = tv -> assertThat(tv.value()).isEqualTo(exp);
         }
         verifyStream(op, ctx, assertions);
@@ -776,29 +945,57 @@ public class SaplTesting {
                 .extracting(v -> ((ErrorValue) v).message()).asString().contains(messageFragment));
     }
 
-    private static SAPLParser createParser(String source) {
-        var charStream  = CharStreams.fromString(source);
-        var lexer       = new SAPLLexer(charStream);
-        var tokenStream = new CommonTokenStream(lexer);
-        var parser      = new SAPLParser(tokenStream);
-        lexer.removeErrorListeners();
-        parser.removeErrorListeners();
-        return parser;
-    }
+    // ========================================================================
+    // TEST CONTEXT (bridges old variable-at-eval pattern to new compile-time
+    // pattern)
+    // ========================================================================
 
-    private static class StandaloneTransformer extends AstTransformer {
-        StandaloneTransformer() {
-            initializeImportMap(Map.of());
+    public record TestContext(FunctionBroker functionBroker, AttributeBroker attributeBroker, ObjectValue variables) {
+
+        public TestContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+            this(functionBroker, attributeBroker, Value.EMPTY_OBJECT);
         }
 
-        Expression expression(ExpressionContext ctx) {
-            return (Expression) visit(ctx);
+        public CompilationContext compilationContext() {
+            val data = new PdpData(variables, Value.EMPTY_OBJECT);
+            return new CompilationContext(data, functionBroker, attributeBroker);
         }
 
-        Statement statement(StatementContext ctx) {
-            return (Statement) visit(ctx);
+        public EvaluationContext evaluationContext() {
+            return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
+                    functionBroker, attributeBroker);
         }
     }
+
+    public static TestContext testContext(Map<String, Value> variables) {
+        return new TestContext(FUNCTION_BROKER, ATTRIBUTE_BROKER, toObjectValue(variables));
+    }
+
+    public static TestContext testContext(FunctionBroker fnBroker, Map<String, Value> variables) {
+        return new TestContext(fnBroker, ATTRIBUTE_BROKER, toObjectValue(variables));
+    }
+
+    public static TestContext testContext(FunctionBroker fnBroker, AttributeBroker attrBroker,
+            Map<String, Value> variables) {
+        return new TestContext(fnBroker, attrBroker, toObjectValue(variables));
+    }
+
+    public static TestContext testContext(AttributeBroker attrBroker, Map<String, Value> variables) {
+        return new TestContext(FUNCTION_BROKER, attrBroker, toObjectValue(variables));
+    }
+
+    public static TestContext testContext(AttributeBroker attrBroker, Value subject) {
+        return new TestContext(FUNCTION_BROKER, attrBroker, toObjectValue(Map.of("subject", subject)));
+    }
+
+    public static CompiledExpression evaluateExpression(String source, TestContext ctx) {
+        val compiled = compileExpression(source, ctx.compilationContext());
+        return evaluate(compiled, ctx.evaluationContext());
+    }
+
+    // ========================================================================
+    // TEST IMPLEMENTATIONS
+    // ========================================================================
 
     public record TestPureOperator(Function<EvaluationContext, Value> evaluator, boolean isDependingOnSubscription)
             implements PureOperator {

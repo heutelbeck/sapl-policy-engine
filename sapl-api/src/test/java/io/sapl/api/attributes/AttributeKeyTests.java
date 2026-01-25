@@ -17,25 +17,28 @@
  */
 package io.sapl.api.attributes;
 
-import io.sapl.api.model.Value;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.model.Value;
 
 /**
  * Tests for AttributeKey equality and factory method.
  */
 class AttributeKeyTests {
 
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
     @Test
     void when_of_createsKeyFromInvocation_then_extractsCorrectComponents() {
         var invocation = new AttributeFinderInvocation("test-security", "test.attr", Value.of("user123"),
-                List.of(Value.of("arg1"), Value.of("arg2")), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30),
-                Duration.ofSeconds(1), 0, false);
+                List.of(Value.of("arg1"), Value.of("arg2")), Duration.ofSeconds(1), Duration.ofSeconds(30),
+                Duration.ofSeconds(1), 0, false, EMPTY_CTX);
 
         var key = AttributeKey.of(invocation);
 
@@ -48,8 +51,8 @@ class AttributeKeyTests {
 
     @Test
     void when_of_environmentAttribute_then_entityIsNull() {
-        var invocation = new AttributeFinderInvocation("test-security", "time.now", List.of(), Map.of(),
-                Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
+        var invocation = new AttributeFinderInvocation("test-security", "time.now", List.of(), Duration.ofSeconds(1),
+                Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false, EMPTY_CTX);
 
         var key = AttributeKey.of(invocation);
 

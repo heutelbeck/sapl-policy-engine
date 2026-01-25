@@ -95,20 +95,20 @@ class StepCompilerTests {
 
             @Test
             void variableKey_evaluatesCorrectly() {
-                var user = obj("name", Value.of("alice"), "age", Value.of(30));
-                assertPureEvaluatesTo("user.name", Map.of("user", user), Value.of("alice"));
+                var subjectData = obj("name", Value.of("alice"), "age", Value.of(30));
+                assertPureEvaluatesToWithSubject("subject.name", subjectData, Value.of("alice"));
             }
 
             @Test
             void chainedKeys_workAtRuntime() {
-                var user = obj("address", obj("city", Value.of("Berlin")));
-                assertPureEvaluatesTo("user.address.city", Map.of("user", user), Value.of("Berlin"));
+                var subjectData = obj("address", obj("city", Value.of("Berlin")));
+                assertPureEvaluatesToWithSubject("subject.address.city", subjectData, Value.of("Berlin"));
             }
 
             @Test
             void missingKey_returnsUndefined() {
-                var user = obj("name", Value.of("alice"));
-                assertPureEvaluatesTo("user.missing", Map.of("user", user), Value.UNDEFINED);
+                var subjectData = obj("name", Value.of("alice"));
+                assertPureEvaluatesToWithSubject("subject.missing", subjectData, Value.UNDEFINED);
             }
 
             @Test
@@ -158,25 +158,25 @@ class StepCompilerTests {
 
             @Test
             void variableIndex_compilesToPure() {
-                assertCompilesTo("items[0]", PureOperator.class);
+                assertCompilesTo("resource[0]", PureOperator.class);
             }
 
             @Test
             void variableIndex_evaluatesCorrectly() {
-                var items = array(Value.of("a"), Value.of("b"), Value.of("c"));
-                assertPureEvaluatesTo("items[1]", Map.of("items", items), Value.of("b"));
+                var resourceData = array(Value.of("a"), Value.of("b"), Value.of("c"));
+                assertPureEvaluatesToWithResource("resource[1]", resourceData, Value.of("b"));
             }
 
             @Test
             void negativeIndex_evaluatesCorrectly() {
-                var items = array(Value.of("x"), Value.of("y"), Value.of("z"));
-                assertPureEvaluatesTo("items[-1]", Map.of("items", items), Value.of("z"));
+                var resourceData = array(Value.of("x"), Value.of("y"), Value.of("z"));
+                assertPureEvaluatesToWithResource("resource[-1]", resourceData, Value.of("z"));
             }
 
             @Test
             void outOfBounds_returnsError() {
-                var items = array(Value.of(1), Value.of(2));
-                assertPureEvaluatesToError("items[5]", Map.of("items", items));
+                var resourceData = array(Value.of(1), Value.of(2));
+                assertPureEvaluatesToErrorWithResource("resource[5]", resourceData);
             }
 
             @Test
@@ -241,19 +241,19 @@ class StepCompilerTests {
 
             @Test
             void variableWildcard_compilesToPure() {
-                assertCompilesTo("items.*", PureOperator.class);
+                assertCompilesTo("resource.*", PureOperator.class);
             }
 
             @Test
             void arrayVariable_evaluatesCorrectly() {
-                var items = array(Value.of("x"), Value.of("y"));
-                assertPureEvaluatesTo("items.*", Map.of("items", items), items);
+                var resourceData = array(Value.of("x"), Value.of("y"));
+                assertPureEvaluatesToWithResource("resource.*", resourceData, resourceData);
             }
 
             @Test
             void objectVariable_evaluatesCorrectly() {
-                var data   = obj("a", Value.of(1), "b", Value.of(2));
-                var result = evaluateExpression("data.*", evaluationContext(Map.of("data", data)));
+                var resourceData = obj("a", Value.of(1), "b", Value.of(2));
+                var result       = evaluateWithResource("resource.*", resourceData);
                 assertThat(result).isInstanceOf(ArrayValue.class);
                 assertThat((ArrayValue) result).containsExactlyInAnyOrder(Value.of(1), Value.of(2));
             }
@@ -297,19 +297,19 @@ class StepCompilerTests {
 
             @Test
             void variableIndexUnion_compilesToPure() {
-                assertCompilesTo("items[0, 2]", PureOperator.class);
+                assertCompilesTo("resource[0, 2]", PureOperator.class);
             }
 
             @Test
             void variableIndexUnion_evaluatesCorrectly() {
-                var items = array(Value.of("a"), Value.of("b"), Value.of("c"), Value.of("d"));
-                assertPureEvaluatesTo("items[0, 2]", Map.of("items", items), array(Value.of("a"), Value.of("c")));
+                var resourceData = array(Value.of("a"), Value.of("b"), Value.of("c"), Value.of("d"));
+                assertPureEvaluatesToWithResource("resource[0, 2]", resourceData, array(Value.of("a"), Value.of("c")));
             }
 
             @Test
             void outOfBounds_isIgnored() {
-                var items = array(Value.of(1), Value.of(2));
-                assertPureEvaluatesTo("items[0, 100]", Map.of("items", items), array(Value.of(1)));
+                var resourceData = array(Value.of(1), Value.of(2));
+                assertPureEvaluatesToWithResource("resource[0, 100]", resourceData, array(Value.of(1)));
             }
         }
     }
@@ -352,19 +352,20 @@ class StepCompilerTests {
 
             @Test
             void variableAttributeUnion_compilesToPure() {
-                assertCompilesTo("data[\"a\", \"b\"]", PureOperator.class);
+                assertCompilesTo("resource[\"a\", \"b\"]", PureOperator.class);
             }
 
             @Test
             void variableAttributeUnion_evaluatesCorrectly() {
-                var data = obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3));
-                assertPureEvaluatesTo("data[\"a\", \"c\"]", Map.of("data", data), array(Value.of(1), Value.of(3)));
+                var resourceData = obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3));
+                assertPureEvaluatesToWithResource("resource[\"a\", \"c\"]", resourceData,
+                        array(Value.of(1), Value.of(3)));
             }
 
             @Test
             void missingKeys_areIgnored() {
-                var data = obj("a", Value.of(1));
-                assertPureEvaluatesTo("data[\"a\", \"missing\"]", Map.of("data", data), array(Value.of(1)));
+                var resourceData = obj("a", Value.of(1));
+                assertPureEvaluatesToWithResource("resource[\"a\", \"missing\"]", resourceData, array(Value.of(1)));
             }
         }
     }
@@ -452,13 +453,13 @@ class StepCompilerTests {
 
             @Test
             void variableSlice_compilesToPure() {
-                assertCompilesTo("items[1:3]", PureOperator.class);
+                assertCompilesTo("resource[1:3]", PureOperator.class);
             }
 
             @Test
             void variableSlice_evaluatesCorrectly() {
-                var items = array(Value.of(10), Value.of(20), Value.of(30), Value.of(40));
-                assertPureEvaluatesTo("items[1:3]", Map.of("items", items), array(Value.of(20), Value.of(30)));
+                var resourceData = array(Value.of(10), Value.of(20), Value.of(30), Value.of(40));
+                assertPureEvaluatesToWithResource("resource[1:3]", resourceData, array(Value.of(20), Value.of(30)));
             }
         }
     }
@@ -499,13 +500,13 @@ class StepCompilerTests {
 
             @Test
             void variableExpressionStep_compilesToPure() {
-                assertCompilesTo("items[(0)]", PureOperator.class);
+                assertCompilesTo("resource[(0)]", PureOperator.class);
             }
 
             @Test
             void variableExpressionStep_evaluatesCorrectly() {
-                var items = array(Value.of("a"), Value.of("b"), Value.of("c"));
-                assertPureEvaluatesTo("items[(1)]", Map.of("items", items), Value.of("b"));
+                var resourceData = array(Value.of("a"), Value.of("b"), Value.of("c"));
+                assertPureEvaluatesToWithResource("resource[(1)]", resourceData, Value.of("b"));
             }
         }
     }
@@ -556,13 +557,13 @@ class StepCompilerTests {
 
             @Test
             void variableCondition_compilesToPure() {
-                assertCompilesTo("items[?(@ > 0)]", PureOperator.class);
+                assertCompilesTo("resource[?(@ > 0)]", PureOperator.class);
             }
 
             @Test
             void variableCondition_evaluatesCorrectly() {
-                var items = array(Value.of(1), Value.of(2), Value.of(3), Value.of(4));
-                assertPureEvaluatesTo("items[?(@ > 2)]", Map.of("items", items), array(Value.of(3), Value.of(4)));
+                var resourceData = array(Value.of(1), Value.of(2), Value.of(3), Value.of(4));
+                assertPureEvaluatesToWithResource("resource[?(@ > 2)]", resourceData, array(Value.of(3), Value.of(4)));
             }
         }
     }
@@ -599,13 +600,13 @@ class StepCompilerTests {
 
             @Test
             void variableRecursiveKey_compilesToPure() {
-                assertCompilesTo("data..name", PureOperator.class);
+                assertCompilesTo("resource..name", PureOperator.class);
             }
 
             @Test
             void variableRecursiveKey_evaluatesCorrectly() {
-                var data = obj("items", array(obj("name", Value.of("a")), obj("name", Value.of("b"))));
-                assertPureEvaluatesTo("data..name", Map.of("data", data), array(Value.of("a"), Value.of("b")));
+                var resourceData = obj("items", array(obj("name", Value.of("a")), obj("name", Value.of("b"))));
+                assertPureEvaluatesToWithResource("resource..name", resourceData, array(Value.of("a"), Value.of("b")));
             }
         }
     }
@@ -653,13 +654,13 @@ class StepCompilerTests {
 
             @Test
             void variableRecursiveIndex_compilesToPure() {
-                assertCompilesTo("data..[0]", PureOperator.class);
+                assertCompilesTo("resource..[0]", PureOperator.class);
             }
 
             @Test
             void variableRecursiveIndex_evaluatesCorrectly() {
-                var data = array(Value.of(10), Value.of(20));
-                assertPureEvaluatesTo("data..[0]", Map.of("data", data), array(Value.of(10)));
+                var resourceData = array(Value.of(10), Value.of(20));
+                assertPureEvaluatesToWithResource("resource..[0]", resourceData, array(Value.of(10)));
             }
         }
     }
@@ -700,13 +701,13 @@ class StepCompilerTests {
 
             @Test
             void variableRecursiveWildcard_compilesToPure() {
-                assertCompilesTo("data..*", PureOperator.class);
+                assertCompilesTo("resource..*", PureOperator.class);
             }
 
             @Test
             void variableRecursiveWildcard_evaluatesCorrectly() {
-                var data = array(Value.of(1), Value.of(2));
-                assertPureEvaluatesTo("data..*", Map.of("data", data), array(Value.of(1), Value.of(2)));
+                var resourceData = array(Value.of(1), Value.of(2));
+                assertPureEvaluatesToWithResource("resource..*", resourceData, array(Value.of(1), Value.of(2)));
             }
         }
     }

@@ -169,7 +169,8 @@ class SaplJacksonModuleTests {
     @Test
     void when_serializingAuthorizationSubscription_then_allFieldsSerialized() throws JsonProcessingException {
         val subscription = new AuthorizationSubscription(Value.of("investigator"), Value.of("read"),
-                Value.of("necronomicon"), Value.ofObject(Map.of("location", Value.of("Miskatonic University"))));
+                Value.of("necronomicon"), Value.ofObject(Map.of("location", Value.of("Miskatonic University"))),
+                Value.EMPTY_OBJECT);
         val json         = mapper.writeValueAsString(subscription);
 
         assertThat(json).contains("\"subject\":\"investigator\"").contains("\"action\":\"read\"")
@@ -192,7 +193,7 @@ class SaplJacksonModuleTests {
     void when_roundTrippingAuthorizationSubscription_then_subscriptionPreserved() throws JsonProcessingException {
         val original = new AuthorizationSubscription(
                 Value.ofObject(Map.of("name", Value.of("Randolph Carter"), "role", Value.of("dreamer"))),
-                Value.of("enter"), Value.of("dreamlands"), Value.UNDEFINED);
+                Value.of("enter"), Value.of("dreamlands"), Value.UNDEFINED, Value.EMPTY_OBJECT);
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, AuthorizationSubscription.class);
 
@@ -220,7 +221,7 @@ class SaplJacksonModuleTests {
     @Test
     void when_serializingIdentifiableSubscription_then_containsIdAndSubscription() throws JsonProcessingException {
         val subscription = new AuthorizationSubscription(Value.of("keeper"), Value.of("access"), Value.of("silver_key"),
-                Value.UNDEFINED);
+                Value.UNDEFINED, Value.EMPTY_OBJECT);
         val identifiable = new IdentifiableAuthorizationSubscription("open-gate", subscription);
         val json         = mapper.writeValueAsString(identifiable);
 
@@ -231,7 +232,7 @@ class SaplJacksonModuleTests {
     @Test
     void when_roundTrippingIdentifiableSubscription_then_preserved() throws JsonProcessingException {
         val subscription = new AuthorizationSubscription(Value.of("deep_one"), Value.of("emerge"),
-                Value.of("innsmouth_harbor"), Value.UNDEFINED);
+                Value.of("innsmouth_harbor"), Value.UNDEFINED, Value.EMPTY_OBJECT);
         val original     = new IdentifiableAuthorizationSubscription("emergence-request", subscription);
 
         val json     = mapper.writeValueAsString(original);
@@ -269,9 +270,9 @@ class SaplJacksonModuleTests {
         val multiSubscription = new MultiAuthorizationSubscription()
                 .addSubscription("read-necronomicon",
                         new AuthorizationSubscription(Value.of("scholar"), Value.of("read"), Value.of("necronomicon"),
-                                Value.UNDEFINED))
+                                Value.UNDEFINED, Value.EMPTY_OBJECT))
                 .addSubscription("write-journal", new AuthorizationSubscription(Value.of("scholar"), Value.of("write"),
-                        Value.of("research_journal"), Value.UNDEFINED));
+                        Value.of("research_journal"), Value.UNDEFINED, Value.EMPTY_OBJECT));
 
         val json = mapper.writeValueAsString(multiSubscription);
 
@@ -284,9 +285,9 @@ class SaplJacksonModuleTests {
         val original = new MultiAuthorizationSubscription()
                 .addSubscription("enter-dunwich",
                         new AuthorizationSubscription(Value.of("traveler"), Value.of("enter"), Value.of("dunwich"),
-                                Value.UNDEFINED))
+                                Value.UNDEFINED, Value.EMPTY_OBJECT))
                 .addSubscription("enter-arkham", new AuthorizationSubscription(Value.of("traveler"), Value.of("enter"),
-                        Value.of("arkham"), Value.UNDEFINED));
+                        Value.of("arkham"), Value.UNDEFINED, Value.EMPTY_OBJECT));
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, MultiAuthorizationSubscription.class);
@@ -400,14 +401,17 @@ class SaplJacksonModuleTests {
                 ErrorHandling.ABSTAIN);
         val configuration = new PDPConfiguration("arkham-pdp", "v1.0", algorithm,
                 List.of("policy access-control permit", "policy audit-log deny"),
-                Map.of("serverUrl", Value.of("https://miskatonic.edu"), "maxRetries", Value.of(3)));
+                new PdpData(
+                        Value.ofObject(
+                                Map.of("serverUrl", Value.of("https://miskatonic.edu"), "maxRetries", Value.of(3))),
+                        Value.EMPTY_OBJECT));
         val json          = mapper.writeValueAsString(configuration);
 
         assertThat(json).contains("\"pdpId\":\"arkham-pdp\"").contains("\"configurationId\":\"v1.0\"")
                 .contains("\"combiningAlgorithm\":{\"votingMode\":\"PRIORITY_DENY\"")
                 .contains("\"saplDocuments\":[\"policy access-control permit\",\"policy audit-log deny\"]")
                 .contains("\"variables\"").contains("\"serverUrl\":\"https://miskatonic.edu\"")
-                .contains("\"maxRetries\":3");
+                .contains("\"maxRetries\":3").contains("\"secrets\"");
     }
 
     @Test
@@ -428,7 +432,7 @@ class SaplJacksonModuleTests {
         assertThat(configuration.configurationId()).isEqualTo("ritual-security");
         assertThat(configuration.combiningAlgorithm()).isEqualTo(expected);
         assertThat(configuration.saplDocuments()).containsExactly("policy deep-ones permit");
-        assertThat(configuration.variables()).containsEntry("depth", Value.of(100)).containsEntry("location",
+        assertThat(configuration.data().variables()).containsEntry("depth", Value.of(100)).containsEntry("location",
                 Value.of("reef"));
     }
 
@@ -438,7 +442,8 @@ class SaplJacksonModuleTests {
         val original  = new PDPConfiguration("dunwich-pdp", "elder-security", algorithm,
                 List.of("policy whateley-access permit where action == \"read\"",
                         "policy stone-circles deny where subject.sanity < 50"),
-                Map.of("threshold", Value.of(42), "location", Value.of("standing stones"), "active", Value.TRUE));
+                new PdpData(Value.ofObject(Map.of("threshold", Value.of(42), "location", Value.of("standing stones"),
+                        "active", Value.TRUE)), Value.EMPTY_OBJECT));
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, PDPConfiguration.class);
@@ -480,11 +485,11 @@ class SaplJacksonModuleTests {
                 }""";
         val configuration = mapper.readValue(json, PDPConfiguration.class);
 
-        assertThat(configuration.variables()).hasSize(4);
-        assertThat(configuration.variables().get("nested")).isInstanceOf(io.sapl.api.model.ObjectValue.class);
-        assertThat(configuration.variables().get("array")).isInstanceOf(io.sapl.api.model.ArrayValue.class);
-        assertThat(configuration.variables().get("bool")).isEqualTo(Value.TRUE);
-        assertThat(configuration.variables().get("nullable")).isEqualTo(Value.NULL);
+        assertThat(configuration.data().variables()).hasSize(4);
+        assertThat(configuration.data().variables().get("nested")).isInstanceOf(io.sapl.api.model.ObjectValue.class);
+        assertThat(configuration.data().variables().get("array")).isInstanceOf(io.sapl.api.model.ArrayValue.class);
+        assertThat(configuration.data().variables().get("bool")).isEqualTo(Value.TRUE);
+        assertThat(configuration.data().variables().get("nullable")).isEqualTo(Value.NULL);
     }
 
     @Test
@@ -537,7 +542,7 @@ class SaplJacksonModuleTests {
         val configuration = mapper.readValue(json, PDPConfiguration.class);
 
         assertThat(configuration.saplDocuments()).isEmpty();
-        assertThat(configuration.variables()).isEmpty();
+        assertThat(configuration.data().variables()).isEmpty();
     }
 
     @Test
@@ -553,7 +558,8 @@ class SaplJacksonModuleTests {
                 """;
         val algorithm       = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
                 ErrorHandling.ABSTAIN);
-        val original        = new PDPConfiguration("arkham-pdp", "v1.0", algorithm, List.of(multilinePolicy), Map.of());
+        val original        = new PDPConfiguration("arkham-pdp", "v1.0", algorithm, List.of(multilinePolicy),
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, PDPConfiguration.class);

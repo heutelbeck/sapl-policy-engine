@@ -28,7 +28,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.ast.PolicyVoterMetadata;
-import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.document.Vote;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

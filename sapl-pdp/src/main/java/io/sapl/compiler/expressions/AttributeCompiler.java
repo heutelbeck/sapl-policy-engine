@@ -17,15 +17,15 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.*;
-import io.sapl.ast.AttributeStep;
-import io.sapl.ast.EnvironmentAttribute;
-import io.sapl.ast.Expression;
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
-import lombok.val;
-import reactor.core.publisher.Flux;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_TIMEOUT_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_BACKOFF;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FRESH;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_INITIAL_TIMEOUT;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_POLL_INTERVAL;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRIES;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -33,7 +33,29 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.*;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.PdpData;
+import io.sapl.ast.AttributeStep;
+import io.sapl.ast.EnvironmentAttribute;
+import io.sapl.ast.Expression;
+import lombok.NonNull;
+import lombok.val;
+import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class AttributeCompiler {
@@ -76,7 +98,8 @@ public class AttributeCompiler {
             compiledArgs.add(compiled);
         }
 
-        return buildOptimizedOperator(compiledEntity, compiledArgs, compiledOptions, attributeName, head, location);
+        return buildOptimizedOperator(compiledEntity, compiledArgs, compiledOptions, attributeName, head, location,
+                ctx);
     }
 
     private static StreamOperator errorStream(ErrorValue error) {
@@ -84,7 +107,8 @@ public class AttributeCompiler {
     }
 
     private static StreamOperator buildOptimizedOperator(CompiledExpression entity, List<CompiledExpression> arguments,
-            CompiledExpression options, String attributeName, boolean head, SourceLocation location) {
+            CompiledExpression options, String attributeName, boolean head, SourceLocation location,
+            CompilationContext ctx) {
 
         boolean entityIsStream = entity instanceof StreamOperator;
         boolean entityIsPure   = entity instanceof PureOperator;
@@ -94,26 +118,27 @@ public class AttributeCompiler {
         int streamCount = cat.streamCount() + (entityIsStream ? 1 : 0);
 
         if (streamCount == 0) {
-            return new AllPureAttribute(attributeName, entityValue, entityIsPure ? (PureOperator) entity : null,
-                    cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options,
-                    head, location);
+            return new AllPureAttribute(attributeName, entityValue, ctx.getData(),
+                    entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
+                    cat.pureOperators(), cat.totalCount(), options, head, location);
         }
         if (streamCount == 1 && entityIsStream) {
-            return new EntityStreamAttribute(attributeName, (StreamOperator) entity, cat.valueIndices(), cat.values(),
-                    cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options, head, location);
+            return new EntityStreamAttribute(attributeName, ctx.getData(), (StreamOperator) entity, cat.valueIndices(),
+                    cat.values(), cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options, head, location);
         }
         if (streamCount == 1) {
-            return new SingleStreamAttribute(attributeName, entityValue, entityIsPure ? (PureOperator) entity : null,
-                    cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(), cat.streamIndices()[0],
-                    cat.streams()[0], cat.totalCount(), options, head, location);
+            return new SingleStreamAttribute(attributeName, entityValue, ctx.getData(),
+                    entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
+                    cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), options, head,
+                    location);
         }
         return buildMultiStreamAttribute(entity, entityIsStream, entityIsPure, entityValue, cat, attributeName, options,
-                head, location);
+                head, location, ctx);
     }
 
     private static MultiStreamAttribute buildMultiStreamAttribute(CompiledExpression entity, boolean entityIsStream,
             boolean entityIsPure, Value entityValue, ArrayCompiler.CategorizedExpressions cat, String attributeName,
-            CompiledExpression options, boolean head, SourceLocation location) {
+            CompiledExpression options, boolean head, SourceLocation location, CompilationContext ctx) {
         int   entityOffset     = entityIsStream ? 1 : 0;
         int[] allStreamIndices = new int[cat.streamCount() + entityOffset];
         var   allStreams       = new StreamOperator[cat.streamCount() + entityOffset];
@@ -125,14 +150,15 @@ public class AttributeCompiler {
         System.arraycopy(cat.streamIndices(), 0, allStreamIndices, entityOffset, cat.streamCount());
         System.arraycopy(cat.streams(), 0, allStreams, entityOffset, cat.streamCount());
 
-        return new MultiStreamAttribute(attributeName, entityValue, entityIsPure ? (PureOperator) entity : null,
-                cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(), allStreamIndices, allStreams,
-                cat.totalCount(), options, head, location);
+        return new MultiStreamAttribute(attributeName, entityValue, ctx.getData(),
+                entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
+                cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location);
     }
 
     public record AllPureAttribute(
             String attributeName,
             Value entityValue,
+            PdpData pdpData,
             PureOperator entityPure,
             int[] valueIndices,
             Value[] values,
@@ -168,8 +194,9 @@ public class AttributeCompiler {
                 if (args instanceof ErrorValue err) {
                     return Flux.just(errorTracedValue(err));
                 }
-
-                var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, evalCtx);
+                @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
+                var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                        evalCtx);
                 return invokeAndTrace(invocation, head, location);
             });
         }
@@ -177,6 +204,7 @@ public class AttributeCompiler {
 
     public record EntityStreamAttribute(
             String attributeName,
+            PdpData pdpData,
             StreamOperator entityStream,
             int[] valueIndices,
             Value[] values,
@@ -210,9 +238,9 @@ public class AttributeCompiler {
                     if (args instanceof ErrorValue err) {
                         return Flux.just(errorTracedValue(err));
                     }
-
+                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
                     var invocation = createInvocation(attributeName, entityVal, (List<Value>) args, optionsValue,
-                            evalCtx);
+                            pdpData, evalCtx);
                     return invokeAndTrace(invocation, head, location)
                             .map(tv -> mergeTraces(tv, tracedEntity.contributingAttributes()));
                 });
@@ -223,6 +251,7 @@ public class AttributeCompiler {
     public record SingleStreamAttribute(
             String attributeName,
             Value entityValue,
+            PdpData pdpData,
             PureOperator entityPure,
             int[] valueIndices,
             Value[] values,
@@ -264,8 +293,9 @@ public class AttributeCompiler {
                     if (args instanceof ErrorValue err) {
                         return Flux.just(errorTracedValue(err));
                     }
-
-                    var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, evalCtx);
+                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
+                    var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                            evalCtx);
                     return invokeAndTrace(invocation, head, location)
                             .map(tv -> mergeTraces(tv, tracedArg.contributingAttributes()));
                 });
@@ -276,6 +306,7 @@ public class AttributeCompiler {
     public record MultiStreamAttribute(
             String attributeName,
             Value entityValue,
+            PdpData pdpData,
             PureOperator entityPure,
             int[] valueIndices,
             Value[] values,
@@ -333,8 +364,9 @@ public class AttributeCompiler {
                     if (args instanceof ErrorValue err) {
                         return Flux.just(errorTracedValue(err));
                     }
-
-                    var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, evalCtx);
+                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
+                    var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                            evalCtx);
                     return invokeAndTrace(invocation, head, location).map(tv -> mergeTraces(tv, combined.traces));
                 });
             });
@@ -430,16 +462,17 @@ public class AttributeCompiler {
     }
 
     private static AttributeFinderInvocation createInvocation(String attributeName, Value entity, List<Value> arguments,
-            Value options, EvaluationContext ctx) {
+            Value options, PdpData data, EvaluationContext ctx) {
         var configurationId = ctx.configurationId() != null ? ctx.configurationId() : "default";
         var timeout         = Duration.ofMillis(longOption(options, OPTION_INITIAL_TIMEOUT, DEFAULT_TIMEOUT_MS));
         var pollInterval    = Duration.ofMillis(longOption(options, OPTION_POLL_INTERVAL, DEFAULT_POLL_INTERVAL_MS));
         var backoff         = Duration.ofMillis(longOption(options, OPTION_BACKOFF, DEFAULT_BACKOFF_MS));
         var retries         = longOption(options, OPTION_RETRIES, DEFAULT_RETRIES);
         var fresh           = freshOption(options);
-
-        return new AttributeFinderInvocation(configurationId, attributeName, entity, arguments, ctx.variables(),
-                timeout, pollInterval, backoff, retries, fresh);
+        var accessCtx       = new AttributeAccessContext(data.variables(), data.secrets(),
+                ctx.authorizationSubscription().secrets());
+        return new AttributeFinderInvocation(configurationId, attributeName, entity, arguments, timeout, pollInterval,
+                backoff, retries, fresh, accessCtx);
     }
 
     private static Flux<TracedValue> invokeAndTrace(AttributeFinderInvocation invocation, boolean head,

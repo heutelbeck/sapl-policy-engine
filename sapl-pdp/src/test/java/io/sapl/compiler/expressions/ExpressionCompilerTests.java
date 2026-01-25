@@ -913,12 +913,12 @@ class ExpressionCompilerTests {
     @ParameterizedTest(name = "pure operator: {0}")
     void when_containsVariableReference_then_returnsPureOperatorWithCorrectValue(String description, String expression,
             Value varValue, Value expected) {
-        val compiled = compileExpression(expression);
+        val ctx      = compilationContext(toObjectValue(java.util.Map.of("x", varValue)));
+        val compiled = compileExpression(expression, ctx);
         assertThat(compiled).as("should be PureOperator when containing variable reference")
                 .isInstanceOf(PureOperator.class);
 
-        val ctx    = evaluationContext().withVariables(java.util.Map.of("x", varValue));
-        val result = ((PureOperator) compiled).evaluate(ctx);
+        val result = ((PureOperator) compiled).evaluate(evaluationContext());
         assertThat(result).isEqualTo(expected);
     }
 

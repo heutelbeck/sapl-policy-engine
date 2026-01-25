@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.compiler.pdp.TimestampedVote;
+import io.sapl.compiler.document.TimestampedVote;
 
 public interface VoteInterceptor extends Comparable<VoteInterceptor> {
     int priority();

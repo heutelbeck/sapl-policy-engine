@@ -63,7 +63,7 @@ basic:
 
 apikey:
   enabled: true
-  api_key: sapl_JC69csjFH1_yjh1CX63Pw6xBkm0PxZBsj2mbFx1m52A
+  api_key: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
 
 oauth2:
   enabled: false

@@ -22,6 +22,8 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -51,6 +53,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static io.sapl.attributes.libraries.JWTPolicyInformationPointTests.CtxUtil.ctx;
+import static io.sapl.attributes.libraries.JWTPolicyInformationPointTests.CtxUtil.emptyCtx;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -138,12 +143,12 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void validity_withInvalidKey_shouldBeUntrusted() throws JOSEException {
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
         provider.cache(kid, KeyTestUtility.generateInvalidRSAPublicKey());
-        val flux = jwtPolicyInformationPoint.validity(source, variables);
+        val flux = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
@@ -154,7 +159,7 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void validity_withWrongValueType_shouldBeMalformed() {
-        val flux = jwtPolicyInformationPoint.validity((TextValue) Value.of("50000"), null);
+        val flux = jwtPolicyInformationPoint.validity((TextValue) Value.of("50000"), emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
                 .verifyComplete();
     }
@@ -162,14 +167,14 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withMalformedToken_shouldBeMalformed() {
         val source = Value.of("MALFORMED TOKEN");
-        val flux   = jwtPolicyInformationPoint.validity(source, null);
+        val flux   = jwtPolicyInformationPoint.validity(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
                 .verifyComplete();
     }
 
     @Test
     void validity_ofNull_shouldBeMalformed() {
-        val flux = jwtPolicyInformationPoint.validity(null, null);
+        val flux = jwtPolicyInformationPoint.validity(null, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
                 .verifyComplete();
     }
@@ -180,24 +185,22 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void validity_withWhitelist_emptyEntry_shouldBeUntrusted() throws JOSEException {
-
-        val variables = JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2);
+        val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
 
     @Test
     void validity_withWhitelist_bogusEntry_shouldBeUntrusted() throws JOSEException {
-
-        val variables = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();
         val claims    = new JWTClaimsSet.Builder().build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair2);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
@@ -205,15 +208,14 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withWhitelist_multiTest_shouldBeTrustedThenTrustedThenUntrusted()
             throws NoSuchAlgorithmException, IOException, JOSEException {
-
         val keyPairs   = new KeyPair[] { keyPair, keyPair2, Base64DataUtil.generateRSAKeyPair() };
-        val variables  = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2);
+        val accessCtx  = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2));
         val claims     = new JWTClaimsSet.Builder().build();
         val validities = new ArrayList<Mono<Value>>();
         for (int trial = 0; trial < 3; trial++) {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KeyTestUtility.kid(keyPairs[trial])).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPairs[trial]);
-            validities.add(jwtPolicyInformationPoint.validity(source, variables).last());
+            validities.add(jwtPolicyInformationPoint.validity(source, accessCtx).last());
         }
         val flux = Flux.concat(validities);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
@@ -227,22 +229,21 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void validity_withEmptyEnvironment_shouldBeUntrusted() throws JOSEException {
-        val variables = Map.<String, Value>of();
-        val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-        val claims    = new JWTClaimsSet.Builder().build();
-        val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+        val claims = new JWTClaimsSet.Builder().build();
+        val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+        val flux   = jwtPolicyInformationPoint.validity(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
 
     @Test
     void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
-        final Map<String, Value> variables = Map.of("jwt", Value.EMPTY_OBJECT);
-        val                      header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-        val                      claims    = new JWTClaimsSet.Builder().build();
-        val                      source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val                      flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val accessCtx = ctx(Map.of("jwt", Value.EMPTY_OBJECT));
+        val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+        val claims    = new JWTClaimsSet.Builder().build();
+        val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
@@ -250,11 +251,11 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withUriEnvironment_usingWrongKey_shouldBeUntrusted() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.WRONG);
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
@@ -264,11 +265,11 @@ class JWTPolicyInformationPointTests {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val jwtNode   = MAPPER.createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
                 JsonTestUtility.serverNode(server, null, "invalid TTL format"));
-        val variables = Map.of("jwt", ValueJsonMarshaller.fromJsonNode(jwtNode));
+        val accessCtx = ctx(Map.of("jwt", ValueJsonMarshaller.fromJsonNode(jwtNode)));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
@@ -282,7 +283,7 @@ class JWTPolicyInformationPointTests {
         val header = new JWSHeader.Builder(JWSAlgorithm.RS256).build();
         val claims = new JWTClaimsSet.Builder().build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux   = jwtPolicyInformationPoint.validity(source, null);
+        val flux   = jwtPolicyInformationPoint.validity(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
                 .verifyComplete();
     }
@@ -292,7 +293,7 @@ class JWTPolicyInformationPointTests {
         val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("").build();
         val claims = new JWTClaimsSet.Builder().build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux   = jwtPolicyInformationPoint.validity(source, null);
+        val flux   = jwtPolicyInformationPoint.validity(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
                 .verifyComplete();
     }
@@ -302,7 +303,7 @@ class JWTPolicyInformationPointTests {
         val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).criticalParams(Set.of("critparam")).build();
         val claims = new JWTClaimsSet.Builder().build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux   = jwtPolicyInformationPoint.validity(source, null);
+        val flux   = jwtPolicyInformationPoint.validity(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.INCOMPATIBLE.toString()))
                 .verifyComplete();
     }
@@ -314,11 +315,10 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withWrongAlgorithm_shouldBeIncompatible() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = Map.<String, Value>of();
-        val header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
-        val claims    = new JWTClaimsSet.Builder().build();
-        val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
+        val claims = new JWTClaimsSet.Builder().build();
+        val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+        val flux   = jwtPolicyInformationPoint.validity(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.INCOMPATIBLE.toString()))
                 .verifyComplete();
     }
@@ -326,24 +326,23 @@ class JWTPolicyInformationPointTests {
     @Test
     void valid_withWrongAlgorithm_shouldBeFalse() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = Map.<String, Value>of();
-        val header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
-        val claims    = new JWTClaimsSet.Builder().build();
-        val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.valid(source, variables);
+        val header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
+        val claims = new JWTClaimsSet.Builder().build();
+        val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+        val flux   = jwtPolicyInformationPoint.valid(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.FALSE).verifyComplete();
     }
 
     @Test
     void validity_withTamperedPayload_withUriEnvironment_shouldBeUntrusted() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables      = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx      = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header         = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims         = new JWTClaimsSet.Builder().build();
         val tamperedClaims = new JWTClaimsSet.Builder().jwtID("").build();
         val originalJWT    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
         val source         = JWTTestUtility.replacePayload(originalJWT, tamperedClaims);
-        val flux           = jwtPolicyInformationPoint.validity(source, variables);
+        val flux           = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
                 .verifyComplete();
     }
@@ -355,12 +354,12 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withNbfAfterExp_shouldBeNeverValid() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow())
                 .notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.NEVER_VALID.toString()))
                 .verifyComplete();
     }
@@ -368,11 +367,11 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withExpBeforeNow_shouldBeExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString()))
                 .verifyComplete();
     }
@@ -380,11 +379,11 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withExpAfterNow_shouldBeValidThenExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitAfterNow()).build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
+        StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, accessCtx))
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
                 .thenAwait(JWTTestUtility.twoUnitDuration())
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString())).verifyComplete();
@@ -393,11 +392,11 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withNbfAfterNow_shouldBeImmatureThenValid() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
+        StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, accessCtx))
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.IMMATURE.toString()))
                 .thenAwait(JWTTestUtility.twoUnitDuration())
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.VALID.toString())).verifyComplete();
@@ -406,11 +405,11 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withNbfBeforeNow_shouldBeValid() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        val flux      = jwtPolicyInformationPoint.validity(source, variables);
+        val flux      = jwtPolicyInformationPoint.validity(source, accessCtx);
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
                 .verifyComplete();
     }
@@ -418,7 +417,7 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 
         val nbf = Date.from(Instant.now().plusSeconds(2));
@@ -427,11 +426,26 @@ class JWTPolicyInformationPointTests {
         val claims = new JWTClaimsSet.Builder().notBeforeTime(nbf).expirationTime(exp).build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
 
-        StepVerifier.create(jwtPolicyInformationPoint.validity(source, variables))
+        StepVerifier.create(jwtPolicyInformationPoint.validity(source, accessCtx))
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.IMMATURE.toString()))
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString())).thenCancel()
                 .verify(Duration.ofSeconds(6));
+    }
+
+    static class CtxUtil {
+        static AttributeAccessContext emptyCtx() {
+            return new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+        }
+
+        static AttributeAccessContext ctx(Map<String, Value> pdpSecrets) {
+            if (pdpSecrets == null || pdpSecrets.isEmpty()) {
+                return emptyCtx();
+            }
+            val builder = ObjectValue.builder();
+            pdpSecrets.forEach(builder::put);
+            return new AttributeAccessContext(Value.EMPTY_OBJECT, builder.build(), Value.EMPTY_OBJECT);
+        }
     }
 
 }

@@ -24,7 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.TimestampedVote;
+import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;

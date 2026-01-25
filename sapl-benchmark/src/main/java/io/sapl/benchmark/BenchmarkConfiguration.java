@@ -82,10 +82,11 @@ public class BenchmarkConfiguration {
     @Getter
     private String oauth2MockImage;
 
-    public static final int DOCKER_DEFAULT_RSOCKET_PORT = 7000;
-    public static final int DOCKER_DEFAULT_HTTP_PORT    = 8080;
+    public static final int DOCKER_DEFAULT_RSOCKET_PORT          = 7000;
+    public static final int DOCKER_DEFAULT_PROTOBUF_RSOCKET_PORT = 7001;
+    public static final int DOCKER_DEFAULT_HTTP_PORT             = 8080;
     @Getter
-    private boolean         dockerUseSsl                = true;
+    private boolean         dockerUseSsl                         = true;
 
     @JsonProperty(DOCKER)
     public void setDocker(Map<String, String> map) {
@@ -101,6 +102,8 @@ public class BenchmarkConfiguration {
     @Getter
     private int     remoteRsocketPort;
     @Getter
+    private int     remoteProtobufRsocketPort = 7001;
+    @Getter
     private boolean remoteUseSsl;
 
     @JsonProperty(REMOTE)
@@ -108,7 +111,11 @@ public class BenchmarkConfiguration {
         this.remoteBaseUrl     = map.remove("base_url");
         this.remoteRsocketHost = map.remove("rsocket_host");
         this.remoteRsocketPort = Integer.parseInt(map.remove("rsocket_port"));
-        this.remoteUseSsl      = Boolean.parseBoolean(map.remove("use_ssl"));
+        var protobufPort = map.remove("protobuf_rsocket_port");
+        if (protobufPort != null) {
+            this.remoteProtobufRsocketPort = Integer.parseInt(protobufPort);
+        }
+        this.remoteUseSsl = Boolean.parseBoolean(map.remove("use_ssl"));
         failOnFurtherMapEntries(map.keySet(), REMOTE);
     }
 
@@ -132,6 +139,8 @@ public class BenchmarkConfiguration {
     private boolean runHttpBenchmarks            = true;
     @Setter
     private boolean runRsocketBenchmarks         = true;
+    @Setter
+    private boolean runProtobufRsocketBenchmarks = false;
     private boolean runDecideOnceBenchmarks      = true;
     private boolean runDecideSubscribeBenchmarks = true;
 
@@ -140,6 +149,10 @@ public class BenchmarkConfiguration {
         this.runEmbeddedBenchmarks = Boolean.parseBoolean(map.remove("embedded"));
         this.runHttpBenchmarks     = Boolean.parseBoolean(map.remove("http"));
         this.runRsocketBenchmarks  = Boolean.parseBoolean(map.remove("rsocket"));
+        var protobufRsocket = map.remove("protobuf_rsocket");
+        if (protobufRsocket != null) {
+            this.runProtobufRsocketBenchmarks = Boolean.parseBoolean(protobufRsocket);
+        }
         failOnFurtherMapEntries(map.keySet(), "benchmark_pdp");
     }
 
@@ -286,6 +299,9 @@ public class BenchmarkConfiguration {
         }
         if (runRsocketBenchmarks) {
             classes.add("RsocketBenchmark");
+        }
+        if (runProtobufRsocketBenchmarks) {
+            classes.add("ProtobufRsocketBenchmark");
         }
 
         if (useNoAuth) {

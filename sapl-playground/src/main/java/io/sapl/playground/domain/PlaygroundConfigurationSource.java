@@ -19,6 +19,7 @@ package io.sapl.playground.domain;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
 import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
@@ -26,7 +27,8 @@ import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.compiler.ast.SAPLCompiler;
+import io.sapl.api.pdp.PdpData;
+import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
@@ -121,8 +123,9 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
     private Optional<CompiledPdpVoter> buildConfiguration() {
         val configId           = String.valueOf(configurationVersion.incrementAndGet());
         val pdpConfiguration   = new PDPConfiguration(PDP_ID, configId, currentAlgorithm.get(),
-                currentPolicySources.get(), currentVariables.get());
-        val compilationContext = new CompilationContext(PDP_ID, configId, functionBroker, attributeBroker);
+                currentPolicySources.get(), buildPdpData());
+        val compilationContext = new CompilationContext(PDP_ID, configId, buildPdpData(), functionBroker,
+                attributeBroker);
 
         try {
             return Optional.of(PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext));
@@ -152,14 +155,10 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
      * successful
      */
     public Optional<SaplCompilerException> tryCompile(String source) {
-        val compilationContext = new CompilationContext(functionBroker, attributeBroker);
+        val compilationContext = new CompilationContext(new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT), functionBroker, attributeBroker);
         try {
-            val parsedDocument = SAPLCompiler.parseDocument(source);
-            if (parsedDocument.isInvalid()) {
-                return Optional.of(new SaplCompilerException(parsedDocument.errorMessage()));
-            }
             compilationContext.resetForNextDocument();
-            PdpCompiler.compileDocument(parsedDocument.saplDocument(), compilationContext);
+            DocumentCompiler.compileDocument(source, compilationContext);
             return Optional.empty();
         } catch (SaplCompilerException exception) {
             return Optional.of(exception);
@@ -168,6 +167,17 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
         }
     }
 
+    private PdpData buildPdpData() {
+        return new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT);
+    }
+
+    private ObjectValue varablesAsObjectValue() {
+        val variables = ObjectValue.builder();
+        for(val entry : currentVariables.get().entrySet()) {
+            variables.put(entry.getKey(), entry.getValue());
+        }
+        return variables.build();
+    }
     @PreDestroy
     public void destroy() {
         configurationSink.tryEmitComplete();

@@ -17,9 +17,17 @@
  */
 package io.sapl.api.pdp;
 
+import static io.sapl.api.model.ReservedIdentifiers.ACTION;
+import static io.sapl.api.model.ReservedIdentifiers.ENVIRONMENT;
+import static io.sapl.api.model.ReservedIdentifiers.RESOURCE;
+import static io.sapl.api.model.ReservedIdentifiers.SUBJECT;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
@@ -47,9 +55,11 @@ public record AuthorizationSubscription(
         @NonNull Value subject,
         @NonNull Value action,
         @NonNull Value resource,
-        @NonNull Value environment) {
+        @NonNull Value environment,
+        @NonNull ObjectValue secrets) {
 
     private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final Value SECRETS_REDACTED = Value.of("SECRETS REDACTED");
 
     /**
      * Creates an AuthorizationSubscription with the given subject, action, and
@@ -77,7 +87,7 @@ public record AuthorizationSubscription(
      * @return new AuthorizationSubscription
      */
     public static AuthorizationSubscription of(Object subject, Object action, Object resource, ObjectMapper mapper) {
-        return of(subject, action, resource, null, mapper);
+        return of(subject, action, resource, null, null, mapper);
     }
 
     /**
@@ -92,7 +102,7 @@ public record AuthorizationSubscription(
      * @return new AuthorizationSubscription
      */
     public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment) {
-        return of(subject, action, resource, environment, DEFAULT_MAPPER);
+        return of(subject, action, resource, environment, null, DEFAULT_MAPPER);
     }
 
     /**
@@ -108,9 +118,19 @@ public record AuthorizationSubscription(
      * @return new AuthorizationSubscription
      */
     public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment,
-            ObjectMapper mapper) {
+            Object secrets, ObjectMapper mapper) {
         return new AuthorizationSubscription(toValue(subject, mapper), toValue(action, mapper),
-                toValue(resource, mapper), environment == null ? Value.UNDEFINED : toValue(environment, mapper));
+                toValue(resource, mapper), environment == null ? Value.UNDEFINED : toValue(environment, mapper),
+                secrets == null ? Value.EMPTY_OBJECT : toObjectValue(secrets, mapper));
+    }
+
+    private static @NonNull ObjectValue toObjectValue(Object secrets, ObjectMapper mapper) {
+        var value = toValue(secrets, mapper);
+        if (value instanceof ObjectValue ov) {
+            return ov;
+        } else {
+            return Value.EMPTY_OBJECT;
+        }
     }
 
     private static Value toValue(Object object, ObjectMapper mapper) {
@@ -120,5 +140,17 @@ public record AuthorizationSubscription(
         case JsonNode jsonNode -> ValueJsonMarshaller.fromJsonNode(jsonNode);
         default                -> ValueJsonMarshaller.fromJsonNode(mapper.valueToTree(object));
         };
+    }
+
+    @Override
+    public String toString() {
+        var asObject = ObjectValue.builder().put(SUBJECT, subject).put(ACTION, subject).put(RESOURCE, subject);
+        if (!(environment instanceof UndefinedValue)) {
+            asObject.put(ENVIRONMENT, environment);
+        }
+        if (!secrets.isEmpty()) {
+            asObject.put(ENVIRONMENT, SECRETS_REDACTED);
+        }
+        return asObject.build().toString();
     }
 }

@@ -25,10 +25,11 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.ast.Expression;
-import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
@@ -92,8 +93,8 @@ public class ExpressionEvaluator {
 
     private static EvaluationContext createEvaluationContext(LSPConfiguration config) {
         return new EvaluationContext(config.configurationId(), config.configurationId(), CONTENT_ASSIST_ID,
-                AuthorizationSubscription.of("subject", "action", "resource", "environment"), config.variables(),
-                config.functionBroker(), config.attributeBroker(), () -> "constantTime");
+                AuthorizationSubscription.of("subject", "action", "resource", "environment"), config.functionBroker(),
+                config.attributeBroker(), Value.UNDEFINED, Value.UNDEFINED);
     }
 
 }

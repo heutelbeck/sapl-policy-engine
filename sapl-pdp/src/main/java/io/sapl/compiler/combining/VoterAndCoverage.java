@@ -17,8 +17,8 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.compiler.pdp.Voter;
-import io.sapl.compiler.pdp.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.document.VoteWithCoverage;
 import reactor.core.publisher.Flux;
 
 public record VoterAndCoverage(Voter voter, Flux<VoteWithCoverage> coverage) {}

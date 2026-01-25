@@ -17,9 +17,22 @@
  */
 package io.sapl.pdp;
 
+import static io.sapl.pdp.PdpTestHelper.configuration;
+import static io.sapl.pdp.PdpTestHelper.subscription;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.util.List;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
@@ -27,25 +40,12 @@ import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
-
-import java.util.List;
-import java.util.stream.Stream;
-
-import static io.sapl.pdp.PdpTestHelper.configuration;
-import static io.sapl.pdp.PdpTestHelper.subscription;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * End-to-end tests for the DynamicPolicyDecisionPoint. These tests set up a
- * complete PDP with all dependencies, load
- * policies, and verify authorization decisions.
+ * complete PDP with all dependencies, load policies, and verify authorization
+ * decisions.
  */
 class DynamicPolicyDecisionPointTests {
 
@@ -285,10 +285,11 @@ class DynamicPolicyDecisionPointTests {
 
         val universityEnvironment = ObjectValue.builder().put("location", Value.of("miskatonic_university")).build();
         val subscription          = new AuthorizationSubscription(Value.of("student"), Value.of("access"),
-                Value.of("restricted_archive"), universityEnvironment);
+                Value.of("restricted_archive"), universityEnvironment, Value.EMPTY_OBJECT);
 
         val outsideSubscription = new AuthorizationSubscription(Value.of("student"), Value.of("access"),
-                Value.of("restricted_archive"), ObjectValue.builder().put("location", Value.of("arkham")).build());
+                Value.of("restricted_archive"), ObjectValue.builder().put("location", Value.of("arkham")).build(),
+                Value.EMPTY_OBJECT);
 
         StepVerifier.create(pdp.decide(subscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
@@ -368,12 +369,12 @@ class DynamicPolicyDecisionPointTests {
         val subject      = ObjectValue.builder().put("name", Value.of("Randolph Carter"))
                 .put("role", Value.of("elder_sign_bearer")).build();
         val subscription = new AuthorizationSubscription(subject, Value.of("banish"), Value.of("horror"),
-                Value.UNDEFINED);
+                Value.UNDEFINED, Value.EMPTY_OBJECT);
 
         val unauthorizedSubject      = ObjectValue.builder().put("name", Value.of("Herbert West"))
                 .put("role", Value.of("reanimator")).build();
         val unauthorizedSubscription = new AuthorizationSubscription(unauthorizedSubject, Value.of("banish"),
-                Value.of("horror"), Value.UNDEFINED);
+                Value.of("horror"), Value.UNDEFINED, Value.EMPTY_OBJECT);
 
         StepVerifier.create(pdp.decide(subscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();

@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,30 +71,29 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @Test
-        void when_valueWithPure_then_returnsPureOperator() {
-            var compiled = compileExpression("true && flag && true");
+        void when_valueWithSubscriptionElement_then_returnsPureOperator() {
+            var compiled = compileExpression("true && subject && true");
             assertThat(compiled).isInstanceOf(PureOperator.class);
         }
 
         @Test
-        void when_valueWithPure_andAllTrue_then_evaluatesToTrue() {
-            assertPureEvaluatesTo("true && flag && true", Map.of("flag", Value.TRUE), Value.TRUE);
+        void when_valueWithVariable_andAllTrue_then_evaluatesToTrue() {
+            assertEvaluatesTo("true && flag && true", Map.of("flag", Value.TRUE), Value.TRUE);
         }
 
         @Test
-        void when_valueWithPure_andOneFalse_then_evaluatesToFalse() {
-            assertPureEvaluatesTo("true && flag && true", Map.of("flag", Value.FALSE), Value.FALSE);
+        void when_valueWithVariable_andOneFalse_then_evaluatesToFalse() {
+            assertEvaluatesTo("true && flag && true", Map.of("flag", Value.FALSE), Value.FALSE);
         }
 
         @Test
-        void when_multiplePures_allTrue_then_evaluatesToTrue() {
-            assertPureEvaluatesTo("a && b && c", Map.of("a", Value.TRUE, "b", Value.TRUE, "c", Value.TRUE), Value.TRUE);
+        void when_multipleVariables_allTrue_then_evaluatesToTrue() {
+            assertEvaluatesTo("a && b && c", Map.of("a", Value.TRUE, "b", Value.TRUE, "c", Value.TRUE), Value.TRUE);
         }
 
         @Test
-        void when_multiplePures_oneFalse_then_evaluatesToFalse() {
-            assertPureEvaluatesTo("a && b && c", Map.of("a", Value.TRUE, "b", Value.FALSE, "c", Value.TRUE),
-                    Value.FALSE);
+        void when_multipleVariables_oneFalse_then_evaluatesToFalse() {
+            assertEvaluatesTo("a && b && c", Map.of("a", Value.TRUE, "b", Value.FALSE, "c", Value.TRUE), Value.FALSE);
         }
 
         @Test
@@ -108,8 +108,8 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @Test
-        void when_typeMismatchInPure_then_runtimeError() {
-            assertPureEvaluatesToError("true && notBoolean && true", Map.of("notBoolean", of("hello")));
+        void when_typeMismatchInVariable_then_error() {
+            assertEvaluatesToError("true && notBoolean && true", Map.of("notBoolean", of("hello")));
         }
 
         @Test
@@ -142,31 +142,29 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @Test
-        void when_valueWithPure_then_returnsPureOperator() {
-            var compiled = compileExpression("false || flag || false");
+        void when_valueWithSubscriptionElement_then_returnsPureOperator() {
+            var compiled = compileExpression("false || subject || false");
             assertThat(compiled).isInstanceOf(PureOperator.class);
         }
 
         @Test
-        void when_valueWithPure_andAllFalse_then_evaluatesToFalse() {
-            assertPureEvaluatesTo("false || flag || false", Map.of("flag", Value.FALSE), Value.FALSE);
+        void when_valueWithVariable_andAllFalse_then_evaluatesToFalse() {
+            assertEvaluatesTo("false || flag || false", Map.of("flag", Value.FALSE), Value.FALSE);
         }
 
         @Test
-        void when_valueWithPure_andOneTrue_then_evaluatesToTrue() {
-            assertPureEvaluatesTo("false || flag || false", Map.of("flag", Value.TRUE), Value.TRUE);
+        void when_valueWithVariable_andOneTrue_then_evaluatesToTrue() {
+            assertEvaluatesTo("false || flag || false", Map.of("flag", Value.TRUE), Value.TRUE);
         }
 
         @Test
-        void when_multiplePures_allFalse_then_evaluatesToFalse() {
-            assertPureEvaluatesTo("a || b || c", Map.of("a", Value.FALSE, "b", Value.FALSE, "c", Value.FALSE),
-                    Value.FALSE);
+        void when_multipleVariables_allFalse_then_evaluatesToFalse() {
+            assertEvaluatesTo("a || b || c", Map.of("a", Value.FALSE, "b", Value.FALSE, "c", Value.FALSE), Value.FALSE);
         }
 
         @Test
-        void when_multiplePures_oneTrue_then_evaluatesToTrue() {
-            assertPureEvaluatesTo("a || b || c", Map.of("a", Value.FALSE, "b", Value.TRUE, "c", Value.FALSE),
-                    Value.TRUE);
+        void when_multipleVariables_oneTrue_then_evaluatesToTrue() {
+            assertEvaluatesTo("a || b || c", Map.of("a", Value.FALSE, "b", Value.TRUE, "c", Value.FALSE), Value.TRUE);
         }
 
         @Test
@@ -181,8 +179,8 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @Test
-        void when_typeMismatchInPure_then_runtimeError() {
-            assertPureEvaluatesToError("false || notBoolean || false", Map.of("notBoolean", of(123)));
+        void when_typeMismatchInVariable_then_error() {
+            assertEvaluatesToError("false || notBoolean || false", Map.of("notBoolean", of(123)));
         }
 
         @Test
@@ -203,15 +201,15 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @ParameterizedTest(name = "{0}")
-        @CsvSource({ "conjunction,true && x && true", "disjunction,false || x || false" })
-        void when_valuesAndPures_then_returnsPureOperator(String description, String expr) {
+        @CsvSource({ "conjunction,true && subject && true", "disjunction,false || subject || false" })
+        void when_valuesAndSubscriptionElement_then_returnsPureOperator(String description, String expr) {
             var compiled = compileExpression(expr);
             assertThat(compiled).isInstanceOf(PureOperator.class);
         }
 
         @Test
-        void when_onlyPures_then_returnsPureOperator() {
-            var compiled = compileExpression("a && b && c");
+        void when_onlySubscriptionElements_then_returnsPureOperator() {
+            var compiled = compileExpression("subject && action && resource");
             assertThat(compiled).isInstanceOf(PureOperator.class);
         }
 
@@ -230,10 +228,10 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void when_identityValues_then_foldedAway() {
-            // true && true && x should fold away the trues, leaving just x
-            var compiled = compileExpression("true && true && x");
+            // true && true && subject should fold away the trues, leaving just subject
+            var compiled = compileExpression("true && true && subject");
             assertThat(compiled).isInstanceOf(PureOperator.class);
-            // The PureOperator should just evaluate x
+            // The PureOperator should just evaluate subject
         }
     }
 
@@ -256,7 +254,7 @@ class LazyNaryBooleanCompilerTests {
         @Test
         void conjunction_evaluatesLeftToRight_pure() {
             // First pure is false, second would cause errors but shouldn't be reached
-            var ctx    = evaluationContext(Map.of("a", Value.FALSE, "b", Value.error("should not see this")));
+            var ctx    = testContext(Map.of("a", Value.FALSE, "b", Value.error("should not see this")));
             var result = evaluateExpression("a && b && true", ctx);
             assertThat(result).isEqualTo(Value.FALSE);
         }
@@ -264,7 +262,7 @@ class LazyNaryBooleanCompilerTests {
         @Test
         void disjunction_evaluatesLeftToRight_pure() {
             // First pure is true, second would cause errors but shouldn't be reached
-            var ctx    = evaluationContext(Map.of("a", Value.TRUE, "b", Value.error("should not see this")));
+            var ctx    = testContext(Map.of("a", Value.TRUE, "b", Value.error("should not see this")));
             var result = evaluateExpression("a || b || false", ctx);
             assertThat(result).isEqualTo(Value.TRUE);
         }
@@ -274,16 +272,16 @@ class LazyNaryBooleanCompilerTests {
     class DependsOnSubscriptionTests {
 
         @Test
-        void when_puresDependOnSubscription_then_resultDependsOnSubscription() {
-            // Identifiers depend on subscription by default
-            var compiled = compileExpression("true && x && true");
+        void when_subscriptionElement_then_resultDependsOnSubscription() {
+            // Subscription elements depend on subscription
+            var compiled = compileExpression("true && subject && true");
             assertThat(compiled).isInstanceOf(PureOperator.class)
                     .extracting(c -> ((PureOperator) c).isDependingOnSubscription()).isEqualTo(true);
         }
 
         @Test
-        void when_multiplePures_anyDepends_then_resultDepends() {
-            var compiled = compileExpression("a && b && c");
+        void when_multipleSubscriptionElements_then_resultDepends() {
+            var compiled = compileExpression("subject && action && resource");
             assertThat(compiled).isInstanceOf(PureOperator.class)
                     .extracting(c -> ((PureOperator) c).isDependingOnSubscription()).isEqualTo(true);
         }
@@ -433,50 +431,59 @@ class LazyNaryBooleanCompilerTests {
                     .verifyComplete();
         }
 
-        // Pure short-circuit before stream subscription
+        // Pure short-circuit before stream subscription (using subscription elements
+        // for runtime resolution)
 
         @Test
         void conjunction_pureShortCircuits_noStreamSubscription() {
-            var broker   = singleValueAttributeBroker(Map.of("test.attr", Value.TRUE));
-            var ctx      = evaluationContext(broker, Map.of("pureVal", Value.FALSE));
-            var compiled = compileExpression("pureVal && <test.attr>", broker);
+            var broker       = singleValueAttributeBroker(Map.of("test.attr", Value.TRUE));
+            var subscription = AuthorizationSubscription.of(Value.FALSE, Value.NULL, Value.NULL, Value.NULL);
+            var evalCtx      = evaluationContext(subscription, broker);
+            var compiled     = compileExpression("subject && <test.attr>", compilationContext(broker));
 
-            // Since pureVal is FALSE, the stream should never be subscribed
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+            // Since subject is FALSE, the stream should never be subscribed
+            var stream = ((StreamOperator) compiled).stream()
+                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
             StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
                     .verifyComplete();
         }
 
         @Test
         void disjunction_pureShortCircuits_noStreamSubscription() {
-            var broker   = singleValueAttributeBroker(Map.of("test.attr", Value.FALSE));
-            var ctx      = evaluationContext(broker, Map.of("pureVal", Value.TRUE));
-            var compiled = compileExpression("pureVal || <test.attr>", broker);
+            var broker       = singleValueAttributeBroker(Map.of("test.attr", Value.FALSE));
+            var subscription = AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL);
+            var evalCtx      = evaluationContext(subscription, broker);
+            var compiled     = compileExpression("subject || <test.attr>", compilationContext(broker));
 
-            // Since pureVal is TRUE, the stream should never be subscribed
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+            // Since subject is TRUE, the stream should never be subscribed
+            var stream = ((StreamOperator) compiled).stream()
+                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
             StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
         }
 
-        // Pures + Streams combined
+        // Pures + Streams combined (using subscription elements for runtime resolution)
 
         @Test
         void conjunction_puresAndStreams_allPass_then_true() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var ctx      = evaluationContext(broker, Map.of("x", Value.TRUE));
-            var compiled = compileExpression("x && <test.attr>", broker);
+            var broker       = attributeBroker("test.attr", Value.TRUE);
+            var subscription = AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL);
+            var evalCtx      = evaluationContext(subscription, broker);
+            var compiled     = compileExpression("subject && <test.attr>", compilationContext(broker));
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+            var stream = ((StreamOperator) compiled).stream()
+                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
             StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
         }
 
         @Test
         void disjunction_puresAndStreams_allFail_then_false() {
-            var broker   = attributeBroker("test.attr", Value.FALSE);
-            var ctx      = evaluationContext(broker, Map.of("x", Value.FALSE));
-            var compiled = compileExpression("x || <test.attr>", broker);
+            var broker       = attributeBroker("test.attr", Value.FALSE);
+            var subscription = AuthorizationSubscription.of(Value.FALSE, Value.NULL, Value.NULL, Value.NULL);
+            var evalCtx      = evaluationContext(subscription, broker);
+            var compiled     = compileExpression("subject || <test.attr>", compilationContext(broker));
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+            var stream = ((StreamOperator) compiled).stream()
+                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
             StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
                     .verifyComplete();
         }
@@ -665,13 +672,15 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunction_pureAndStream_pureEvaluatedOncePerStreamEmission() {
-            // pureVal && <stream> where pureVal=TRUE, stream: T, T, F
+            // subject && <stream> where subject=TRUE, stream: T, T, F
             // Pure is re-evaluated for each stream emission
-            var broker   = attributeBroker("test.attr", Value.TRUE, Value.TRUE, Value.FALSE);
-            var ctx      = evaluationContext(broker, Map.of("pureVal", Value.TRUE));
-            var compiled = compileExpression("pureVal && <test.attr>", broker);
+            var broker       = attributeBroker("test.attr", Value.TRUE, Value.TRUE, Value.FALSE);
+            var subscription = AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL);
+            var evalCtx      = evaluationContext(subscription, broker);
+            var compiled     = compileExpression("subject && <test.attr>", compilationContext(broker));
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+            var stream = ((StreamOperator) compiled).stream()
+                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
             StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
                     .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
                     .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
@@ -727,7 +736,7 @@ class LazyNaryBooleanCompilerTests {
         @ParameterizedTest(name = "{0}")
         @CsvSource({ "conjunction,true && broken && true", "disjunction,false || broken || false" })
         void errorInPure_propagates(String description, String expr) {
-            var ctx    = evaluationContext(Map.of("broken", Value.error("broken variable")));
+            var ctx    = testContext(Map.of("broken", Value.error("broken variable")));
             var result = evaluateExpression(expr, ctx);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("broken");
@@ -739,7 +748,7 @@ class LazyNaryBooleanCompilerTests {
                 boolean expected) {
             // Should short-circuit before reaching the errors
             var a      = shortCircuitValue ? Value.TRUE : Value.FALSE;
-            var ctx    = evaluationContext(Map.of("a", a, "b", Value.error("should not see")));
+            var ctx    = testContext(Map.of("a", a, "b", Value.error("should not see")));
             var result = evaluateExpression(expr, ctx);
             assertThat(result).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }

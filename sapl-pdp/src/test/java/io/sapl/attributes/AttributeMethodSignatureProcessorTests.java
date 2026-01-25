@@ -18,6 +18,7 @@
 package io.sapl.attributes;
 
 import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.attributes.EnvironmentAttribute;
@@ -33,7 +34,6 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -124,8 +124,8 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void when_methodHasVariablesParameter_then_strippedFromSignature() throws Exception {
-        var method = TestPIP.class.getMethod("withVariables", Value.class, Map.class);
+    void when_methodHasAttributeAccessContextParameter_then_strippedFromSignature() throws Exception {
+        var method = TestPIP.class.getMethod("withAttributeAccessContext", Value.class, AttributeAccessContext.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
         assertThat(result).isNotNull();
@@ -175,7 +175,7 @@ class AttributeMethodSignatureProcessorTests {
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
         var invocation = createInvocation("withArguments", Value.of(1), Value.of(2));
-        var context    = createEvaluationContext(Map.of());
+        var context    = createEvaluationContext();
 
         assertThat(result).isNotNull();
         StepVerifier
@@ -190,7 +190,7 @@ class AttributeMethodSignatureProcessorTests {
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
         var invocation = createInvocation("withArguments", Value.of(1));
-        var context    = createEvaluationContext(Map.of());
+        var context    = createEvaluationContext();
 
         assertThat(result).isNotNull();
         StepVerifier
@@ -207,7 +207,7 @@ class AttributeMethodSignatureProcessorTests {
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
         var invocation = createInvocation("withVarArgs", Value.of(1), Value.of(2), Value.of(3));
-        var context    = createEvaluationContext(Map.of());
+        var context    = createEvaluationContext();
 
         assertThat(result).isNotNull();
         StepVerifier
@@ -222,7 +222,7 @@ class AttributeMethodSignatureProcessorTests {
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
         var invocation = createInvocation("throwsException");
-        var context    = createEvaluationContext(Map.of());
+        var context    = createEvaluationContext();
 
         assertThat(result).isNotNull();
         StepVerifier
@@ -246,15 +246,18 @@ class AttributeMethodSignatureProcessorTests {
         }
     };
 
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
     private AttributeFinderInvocation createInvocation(String attributeName, Value... args) {
         return new AttributeFinderInvocation("test-security", NAMESPACE + "." + attributeName, Value.UNDEFINED,
-                List.of(args), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMillis(100), 3,
-                false);
+                List.of(args), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMillis(100), 3, false,
+                EMPTY_CTX);
     }
 
-    private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-        return EvaluationContext.of("id", "test-security", "test-subscription", null, variables,
-                DEFAULT_FUNCTION_BROKER, DEFAULT_ATTRIBUTE_BROKER);
+    private EvaluationContext createEvaluationContext() {
+        return EvaluationContext.of("id", "test-security", "test-subscription", null, DEFAULT_FUNCTION_BROKER,
+                DEFAULT_ATTRIBUTE_BROKER);
     }
 
     static class TestPIP {
@@ -298,8 +301,8 @@ class AttributeMethodSignatureProcessorTests {
         }
 
         @Attribute
-        public static Flux<Value> withVariables(Value entity, Map<String, Value> variables) {
-            return Flux.just(variables.get("key"));
+        public static Flux<Value> withAttributeAccessContext(Value entity, AttributeAccessContext ctx) {
+            return Flux.just(ctx.variables().get("key"));
         }
 
         @Attribute

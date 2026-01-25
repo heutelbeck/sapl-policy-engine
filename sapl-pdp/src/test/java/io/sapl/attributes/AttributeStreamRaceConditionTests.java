@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes;
 
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
@@ -31,7 +32,6 @@ import reactor.core.publisher.Flux;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -58,9 +58,12 @@ class AttributeStreamRaceConditionTests {
     private static final Duration SHORT_GRACE_PERIOD = Duration.ofMillis(100);
     private static final Duration LONG_GRACE_PERIOD  = Duration.ofSeconds(10);
 
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
     private static AttributeFinderInvocation createInvocation() {
-        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(),
-                Duration.ofMillis(100), Duration.ofSeconds(1), Duration.ofMillis(10), 0, false);
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Duration.ofMillis(100),
+                Duration.ofSeconds(1), Duration.ofMillis(10), 0, false, EMPTY_CTX);
     }
 
     /**

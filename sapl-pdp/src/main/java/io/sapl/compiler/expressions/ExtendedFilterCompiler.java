@@ -17,17 +17,51 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
-import io.sapl.ast.*;
-import io.sapl.compiler.operators.SimpleStreamOperator;
-import lombok.experimental.UtilityClass;
-import lombok.val;
-import reactor.core.publisher.Flux;
-
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
+
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
+import io.sapl.ast.AttributeUnionPath;
+import io.sapl.ast.ConditionPath;
+import io.sapl.ast.Expression;
+import io.sapl.ast.ExpressionPath;
+import io.sapl.ast.ExtendedFilter;
+import io.sapl.ast.IndexPath;
+import io.sapl.ast.IndexUnionPath;
+import io.sapl.ast.KeyPath;
+import io.sapl.ast.PathElement;
+import io.sapl.ast.RecursiveIndexPath;
+import io.sapl.ast.RecursiveKeyPath;
+import io.sapl.ast.RecursiveWildcardPath;
+import io.sapl.ast.RelativeReference;
+import io.sapl.ast.RelativeType;
+import io.sapl.ast.SimpleFilter;
+import io.sapl.ast.SlicePath;
+import io.sapl.ast.WildcardPath;
+import io.sapl.compiler.operators.SimpleStreamOperator;
+import io.sapl.compiler.util.DummyEvaluationContextFactory;
+import lombok.val;
+import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class ExtendedFilterCompiler {
@@ -89,19 +123,15 @@ public class ExtendedFilterCompiler {
 
     private static Value evaluateValueValue(Value base, Value filter, List<PathElement> path, PathAnalysis pathAnalysis,
             CompilationContext ctx) {
-        val evalCtx = createFoldingContext(ctx).withRelativeValue(base);
+        val evalCtx = DummyEvaluationContextFactory.dummyContext(ctx).withRelativeValue(base);
         return navigateAndApply(base, current -> filter, path, pathAnalysis, evalCtx);
     }
 
     private static CompiledExpression evaluateValuePureFold(Value base, PureOperator filter, List<PathElement> path,
             PathAnalysis pathAnalysis, CompilationContext ctx) {
-        val evalCtx = createFoldingContext(ctx).withRelativeValue(base);
+        val evalCtx = DummyEvaluationContextFactory.dummyContext(ctx).withRelativeValue(base);
         return navigateAndApply(base, current -> filter.evaluate(evalCtx.withRelativeValue(current)), path,
                 pathAnalysis, evalCtx);
-    }
-
-    private static EvaluationContext createFoldingContext(CompilationContext ctx) {
-        return new EvaluationContext(null, null, null, null, ctx.getFunctionBroker(), ctx.getAttributeBroker());
     }
 
     interface ExtendedFilterPureOperator extends PureOperator {

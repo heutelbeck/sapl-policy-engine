@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 
@@ -39,10 +40,11 @@ public class AuthorizationSubscriptionDeserializer extends JsonDeserializer<Auth
             throw new IOException("Expected START_OBJECT for AuthorizationSubscription.");
         }
 
-        Value subject     = null;
-        Value action      = null;
-        Value resource    = null;
-        Value environment = Value.UNDEFINED;
+        Value       subject     = null;
+        Value       action      = null;
+        Value       resource    = null;
+        Value       environment = Value.UNDEFINED;
+        ObjectValue secrets     = Value.EMPTY_OBJECT;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             var fieldName = parser.currentName();
@@ -53,6 +55,7 @@ public class AuthorizationSubscriptionDeserializer extends JsonDeserializer<Auth
             case "action"      -> action = valueDeserializer.deserialize(parser, context);
             case "resource"    -> resource = valueDeserializer.deserialize(parser, context);
             case "environment" -> environment = valueDeserializer.deserialize(parser, context);
+            case "secrets"     -> secrets = toObjectValue(valueDeserializer.deserialize(parser, context));
             default            -> parser.skipChildren();
             }
         }
@@ -61,6 +64,13 @@ public class AuthorizationSubscriptionDeserializer extends JsonDeserializer<Auth
             throw new IOException("AuthorizationSubscription requires subject, action, and resource fields.");
         }
 
-        return new AuthorizationSubscription(subject, action, resource, environment);
+        return new AuthorizationSubscription(subject, action, resource, environment, secrets);
+    }
+
+    private static ObjectValue toObjectValue(Value value) {
+        if (value instanceof ObjectValue ov) {
+            return ov;
+        }
+        return Value.EMPTY_OBJECT;
     }
 }

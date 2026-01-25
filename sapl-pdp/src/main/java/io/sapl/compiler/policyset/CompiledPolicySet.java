@@ -19,7 +19,9 @@ package io.sapl.compiler.policyset;
 
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.PolicySetVoterMetadata;
-import io.sapl.compiler.pdp.*;
+import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
 import reactor.core.publisher.Flux;
 
 public record CompiledPolicySet(

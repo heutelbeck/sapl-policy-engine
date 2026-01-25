@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes;
 
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.attributes.AttributeKey;
 import io.sapl.api.attributes.AttributeRepository.TimeOutStrategy;
@@ -732,17 +733,20 @@ class InMemoryAttributeRepositoryTests {
         assertThat(errors).isEmpty();
     }
 
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
     private AttributeFinderInvocation createInvocation(Value entity, String attributeName) {
         return createInvocation(entity, attributeName, List.of());
     }
 
     private AttributeFinderInvocation createInvocation(Value entity, String attributeName, List<Value> arguments) {
         if (entity == null) {
-            return new AttributeFinderInvocation("test-security", attributeName, arguments, Map.of(),
-                    Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
+            return new AttributeFinderInvocation("test-security", attributeName, arguments, Duration.ofSeconds(1),
+                    Duration.ofMillis(100), Duration.ofMillis(50), 3, false, EMPTY_CTX);
         }
-        return new AttributeFinderInvocation("test-security", attributeName, entity, arguments, Map.of(),
-                Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
+        return new AttributeFinderInvocation("test-security", attributeName, entity, arguments, Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(50), 3, false, EMPTY_CTX);
     }
 
     private static class ControlledClock {

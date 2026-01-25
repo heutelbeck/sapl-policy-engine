@@ -17,150 +17,71 @@
  */
 package io.sapl.compiler.util;
 
-import io.sapl.compiler.expressions.SaplCompilerException;
-import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import lombok.val;
+
+@DisplayName("InputStreamUtil")
 class InputStreamUtilTests {
 
-    @Test
-    void testDetectAndConvertEncodingOfStream_utf8_withoutBOM() throws IOException {
-        final var in                   = "Hello, UTF-8 without BOM!";
-        final var inputStream          = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8));
-        final var convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
+    private static final String TEST_CONTENT = "Hello, encoding test!";
 
-        final var out = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
+    @Nested
+    @DisplayName("detectAndConvertEncodingOfStream")
+    class DetectAndConvertEncodingOfStreamTests {
 
-        assertThat(out).isEqualTo(in);
-    }
+        @Test
+        @DisplayName("detects UTF-8 without BOM")
+        void whenUtf8WithoutBom_thenConvertsCorrectly() throws IOException {
+            val inputStream          = new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8));
+            val convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
+            val out                  = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
 
-    @Test
-    void testDetectAndConvertEncodingOfStream_utf8_withBOM() throws IOException {
-        final var in           = "Hello, UTF-8 with BOM!";
-        final var outputStream = new ByteArrayOutputStream();
-        outputStream.write(0xEF);
-        outputStream.write(0xBB);
-        outputStream.write(0xBF);
-        outputStream.write(in.getBytes(StandardCharsets.UTF_8));
-        final var utf16Bytes           = outputStream.toByteArray();
-        final var inputStream          = new ByteArrayInputStream(utf16Bytes);
-        final var convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
+            assertThat(out).isEqualTo(TEST_CONTENT);
+        }
 
-        final var out = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("encodingsWithBom")
+        @DisplayName("detects and converts encoding with BOM")
+        void whenEncodingWithBom_thenConvertsToUtf8(String name, int[] bom, String charsetName) throws IOException {
+            val charset              = Charset.forName(charsetName);
+            val inputStream          = createStreamWithBom(TEST_CONTENT, bom, charset);
+            val convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
+            val out                  = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
 
-        assertThat(out).isEqualTo(in);
-    }
+            assertThat(out).isEqualTo(TEST_CONTENT);
+        }
 
-    @Test
-    void testDetectAndConvertEncodingOfStream_utf16BE() throws IOException {
-        final var in           = "Hello, UTF-16BE!";
-        final var outputStream = new ByteArrayOutputStream();
-        outputStream.write(0xFE);
-        outputStream.write(0xFF);
-        outputStream.write(in.getBytes(StandardCharsets.UTF_16BE));
-        final var utf16BytesWithBOM    = outputStream.toByteArray();
-        final var inputStream          = new ByteArrayInputStream(utf16BytesWithBOM);
-        final var convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
+        static Stream<Arguments> encodingsWithBom() {
+            return Stream.of(Arguments.of("UTF-8 with BOM", new int[] { 0xEF, 0xBB, 0xBF }, "UTF-8"),
+                    Arguments.of("UTF-16BE", new int[] { 0xFE, 0xFF }, "UTF-16BE"),
+                    Arguments.of("UTF-16LE", new int[] { 0xFF, 0xFE }, "UTF-16LE"),
+                    Arguments.of("UTF-32BE", new int[] { 0x00, 0x00, 0xFE, 0xFF }, "UTF-32BE"),
+                    Arguments.of("UTF-32LE", new int[] { 0xFF, 0xFE, 0x00, 0x00 }, "UTF-32LE"));
+        }
 
-        final var out = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
-
-        assertThat(out).isEqualTo(in);
-    }
-
-    @Test
-    void testDetectAndConvertEncodingOfStream_utf16LE() throws IOException {
-        final var in           = "Hello, UTF-16LE!";
-        final var outputStream = new ByteArrayOutputStream();
-        outputStream.write(0xFF);
-        outputStream.write(0xFE);
-        outputStream.write(in.getBytes(StandardCharsets.UTF_16LE));
-        final var utf16Bytes           = outputStream.toByteArray();
-        final var inputStream          = new ByteArrayInputStream(utf16Bytes);
-        final var convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
-
-        final var out = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
-
-        assertThat(out).isEqualTo(in);
-    }
-
-    @Test
-    void testDetectAndConvertEncodingOfStream_utf32LE() throws IOException {
-        final var in           = "Hello, UTF-32LE!";
-        final var outputStream = new ByteArrayOutputStream();
-        outputStream.write(0xFF);
-        outputStream.write(0xFE);
-        outputStream.write(0x00);
-        outputStream.write(0x00);
-        outputStream.write(in.getBytes("UTF-32LE"));
-        final var utf32Bytes           = outputStream.toByteArray();
-        final var inputStream          = new ByteArrayInputStream(utf32Bytes);
-        final var convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
-
-        String out = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
-
-        assertThat(out).isEqualTo(in);
-    }
-
-    @Test
-    void testDetectAndConvertEncodingOfStream_utf32BE() throws IOException {
-        final var in           = "Hello, UTF-32BE!";
-        final var outputStream = new ByteArrayOutputStream();
-        outputStream.write(0x00);
-        outputStream.write(0x00);
-        outputStream.write(0xFE);
-        outputStream.write(0xFF);
-        outputStream.write(in.getBytes("UTF-32BE"));
-        final var utf32Bytes           = outputStream.toByteArray();
-        final var inputStream          = new ByteArrayInputStream(utf32Bytes);
-        final var convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
-
-        final var out = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
-
-        assertThat(out).isEqualTo(in);
-    }
-
-    @Test
-    void assertNoIllegalBidiUnicodeCharactersPresentInStreamCatchesIllegalCharacters() throws IOException {
-        final var valid              = "policy \"te%sst\" permit";
-        final var lri                = '\u2066';
-        final var pdi                = '\u2069';
-        final var rli                = '\u2067';
-        final var rlo                = '\u202E';
-        final var validStream        = InputStreamUtil
-                .convertToTrojanSourceSecureStream(new ByteArrayInputStream(valid.getBytes(StandardCharsets.UTF_8)));
-        final var invalidContainsLri = InputStreamUtil.convertToTrojanSourceSecureStream(
-                new ByteArrayInputStream((String.format(valid, lri).getBytes(StandardCharsets.UTF_8))));
-        final var invalidContainsPdi = InputStreamUtil.convertToTrojanSourceSecureStream(
-                new ByteArrayInputStream(String.format(valid, pdi).getBytes(StandardCharsets.UTF_8)));
-        final var invalidContainsRli = InputStreamUtil.convertToTrojanSourceSecureStream(
-                new ByteArrayInputStream(String.format(valid, rli).getBytes(StandardCharsets.UTF_8)));
-        final var invalidContainsRlo = InputStreamUtil.convertToTrojanSourceSecureStream(
-                new ByteArrayInputStream(String.format(valid, rlo).getBytes(StandardCharsets.UTF_8)));
-
-        final var utf8 = StandardCharsets.UTF_8.name();
-        assertThat(IOUtils.toString(validStream, utf8)).isEqualTo(valid);
-        assertThrows(SaplCompilerException.class, () -> IOUtils.toString(invalidContainsLri, utf8));
-        assertThrows(SaplCompilerException.class, () -> IOUtils.toString(invalidContainsPdi, utf8));
-        assertThrows(SaplCompilerException.class, () -> IOUtils.toString(invalidContainsRli, utf8));
-        assertThrows(SaplCompilerException.class, () -> IOUtils.toString(invalidContainsRlo, utf8));
-    }
-
-    @Test
-    @Timeout(10)
-    void checkSize() {
-        final var utf8     = StandardCharsets.UTF_8.name();
-        final var testCase = "*".repeat(10000000);
-        assertDoesNotThrow(() -> IOUtils.toString(InputStreamUtil.convertToTrojanSourceSecureStream(
-                new ByteArrayInputStream(testCase.getBytes(StandardCharsets.UTF_8))), utf8));
+        private static ByteArrayInputStream createStreamWithBom(String content, int[] bom, Charset charset)
+                throws IOException {
+            val outputStream = new ByteArrayOutputStream();
+            for (int b : bom) {
+                outputStream.write(b);
+            }
+            outputStream.write(content.getBytes(charset));
+            return new ByteArrayInputStream(outputStream.toByteArray());
+        }
     }
 }

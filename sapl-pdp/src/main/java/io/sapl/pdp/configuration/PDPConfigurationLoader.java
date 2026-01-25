@@ -18,10 +18,12 @@
 package io.sapl.pdp.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -129,7 +131,8 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path, pdpJson, saplContents);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents, pdpJson.variables());
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents,
+                new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
     /**
@@ -162,7 +165,8 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateResourceConfigurationId(sourcePath, pdpJson, saplDocuments);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents, pdpJson.variables());
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents,
+                new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
     /**
@@ -200,7 +204,7 @@ public class PDPConfigurationLoader {
 
         val documents = new ArrayList<>(saplDocuments.values());
         return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), documents,
-                pdpJson.variables());
+                new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
     private static String generateDirectoryConfigurationId(Path path, PdpJsonContent pdpJson,
@@ -289,7 +293,7 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            Map<String, Value> variables = new HashMap<>();
+            val variables = ObjectValue.builder();
             if (node.has("variables")) {
                 val variablesNode = node.get("variables");
                 for (val property : variablesNode.properties()) {
@@ -297,8 +301,16 @@ public class PDPConfigurationLoader {
                     variables.put(property.getKey(), value);
                 }
             }
+            val secrets = ObjectValue.builder();
+            if (node.has("secrets")) {
+                val secretsNode = node.get("secrets");
+                for (val property : secretsNode.properties()) {
+                    val value = MAPPER.treeToValue(property.getValue(), Value.class);
+                    secrets.put(property.getKey(), value);
+                }
+            }
 
-            return new PdpJsonContent(algorithm, configurationId, variables);
+            return new PdpJsonContent(algorithm, configurationId, variables.build(), secrets.build());
         } catch (IOException e) {
             throw new PDPConfigurationException("Failed to parse pdp.json content.", e);
         }
@@ -347,9 +359,13 @@ public class PDPConfigurationLoader {
         }
     }
 
-    private record PdpJsonContent(CombiningAlgorithm algorithm, String configurationId, Map<String, Value> variables) {
+    private record PdpJsonContent(
+            CombiningAlgorithm algorithm,
+            String configurationId,
+            ObjectValue variables,
+            ObjectValue secrets) {
         static PdpJsonContent defaults() {
-            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, null, Map.of());
+            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, "defaultId", Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
     }
 

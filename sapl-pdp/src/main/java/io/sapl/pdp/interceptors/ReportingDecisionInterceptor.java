@@ -18,8 +18,8 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.compiler.pdp.TimestampedVote;
-import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.Vote;
 import io.sapl.pdp.VoteInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

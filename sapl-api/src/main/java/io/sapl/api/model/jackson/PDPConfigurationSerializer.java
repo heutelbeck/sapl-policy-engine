@@ -20,12 +20,11 @@ package io.sapl.api.model.jackson;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.PDPConfiguration;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * Jackson serializer for PDPConfiguration.
@@ -45,6 +44,9 @@ import java.util.Map;
  *   "variables": {
  *     "serverUrl": "https://api.example.com",
  *     "maxRetries": 3
+ *   },
+ *   "secrets": {
+ *     "apiKey": "secret-value"
  *   }
  * }
  * }</pre>
@@ -68,7 +70,10 @@ public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration>
         serializeStringList(configuration.saplDocuments(), generator);
 
         generator.writeFieldName("variables");
-        serializeVariablesMap(configuration.variables(), generator, serializers);
+        serializeValueMap(configuration.data().variables(), generator, serializers);
+
+        generator.writeFieldName("secrets");
+        serializeValueMap(configuration.data().secrets(), generator, serializers);
 
         generator.writeEndObject();
     }
@@ -89,10 +94,10 @@ public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration>
         generator.writeEndArray();
     }
 
-    private void serializeVariablesMap(Map<String, Value> variables, JsonGenerator generator,
-            SerializerProvider serializers) throws IOException {
+    private void serializeValueMap(ObjectValue map, JsonGenerator generator, SerializerProvider serializers)
+            throws IOException {
         generator.writeStartObject();
-        for (var entry : variables.entrySet()) {
+        for (var entry : map.entrySet()) {
             generator.writeFieldName(entry.getKey());
             valueSerializer.serialize(entry.getValue(), generator, serializers);
         }

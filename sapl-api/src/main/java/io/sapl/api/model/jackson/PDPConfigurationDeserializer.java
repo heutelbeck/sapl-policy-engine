@@ -21,15 +21,16 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Jackson deserializer for PDPConfiguration.
@@ -45,6 +46,7 @@ import java.util.Map;
  * <li>combiningAlgorithm - the policy combining algorithm</li>
  * <li>saplDocuments - array of SAPL document strings</li>
  * <li>variables - object mapping variable names to Values</li>
+ * <li>secrets - object mapping secret names to Values</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfiguration> {
@@ -62,7 +64,8 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
         String             configurationId    = null;
         CombiningAlgorithm combiningAlgorithm = null;
         List<String>       saplDocuments      = List.of();
-        Map<String, Value> variables          = Map.of();
+        ObjectValue        variables          = Value.EMPTY_OBJECT;
+        ObjectValue        secrets            = Value.EMPTY_OBJECT;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             var fieldName = parser.currentName();
@@ -74,7 +77,8 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
             case "combiningAlgorithm" ->
                 combiningAlgorithm = combiningAlgorithmDeserializer.deserialize(parser, context);
             case "saplDocuments"      -> saplDocuments = deserializeStringList(parser);
-            case "variables"          -> variables = deserializeVariablesMap(parser, context);
+            case "variables"          -> variables = deserializeObjectValue(parser, context);
+            case "secrets"            -> secrets = deserializeObjectValue(parser, context);
             default                   -> parser.skipChildren();
             }
         }
@@ -89,7 +93,8 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
             throw new IOException("PDPConfiguration requires combiningAlgorithm field.");
         }
 
-        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, saplDocuments, variables);
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, saplDocuments,
+                new PdpData(variables, secrets));
     }
 
     private List<String> deserializeStringList(JsonParser parser) throws IOException {
@@ -104,18 +109,17 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
         return strings;
     }
 
-    private Map<String, Value> deserializeVariablesMap(JsonParser parser, DeserializationContext context)
-            throws IOException {
+    private ObjectValue deserializeObjectValue(JsonParser parser, DeserializationContext context) throws IOException {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            throw new IOException("Expected START_OBJECT for variables.");
+            throw new IOException("Expected START_OBJECT for value map.");
         }
 
-        var variables = new HashMap<String, Value>();
+        var map = new HashMap<String, Value>();
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             var fieldName = parser.currentName();
             parser.nextToken();
-            variables.put(fieldName, valueDeserializer.deserialize(parser, context));
+            map.put(fieldName, valueDeserializer.deserialize(parser, context));
         }
-        return variables;
+        return Value.ofObject(map);
     }
 }

@@ -20,19 +20,17 @@ package io.sapl.compiler.pdp;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.compiler.document.*;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
-import java.util.Map;
 import java.util.function.Supplier;
 
 public record CompiledPdpVoter(
         PdpVoterMetadata voterMetadata,
         Voter pdpVoter,
         Flux<VoteWithCoverage> coverageStream,
-        Map<String, Value> variables,
         AttributeBroker attributeBroker,
         FunctionBroker functionBroker,
         Supplier<String> timestampSupplier) {
@@ -71,6 +69,6 @@ public record CompiledPdpVoter(
     private EvaluationContext evaluationContext(AuthorizationSubscription authorizationSubscription,
             String subscriptionId) {
         return EvaluationContext.of(voterMetadata().pdpId(), voterMetadata.configurationId(), subscriptionId,
-                authorizationSubscription, variables, functionBroker, attributeBroker, timestampSupplier);
+                authorizationSubscription, functionBroker, attributeBroker);
     }
 }

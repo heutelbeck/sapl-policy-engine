@@ -413,8 +413,8 @@ class BundlePDPConfigurationSourceTests {
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().variables()).containsKey("realm");
-        assertThat(configs.getFirst().variables()).containsKey("accessLevel");
+        assertThat(configs.getFirst().data().variables()).containsKey("realm");
+        assertThat(configs.getFirst().data().variables()).containsKey("accessLevel");
     }
 
     @Test

@@ -31,8 +31,8 @@ import io.sapl.compiler.model.Coverage.PolicyCoverage;
 import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetResult;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
-import io.sapl.compiler.pdp.Vote;
-import io.sapl.compiler.pdp.VoteWithCoverage;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteWithCoverage;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

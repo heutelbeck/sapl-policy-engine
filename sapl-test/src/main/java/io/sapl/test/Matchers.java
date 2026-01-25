@@ -169,7 +169,7 @@ public class Matchers {
      * @param substring the substring to search for
      */
     public static ArgumentMatcher textContaining(@NonNull String substring) {
-        return matching(v -> v instanceof TextValue text && text.value().contains(substring));
+        return matching(v -> v instanceof TextValue(String value) && value.contains(substring));
     }
 
     /**
@@ -179,7 +179,7 @@ public class Matchers {
      */
     public static ArgumentMatcher textContainingIgnoreCase(@NonNull String substring) {
         var lowerSubstring = substring.toLowerCase();
-        return matching(v -> v instanceof TextValue text && text.value().toLowerCase().contains(lowerSubstring));
+        return matching(v -> v instanceof TextValue(String value) && value.toLowerCase().contains(lowerSubstring));
     }
 
     /**
@@ -188,7 +188,7 @@ public class Matchers {
      * @param prefix the prefix
      */
     public static ArgumentMatcher textStartingWith(@NonNull String prefix) {
-        return matching(v -> v instanceof TextValue text && text.value().startsWith(prefix));
+        return matching(v -> v instanceof TextValue(String value) && value.startsWith(prefix));
     }
 
     /**
@@ -198,7 +198,7 @@ public class Matchers {
      */
     public static ArgumentMatcher textStartingWithIgnoreCase(@NonNull String prefix) {
         var lowerPrefix = prefix.toLowerCase();
-        return matching(v -> v instanceof TextValue text && text.value().toLowerCase().startsWith(lowerPrefix));
+        return matching(v -> v instanceof TextValue(String value) && value.toLowerCase().startsWith(lowerPrefix));
     }
 
     /**
@@ -207,7 +207,7 @@ public class Matchers {
      * @param suffix the suffix
      */
     public static ArgumentMatcher textEndingWith(@NonNull String suffix) {
-        return matching(v -> v instanceof TextValue text && text.value().endsWith(suffix));
+        return matching(v -> v instanceof TextValue(String value) && value.endsWith(suffix));
     }
 
     /**
@@ -217,7 +217,7 @@ public class Matchers {
      */
     public static ArgumentMatcher textEndingWithIgnoreCase(@NonNull String suffix) {
         var lowerSuffix = suffix.toLowerCase();
-        return matching(v -> v instanceof TextValue text && text.value().toLowerCase().endsWith(lowerSuffix));
+        return matching(v -> v instanceof TextValue(String value) && value.toLowerCase().endsWith(lowerSuffix));
     }
 
     /**
@@ -226,7 +226,7 @@ public class Matchers {
      * @param expected the expected text
      */
     public static ArgumentMatcher textEqualsIgnoreCase(@NonNull String expected) {
-        return matching(v -> v instanceof TextValue text && text.value().equalsIgnoreCase(expected));
+        return matching(v -> v instanceof TextValue(String value) && value.equalsIgnoreCase(expected));
     }
 
     /**
@@ -235,21 +235,21 @@ public class Matchers {
      * @param regex the regex pattern
      */
     public static ArgumentMatcher textMatching(@NonNull String regex) {
-        return matching(v -> v instanceof TextValue text && text.value().matches(regex));
+        return matching(v -> v instanceof TextValue(String value) && value.matches(regex));
     }
 
     /**
      * Matches empty text values (length 0).
      */
     public static ArgumentMatcher textIsEmpty() {
-        return matching(v -> v instanceof TextValue text && text.value().isEmpty());
+        return matching(v -> v instanceof TextValue(String value) && value.isEmpty());
     }
 
     /**
      * Matches blank text values (empty or only whitespace).
      */
     public static ArgumentMatcher textIsBlank() {
-        return matching(v -> v instanceof TextValue text && text.value().isBlank());
+        return matching(v -> v instanceof TextValue(String value) && value.isBlank());
     }
 
     /**
@@ -258,7 +258,7 @@ public class Matchers {
      * @param length the expected length
      */
     public static ArgumentMatcher textHasLength(int length) {
-        return matching(v -> v instanceof TextValue text && text.value().length() == length);
+        return matching(v -> v instanceof TextValue(String value) && value.length() == length);
     }
 
     /**
@@ -272,10 +272,9 @@ public class Matchers {
      */
     public static ArgumentMatcher textContainsInOrder(@NonNull String... substrings) {
         return matching(v -> {
-            if (!(v instanceof TextValue text)) {
+            if (!(v instanceof TextValue(String s))) {
                 return false;
             }
-            var s         = text.value();
             int lastIndex = 0;
             for (var substring : substrings) {
                 int index = s.indexOf(substring, lastIndex);
@@ -299,7 +298,7 @@ public class Matchers {
     public static ArgumentMatcher textEqualsCompressingWhitespace(@NonNull String expected) {
         var normalizedExpected = compressWhitespace(expected);
         return matching(
-                v -> v instanceof TextValue text && compressWhitespace(text.value()).equals(normalizedExpected));
+                v -> v instanceof TextValue(String value) && compressWhitespace(value).equals(normalizedExpected));
     }
 
     private static String compressWhitespace(String s) {
@@ -312,7 +311,7 @@ public class Matchers {
      * @param expected the expected number
      */
     public static ArgumentMatcher numberEqualTo(long expected) {
-        return matching(v -> v instanceof NumberValue n && n.value().longValue() == expected);
+        return matching(v -> v instanceof NumberValue(BigDecimal value) && value.longValue() == expected);
     }
 
     /**
@@ -321,7 +320,7 @@ public class Matchers {
      * @param expected the expected number
      */
     public static ArgumentMatcher numberEqualTo(double expected) {
-        return matching(v -> v instanceof NumberValue n && n.value().doubleValue() == expected);
+        return matching(v -> v instanceof NumberValue(BigDecimal value) && value.doubleValue() == expected);
     }
 
     /**
@@ -331,7 +330,7 @@ public class Matchers {
      */
     public static ArgumentMatcher numberEqualTo(@NonNull BigDecimal expected) {
         return matching(
-                v -> v instanceof NumberValue n && expected.compareTo(new BigDecimal(n.value().toString())) == 0);
+                v -> v instanceof NumberValue(BigDecimal value) && expected.compareTo(new BigDecimal(value.toString())) == 0);
     }
 
     /**
@@ -340,7 +339,7 @@ public class Matchers {
      * @param threshold the threshold value
      */
     public static ArgumentMatcher greaterThan(long threshold) {
-        return matching(v -> v instanceof NumberValue n && n.value().longValue() > threshold);
+        return matching(v -> v instanceof NumberValue(BigDecimal value) && value.longValue() > threshold);
     }
 
     /**
@@ -349,7 +348,7 @@ public class Matchers {
      * @param threshold the threshold value
      */
     public static ArgumentMatcher greaterThan(double threshold) {
-        return matching(v -> v instanceof NumberValue n && n.value().doubleValue() > threshold);
+        return matching(v -> v instanceof NumberValue(BigDecimal value) && value.doubleValue() > threshold);
     }
 
     /**
@@ -454,7 +453,7 @@ public class Matchers {
      * @param expected the expected boolean
      */
     public static ArgumentMatcher booleanEqualTo(boolean expected) {
-        return matching(v -> v instanceof BooleanValue b && b.value() == expected);
+        return matching(v -> v instanceof BooleanValue(boolean value) && value == expected);
     }
 
     /**
@@ -641,8 +640,6 @@ public class Matchers {
     public static ArgumentMatcher arrayHasSize(int size) {
         return matching(v -> v instanceof ArrayValue arr && arr.size() == size);
     }
-
-    // ========== Decision Matchers ==========
 
     /**
      * Creates a matcher that accepts any decision.

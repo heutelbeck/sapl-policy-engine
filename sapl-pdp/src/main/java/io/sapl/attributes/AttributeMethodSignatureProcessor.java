@@ -17,13 +17,6 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.attributes.*;
-import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
-import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Array;
@@ -32,7 +25,18 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.AttributeFinder;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.AttributeFinderSpecification;
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.model.Value;
+import lombok.val;
+import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @UtilityClass
 public class AttributeMethodSignatureProcessor {
@@ -124,7 +128,7 @@ public class AttributeMethodSignatureProcessor {
         val parameters = method.getParameters();
         int startIndex = determineStartIndex(parameters, isEnvironmentAttribute);
 
-        if (startIndex < parameters.length && parameters[startIndex].getType().equals(Map.class)) {
+        if (startIndex < parameters.length && parameters[startIndex].getType().equals(AttributeAccessContext.class)) {
             startIndex++;
         }
 
@@ -266,8 +270,8 @@ public class AttributeMethodSignatureProcessor {
         if (config.hasEntityParam) {
             methodParameters[paramIndex++] = invocation.entity();
         }
-        if (config.hasVariablesParam) {
-            methodParameters[paramIndex++] = invocation.variables();
+        if (config.hasAttributeAccessContextParam) {
+            methodParameters[paramIndex++] = invocation.ctx();
         }
         return paramIndex;
     }
@@ -322,7 +326,7 @@ public class AttributeMethodSignatureProcessor {
         if (hasEntityParameter(method)) {
             count++;
         }
-        if (hasVariablesParameter(method)) {
+        if (hasAttributeAccessContextParameter(method)) {
             count++;
         }
         count += hasVarArgs ? minArgCount + 1 : minArgCount;
@@ -340,7 +344,7 @@ public class AttributeMethodSignatureProcessor {
         return Value.class.isAssignableFrom(parameters[0].getType());
     }
 
-    private static boolean hasVariablesParameter(Method method) {
+    private static boolean hasAttributeAccessContextParameter(Method method) {
         val parameters     = method.getParameters();
         val hasEntityParam = hasEntityParameter(method);
         val checkIndex     = hasEntityParam ? 1 : 0;
@@ -349,7 +353,7 @@ public class AttributeMethodSignatureProcessor {
             return false;
         }
 
-        return Map.class.equals(parameters[checkIndex].getType());
+        return AttributeAccessContext.class.equals(parameters[checkIndex].getType());
     }
 
     private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
@@ -375,7 +379,7 @@ public class AttributeMethodSignatureProcessor {
             int minArgCount,
             boolean hasVarArgs,
             boolean hasEntityParam,
-            boolean hasVariablesParam,
+            boolean hasAttributeAccessContextParam,
             int methodParameterCount,
             List<Class<? extends Value>> parameterTypes,
             Class<? extends Value> varArgsParameterType,
@@ -386,7 +390,7 @@ public class AttributeMethodSignatureProcessor {
 
         InvocationConfig(Method method, SignatureInfo signatureInfo) {
             this(signatureInfo.parameterTypes.size(), signatureInfo.varArgsParameterType != null,
-                    hasEntityParameter(method), hasVariablesParameter(method),
+                    hasEntityParameter(method), hasAttributeAccessContextParameter(method),
                     calculateMethodParameterCount(method, signatureInfo.varArgsParameterType != null,
                             signatureInfo.parameterTypes.size()),
                     signatureInfo.parameterTypes, signatureInfo.varArgsParameterType,

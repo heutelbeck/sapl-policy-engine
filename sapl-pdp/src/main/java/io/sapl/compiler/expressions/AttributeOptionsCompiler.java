@@ -40,16 +40,19 @@ public class AttributeOptionsCompiler {
     record Options(CompiledExpression policyLocalSettings, SourceLocation location) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            // Get PDP-level settings from context variable (may be null)
-            var         pdpLocalSettings = ctx.get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
-            ObjectValue pdpSettings      = null;
-            if (pdpLocalSettings != null && !(pdpLocalSettings instanceof UndefinedValue)) {
-                if (!(pdpLocalSettings instanceof ObjectValue ov)) {
-                    return Value.errorAt(location,
-                            "Attribute options in variable '%s' type mismatch. Must be an Object or absent. But got: %s.",
-                            OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpLocalSettings);
+            // Get PDP-level settings from environment.attributeFinderOptions (may be null)
+            ObjectValue pdpSettings = null;
+            var         environment = ctx.environment();
+            if (environment instanceof ObjectValue envObj) {
+                var pdpLocalSettings = envObj.get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
+                if (pdpLocalSettings != null && !(pdpLocalSettings instanceof UndefinedValue)) {
+                    if (!(pdpLocalSettings instanceof ObjectValue ov)) {
+                        return Value.errorAt(location,
+                                "Attribute options in variable '%s' type mismatch. Must be an Object or absent. But got: %s.",
+                                OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpLocalSettings);
+                    }
+                    pdpSettings = ov;
                 }
-                pdpSettings = ov;
             }
 
             // Get policy-level settings (may be null if no options expression)

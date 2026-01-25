@@ -23,7 +23,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;

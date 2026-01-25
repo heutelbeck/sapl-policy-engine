@@ -76,10 +76,10 @@ public final class ObjectValue implements Value, Map<String, Value> {
         }
         var properties = new LinkedHashMap<String, Value>();
         for (int i = 0; i < keysAndValues.length; i += 2) {
-            if (!(keysAndValues[i] instanceof TextValue key)) {
+            if (!(keysAndValues[i] instanceof TextValue(String val))) {
                 throw new IllegalArgumentException("Keys must be TextValue.");
             }
-            properties.put(key.value(), keysAndValues[i + 1]);
+            properties.put(val, keysAndValues[i + 1]);
         }
         this.value = Collections.unmodifiableMap(properties);
     }

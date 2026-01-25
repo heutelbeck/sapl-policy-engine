@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,10 +36,13 @@ class AttributeFinderSpecificationTests {
 
     private static final AttributeFinder DUMMY_FINDER = inv -> null;
 
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
     private static AttributeFinderInvocation createInvocation(String name, boolean isEnvAttr, int numArgs) {
         return new AttributeFinderInvocation("test-security", name, isEnvAttr ? null : Value.of("entity"),
                 List.<Value>of(Value.of("arg")).subList(0, Math.min(1, numArgs)), // 0 or 1 args
-                Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
+                Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false, EMPTY_CTX);
     }
 
     @Test
@@ -142,8 +144,8 @@ class AttributeFinderSpecificationTests {
         var spec       = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), TextValue.class, DUMMY_FINDER);
         var invocation = new AttributeFinderInvocation("test-security", "test.attr", Value.of("entity"),
-                List.<Value>of(Value.of("arg1"), Value.of("arg2")), Map.of(), Duration.ofSeconds(1),
-                Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
+                List.<Value>of(Value.of("arg1"), Value.of("arg2")), Duration.ofSeconds(1), Duration.ofSeconds(30),
+                Duration.ofSeconds(1), 0, false, EMPTY_CTX);
 
         assertThat(spec.matches(invocation)).isEqualTo(Match.VARARGS_MATCH);
     }

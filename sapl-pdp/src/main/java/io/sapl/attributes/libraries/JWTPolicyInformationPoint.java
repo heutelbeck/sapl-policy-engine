@@ -17,12 +17,20 @@
  */
 package io.sapl.attributes.libraries;
 
+import java.security.interfaces.RSAPublicKey;
+import java.text.ParseException;
+import java.time.Duration;
+import java.util.Date;
+import java.util.function.Function;
+
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+
 import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
@@ -31,13 +39,6 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.security.interfaces.RSAPublicKey;
-import java.text.ParseException;
-import java.time.Duration;
-import java.util.Date;
-import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Policy Information Point for validating and monitoring JSON Web Tokens.
@@ -276,8 +277,8 @@ public class JWTPolicyInformationPoint {
               token.<jwt.valid>;
             ```
             """)
-    public Flux<Value> valid(TextValue rawToken, Map<String, Value> variables) {
-        return validityState(rawToken, variables).map(ValidityState.VALID::equals).map(Value::of);
+    public Flux<Value> valid(TextValue rawToken, AttributeAccessContext ctx) {
+        return validityState(rawToken, ctx).map(ValidityState.VALID::equals).map(Value::of);
     }
 
     /**
@@ -363,11 +364,11 @@ public class JWTPolicyInformationPoint {
               }
             ```
             """)
-    public Flux<Value> validity(TextValue rawToken, Map<String, Value> variables) {
-        return validityState(rawToken, variables).map(Object::toString).map(Value::of);
+    public Flux<Value> validity(TextValue rawToken, AttributeAccessContext ctx) {
+        return validityState(rawToken, ctx).map(Object::toString).map(Value::of);
     }
 
-    private Flux<ValidityState> validityState(TextValue rawToken, Map<String, Value> variables) {
+    private Flux<ValidityState> validityState(TextValue rawToken, AttributeAccessContext ctx) {
 
         if (null == rawToken)
             return Flux.just(ValidityState.MALFORMED);
@@ -387,7 +388,7 @@ public class JWTPolicyInformationPoint {
         if (!hasRequiredClaims(signedJwt))
             return Flux.just(ValidityState.INCOMPLETE);
 
-        return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
+        return validateSignature(signedJwt, ctx).flatMapMany(isValid -> {
 
             if (Boolean.FALSE.equals(isValid))
                 return Flux.just(ValidityState.UNTRUSTED);
@@ -396,9 +397,9 @@ public class JWTPolicyInformationPoint {
         });
     }
 
-    private Mono<Boolean> validateSignature(SignedJWT signedJwt, Map<String, Value> variables) {
+    private Mono<Boolean> validateSignature(SignedJWT signedJwt, AttributeAccessContext ctx) {
 
-        final var jwtConfig = variables.get(JWT_KEY);
+        final var jwtConfig = ctx.pdpSecrets().get(JWT_KEY);
         if (null == jwtConfig || !(jwtConfig instanceof ObjectValue jwtConfigObj)) {
             log.error(JWT_CONFIG_MISSING_ERROR);
             return Mono.just(Boolean.FALSE);

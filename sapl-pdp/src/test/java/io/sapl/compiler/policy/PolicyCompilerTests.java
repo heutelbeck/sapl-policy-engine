@@ -21,16 +21,12 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Policy;
-import io.sapl.compiler.ast.SAPLCompiler;
-import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.PureVoter;
-import io.sapl.compiler.pdp.StreamVoter;
-import io.sapl.compiler.pdp.Vote;
-import io.sapl.compiler.pdp.Voter;
-import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
+import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.StreamVoter;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.Voter;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -40,7 +36,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -51,17 +46,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PolicyCompiler")
 class PolicyCompilerTests {
-
-    private static final AstTransformer TRANSFORMER = new AstTransformer();
-
-    private static Policy parsePolicy(String policySource) {
-        val document = SAPLCompiler.parse(policySource);
-        val element  = document.policyElement();
-        if (element instanceof PolicyOnlyElementContext policyOnly) {
-            return (Policy) TRANSFORMER.visit(policyOnly.policy());
-        }
-        throw new IllegalArgumentException("Expected a single policy, not a policy set");
-    }
 
     private static Voter compileToVoter(String policySource) {
         return compileToVoter(policySource, compilationContext(ATTRIBUTE_BROKER));

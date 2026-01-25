@@ -327,7 +327,6 @@ public class HttpPolicyInformationPoint {
     }
 
     private ObjectValue withBaseUrl(TextValue baseUrl, ObjectValue requestSettings) {
-        // ObjectValue implements Map<String, Value>
         var builder = ObjectValue.builder();
         builder.putAll(requestSettings);
         builder.put(ReactiveWebClient.BASE_URL, baseUrl);

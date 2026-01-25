@@ -18,6 +18,7 @@
 package io.sapl.benchmark;
 
 import static io.sapl.benchmark.BenchmarkConfiguration.DOCKER_DEFAULT_HTTP_PORT;
+import static io.sapl.benchmark.BenchmarkConfiguration.DOCKER_DEFAULT_PROTOBUF_RSOCKET_PORT;
 import static io.sapl.benchmark.BenchmarkConfiguration.DOCKER_DEFAULT_RSOCKET_PORT;
 
 import java.util.List;
@@ -46,6 +47,7 @@ public class BenchmarkExecutionContext {
 
     private String                    rsocketHost;
     private Integer                   rsocketPort;
+    private Integer                   protobufRsocketPort;
     private String                    basicClientKey;
     private String                    basicClientSecret;
     private String                    apiKey;
@@ -82,9 +84,10 @@ public class BenchmarkExecutionContext {
         // get docker/remote specific settings
         context.authorizationSubscription = cfg.getAuthorizationSubscription();
         if (cfg.requiredDockerEnvironment()) {
-            context.rsocketHost = pdpContainer.getHost();
-            context.rsocketPort = pdpContainer.getMappedPort(DOCKER_DEFAULT_RSOCKET_PORT);
-            context.useSsl      = cfg.isDockerUseSsl();
+            context.rsocketHost         = pdpContainer.getHost();
+            context.rsocketPort         = pdpContainer.getMappedPort(DOCKER_DEFAULT_RSOCKET_PORT);
+            context.protobufRsocketPort = pdpContainer.getMappedPort(DOCKER_DEFAULT_PROTOBUF_RSOCKET_PORT);
+            context.useSsl              = cfg.isDockerUseSsl();
             if (context.useSsl) {
                 context.httpBaseUrl = "https://" + pdpContainer.getHost() + ":"
                         + pdpContainer.getMappedPort(DOCKER_DEFAULT_HTTP_PORT);
@@ -94,10 +97,11 @@ public class BenchmarkExecutionContext {
                         + pdpContainer.getMappedPort(DOCKER_DEFAULT_HTTP_PORT);
             }
         } else {
-            context.rsocketHost = cfg.getRemoteRsocketHost();
-            context.rsocketPort = cfg.getRemoteRsocketPort();
-            context.useSsl      = cfg.isRemoteUseSsl();
-            context.httpBaseUrl = cfg.getRemoteBaseUrl();
+            context.rsocketHost         = cfg.getRemoteRsocketHost();
+            context.rsocketPort         = cfg.getRemoteRsocketPort();
+            context.protobufRsocketPort = cfg.getRemoteProtobufRsocketPort();
+            context.useSsl              = cfg.isRemoteUseSsl();
+            context.httpBaseUrl         = cfg.getRemoteBaseUrl();
         }
 
         // collecting auth specific settings

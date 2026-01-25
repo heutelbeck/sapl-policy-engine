@@ -54,7 +54,7 @@ class PDPConfigurationLoaderTests {
         assertThat(config.pdpId()).isEqualTo("arkham-pdp");
         assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-        assertThat(config.variables()).isEmpty();
+        assertThat(config.data().variables()).isEmpty();
         assertThat(config.saplDocuments()).isEmpty();
     }
 
@@ -78,7 +78,7 @@ class PDPConfigurationLoaderTests {
         assertThat(config.combiningAlgorithm()).isEqualTo(
                 new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
         assertThat(config.configurationId()).isEqualTo("innsmouth-v1");
-        assertThat(config.variables()).containsEntry("cultName", Value.of("Esoteric Order of Dagon"))
+        assertThat(config.data().variables()).containsEntry("cultName", Value.of("Esoteric Order of Dagon"))
                 .containsEntry("memberCount", Value.of(42)).containsEntry("isActive", Value.TRUE);
     }
 
@@ -161,8 +161,8 @@ class PDPConfigurationLoaderTests {
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-        assertThat(config.variables()).containsKey("shrine");
-        assertThat(config.variables().get("shrine")).isInstanceOf(ObjectValue.class);
+        assertThat(config.data().variables()).containsKey("shrine");
+        assertThat(config.data().variables().get("shrine")).isInstanceOf(ObjectValue.class);
     }
 
     @Test
@@ -202,7 +202,7 @@ class PDPConfigurationLoaderTests {
         assertThat(config.configurationId()).isEqualTo("ritual-v2");
         assertThat(config.combiningAlgorithm())
                 .isEqualTo(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE));
-        assertThat(config.variables()).containsEntry("ritual", Value.of("summoning"));
+        assertThat(config.data().variables()).containsEntry("ritual", Value.of("summoning"));
         assertThat(config.saplDocuments()).hasSize(2);
     }
 
@@ -215,7 +215,7 @@ class PDPConfigurationLoaderTests {
         val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, "test-pdp", "/test/policies");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-        assertThat(config.variables()).isEmpty();
+        assertThat(config.data().variables()).isEmpty();
         assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
     }
 
@@ -229,7 +229,7 @@ class PDPConfigurationLoaderTests {
 
         assertThat(config.combiningAlgorithm()).isEqualTo(
                 new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
-        assertThat(config.variables()).isEmpty();
+        assertThat(config.data().variables()).isEmpty();
         assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
     }
 
@@ -240,7 +240,7 @@ class PDPConfigurationLoaderTests {
                 """, Map.of(), "test-pdp", "/policies/arkham");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-        assertThat(config.variables()).containsEntry("realm", Value.of("arkham"));
+        assertThat(config.data().variables()).containsEntry("realm", Value.of("arkham"));
     }
 
     @Test
@@ -279,7 +279,7 @@ class PDPConfigurationLoaderTests {
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-        assertThat(config.variables()).containsKey("nullValue").containsEntry("realValue", Value.of("test"))
+        assertThat(config.data().variables()).containsKey("nullValue").containsEntry("realValue", Value.of("test"))
                 .containsKey("roles").containsKey("permissions");
     }
 

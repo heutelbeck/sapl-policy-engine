@@ -19,6 +19,7 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
+import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -575,9 +576,7 @@ public class StepCompiler {
 
     private static Value applyConditionStepAtCompileTime(Value base, PureOperator condition, SourceLocation loc,
             CompilationContext compilationCtx) {
-        // Create context with function broker for compile-time evaluation
-        val baseCtx = new EvaluationContext(null, null, null, null, compilationCtx.getFunctionBroker(),
-                compilationCtx.getAttributeBroker());
+        val baseCtx = DummyEvaluationContextFactory.dummyContext(compilationCtx);
         return applyConditionStep(base, null, condition, baseCtx, loc);
     }
 

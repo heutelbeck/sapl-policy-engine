@@ -17,34 +17,36 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
-import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
-import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import reactor.test.StepVerifier;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-
 import static io.sapl.pdp.PdpTestHelper.createBundle;
 import static io.sapl.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import lombok.val;
+import reactor.test.StepVerifier;
 
 class PolicyDecisionPointBuilderTests {
 
@@ -93,7 +95,8 @@ class PolicyDecisionPointBuilderTests {
     @Test
     void whenBuildingWithConfiguration_thenConfigurationIsLoaded() throws Exception {
         val policy = "policy \"permit-all\" permit";
-        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", PERMIT_OVERRIDES, List.of(policy), Map.of());
+        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", PERMIT_OVERRIDES, List.of(policy),
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config).build();
 
@@ -173,8 +176,10 @@ class PolicyDecisionPointBuilderTests {
 
     @Test
     void whenBuildingWithMultipleConfigurations_thenAllAreLoaded() throws Exception {
-        val config1 = new PDPConfiguration("pdp1", "v1", PERMIT_OVERRIDES, List.of("policy \"p1\" permit"), Map.of());
-        val config2 = new PDPConfiguration("pdp2", "v1", DENY_OVERRIDES, List.of("policy \"p2\" deny"), Map.of());
+        val config1 = new PDPConfiguration("pdp1", "v1", PERMIT_OVERRIDES, List.of("policy \"p1\" permit"),
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+        val config2 = new PDPConfiguration("pdp2", "v1", DENY_OVERRIDES, List.of("policy \"p2\" deny"),
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config1)
                 .withConfiguration(config2).build();
@@ -298,7 +303,8 @@ class PolicyDecisionPointBuilderTests {
     @Test
     void whenBuildingWithPoliciesAndAlgorithm_thenPdpBuildsSuccessfully() throws Exception {
         val policy = "policy \"elder-wards\" permit";
-        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", DENY_OVERRIDES, List.of(policy), Map.of());
+        val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", DENY_OVERRIDES, List.of(policy),
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config).build();
 

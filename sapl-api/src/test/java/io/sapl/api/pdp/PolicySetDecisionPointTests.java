@@ -155,7 +155,8 @@ class PolicySetDecisionPointTests {
     }
 
     private static AuthorizationSubscription subscription(String subject, String action, String resource) {
-        return new AuthorizationSubscription(Value.of(subject), Value.of(action), Value.of(resource), Value.UNDEFINED);
+        return new AuthorizationSubscription(Value.of(subject), Value.of(action), Value.of(resource), Value.UNDEFINED,
+                Value.EMPTY_OBJECT);
     }
 
     /**

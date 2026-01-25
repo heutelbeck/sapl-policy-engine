@@ -21,13 +21,11 @@ import static io.sapl.compiler.combining.CombiningUtils.appendToList;
 import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
 import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
 
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

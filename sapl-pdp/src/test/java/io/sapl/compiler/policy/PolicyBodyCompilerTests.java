@@ -20,8 +20,8 @@ package io.sapl.compiler.policy;
 import io.sapl.api.model.*;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
-import io.sapl.compiler.ast.SAPLCompiler;
-import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.compiler.document.AstTransformer;
+import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
@@ -141,8 +141,8 @@ class PolicyBodyCompilerTests {
                 permit
                     %s
                 """.formatted(bodyContent);
-        val document     = SAPLCompiler.parse(policySource);
-        val element      = document.policyElement();
+        val document     = DocumentCompiler.parseDocument(policySource);
+        val element      = document.sapl().policyElement();
         if (element instanceof PolicyOnlyElementContext policyOnly) {
             val policyCtx = policyOnly.policy();
             if (policyCtx.policyBody() != null) {
@@ -168,10 +168,11 @@ class PolicyBodyCompilerTests {
     private static void verifySplitBodyCompilation(TestCase tc) {
         val body = parsePolicyBody(tc.bodyContent());
 
-        // Compile body - get both sections
+        // Compile body - get both sections (variables are compile-time now)
         var broker  = tc.attributes().isEmpty() ? ATTRIBUTE_BROKER : attributeBroker(tc.attributes());
-        var compCtx = compilationContext(broker);
-        var evalCtx = tc.variables().isEmpty() ? evaluationContext(broker) : evaluationContext(broker, tc.variables());
+        var vars    = toObjectValue(tc.variables());
+        var compCtx = compilationContext(vars, FUNCTION_BROKER, broker);
+        var evalCtx = evaluationContext(broker);
 
         val compiledBody  = PolicyBodyCompiler.compilePolicyBody(body, compCtx);
         val pureSection   = compiledBody.isApplicable();
@@ -188,9 +189,8 @@ class PolicyBodyCompilerTests {
         // Verify coverage pathway (uses separate broker to avoid attribute caching
         // issues)
         var broker2  = tc.attributes().isEmpty() ? ATTRIBUTE_BROKER : attributeBroker(tc.attributes());
-        var compCtx2 = compilationContext(broker2);
-        var evalCtx2 = tc.variables().isEmpty() ? evaluationContext(broker2)
-                : evaluationContext(broker2, tc.variables());
+        var compCtx2 = compilationContext(vars, FUNCTION_BROKER, broker2);
+        var evalCtx2 = evaluationContext(broker2);
 
         val compiledBody2 = PolicyBodyCompiler.compilePolicyBody(body, compCtx2);
         val coverageFlux  = compiledBody2.coverageStream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx2));
@@ -281,12 +281,12 @@ class PolicyBodyCompilerTests {
         @DisplayName("errors propagate through appropriate section")
         void whenError_thenAppropiateSectionReturnsError(ErrorTestCase tc) {
             val body = parsePolicyBody(tc.bodyContent());
+            val vars = toObjectValue(tc.variables());
 
             var broker  = tc.attrName() != null ? errorAttributeBroker(tc.attrName(), tc.attrError())
                     : ATTRIBUTE_BROKER;
-            var compCtx = compilationContext(broker);
-            var evalCtx = tc.variables().isEmpty() ? evaluationContext(broker)
-                    : evaluationContext(broker, tc.variables());
+            var compCtx = compilationContext(vars, FUNCTION_BROKER, broker);
+            var evalCtx = evaluationContext(broker);
 
             val compiledBody  = PolicyBodyCompiler.compilePolicyBody(body, compCtx);
             val pureSection   = compiledBody.isApplicable();
@@ -306,9 +306,8 @@ class PolicyBodyCompilerTests {
             // Verify coverage pathway
             var broker2  = tc.attrName() != null ? errorAttributeBroker(tc.attrName(), tc.attrError())
                     : ATTRIBUTE_BROKER;
-            var compCtx2 = compilationContext(broker2);
-            var evalCtx2 = tc.variables().isEmpty() ? evaluationContext(broker2)
-                    : evaluationContext(broker2, tc.variables());
+            var compCtx2 = compilationContext(vars, FUNCTION_BROKER, broker2);
+            var evalCtx2 = evaluationContext(broker2);
 
             val compiledBody2 = PolicyBodyCompiler.compilePolicyBody(body, compCtx2);
             val coverageFlux  = compiledBody2.coverageStream()

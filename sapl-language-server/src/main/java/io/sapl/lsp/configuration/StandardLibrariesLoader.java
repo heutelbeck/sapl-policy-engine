@@ -22,17 +22,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.web.reactive.function.client.WebClient;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.Value;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.InMemoryAttributeRepository;
-import org.springframework.web.reactive.function.client.WebClient;
-
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
@@ -115,21 +114,6 @@ public class StandardLibrariesLoader {
                 POLICY_INFORMATION_POINTS.size());
 
         return new LSPConfiguration(configurationId, documentation, Map.of(), functionBroker, attributeBroker);
-    }
-
-    /**
-     * Creates an LSPConfiguration with all standard libraries and custom variables.
-     *
-     * @param configurationId the configuration identifier
-     * @param variables environment variables to include
-     * @return a fully configured LSPConfiguration
-     */
-    public static LSPConfiguration loadStandardConfiguration(String configurationId, Map<String, Value> variables) {
-        var functionBroker  = createFunctionBroker();
-        var attributeBroker = createAttributeBroker();
-        var documentation   = createDocumentationBundle();
-
-        return new LSPConfiguration(configurationId, documentation, variables, functionBroker, attributeBroker);
     }
 
     private static FunctionBroker createFunctionBroker() {

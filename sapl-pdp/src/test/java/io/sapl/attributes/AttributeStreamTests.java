@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes;
 
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
@@ -33,7 +34,6 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -89,20 +89,23 @@ class AttributeStreamTests {
     private static final long GRACE_PERIOD_TIMEOUT      = 700L;
     private static final long COMPLEX_OPERATION_TIMEOUT = 1000L;
 
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
     private static AttributeFinderInvocation createInvocation() {
-        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(),
-                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 3L, false);
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Duration.ofSeconds(1L),
+                Duration.ofSeconds(1L), Duration.ofMillis(50L), 3L, false, EMPTY_CTX);
     }
 
     private static AttributeFinderInvocation createInvocation(Duration initialTimeout) {
-        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(), initialTimeout,
-                Duration.ofSeconds(1L), Duration.ofMillis(50L), 3L, false);
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), initialTimeout,
+                Duration.ofSeconds(1L), Duration.ofMillis(50L), 3L, false, EMPTY_CTX);
     }
 
     private static AttributeFinderInvocation createInvocation(Duration initialTimeout, Duration pollInterval,
             Duration backoff, long retries) {
-        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(), initialTimeout,
-                pollInterval, backoff, retries, false);
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), initialTimeout, pollInterval,
+                backoff, retries, false, EMPTY_CTX);
     }
 
     // Basic Functionality Tests

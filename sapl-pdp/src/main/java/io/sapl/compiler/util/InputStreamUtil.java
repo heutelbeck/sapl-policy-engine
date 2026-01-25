@@ -17,37 +17,41 @@
  */
 package io.sapl.compiler.util;
 
-import io.sapl.compiler.expressions.SaplCompilerException;
-import lombok.NoArgsConstructor;
-import lombok.experimental.UtilityClass;
-import org.apache.commons.io.ByteOrderMark;
-import org.apache.commons.io.input.BOMInputStream;
-import org.apache.commons.io.input.ReaderInputStream;
-import org.jspecify.annotations.NonNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.io.ByteOrderMark;
+import org.apache.commons.io.input.BOMInputStream;
+import org.apache.commons.io.input.ReaderInputStream;
+
+import lombok.experimental.UtilityClass;
+
+/**
+ * Utility for handling input stream encoding detection and conversion.
+ */
 @UtilityClass
 public class InputStreamUtil {
 
-    private static final String PARSING_ERRORS = "Parsing errors: %s";
-
+    /**
+     * Detects the encoding of an input stream via BOM and converts to UTF-8.
+     *
+     * @param policyInputStream the input stream to process
+     * @return a UTF-8 encoded input stream
+     * @throws IOException if reading fails
+     */
     public static InputStream detectAndConvertEncodingOfStream(InputStream policyInputStream) throws IOException {
         @SuppressWarnings("deprecation") // new versions break MQTT ITs
         BOMInputStream bomIn = new BOMInputStream(policyInputStream, ByteOrderMark.UTF_16LE, ByteOrderMark.UTF_16BE,
                 ByteOrderMark.UTF_32LE, ByteOrderMark.UTF_32BE, ByteOrderMark.UTF_8);
 
         if (!bomIn.hasBOM()) {
-            // InputStream without BOM is treated as UTF-8
             return getUtf8InputStream(new InputStreamReader(bomIn, StandardCharsets.UTF_8));
         }
 
         if (bomIn.hasBOM(ByteOrderMark.UTF_8)) {
-            // conversion not necessary
             return bomIn;
         }
 
@@ -73,77 +77,5 @@ public class InputStreamUtil {
     @SuppressWarnings("deprecation") // New versions break MQTT ITs
     private static ReaderInputStream getUtf8InputStream(Reader origin) {
         return new ReaderInputStream(origin, StandardCharsets.UTF_8);
-    }
-
-    public static InputStream convertToTrojanSourceSecureStream(InputStream source) {
-        return new TrojanSourceGuardInputStream(source);
-    }
-
-    private static class TrojanSourceGuardInputStream extends InputStream {
-        private static final int  EOF = -1;
-        private final InputStream source;
-
-        ByteSequenceValidationBuffer buffer = new ByteSequenceValidationBuffer();
-
-        public TrojanSourceGuardInputStream(InputStream source) {
-            super();
-            this.source = source;
-        }
-
-        @Override
-        public int read() throws IOException {
-            final var b = source.read();
-            checkByte(b);
-            return b;
-        }
-
-        @Override
-        public int read(byte @NonNull [] b, int off, int len) throws IOException {
-            final var numberOfBytesRead = source.read(b, off, len);
-            if (numberOfBytesRead == EOF) {
-                return EOF;
-            }
-            for (var i = off; i < off + numberOfBytesRead; i++) {
-                checkByte(Byte.toUnsignedInt(b[i]));
-            }
-            return numberOfBytesRead;
-        }
-
-        private void checkByte(int b) {
-            buffer.addByte(b);
-            if (buffer.illegalCharacterDetected()) {
-                final String message = "Illegal bidirectional unicode control characters were recognised in the input stream. This is indicative of a potential trojan voterMetadata attack.";
-                throw new SaplCompilerException(PARSING_ERRORS.formatted(message));
-            }
-        }
-
-        @NoArgsConstructor
-        private static class ByteSequenceValidationBuffer {
-            static final int BUFFER_SIZE = 3;
-
-            private final int[] buffer       = new int[BUFFER_SIZE];
-            private int         currentIndex = 0;
-
-            public void addByte(int b) {
-                buffer[currentIndex] = b;
-                currentIndex         = (currentIndex + 1) % BUFFER_SIZE;
-            }
-
-            // LRI: 0xE2, 0x81, 0xA6
-            // RLI: 0xE2, 0x81, 0xA7
-            // PDI: 0xE2, 0x81, 0xA9
-            // RLO: 0xE2, 0x80, 0xAE
-            public boolean illegalCharacterDetected() {
-                if (buffer[currentIndex] != 0xE2)
-                    return false;
-
-                final var second = buffer[(currentIndex + 1) % BUFFER_SIZE];
-                if (second != 0x81 && second != 0x80)
-                    return false;
-
-                final var third = buffer[(currentIndex + 2) % BUFFER_SIZE];
-                return third == 0xA6 || third == 0xA7 || third == 0xA9 || third == 0xAE;
-            }
-        }
     }
 }

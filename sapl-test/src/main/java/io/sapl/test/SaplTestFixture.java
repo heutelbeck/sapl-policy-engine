@@ -36,7 +36,7 @@ import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.compiler.pdp.VoteWithCoverage;
+import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;

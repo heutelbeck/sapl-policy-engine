@@ -57,6 +57,11 @@ public class AuthorizationSubscriptionSerializer extends JsonSerializer<Authoriz
             valueSerializer.serialize(subscription.environment(), generator, serializers);
         }
 
+        if (!subscription.secrets().isEmpty()) {
+            generator.writeFieldName("secrets");
+            valueSerializer.serialize(subscription.secrets(), generator, serializers);
+        }
+
         generator.writeEndObject();
     }
 }

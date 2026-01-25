@@ -68,7 +68,6 @@ public class ScenarioInterpreter {
             + "not in the scenario-level given block. All scenarios in a requirement test the same document. "
             + "For integration tests with different document combinations per scenario, use 'documents' instead.";
     private static final String ERROR_UNKNOWN_AMOUNT_TYPE      = "Unknown amount type: %s.";
-    private static final String ERROR_UNKNOWN_COMBINING_ALG    = "Unknown combining algorithm: %s.";
     private static final String ERROR_UNKNOWN_DECISION_MATCHER = "Unknown decision matcher type: %s.";
     private static final String ERROR_UNKNOWN_DECISION_TYPE    = "Unknown decision type: %s.";
     private static final String ERROR_UNKNOWN_MATCHER_TYPE     = "Unknown matcher type: %s.";

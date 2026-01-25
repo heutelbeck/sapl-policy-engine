@@ -23,7 +23,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySetVoterMetadata;
-import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.document.Vote;
 import lombok.val;
 
 import java.util.ArrayList;

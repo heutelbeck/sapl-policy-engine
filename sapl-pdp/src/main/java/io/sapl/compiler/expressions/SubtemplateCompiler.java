@@ -17,10 +17,21 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
-import lombok.experimental.UtilityClass;
+import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.val;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
@@ -128,9 +139,7 @@ public class SubtemplateCompiler {
 
     private static CompiledExpression applyTemplateToValueAtCompileTime(Value parent, PureOperator template,
             CompilationContext compilationCtx) {
-        // Create context with function broker for compile-time evaluation
-        val baseCtx = new EvaluationContext(null, null, null, null, compilationCtx.getFunctionBroker(),
-                compilationCtx.getAttributeBroker());
+        val baseCtx = DummyEvaluationContextFactory.dummyContext(compilationCtx);
         return applyPureTemplate(parent, template, baseCtx);
     }
 

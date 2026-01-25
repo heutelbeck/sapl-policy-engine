@@ -17,7 +17,7 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.compiler.pdp.VoteWithCoverage;
+import io.sapl.compiler.document.VoteWithCoverage;
 import lombok.Getter;
 import lombok.val;
 

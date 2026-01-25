@@ -58,6 +58,12 @@
 			<artifactId>sapl-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<!-- Protobuf serialization for high-performance RSocket -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-api-proto</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<!-- Dependency for the WebClient -->
 		<dependency>
 			<groupId>org.springframework</groupId>

@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.AttributeRecord;
@@ -34,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,6 +43,9 @@ class ReportTextRenderUtilTests {
 
     private static final CombiningAlgorithm DENY_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
             DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
     @Test
     @DisplayName("renders decision in text report")
@@ -140,8 +143,8 @@ class ReportTextRenderUtilTests {
     @DisplayName("renders environment attributes with timestamp under contributing document")
     void whenDocumentHasEnvironmentAttributes_thenAttributesAndTimestampAreRendered() {
         val timestamp  = Instant.parse("2024-01-23T10:30:05.123Z");
-        val invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), Map.of(),
-                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false);
+        val invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), Duration.ofSeconds(10),
+                Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val attr       = new AttributeRecord(invocation, Value.of("2024-01-23T10:30:00Z"), timestamp, null);
         val doc        = new ContributingDocument("time-policy", Decision.PERMIT, List.of(attr), List.of());
         val report     = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",
@@ -158,8 +161,8 @@ class ReportTextRenderUtilTests {
     void whenDocumentHasEntityAttributes_thenAttributesAndTimestampAreRendered() {
         val timestamp  = Instant.parse("2024-01-23T10:30:05.456Z");
         val entity     = Value.of("test-subject");
-        val invocation = new AttributeFinderInvocation("test-config", "user.role", entity, List.of(), Map.of(),
-                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false);
+        val invocation = new AttributeFinderInvocation("test-config", "user.role", entity, List.of(),
+                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val attr       = new AttributeRecord(invocation, Value.of("admin"), timestamp, null);
         val doc        = new ContributingDocument("role-policy", Decision.PERMIT, List.of(attr), List.of());
         val report     = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",

@@ -52,8 +52,12 @@ public class RsocketBenchmark {
 
     private RemoteRsocketPolicyDecisionPoint.RemoteRsocketPolicyDecisionPointBuilder getBaseBuilder()
             throws SSLException {
-        return RemotePolicyDecisionPoint.builder().rsocket().host(context.getRsocketHost())
-                .port(context.getRsocketPort()).withUnsecureSSL();
+        var builder = RemotePolicyDecisionPoint.builder().rsocket().host(context.getRsocketHost())
+                .port(context.getRsocketPort());
+        if (context.isUseSsl()) {
+            builder = builder.withUnsecureSSL();
+        }
+        return builder;
     }
 
     @Setup(Level.Trial)

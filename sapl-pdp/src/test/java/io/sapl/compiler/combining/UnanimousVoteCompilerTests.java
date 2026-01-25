@@ -19,9 +19,9 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.pdp.PureVoter;
-import io.sapl.compiler.pdp.StreamVoter;
-import io.sapl.compiler.pdp.Vote;
+import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.StreamVoter;
+import io.sapl.compiler.document.Vote;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

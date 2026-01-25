@@ -22,8 +22,10 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeBrokerException;
 import io.sapl.api.attributes.AttributeStorage;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
@@ -41,10 +43,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -757,11 +756,11 @@ public class PolicyDecisionPointBuilder {
                 context -> reactor.core.publisher.Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID),
                 sortedInterceptors);
 
-        // Create default configuration from collected policies if any
+        // Create default configuration from collected policies
         if (!policyDocuments.isEmpty()) {
             val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
             val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
-                    List.copyOf(policyDocuments), Map.of());
+                    List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
             initialConfigurations.add(config);
         }
 
@@ -784,10 +783,7 @@ public class PolicyDecisionPointBuilder {
     }
 
     private FunctionBroker resolveFunctionBroker() {
-        if (externalFunctionBroker != null) {
-            return externalFunctionBroker;
-        }
-        return buildFunctionBroker();
+        return Objects.requireNonNullElseGet(externalFunctionBroker, this::buildFunctionBroker);
     }
 
     private FunctionBroker buildFunctionBroker() {
@@ -811,10 +807,7 @@ public class PolicyDecisionPointBuilder {
     }
 
     private AttributeBroker resolveAttributeBroker() throws AttributeBrokerException {
-        if (externalAttributeBroker != null) {
-            return externalAttributeBroker;
-        }
-        return buildAttributeBroker();
+        return Objects.requireNonNullElseGet(externalAttributeBroker, this::buildAttributeBroker);
     }
 
     private AttributeBroker buildAttributeBroker() throws AttributeBrokerException {

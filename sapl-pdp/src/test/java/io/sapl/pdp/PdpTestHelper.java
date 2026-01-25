@@ -17,21 +17,25 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.*;
-import lombok.experimental.UtilityClass;
-import lombok.val;
-import reactor.test.StepVerifier;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.val;
+import lombok.experimental.UtilityClass;
+import reactor.test.StepVerifier;
 
 /**
  * Test utility for PDP tests providing common subscription creation, decision
@@ -44,48 +48,39 @@ public class PdpTestHelper {
      * Creates an authorization subscription with string values for subject, action,
      * and resource.
      *
-     * @param subject
-     * the subject string
-     * @param action
-     * the action string
-     * @param resource
-     * the resource string
+     * @param subject the subject string
+     * @param action the action string
+     * @param resource the resource string
      *
      * @return the authorization subscription
      */
     public static AuthorizationSubscription subscription(String subject, String action, String resource) {
-        return new AuthorizationSubscription(Value.of(subject), Value.of(action), Value.of(resource), Value.UNDEFINED);
+        return new AuthorizationSubscription(Value.of(subject), Value.of(action), Value.of(resource),
+                Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
     /**
      * Creates an authorization subscription with Value objects.
      *
-     * @param subject
-     * the subject Value
-     * @param action
-     * the action Value
-     * @param resource
-     * the resource Value
-     * @param environment
-     * the environment Value
+     * @param subject the subject Value
+     * @param action the action Value
+     * @param resource the resource Value
+     * @param environment the environment Value
      *
      * @return the authorization subscription
      */
     public static AuthorizationSubscription subscription(Value subject, Value action, Value resource,
             Value environment) {
-        return new AuthorizationSubscription(subject, action, resource, environment);
+        return new AuthorizationSubscription(subject, action, resource, environment, Value.EMPTY_OBJECT);
     }
 
     /**
      * Asserts that the PDP returns the expected decision for the given
      * subscription.
      *
-     * @param pdp
-     * the policy decision point
-     * @param subscription
-     * the authorization subscription
-     * @param expectedDecision
-     * the expected decision
+     * @param pdp the policy decision point
+     * @param subscription the authorization subscription
+     * @param expectedDecision the expected decision
      */
     public static void assertDecision(PolicyDecisionPoint pdp, AuthorizationSubscription subscription,
             Decision expectedDecision) {
@@ -96,23 +91,20 @@ public class PdpTestHelper {
     /**
      * Creates a PDPConfiguration with the given policies and algorithm.
      *
-     * @param algorithm
-     * the combining algorithm
-     * @param policies
-     * the SAPL policy documents
+     * @param algorithm the combining algorithm
+     * @param policies the SAPL policy documents
      *
      * @return the PDP configuration
      */
     public static PDPConfiguration configuration(CombiningAlgorithm algorithm, String... policies) {
         return new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(), algorithm,
-                List.of(policies), Map.of());
+                List.of(policies), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
 
     /**
      * Creates a PDPConfiguration with DEFAULT algorithm.
      *
-     * @param policies
-     * the SAPL policy documents
+     * @param policies the SAPL policy documents
      *
      * @return the PDP configuration
      */
@@ -122,16 +114,13 @@ public class PdpTestHelper {
 
     /**
      * Creates a SAPL bundle (zip file) containing the given policy content. The
-     * bundle includes a pdp.json with a
-     * generated configurationId.
+     * bundle includes a pdp.json with a generated configurationId.
      *
-     * @param policyContent
-     * the policy document text
+     * @param policyContent the policy document text
      *
      * @return the bundle bytes
      *
-     * @throws IOException
-     * if bundle creation fails
+     * @throws IOException if bundle creation fails
      */
     public static byte[] createBundle(String policyContent) throws IOException {
         return createBundle(new String[] { policyContent });
@@ -139,16 +128,13 @@ public class PdpTestHelper {
 
     /**
      * Creates a SAPL bundle containing multiple policies. The bundle includes a
-     * pdp.json with a generated
-     * configurationId.
+     * pdp.json with a generated configurationId.
      *
-     * @param policies
-     * the policy documents
+     * @param policies the policy documents
      *
      * @return the bundle bytes
      *
-     * @throws IOException
-     * if bundle creation fails
+     * @throws IOException if bundle creation fails
      */
     public static byte[] createBundle(String... policies) throws IOException {
         return createBundleWithConfigurationId("test-bundle-" + System.currentTimeMillis(), policies);
@@ -157,15 +143,12 @@ public class PdpTestHelper {
     /**
      * Creates a SAPL bundle with a specific configurationId.
      *
-     * @param configurationId
-     * the configuration identifier
-     * @param policies
-     * the policy documents
+     * @param configurationId the configuration identifier
+     * @param policies the policy documents
      *
      * @return the bundle bytes
      *
-     * @throws IOException
-     * if bundle creation fails
+     * @throws IOException if bundle creation fails
      */
     public static byte[] createBundleWithConfigurationId(String configurationId, String... policies)
             throws IOException {

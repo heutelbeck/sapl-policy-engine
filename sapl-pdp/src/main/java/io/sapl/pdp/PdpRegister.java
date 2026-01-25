@@ -76,7 +76,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class PdpRegister implements CompiledPDPConfigurationSource {
 
-    public static final String    ERROR_COMPILING_DOCUMENT = "Configuration rejected. Error compiling document.";
     private final FunctionBroker  functionBroker;
     private final AttributeBroker attributeBroker;
 
@@ -110,7 +109,7 @@ public class PdpRegister implements CompiledPDPConfigurationSource {
      */
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val              compilationContext = new CompilationContext(pdpConfiguration.pdpId(),
-                pdpConfiguration.configurationId(), functionBroker, attributeBroker);
+                pdpConfiguration.configurationId(), pdpConfiguration.data(), functionBroker, attributeBroker);
         CompiledPdpVoter newConfiguration;
         try {
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext);

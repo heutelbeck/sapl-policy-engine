@@ -23,6 +23,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -183,7 +184,9 @@ class AttributeCompilerTests {
     void when_attributeStep_withEntity_then_passesEntity() {
         var capturedInvocation = new AttributeFinderInvocation[1];
         var broker             = capturingAttributeBroker(capturedInvocation, Value.of("role"));
-        var ctx                = evaluationContext(broker, Value.of("alice"));
+        var subscription       = AuthorizationSubscription.of(Value.of("alice"), Value.of("action"),
+                Value.of("resource"), Value.of("env"));
+        var ctx                = evaluationContext(subscription, broker);
         var result             = evaluateExpression("subject.<user.role>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));

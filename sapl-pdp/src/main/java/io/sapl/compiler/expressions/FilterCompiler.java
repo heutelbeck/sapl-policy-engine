@@ -17,17 +17,28 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import java.util.ArrayList;
+
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import io.sapl.ast.RelativeReference;
 import io.sapl.ast.RelativeType;
 import io.sapl.ast.SimpleFilter;
 import io.sapl.compiler.operators.SimpleStreamOperator;
-import lombok.experimental.UtilityClass;
+import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.val;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
-
-import java.util.ArrayList;
 
 @UtilityClass
 public class FilterCompiler {
@@ -175,8 +186,7 @@ public class FilterCompiler {
     }
 
     private static CompiledExpression compileEachValuePureFold(Value vb, PureOperator pof, CompilationContext ctx) {
-        val tempEvaluationContext = new EvaluationContext(null, null, null, null, ctx.getFunctionBroker(),
-                ctx.getAttributeBroker());
+        val tempEvaluationContext = DummyEvaluationContextFactory.dummyContext(ctx);
         return evaluateEachValuePure(vb, pof, tempEvaluationContext);
     }
 

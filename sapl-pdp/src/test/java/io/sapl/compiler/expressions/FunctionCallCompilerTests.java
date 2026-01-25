@@ -64,9 +64,9 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withPureArg_then_returnsPureOperator() {
-        var broker  = functionBroker("test.fn", args -> args.getFirst());
-        var evalCtx = evaluationContext(broker, Map.of("x", Value.of(100)));
-        var result  = evaluateExpression("test.fn(x)", evalCtx);
+        var broker = functionBroker("test.fn", args -> args.getFirst());
+        var ctx    = testContext(broker, Map.of("x", Value.of(100)));
+        var result = evaluateExpression("test.fn(x)", ctx);
 
         // Expression depends on variable, should be PureOperator evaluated at runtime
         assertThat(result).isEqualTo(Value.of(100));
@@ -76,8 +76,8 @@ class FunctionCallCompilerTests {
     void when_functionCall_withMixedValueAndPure_then_returnsPureOperator() {
         var captured = new ArrayList<FunctionInvocation>();
         var broker   = capturingFunctionBroker(captured, args -> Value.of("result"));
-        var evalCtx  = evaluationContext(broker, Map.of("x", Value.of("dynamic")));
-        var result   = evaluateExpression("test.fn(\"static\", x, 42)", evalCtx);
+        var ctx      = testContext(broker, Map.of("x", Value.of("dynamic")));
+        var result   = evaluateExpression("test.fn(\"static\", x, 42)", ctx);
 
         assertThat(result).isEqualTo(Value.of("result"));
         assertThat(captured).hasSize(1).first().extracting(FunctionInvocation::arguments)
@@ -86,9 +86,9 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withPureArg_andErrorFromPure_then_propagatesError() {
-        var broker  = functionBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx = evaluationContext(broker, Map.of("x", Value.error("pure errors")));
-        var result  = evaluateExpression("test.fn(x)", evalCtx);
+        var broker = functionBroker("test.fn", args -> Value.of("should not reach"));
+        var ctx    = testContext(broker, Map.of("x", Value.error("pure errors")));
+        var result = evaluateExpression("test.fn(x)", ctx);
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("pure errors");
@@ -96,9 +96,9 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_returnsError_then_propagatesError() {
-        var broker  = functionBroker("test.fn", args -> Value.error("function errors"));
-        var evalCtx = evaluationContext(broker, Map.of());
-        var result  = evaluateExpression("test.fn()", evalCtx);
+        var broker = functionBroker("test.fn", args -> Value.error("function errors"));
+        var ctx    = testContext(broker, Map.of());
+        var result = evaluateExpression("test.fn()", ctx);
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("function errors");
@@ -111,11 +111,12 @@ class FunctionCallCompilerTests {
                            var num = ((NumberValue) args.getFirst()).value().intValue();
                            return Value.of(num * 10);
                        });
-        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(<stream.attr>)", evalCtx);
+        var ctx        = testContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<stream.attr>)", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        var evalCtx = ctx.evaluationContext();
+        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(10)))
                 .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(20)))
                 .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(30))).verifyComplete();
@@ -126,11 +127,12 @@ class FunctionCallCompilerTests {
         var attrBroker = attributeBroker("num.attr", Value.of(5), Value.of(10));
         var captured   = new ArrayList<FunctionInvocation>();
         var fnBroker   = capturingFunctionBroker(captured, args -> Value.of("ok"));
-        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(\"prefix\", <num.attr>, \"suffix\")", evalCtx);
+        var ctx        = testContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(\"prefix\", <num.attr>, \"suffix\")", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        var evalCtx = ctx.evaluationContext();
+        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream).assertNext(tv -> {
             assertThat(captured.get(0).arguments()).containsExactly(Value.of("prefix"), Value.of(5),
                     Value.of("suffix"));
@@ -144,11 +146,12 @@ class FunctionCallCompilerTests {
     void when_functionCall_withStreamArgError_then_propagatesError() {
         var attrBroker = attributeBroker("err.attr", Value.error("stream errors"));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(<err.attr>)", evalCtx);
+        var ctx        = testContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<err.attr>)", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        var evalCtx = ctx.evaluationContext();
+        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream)
                 .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
                         .extracting(v -> ((ErrorValue) v).message()).asString().contains("stream errors"))
@@ -164,11 +167,12 @@ class FunctionCallCompilerTests {
                            var b = ((TextValue) args.get(1)).value();
                            return Value.of(a + "-" + b);
                        });
-        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
+        var ctx        = testContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<a.attr>, <b.attr>)", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        var evalCtx = ctx.evaluationContext();
+        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         // combineLatest: emits when both have values
         StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of("A1-B1")))
                 .verifyComplete();
@@ -179,11 +183,12 @@ class FunctionCallCompilerTests {
         var attrBroker = singleValueAttributeBroker(
                 Map.of("ok.attr", Value.of("ok"), "err.attr", Value.error("bad stream")));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(<ok.attr>, <err.attr>)", evalCtx);
+        var ctx        = testContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<ok.attr>, <err.attr>)", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        var evalCtx = ctx.evaluationContext();
+        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream)
                 .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
                         .extracting(v -> ((ErrorValue) v).message()).asString().contains("bad stream"))
@@ -194,8 +199,8 @@ class FunctionCallCompilerTests {
     void when_functionCall_withUndefinedArg_then_filtersOutUndefined() {
         var captured = new ArrayList<FunctionInvocation>();
         var broker   = capturingFunctionBroker(captured, args -> Value.of(args.size()));
-        var evalCtx  = evaluationContext(broker, Map.of("x", Value.UNDEFINED));
-        var result   = evaluateExpression("test.fn(1, x, 3)", evalCtx);
+        var ctx      = testContext(broker, Map.of("x", Value.UNDEFINED));
+        var result   = evaluateExpression("test.fn(1, x, 3)", ctx);
 
         // Undefined should be filtered out, leaving 2 arguments
         assertThat(result).isEqualTo(Value.of(2));
@@ -204,12 +209,12 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_allPureFunction_withVariableArg_then_dependsOnSubscription() {
+    void when_allPureFunction_withSubscriptionArg_then_dependsOnSubscription() {
         var broker = functionBroker("test.fn", args -> Value.of("ok"));
         var ctx    = compilationContext(broker);
-        var result = compileExpression("test.fn(x)", ctx);
+        var result = compileExpression("test.fn(subject)", ctx);
 
-        // Variable reference may be a subscription element, so depends on subscription
+        // Subscription element reference means depends on subscription
         assertThat(result).isInstanceOf(PureOperator.class)
                 .extracting(r -> ((PureOperator) r).isDependingOnSubscription()).isEqualTo(true);
     }
@@ -233,11 +238,12 @@ class FunctionCallCompilerTests {
     void when_functionCall_withMultipleStreams_then_mergesAllContributingAttributes() {
         var attrBroker = singleValueAttributeBroker(Map.of("a.attr", Value.of("A"), "b.attr", Value.of("B")));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("result"));
-        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
+        var ctx        = testContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<a.attr>, <b.attr>)", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        var evalCtx = ctx.evaluationContext();
+        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream).assertNext(tv -> {
             // Should have traces from both a.attr and b.attr
             assertThat(tv.contributingAttributes()).hasSize(2).extracting(r -> r.invocation().attributeName())
@@ -249,11 +255,12 @@ class FunctionCallCompilerTests {
     void when_functionCall_withSingleStream_then_preservesContributingAttributes() {
         var attrBroker = attributeBroker("test.attr", Value.of("value"));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("result"));
-        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(<test.attr>)", evalCtx);
+        var ctx        = testContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<test.attr>)", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
+        var evalCtx = ctx.evaluationContext();
+        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream).assertNext(tv -> assertThat(tv.contributingAttributes()).hasSize(1).first()
                 .extracting(r -> r.invocation().attributeName()).isEqualTo("test.attr")).verifyComplete();
     }

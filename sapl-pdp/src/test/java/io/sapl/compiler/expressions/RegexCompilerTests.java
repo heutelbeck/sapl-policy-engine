@@ -17,7 +17,10 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.util.Stratum;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,6 +31,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -86,13 +90,13 @@ class RegexCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_pureRegexWithVariables_then_evaluatesCorrectly(String description, String expression,
+    void when_regexWithVariables_then_evaluatesCorrectly(String description, String expression,
             Map<String, Value> variables, Value expected) {
-        assertPureEvaluatesTo(expression, variables, expected);
+        assertEvaluatesTo(expression, variables, expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_pureRegexWithVariables_then_evaluatesCorrectly() {
+    private static Stream<Arguments> when_regexWithVariables_then_evaluatesCorrectly() {
         return Stream.of(
             arguments("variable input matches", "input =~ \"hello.*\"", Map.of("input", Value.of("hello world")), Value.TRUE),
             arguments("variable input no match", "input =~ \"hello.*\"", Map.of("input", Value.of("goodbye")), Value.FALSE),
@@ -103,8 +107,13 @@ class RegexCompilerTests {
     // @formatter:on
 
     @Test
-    void when_pureRegexWithInvalidVariablePattern_then_returnsError() {
-        assertPureEvaluatesToError("\"hello\" =~ pattern", Map.of("pattern", Value.of("[invalid")));
+    void when_pureRegexWithInvalidSubscriptionPattern_then_returnsError() {
+        // Use subscription element so pattern is resolved at runtime
+        var subscription = AuthorizationSubscription.of(Value.NULL, Value.NULL, Value.NULL, Value.of("[invalid"));
+        var evalCtx      = evaluationContext(subscription);
+        var compiled     = compileExpression("\"hello\" =~ environment");
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        assertThat(((PureOperator) compiled).evaluate(evalCtx)).isInstanceOf(ErrorValue.class);
     }
 
 }

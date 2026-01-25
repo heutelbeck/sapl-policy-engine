@@ -161,16 +161,16 @@ io.sapl.pdp.embedded:
 #                         by the PDP each individual calculation step is documented.
 #                         The trace is in JSON format and may become very large.
 #                         Recommended only as a last resort for troubleshooting.
-      print-trace: true
+      print-trace: false
 # print-json-report: true|false This is a JSON report summarizing the applied algorithms
 #                               and results of each evaluated policy (set) in the
 #                               decision-making process. It includes lists of all errors and values
 #                               of policy information point attributes encountered
 #                               during the evaluation of each policy (set).
-      print-json-report: true
+      print-json-report: false
 # print-text-report: true|false This will log a human-readable textual report based on the
 #                               same data as the 'print-json-report' option generates.
-      print-text-report: true
+      print-text-report: false
 # pretty-print-reports: true|false This option can enable formatting of JSON data while
 #                                  printing JSON during reporting and tracing.
       pretty-print-reports: false
@@ -209,12 +209,14 @@ io.sapl.pdp.embedded:
 #
 server:
    address: localhost
+   port: 8080
    ssl:
-      key-store-type: PKCS12
-      key-store: file:security/keystore.p12
-      key-store-password: changeme
-      key-password: changeme
-      key-alias: netty
+      enabled: false
+#      key-store-type: PKCS12
+#      key-store: file:security/keystore.p12
+#      key-store-password: changeme
+#      key-password: changeme
+#      key-alias: netty
 
 # Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
 # is dropped by a firewall or other network components. The default vlaue 0 disables keep-alive messages.
@@ -223,11 +225,13 @@ server:
 # Rsocket configuration
 spring.rsocket.server:
    address: localhost
+   port: 7001
    ssl:
-      key-store-type: PKCS12
-      key-store: file:security/keystore.p12
-      key-store-password: changeme
-      key-password: changeme
-      key-alias: netty
+      enabled: false
+#      key-store-type: PKCS12
+#      key-store: file:security/keystore.p12
+#      key-store-password: changeme
+#      key-password: changeme
+#      key-alias: netty
 logging.level:
   "[io.sapl]": DEBUG   

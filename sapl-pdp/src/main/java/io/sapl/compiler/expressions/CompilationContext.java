@@ -17,19 +17,22 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.ast.Document;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.PdpData;
+import io.sapl.compiler.document.Document;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
@@ -43,6 +46,7 @@ import java.util.function.Supplier;
  * Trace level: Controls granularity of trace information gathered during
  * evaluation. This is a compile-time vote affecting generated expressions.
  */
+@Slf4j
 @Getter
 @Setter
 @ToString
@@ -53,22 +57,26 @@ public class CompilationContext {
     String                                  documentSource;
     final FunctionBroker                    functionBroker;
     final AttributeBroker                   attributeBroker;
+    final PdpData                           data;
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
     private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
 
     public CompilationContext(String pdpId,
             String configurationId,
+            PdpData data,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker) {
         this.pdpId           = pdpId;
         this.configurationId = configurationId;
         this.functionBroker  = functionBroker;
         this.attributeBroker = attributeBroker;
+        this.data            = data;
     }
 
     public CompilationContext(String pdpId,
             String configurationId,
+            PdpData data,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker,
             Supplier<String> timestampSupplier) {
@@ -77,17 +85,23 @@ public class CompilationContext {
         this.functionBroker    = functionBroker;
         this.attributeBroker   = attributeBroker;
         this.timestampSupplier = timestampSupplier;
+        this.data              = data;
+    }
+
+    public CompilationContext(PdpData data, FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+        this.functionBroker  = functionBroker;
+        this.attributeBroker = attributeBroker;
+        this.data            = data;
     }
 
     /**
-     * Creates a compilation context with the specified trace level.
-     *
      * @param functionBroker the function broker for resolving functions
      * @param attributeBroker the attribute broker for resolving attributes
      */
     public CompilationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
         this.functionBroker  = functionBroker;
         this.attributeBroker = attributeBroker;
+        this.data            = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
     /**
@@ -150,17 +164,16 @@ public class CompilationContext {
      * @return the compiled expression, or null if not found
      */
     public CompiledExpression getVariable(String variableName) {
-        return documentVariablesInScope.get(variableName);
-    }
-
-    /**
-     * Checks if a variable exists in the current scope.
-     *
-     * @param variableName the variable name
-     * @return true if the variable exists
-     */
-    public boolean containsVariable(String variableName) {
-        return documentVariablesInScope.containsKey(variableName);
+        if (documentVariablesInScope.containsKey(variableName)) {
+            return documentVariablesInScope.get(variableName);
+        }
+        if (data.variables().containsKey(variableName)) {
+            return data.variables().get(variableName);
+        }
+        log.warn(
+                "While compiling, a policy was detected trying to access the undefined environment variable {} this will always evaluate to 'undefined'",
+                variableName);
+        return Value.UNDEFINED;
     }
 
 }
