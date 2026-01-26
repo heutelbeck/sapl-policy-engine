@@ -23,6 +23,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.time.*;
@@ -40,6 +41,9 @@ public class TimePolicyInformationPoint {
     public static final String DESCRIPTION = """
             Policy Information Point and attributes for retrieving current date and time information and
             basic temporal logic.""";
+
+    private static final String ERROR_INTERVAL_NEGATIVE = "Time update interval must not be negative.";
+    private static final String ERROR_INTERVAL_ZERO     = "Time update interval must not be zero.";
 
     private static final NumberValue       DEFAULT_UPDATE_INTERVAL_IN_MS = Value.of(1000L);
     private static final DateTimeFormatter ISO_FORMATTER                 = DateTimeFormatter.ISO_DATE_TIME
@@ -79,7 +83,7 @@ public class TimePolicyInformationPoint {
             """)
     public Flux<Value> now(NumberValue updateIntervalInMillis) {
         try {
-            final var interval = numberValueMsToNonZeroPositiveDuration(updateIntervalInMillis);
+            val interval = numberValueMsToNonZeroPositiveDuration(updateIntervalInMillis);
             return instantNow(interval).map(ISO_FORMATTER::format).map(Value::of);
         } catch (IllegalArgumentException e) {
             return Flux.just(Value.error(e.getMessage()));
@@ -87,12 +91,12 @@ public class TimePolicyInformationPoint {
     }
 
     private Duration numberValueMsToNonZeroPositiveDuration(NumberValue value) {
-        final var duration = Duration.ofMillis(value.value().longValue());
+        val duration = Duration.ofMillis(value.value().longValue());
         if (duration.isZero()) {
-            throw new IllegalArgumentException("Time update interval must not be zero.");
+            throw new IllegalArgumentException(ERROR_INTERVAL_ZERO);
         }
         if (duration.isNegative()) {
-            throw new IllegalArgumentException("Time update interval must not be negative.");
+            throw new IllegalArgumentException(ERROR_INTERVAL_NEGATIVE);
         }
         return duration;
     }
@@ -102,8 +106,8 @@ public class TimePolicyInformationPoint {
     }
 
     private <T> Flux<T> poll(Duration pollInterval, Supplier<T> supplier) {
-        final var first     = Flux.just(supplier.get());
-        final var following = Flux.just(0).repeat().delayElements(pollInterval).map(tick -> supplier.get());
+        val first     = Flux.just(supplier.get());
+        val following = Flux.just(0).repeat().delayElements(pollInterval).map(tick -> supplier.get());
         return Flux.concat(first, following);
     }
 
@@ -186,23 +190,23 @@ public class TimePolicyInformationPoint {
             return Flux.just(Boolean.FALSE);
 
         if (now.isAfter(checkpoint)) {
-            final var initial      = Flux.just(Boolean.TRUE);
-            final var tillMidnight = boolAfterTimeDifference(false, now, LocalTime.MAX);
-            final var initialDay   = Flux.concat(initial, tillMidnight);
+            val initial      = Flux.just(Boolean.TRUE);
+            val tillMidnight = boolAfterTimeDifference(false, now, LocalTime.MAX);
+            val initialDay   = Flux.concat(initial, tillMidnight);
             return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint));
         }
 
-        final var initial        = Flux.just(Boolean.FALSE);
-        final var tillCheckpoint = boolAfterTimeDifference(true, now, checkpoint);
-        final var tillMidnight   = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
-        final var initialDay     = Flux.concat(initial, tillCheckpoint, tillMidnight);
+        val initial        = Flux.just(Boolean.FALSE);
+        val tillCheckpoint = boolAfterTimeDifference(true, now, checkpoint);
+        val tillMidnight   = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
+        val initialDay     = Flux.concat(initial, tillCheckpoint, tillMidnight);
         return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint));
 
     }
 
     private Flux<Boolean> afterCheckpointEventsFollowingDays(LocalTime checkpoint) {
-        final var startOfDay = boolAfterTimeDifference(true, LocalTime.MIN, checkpoint);
-        final var endOfDay   = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
+        val startOfDay = boolAfterTimeDifference(true, LocalTime.MIN, checkpoint);
+        val endOfDay   = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
         return Flux.concat(startOfDay, endOfDay).repeat();
     }
 
@@ -226,8 +230,8 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Flux<Value> localTimeIsBetween(TextValue startTime, TextValue endTime) {
-        final var localStartTime = LocalTime.parse(startTime.value());
-        final var localEndTime   = LocalTime.parse(endTime.value());
+        val localStartTime = LocalTime.parse(startTime.value());
+        val localEndTime   = LocalTime.parse(endTime.value());
         return nowIsBetween(localStartTime, localEndTime).map(Value::of);
     }
 
@@ -242,7 +246,7 @@ public class TimePolicyInformationPoint {
         if (t1.equals(LocalTime.MAX) && t2.equals(LocalTime.MIN))
             return Flux.just(Boolean.TRUE);
 
-        final var intervalWrapsAroundMidnight = t1.isAfter(t2);
+        val intervalWrapsAroundMidnight = t1.isAfter(t2);
 
         if (intervalWrapsAroundMidnight)
             return nowIsBetweenAscendingTimes(t2, t1).map(this::negate);
@@ -255,31 +259,31 @@ public class TimePolicyInformationPoint {
     }
 
     private Flux<Boolean> nowIsBetweenAscendingTimes(LocalTime start, LocalTime end) {
-        final var now = localTimeUtc();
+        val now = localTimeUtc();
 
         Flux<Boolean> initialStates;
         if (now.isBefore(start)) {
-            final var initial   = Flux.just(Boolean.FALSE);
-            final var tillStart = boolAfterTimeDifference(true, now, start);
+            val initial   = Flux.just(Boolean.FALSE);
+            val tillStart = boolAfterTimeDifference(true, now, start);
             initialStates = Flux.concat(initial, tillStart);
         } else if (now.isAfter(end)) {
-            final var initial                = Flux.just(Boolean.FALSE);
-            final var timeTillIntervalStarts = Duration
+            val initial                = Flux.just(Boolean.FALSE);
+            val timeTillIntervalStarts = Duration
                     .ofMillis(MILLIS.between(now, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
-            final var tillStart              = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
+            val tillStart              = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
             initialStates = Flux.concat(initial, tillStart);
         } else {
-            final var initial                = Flux.just(Boolean.TRUE);
-            final var tillIntervalEnd        = boolAfterTimeDifference(false, now, end);
-            final var timeTillIntervalStarts = Duration
+            val initial                = Flux.just(Boolean.TRUE);
+            val tillIntervalEnd        = boolAfterTimeDifference(false, now, end);
+            val timeTillIntervalStarts = Duration
                     .ofMillis(MILLIS.between(end, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
-            final var tillStart              = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
+            val tillStart              = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
             initialStates = Flux.concat(initial, tillIntervalEnd, tillStart);
         }
 
-        final var tillEnd          = boolAfterTimeDifference(false, start, end);
-        final var tillStartNextDay = boolAfterTimeDifference(true, start, end);
-        final var repeated         = Flux.concat(tillEnd, tillStartNextDay).repeat();
+        val tillEnd          = boolAfterTimeDifference(false, start, end);
+        val tillStartNextDay = boolAfterTimeDifference(true, start, end);
+        val repeated         = Flux.concat(tillEnd, tillStartNextDay).repeat();
 
         return Flux.concat(initialStates, repeated);
     }
@@ -352,8 +356,8 @@ public class TimePolicyInformationPoint {
     private Flux<Boolean> isAfter(Instant instantA, Instant instantB) {
         if (instantB.isAfter(instantA))
             return Flux.just(Boolean.TRUE);
-        final var initial  = Flux.just(Boolean.FALSE);
-        final var eventual = Flux.just(Boolean.TRUE).delayElements(Duration.between(instantB, instantA));
+        val initial  = Flux.just(Boolean.FALSE);
+        val eventual = Flux.just(Boolean.TRUE).delayElements(Duration.between(instantB, instantA));
         return Flux.concat(initial, eventual);
     }
 
@@ -375,25 +379,25 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Flux<Value> nowIsBetween(TextValue startTime, TextValue endTime) {
-        final var start = textValueToInstant(startTime);
-        final var end   = textValueToInstant(endTime);
+        val start = textValueToInstant(startTime);
+        val end   = textValueToInstant(endTime);
         return nowIsBetween(start, end).map(Value::of);
     }
 
     public Flux<Boolean> nowIsBetween(Instant start, Instant end) {
-        final var now = clock.instant();
+        val now = clock.instant();
         if (now.isAfter(end))
             return Flux.just(Boolean.FALSE);
 
         if (now.isAfter(start)) {
-            final var initial  = Flux.just(Boolean.TRUE);
-            final var eventual = Flux.just(Boolean.FALSE).delayElements(Duration.between(now, end));
+            val initial  = Flux.just(Boolean.TRUE);
+            val eventual = Flux.just(Boolean.FALSE).delayElements(Duration.between(now, end));
             return Flux.concat(initial, eventual);
         }
 
-        final var initial         = Flux.just(Boolean.FALSE);
-        final var duringIsBetween = Flux.just(Boolean.TRUE).delayElements(Duration.between(now, start));
-        final var eventual        = Flux.just(Boolean.FALSE).delayElements(Duration.between(start, end));
+        val initial         = Flux.just(Boolean.FALSE);
+        val duringIsBetween = Flux.just(Boolean.TRUE).delayElements(Duration.between(now, start));
+        val eventual        = Flux.just(Boolean.FALSE).delayElements(Duration.between(start, end));
 
         return Flux.concat(initial, duringIsBetween, eventual);
     }
@@ -425,10 +429,10 @@ public class TimePolicyInformationPoint {
     }
 
     private Flux<Boolean> toggle(Duration trueDurationMs, Duration falseDurationMs) {
-        final var initial       = Flux.just(Boolean.TRUE);
-        final var waitTillFalse = Flux.just(Boolean.FALSE).delayElements(trueDurationMs);
-        final var waitTillTrue  = Flux.just(Boolean.TRUE).delayElements(falseDurationMs);
-        final var repeatingTail = Flux.concat(waitTillFalse, waitTillTrue).repeat();
+        val initial       = Flux.just(Boolean.TRUE);
+        val waitTillFalse = Flux.just(Boolean.FALSE).delayElements(trueDurationMs);
+        val waitTillTrue  = Flux.just(Boolean.TRUE).delayElements(falseDurationMs);
+        val repeatingTail = Flux.concat(waitTillFalse, waitTillTrue).repeat();
         return Flux.concat(initial, repeatingTail);
     }
 

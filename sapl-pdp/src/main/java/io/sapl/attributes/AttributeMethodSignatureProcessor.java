@@ -41,21 +41,21 @@ import reactor.core.publisher.Mono;
 @UtilityClass
 public class AttributeMethodSignatureProcessor {
 
-    public static final String BAD_PARAMETER_TYPE_ERROR             = "Attributes must only have Value or its Sub-Types as parameters, but found: %s.";
-    public static final String BAD_RETURN_TYPE_ERROR                = "Attribute method must return Flux<Value>, Mono<Value>, or their subtypes, but returns: %s.";
-    public static final String BAD_VARARGS_PARAMETER_TYPE_ERROR     = "Varargs array must have Value or its Sub-Types as component type, but found: %s.";
-    public static final String ATTRIBUTE_NOT_STATIC_ERROR           = "Attribute method '%s' must be static when no PIP instance is provided.";
-    public static final String FAILED_TO_CREATE_METHOD_HANDLE_ERROR = "Failed to create MethodHandle for attribute: %s.";
-    public static final String EXACT_ARG_COUNT_ERROR_TEMPLATE       = "Attribute '%%s' requires exactly %d arguments, but received %%d";
-    public static final String MIN_ARG_COUNT_ERROR_TEMPLATE         = "Attribute '%%s' requires at least %d arguments, but received %%d";
-    public static final String TYPE_ERROR_TEMPLATE                  = "Attribute '%%s' argument %d: expected %s but received %%s";
-    public static final String VARARG_TYPE_ERROR_TEMPLATE           = "Attribute '%%s' varargs argument %%d: expected %s but received %%s";
-    public static final String ATTRIBUTE_EXECUTION_ERROR_TEMPLATE   = "Attribute '%s' execution failed: %s";
+    public static final String ERROR_ATTRIBUTE_EXECUTION_TEMPLATE   = "Attribute '%s' execution failed: %s";
+    public static final String ERROR_ATTRIBUTE_NOT_STATIC           = "Attribute method '%s' must be static when no PIP instance is provided.";
+    public static final String ERROR_BAD_PARAMETER_TYPE             = "Attributes must only have Value or its Sub-Types as parameters, but found: %s.";
+    public static final String ERROR_BAD_RETURN_TYPE                = "Attribute method must return Flux<Value>, Mono<Value>, or their subtypes, but returns: %s.";
+    public static final String ERROR_BAD_VARARGS_PARAMETER_TYPE     = "Varargs array must have Value or its Sub-Types as component type, but found: %s.";
+    public static final String ERROR_EXACT_ARG_COUNT_TEMPLATE       = "Attribute '%%s' requires exactly %d arguments, but received %%d";
+    public static final String ERROR_FAILED_TO_CREATE_METHOD_HANDLE = "Failed to create MethodHandle for attribute: %s.";
+    public static final String ERROR_MIN_ARG_COUNT_TEMPLATE         = "Attribute '%%s' requires at least %d arguments, but received %%d";
+    public static final String ERROR_TYPE_TEMPLATE                  = "Attribute '%%s' argument %d: expected %s but received %%s";
+    public static final String ERROR_VARARG_TYPE_TEMPLATE           = "Attribute '%%s' varargs argument %%d: expected %s but received %%s";
 
     public static AttributeFinderSpecification processAttributeMethod(Object pipInstance, String namespace,
             Method method) {
-        boolean hasAttribute            = method.isAnnotationPresent(Attribute.class);
-        boolean hasEnvironmentAttribute = method.isAnnotationPresent(EnvironmentAttribute.class);
+        val hasAttribute            = method.isAnnotationPresent(Attribute.class);
+        val hasEnvironmentAttribute = method.isAnnotationPresent(EnvironmentAttribute.class);
 
         if (!hasAttribute && !hasEnvironmentAttribute) {
             return null;
@@ -64,55 +64,54 @@ public class AttributeMethodSignatureProcessor {
         validateStaticMethodRequirement(pipInstance, method);
         validateReturnType(method);
 
-        String        name          = extractAttributeName(method, hasAttribute);
-        SignatureInfo signatureInfo = extractSignature(method, hasEnvironmentAttribute);
-        boolean       returnsFlux   = isFluxReturnType(method);
+        val name          = extractAttributeName(method, hasAttribute);
+        val signatureInfo = extractSignature(method, hasEnvironmentAttribute);
+        val returnsFlux   = isFluxReturnType(method);
 
         try {
-            AttributeFinder attributeFinder = createAttributeFinderForMethod(pipInstance, method, signatureInfo,
-                    returnsFlux);
+            val attributeFinder = createAttributeFinderForMethod(pipInstance, method, signatureInfo, returnsFlux);
             return new AttributeFinderSpecification(namespace, name, hasEnvironmentAttribute,
                     signatureInfo.parameterTypes, signatureInfo.varArgsParameterType, attributeFinder);
         } catch (IllegalAccessException exception) {
-            throw new IllegalStateException(FAILED_TO_CREATE_METHOD_HANDLE_ERROR.formatted(name), exception);
+            throw new IllegalStateException(ERROR_FAILED_TO_CREATE_METHOD_HANDLE.formatted(name), exception);
         }
     }
 
     private static String extractAttributeName(Method method, boolean hasAttribute) {
         if (hasAttribute) {
-            Attribute annotation = method.getAnnotation(Attribute.class);
+            val annotation = method.getAnnotation(Attribute.class);
             return annotationNameOrMethodName(annotation.name(), method);
         }
-        EnvironmentAttribute annotation = method.getAnnotation(EnvironmentAttribute.class);
+        val annotation = method.getAnnotation(EnvironmentAttribute.class);
         return annotationNameOrMethodName(annotation.name(), method);
     }
 
     private static void validateStaticMethodRequirement(Object pipInstance, Method method) {
         if (pipInstance == null && !Modifier.isStatic(method.getModifiers())) {
-            throw new IllegalStateException(ATTRIBUTE_NOT_STATIC_ERROR.formatted(method.getName()));
+            throw new IllegalStateException(ERROR_ATTRIBUTE_NOT_STATIC.formatted(method.getName()));
         }
     }
 
     private static void validateReturnType(Method method) {
-        java.lang.reflect.Type returnType = method.getGenericReturnType();
+        val returnType = method.getGenericReturnType();
 
         if (!(returnType instanceof ParameterizedType paramType)) {
-            throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
+            throw new IllegalStateException(ERROR_BAD_RETURN_TYPE.formatted(returnType.getTypeName()));
         }
 
-        java.lang.reflect.Type rawType = paramType.getRawType();
+        val rawType = paramType.getRawType();
         if (!Flux.class.equals(rawType) && !Mono.class.equals(rawType)) {
-            throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
+            throw new IllegalStateException(ERROR_BAD_RETURN_TYPE.formatted(returnType.getTypeName()));
         }
 
-        java.lang.reflect.Type[] typeArgs = paramType.getActualTypeArguments();
+        val typeArgs = paramType.getActualTypeArguments();
         if (typeArgs.length != 1) {
-            throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
+            throw new IllegalStateException(ERROR_BAD_RETURN_TYPE.formatted(returnType.getTypeName()));
         }
 
-        java.lang.reflect.Type elementType = typeArgs[0];
+        val elementType = typeArgs[0];
         if (elementType instanceof Class<?> clazz && !Value.class.isAssignableFrom(clazz)) {
-            throw new IllegalStateException(BAD_RETURN_TYPE_ERROR.formatted(returnType.getTypeName()));
+            throw new IllegalStateException(ERROR_BAD_RETURN_TYPE.formatted(returnType.getTypeName()));
         }
     }
 
@@ -126,14 +125,14 @@ public class AttributeMethodSignatureProcessor {
 
     private static SignatureInfo extractSignature(Method method, boolean isEnvironmentAttribute) {
         val parameters = method.getParameters();
-        int startIndex = determineStartIndex(parameters, isEnvironmentAttribute);
+        var startIndex = determineStartIndex(parameters, isEnvironmentAttribute);
 
         if (startIndex < parameters.length && parameters[startIndex].getType().equals(AttributeAccessContext.class)) {
             startIndex++;
         }
 
-        List<Class<? extends Value>> parameterTypes       = new ArrayList<>();
-        Class<? extends Value>       varArgsParameterType = null;
+        val parameterTypes       = new ArrayList<Class<? extends Value>>();
+        var varArgsParameterType = (Class<? extends Value>) null;
 
         for (int i = startIndex; i < parameters.length; i++) {
             val parameterType   = parameters[i].getType();
@@ -144,7 +143,7 @@ public class AttributeMethodSignatureProcessor {
             } else if (isLastParameter && parameterType.isArray()) {
                 varArgsParameterType = extractVarArgsType(parameterType);
             } else {
-                throw new IllegalStateException(BAD_PARAMETER_TYPE_ERROR.formatted(parameterType.getSimpleName()));
+                throw new IllegalStateException(ERROR_BAD_PARAMETER_TYPE.formatted(parameterType.getSimpleName()));
             }
         }
 
@@ -161,14 +160,14 @@ public class AttributeMethodSignatureProcessor {
             return 1;
         }
 
-        throw new IllegalStateException(BAD_PARAMETER_TYPE_ERROR.formatted(firstParamType.getSimpleName()));
+        throw new IllegalStateException(ERROR_BAD_PARAMETER_TYPE.formatted(firstParamType.getSimpleName()));
     }
 
     private static Class<? extends Value> extractVarArgsType(Class<?> arrayType) {
         val componentType = arrayType.getComponentType();
 
         if (!Value.class.isAssignableFrom(componentType)) {
-            throw new IllegalStateException(BAD_VARARGS_PARAMETER_TYPE_ERROR.formatted(componentType.getSimpleName()));
+            throw new IllegalStateException(ERROR_BAD_VARARGS_PARAMETER_TYPE.formatted(componentType.getSimpleName()));
         }
 
         return asValueClass(componentType);
@@ -204,7 +203,7 @@ public class AttributeMethodSignatureProcessor {
                 return convertResultToFlux(result, returnsFlux);
 
             } catch (Throwable throwable) {
-                return Flux.just(Value.error(ATTRIBUTE_EXECUTION_ERROR_TEMPLATE, invocation.attributeName(),
+                return Flux.just(Value.error(ERROR_ATTRIBUTE_EXECUTION_TEMPLATE, invocation.attributeName(),
                         throwable.getMessage()));
             }
         });
@@ -359,7 +358,7 @@ public class AttributeMethodSignatureProcessor {
     private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
         val templates = new String[expectedTypes.length];
         for (int i = 0; i < expectedTypes.length; i++) {
-            templates[i] = TYPE_ERROR_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
+            templates[i] = ERROR_TYPE_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
         }
         return templates;
     }
@@ -395,10 +394,10 @@ public class AttributeMethodSignatureProcessor {
                             signatureInfo.parameterTypes.size()),
                     signatureInfo.parameterTypes, signatureInfo.varArgsParameterType,
                     buildTypeErrorTemplates(signatureInfo.parameterTypes.toArray(new Class[0])),
-                    EXACT_ARG_COUNT_ERROR_TEMPLATE.formatted(signatureInfo.parameterTypes.size()),
-                    MIN_ARG_COUNT_ERROR_TEMPLATE.formatted(signatureInfo.parameterTypes.size()),
+                    ERROR_EXACT_ARG_COUNT_TEMPLATE.formatted(signatureInfo.parameterTypes.size()),
+                    ERROR_MIN_ARG_COUNT_TEMPLATE.formatted(signatureInfo.parameterTypes.size()),
                     signatureInfo.varArgsParameterType != null
-                            ? VARARG_TYPE_ERROR_TEMPLATE.formatted(signatureInfo.varArgsParameterType.getSimpleName())
+                            ? ERROR_VARARG_TYPE_TEMPLATE.formatted(signatureInfo.varArgsParameterType.getSimpleName())
                             : null);
         }
     }

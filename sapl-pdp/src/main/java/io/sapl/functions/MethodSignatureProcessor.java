@@ -40,16 +40,16 @@ import java.util.List;
 @UtilityClass
 public class MethodSignatureProcessor {
 
-    public static final String BAD_PARAMETER_TYPE_ERROR             = "Functions must only have Value or its Sub-Types as parameters, but found: %s.";
-    public static final String BAD_RETURN_TYPE_ERROR                = "Function method must return Value or a subtype, but returns: %s.";
-    public static final String BAD_VARARGS_PARAMETER_TYPE_ERROR     = "Varargs array must have Value or its Sub-Types as component type, but found: %s.";
-    public static final String EXACT_ARG_COUNT_ERROR_TEMPLATE       = "Function '%%s' requires exactly %d arguments, but received %%d";
-    public static final String FAILED_TO_CREATE_METHOD_HANDLE_ERROR = "Failed to create MethodHandle for function: %s.";
-    public static final String FUNCTION_EXECUTION_ERROR_TEMPLATE    = "Function '%s' execution failed: %s";
-    public static final String FUNCTION_NOT_STATIC_ERROR            = "Function method '%s' must be static when no library instance is provided.";
-    public static final String MIN_ARG_COUNT_ERROR_TEMPLATE         = "Function '%%s' requires at least %d arguments, but received %%d";
-    public static final String TYPE_ERROR_TEMPLATE                  = "Function '%%s' argument %d: expected %s but received %%s";
-    public static final String VARARG_TYPE_ERROR_TEMPLATE           = "Function '%%s' varargs argument %%d: expected %s but received %%s";
+    public static final String ERROR_BAD_PARAMETER_TYPE             = "Functions must only have Value or its Sub-Types as parameters, but found: %s.";
+    public static final String ERROR_BAD_RETURN_TYPE                = "Function method must return Value or a subtype, but returns: %s.";
+    public static final String ERROR_BAD_VARARGS_PARAMETER_TYPE     = "Varargs array must have Value or its Sub-Types as component type, but found: %s.";
+    public static final String ERROR_EXACT_ARG_COUNT_TEMPLATE       = "Function '%%s' requires exactly %d arguments, but received %%d";
+    public static final String ERROR_FAILED_TO_CREATE_METHOD_HANDLE = "Failed to create MethodHandle for function: %s.";
+    public static final String ERROR_FUNCTION_EXECUTION_TEMPLATE    = "Function '%s' execution failed: %s";
+    public static final String ERROR_FUNCTION_NOT_STATIC            = "Function method '%s' must be static when no library instance is provided.";
+    public static final String ERROR_MIN_ARG_COUNT_TEMPLATE         = "Function '%%s' requires at least %d arguments, but received %%d";
+    public static final String ERROR_TYPE_TEMPLATE                  = "Function '%%s' argument %d: expected %s but received %%s";
+    public static final String ERROR_VARARG_TYPE_TEMPLATE           = "Function '%%s' varargs argument %%d: expected %s but received %%s";
 
     public static FunctionSpecification functionSpecification(Object libraryInstance, String namespace, Method method) {
         if (!method.isAnnotationPresent(Function.class)) {
@@ -68,26 +68,26 @@ public class MethodSignatureProcessor {
             return new FunctionSpecification(namespace, name, parameterInfo.parameterTypes,
                     parameterInfo.varArgsParameterType, function);
         } catch (IllegalAccessException exception) {
-            throw new IllegalStateException(FAILED_TO_CREATE_METHOD_HANDLE_ERROR.formatted(name), exception);
+            throw new IllegalStateException(ERROR_FAILED_TO_CREATE_METHOD_HANDLE.formatted(name), exception);
         }
     }
 
     private static void validateStaticMethodRequirement(Object libraryInstance, Method method) {
         if (libraryInstance == null && !Modifier.isStatic(method.getModifiers())) {
-            throw new IllegalStateException(FUNCTION_NOT_STATIC_ERROR.formatted(method.getName()));
+            throw new IllegalStateException(ERROR_FUNCTION_NOT_STATIC.formatted(method.getName()));
         }
     }
 
     private static void validateReturnType(Method method) {
         if (!Value.class.isAssignableFrom(method.getReturnType())) {
-            throw new IllegalArgumentException(BAD_RETURN_TYPE_ERROR.formatted(method.getReturnType().getSimpleName()));
+            throw new IllegalArgumentException(ERROR_BAD_RETURN_TYPE.formatted(method.getReturnType().getSimpleName()));
         }
     }
 
     private static ParameterInfo extractParameterTypes(Method method) {
-        List<Class<? extends Value>> parameterTypes       = new ArrayList<>();
-        Class<? extends Value>       varArgsParameterType = null;
-        val                          parameters           = method.getParameters();
+        val parameterTypes       = new ArrayList<Class<? extends Value>>();
+        var varArgsParameterType = (Class<? extends Value>) null;
+        val parameters           = method.getParameters();
 
         for (int i = 0; i < parameters.length; i++) {
             val parameterType   = parameters[i].getType();
@@ -98,7 +98,7 @@ public class MethodSignatureProcessor {
             } else if (isLastParameter && parameterType.isArray()) {
                 varArgsParameterType = extractVarArgsType(parameterType);
             } else {
-                throw new IllegalStateException(BAD_PARAMETER_TYPE_ERROR.formatted(parameterType.getSimpleName()));
+                throw new IllegalStateException(ERROR_BAD_PARAMETER_TYPE.formatted(parameterType.getSimpleName()));
             }
         }
 
@@ -109,7 +109,7 @@ public class MethodSignatureProcessor {
         val componentType = arrayType.getComponentType();
 
         if (!Value.class.isAssignableFrom(componentType)) {
-            throw new IllegalStateException(BAD_VARARGS_PARAMETER_TYPE_ERROR.formatted(componentType.getSimpleName()));
+            throw new IllegalStateException(ERROR_BAD_VARARGS_PARAMETER_TYPE.formatted(componentType.getSimpleName()));
         }
 
         return asValueClass(componentType);
@@ -144,7 +144,7 @@ public class MethodSignatureProcessor {
                 return (Value) methodHandle.invokeWithArguments((Object[]) methodParameters);
 
             } catch (Throwable throwable) {
-                return Value.error(FUNCTION_EXECUTION_ERROR_TEMPLATE, invocation.functionName(),
+                return Value.error(ERROR_FUNCTION_EXECUTION_TEMPLATE, invocation.functionName(),
                         throwable.getMessage());
             }
         };
@@ -238,7 +238,7 @@ public class MethodSignatureProcessor {
     private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
         val templates = new String[expectedTypes.length];
         for (int i = 0; i < expectedTypes.length; i++) {
-            templates[i] = TYPE_ERROR_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
+            templates[i] = ERROR_TYPE_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
         }
         return templates;
     }
@@ -271,10 +271,10 @@ public class MethodSignatureProcessor {
                             : parameterInfo.parameterTypes.size(),
                     parameterInfo.parameterTypes, parameterInfo.varArgsParameterType,
                     buildTypeErrorTemplates(parameterInfo.parameterTypes.toArray(new Class[0])),
-                    EXACT_ARG_COUNT_ERROR_TEMPLATE.formatted(parameterInfo.parameterTypes.size()),
-                    MIN_ARG_COUNT_ERROR_TEMPLATE.formatted(parameterInfo.parameterTypes.size()),
+                    ERROR_EXACT_ARG_COUNT_TEMPLATE.formatted(parameterInfo.parameterTypes.size()),
+                    ERROR_MIN_ARG_COUNT_TEMPLATE.formatted(parameterInfo.parameterTypes.size()),
                     parameterInfo.varArgsParameterType != null
-                            ? VARARG_TYPE_ERROR_TEMPLATE.formatted(parameterInfo.varArgsParameterType.getSimpleName())
+                            ? ERROR_VARARG_TYPE_TEMPLATE.formatted(parameterInfo.varArgsParameterType.getSimpleName())
                             : null);
         }
     }

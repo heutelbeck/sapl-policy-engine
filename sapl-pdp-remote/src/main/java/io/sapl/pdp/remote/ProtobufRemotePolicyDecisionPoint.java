@@ -121,7 +121,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 log.error(LOG_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Mono.just(AuthorizationDecision.INDETERMINATE);
             }
-        }).doOnError(error -> log.error("RSocket connection error: {}", error.getMessage()));
+        }).doOnError(error -> log.error(LOG_RSOCKET_CONNECTION_ERROR, error.getMessage()));
     }
 
     @Override

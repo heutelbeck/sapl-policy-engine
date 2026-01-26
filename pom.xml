@@ -379,6 +379,7 @@
                             -XX:+EnableDynamicAgentLoading</argLine>
                         <excludes>
                             <exclude>FuzzTests.java</exclude>
+                            <exclude>**/*IT.java</exclude>
                         </excludes>
                     </configuration>
                 </plugin>
