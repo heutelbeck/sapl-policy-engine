@@ -463,7 +463,7 @@ public class AttributeCompiler {
 
     private static AttributeFinderInvocation createInvocation(String attributeName, Value entity, List<Value> arguments,
             Value options, PdpData data, EvaluationContext ctx) {
-        var configurationId = ctx.configurationId() != null ? ctx.configurationId() : "default";
+        var configurationId = ctx.configurationId();
         var timeout         = Duration.ofMillis(longOption(options, OPTION_INITIAL_TIMEOUT, DEFAULT_TIMEOUT_MS));
         var pollInterval    = Duration.ofMillis(longOption(options, OPTION_POLL_INTERVAL, DEFAULT_POLL_INTERVAL_MS));
         var backoff         = Duration.ofMillis(longOption(options, OPTION_BACKOFF, DEFAULT_BACKOFF_MS));

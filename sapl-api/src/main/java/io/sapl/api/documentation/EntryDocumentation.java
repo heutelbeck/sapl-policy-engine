@@ -20,6 +20,8 @@ package io.sapl.api.documentation;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.val;
+
 /**
  * Documentation for a single function or attribute finder within a library.
  *
@@ -53,7 +55,7 @@ public record EntryDocumentation(
      * @return the code template string
      */
     public String codeTemplate(String namespace) {
-        var template = new StringBuilder();
+        val template = new StringBuilder();
 
         if (type != EntryType.FUNCTION) {
             template.append('<');
@@ -86,7 +88,7 @@ public record EntryDocumentation(
      * @return the code template string with alias
      */
     public String codeTemplateWithAlias(String alias) {
-        var template = new StringBuilder();
+        val template = new StringBuilder();
 
         if (type != EntryType.FUNCTION) {
             template.append('<');

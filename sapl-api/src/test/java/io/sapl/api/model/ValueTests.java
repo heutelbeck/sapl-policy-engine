@@ -171,7 +171,7 @@ class ValueTests {
         }
 
         @ParameterizedTest
-        @ValueSource(doubles = { 1.5, 3.14159, 2.71828, -1.0, 0.001, 1e10, 1e-10 })
+        @ValueSource(doubles = { 1.5, 2.5, 3.7, -1.0, 0.001, 1e10, 1e-10 })
         @DisplayName("of(other values) creates new NumberValue")
         void when_ofOtherValues_then_createsNumberValue(double value) {
             var result = Value.of(value);
@@ -259,7 +259,7 @@ class ValueTests {
         }
 
         static Stream<BigDecimal> provideBigDecimalValues() {
-            return Stream.of(new BigDecimal("3.14159"), new BigDecimal("2.71828"), new BigDecimal("-1.5"),
+            return Stream.of(new BigDecimal("2.5"), new BigDecimal("3.7"), new BigDecimal("-1.5"),
                     new BigDecimal("1000000000000"), new BigDecimal("0.000000001"));
         }
 

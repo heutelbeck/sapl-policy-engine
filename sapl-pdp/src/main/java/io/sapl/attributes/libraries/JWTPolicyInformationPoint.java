@@ -240,7 +240,7 @@ public class JWTPolicyInformationPoint {
      * the token.
      *
      * @param rawToken a raw JWT Token
-     * @param ctx      the attribute access context
+     * @param ctx the attribute access context
      * @return a TRUE Value, iff the token is valid.
      */
     @Attribute(docs = """
@@ -283,7 +283,7 @@ public class JWTPolicyInformationPoint {
      * becomes mature and then expires.
      *
      * @param rawToken object containing JWT
-     * @param ctx      the attribute access context
+     * @param ctx the attribute access context
      * @return Flux representing the JWT's validity over time
      */
     @Attribute(docs = """

@@ -21,17 +21,50 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
 
+/**
+ * Represents the result of a policy evaluation by the PDP.
+ * <p>
+ * Contains the authorization decision along with optional obligations, advice,
+ * and a potentially transformed resource.
+ *
+ * @param decision the authorization decision (PERMIT, DENY, INDETERMINATE,
+ * NOT_APPLICABLE)
+ * @param obligations constraints that must be fulfilled for the decision to be
+ * valid
+ * @param advice optional recommendations that should be considered
+ * @param resource potentially transformed resource, or UNDEFINED if unchanged
+ */
 public record AuthorizationDecision(
         @NonNull Decision decision,
         @NonNull ArrayValue obligations,
         @NonNull ArrayValue advice,
         @NonNull Value resource) {
+
+    /**
+     * Singleton for a simple PERMIT decision without obligations, advice, or
+     * resource transformation.
+     */
     public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
             Value.EMPTY_ARRAY, Value.UNDEFINED);
+
+    /**
+     * Singleton for a simple DENY decision without obligations, advice, or resource
+     * transformation.
+     */
     public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY,
             Value.EMPTY_ARRAY, Value.UNDEFINED);
+
+    /**
+     * Singleton for an INDETERMINATE decision, indicating policy evaluation could
+     * not reach a conclusion.
+     */
     public static final AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE,
             Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
+
+    /**
+     * Singleton for a NOT_APPLICABLE decision, indicating no policies matched the
+     * subscription.
+     */
     public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE,
             Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
 

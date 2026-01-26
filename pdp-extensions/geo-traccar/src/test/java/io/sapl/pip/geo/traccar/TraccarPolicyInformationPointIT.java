@@ -18,14 +18,22 @@
 package io.sapl.pip.geo.traccar;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -35,18 +43,18 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
-@Slf4j
 class TraccarPolicyInformationPointIT {
-    private static final ObjectValue                   EMPTY_VARIABLES = Value.EMPTY_OBJECT;
-    private static final ObjectMapper                  MAPPER          = new ObjectMapper();
-    private static final ReactiveWebClient             CLIENT          = new ReactiveWebClient(MAPPER);
-    private static final TraccarPolicyInformationPoint TRACCAR_PIP     = new TraccarPolicyInformationPoint(CLIENT);
+    private static final ObjectMapper                  MAPPER      = new ObjectMapper();
+    private static final ReactiveWebClient             CLIENT      = new ReactiveWebClient(MAPPER);
+    private static final TraccarPolicyInformationPoint TRACCAR_PIP = new TraccarPolicyInformationPoint(CLIENT);
 
     private static TextValue   deviceId;
     private static TextValue   geofenceId1;
@@ -58,7 +66,7 @@ class TraccarPolicyInformationPointIT {
     private static int         port;
 
     @Container
-    @SuppressWarnings("resource") // Common test pattern
+    @SuppressWarnings("resource")
     private static final GenericContainer<?> traccarContainer = new GenericContainer<>(
             DockerImageName.parse("traccar/traccar:6.7")).withExposedPorts(8082, 5055).withReuse(false)
             .waitingFor(Wait.forHttp("/").forPort(8082).forStatusCode(200).withStartupTimeout(Duration.ofMinutes(2L)));
@@ -107,336 +115,273 @@ class TraccarPolicyInformationPointIT {
         badSettings = settings(email, password, "https://some-bad-server.local", 8082);
     }
 
-    @Test
-    void serverTest() {
-        val attributeStream = TRACCAR_PIP.server(settings).next();
-        StepVerifier.create(attributeStream)
-                .expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.MAP_URL)).verifyComplete();
+    @Nested
+    @DisplayName("server endpoint")
+    class ServerTests {
+
+        static Stream<Arguments> serverSettingsVariations() {
+            return Stream.of(arguments("with polling interval", """
+                    {
+                        "baseUrl": "http://%s:%d",
+                        "userName": "%s",
+                        "password": "%s",
+                        "pollingIntervalMs": 250
+                    }"""), arguments("without polling interval", """
+                    {
+                        "baseUrl": "http://%s:%d",
+                        "userName": "%s",
+                        "password": "%s"
+                    }"""), arguments("with repetitions", """
+                    {
+                        "baseUrl": "http://%s:%d",
+                        "userName": "%s",
+                        "password": "%s",
+                        "repetitions": 250
+                    }"""));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("serverSettingsVariations")
+        @DisplayName("returns server info")
+        void whenValidSettings_thenReturnsServerInfo(String description, String settingsTemplate) {
+            val testSettings    = (ObjectValue) json(settingsTemplate.formatted(host, port, email, password));
+            val attributeStream = TRACCAR_PIP.server(testSettings).next();
+            StepVerifier.create(attributeStream)
+                    .expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.MAP_URL)).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("returns error for invalid config")
+        void whenInvalidConfig_thenReturnsError() {
+            val attributeStream = TRACCAR_PIP.server(badSettings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("returns error for missing baseUrl")
+        void whenMissingBaseUrl_thenReturnsError() {
+            val config          = (ObjectValue) json("""
+                    {
+                        "userName": "email@address.org",
+                        "password": "password"
+                    }
+                    """);
+            val attributeStream = TRACCAR_PIP.server(config).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("returns error for empty config")
+        void whenEmptyConfig_thenReturnsError() {
+            val attributeStream = TRACCAR_PIP.server(Value.EMPTY_OBJECT).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
     }
 
-    @Test
-    void serverTest_noPollInterval() {
-        val noPollSettings  = (ObjectValue) json("""
-                {
-                    "baseUrl": "http://%s:%d",
-                    "userName": "%s",
-                    "password": "%s",
-                    "pollingIntervalMs": 250
-                }""".formatted(host, port, email, password));
-        val attributeStream = TRACCAR_PIP.server(noPollSettings).next();
-        StepVerifier.create(attributeStream)
-                .expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.MAP_URL)).verifyComplete();
+    @Nested
+    @DisplayName("devices endpoint")
+    class DevicesTests {
+
+        @Test
+        @DisplayName("returns array of devices")
+        void whenValidSettings_thenReturnsDevices() {
+            val attributeStream = TRACCAR_PIP.devices(settings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ArrayValue.class::isInstance).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("returns error for invalid config")
+        void whenInvalidConfig_thenReturnsError() {
+            val attributeStream = TRACCAR_PIP.devices(badSettings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("returns error for empty config")
+        void whenEmptyConfig_thenReturnsError() {
+            val attributeStream = TRACCAR_PIP.devices(Value.EMPTY_OBJECT).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
     }
 
-    @Test
-    void serverTest_withRepetitions() {
-        val noPollSettings  = (ObjectValue) json("""
-                {
-                    "baseUrl": "http://%s:%d",
-                    "userName": "%s",
-                    "password": "%s",
-                    "repetitions": 250
-                }""".formatted(host, port, email, password));
-        val attributeStream = TRACCAR_PIP.server(noPollSettings).next();
-        StepVerifier.create(attributeStream)
-                .expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.MAP_URL)).verifyComplete();
+    @Nested
+    @DisplayName("geofences endpoint")
+    class GeofencesTests {
+
+        @Test
+        @DisplayName("returns array of geofences")
+        void whenValidSettings_thenReturnsGeofences() {
+            val attributeStream = TRACCAR_PIP.geofences(settings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ArrayValue.class::isInstance).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("returns error for invalid config")
+        void whenInvalidConfig_thenReturnsError() {
+            val attributeStream = TRACCAR_PIP.geofences(badSettings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("returns error for empty config")
+        void whenEmptyConfig_thenReturnsError() {
+            val attributeStream = TRACCAR_PIP.geofences(Value.EMPTY_OBJECT).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
     }
 
-    @Test
-    void serverTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.server(settings).next();
-        StepVerifier.create(attributeStream)
-                .expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.MAP_URL)).verifyComplete();
+    @Nested
+    @DisplayName("single-resource endpoints with deviceId")
+    class DeviceResourceTests {
+
+        static Stream<Arguments> deviceEndpoints() {
+            BiFunction<Value, ObjectValue, Flux<Value>> device          = (id, cfg) -> TRACCAR_PIP
+                    .device((TextValue) id, cfg);
+            BiFunction<Value, ObjectValue, Flux<Value>> traccarPosition = (id, cfg) -> TRACCAR_PIP
+                    .traccarPosition((TextValue) id, cfg);
+            BiFunction<Value, ObjectValue, Flux<Value>> position        = (id, cfg) -> TRACCAR_PIP
+                    .position((TextValue) id, cfg);
+            return Stream.of(arguments("device", device, TraccarSchemata.NAME),
+                    arguments("traccarPosition", traccarPosition, TraccarSchemata.LONGITUDE),
+                    arguments("position", position, "coordinates"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("deviceEndpoints")
+        @DisplayName("returns data for valid device")
+        void whenValidDeviceId_thenReturnsData(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(deviceId, settings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey(expectedKey))
+                    .verifyComplete();
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("deviceEndpoints")
+        @DisplayName("returns error for invalid device")
+        void whenInvalidDeviceId_thenReturnsError(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(Value.of("invalid"), settings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("deviceEndpoints")
+        @DisplayName("returns error for invalid config")
+        void whenInvalidConfig_thenReturnsError(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(deviceId, badSettings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("deviceEndpoints")
+        @DisplayName("returns error for empty config")
+        void whenEmptyConfig_thenReturnsError(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(deviceId, Value.EMPTY_OBJECT).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
     }
 
-    @Test
-    void serverTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.server(badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+    @Nested
+    @DisplayName("single-resource endpoints with geofenceId")
+    class GeofenceResourceTests {
+
+        static Stream<Arguments> geofenceEndpoints() {
+            BiFunction<Value, ObjectValue, Flux<Value>> traccarGeofence  = (id, cfg) -> TRACCAR_PIP
+                    .traccarGeofence((TextValue) id, cfg);
+            BiFunction<Value, ObjectValue, Flux<Value>> geofenceGeometry = (id, cfg) -> TRACCAR_PIP
+                    .geofenceGeometry((TextValue) id, cfg);
+            return Stream.of(arguments("traccarGeofence", traccarGeofence, TraccarSchemata.AREA),
+                    arguments("geofenceGeometry", geofenceGeometry, "coordinates"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("geofenceEndpoints")
+        @DisplayName("returns data for valid geofence")
+        void whenValidGeofenceId_thenReturnsData(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(geofenceId1, settings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey(expectedKey))
+                    .verifyComplete();
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("geofenceEndpoints")
+        @DisplayName("returns error for invalid geofence")
+        void whenInvalidGeofenceId_thenReturnsError(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(Value.of("invalid"), settings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("geofenceEndpoints")
+        @DisplayName("returns error for invalid config")
+        void whenInvalidConfig_thenReturnsError(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(geofenceId1, badSettings).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("geofenceEndpoints")
+        @DisplayName("returns error for empty config")
+        void whenEmptyConfig_thenReturnsError(String name, BiFunction<Value, ObjectValue, Flux<Value>> method,
+                String expectedKey) {
+            val attributeStream = method.apply(geofenceId1, Value.EMPTY_OBJECT).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
     }
 
-    @Test
-    void devicesTest() {
-        val attributeStream = TRACCAR_PIP.devices(settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ArrayValue.class::isInstance).verifyComplete();
+    @Nested
+    @DisplayName("geographic containment")
+    class ContainmentTests {
+
+        @Test
+        @DisplayName("position inside geofence returns true")
+        void whenPositionInsideFence_thenContainsReturnsTrue() {
+            val position = TRACCAR_PIP.position(deviceId, settings).blockFirst();
+            val fence    = TRACCAR_PIP.geofenceGeometry(geofenceId1, settings).blockFirst();
+            assertThat(position).isNotNull();
+            assertThat(fence).isNotNull();
+            val result = GeographicFunctionLibrary.contains((ObjectValue) fence, (ObjectValue) position);
+            assertThat(result).isEqualTo(Value.TRUE);
+        }
+
+        @Test
+        @DisplayName("position outside geofence returns false")
+        void whenPositionOutsideFence_thenContainsReturnsFalse() {
+            val position     = TRACCAR_PIP.position(deviceId, settings).blockFirst();
+            val outsideFence = TRACCAR_PIP.geofenceGeometry(Value.of("2"), settings).blockFirst();
+            assertThat(position).isNotNull();
+            assertThat(outsideFence).isNotNull();
+            val result = GeographicFunctionLibrary.contains((ObjectValue) outsideFence, (ObjectValue) position);
+            assertThat(result).isEqualTo(Value.FALSE);
+        }
     }
 
-    @Test
-    void devicesTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.devices(settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ArrayValue.class::isInstance).verifyComplete();
-    }
+    @Nested
+    @DisplayName("edge cases")
+    class EdgeCaseTests {
 
-    @Test
-    void devicesTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.devices(badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void deviceTest() {
-        val attributeStream = TRACCAR_PIP.device(deviceId, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.NAME))
-                .verifyComplete();
-    }
-
-    @Test
-    void deviceTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.device(deviceId, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.NAME))
-                .verifyComplete();
-    }
-
-    @Test
-    void deviceTest_invalidInput() {
-        val attributeStream = TRACCAR_PIP.device(Value.of("invalid"), settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void deviceTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.device(deviceId, badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void traccarPositionTest() {
-        val attributeStream = TRACCAR_PIP.traccarPosition(deviceId, settings).next();
-        StepVerifier.create(attributeStream)
-                .expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.LONGITUDE)).verifyComplete();
-    }
-
-    @Test
-    void traccarPositionTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.traccarPosition(deviceId, settings).next();
-        StepVerifier.create(attributeStream)
-                .expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.LONGITUDE)).verifyComplete();
-    }
-
-    @Test
-    void traccarPositionTest_invalidInput() {
-        val attributeStream = TRACCAR_PIP.traccarPosition(Value.of("invalid"), settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void traccarPositionTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.traccarPosition(deviceId, badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void positionTest() {
-        val attributeStream = TRACCAR_PIP.position(deviceId, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey("coordinates"))
-                .verifyComplete();
-    }
-
-    @Test
-    void positionTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.position(deviceId, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey("coordinates"))
-                .verifyComplete();
-    }
-
-    @Test
-    void positionTest_invalidInput() {
-        val attributeStream = TRACCAR_PIP.position(Value.of("invalid"), settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void positionTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.position(deviceId, badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
-    }
-
-    @Test
-    void geofencesTest() {
-        val attributeStream = TRACCAR_PIP.geofences(settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ArrayValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void geofencesTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.geofences(settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ArrayValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void geofencesTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.geofences(badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void geofenceTest() {
-        val attributeStream = TRACCAR_PIP.traccarGeofence(geofenceId1, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.AREA))
-                .verifyComplete();
-    }
-
-    @Test
-    void geofenceTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.traccarGeofence(geofenceId1, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey(TraccarSchemata.AREA))
-                .verifyComplete();
-    }
-
-    @Test
-    void geofenceTest_invalidInput() {
-        val attributeStream = TRACCAR_PIP.traccarGeofence(Value.of("invalid"), settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void geofenceTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.traccarGeofence(geofenceId1, badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void geofenceGeometryTest() {
-        val attributeStream = TRACCAR_PIP.geofenceGeometry(geofenceId1, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey("coordinates"))
-                .verifyComplete();
-    }
-
-    @Test
-    void geofenceGeometryTest_withConfig() {
-        val attributeStream = TRACCAR_PIP.geofenceGeometry(geofenceId1, settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(a -> ((ObjectValue) a).containsKey("coordinates"))
-                .verifyComplete();
-    }
-
-    @Test
-    void geofenceGeometryTest_invalidInput() {
-        val attributeStream = TRACCAR_PIP.geofenceGeometry(Value.of("invalid"), settings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void geofenceGeometryTest_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.geofenceGeometry(geofenceId1, badSettings).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-    }
-
-    @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences() {
-        val position = TRACCAR_PIP.position(deviceId, settings).blockFirst();
-        val fence    = TRACCAR_PIP.geofenceGeometry(geofenceId1, settings).blockFirst();
-        assertThat(position).isNotNull();
-        assertThat(fence).isNotNull();
-        var result = GeographicFunctionLibrary.contains((ObjectValue) fence, (ObjectValue) position);
-        assertThat(result).isEqualTo(Value.TRUE);
-    }
-
-    @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences_withConfig() {
-        val position = TRACCAR_PIP.position(deviceId, settings).blockFirst();
-        val fence    = TRACCAR_PIP.geofenceGeometry(geofenceId1, settings).blockFirst();
-        assertThat(position).isNotNull();
-        assertThat(fence).isNotNull();
-        var result = GeographicFunctionLibrary.contains((ObjectValue) fence, (ObjectValue) position);
-        assertThat(result).isEqualTo(Value.TRUE);
-    }
-
-    @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences_notContains() {
-        val position     = TRACCAR_PIP.position(deviceId, settings).blockFirst();
-        val outsideFence = TRACCAR_PIP.geofenceGeometry(Value.of("2"), settings).blockFirst();
-        assertThat(position).isNotNull();
-        assertThat(outsideFence).isNotNull();
-        var result = GeographicFunctionLibrary.contains((ObjectValue) outsideFence, (ObjectValue) position);
-        assertThat(result).isEqualTo(Value.FALSE);
-    }
-
-    @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences_invalidInput() {
-        val attributeStream = TRACCAR_PIP.position(Value.of("invalid"), settings);
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
-    }
-
-    @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences_invalidConfig() {
-        val attributeStream = TRACCAR_PIP.position(deviceId, badSettings);
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
-    }
-
-    @Test
-    void serverTest_missingBaseUrl() {
-        val config = (ObjectValue) json("""
-                {
-                    "userName": "email@address.org",
-                    "password": "password"
-                  }
-                """);
-        assertThatThrownBy(() -> TRACCAR_PIP.server(config)).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void serverTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.server(EMPTY_VARIABLES)).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void devicesTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.devices(EMPTY_VARIABLES)).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void deviceTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.device(deviceId, EMPTY_VARIABLES))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void traccarPositionTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.traccarPosition(deviceId, EMPTY_VARIABLES))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void positionTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.position(deviceId, EMPTY_VARIABLES))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void geofencesTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.geofences(EMPTY_VARIABLES)).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void geofenceTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.traccarGeofence(geofenceId1, EMPTY_VARIABLES))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void geofenceGeometryTest_missingConfig() {
-        assertThatThrownBy(() -> TRACCAR_PIP.geofenceGeometry(geofenceId1, EMPTY_VARIABLES))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void traccarPositionTest_emptyArrayResponse() {
-        // Arrange
-        val mockWebClient = Mockito.mock(ReactiveWebClient.class);
-        val testPip       = new TraccarPolicyInformationPoint(mockWebClient);
-        val config        = (ObjectValue) json("""
-                {
-                    "baseUrl": "http://test.de:8082",
-                    "userName": "email@address.org",
-                    "password": "password"
-                  }
-                """);
-        val someDeviceId  = Value.of("someDeviceId");
-        when(mockWebClient.httpRequest(Mockito.any(), Mockito.any())).thenReturn(Flux.just(json("[]")));
-        // Act
-        val attributeStream = testPip.traccarPosition(someDeviceId, config).next();
-
-        // Assert
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        @Test
+        @DisplayName("traccarPosition returns error for empty array response")
+        void whenEmptyArrayResponse_thenReturnsError() {
+            val mockWebClient = Mockito.mock(ReactiveWebClient.class);
+            val testPip       = new TraccarPolicyInformationPoint(mockWebClient);
+            val config        = (ObjectValue) json("""
+                    {
+                        "baseUrl": "http://test.de:8082",
+                        "userName": "email@address.org",
+                        "password": "password"
+                    }
+                    """);
+            val someDeviceId  = Value.of("someDeviceId");
+            when(mockWebClient.httpRequest(Mockito.any(), Mockito.any())).thenReturn(Flux.just(json("[]")));
+            val attributeStream = testPip.traccarPosition(someDeviceId, config).next();
+            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        }
     }
 }

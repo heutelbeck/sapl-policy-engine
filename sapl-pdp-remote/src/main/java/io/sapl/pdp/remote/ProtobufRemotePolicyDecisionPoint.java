@@ -58,6 +58,16 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     private static final String ROUTE_MULTI_DECIDE     = "multi-decide";
     private static final String ROUTE_MULTI_DECIDE_ALL = "multi-decide-all";
 
+    private static final String LOG_DECODE_AUTHORIZATION_DECISION              = "Failed to decode authorization decision: {}";
+    private static final String LOG_DECODE_IDENTIFIABLE_AUTHORIZATION_DECISION = "Failed to decode identifiable authorization decision: {}";
+    private static final String LOG_DECODE_MULTI_AUTHORIZATION_DECISION        = "Failed to decode multi authorization decision: {}";
+    private static final String LOG_ENCODE_MULTI_SUBSCRIPTION                  = "Failed to encode multi-subscription: {}";
+    private static final String LOG_ENCODE_SUBSCRIPTION                        = "Failed to encode subscription: {}";
+    private static final String LOG_RECONNECT                                  = "No connection to remote PDP. Reconnect: {}";
+    private static final String LOG_RSOCKET_CONNECTION_ERROR                   = "RSocket connection error: {}";
+    private static final String LOG_WARN_INSECURE_SSL                          = "!!! ATTENTION: do not use insecure sslContext in production !!!";
+    private static final String LOG_WARN_SEPARATOR                             = "------------------------------------------------------------------";
+
     private final Mono<RSocket> rSocketMono;
 
     @Setter
@@ -77,10 +87,10 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     private Repeat<?> repeat() {
-        return Repeat.onlyIf(repeatContext -> true)
-                .backoff(Backoff.exponential(Duration.ofMillis(firstBackoffMillis), Duration.ofMillis(maxBackOffMillis),
-                        backoffFactor, false))
-                .doOnRepeat(o -> log.debug("No connection to remote PDP. Reconnect: {}", o));
+        return Repeat
+                .onlyIf(repeatContext -> true).backoff(Backoff.exponential(Duration.ofMillis(firstBackoffMillis),
+                        Duration.ofMillis(maxBackOffMillis), backoffFactor, false))
+                .doOnRepeat(o -> log.debug(LOG_RECONNECT, o));
     }
 
     @Override
@@ -91,11 +101,11 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                         SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
                 return rSocket.requestStream(payload).map(this::decodeAuthorizationDecision);
             } catch (IOException e) {
-                log.error("Failed to encode subscription: {}", e.getMessage());
+                log.error(LOG_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Flux.just(AuthorizationDecision.INDETERMINATE);
             }
         }).onErrorResume(error -> {
-            log.error("RSocket connection error: {}", error.getMessage());
+            log.error(LOG_RSOCKET_CONNECTION_ERROR, error.getMessage());
             return Flux.just(AuthorizationDecision.INDETERMINATE);
         }).repeatWhen(repeat()).distinctUntilChanged();
     }
@@ -108,7 +118,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                         SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
                 return rSocket.requestResponse(payload).map(this::decodeAuthorizationDecision);
             } catch (IOException e) {
-                log.error("Failed to encode subscription: {}", e.getMessage());
+                log.error(LOG_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Mono.just(AuthorizationDecision.INDETERMINATE);
             }
         }).doOnError(error -> log.error("RSocket connection error: {}", error.getMessage()));
@@ -122,11 +132,11 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
                 return rSocket.requestStream(payload).map(this::decodeIdentifiableAuthorizationDecision);
             } catch (IOException e) {
-                log.error("Failed to encode multi-subscription: {}", e.getMessage());
+                log.error(LOG_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
             }
         }).onErrorResume(error -> {
-            log.error("RSocket connection error: {}", error.getMessage());
+            log.error(LOG_RSOCKET_CONNECTION_ERROR, error.getMessage());
             return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
         }).repeatWhen(repeat()).distinctUntilChanged();
     }
@@ -139,11 +149,11 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
                 return rSocket.requestStream(payload).map(this::decodeMultiAuthorizationDecision);
             } catch (IOException e) {
-                log.error("Failed to encode multi-subscription: {}", e.getMessage());
+                log.error(LOG_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(MultiAuthorizationDecision.indeterminate());
             }
         }).onErrorResume(error -> {
-            log.error("RSocket connection error: {}", error.getMessage());
+            log.error(LOG_RSOCKET_CONNECTION_ERROR, error.getMessage());
             return Flux.just(MultiAuthorizationDecision.indeterminate());
         }).repeatWhen(repeat()).distinctUntilChanged();
     }
@@ -157,7 +167,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
             var data = extractData(payload);
             return SaplProtobufCodec.readAuthorizationDecision(data);
         } catch (IOException e) {
-            log.error("Failed to decode authorization decision: {}", e.getMessage());
+            log.error(LOG_DECODE_AUTHORIZATION_DECISION, e.getMessage());
             return AuthorizationDecision.INDETERMINATE;
         } finally {
             payload.release();
@@ -169,7 +179,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
             var data = extractData(payload);
             return SaplProtobufCodec.readIdentifiableAuthorizationDecision(data);
         } catch (IOException e) {
-            log.error("Failed to decode identifiable authorization decision: {}", e.getMessage());
+            log.error(LOG_DECODE_IDENTIFIABLE_AUTHORIZATION_DECISION, e.getMessage());
             return IdentifiableAuthorizationDecision.INDETERMINATE;
         } finally {
             payload.release();
@@ -181,7 +191,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
             var data = extractData(payload);
             return SaplProtobufCodec.readMultiAuthorizationDecision(data);
         } catch (IOException e) {
-            log.error("Failed to decode multi authorization decision: {}", e.getMessage());
+            log.error(LOG_DECODE_MULTI_AUTHORIZATION_DECISION, e.getMessage());
             return MultiAuthorizationDecision.indeterminate();
         } finally {
             payload.release();
@@ -231,9 +241,9 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
          * @throws SSLException if SSL configuration fails
          */
         public Builder withUnsecureSSL() throws SSLException {
-            log.warn("------------------------------------------------------------------");
-            log.warn("!!! ATTENTION: do not use insecure sslContext in production !!!");
-            log.warn("------------------------------------------------------------------");
+            log.warn(LOG_WARN_SEPARATOR);
+            log.warn(LOG_WARN_INSECURE_SSL);
+            log.warn(LOG_WARN_SEPARATOR);
             var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
         }

@@ -17,6 +17,8 @@
  */
 package io.sapl.api.coverage;
 
+import lombok.val;
+
 /**
  * Coverage information for a single metadata line.
  *

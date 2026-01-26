@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import lombok.val;
+
 /**
  * Jackson deserializer for PDPConfiguration.
  * <p>
@@ -68,7 +70,7 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
         ObjectValue        secrets            = Value.EMPTY_OBJECT;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var fieldName = parser.currentName();
+            val fieldName = parser.currentName();
             parser.nextToken();
 
             switch (fieldName) {
@@ -102,7 +104,7 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
             throw new IOException("Expected START_ARRAY for saplDocuments.");
         }
 
-        var strings = new ArrayList<String>();
+        val strings = new ArrayList<String>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
             strings.add(parser.getText());
         }
@@ -114,9 +116,9 @@ public class PDPConfigurationDeserializer extends JsonDeserializer<PDPConfigurat
             throw new IOException("Expected START_OBJECT for value map.");
         }
 
-        var map = new HashMap<String, Value>();
+        val map = new HashMap<String, Value>();
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var fieldName = parser.currentName();
+            val fieldName = parser.currentName();
             parser.nextToken();
             map.put(fieldName, valueDeserializer.deserialize(parser, context));
         }

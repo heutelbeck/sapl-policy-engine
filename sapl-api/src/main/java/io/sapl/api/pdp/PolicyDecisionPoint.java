@@ -23,6 +23,8 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.val;
+
 /**
  * The Policy Decision Point (PDP) is the central component for authorization
  * decisions. It evaluates authorization
@@ -131,10 +133,10 @@ public interface PolicyDecisionPoint {
     private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableDecisionFluxes(
             MultiAuthorizationSubscription multiSubscription) {
         List<Flux<IdentifiableAuthorizationDecision>> fluxes = new ArrayList<>();
-        for (var identifiableSubscription : multiSubscription) {
-            var subscriptionId = identifiableSubscription.subscriptionId();
-            var subscription   = identifiableSubscription.subscription();
-            var decisionFlux   = decide(subscription)
+        for (val identifiableSubscription : multiSubscription) {
+            val subscriptionId = identifiableSubscription.subscriptionId();
+            val subscription   = identifiableSubscription.subscription();
+            val decisionFlux   = decide(subscription)
                     .map(decision -> new IdentifiableAuthorizationDecision(subscriptionId, decision));
             fluxes.add(decisionFlux);
         }
@@ -142,9 +144,9 @@ public interface PolicyDecisionPoint {
     }
 
     private static MultiAuthorizationDecision collectDecisions(Object[] decisions) {
-        var multiDecision = new MultiAuthorizationDecision();
+        val multiDecision = new MultiAuthorizationDecision();
         for (Object value : decisions) {
-            var identifiable = (IdentifiableAuthorizationDecision) value;
+            val identifiable = (IdentifiableAuthorizationDecision) value;
             multiDecision.setDecision(identifiable.subscriptionId(), identifiable.decision());
         }
         return multiDecision;

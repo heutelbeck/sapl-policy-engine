@@ -29,6 +29,8 @@ import io.sapl.api.pdp.Decision;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import lombok.val;
+
 /**
  * Jackson deserializer for AuthorizationDecision.
  */
@@ -48,7 +50,7 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
         Value      resource    = Value.UNDEFINED;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var fieldName = parser.currentName();
+            val fieldName = parser.currentName();
             parser.nextToken();
 
             switch (fieldName) {
@@ -72,7 +74,7 @@ public class AuthorizationDecisionDeserializer extends JsonDeserializer<Authoriz
             throw new IOException("Expected START_ARRAY for obligations/advice.");
         }
 
-        var values = new ArrayList<Value>();
+        val values = new ArrayList<Value>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
             values.add(valueDeserializer.deserialize(parser, context));
         }

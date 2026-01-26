@@ -29,6 +29,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
+import lombok.val;
 
 /**
  * A container for multiple authorization subscriptions, each identified by a
@@ -218,7 +219,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
     @Override
     public @NonNull Iterator<IdentifiableAuthorizationSubscription> iterator() {
-        var entryIterator = subscriptions.entrySet().iterator();
+        val entryIterator = subscriptions.entrySet().iterator();
         return new Iterator<>() {
             @Override
             public boolean hasNext() {
@@ -227,7 +228,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
             @Override
             public IdentifiableAuthorizationSubscription next() {
-                var entry = entryIterator.next();
+                val entry = entryIterator.next();
                 return new IdentifiableAuthorizationSubscription(entry.getKey(), entry.getValue());
             }
         };
@@ -235,8 +236,8 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
     @Override
     public String toString() {
-        var builder = new StringBuilder("MultiAuthorizationSubscription {");
-        for (var subscription : this) {
+        val builder = new StringBuilder("MultiAuthorizationSubscription {");
+        for (val subscription : this) {
             builder.append("\n\t[ID: ").append(subscription.subscriptionId()).append(" | ")
                     .append(subscription.subscription()).append(']');
         }

@@ -81,7 +81,7 @@ public record ErrorValue(String message, Throwable cause, SourceLocation locatio
     @Override
     public @NotNull String toString() {
         val printMessage = message == null ? "unknown error" : message;
-        var result       = new StringBuilder("ERROR[message=\"").append(printMessage).append('"');
+        val result       = new StringBuilder("ERROR[message=\"").append(printMessage).append('"');
         if (cause != null) {
             result.append(", cause=").append(cause.getClass().getSimpleName());
         }

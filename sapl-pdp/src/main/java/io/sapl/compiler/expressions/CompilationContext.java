@@ -33,6 +33,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
@@ -164,11 +165,13 @@ public class CompilationContext {
      * @return the compiled expression, or null if not found
      */
     public CompiledExpression getVariable(String variableName) {
-        if (documentVariablesInScope.containsKey(variableName)) {
-            return documentVariablesInScope.get(variableName);
+        val inScopeVariable = documentVariablesInScope.get(variableName);
+        if (inScopeVariable != null) {
+            return inScopeVariable;
         }
-        if (data.variables().containsKey(variableName)) {
-            return data.variables().get(variableName);
+        val variable = data.variables().get(variableName);
+        if (variable != null) {
+            return variable;
         }
         log.warn(
                 "While compiling, a policy was detected trying to access the undefined environment variable {} this will always evaluate to 'undefined'",

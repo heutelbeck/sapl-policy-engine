@@ -24,6 +24,8 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson serializer for MultiAuthorizationSubscription.
  * <p>
@@ -44,7 +46,7 @@ public class MultiAuthorizationSubscriptionSerializer extends JsonSerializer<Mul
     public void serialize(MultiAuthorizationSubscription multiSubscription, JsonGenerator generator,
             SerializerProvider serializers) throws IOException {
         generator.writeStartObject();
-        for (var identifiable : multiSubscription) {
+        for (val identifiable : multiSubscription) {
             generator.writeFieldName(identifiable.subscriptionId());
             subscriptionSerializer.serialize(identifiable.subscription(), generator, serializers);
         }

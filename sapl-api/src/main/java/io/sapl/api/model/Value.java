@@ -90,6 +90,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     @Serial
     long serialVersionUID = SaplVersion.VERSION_UID;
 
+    String ERROR_CANNOT_CREATE_VALUE_FROM_INFINITE_DOUBLE = "Cannot create Value from infinite double: %s. Use Value.error() for computation errors.";
+    String ERROR_CANNOT_CREATE_VALUE_FROM_NAN             = "Cannot create Value from NaN. Use Value.error() for computation errors.";
+
     /**
      * Singleton for boolean true.
      */
@@ -187,12 +190,10 @@ public sealed interface Value extends Serializable, CompiledExpression
      */
     static NumberValue of(double value) {
         if (Double.isNaN(value)) {
-            throw new IllegalArgumentException(
-                    "Cannot create Value from NaN. Use Value.error() for computation errors.");
+            throw new IllegalArgumentException(ERROR_CANNOT_CREATE_VALUE_FROM_NAN);
         }
         if (Double.isInfinite(value)) {
-            throw new IllegalArgumentException("Cannot create Value from infinite double: " + value
-                    + ". Use Value.error() for computation errors.");
+            throw new IllegalArgumentException(ERROR_CANNOT_CREATE_VALUE_FROM_INFINITE_DOUBLE.formatted(value));
         }
         if (value == 0.0)
             return ZERO;

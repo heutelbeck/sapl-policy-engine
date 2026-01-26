@@ -30,6 +30,8 @@ import java.util.ArrayList;
 
 import static java.util.stream.Collectors.joining;
 
+import lombok.val;
+
 /**
  * Marshalling between SAPL Value types and JSON.
  * <p>
@@ -184,7 +186,7 @@ public class ValueJsonMarshaller {
     }
 
     private static String formatError(ErrorValue error) {
-        var result = new StringBuilder("ERROR[");
+        val result = new StringBuilder("ERROR[");
         result.append("message=").append(quoteString(error.message()));
         if (error.location() != null) {
             result.append(", at=").append(error.location());
@@ -200,11 +202,11 @@ public class ValueJsonMarshaller {
         if (isSimpleArray(array)) {
             return "[" + array.stream().map(v -> toPrettyString(v, 0)).collect(joining(", ")) + "]";
         }
-        var result      = new StringBuilder("[\n");
-        var childIndent = indent + 1;
-        var padding     = "  ".repeat(childIndent);
+        val result      = new StringBuilder("[\n");
+        val childIndent = indent + 1;
+        val padding     = "  ".repeat(childIndent);
         var first       = true;
-        for (var item : array) {
+        for (val item : array) {
             if (!first) {
                 result.append(",\n");
             }
@@ -219,11 +221,11 @@ public class ValueJsonMarshaller {
         if (object.isEmpty()) {
             return "{}";
         }
-        var result      = new StringBuilder("{\n");
-        var childIndent = indent + 1;
-        var padding     = "  ".repeat(childIndent);
+        val result      = new StringBuilder("{\n");
+        val childIndent = indent + 1;
+        val padding     = "  ".repeat(childIndent);
         var first       = true;
-        for (var entry : object.entrySet()) {
+        for (val entry : object.entrySet()) {
             if (!first) {
                 result.append(",\n");
             }
@@ -320,17 +322,17 @@ public class ValueJsonMarshaller {
     }
 
     private static JsonNode toUndefinedJsonNode() {
-        var node = FACTORY.objectNode();
+        val node = FACTORY.objectNode();
         node.put(TYPE_FIELD, TYPE_UNDEFINED);
         return node;
     }
 
     private static JsonNode toErrorJsonNode(ErrorValue error) {
-        var node = FACTORY.objectNode();
+        val node = FACTORY.objectNode();
         node.put(TYPE_FIELD, TYPE_ERROR);
         node.put("message", error.message());
         if (error.location() != null) {
-            var loc = error.location();
+            val loc = error.location();
             if (loc.documentName() != null) {
                 node.put("documentName", loc.documentName());
             }
@@ -359,8 +361,8 @@ public class ValueJsonMarshaller {
 
     private static JsonNode toJsonArray(ArrayValue array, int depth, boolean lenient) {
         checkDepthForMarshalling(depth);
-        var arrayNode = FACTORY.arrayNode();
-        for (var item : array) {
+        val arrayNode = FACTORY.arrayNode();
+        for (val item : array) {
             arrayNode.add(toJsonNode(item, depth, lenient));
         }
         return arrayNode;
@@ -368,8 +370,8 @@ public class ValueJsonMarshaller {
 
     private static JsonNode toJsonObject(ObjectValue object, int depth, boolean lenient) {
         checkDepthForMarshalling(depth);
-        var objectNode = FACTORY.objectNode();
-        for (var entry : object.entrySet()) {
+        val objectNode = FACTORY.objectNode();
+        for (val entry : object.entrySet()) {
             objectNode.set(entry.getKey(), toJsonNode(entry.getValue(), depth, lenient));
         }
         return objectNode;
@@ -377,14 +379,14 @@ public class ValueJsonMarshaller {
 
     private static Value fromJsonArray(JsonNode arrayNode, int depth) {
         checkDepthForUnmarshalling(depth);
-        var items = new ArrayList<Value>();
+        val items = new ArrayList<Value>();
         arrayNode.forEach(item -> items.add(fromJsonNode(item, depth)));
         return Value.ofArray(items);
     }
 
     private static Value fromJsonObject(JsonNode objectNode, int depth) {
         checkDepthForUnmarshalling(depth);
-        var builder = ObjectValue.builder();
+        val builder = ObjectValue.builder();
         objectNode.properties().forEach(entry -> builder.put(entry.getKey(), fromJsonNode(entry.getValue(), depth)));
         return builder.build();
     }

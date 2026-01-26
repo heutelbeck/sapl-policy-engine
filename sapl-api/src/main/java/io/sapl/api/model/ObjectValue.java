@@ -74,7 +74,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
         if (keysAndValues.length % 2 != 0) {
             throw new IllegalArgumentException("Keys and values must be provided in pairs.");
         }
-        var properties = new LinkedHashMap<String, Value>();
+        val properties = new LinkedHashMap<String, Value>();
         for (int i = 0; i < keysAndValues.length; i += 2) {
             if (!(keysAndValues[i] instanceof TextValue(String val))) {
                 throw new IllegalArgumentException("Keys must be TextValue.");

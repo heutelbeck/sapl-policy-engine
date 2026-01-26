@@ -26,6 +26,8 @@ import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson deserializer for IdentifiableAuthorizationSubscription.
  */
@@ -45,7 +47,7 @@ public class IdentifiableAuthorizationSubscriptionDeserializer
         AuthorizationSubscription subscription   = null;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var fieldName = parser.currentName();
+            val fieldName = parser.currentName();
             parser.nextToken();
 
             switch (fieldName) {

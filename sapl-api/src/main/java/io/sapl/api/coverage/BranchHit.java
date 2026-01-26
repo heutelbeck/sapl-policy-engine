@@ -17,6 +17,8 @@
  */
 package io.sapl.api.coverage;
 
+import lombok.val;
+
 /**
  * Records branch coverage for a single condition statement in a policy.
  * <p>

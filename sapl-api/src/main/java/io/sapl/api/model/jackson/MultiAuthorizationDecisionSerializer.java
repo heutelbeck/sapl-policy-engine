@@ -24,6 +24,8 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson serializer for MultiAuthorizationDecision.
  * <p>
@@ -44,7 +46,7 @@ public class MultiAuthorizationDecisionSerializer extends JsonSerializer<MultiAu
     public void serialize(MultiAuthorizationDecision multiDecision, JsonGenerator generator,
             SerializerProvider serializers) throws IOException {
         generator.writeStartObject();
-        for (var identifiable : multiDecision) {
+        for (val identifiable : multiDecision) {
             generator.writeFieldName(identifiable.subscriptionId());
             decisionSerializer.serialize(identifiable.decision(), generator, serializers);
         }

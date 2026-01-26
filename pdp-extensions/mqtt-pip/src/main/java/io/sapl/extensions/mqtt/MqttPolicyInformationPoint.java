@@ -148,7 +148,7 @@ public class MqttPolicyInformationPoint {
      * Uses QoS level 0 (at most once) by default.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param ctx   the attribute access context containing MQTT broker configuration.
+     * @param ctx the attribute access context containing MQTT broker configuration.
      * @return A reactive stream of messages from the subscribed topics.
      */
     @Attribute(name = "messages", docs = """
@@ -196,8 +196,8 @@ public class MqttPolicyInformationPoint {
      * received messages as a reactive stream.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param ctx   the attribute access context containing MQTT broker configuration.
-     * @param qos   The Quality of Service level (0, 1, or 2).
+     * @param ctx the attribute access context containing MQTT broker configuration.
+     * @param qos The Quality of Service level (0, 1, or 2).
      * @return A reactive stream of messages from the subscribed topics.
      */
     @Attribute(name = "messages", docs = """
@@ -239,11 +239,11 @@ public class MqttPolicyInformationPoint {
      * broker configuration. Supports connecting to multiple MQTT brokers
      * simultaneously or overriding broker settings for specific subscriptions.
      *
-     * @param topic         A topic string or array of topic strings to subscribe to.
-     * @param ctx           the attribute access context containing MQTT broker configuration.
-     * @param qos           The Quality of Service level (0, 1, or 2).
+     * @param topic A topic string or array of topic strings to subscribe to.
+     * @param ctx the attribute access context containing MQTT broker configuration.
+     * @param qos The Quality of Service level (0, 1, or 2).
      * @param mqttPipConfig Configuration object, array of configuration objects, or
-     *                      broker name reference.
+     * broker name reference.
      * @return A reactive stream of messages from the subscribed topics.
      */
     @Attribute(name = "messages", docs = """

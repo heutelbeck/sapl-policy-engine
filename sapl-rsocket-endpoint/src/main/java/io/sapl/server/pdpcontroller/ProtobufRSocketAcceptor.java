@@ -50,6 +50,13 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final String ROUTE_MULTI_DECIDE_ALL      = "multi-decide-all";
     private static final String ROUTE_MULTI_DECIDE_ALL_ONCE = "multi-decide-all-once";
 
+    private static final String LOG_ENCODE_DECISION_FAILED              = "Failed to encode decision: {}";
+    private static final String LOG_ENCODE_IDENTIFIABLE_DECISION_FAILED = "Failed to encode identifiable decision: {}";
+    private static final String LOG_ENCODE_MULTI_DECISION_FAILED        = "Failed to encode multi-decision: {}";
+    private static final String LOG_ERROR_IN_ROUTE                      = "Error in {}: {}";
+    private static final String LOG_PARSE_MULTI_SUBSCRIPTION_FAILED     = "Failed to parse multi-subscription: {}";
+    private static final String LOG_PARSE_SUBSCRIPTION_FAILED           = "Failed to parse subscription: {}";
+
     private final PolicyDecisionPoint pdp;
 
     @NonNull
@@ -114,11 +121,11 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 var subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
                 return pdp.decide(subscription).onErrorResume(error -> {
-                    log.debug("Error in decide-once: {}", error.getMessage());
+                    log.debug(LOG_ERROR_IN_ROUTE, ROUTE_DECIDE_ONCE, error.getMessage());
                     return Flux.just(AuthorizationDecision.INDETERMINATE);
                 }).next().map(this::encodeDecision);
             } catch (IOException e) {
-                log.debug("Failed to parse subscription: {}", e.getMessage());
+                log.debug(LOG_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
                 return Mono.just(encodeDecision(AuthorizationDecision.INDETERMINATE));
             }
         }
@@ -127,11 +134,11 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 var subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
                 return pdp.decide(subscription).onErrorResume(error -> {
-                    log.debug("Error in decide: {}", error.getMessage());
+                    log.debug(LOG_ERROR_IN_ROUTE, ROUTE_DECIDE, error.getMessage());
                     return Flux.just(AuthorizationDecision.INDETERMINATE);
                 }).map(this::encodeDecision);
             } catch (IOException e) {
-                log.debug("Failed to parse subscription: {}", e.getMessage());
+                log.debug(LOG_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
                 return Flux.just(encodeDecision(AuthorizationDecision.INDETERMINATE));
             }
         }
@@ -140,11 +147,11 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 var subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
                 return pdp.decide(subscription).onErrorResume(error -> {
-                    log.debug("Error in multi-decide: {}", error.getMessage());
+                    log.debug(LOG_ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE, error.getMessage());
                     return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
                 }).map(this::encodeIdentifiableDecision);
             } catch (IOException e) {
-                log.debug("Failed to parse multi-subscription: {}", e.getMessage());
+                log.debug(LOG_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
                 return Flux.just(encodeIdentifiableDecision(IdentifiableAuthorizationDecision.INDETERMINATE));
             }
         }
@@ -153,11 +160,11 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 var subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
                 return pdp.decideAll(subscription).onErrorResume(error -> {
-                    log.debug("Error in multi-decide-all: {}", error.getMessage());
+                    log.debug(LOG_ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE_ALL, error.getMessage());
                     return Flux.just(MultiAuthorizationDecision.indeterminate());
                 }).map(this::encodeMultiDecision);
             } catch (IOException e) {
-                log.debug("Failed to parse multi-subscription: {}", e.getMessage());
+                log.debug(LOG_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
                 return Flux.just(encodeMultiDecision(MultiAuthorizationDecision.indeterminate()));
             }
         }
@@ -166,11 +173,11 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 var subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
                 return pdp.decideAll(subscription).onErrorResume(error -> {
-                    log.debug("Error in multi-decide-all-once: {}", error.getMessage());
+                    log.debug(LOG_ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE_ALL_ONCE, error.getMessage());
                     return Flux.just(MultiAuthorizationDecision.indeterminate());
                 }).next().map(this::encodeMultiDecision);
             } catch (IOException e) {
-                log.debug("Failed to parse multi-subscription: {}", e.getMessage());
+                log.debug(LOG_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
                 return Mono.just(encodeMultiDecision(MultiAuthorizationDecision.indeterminate()));
             }
         }
@@ -179,7 +186,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 return DefaultPayload.create(SaplProtobufCodec.writeAuthorizationDecision(decision));
             } catch (IOException e) {
-                log.error("Failed to encode decision: {}", e.getMessage());
+                log.error(LOG_ENCODE_DECISION_FAILED, e.getMessage());
                 return DefaultPayload.create(new byte[0]);
             }
         }
@@ -188,7 +195,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 return DefaultPayload.create(SaplProtobufCodec.writeIdentifiableAuthorizationDecision(decision));
             } catch (IOException e) {
-                log.error("Failed to encode identifiable decision: {}", e.getMessage());
+                log.error(LOG_ENCODE_IDENTIFIABLE_DECISION_FAILED, e.getMessage());
                 return DefaultPayload.create(new byte[0]);
             }
         }
@@ -197,7 +204,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             try {
                 return DefaultPayload.create(SaplProtobufCodec.writeMultiAuthorizationDecision(decision));
             } catch (IOException e) {
-                log.error("Failed to encode multi-decision: {}", e.getMessage());
+                log.error(LOG_ENCODE_MULTI_DECISION_FAILED, e.getMessage());
                 return DefaultPayload.create(new byte[0]);
             }
         }

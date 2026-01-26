@@ -27,6 +27,8 @@ import io.sapl.api.model.Value;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import lombok.val;
+
 /**
  * Jackson deserializer for the SAPL Value hierarchy.
  * <p>
@@ -56,7 +58,7 @@ public class ValueDeserializer extends JsonDeserializer<Value> {
     }
 
     private Value deserializeValue(JsonParser parser) throws IOException {
-        var token = parser.currentToken();
+        val token = parser.currentToken();
         return switch (token) {
         case VALUE_NULL                           -> Value.NULL;
         case VALUE_TRUE                           -> Value.TRUE;
@@ -70,7 +72,7 @@ public class ValueDeserializer extends JsonDeserializer<Value> {
     }
 
     private Value deserializeArray(JsonParser parser) throws IOException {
-        var elements = new ArrayList<Value>();
+        val elements = new ArrayList<Value>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
             elements.add(deserializeValue(parser));
         }
@@ -78,9 +80,9 @@ public class ValueDeserializer extends JsonDeserializer<Value> {
     }
 
     private Value deserializeObject(JsonParser parser) throws IOException {
-        var builder = ObjectValue.builder();
+        val builder = ObjectValue.builder();
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var fieldName = parser.currentName();
+            val fieldName = parser.currentName();
             parser.nextToken();
             builder.put(fieldName, deserializeValue(parser));
         }

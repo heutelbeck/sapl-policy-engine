@@ -25,6 +25,8 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson deserializer for MultiAuthorizationDecision.
  * <p>
@@ -41,12 +43,12 @@ public class MultiAuthorizationDecisionDeserializer extends JsonDeserializer<Mul
             throw new IOException("Expected START_OBJECT for MultiAuthorizationDecision.");
         }
 
-        var multiDecision = new MultiAuthorizationDecision();
+        val multiDecision = new MultiAuthorizationDecision();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var subscriptionId = parser.currentName();
+            val subscriptionId = parser.currentName();
             parser.nextToken();
-            var decision = decisionDeserializer.deserialize(parser, context);
+            val decision = decisionDeserializer.deserialize(parser, context);
             multiDecision.setDecision(subscriptionId, decision);
         }
 

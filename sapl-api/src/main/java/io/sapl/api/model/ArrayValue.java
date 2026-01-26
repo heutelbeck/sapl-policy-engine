@@ -127,7 +127,7 @@ public final class ArrayValue implements Value, List<Value> {
             if (elements == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            for (var value : values) {
+            for (val value : values) {
                 add(value);
             }
             return this;
@@ -148,7 +148,7 @@ public final class ArrayValue implements Value, List<Value> {
             if (elements == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            for (var value : values) {
+            for (val value : values) {
                 add(value);
             }
             return this;

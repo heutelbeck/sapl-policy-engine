@@ -25,6 +25,8 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson deserializer for MultiAuthorizationSubscription.
  * <p>
@@ -42,12 +44,12 @@ public class MultiAuthorizationSubscriptionDeserializer extends JsonDeserializer
             throw new IOException("Expected START_OBJECT for MultiAuthorizationSubscription.");
         }
 
-        var multiSubscription = new MultiAuthorizationSubscription();
+        val multiSubscription = new MultiAuthorizationSubscription();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var subscriptionId = parser.currentName();
+            val subscriptionId = parser.currentName();
             parser.nextToken();
-            var subscription = subscriptionDeserializer.deserialize(parser, context);
+            val subscription = subscriptionDeserializer.deserialize(parser, context);
             multiSubscription.addSubscription(subscriptionId, subscription);
         }
 

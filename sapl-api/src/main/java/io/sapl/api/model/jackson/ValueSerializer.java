@@ -24,6 +24,8 @@ import io.sapl.api.model.*;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson serializer for the SAPL Value hierarchy.
  * <p>
@@ -78,7 +80,7 @@ public class ValueSerializer extends JsonSerializer<Value> {
 
     private void serializeObject(ObjectValue object, JsonGenerator generator) throws IOException {
         generator.writeStartObject();
-        for (var entry : object.entrySet()) {
+        for (val entry : object.entrySet()) {
             if (!(entry.getValue() instanceof UndefinedValue)) {
                 generator.writeFieldName(entry.getKey());
                 serializeValue(entry.getValue(), generator, false);

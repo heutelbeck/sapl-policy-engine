@@ -28,6 +28,8 @@ import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Deserializer for {@link CombiningAlgorithm} that parses the record from JSON
  * object format.
@@ -55,7 +57,7 @@ public class CombiningAlgorithmDeserializer extends JsonDeserializer<CombiningAl
         ErrorHandling   errorHandling   = null;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var fieldName = parser.currentName();
+            val fieldName = parser.currentName();
             parser.nextToken();
 
             switch (fieldName) {

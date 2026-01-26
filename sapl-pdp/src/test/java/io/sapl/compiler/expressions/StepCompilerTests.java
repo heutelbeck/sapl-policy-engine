@@ -30,7 +30,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;

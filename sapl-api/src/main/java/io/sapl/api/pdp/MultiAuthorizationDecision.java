@@ -18,6 +18,7 @@
 package io.sapl.api.pdp;
 
 import lombok.NonNull;
+import lombok.val;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -53,7 +54,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
      * @return an indeterminate multi-decision
      */
     public static MultiAuthorizationDecision indeterminate() {
-        var multiDecision = new MultiAuthorizationDecision();
+        val multiDecision = new MultiAuthorizationDecision();
         multiDecision.setDecision("", AuthorizationDecision.INDETERMINATE);
         return multiDecision;
     }
@@ -91,7 +92,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
      * @return the decision type, or null if not found
      */
     public Decision getDecisionType(String subscriptionId) {
-        var decision = decisions.get(subscriptionId);
+        val decision = decisions.get(subscriptionId);
         return decision == null ? null : decision.decision();
     }
 
@@ -104,7 +105,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
      * @return true if the decision is PERMIT, false otherwise
      */
     public boolean isPermitted(String subscriptionId) {
-        var decision = decisions.get(subscriptionId);
+        val decision = decisions.get(subscriptionId);
         return decision != null && decision.decision() == Decision.PERMIT;
     }
 
@@ -119,7 +120,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 
     @Override
     public Iterator<IdentifiableAuthorizationDecision> iterator() {
-        var entryIterator = decisions.entrySet().iterator();
+        val entryIterator = decisions.entrySet().iterator();
         return new Iterator<>() {
             @Override
             public boolean hasNext() {
@@ -128,7 +129,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 
             @Override
             public IdentifiableAuthorizationDecision next() {
-                var entry = entryIterator.next();
+                val entry = entryIterator.next();
                 return new IdentifiableAuthorizationDecision(entry.getKey(), entry.getValue());
             }
         };
@@ -136,9 +137,9 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 
     @Override
     public String toString() {
-        var builder = new StringBuilder("MultiAuthorizationDecision {");
-        for (var identifiable : this) {
-            var decision = identifiable.decision();
+        val builder = new StringBuilder("MultiAuthorizationDecision {");
+        for (val identifiable : this) {
+            val decision = identifiable.decision();
             builder.append("\n\t[ID: ").append(identifiable.subscriptionId()).append(" | DECISION: ")
                     .append(decision.decision()).append(" | RESOURCE: ").append(decision.resource())
                     .append(" | OBLIGATIONS: ").append(decision.obligations()).append(" | ADVICE: ")

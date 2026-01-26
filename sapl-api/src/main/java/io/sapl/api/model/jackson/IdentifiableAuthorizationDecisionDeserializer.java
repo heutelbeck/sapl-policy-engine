@@ -26,6 +26,8 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson deserializer for IdentifiableAuthorizationDecision.
  */
@@ -44,7 +46,7 @@ public class IdentifiableAuthorizationDecisionDeserializer extends JsonDeseriali
         AuthorizationDecision decision       = null;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
-            var fieldName = parser.currentName();
+            val fieldName = parser.currentName();
             parser.nextToken();
 
             switch (fieldName) {

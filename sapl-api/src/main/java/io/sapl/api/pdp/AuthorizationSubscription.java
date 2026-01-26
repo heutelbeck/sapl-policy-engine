@@ -31,6 +31,7 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
+import lombok.val;
 
 /**
  * Represents an authorization subscription containing subject, action,
@@ -125,7 +126,7 @@ public record AuthorizationSubscription(
     }
 
     private static @NonNull ObjectValue toObjectValue(Object secrets, ObjectMapper mapper) {
-        var value = toValue(secrets, mapper);
+        val value = toValue(secrets, mapper);
         if (value instanceof ObjectValue ov) {
             return ov;
         } else {
@@ -144,7 +145,7 @@ public record AuthorizationSubscription(
 
     @Override
     public String toString() {
-        var asObject = ObjectValue.builder().put(SUBJECT, subject).put(ACTION, subject).put(RESOURCE, subject);
+        val asObject = ObjectValue.builder().put(SUBJECT, subject).put(ACTION, action).put(RESOURCE, resource);
         if (!(environment instanceof UndefinedValue)) {
             asObject.put(ENVIRONMENT, environment);
         }

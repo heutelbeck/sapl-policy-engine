@@ -26,6 +26,8 @@ import io.sapl.api.pdp.PDPConfiguration;
 
 import java.io.IOException;
 
+import lombok.val;
+
 /**
  * Jackson serializer for PDPConfiguration.
  * <p>
@@ -97,7 +99,7 @@ public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration>
     private void serializeValueMap(ObjectValue map, JsonGenerator generator, SerializerProvider serializers)
             throws IOException {
         generator.writeStartObject();
-        for (var entry : map.entrySet()) {
+        for (val entry : map.entrySet()) {
             generator.writeFieldName(entry.getKey());
             valueSerializer.serialize(entry.getValue(), generator, serializers);
         }

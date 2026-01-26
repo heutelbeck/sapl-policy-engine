@@ -90,8 +90,7 @@ class ValueJsonMarshallerTests {
 
     static Stream<Arguments> numberValues() {
         return Stream.of(arguments(BigDecimal.ZERO), arguments(BigDecimal.ONE), arguments(BigDecimal.TEN),
-                arguments(new BigDecimal("-1")), arguments(new BigDecimal("3.14159")),
-                arguments(new BigDecimal("42.42")),
+                arguments(new BigDecimal("-1")), arguments(new BigDecimal("2.5")), arguments(new BigDecimal("42.42")),
                 arguments(new BigDecimal("999999999999999999999999999999.999999999999")),
                 arguments(new BigDecimal("-0.00000000000000000001")), arguments(new BigDecimal(SANITY_THRESHOLD)),
                 arguments(new BigDecimal(HORROR_LEVEL_MAX)));
@@ -426,7 +425,7 @@ class ValueJsonMarshallerTests {
         return Stream.of(arguments("null", "null", Value.NULL), arguments("true", "true", Value.TRUE),
                 arguments("false", "false", Value.FALSE), arguments("integer", "42", Value.of(42)),
                 arguments("negative", "-17", Value.of(-17)),
-                arguments("decimal", "3.14159", Value.of(new BigDecimal("3.14159"))),
+                arguments("decimal", "2.5", Value.of(new BigDecimal("2.5"))),
                 arguments("empty string", "\"\"", Value.EMPTY_TEXT),
                 arguments("simple string", "\"Cthulhu\"", Value.of(ENTITY_CTHULHU)),
                 arguments("empty array", "[]", Value.EMPTY_ARRAY), arguments("empty object", "{}", Value.EMPTY_OBJECT),
@@ -627,7 +626,7 @@ class ValueJsonMarshallerTests {
         return Stream.of(arguments("null value", Value.NULL, "null"), arguments("true", Value.TRUE, "true"),
                 arguments("false", Value.FALSE, "false"), arguments("integer", Value.of(42), "42"),
                 arguments("negative", Value.of(-17), "-17"),
-                arguments("decimal", Value.of(new BigDecimal("3.14159")), "3.14159"),
+                arguments("decimal", Value.of(new BigDecimal("2.5")), "2.5"),
                 arguments("simple text", Value.of(ENTITY_CTHULHU), "\"Cthulhu\""),
                 arguments("text with quotes", Value.of("He said \"Ph'nglui\""), "\"He said \\\"Ph'nglui\\\"\""),
                 arguments("text with newline", Value.of("line1\nline2"), "\"line1\\nline2\""),
