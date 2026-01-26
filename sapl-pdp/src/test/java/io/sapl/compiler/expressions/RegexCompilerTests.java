@@ -30,7 +30,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.assertCompilesTo;
+import static io.sapl.util.SaplTesting.assertCompilesToError;
+import static io.sapl.util.SaplTesting.assertEvaluatesTo;
+import static io.sapl.util.SaplTesting.assertStratumOfCompiledExpression;
+import static io.sapl.util.SaplTesting.compileExpression;
+import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

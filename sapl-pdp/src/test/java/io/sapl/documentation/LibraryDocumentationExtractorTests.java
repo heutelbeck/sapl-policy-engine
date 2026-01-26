@@ -17,14 +17,19 @@
  */
 package io.sapl.documentation;
 
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.documentation.EntryType;
 import io.sapl.api.documentation.LibraryType;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.*;
-import io.sapl.api.attributes.Attribute;
-import io.sapl.api.attributes.EnvironmentAttribute;
-import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import lombok.val;
 import org.junit.jupiter.api.Test;

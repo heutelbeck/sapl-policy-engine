@@ -17,14 +17,13 @@
  */
 package io.sapl.compiler.util;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import io.sapl.api.model.SourceLocation;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.model.SourceLocation;
-import io.sapl.compiler.expressions.SaplCompilerException;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("CompilationErrorFormatter")
 class CompilationErrorFormatterTests {

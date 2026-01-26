@@ -17,11 +17,6 @@
  */
 package io.sapl.compiler.combining;
 
-import static io.sapl.compiler.combining.CombiningUtils.appendToList;
-import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
-import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
-import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
-
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -32,6 +27,11 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.List;
+
+import static io.sapl.compiler.combining.CombiningUtils.appendToList;
+import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
+import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
+import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
 
 /**
  * Combines multiple policy votes into a single authorization decision using

@@ -17,7 +17,14 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
 import io.sapl.compiler.operators.ArithmeticOperators;
@@ -28,7 +35,9 @@ import reactor.core.publisher.Flux;
 
 import java.util.Map;
 
-import static io.sapl.ast.UnaryOperatorType.*;
+import static io.sapl.ast.UnaryOperatorType.NEGATE;
+import static io.sapl.ast.UnaryOperatorType.NOT;
+import static io.sapl.ast.UnaryOperatorType.PLUS;
 
 @UtilityClass
 public class UnaryOperatorCompiler {

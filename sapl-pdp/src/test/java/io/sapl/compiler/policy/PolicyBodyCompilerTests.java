@@ -17,13 +17,19 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
 import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.document.DocumentCompiler;
-import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
 import io.sapl.compiler.policy.policybody.TracedValueAndBodyCoverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -40,7 +46,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.ATTRIBUTE_BROKER;
+import static io.sapl.util.SaplTesting.FUNCTION_BROKER;
+import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.attributeBroker;
+import static io.sapl.util.SaplTesting.compilationContext;
+import static io.sapl.util.SaplTesting.errorAttributeBroker;
+import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.sequenceBroker;
+import static io.sapl.util.SaplTesting.toObjectValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

@@ -30,7 +30,11 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.ATTRIBUTE_BROKER;
+import static io.sapl.util.SaplTesting.attributeBroker;
+import static io.sapl.util.SaplTesting.capturingAttributeBroker;
+import static io.sapl.util.SaplTesting.evaluateExpression;
+import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AttributeCompilerTests {

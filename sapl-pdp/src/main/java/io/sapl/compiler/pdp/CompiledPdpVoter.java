@@ -21,7 +21,12 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.*;
+import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.StreamVoter;
+import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
 import lombok.val;
 import reactor.core.publisher.Flux;
 

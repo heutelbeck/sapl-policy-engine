@@ -17,7 +17,17 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.ObjectExpression;
 import lombok.experimental.UtilityClass;
 import lombok.val;

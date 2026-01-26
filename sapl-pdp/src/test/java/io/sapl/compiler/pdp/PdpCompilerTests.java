@@ -17,13 +17,6 @@
  */
 package io.sapl.compiler.pdp;
 
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.FIRST;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
-
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
@@ -46,6 +39,12 @@ import reactor.test.StepVerifier;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.FIRST;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

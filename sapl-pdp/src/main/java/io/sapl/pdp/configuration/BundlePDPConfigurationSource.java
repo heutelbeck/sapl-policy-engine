@@ -17,6 +17,10 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.bundle.BundleParser;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -31,11 +35,6 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.pdp.configuration.bundle.BundleParser;
-import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
-import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 
 /**
  * PDP configuration source that loads configurations from .saplbundle files in

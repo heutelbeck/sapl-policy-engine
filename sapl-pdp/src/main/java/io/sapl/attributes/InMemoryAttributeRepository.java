@@ -17,12 +17,9 @@
  */
 package io.sapl.attributes;
 
-import static io.sapl.api.attributes.AttributeRepository.INFINITE;
-
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.attributes.AttributeKey;
 import io.sapl.api.attributes.AttributeRepository;
-import io.sapl.api.attributes.AttributeRepository.TimeOutStrategy;
 import io.sapl.api.attributes.AttributeStorage;
 import io.sapl.api.attributes.PersistedAttribute;
 import io.sapl.api.model.Value;

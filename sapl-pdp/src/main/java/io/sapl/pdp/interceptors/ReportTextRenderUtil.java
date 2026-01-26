@@ -17,13 +17,13 @@
  */
 package io.sapl.pdp.interceptors;
 
-import java.util.Collection;
-
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.Collection;
 
 /**
  * Utility class for rendering VoteReports as human-readable text.

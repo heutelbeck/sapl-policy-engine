@@ -19,7 +19,6 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.libraries.crypto.CryptoException;
@@ -35,7 +34,16 @@ import java.security.SignatureException;
 import java.util.Base64;
 import java.util.HexFormat;
 
-import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EC;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ECDSA_SHA256;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ECDSA_SHA384;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ECDSA_SHA512;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EDDSA;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA_SHA256;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA_SHA384;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA_SHA512;
 
 /**
  * Provides digital signature verification functions for verifying message

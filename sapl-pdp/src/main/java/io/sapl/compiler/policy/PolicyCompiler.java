@@ -17,9 +17,6 @@
  */
 package io.sapl.compiler.policy;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.BooleanValue;
@@ -35,7 +32,11 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.document.*;
+import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.StreamVoter;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.expressions.ArrayCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
@@ -47,6 +48,9 @@ import io.sapl.compiler.util.Nature;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Compiles SAPL policies into executable vote makers.

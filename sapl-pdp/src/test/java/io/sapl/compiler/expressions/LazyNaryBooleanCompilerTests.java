@@ -17,7 +17,11 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,7 +33,19 @@ import java.util.List;
 import java.util.Map;
 
 import static io.sapl.api.model.Value.of;
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.assertCompilesTo;
+import static io.sapl.util.SaplTesting.assertCompilesToError;
+import static io.sapl.util.SaplTesting.assertEvaluatesTo;
+import static io.sapl.util.SaplTesting.assertEvaluatesToError;
+import static io.sapl.util.SaplTesting.attributeBroker;
+import static io.sapl.util.SaplTesting.compilationContext;
+import static io.sapl.util.SaplTesting.compileExpression;
+import static io.sapl.util.SaplTesting.errorAttributeBroker;
+import static io.sapl.util.SaplTesting.evaluateExpression;
+import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.sequenceBroker;
+import static io.sapl.util.SaplTesting.singleValueAttributeBroker;
+import static io.sapl.util.SaplTesting.testContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**

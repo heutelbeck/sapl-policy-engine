@@ -17,22 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_TIMEOUT_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_BACKOFF;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FRESH;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_INITIAL_TIMEOUT;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_POLL_INTERVAL;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRIES;
-
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.AttributeRecord;
@@ -53,9 +37,25 @@ import io.sapl.ast.AttributeStep;
 import io.sapl.ast.EnvironmentAttribute;
 import io.sapl.ast.Expression;
 import lombok.NonNull;
-import lombok.val;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_TIMEOUT_MS;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_BACKOFF;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FRESH;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_INITIAL_TIMEOUT;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_POLL_INTERVAL;
+import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRIES;
 
 @UtilityClass
 public class AttributeCompiler {

@@ -29,7 +29,12 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.attributes.libraries.util.*;
+import io.sapl.attributes.libraries.util.Base64DataUtil;
+import io.sapl.attributes.libraries.util.DispatchMode;
+import io.sapl.attributes.libraries.util.JWTTestUtility;
+import io.sapl.attributes.libraries.util.JsonTestUtility;
+import io.sapl.attributes.libraries.util.KeyTestUtility;
+import io.sapl.attributes.libraries.util.TestMockServerDispatcher;
 import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
@@ -56,7 +61,6 @@ import java.util.logging.Logger;
 
 import static io.sapl.attributes.libraries.JWTPolicyInformationPointTests.CtxUtil.ctx;
 import static io.sapl.attributes.libraries.JWTPolicyInformationPointTests.CtxUtil.emptyCtx;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

@@ -17,7 +17,11 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,7 +30,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.TestPureOperator;
+import static io.sapl.util.SaplTesting.assertCompilesTo;
+import static io.sapl.util.SaplTesting.assertCompilesToError;
+import static io.sapl.util.SaplTesting.evaluateExpression;
+import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.obj;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

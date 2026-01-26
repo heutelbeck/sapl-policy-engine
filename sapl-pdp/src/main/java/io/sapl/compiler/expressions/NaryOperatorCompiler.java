@@ -17,7 +17,15 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.ExclusiveDisjunction;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Product;

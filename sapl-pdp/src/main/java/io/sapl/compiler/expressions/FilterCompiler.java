@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import java.util.ArrayList;
-
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -36,9 +34,11 @@ import io.sapl.ast.RelativeType;
 import io.sapl.ast.SimpleFilter;
 import io.sapl.compiler.operators.SimpleStreamOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
-import lombok.val;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
 
 @UtilityClass
 public class FilterCompiler {

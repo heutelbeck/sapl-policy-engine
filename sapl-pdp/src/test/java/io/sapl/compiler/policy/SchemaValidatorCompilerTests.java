@@ -43,7 +43,11 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.array;
+import static io.sapl.util.SaplTesting.compilationContext;
+import static io.sapl.util.SaplTesting.obj;
+import static io.sapl.util.SaplTesting.subscriptionContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

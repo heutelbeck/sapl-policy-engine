@@ -34,7 +34,15 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.policy.policybody.BooleanGuardCompiler.applyBooleanGuard;
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.TestPureOperator;
+import static io.sapl.util.SaplTesting.TestStreamOperator;
+import static io.sapl.util.SaplTesting.TestStreamOperatorWithTraced;
+import static io.sapl.util.SaplTesting.array;
+import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.obj;
+import static io.sapl.util.SaplTesting.verifyStream;
+import static io.sapl.util.SaplTesting.verifyStreamEmits;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("BooleanGuardCompiler")

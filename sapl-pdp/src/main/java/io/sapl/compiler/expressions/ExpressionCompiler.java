@@ -44,8 +44,8 @@ import io.sapl.ast.Step;
 import io.sapl.ast.Sum;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
-import lombok.val;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 @UtilityClass
 public class ExpressionCompiler {

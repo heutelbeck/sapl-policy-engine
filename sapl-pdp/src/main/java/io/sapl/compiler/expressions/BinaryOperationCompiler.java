@@ -17,7 +17,14 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.compiler.operators.ArithmeticOperators;
@@ -31,7 +38,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.sapl.ast.BinaryOperatorType.*;
+import static io.sapl.ast.BinaryOperatorType.ADD;
+import static io.sapl.ast.BinaryOperatorType.DIV;
+import static io.sapl.ast.BinaryOperatorType.EQ;
+import static io.sapl.ast.BinaryOperatorType.GE;
+import static io.sapl.ast.BinaryOperatorType.GT;
+import static io.sapl.ast.BinaryOperatorType.IN;
+import static io.sapl.ast.BinaryOperatorType.LE;
+import static io.sapl.ast.BinaryOperatorType.LT;
+import static io.sapl.ast.BinaryOperatorType.MOD;
+import static io.sapl.ast.BinaryOperatorType.MUL;
+import static io.sapl.ast.BinaryOperatorType.NE;
+import static io.sapl.ast.BinaryOperatorType.REGEX;
+import static io.sapl.ast.BinaryOperatorType.SUB;
+import static io.sapl.ast.BinaryOperatorType.SUBTEMPLATE;
+import static io.sapl.ast.BinaryOperatorType.XOR;
 
 @UtilityClass
 public class BinaryOperationCompiler {

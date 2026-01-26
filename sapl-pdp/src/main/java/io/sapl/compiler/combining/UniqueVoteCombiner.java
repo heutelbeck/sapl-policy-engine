@@ -17,10 +17,6 @@
  */
 package io.sapl.compiler.combining;
 
-import static io.sapl.compiler.combining.CombiningUtils.appendToList;
-import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
-import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
-
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
@@ -30,6 +26,10 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.List;
+
+import static io.sapl.compiler.combining.CombiningUtils.appendToList;
+import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
+import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
 
 /**
  * Combines multiple policy votes using unique (only-one-applicable) semantics.

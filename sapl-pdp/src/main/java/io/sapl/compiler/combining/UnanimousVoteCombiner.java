@@ -28,7 +28,11 @@ import lombok.val;
 
 import java.util.List;
 
-import static io.sapl.compiler.combining.CombiningUtils.*;
+import static io.sapl.compiler.combining.CombiningUtils.appendToList;
+import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
+import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
+import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
+import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
 
 /**
  * Combines multiple policy votes using unanimous semantics.

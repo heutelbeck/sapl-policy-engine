@@ -30,8 +30,8 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
-import lombok.val;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import reactor.core.publisher.Flux;
 
 /**

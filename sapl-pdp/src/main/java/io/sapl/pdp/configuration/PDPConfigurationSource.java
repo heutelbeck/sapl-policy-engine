@@ -17,9 +17,8 @@
  */
 package io.sapl.pdp.configuration;
 
-import reactor.core.Disposable;
-
 import lombok.val;
+import reactor.core.Disposable;
 
 import java.io.File;
 import java.nio.file.Path;

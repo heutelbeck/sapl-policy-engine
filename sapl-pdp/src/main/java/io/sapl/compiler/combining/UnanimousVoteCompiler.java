@@ -17,34 +17,34 @@
  */
 package io.sapl.compiler.combining;
 
-import static io.sapl.compiler.combining.CombiningUtils.asTypedList;
-import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
-import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
-
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.Value;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import static io.sapl.compiler.combining.CombiningUtils.asTypedList;
+import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
+import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
 
 /**
  * Compiles policy sets using the unanimous combining algorithm.

@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.pdp.PDPConfiguration;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -32,8 +33,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-
-import io.sapl.api.pdp.PDPConfiguration;
 
 /**
  * PDP configuration source that loads multiple PDP configurations from

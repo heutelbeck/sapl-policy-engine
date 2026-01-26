@@ -17,8 +17,19 @@
  */
 package io.sapl.compiler.policy.policybody;
 
-import io.sapl.api.model.*;
-import io.sapl.ast.*;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.Value;
+import io.sapl.ast.Condition;
+import io.sapl.ast.PolicyBody;
+import io.sapl.ast.SchemaCondition;
+import io.sapl.ast.Statement;
+import io.sapl.ast.VarDef;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.LazyNaryBooleanCompiler;

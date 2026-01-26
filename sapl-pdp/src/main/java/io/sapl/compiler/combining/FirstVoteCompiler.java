@@ -25,10 +25,14 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.document.*;
+import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.StreamVoter;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policyset.*;
+import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -37,9 +41,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.ABSTAIN;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.ABSTAIN;
 import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
 
 /**

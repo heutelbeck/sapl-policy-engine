@@ -17,15 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
-
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
@@ -59,9 +50,18 @@ import io.sapl.ast.SlicePath;
 import io.sapl.ast.WildcardPath;
 import io.sapl.compiler.operators.SimpleStreamOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
-import lombok.val;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 
 @UtilityClass
 public class ExtendedFilterCompiler {

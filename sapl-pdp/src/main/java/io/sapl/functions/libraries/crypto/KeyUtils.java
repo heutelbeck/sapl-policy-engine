@@ -29,7 +29,21 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
-import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EC;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EDDSA;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_P256_JWK;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_P384_JWK;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_P521_JWK;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_PRIME256V1;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_SECP256R1;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_SECP384R1;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_SECP521R1;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_UNKNOWN;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.EC_P256_BITS;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.EC_P384_BITS;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.EC_P521_BITS;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.EDDSA_KEY_SIZE_BITS;
 
 /**
  * Utilities for working with cryptographic keys. Provides methods for parsing

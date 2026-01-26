@@ -17,19 +17,18 @@
  */
 package io.sapl.compiler.policyset;
 
+import io.sapl.api.pdp.Decision;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import lombok.val;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import static io.sapl.util.SaplTesting.compilePolicySet;
 import static io.sapl.util.SaplTesting.evaluatePolicySet;
 import static io.sapl.util.SaplTesting.subscriptionContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import lombok.val;
 
 /**
  * Tests for PolicySetCompiler covering variable compilation and combining

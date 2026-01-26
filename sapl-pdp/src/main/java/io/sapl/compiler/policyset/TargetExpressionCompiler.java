@@ -17,7 +17,11 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;

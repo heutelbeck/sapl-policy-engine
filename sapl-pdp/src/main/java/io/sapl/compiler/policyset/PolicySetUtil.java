@@ -17,12 +17,23 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.document.*;
+import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.StreamVoter;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CompiledPolicy;
 import lombok.experimental.UtilityClass;

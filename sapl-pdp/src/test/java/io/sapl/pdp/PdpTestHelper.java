@@ -17,7 +17,16 @@
  */
 package io.sapl.pdp;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.experimental.UtilityClass;
+import lombok.val;
+import reactor.test.StepVerifier;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,16 +35,7 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import lombok.val;
-import lombok.experimental.UtilityClass;
-import reactor.test.StepVerifier;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test utility for PDP tests providing common subscription creation, decision

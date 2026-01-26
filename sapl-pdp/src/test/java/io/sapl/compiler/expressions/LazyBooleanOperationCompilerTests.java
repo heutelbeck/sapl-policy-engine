@@ -31,7 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.sapl.util.SaplTesting.*;
+import static io.sapl.util.SaplTesting.attributeBroker;
+import static io.sapl.util.SaplTesting.compilationContext;
+import static io.sapl.util.SaplTesting.compileExpression;
+import static io.sapl.util.SaplTesting.evaluateExpression;
+import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.sequenceBroker;
+import static io.sapl.util.SaplTesting.trackingBroker;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LazyBooleanOperationCompilerTests {

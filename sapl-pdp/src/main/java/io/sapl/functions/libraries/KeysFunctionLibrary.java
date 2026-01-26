@@ -21,7 +21,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.*;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
@@ -43,7 +47,13 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 
-import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EC;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_ED25519;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.JWK_KEY_TYPE_EC;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.JWK_KEY_TYPE_OKP;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.JWK_KEY_TYPE_RSA;
 
 /**
  * Provides functions for parsing and converting cryptographic key material.
@@ -256,8 +266,6 @@ public class KeysFunctionLibrary {
     private static final String ERROR_UNSUPPORTED_KEY_TYPE_FOR_JWK    = "Unsupported key type for JWK conversion: ";
     private static final String ERROR_UNSUPPORTED_OKP_CURVE           = "Unsupported OKP curve: %s (only Ed25519 supported)";
 
-    /* Key Parsing */
-
     @Function(docs = """
             ```publicKeyFromPem(TEXT keyPem)```: Parses a PEM-encoded public key.
 
@@ -309,8 +317,6 @@ public class KeysFunctionLibrary {
             return new ErrorValue(ERROR_FAILED_TO_EXTRACT_KEY_FROM_CERT + exception.getMessage() + ".");
         }
     }
-
-    /* Key Information Extraction */
 
     @Function(docs = """
             ```algorithmFromKey(TEXT keyPem)```: Extracts the algorithm name from a public key.

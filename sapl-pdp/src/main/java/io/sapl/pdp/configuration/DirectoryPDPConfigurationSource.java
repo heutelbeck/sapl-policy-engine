@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.pdp.PDPConfiguration;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -30,8 +31,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-
-import io.sapl.api.pdp.PDPConfiguration;
 
 /**
  * PDP configuration source that loads configurations from a filesystem

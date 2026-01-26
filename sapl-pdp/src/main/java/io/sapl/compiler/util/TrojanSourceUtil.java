@@ -17,14 +17,13 @@
  */
 package io.sapl.compiler.util;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.jspecify.annotations.NonNull;
-
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.NonNull;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Utility for detecting and preventing trojan source attacks.

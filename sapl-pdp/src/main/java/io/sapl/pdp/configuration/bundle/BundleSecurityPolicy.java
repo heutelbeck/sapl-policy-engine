@@ -17,10 +17,10 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.security.PublicKey;
 import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Security policy for bundle signature verification.

@@ -17,16 +17,16 @@
  */
 package io.sapl.compiler.document;
 
-import static io.sapl.compiler.util.StringsUtil.unquoteString;
-
-import java.util.List;
-
 import io.sapl.ast.SaplDocument;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.grammar.antlr.validation.ValidationError;
 import lombok.val;
+
+import java.util.List;
+
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
  * Represents a parsed SAPL document with its parse tree and validation status.

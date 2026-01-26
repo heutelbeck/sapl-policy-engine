@@ -17,14 +17,11 @@
  */
 package io.sapl.compiler.document;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.mock;
-
-import java.util.stream.Stream;
-
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,11 +31,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.compiler.expressions.CompilationContext;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import lombok.val;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.mock;
 
 @DisplayName("DocumentCompiler")
 class DocumentCompilerTests {

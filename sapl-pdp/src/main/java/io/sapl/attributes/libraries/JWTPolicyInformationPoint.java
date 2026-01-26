@@ -17,17 +17,10 @@
  */
 package io.sapl.attributes.libraries;
 
-import java.security.interfaces.RSAPublicKey;
-import java.text.ParseException;
-import java.time.Duration;
-import java.util.Date;
-import java.util.function.Function;
-
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.PolicyInformationPoint;
@@ -39,6 +32,12 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.security.interfaces.RSAPublicKey;
+import java.text.ParseException;
+import java.time.Duration;
+import java.util.Date;
+import java.util.function.Function;
 
 /**
  * Policy Information Point for validating and monitoring JSON Web Tokens.

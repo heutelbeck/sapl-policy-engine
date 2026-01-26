@@ -17,17 +17,6 @@
  */
 package io.sapl.compiler.document;
 
-import static io.sapl.compiler.util.TrojanSourceUtil.assertNoTrojanSourceCharacters;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-
 import io.sapl.ast.Policy;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.SaplDocument;
@@ -41,6 +30,16 @@ import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.grammar.antlr.validation.ValidationError;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.sapl.compiler.util.TrojanSourceUtil.assertNoTrojanSourceCharacters;
 
 @UtilityClass
 public class DocumentCompiler {
