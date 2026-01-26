@@ -373,7 +373,7 @@ public class StringFunctionLibrary {
     public static Value substring(TextValue str, NumberValue start) {
         val text = str.value();
 
-        if (start.value().compareTo(minLong) < 0 || start.value().compareTo(maxLong) > 0) {
+        if (start.value().compareTo(MIN_LONG) < 0 || start.value().compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -406,13 +406,13 @@ public class StringFunctionLibrary {
     public static Value substringRange(TextValue str, NumberValue start, NumberValue end) {
         val text = str.value();
 
-        if (start.value().compareTo(minLong) < 0 || start.value().compareTo(maxLong) > 0) {
+        if (start.value().compareTo(MIN_LONG) < 0 || start.value().compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
         val startIndex = start.value().intValue();
 
-        if (end.value().compareTo(minLong) < 0 || end.value().compareTo(maxLong) > 0) {
+        if (end.value().compareTo(MIN_LONG) < 0 || end.value().compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -642,7 +642,7 @@ public class StringFunctionLibrary {
         val text      = str.value();
         val padString = padChar.value();
 
-        if (length.value().compareTo(minLong) < 0 || length.value().compareTo(maxLong) > 0) {
+        if (length.value().compareTo(MIN_LONG) < 0 || length.value().compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -675,7 +675,7 @@ public class StringFunctionLibrary {
         val text      = str.value();
         val padString = padChar.value();
 
-        if (length.value().compareTo(minLong) < 0 || length.value().compareTo(maxLong) > 0) {
+        if (length.value().compareTo(MIN_LONG) < 0 || length.value().compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -706,7 +706,7 @@ public class StringFunctionLibrary {
     public static Value repeat(TextValue str, NumberValue count) {
         val text = str.value();
 
-        if (count.value().compareTo(minLong) < 0 || count.value().compareTo(maxLong) > 0) {
+        if (count.value().compareTo(MIN_LONG) < 0 || count.value().compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
