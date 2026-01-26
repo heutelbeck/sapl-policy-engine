@@ -221,6 +221,7 @@ server:
 
 # Rsocket configuration
 spring.rsocket.server:
+   port: 7001
    address: localhost
    ssl:
       key-store-type: PKCS12
