@@ -100,8 +100,6 @@ public class EncodingFunctionLibrary {
     private static final String ERROR_INVALID_BASE64_URL_STRICT = "Invalid Base64 URL data: input must be properly padded and have length multiple of 4.";
     private static final String ERROR_INVALID_HEX               = "Invalid hexadecimal data.";
 
-    /* Base64 Standard Encoding */
-
     @Function(docs = """
             ```base64Encode(TEXT data)```: Encodes text data to Base64 standard format.
 
@@ -253,8 +251,6 @@ public class EncodingFunctionLibrary {
     public static Value isValidBase64Strict(TextValue data) {
         return Value.of(isValidBase64Format(data.value(), false));
     }
-
-    /* Base64 URL-Safe Encoding */
 
     @Function(docs = """
             ```base64UrlEncode(TEXT data)```: Encodes text data to Base64 URL-safe format.
@@ -408,8 +404,6 @@ public class EncodingFunctionLibrary {
         return Value.of(isValidBase64Format(data.value(), true));
     }
 
-    /* Hexadecimal Encoding */
-
     @Function(docs = """
             ```hexEncode(TEXT data)```: Encodes text data to hexadecimal representation.
 
@@ -514,8 +508,6 @@ public class EncodingFunctionLibrary {
             return Value.of(false);
         }
     }
-
-    /* Helper Methods */
 
     /**
      * Decodes a byte array as UTF-8 with strict validation.

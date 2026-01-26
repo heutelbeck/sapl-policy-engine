@@ -118,8 +118,6 @@ public class MacFunctionLibrary {
     private static final String ERROR_INVALID_HEX_MAC_FORMAT = "Invalid hexadecimal MAC format: ";
     private static final String ERROR_INVALID_HMAC_KEY       = "Invalid key for HMAC: ";
 
-    /* HMAC Functions */
-
     @Function(docs = """
             ```hmacSha256(TEXT message, TEXT key)```: Computes HMAC-SHA256 authentication code.
 
@@ -184,8 +182,6 @@ public class MacFunctionLibrary {
     public static Value hmacSha512(TextValue message, TextValue key) {
         return computeHmac(message.value(), key.value(), "HmacSHA512");
     }
-
-    /* Verification Functions */
 
     @Function(docs = """
             ```timingSafeEquals(TEXT mac1, TEXT mac2)```: Compares two MACs using constant-time comparison.

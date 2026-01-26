@@ -134,10 +134,10 @@ public class NumeralFunctionLibrary {
     private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE = "NumberValue out of range.";
     private static final String ERROR_WIDTH_MUST_BE_POSITIVE    = "Width must be positive.";
 
-    final BigDecimal minLong = BigDecimal.valueOf(Long.MIN_VALUE);
-    final BigDecimal maxLong = BigDecimal.valueOf(Long.MAX_VALUE);
-    final BigDecimal minInt  = BigDecimal.valueOf(Integer.MIN_VALUE);
-    final BigDecimal maxInt  = BigDecimal.valueOf(Integer.MAX_VALUE);
+    private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
+    private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
+    private static final BigDecimal MIN_INT  = BigDecimal.valueOf(Integer.MIN_VALUE);
+    private static final BigDecimal MAX_INT  = BigDecimal.valueOf(Integer.MAX_VALUE);
 
     private static final String RETURNS_NUMBER = """
             {
@@ -256,7 +256,7 @@ public class NumeralFunctionLibrary {
     public static Value toHex(NumberValue value) {
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -286,7 +286,7 @@ public class NumeralFunctionLibrary {
     public static Value toBinary(NumberValue value) {
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -316,7 +316,7 @@ public class NumeralFunctionLibrary {
     public static Value toOctal(NumberValue value) {
         val number = value.value();
 
-        if (value.value().compareTo(minLong) < 0 || value.value().compareTo(maxLong) > 0) {
+        if (value.value().compareTo(MIN_LONG) < 0 || value.value().compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -349,7 +349,7 @@ public class NumeralFunctionLibrary {
     public static Value toHexPrefixed(NumberValue value) {
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -378,7 +378,7 @@ public class NumeralFunctionLibrary {
     public static Value toBinaryPrefixed(NumberValue value) {
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -407,7 +407,7 @@ public class NumeralFunctionLibrary {
     public static Value toOctalPrefixed(NumberValue value) {
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
@@ -442,12 +442,12 @@ public class NumeralFunctionLibrary {
         }
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
         val hexString = Long.toHexString(number.longValueExact()).toUpperCase();
-        if (width.value().compareTo(minInt) < 0 || width.value().compareTo(maxInt) > 0) {
+        if (width.value().compareTo(MIN_INT) < 0 || width.value().compareTo(MAX_INT) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
         val minWidth = width.value().intValueExact();
@@ -483,13 +483,13 @@ public class NumeralFunctionLibrary {
         }
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
         val binaryString = Long.toBinaryString(number.longValueExact());
 
-        if (width.value().compareTo(minInt) < 0 || width.value().compareTo(maxInt) > 0) {
+        if (width.value().compareTo(MIN_INT) < 0 || width.value().compareTo(MAX_INT) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
         val minWidth = width.value().intValueExact();
@@ -524,13 +524,13 @@ public class NumeralFunctionLibrary {
         }
         val number = value.value();
 
-        if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
+        if (number.compareTo(MIN_LONG) < 0 || number.compareTo(MAX_LONG) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
         val octalString = Long.toOctalString(number.longValueExact());
 
-        if (width.value().compareTo(minInt) < 0 || width.value().compareTo(maxInt) > 0) {
+        if (width.value().compareTo(MIN_INT) < 0 || width.value().compareTo(MAX_INT) > 0) {
             return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
         val minWidth = width.value().intValueExact();

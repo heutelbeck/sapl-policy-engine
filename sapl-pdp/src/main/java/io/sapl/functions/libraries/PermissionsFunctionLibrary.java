@@ -88,8 +88,6 @@ public class PermissionsFunctionLibrary {
     private static final String ERROR_OTHER_PERMISSIONS_INVALID  = "Other permissions must be between 0 and 7.";
     private static final String ERROR_OWNER_PERMISSIONS_INVALID  = "Owner permissions must be between 0 and 7.";
 
-    /* Core Permission Semantics */
-
     @Function(docs = """
             ```hasAll(LONG value, ARRAY masks)```: Checks if all specified permission bits are set.
 
@@ -308,8 +306,6 @@ public class PermissionsFunctionLibrary {
         return Value.of((permissions1Number & permissions2Number) == 0);
     }
 
-    /* Unix/POSIX Permission Functions */
-
     @Function(docs = """
             ```unixOwner(LONG mode)```: Extracts the owner permission bits from a Unix file mode.
 
@@ -452,8 +448,6 @@ public class PermissionsFunctionLibrary {
         return Value.of((permissions.value().longValue() & 0x1L) != 0);
     }
 
-    /* POSIX Permission Constants */
-
     @Function(docs = """
             ```posixRead()```: Returns the POSIX read permission bit value (4).
 
@@ -582,8 +576,6 @@ public class PermissionsFunctionLibrary {
         return POSIX_WX;
     }
 
-    /* Common POSIX Mode Constants */
-
     @Function(docs = """
             ```posixMode755()```: Returns the common Unix mode 0755 (rwxr-xr-x) as decimal 493.
 
@@ -674,8 +666,6 @@ public class PermissionsFunctionLibrary {
         return POSIX_MODE_666;
     }
 
-    /* Permission Manipulation Functions */
-
     @Function(docs = """
             ```grant(LONG current, ARRAY toGrant)```: Adds specified permissions to the current permission set.
 
@@ -753,8 +743,6 @@ public class PermissionsFunctionLibrary {
         val toggleNumber  = ((NumberValue) combinedToggle).value().longValue();
         return Value.of(currentNumber ^ toggleNumber);
     }
-
-    /* Universal Constants */
 
     @Function(docs = """
             ```none()```: Returns zero (0), representing no permissions set.

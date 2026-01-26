@@ -428,8 +428,6 @@ public class PolicyDecisionPointBuilder {
         return this;
     }
 
-    // === Decision Interceptor Methods ===
-
     public PolicyDecisionPointBuilder withInterceptor(VoteInterceptor interceptor) {
         this.interceptors.add(interceptor);
         return this;
@@ -452,8 +450,6 @@ public class PolicyDecisionPointBuilder {
         this.interceptors.addAll(interceptors);
         return this;
     }
-
-    // === Configuration Source Methods ===
 
     /**
      * Sets a custom configuration source factory. The factory receives a consumer
