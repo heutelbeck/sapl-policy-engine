@@ -22,6 +22,7 @@ import io.rsocket.metadata.CompositeMetadata;
 import io.sapl.server.lt.SAPLServerLTProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,10 +53,10 @@ public class ApiKeyService {
      * @param apiKey api key
      */
     private Mono<Authentication> checkApiKey(final String apiKey) {
-        final var cache = cacheManager.getCache("ApiKeyCache");
+        val cache = cacheManager.getCache("ApiKeyCache");
         // get authentication from cache of possible
         if (cache != null) {
-            final var cacheEntry = cache.get(apiKey);
+            val  cacheEntry = cache.get(apiKey);
             if (cacheEntry != null) {
                 return Mono.just(new ApiKeyAuthenticationToken((String) cacheEntry.get()));
             }
@@ -76,7 +77,7 @@ public class ApiKeyService {
     }
 
     public static Optional<String> getApiKeyToken(ServerWebExchange exchange) {
-        final var authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
+        val  authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
         if (authorization != null && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
             return Optional.of(authorization.substring(HEADER_PREFIX.length()));
         }
@@ -85,7 +86,7 @@ public class ApiKeyService {
 
     public ServerAuthenticationConverter getHttpApiKeyAuthenticationConverter() {
         return exchange -> {
-            final var apiKeyToken = getApiKeyToken(exchange);
+            val  apiKeyToken = getApiKeyToken(exchange);
             if (apiKeyToken.isPresent()) {
                 return checkApiKey(apiKeyToken.get());
             } else {

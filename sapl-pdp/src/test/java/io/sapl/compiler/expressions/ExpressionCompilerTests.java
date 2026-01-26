@@ -50,12 +50,12 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_escapedString_then_parsesCorrectly(String description, String expression, Value expected) {
+        void whenEscapedStringThenParsesCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_escapedString_then_parsesCorrectly() {
+        static Stream<Arguments> whenEscapedStringThenParsesCorrectly() {
             return Stream.of(
                 arguments("newline",
                     """
@@ -107,12 +107,12 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_arithmeticExpression_then_evaluatesCorrectly(String description, String expression, Value expected) {
+        void whenArithmeticExpressionThenEvaluatesCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_arithmeticExpression_then_evaluatesCorrectly() {
+        static Stream<Arguments> whenArithmeticExpressionThenEvaluatesCorrectly() {
             return Stream.of(
                 // Precedence
                 arguments("mult before add", "2 + 3 * 4", Value.of(14)),
@@ -164,13 +164,13 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_arithmeticError_then_returnsError(String description, String expression) {
+        void whenArithmeticErrorThenReturnsError(String description, String expression) {
             val result = evaluateExpression(expression);
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_arithmeticError_then_returnsError() {
+        static Stream<Arguments> whenArithmeticErrorThenReturnsError() {
             return Stream.of(
                 arguments("div by zero", "10 / 0"),
                 arguments("mod by zero", "10 % 0"),
@@ -197,11 +197,11 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_shortCircuitPreventsError_then_returnsResult(String description, String expression, Value expected) {
+        void whenShortCircuitPreventsErrorThenReturnsResult(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
-        static Stream<Arguments> when_shortCircuitPreventsError_then_returnsResult() {
+        static Stream<Arguments> whenShortCircuitPreventsErrorThenReturnsResult() {
             return Stream.of(
                     // OR short-circuit: true || errors => true
                     arguments("or short-circuits errors", "true || (1/0 > 0)", Value.TRUE),
@@ -215,24 +215,23 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_noShortCircuit_then_errorPropagates(String description, String expression) {
+        void whenNoShortCircuitThenErrorPropagates(String description, String expression) {
             val result = evaluateExpression(expression);
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
 
-        static Stream<Arguments> when_noShortCircuit_then_errorPropagates() {
+        static Stream<Arguments> whenNoShortCircuitThenErrorPropagates() {
             return Stream.of(arguments("or no short-circuit", "false || (1/0 > 0)"),
                     arguments("and no short-circuit", "true && (1/0 > 0)"));
         }
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_booleanWithComparisons_then_evaluatesCorrectly(String description, String expression,
-                Value expected) {
+        void whenBooleanWithComparisonsThenEvaluatesCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
-        static Stream<Arguments> when_booleanWithComparisons_then_evaluatesCorrectly() {
+        static Stream<Arguments> whenBooleanWithComparisonsThenEvaluatesCorrectly() {
             return Stream.of(arguments("comparison before and", "3 < 5 && 7 > 4", Value.TRUE),
                     arguments("comparison before or", "3 > 5 || 7 < 4", Value.FALSE),
                     arguments("complex boolean", "(5 > 3) && (2 < 4) || false", Value.TRUE),
@@ -246,12 +245,12 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_inOperator_then_evaluatesCorrectly(String description, String expression, Value expected) {
+        void whenInOperatorThenEvaluatesCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_inOperator_then_evaluatesCorrectly() {
+        static Stream<Arguments> whenInOperatorThenEvaluatesCorrectly() {
             return Stream.of(
                 // Array containment
                 arguments("in array found", "3 in [1, 2, 3, 4]", Value.TRUE),
@@ -300,12 +299,12 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_regexMatch_then_evaluatesCorrectly(String description, String expression, Value expected) {
+        void whenRegexMatchThenEvaluatesCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_regexMatch_then_evaluatesCorrectly() {
+        static Stream<Arguments> whenRegexMatchThenEvaluatesCorrectly() {
             return Stream.of(
                 arguments("simple regex",
                     """
@@ -342,7 +341,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("regex on non-string returns false")
-        void when_regexOnNonString_then_returnsFalse() {
+        void whenRegexOnNonStringThenReturnsFalse() {
             assertCompilesTo("""
                     42 =~ "\\\\d+"
                     """, Value.FALSE);
@@ -355,12 +354,12 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_filterByMembership_then_filtersCorrectly(String description, String expression, Value expected) {
+        void whenFilterByMembershipThenFiltersCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_filterByMembership_then_filtersCorrectly() {
+        static Stream<Arguments> whenFilterByMembershipThenFiltersCorrectly() {
             return Stream.of(
                 arguments("single match",
                     """
@@ -388,7 +387,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("key step on array of objects projects key across elements")
-        void when_keyStepOnArrayOfObjects_then_projects() {
+        void whenKeyStepOnArrayOfObjectsThenProjects() {
             val compiled = compileExpression("""
                     [{"class": "energy"}, {"class": "banking"}].class
                     """);
@@ -402,13 +401,13 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_temporalFunction_then_constantFolds(String description, String expression, Value expected) {
+        void whenTemporalFunctionThenConstantFolds(String description, String expression, Value expected) {
             val compiled = compileExpression(expression);
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_temporalFunction_then_constantFolds() {
+        static Stream<Arguments> whenTemporalFunctionThenConstantFolds() {
             return Stream.of(
                 // Duration conversions
                 arguments("seconds to ms", "time.durationOfSeconds(60)", Value.of(60000)),
@@ -524,13 +523,13 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_functionCall_then_evaluatesCorrectly(String description, String expression, Value expected) {
+        void whenFunctionCallThenEvaluatesCorrectly(String description, String expression, Value expected) {
             val compiled = compileExpression(expression);
             assertThat(compiled).isEqualTo(expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_functionCall_then_evaluatesCorrectly() {
+        static Stream<Arguments> whenFunctionCallThenEvaluatesCorrectly() {
             return Stream.of(
                 arguments("string length",
                     """
@@ -564,7 +563,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("function in condition step constant folds")
-        void when_functionInCondition_then_constantFolds() {
+        void whenFunctionInConditionThenConstantFolds() {
             val compiled = compileExpression("""
                     ["a", "ab", "abc"][?(standard.length(@) > 1)]
                     """);
@@ -578,7 +577,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("nested condition steps - outer @ shadows inner")
-        void when_nestedConditionSteps_then_outerShadowsInner() {
+        void whenNestedConditionStepsThenOuterShadowsInner() {
             val compiled   = compileExpression("[[1, 2], [3, 4]][?(@[0] > 1)]");
             val innerArray = Value.ofArray(Value.of(3), Value.of(4));
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(java.util.List.of(innerArray)));
@@ -586,7 +585,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("nested condition with inner array iteration")
-        void when_nestedConditionWithInnerIteration_then_correctlyScopes() {
+        void whenNestedConditionWithInnerIterationThenCorrectlyScopes() {
             val compiled   = compileExpression("[[1, 2, 3], [4, 5, 6]][?(@[?(# == 0)][0] < 3)]");
             val innerArray = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(java.util.List.of(innerArray)));
@@ -594,7 +593,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("deeply nested conditions correctly scope relative values")
-        void when_deeplyNestedConditions_then_correctlyScopes() {
+        void whenDeeplyNestedConditionsThenCorrectlyScopes() {
             val compiled  = compileExpression("[[[1, 2]], [[3, 4]]][?(@[0][?(# == 0)][0] == 1)]");
             val innermost = Value.ofArray(Value.of(1), Value.of(2));
             val middle    = Value.ofArray(java.util.List.of(innermost));
@@ -603,7 +602,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("@ used directly returns undefined")
-        void when_atUsedDirectly_then_returnsUndefined() {
+        void whenAtUsedDirectlyThenReturnsUndefined() {
             val compiled = compileExpression("@");
             assertThat(compiled).isInstanceOf(PureOperator.class);
             val result = ((PureOperator) compiled).evaluate(evaluationContext());
@@ -612,7 +611,7 @@ class ExpressionCompilerTests {
 
         @Test
         @DisplayName("# used directly returns undefined")
-        void when_hashUsedDirectly_then_returnsUndefined() {
+        void whenHashUsedDirectlyThenReturnsUndefined() {
             val compiled = compileExpression("#");
             assertThat(compiled).isInstanceOf(PureOperator.class);
             val result = ((PureOperator) compiled).evaluate(evaluationContext());
@@ -626,11 +625,11 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_eagerOperator_then_evaluatesCorrectly(String description, String expression, Value expected) {
+        void whenEagerOperatorThenEvaluatesCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
-        static Stream<Arguments> when_eagerOperator_then_evaluatesCorrectly() {
+        static Stream<Arguments> whenEagerOperatorThenEvaluatesCorrectly() {
             return Stream.of(
                     // Eager OR (|) - aliased to lazy OR
                     arguments("eager or true|false", "true | false", Value.TRUE),
@@ -654,11 +653,11 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_keyStepOnArray_then_projectsCorrectly(String description, String expression, Value expected) {
+        void whenKeyStepOnArrayThenProjectsCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
-        static Stream<Arguments> when_keyStepOnArray_then_projectsCorrectly() {
+        static Stream<Arguments> whenKeyStepOnArrayThenProjectsCorrectly() {
             return Stream.of(
                     // Key on array of non-objects returns empty array
                     arguments("key on number array", "[1, 2, 3].name", Value.EMPTY_ARRAY),
@@ -683,11 +682,11 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_undefinedComparison_then_evaluatesCorrectly(String description, String expression, Value expected) {
+        void whenUndefinedComparisonThenEvaluatesCorrectly(String description, String expression, Value expected) {
             assertCompilesTo(expression, expected);
         }
 
-        static Stream<Arguments> when_undefinedComparison_then_evaluatesCorrectly() {
+        static Stream<Arguments> whenUndefinedComparisonThenEvaluatesCorrectly() {
             return Stream.of(
                     // Undefined equality
                     arguments("undefined == undefined", "undefined == undefined", Value.TRUE),
@@ -706,13 +705,13 @@ class ExpressionCompilerTests {
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
-        void when_conditionNonBoolean_then_returnsError(String description, String expression) {
+        void whenConditionNonBooleanThenReturnsError(String description, String expression) {
             val result = evaluateExpression(expression);
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message().toLowerCase()).contains("condition");
         }
 
-        static Stream<Arguments> when_conditionNonBoolean_then_returnsError() {
+        static Stream<Arguments> whenConditionNonBooleanThenReturnsError() {
             return Stream.of(arguments("number condition on number", "42[?(@ + 1)]"),
                     arguments("number condition on string", "\"text\"[?(123)]"),
                     arguments("arithmetic condition on array", "[1, 2, 3][?(@ * 2)]"),
@@ -722,14 +721,14 @@ class ExpressionCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_compileExpression_then_returnsExpectedValue(String description, String expression,
+    void whenCompileExpressionThenReturnsExpectedValue(String description, String expression,
             CompiledExpression expected) {
         val actual = evaluateExpression(expression);
         assertThat(actual).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_compileExpression_then_returnsExpectedValue() {
+    private static Stream<Arguments> whenCompileExpressionThenReturnsExpectedValue() {
         return Stream.of(
             // Literals
             arguments("integer", "42", Value.of(42)),
@@ -764,14 +763,14 @@ class ExpressionCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_compileSubscriptionElement_then_returnsSubscriptionValue(String description, String expression,
+    void whenCompileSubscriptionElementThenReturnsSubscriptionValue(String description, String expression,
             CompiledExpression expected) {
         val ctx    = subscriptionContext();
         val actual = evaluateExpression(expression, ctx);
         assertThat(actual).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_compileSubscriptionElement_then_returnsSubscriptionValue() {
+    private static Stream<Arguments> whenCompileSubscriptionElementThenReturnsSubscriptionValue() {
         return Stream.of(arguments("subject", "subject", Value.of("alice")),
                 arguments("action", "action", Value.of("read")),
                 arguments("resource", "resource", Value.of("document")),
@@ -780,7 +779,7 @@ class ExpressionCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_compileLiteralExpression_then_returnsResult(String description, String expression, Object expected) {
+    void whenCompileLiteralExpressionThenReturnsResult(String description, String expression, Object expected) {
         val actual = evaluateExpression(expression);
         if (expected instanceof Class<?> c)
             assertThat(actual).isInstanceOf(c);
@@ -789,7 +788,7 @@ class ExpressionCompilerTests {
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_compileLiteralExpression_then_returnsResult() {
+    private static Stream<Arguments> whenCompileLiteralExpressionThenReturnsResult() {
         return Stream.of(
             // Logical NOT
             arguments("not true", "!true", Value.FALSE),
@@ -873,7 +872,7 @@ class ExpressionCompilerTests {
 
     @MethodSource("constantFoldingCases")
     @ParameterizedTest(name = "constant folding: {0}")
-    void when_allLiterals_then_constantFoldsToValue(String description, String expression, Value expected) {
+    void whenAllLiteralsThenConstantFoldsToValue(String description, String expression, Value expected) {
         val compiled = compileExpression(expression);
         assertThat(compiled).as("should constant-fold to Value, not PureOperator").isInstanceOf(Value.class)
                 .isEqualTo(expected);
@@ -918,7 +917,7 @@ class ExpressionCompilerTests {
 
     @MethodSource("pureOperatorCases")
     @ParameterizedTest(name = "pure operator: {0}")
-    void when_containsVariableReference_then_returnsPureOperatorWithCorrectValue(String description, String expression,
+    void whenContainsVariableReferenceThenReturnsPureOperatorWithCorrectValue(String description, String expression,
             Value varValue, Value expected) {
         val ctx      = compilationContext();
         val compiled = compileExpression(expression, ctx);

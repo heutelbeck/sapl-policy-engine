@@ -25,6 +25,7 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.libraries.ReactiveWebClientWebSocketTests.WebSocketConfig;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,13 +50,14 @@ import java.util.Map;
 @Import(WebSocketConfig.class)
 @EnableAutoConfiguration
 @SpringBootTest(properties = "spring.main.web-application-type=reactive", webEnvironment = WebEnvironment.RANDOM_PORT)
+@DisplayName("ReactiveWebClientWebSocket")
 class ReactiveWebClientWebSocketTests {
 
     @LocalServerPort
     private Integer port;
 
     @Test
-    void when_sendBodyToEcho_then_receiveEcho() {
+    void whenSendBodyToEchoThenReceiveEcho() {
         val template        = """
                 {
                     "baseUrl" : "ws://localhost:%d/echo",
@@ -69,7 +71,7 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Test
-    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() {
+    void whenSendBodyNonJSONToEchoThenReceiveEchoButError() {
         val template        = """
                 {
                     "baseUrl" : "ws://localhost:%d/echo",
@@ -84,7 +86,7 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Test
-    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() {
+    void whenSendNoBodyToCounterThenReceiveStreamOfNumbers() {
         val template        = """
                 {
                     "baseUrl" : "ws://localhost:%d/counter"

@@ -22,6 +22,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -33,17 +34,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("GraphFunctionLibrary")
 class GraphFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GraphFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void reachable_whenMultipleRootsIncludingUnknown_thenReturnsAllReachableNodes() {
+    void reachableWhenMultipleRootsIncludingUnknownThenReturnsAllReachableNodes() {
         val graph   = ObjectValue.builder().put("necronomicon", Value.ofArray(Value.of("pnakotic-manuscripts")))
                 .put("pnakotic-manuscripts", Value.ofArray(Value.of("rlyeh-text"))).build();
         val initial = Value.ofArray(Value.of("necronomicon"), Value.of("miskatonic-journal"));
@@ -57,7 +59,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachablePaths_whenSingleRoot_thenBuildsShortestPaths() {
+    void reachablePathsWhenSingleRootThenBuildsShortestPaths() {
         val graph   = ObjectValue.builder()
                 .put("azathoth", Value.ofArray(Value.of("nyarlathotep"), Value.of("shub-niggurath")))
                 .put("nyarlathotep", Value.ofArray(Value.of("haunter-of-the-dark")))
@@ -75,7 +77,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachable_whenGraphHasCycles_thenHandlesWithoutInfiniteLoop() {
+    void reachableWhenGraphHasCyclesThenHandlesWithoutInfiniteLoop() {
         val graph   = ObjectValue.builder().put("necronomicon", Value.ofArray(Value.of("book-of-eibon")))
                 .put("book-of-eibon", Value.ofArray(Value.of("necronomicon"), Value.of("unaussprechlichen-kulten")))
                 .put("unaussprechlichen-kulten", Value.EMPTY_ARRAY).build();
@@ -91,7 +93,7 @@ class GraphFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("emptyInputCases")
-    void reachable_whenEmptyInputs_thenReturnsExpectedSize(String description, ObjectValue graph, Value initial,
+    void reachableWhenEmptyInputsThenReturnsExpectedSize(String description, ObjectValue graph, Value initial,
             int expectedSize) {
         val result = GraphFunctionLibrary.reachable(graph, initial);
 
@@ -111,7 +113,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachable_whenNumericNodeIds_thenHandlesCorrectly() {
+    void reachableWhenNumericNodeIdsThenHandlesCorrectly() {
         val graph   = ObjectValue.builder().put("1", Value.ofArray(Value.of("2"), Value.of("3")))
                 .put("2", Value.ofArray(Value.of("4"))).put("3", Value.EMPTY_ARRAY).put("4", Value.EMPTY_ARRAY).build();
         val initial = Value.of("1");
@@ -124,7 +126,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachable_whenNonArrayAdjacencyValues_thenIgnoresThem() {
+    void reachableWhenNonArrayAdjacencyValuesThenIgnoresThem() {
         val graph   = ObjectValue.builder().put("de-vermis-mysteriis", Value.ofArray(Value.of("cultes-des-goules")))
                 .put("cultes-des-goules", Value.of("corrupted-catalog-entry")).put("book-of-eibon", Value.of(666))
                 .put("unaussprechlichen-kulten", Value.TRUE).put("celaeno-fragments", Value.NULL).build();
@@ -141,7 +143,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachable_whenDisconnectedComponents_thenOnlyReachesConnectedNodes() {
+    void reachableWhenDisconnectedComponentsThenOnlyReachesConnectedNodes() {
         val graph   = ObjectValue.builder().put("innsmouth-cult-texts", Value.ofArray(Value.of("dagon-liturgy")))
                 .put("dagon-liturgy", Value.EMPTY_ARRAY)
                 .put("arkham-lodge-records", Value.ofArray(Value.of("yog-sothoth-rituals")))
@@ -157,7 +159,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachable_whenSelfLoops_thenHandlesCorrectly() {
+    void reachableWhenSelfLoopsThenHandlesCorrectly() {
         val graph   = ObjectValue.builder()
                 .put("de-vermis-mysteriis",
                         Value.ofArray(Value.of("de-vermis-mysteriis"), Value.of("cultes-des-goules")))
@@ -173,7 +175,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachablePaths_whenMultipleRoots_thenBuildsPathsForAll() {
+    void reachablePathsWhenMultipleRootsThenBuildsPathsForAll() {
         val graph   = ObjectValue.builder().put("pnakotic-manuscripts", Value.ofArray(Value.of("rlyeh-text")))
                 .put("rlyeh-text", Value.EMPTY_ARRAY)
                 .put("book-of-eibon", Value.ofArray(Value.of("testaments-of-carnamagos")))
@@ -191,7 +193,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachablePaths_whenCycles_thenReturnsShortestPath() {
+    void reachablePathsWhenCyclesThenReturnsShortestPath() {
         val graph   = ObjectValue.builder()
                 .put("miskatonic-library-catalog", Value.ofArray(Value.of("restricted-section")))
                 .put("restricted-section",
@@ -210,7 +212,7 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
-    void reachablePaths_whenNonArrayAdjacencies_thenIgnoresThem() {
+    void reachablePathsWhenNonArrayAdjacenciesThenIgnoresThem() {
         val graph   = ObjectValue.builder().put("r-lyeh-text", Value.ofArray(Value.of("sussex-manuscript")))
                 .put("sussex-manuscript", Value.of("damaged-catalog-entry")).build();
         val initial = Value.of("r-lyeh-text");
@@ -225,7 +227,7 @@ class GraphFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("emptyPathInputCases")
-    void reachablePaths_whenEmptyInputs_thenReturnsExpectedPaths(String description, ObjectValue graph, Value initial,
+    void reachablePathsWhenEmptyInputsThenReturnsExpectedPaths(String description, ObjectValue graph, Value initial,
             int expectedPaths) {
         val result = GraphFunctionLibrary.reachablePaths(graph, initial);
 

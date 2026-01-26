@@ -45,7 +45,7 @@ class FilterNatureInferenceTests {
 
         @ParameterizedTest(name = "base={0}, arg={2} -> {4}")
         @MethodSource("simpleFilterCombinations")
-        void simpleFilter_strataMatrix(String baseExpr, Stratum baseStratum, String argExpr, Stratum argStratum,
+        void simpleFilterStrataMatrix(String baseExpr, Stratum baseStratum, String argExpr, Stratum argStratum,
                 Stratum expectedStratum) {
             var expression = argStratum == Stratum.VALUE ? baseExpr + " |- simple.doubleValue"
                     : baseExpr + " |- simple.addValue(" + argExpr + ")";
@@ -78,7 +78,7 @@ class FilterNatureInferenceTests {
 
         @ParameterizedTest(name = "base={0}, pathExpr={2}, funcArg={4} -> {6}")
         @MethodSource("extendedFilterCombinations")
-        void extendedFilter_strataMatrix(String baseExpr, Stratum baseStratum, String pathExprExpr,
+        void extendedFilterStrataMatrix(String baseExpr, Stratum baseStratum, String pathExprExpr,
                 Stratum pathExprStratum, String funcArgExpr, Stratum funcArgStratum, Stratum expectedStratum) {
             val expression = String.format("%s |- { @[(%s)] : simple.addValue(%s) }", baseExpr, pathExprExpr,
                     funcArgExpr);
@@ -124,7 +124,7 @@ class FilterNatureInferenceTests {
 
         @Test
         @DisplayName("Stream in path expression -> throws compile-time exception")
-        void streamInPathExpr_throwsCompileException() {
+        void streamInPathExprThrowsCompileException() {
             assertThatThrownBy(
                     () -> compileExpression("[1, 2, 3] |- { @[(subject.<test.index>)] : filter.replace(\"***\") }"))
                     .isInstanceOf(SaplCompilerException.class)
@@ -133,14 +133,14 @@ class FilterNatureInferenceTests {
 
         @Test
         @DisplayName("All Value inputs are constant-folded")
-        void allValueInputs_constantFolded() {
+        void allValueInputsConstantFolded() {
             val compiled = compileExpression("[1, 2, 3] |- { @[(0)] : simple.addValue(1) }");
             assertThat(compiled).isInstanceOf(Value.class);
         }
 
         @Test
         @DisplayName("Path subscription dependency correctly checked in isDependingOnSubscription()")
-        void pathSubscriptionDependency_correctlyChecked() {
+        void pathSubscriptionDependencyCorrectlyChecked() {
             val compiled = compileExpression("[1, 2, 3] |- { @[(subject.index)] : simple.addValue(1) }");
             assertThat(compiled).isInstanceOf(PureOperator.class);
             assertThat(((PureOperator) compiled).isDependingOnSubscription()).isTrue();
@@ -153,7 +153,7 @@ class FilterNatureInferenceTests {
 
         @ParameterizedTest(name = "base={0}, arg={2} -> {4}")
         @MethodSource("eachFilterCombinations")
-        void eachFilter_strataMatrix(String baseExpr, Stratum baseStratum, String argExpr, Stratum argStratum,
+        void eachFilterStrataMatrix(String baseExpr, Stratum baseStratum, String argExpr, Stratum argStratum,
                 Stratum expectedStratum) {
             var expression = argStratum == Stratum.VALUE ? baseExpr + " |- each simple.doubleValue"
                     : baseExpr + " |- each simple.addValue(" + argExpr + ")";
@@ -181,7 +181,7 @@ class FilterNatureInferenceTests {
 
         @ParameterizedTest(name = "{0} -> {2}")
         @MethodSource("strataVerificationCases")
-        void expression_hasExpectedStratum(String description, String expression, Stratum expectedStratum) {
+        void expressionHasExpectedStratum(String description, String expression, Stratum expectedStratum) {
             assertStratumOfCompiledExpression(expression, expectedStratum);
         }
 

@@ -24,6 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -31,17 +32,18 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+@DisplayName("JsonFunctionLibrary")
 class JsonFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(JsonFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void whenSimpleObject_thenParsesCorrectly() {
+    void whenSimpleObjectThenParsesCorrectly() {
         val json   = """
                 {"cultist": "Wilbur Whateley", "role": "ACOLYTE", "securityLevel": 3}
                 """;
@@ -54,7 +56,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedObject_thenParsesCorrectly() {
+    void whenNestedObjectThenParsesCorrectly() {
         val json   = """
                 {"entity": {"name": "Azathoth", "title": "Daemon Sultan", "threatLevel": 9}}
                 """;
@@ -67,7 +69,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenDeeplyNestedObject_thenParsesCorrectly() {
+    void whenDeeplyNestedObjectThenParsesCorrectly() {
         val json   = """
                 {"ritual": {"name": "Summoning", "location": {"site": "Miskatonic University", "dangerLevel": 5}}}
                 """;
@@ -82,7 +84,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenArrays_thenParsesCorrectly() {
+    void whenArraysThenParsesCorrectly() {
         val json   = """
                 {"artifacts": ["Necronomicon", "Silver Key", "Shining Trapezohedron"], "threatLevels": [1, 2, 3, 4, 5]}
                 """;
@@ -100,7 +102,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenArrayOfObjects_thenParsesCorrectly() {
+    void whenArrayOfObjectsThenParsesCorrectly() {
         val json   = """
                 {"investigators": [{"name": "Carter", "sanity": 85}, {"name": "Pickman", "sanity": 42}]}
                 """;
@@ -113,9 +115,9 @@ class JsonFunctionLibraryTests {
         assertThat((ObjectValue) investigators.get(1)).containsEntry("name", Value.of("Pickman"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "true", "false" })
-    void whenBooleans_thenParsesCorrectly(String boolValue) {
+    void whenBooleansThenParsesCorrectly(String boolValue) {
         val json   = "{\"sealed\": " + boolValue + "}";
         val result = JsonFunctionLibrary.jsonToVal(Value.of(json));
 
@@ -125,7 +127,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenNullValue_thenParsesCorrectly() {
+    void whenNullValueThenParsesCorrectly() {
         val json   = "{\"value\": null}";
         val result = JsonFunctionLibrary.jsonToVal(Value.of(json));
 
@@ -134,7 +136,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyObject_thenReturnsEmptyObject() {
+    void whenEmptyObjectThenReturnsEmptyObject() {
         val result = JsonFunctionLibrary.jsonToVal(Value.of("{}"));
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -142,16 +144,16 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyArray_thenReturnsEmptyArray() {
+    void whenEmptyArrayThenReturnsEmptyArray() {
         val result = JsonFunctionLibrary.jsonToVal(Value.of("[]"));
 
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).isEmpty();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "{invalid}", "[unclosed", "{\"key\": }", "not json at all" })
-    void whenInvalidJson_thenReturnsError(String invalidJson) {
+    void whenInvalidJsonThenReturnsError(String invalidJson) {
         val result = JsonFunctionLibrary.jsonToVal(Value.of(invalidJson));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -159,7 +161,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenObjectToJson_thenConvertsCorrectly() {
+    void whenObjectToJsonThenConvertsCorrectly() {
         val object = ObjectValue.builder().put("name", Value.of("Nyarlathotep"))
                 .put("title", Value.of("Crawling Chaos")).put("threatLevel", Value.of(8)).build();
 
@@ -172,7 +174,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedObjectToJson_thenConvertsCorrectly() {
+    void whenNestedObjectToJsonThenConvertsCorrectly() {
         val location = ObjectValue.builder().put("site", Value.of("R'lyeh")).build();
         val ritual   = ObjectValue.builder().put("location", location).build();
 
@@ -184,7 +186,7 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenArrayToJson_thenConvertsCorrectly() {
+    void whenArrayToJsonThenConvertsCorrectly() {
         val deities = ArrayValue.builder().add(Value.of("Dagon")).add(Value.of("Hydra")).build();
         val object  = ObjectValue.builder().put("deities", deities).build();
 
@@ -196,14 +198,14 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyObjectToJson_thenConvertsToEmptyObject() {
+    void whenEmptyObjectToJsonThenConvertsToEmptyObject() {
         val result = JsonFunctionLibrary.valToJson(Value.EMPTY_OBJECT);
 
         assertThat(result).isEqualTo(Value.of("{}"));
     }
 
     @Test
-    void whenRoundTrip_thenPreservesData() {
+    void whenRoundTripThenPreservesData() {
         val original   = """
                 {"investigator": {"name": "Carter", "sanity": 77, "artifacts": ["Silver Key", "Lamp"]}}
                 """;

@@ -34,12 +34,15 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("MathFunctionLibrary")
 class MathFunctionLibraryTests {
 
     private static final double EPSILON = 0.000001;
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(MathFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -47,7 +50,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}: {1} and {2} = {3}")
     @MethodSource("binaryOperationCases")
-    void whenBinaryOperation_thenReturnsCorrectResult(String operation, double a, double b, double expected) {
+    void whenBinaryOperationThenReturnsCorrectResult(String operation, double a, double b, double expected) {
         val actual = switch (operation) {
         case "min" -> MathFunctionLibrary.min(Value.of(a), Value.of(b));
         case "max" -> MathFunctionLibrary.max(Value.of(a), Value.of(b));
@@ -67,7 +70,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}({1}) = {2}")
     @MethodSource("unaryOperationCases")
-    void whenUnaryOperation_thenReturnsCorrectResult(String operation, double value, double expected) {
+    void whenUnaryOperationThenReturnsCorrectResult(String operation, double value, double expected) {
         val actual = switch (operation) {
         case "abs"   -> MathFunctionLibrary.abs(Value.of(value));
         case "ceil"  -> MathFunctionLibrary.ceil(Value.of(value));
@@ -102,7 +105,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "pow({0}, {1}) = {2}")
     @MethodSource("powCases")
-    void whenPow_thenReturnsCorrectResult(double base, double exponent, double expected) {
+    void whenPowThenReturnsCorrectResult(double base, double exponent, double expected) {
         val actual = MathFunctionLibrary.pow(Value.of(base), Value.of(exponent));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -117,7 +120,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "sqrt({0}) = {1}")
     @MethodSource("sqrtCases")
-    void whenSqrt_thenReturnsCorrectResult(double value, double expected) {
+    void whenSqrtThenReturnsCorrectResult(double value, double expected) {
         val actual = MathFunctionLibrary.sqrt(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -131,7 +134,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "clamp({0}, {1}, {2}) = {3}")
     @MethodSource("clampCases")
-    void whenClamp_thenReturnsCorrectResult(double value, double min, double max, double expected) {
+    void whenClampThenReturnsCorrectResult(double value, double min, double max, double expected) {
         val actual = MathFunctionLibrary.clamp(Value.of(value), Value.of(min), Value.of(max));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -146,7 +149,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}() = {1}")
     @MethodSource("constantCases")
-    void whenConstantFunction_thenReturnsCorrectValue(String constantName, double expectedValue) {
+    void whenConstantFunctionThenReturnsCorrectValue(String constantName, double expectedValue) {
         val actual = "pi".equals(constantName) ? MathFunctionLibrary.pi() : MathFunctionLibrary.e();
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -159,7 +162,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "log({0}) = {1}")
     @MethodSource("logCases")
-    void whenLog_thenReturnsCorrectResult(double value, double expected) {
+    void whenLogThenReturnsCorrectResult(double value, double expected) {
         val actual = MathFunctionLibrary.log(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -173,7 +176,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "log10({0}) = {1}")
     @MethodSource("log10Cases")
-    void whenLog10_thenReturnsCorrectResult(double value, double expected) {
+    void whenLog10ThenReturnsCorrectResult(double value, double expected) {
         val actual = MathFunctionLibrary.log10(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -187,7 +190,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "logb({0}, {1}) = {2}")
     @MethodSource("logbCases")
-    void whenLogb_thenReturnsCorrectResult(double value, double base, double expected) {
+    void whenLogbThenReturnsCorrectResult(double value, double base, double expected) {
         val actual = MathFunctionLibrary.logb(Value.of(value), Value.of(base));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -200,7 +203,7 @@ class MathFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomInteger_thenReturnsValueInRange() {
+    void whenRandomIntegerThenReturnsValueInRange() {
         val actual = MathFunctionLibrary.randomInteger(Value.of(10));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().intValue())
@@ -208,7 +211,7 @@ class MathFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomIntegerWithSameSeed_thenReturnsSameValue() {
+    void whenRandomIntegerWithSameSeedThenReturnsSameValue() {
         val actual1 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(42));
         val actual2 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(42));
 
@@ -216,7 +219,7 @@ class MathFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomIntegerWithDifferentSeeds_thenReturnsDifferentValues() {
+    void whenRandomIntegerWithDifferentSeedsThenReturnsDifferentValues() {
         val actual1 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(42));
         val actual2 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(43));
 
@@ -224,7 +227,7 @@ class MathFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomFloat_thenReturnsValueInRange() {
+    void whenRandomFloatThenReturnsValueInRange() {
         val actual = MathFunctionLibrary.randomFloat();
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
@@ -232,7 +235,7 @@ class MathFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomFloatWithSameSeed_thenReturnsSameValue() {
+    void whenRandomFloatWithSameSeedThenReturnsSameValue() {
         val actual1 = MathFunctionLibrary.randomFloatSeeded(Value.of(42));
         val actual2 = MathFunctionLibrary.randomFloatSeeded(Value.of(42));
 
@@ -240,7 +243,7 @@ class MathFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomFloatWithDifferentSeeds_thenReturnsDifferentValues() {
+    void whenRandomFloatWithDifferentSeedsThenReturnsDifferentValues() {
         val actual1 = MathFunctionLibrary.randomFloatSeeded(Value.of(42));
         val actual2 = MathFunctionLibrary.randomFloatSeeded(Value.of(43));
 
@@ -249,7 +252,7 @@ class MathFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("errorCases")
-    void whenInvalidInput_thenReturnsError(String description, Value result, String expectedMessage) {
+    void whenInvalidInputThenReturnsError(String description, Value result, String expectedMessage) {
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(expectedMessage);
     }

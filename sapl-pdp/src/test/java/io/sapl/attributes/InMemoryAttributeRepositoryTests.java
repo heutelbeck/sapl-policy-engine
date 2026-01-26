@@ -27,6 +27,7 @@ import io.sapl.api.model.Value;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,6 +57,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @Timeout(30)
+@DisplayName("InMemoryAttributeRepository")
 class InMemoryAttributeRepositoryTests {
 
     private static final String ELRIC                    = "elric-of-melnibone";
@@ -89,7 +91,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_publishingStormbringerSoulCount_then_subscriberReceivesCurrentValue() {
+    void whenPublishingStormbringerSoulCountThenSubscriberReceivesCurrentValue() {
         val souls = Value.of(42);
 
         repository.publishAttribute(Value.of(STORMBRINGER), STORMBRINGER_SOULS, souls).subscribe();
@@ -100,7 +102,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_publishingChaosPactWithTTL_then_pactExpiresAndBecomesUnavailable() {
+    void whenPublishingChaosPactWithTTLThenPactExpiresAndBecomesUnavailable() {
         val pactActive = Value.of(true);
         val pactTTL    = Duration.ofMillis(100);
 
@@ -114,7 +116,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_publishingElricStrengthWithBecomeUndefined_then_strengthBecomesUndefinedAfterDrugWearOff() {
+    void whenPublishingElricStrengthWithBecomeUndefinedThenStrengthBecomesUndefinedAfterDrugWearOff() {
         val strengthened = Value.of(100);
         val drugDuration = Duration.ofMillis(100);
 
@@ -128,7 +130,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_removingDragonBond_then_activeSubscribersReceiveUnavailable() {
+    void whenRemovingDragonBondThenActiveSubscribersReceiveUnavailable() {
         val bondStrength = Value.of(95);
 
         repository.publishAttribute(Value.of(ELRIC), DRAGON_BOND, bondStrength).subscribe();
@@ -142,7 +144,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_multipleSubscribersForSameAttribute_then_allReceiveUpdates() {
+    void whenMultipleSubscribersForSameAttributeThenAllReceiveUpdates() {
         val throneOccupied = Value.of(true);
 
         repository.publishAttribute(THRONE_ACCESS, throneOccupied).subscribe();
@@ -166,7 +168,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_publishingWithInfiniteTTL_then_attributeNeverExpires() {
+    void whenPublishingWithInfiniteTTLThenAttributeNeverExpires() {
         val balanceActive = Value.of(true);
 
         repository.publishAttribute(BALANCE_KEEPER, balanceActive, Duration.ofSeconds(Long.MAX_VALUE),
@@ -180,7 +182,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_queryingNonExistentAttribute_then_receivesUnavailable() {
+    void whenQueryingNonExistentAttributeThenReceivesUnavailable() {
         val invocation = createInvocation(Value.of(CYMORIL), "sorcery.unknown");
 
         StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ERROR_ATTRIBUTE_UNAVAILABLE)
@@ -188,7 +190,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_publishingAttributeWithArguments_then_attributeIsRetrievableWithSameArguments() {
+    void whenPublishingAttributeWithArgumentsThenAttributeIsRetrievableWithSameArguments() {
         val summoningPower = Value.of(85);
         val arguments      = List.<Value>of(Value.of(CHAOS_REALM), Value.of(5));
 
@@ -200,7 +202,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_publishingAttributeWithDifferentArguments_then_attributesAreIndependent() {
+    void whenPublishingAttributeWithDifferentArgumentsThenAttributesAreIndependent() {
         val chaosPower = Value.of(95);
         val lawPower   = Value.of(45);
 
@@ -215,7 +217,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_updatingExistingAttribute_then_subscribersReceiveNewValue() {
+    void whenUpdatingExistingAttributeThenSubscribersReceiveNewValue() {
         val initialSouls = Value.of(42);
         val updatedSouls = Value.of(43);
 
@@ -230,7 +232,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_initializingWithPersistedAttributes_then_attributesAreRecovered() {
+    void whenInitializingWithPersistedAttributesThenAttributesAreRecovered() {
         val shieldPower    = Value.of(88);
         val ttl            = Duration.ofHours(1);
         val deadline       = clock.instant().plus(ttl);
@@ -248,7 +250,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_initializingWithExpiredAttributes_then_expiredAttributesAreNotRecovered() {
+    void whenInitializingWithExpiredAttributesThenExpiredAttributesAreNotRecovered() {
         val expiredPact    = Value.of(true);
         val ttl            = Duration.ofMillis(1);
         val deadline       = clock.instant().plus(ttl);
@@ -269,7 +271,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_cancellingScheduledTimeout_then_timeoutDoesNotFire() {
+    void whenCancellingScheduledTimeoutThenTimeoutDoesNotFire() {
         val treacheryPlanned = Value.of(true);
         val planDuration     = Duration.ofMillis(100);
 
@@ -286,9 +288,9 @@ class InMemoryAttributeRepositoryTests {
                 .verifyComplete();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideTimeoutStrategyScenarios")
-    void when_attributeTimesOutWithStrategy_then_correctBehaviorApplied(String scenario, TimeOutStrategy strategy,
+    void whenAttributeTimesOutWithStrategyThenCorrectBehaviorApplied(String scenario, TimeOutStrategy strategy,
             Value expectedAfterTimeout) {
         val initialValue = Value.of(true);
         val ttl          = Duration.ofMillis(100);
@@ -309,7 +311,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_validatingPublishParameters_then_invalidInputsAreRejected() {
+    void whenValidatingPublishParametersThenInvalidInputsAreRejected() {
         Runnable publishWithNullName = () -> repository.publishAttribute(null, Value.of(1));
         assertThatThrownBy(publishWithNullName::run).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Attribute name must not be null");
@@ -338,7 +340,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_validatingRemoveParameters_then_invalidInputsAreRejected() {
+    void whenValidatingRemoveParametersThenInvalidInputsAreRejected() {
         Runnable removeWithNullName = () -> repository.removeAttribute(null);
         assertThatThrownBy(removeWithNullName::run).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Attribute name must not be null");
@@ -353,7 +355,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_concurrentPublishesOccur_then_allAreHandledCorrectly() throws InterruptedException {
+    void whenConcurrentPublishesOccurThenAllAreHandledCorrectly() throws InterruptedException {
         val threadCount = 20;
         val latch       = new CountDownLatch(threadCount);
         val errors      = new CopyOnWriteArrayList<Throwable>();
@@ -382,7 +384,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_concurrentSubscriptionsOccur_then_allReceiveValues() throws InterruptedException {
+    void whenConcurrentSubscriptionsOccurThenAllReceiveValues() throws InterruptedException {
         val souls           = Value.of(42);
         val subscriberCount = 50;
         val latch           = new CountDownLatch(subscriberCount);
@@ -405,7 +407,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_subscriberUnsubscribesEarly_then_cleanupOccurs() {
+    void whenSubscriberUnsubscribesEarlyThenCleanupOccurs() {
         val pactActive = Value.of(true);
 
         repository.publishAttribute(Value.of(ARIOCH), CHAOS_PACT, pactActive).subscribe();
@@ -424,7 +426,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_rapidPublishAndRemoveCycles_then_noRaceConditionsOccur() throws InterruptedException {
+    void whenRapidPublishAndRemoveCyclesThenNoRaceConditionsOccur() throws InterruptedException {
         val iterations = 100;
         val latch      = new CountDownLatch(iterations * 2);
         val errors     = new CopyOnWriteArrayList<Throwable>();
@@ -457,7 +459,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_multipleTimeoutsScheduledConcurrently_then_allFireCorrectly() {
+    void whenMultipleTimeoutsScheduledConcurrentlyThenAllFireCorrectly() {
         val shieldCount = 10;
         val baseDelay   = Duration.ofMillis(50);
         val counters    = new CopyOnWriteArrayList<AtomicInteger>();
@@ -484,7 +486,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_publishingDuringActiveSubscription_then_subscriberReceivesBothValues() {
+    void whenPublishingDuringActiveSubscriptionThenSubscriberReceivesBothValues() {
         val weakStrength   = Value.of(20);
         val strongStrength = Value.of(100);
 
@@ -505,7 +507,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_removingAttributeWithMultipleSubscribers_then_allReceiveUnavailable() {
+    void whenRemovingAttributeWithMultipleSubscribersThenAllReceiveUnavailable() {
         val shieldActive = Value.of(true);
 
         repository.publishAttribute(Value.of(IMRRYR), DREAMING_CITY_PROTECTION, shieldActive).subscribe();
@@ -533,7 +535,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_storageOperationFails_then_errorIsPropagated() {
+    void whenStorageOperationFailsThenErrorIsPropagated() {
         val failingStorage = new AttributeStorage() {
             @Override
             public Mono<PersistedAttribute> get(AttributeKey key) {
@@ -562,7 +564,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_largeNumberOfAttributesPublished_then_allAreAccessible() {
+    void whenLargeNumberOfAttributesPublishedThenAllAreAccessible() {
         val kingdomCount = 100;
 
         for (var i = 0; i < kingdomCount; i++) {
@@ -579,7 +581,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_timeoutOccursDuringActiveSubscriptions_then_subscribersNotifiedImmediately() {
+    void whenTimeoutOccursDuringActiveSubscriptionsThenSubscribersNotifiedImmediately() {
         val bondActive = Value.of(true);
         val bondTTL    = Duration.ofMillis(100);
         val values     = new CopyOnWriteArrayList<Value>();
@@ -595,7 +597,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_updatingAttributeChangesToUndefined_then_subscribersReceiveUndefined() {
+    void whenUpdatingAttributeChangesToUndefinedThenSubscribersReceiveUndefined() {
         val strengthened = Value.of(100);
 
         repository.publishAttribute(Value.of(ELRIC), ELRIC_STRENGTH, strengthened).subscribe();
@@ -615,7 +617,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_attributeHasVeryLargeTTL_then_deadlineIsInstantMax() {
+    void whenAttributeHasVeryLargeTTLThenDeadlineIsInstantMax() {
         val balanceActive = Value.of(true);
         val infiniteTTL   = Duration.ofSeconds(Long.MAX_VALUE);
 
@@ -629,7 +631,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_multipleUpdatesInQuickSuccession_then_allSubscribersReceiveAllUpdates() {
+    void whenMultipleUpdatesInQuickSuccessionThenAllSubscribersReceiveAllUpdates() {
         val updateCount = 5;
         val values      = new CopyOnWriteArrayList<Value>();
 
@@ -654,7 +656,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_attributeUpdatedAfterTimeout_then_newTimeoutScheduled() {
+    void whenAttributeUpdatedAfterTimeoutThenNewTimeoutScheduled() {
         val pactActive = Value.of(true);
         val initialTTL = Duration.ofMillis(100);
         val renewedTTL = Duration.ofMillis(200);
@@ -681,7 +683,7 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Test
-    void when_stressTestingWithConcurrentOperations_then_repositoryRemainsStable() throws InterruptedException {
+    void whenStressTestingWithConcurrentOperationsThenRepositoryRemainsStable() throws InterruptedException {
         val operationCount = 200;
         val latch          = new CountDownLatch(operationCount);
         val errors         = new CopyOnWriteArrayList<Throwable>();

@@ -23,6 +23,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -30,17 +31,18 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+@DisplayName("XmlFunctionLibrary")
 class XmlFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(XmlFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void whenSimpleElement_thenParsesCorrectly() {
+    void whenSimpleElementThenParsesCorrectly() {
         val xml    = "<cultist>Wilbur Whateley</cultist>";
         val result = XmlFunctionLibrary.xmlToVal(Value.of(xml));
 
@@ -50,7 +52,7 @@ class XmlFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedElements_thenParsesCorrectly() {
+    void whenNestedElementsThenParsesCorrectly() {
         val xml    = "<entity><name>Azathoth</name><title>Daemon Sultan</title></entity>";
         val result = XmlFunctionLibrary.xmlToVal(Value.of(xml));
 
@@ -60,7 +62,7 @@ class XmlFunctionLibraryTests {
     }
 
     @Test
-    void whenDeeplyNestedElements_thenParsesCorrectly() {
+    void whenDeeplyNestedElementsThenParsesCorrectly() {
         val xml    = "<ritual><name>Summoning</name><location><site>Miskatonic University</site></location></ritual>";
         val result = XmlFunctionLibrary.xmlToVal(Value.of(xml));
 
@@ -71,9 +73,9 @@ class XmlFunctionLibraryTests {
         assertThat(location).containsEntry("site", Value.of("Miskatonic University"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "true", "false" })
-    void whenBooleanContent_thenParsesAsText(String boolValue) {
+    void whenBooleanContentThenParsesAsText(String boolValue) {
         val xml    = "<sealed>" + boolValue + "</sealed>";
         val result = XmlFunctionLibrary.xmlToVal(Value.of(xml));
 
@@ -82,7 +84,7 @@ class XmlFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyElement_thenParsesCorrectly() {
+    void whenEmptyElementThenParsesCorrectly() {
         val xml    = "<empty></empty>";
         val result = XmlFunctionLibrary.xmlToVal(Value.of(xml));
 
@@ -91,7 +93,7 @@ class XmlFunctionLibraryTests {
     }
 
     @Test
-    void whenInvalidXml_thenReturnsError() {
+    void whenInvalidXmlThenReturnsError() {
         val result = XmlFunctionLibrary.xmlToVal(Value.of("<unclosed"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -99,7 +101,7 @@ class XmlFunctionLibraryTests {
     }
 
     @Test
-    void whenObjectToXml_thenConvertsCorrectly() {
+    void whenObjectToXmlThenConvertsCorrectly() {
         val object = ObjectValue.builder().put("name", Value.of("Nyarlathotep"))
                 .put("title", Value.of("Crawling Chaos")).build();
 
@@ -111,7 +113,7 @@ class XmlFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedObjectToXml_thenConvertsCorrectly() {
+    void whenNestedObjectToXmlThenConvertsCorrectly() {
         val location = ObjectValue.builder().put("site", Value.of("R'lyeh")).build();
         val ritual   = ObjectValue.builder().put("location", location).build();
 
@@ -123,14 +125,14 @@ class XmlFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyObject_thenConvertsToEmptyXml() {
+    void whenEmptyObjectThenConvertsToEmptyXml() {
         val result = XmlFunctionLibrary.valToXml(Value.EMPTY_OBJECT);
 
         assertThat(result).isInstanceOf(TextValue.class);
     }
 
     @Test
-    void whenRoundTrip_thenPreservesData() {
+    void whenRoundTripThenPreservesData() {
         val original   = "<investigator><name>Carter</name><sanity>77</sanity></investigator>";
         val parsed     = XmlFunctionLibrary.xmlToVal(Value.of(original));
         val serialized = XmlFunctionLibrary.valToXml(parsed);

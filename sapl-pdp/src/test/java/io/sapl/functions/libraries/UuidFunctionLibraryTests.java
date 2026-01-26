@@ -24,6 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -33,10 +34,11 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+@DisplayName("UuidFunctionLibrary")
 class UuidFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(UuidFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -47,7 +49,7 @@ class UuidFunctionLibraryTests {
     private static final String UUID_REGEX    = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
 
     @Test
-    void whenValidUuidV4_thenParsesCorrectly() {
+    void whenValidUuidV4ThenParsesCorrectly() {
         val result = UuidFunctionLibrary.parse(Value.of(VALID_UUID_V4));
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -57,7 +59,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenValidUuidV1_thenParsesWithTimestampFields() {
+    void whenValidUuidV1ThenParsesWithTimestampFields() {
         val result = UuidFunctionLibrary.parse(Value.of(VALID_UUID_V1));
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -68,7 +70,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenUuidV4Parsed_thenDoesNotContainTimestampFields() {
+    void whenUuidV4ParsedThenDoesNotContainTimestampFields() {
         val result = UuidFunctionLibrary.parse(Value.of(VALID_UUID_V4));
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -76,10 +78,10 @@ class UuidFunctionLibraryTests {
         assertThat(obj).doesNotContainKey("timestamp").doesNotContainKey("clockSequence").doesNotContainKey("node");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = { "not-a-uuid", "12345", "", "550e8400-e29b-41d4-a716",
             "gggggggg-gggg-gggg-gggg-gggggggggggg" })
-    void whenInvalidUuid_thenReturnsError(String invalidUuid) {
+    void whenInvalidUuidThenReturnsError(String invalidUuid) {
         val result = UuidFunctionLibrary.parse(Value.of(invalidUuid));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -87,7 +89,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenRandom_thenGeneratesValidUuid() {
+    void whenRandomThenGeneratesValidUuid() {
         val result = UuidFunctionLibrary.random();
 
         assertThat(result).isInstanceOf(TextValue.class);
@@ -97,7 +99,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomCalledTwice_thenGeneratesDifferentUuids() {
+    void whenRandomCalledTwiceThenGeneratesDifferentUuids() {
         val result1 = UuidFunctionLibrary.random();
         val result2 = UuidFunctionLibrary.random();
 
@@ -105,7 +107,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenSeededRandom_thenGeneratesValidUuid() {
+    void whenSeededRandomThenGeneratesValidUuid() {
         val result = UuidFunctionLibrary.seededRandom(Value.of(12345));
 
         assertThat(result).isInstanceOf(TextValue.class);
@@ -115,7 +117,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenSeededRandomWithSameSeed_thenGeneratesSameUuid() {
+    void whenSeededRandomWithSameSeedThenGeneratesSameUuid() {
         val result1 = UuidFunctionLibrary.seededRandom(Value.of(42));
         val result2 = UuidFunctionLibrary.seededRandom(Value.of(42));
 
@@ -123,7 +125,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenSeededRandomWithDifferentSeeds_thenGeneratesDifferentUuids() {
+    void whenSeededRandomWithDifferentSeedsThenGeneratesDifferentUuids() {
         val result1 = UuidFunctionLibrary.seededRandom(Value.of(12345));
         val result2 = UuidFunctionLibrary.seededRandom(Value.of(67890));
 
@@ -131,7 +133,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenParseAndCompareSignificantBits_thenMatchesJavaUuid() {
+    void whenParseAndCompareSignificantBitsThenMatchesJavaUuid() {
         val uuid   = UUID.fromString(VALID_UUID_V4);
         val result = UuidFunctionLibrary.parse(Value.of(VALID_UUID_V4));
 
@@ -144,7 +146,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenSeededRandomWithNegativeSeed_thenGeneratesValidUuid() {
+    void whenSeededRandomWithNegativeSeedThenGeneratesValidUuid() {
         val result = UuidFunctionLibrary.seededRandom(Value.of(-999));
 
         assertThat(result).isInstanceOf(TextValue.class);
@@ -153,7 +155,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenSeededRandomWithZeroSeed_thenGeneratesValidUuid() {
+    void whenSeededRandomWithZeroSeedThenGeneratesValidUuid() {
         val result = UuidFunctionLibrary.seededRandom(Value.of(0));
 
         assertThat(result).isInstanceOf(TextValue.class);
@@ -162,7 +164,7 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenSeededRandomWithLargeSeed_thenGeneratesValidUuid() {
+    void whenSeededRandomWithLargeSeedThenGeneratesValidUuid() {
         val result = UuidFunctionLibrary.seededRandom(Value.of(Long.MAX_VALUE));
 
         assertThat(result).isInstanceOf(TextValue.class);

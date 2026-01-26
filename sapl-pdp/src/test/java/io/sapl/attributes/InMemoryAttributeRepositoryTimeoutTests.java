@@ -24,6 +24,7 @@ import io.sapl.api.attributes.PersistedAttribute;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -50,7 +51,8 @@ import static org.awaitility.Awaitility.await;
  * <li>Patient transformation tracking in sanitarium records</li>
  * </ul>
  */
-class InMemoryAttributeRepositoryTimeoutTest {
+@DisplayName("InMemoryAttributeRepositoryTimeout")
+class InMemoryAttributeRepositoryTimeoutTests {
 
     private InMemoryAttributeRepository repository;
     private HeapAttributeStorage        storage;
@@ -63,7 +65,7 @@ class InMemoryAttributeRepositoryTimeoutTest {
     }
 
     @Test
-    void whenAttributePublishedWithTTL_thenRemovesAfterTimeout() {
+    void whenAttributePublishedWithTTLThenRemovesAfterTimeout() {
         val key = new AttributeKey(Value.of("investigator-carter"), "protection.elderSign", List.of());
 
         repository
@@ -80,7 +82,7 @@ class InMemoryAttributeRepositoryTimeoutTest {
     }
 
     @Test
-    void whenAttributeTimesOutWithBecomeUndefinedStrategy_thenBecomesUndefinedPermanently() {
+    void whenAttributeTimesOutWithBecomeUndefinedStrategyThenBecomesUndefinedPermanently() {
         val key = new AttributeKey(Value.of("investigator-wilmarth"), "sanity.current", List.of());
 
         repository.publishAttribute(Value.of("investigator-wilmarth"), "sanity.current", Value.of(65),
@@ -102,7 +104,7 @@ class InMemoryAttributeRepositoryTimeoutTest {
     }
 
     @Test
-    void whenMultipleAttributesPublishedWithDifferentTTLs_thenEachTimesOutIndependently() {
+    void whenMultipleAttributesPublishedWithDifferentTTLsThenEachTimesOutIndependently() {
         repository.publishAttribute(Value.of("gate-location-innsmouth"), "seal.active",
                 Value.of("Sealed by novice cultist - weak binding"), Duration.ofSeconds(1), TimeOutStrategy.REMOVE)
                 .block();
@@ -132,7 +134,7 @@ class InMemoryAttributeRepositoryTimeoutTest {
     }
 
     @Test
-    void whenAttributeUpdatedBeforeTimeout_thenOldTimeoutCancelledAndNewTimeoutScheduled() {
+    void whenAttributeUpdatedBeforeTimeoutThenOldTimeoutCancelledAndNewTimeoutScheduled() {
         val key = new AttributeKey(Value.of("librarian-armitage"), "access.necronomicon", List.of());
 
         repository.publishAttribute(Value.of("librarian-armitage"), "access.necronomicon",
@@ -162,7 +164,7 @@ class InMemoryAttributeRepositoryTimeoutTest {
     }
 
     @Test
-    void whenAttributeManuallyRemoved_thenScheduledTimeoutCancelled() {
+    void whenAttributeManuallyRemovedThenScheduledTimeoutCancelled() {
         val key = new AttributeKey(Value.of("ritual-site-miskatonic"), "summoning.active", List.of());
 
         repository
@@ -180,7 +182,7 @@ class InMemoryAttributeRepositoryTimeoutTest {
     }
 
     @Test
-    void whenRepositoryInitializedWithExpiredAttributes_thenRemovesStaleAndRecoversActive() {
+    void whenRepositoryInitializedWithExpiredAttributesThenRemovesStaleAndRecoversActive() {
         val heapStorage = new HeapAttributeStorage();
         val clock       = Clock.systemUTC();
 

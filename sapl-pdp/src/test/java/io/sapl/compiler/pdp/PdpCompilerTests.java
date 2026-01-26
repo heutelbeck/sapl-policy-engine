@@ -80,7 +80,7 @@ class PdpCompilerTests {
 
         @Test
         @DisplayName("parsing failure returns INDETERMINATE with coverage")
-        void whenParsingFails_thenReturnsIndeterminateWithCoverage() {
+        void whenParsingFailsThenReturnsIndeterminateWithCoverage() {
             val config = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(INVALID_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
@@ -105,7 +105,7 @@ class PdpCompilerTests {
 
         @Test
         @DisplayName("name collision returns INDETERMINATE with coverage")
-        void whenNameCollision_thenReturnsIndeterminateWithCoverage() {
+        void whenNameCollisionThenReturnsIndeterminateWithCoverage() {
             val config = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE),
                     List.of(DUPLICATE_NAME_POLICY, DUPLICATE_NAME_POLICY),
@@ -128,7 +128,7 @@ class PdpCompilerTests {
 
         @Test
         @DisplayName("FIRST algorithm at PDP level returns INDETERMINATE with coverage")
-        void whenFirstAlgorithmAtPdpLevel_thenReturnsIndeterminateWithCoverage() {
+        void whenFirstAlgorithmAtPdpLevelThenReturnsIndeterminateWithCoverage() {
             val config = new PDPConfiguration("test-pdp", "config-1", new CombiningAlgorithm(FIRST, ABSTAIN, PROPAGATE),
                     List.of(VALID_POLICY), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
@@ -162,7 +162,7 @@ class PdpCompilerTests {
 
         @ParameterizedTest(name = "empty policy set with {0} default returns {1}")
         @MethodSource("defaultDecisionCases")
-        void whenNoPolicies_thenReturnsDefaultDecision(DefaultDecision defaultDecision, Decision expected) {
+        void whenNoPoliciesThenReturnsDefaultDecision(DefaultDecision defaultDecision, Decision expected) {
             val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, defaultDecision, ErrorHandling.PROPAGATE);
             val config    = new PDPConfiguration("test-pdp", "config-1", algorithm, List.of(),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
@@ -182,7 +182,7 @@ class PdpCompilerTests {
 
         @ParameterizedTest(name = "{0} with conflicting policies returns {1}")
         @MethodSource("priorityAlgorithmCases")
-        void whenPriorityAlgorithmWithConflict_thenPriorityWins(CombiningAlgorithm algorithm, Decision expected) {
+        void whenPriorityAlgorithmWithConflictThenPriorityWins(CombiningAlgorithm algorithm, Decision expected) {
             val config = new PDPConfiguration("test-pdp", "config-1", algorithm, List.of(POLICY_A, POLICY_B),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
@@ -195,7 +195,7 @@ class PdpCompilerTests {
 
         @Test
         @DisplayName("unique algorithm with single policy returns that policy's decision")
-        void whenUniqueWithSinglePolicy_thenReturnsPolicyDecision() {
+        void whenUniqueWithSinglePolicyThenReturnsPolicyDecision() {
             val config = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(VALID_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
@@ -210,7 +210,7 @@ class PdpCompilerTests {
 
         @Test
         @DisplayName("unique algorithm with multiple applicable policies returns INDETERMINATE")
-        void whenUniqueWithMultipleApplicable_thenReturnsIndeterminate() {
+        void whenUniqueWithMultipleApplicableThenReturnsIndeterminate() {
             val config = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(POLICY_A, POLICY_B),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));

@@ -428,6 +428,12 @@ public class PolicyDecisionPointBuilder {
         return this;
     }
 
+    /**
+     * Adds a vote interceptor.
+     *
+     * @param interceptor the interceptor to add
+     * @return this builder
+     */
     public PolicyDecisionPointBuilder withInterceptor(VoteInterceptor interceptor) {
         this.interceptors.add(interceptor);
         return this;

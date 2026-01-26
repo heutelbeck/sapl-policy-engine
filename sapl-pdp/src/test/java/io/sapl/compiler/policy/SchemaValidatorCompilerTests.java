@@ -101,14 +101,14 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema condition is null then returns constant TRUE")
-        void whenSchemaConditionIsNull_thenReturnsConstantTrue() {
+        void whenSchemaConditionIsNullThenReturnsConstantTrue() {
             val result = compileValidator((SchemaCondition) null, compilationContext());
             assertThat(result).isEqualTo(Value.TRUE);
         }
 
         @Test
         @DisplayName("when only non-enforced schemas then returns CombinedSchemaValidator")
-        void whenOnlyNonEnforcedSchemas_thenReturnsCombinedSchemaValidator() {
+        void whenOnlyNonEnforcedSchemasThenReturnsCombinedSchemaValidator() {
             val schemas = List.of(nonEnforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     nonEnforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
@@ -117,7 +117,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when single enforced schema then returns PrecompiledSchemaValidator")
-        void whenSingleEnforcedSchema_thenReturnsPrecompiledSchemaValidator() {
+        void whenSingleEnforcedSchemaThenReturnsPrecompiledSchemaValidator() {
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
             assertThat(result).isInstanceOf(PrecompiledSchemaValidator.class);
@@ -125,7 +125,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when multiple enforced schemas then returns CombinedSchemaValidator")
-        void whenMultipleEnforcedSchemas_thenReturnsCombinedSchemaValidator() {
+        void whenMultipleEnforcedSchemasThenReturnsCombinedSchemaValidator() {
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
@@ -134,7 +134,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when mixed enforced and non-enforced then all are compiled into CombinedSchemaValidator")
-        void whenMixedEnforcedAndNonEnforced_thenAllCompiledIntoCombinedSchemaValidator() {
+        void whenMixedEnforcedAndNonEnforcedThenAllCompiledIntoCombinedSchemaValidator() {
             val schemas = List.of(nonEnforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA),
                     nonEnforcedSchema(SubscriptionElement.RESOURCE, STRING_SCHEMA));
@@ -149,7 +149,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema is an undefined variable reference then throws SaplCompilerException")
-        void whenSchemaIsVariableReference_thenThrowsCompilerException() {
+        void whenSchemaIsVariableReferenceThenThrowsCompilerException() {
             val schemas = List.of(enforcedVariableSchema(SubscriptionElement.SUBJECT, "mySchema"));
             val ctx     = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
@@ -158,7 +158,7 @@ class SchemaValidatorCompilerTests {
 
         @ParameterizedTest(name = "when schema is {0} then throws SaplCompilerException")
         @MethodSource("nonObjectSchemas")
-        void whenSchemaNotObjectValue_thenThrowsCompilerException(String description, Value schema) {
+        void whenSchemaNotObjectValueThenThrowsCompilerException(String description, Value schema) {
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
             val ctx     = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
@@ -173,7 +173,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema contains $ref then throws SaplCompilerException")
-        void whenSchemaContainsRef_thenThrowsCompilerException() {
+        void whenSchemaContainsRefThenThrowsCompilerException() {
             val schemaWithRef = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("location", obj("$ref", Value.of("https://example.com/coordinates"))));
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schemaWithRef));
@@ -184,7 +184,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema contains nested $ref in array then throws SaplCompilerException")
-        void whenSchemaContainsNestedRefInArray_thenThrowsCompilerException() {
+        void whenSchemaContainsNestedRefInArrayThenThrowsCompilerException() {
             val schemaWithNestedRef = (ObjectValue) obj("anyOf",
                     array(obj("type", Value.of("string")), obj("$ref", Value.of("https://example.com/other"))));
             val schemas             = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schemaWithNestedRef));
@@ -195,7 +195,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema expression evaluates to errors then throws SaplCompilerException")
-        void whenSchemaExpressionEvaluatesToError_thenThrowsCompilerException() {
+        void whenSchemaExpressionEvaluatesToErrorThenThrowsCompilerException() {
             val errorValue = Value.error("schema lookup failed");
             val schemas    = List.of(enforcedSchema(SubscriptionElement.SUBJECT, errorValue));
             val ctx        = compilationContext();
@@ -211,7 +211,7 @@ class SchemaValidatorCompilerTests {
 
         @ParameterizedTest(name = "when element is {0} and matches schema then returns TRUE")
         @EnumSource(SubscriptionElement.class)
-        void whenElementMatchesSchema_thenReturnsTrue(SubscriptionElement element) {
+        void whenElementMatchesSchemaThenReturnsTrue(SubscriptionElement element) {
             val schemas   = List.of(enforcedSchema(element, STRING_SCHEMA));
             val validator = compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
@@ -229,7 +229,7 @@ class SchemaValidatorCompilerTests {
 
         @ParameterizedTest(name = "when element is {0} and does not match schema then returns FALSE")
         @EnumSource(SubscriptionElement.class)
-        void whenElementDoesNotMatchSchema_thenReturnsFalse(SubscriptionElement element) {
+        void whenElementDoesNotMatchSchemaThenReturnsFalse(SubscriptionElement element) {
             val schemas   = List.of(enforcedSchema(element, STRING_SCHEMA));
             val validator = compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
@@ -247,7 +247,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("isDependingOnSubscription returns true")
-        void isDependingOnSubscription_returnsTrue() {
+        void isDependingOnSubscriptionReturnsTrue() {
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA));
             val validator = (PureOperator) compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
@@ -256,7 +256,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("location returns the configured location")
-        void location_returnsConfiguredLocation() {
+        void locationReturnsConfiguredLocation() {
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA));
             val validator = (PureOperator) compileValidator(schemas, compilationContext());
             assertThat(validator).isNotNull();
@@ -265,7 +265,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when subject matches object schema with required property then returns TRUE")
-        void whenSubjectMatchesObjectSchemaWithRequiredProperty_thenReturnsTrue() {
+        void whenSubjectMatchesObjectSchemaWithRequiredPropertyThenReturnsTrue() {
             val schema    = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("name", obj("type", Value.of("string"))), "required", array(Value.of("name")));
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
@@ -283,7 +283,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when subject missing required property then returns FALSE")
-        void whenSubjectMissingRequiredProperty_thenReturnsFalse() {
+        void whenSubjectMissingRequiredPropertyThenReturnsFalse() {
             val schema    = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("name", obj("type", Value.of("string"))), "required", array(Value.of("name")));
             val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
@@ -307,7 +307,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when all validators pass then returns TRUE")
-        void whenAllValidatorsPass_thenReturnsTrue() {
+        void whenAllValidatorsPassThenReturnsTrue() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
@@ -325,7 +325,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when first validator fails then returns FALSE immediately")
-        void whenFirstValidatorFails_thenReturnsFalseImmediately() {
+        void whenFirstValidatorFailsThenReturnsFalseImmediately() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
@@ -343,7 +343,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when second validator fails then returns FALSE")
-        void whenSecondValidatorFails_thenReturnsFalse() {
+        void whenSecondValidatorFailsThenReturnsFalse() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = compileValidator(schemas, compilationContext());
@@ -361,7 +361,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("location returns first validator location")
-        void location_returnsFirstValidatorLocation() {
+        void locationReturnsFirstValidatorLocation() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = (PureOperator) compileValidator(schemas, compilationContext());
@@ -371,7 +371,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("isDependingOnSubscription returns true")
-        void isDependingOnSubscription_returnsTrue() {
+        void isDependingOnSubscriptionReturnsTrue() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val combined = (PureOperator) compileValidator(schemas, compilationContext());
@@ -381,7 +381,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when all different element types match their schemas then returns TRUE")
-        void whenAllDifferentElementTypesMatchSchemas_thenReturnsTrue() {
+        void whenAllDifferentElementTypesMatchSchemasThenReturnsTrue() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, NUMBER_SCHEMA),
                     enforcedSchema(SubscriptionElement.RESOURCE, BOOLEAN_SCHEMA));
@@ -399,7 +399,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when one element type does not match schema then returns FALSE")
-        void whenOneElementTypeDoesNotMatchSchema_thenReturnsFalse() {
+        void whenOneElementTypeDoesNotMatchSchemaThenReturnsFalse() {
             val schemas  = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, NUMBER_SCHEMA),
                     enforcedSchema(SubscriptionElement.RESOURCE, BOOLEAN_SCHEMA));
@@ -423,7 +423,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema has no $ref then compiles successfully")
-        void whenSchemaHasNoRef_thenCompilesSuccessfully() {
+        void whenSchemaHasNoRefThenCompilesSuccessfully() {
             val schema  = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("name", obj("type", Value.of("string")), "age", obj("type", Value.of("integer"))));
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
@@ -433,7 +433,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema has deeply nested $ref then throws")
-        void whenSchemaHasDeeplyNestedRef_thenThrows() {
+        void whenSchemaHasDeeplyNestedRefThenThrows() {
             val deepSchema = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("level1", obj("type", Value.of("object"), "properties",
                             obj("level2", obj("$ref", Value.of("https://example.com/deep"))))));
@@ -445,7 +445,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema has $ref in oneOf array then throws")
-        void whenSchemaHasRefInOneOfArray_thenThrows() {
+        void whenSchemaHasRefInOneOfArrayThenThrows() {
             val oneOfSchema = (ObjectValue) obj("oneOf",
                     array(obj("type", Value.of("string")), obj("$ref", Value.of("https://example.com/number"))));
             val schemas     = List.of(enforcedSchema(SubscriptionElement.SUBJECT, oneOfSchema));
@@ -456,7 +456,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when schema has $ref key with non-URI value then still throws")
-        void whenSchemaHasRefKeyWithNonUriValue_thenStillThrows() {
+        void whenSchemaHasRefKeyWithNonUriValueThenStillThrows() {
             val schema  = (ObjectValue) obj("$ref", Value.of("not-a-uri"));
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
             val ctx     = compilationContext();
@@ -471,7 +471,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when valid schema then pre-compiles without runtime overhead")
-        void whenValidSchema_thenPreCompilesWithoutRuntimeOverhead() {
+        void whenValidSchemaThenPreCompilesWithoutRuntimeOverhead() {
             val complexSchema = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("username",
                             obj("type", Value.of("string"), "minLength", Value.of(3), "maxLength", Value.of(50)),
@@ -510,7 +510,7 @@ class SchemaValidatorCompilerTests {
 
         @Test
         @DisplayName("when invalid JSON Schema then throws at compile time")
-        void whenInvalidJsonSchema_thenThrowsAtCompileTime() {
+        void whenInvalidJsonSchemaThenThrowsAtCompileTime() {
             // "type" must be a valid JSON Schema type
             val invalidSchema = (ObjectValue) obj("type", Value.of("not-a-valid-type"));
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, invalidSchema));

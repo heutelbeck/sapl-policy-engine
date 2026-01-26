@@ -41,10 +41,13 @@ import static io.sapl.util.SaplTesting.singleValueAttributeBroker;
 import static io.sapl.util.SaplTesting.testContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("FunctionCallCompiler")
 class FunctionCallCompilerTests {
 
     @Test
-    void when_functionCall_withAllLiteralArgs_then_constantFoldsAtCompileTime() {
+    void whenFunctionCallWithAllLiteralArgsThenConstantFoldsAtCompileTime() {
         var broker = functionBroker("test.fn", args -> Value.of(args.size()));
         var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn(1, 2, 3)", ctx);
@@ -54,7 +57,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withNoArgs_then_constantFolds() {
+    void whenFunctionCallWithNoArgsThenConstantFolds() {
         var broker = functionBroker("test.fn", args -> Value.of("no-args"));
         var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn()", ctx);
@@ -63,7 +66,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withLiteralArgs_then_passesArgumentsCorrectly() {
+    void whenFunctionCallWithLiteralArgsThenPassesArgumentsCorrectly() {
         var captured = new FunctionInvocation[1];
         var broker   = capturingFunctionBroker(captured, Value.of("ok"));
         var ctx      = compilationContext(broker);
@@ -76,7 +79,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withPureArg_then_returnsPureOperator() {
+    void whenFunctionCallWithPureArgThenReturnsPureOperator() {
         var broker = functionBroker("test.fn", args -> args.getFirst());
         var ctx    = testContext(broker, Map.of("x", Value.of(100)));
         var result = evaluateExpression("test.fn(x)", ctx);
@@ -86,7 +89,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withMixedValueAndPure_then_returnsPureOperator() {
+    void whenFunctionCallWithMixedValueAndPureThenReturnsPureOperator() {
         var captured = new ArrayList<FunctionInvocation>();
         var broker   = capturingFunctionBroker(captured, args -> Value.of("result"));
         var ctx      = testContext(broker, Map.of("x", Value.of("dynamic")));
@@ -98,7 +101,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withPureArg_andErrorFromPure_then_propagatesError() {
+    void whenFunctionCallWithPureArgAndErrorFromPureThenPropagatesError() {
         var broker = functionBroker("test.fn", args -> Value.of("should not reach"));
         var ctx    = testContext(broker, Map.of("x", Value.error("pure errors")));
         var result = evaluateExpression("test.fn(x)", ctx);
@@ -108,7 +111,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_returnsError_then_propagatesError() {
+    void whenFunctionCallReturnsErrorThenPropagatesError() {
         var broker = functionBroker("test.fn", args -> Value.error("function errors"));
         var ctx    = testContext(broker, Map.of());
         var result = evaluateExpression("test.fn()", ctx);
@@ -118,7 +121,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withStreamArg_then_returnsStreamOperator() {
+    void whenFunctionCallWithStreamArgThenReturnsStreamOperator() {
         var attrBroker = attributeBroker("stream.attr", Value.of(1), Value.of(2), Value.of(3));
         var fnBroker   = functionBroker("test.fn", args -> {
                            var num = ((NumberValue) args.getFirst()).value().intValue();
@@ -136,7 +139,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withMixedStaticAndStreamArgs_then_combinesCorrectly() {
+    void whenFunctionCallWithMixedStaticAndStreamArgsThenCombinesCorrectly() {
         var attrBroker = attributeBroker("num.attr", Value.of(5), Value.of(10));
         var captured   = new ArrayList<FunctionInvocation>();
         var fnBroker   = capturingFunctionBroker(captured, args -> Value.of("ok"));
@@ -156,7 +159,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withStreamArgError_then_propagatesError() {
+    void whenFunctionCallWithStreamArgErrorThenPropagatesError() {
         var attrBroker = attributeBroker("err.attr", Value.error("stream errors"));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
         var ctx        = testContext(fnBroker, attrBroker, Map.of());
@@ -172,7 +175,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withMultipleStreamArgs_then_combinesLatest() {
+    void whenFunctionCallWithMultipleStreamArgsThenCombinesLatest() {
         var attrBroker = singleValueAttributeBroker(Map.of("a.attr", Value.of("A1"), "b.attr", Value.of("B1")));
         var captured   = new ArrayList<FunctionInvocation>();
         var fnBroker   = capturingFunctionBroker(captured, args -> {
@@ -192,7 +195,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withMultipleStreams_andOneError_then_propagatesError() {
+    void whenFunctionCallWithMultipleStreamsAndOneErrorThenPropagatesError() {
         var attrBroker = singleValueAttributeBroker(
                 Map.of("ok.attr", Value.of("ok"), "err.attr", Value.error("bad stream")));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
@@ -209,7 +212,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withUndefinedArg_then_filtersOutUndefined() {
+    void whenFunctionCallWithUndefinedArgThenFiltersOutUndefined() {
         var captured = new ArrayList<FunctionInvocation>();
         var broker   = capturingFunctionBroker(captured, args -> Value.of(args.size()));
         var ctx      = testContext(broker, Map.of("x", Value.UNDEFINED));
@@ -222,7 +225,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_allPureFunction_withSubscriptionArg_then_dependsOnSubscription() {
+    void whenAllPureFunctionWithSubscriptionArgThenDependsOnSubscription() {
         var broker = functionBroker("test.fn", args -> Value.of("ok"));
         var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn(subject)", ctx);
@@ -233,7 +236,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_noArgsFunction_then_notDependingOnSubscription() {
+    void whenNoArgsFunctionThenNotDependingOnSubscription() {
         // No-args function with broker gets constant-folded to a Value, so we need
         // to test without a broker to get a NoArgsFunction. But that returns
         // ErrorValue.
@@ -248,7 +251,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withMultipleStreams_then_mergesAllContributingAttributes() {
+    void whenFunctionCallWithMultipleStreamsThenMergesAllContributingAttributes() {
         var attrBroker = singleValueAttributeBroker(Map.of("a.attr", Value.of("A"), "b.attr", Value.of("B")));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("result"));
         var ctx        = testContext(fnBroker, attrBroker, Map.of());
@@ -265,7 +268,7 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void when_functionCall_withSingleStream_then_preservesContributingAttributes() {
+    void whenFunctionCallWithSingleStreamThenPreservesContributingAttributes() {
         var attrBroker = attributeBroker("test.attr", Value.of("value"));
         var fnBroker   = functionBroker("test.fn", args -> Value.of("result"));
         var ctx        = testContext(fnBroker, attrBroker, Map.of());

@@ -25,6 +25,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -32,12 +33,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class StringFunctionLibraryTest {
+@DisplayName("StringFunctionLibrary")
+class StringFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(StringFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -51,9 +52,9 @@ class StringFunctionLibraryTest {
             YOG-SOTHOTH              | yog-sothoth
             The Elder Things         | the elder things
             """)
-    void toLowerCase_convertsTextToLowercase(String input, String expected) {
-        TextValue result = (TextValue) StringFunctionLibrary.toLowerCase((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+    void toLowerCaseConvertsTextToLowercase(String input, String expected) {
+        val result = (TextValue) StringFunctionLibrary.toLowerCase((TextValue) Value.of(input));
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "{0} -> {1}")
@@ -64,9 +65,9 @@ class StringFunctionLibraryTest {
             hastur                   | HASTUR
             The Deep Ones            | THE DEEP ONES
             """)
-    void toUpperCase_convertsTextToUppercase(String input, String expected) {
-        TextValue result = (TextValue) StringFunctionLibrary.toUpperCase((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+    void toUpperCaseConvertsTextToUppercase(String input, String expected) {
+        val result = (TextValue) StringFunctionLibrary.toUpperCase((TextValue) Value.of(input));
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "{0} equals {1} ignoring case")
@@ -78,10 +79,10 @@ class StringFunctionLibraryTest {
             elder         | ELDER         | true
             shoggoth      | Byakhee       | false
             """)
-    void equalsIgnoreCase_comparesTextCaseInsensitively(String input1, String input2, boolean expected) {
-        BooleanValue result = (BooleanValue) StringFunctionLibrary.equalsIgnoreCase((TextValue) Value.of(input1),
+    void equalsIgnoreCaseComparesTextCaseInsensitively(String input1, String input2, boolean expected) {
+        val result = (BooleanValue) StringFunctionLibrary.equalsIgnoreCase((TextValue) Value.of(input1),
                 (TextValue) Value.of(input2));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "trim: [{0}] -> [{1}]")
@@ -94,9 +95,9 @@ class StringFunctionLibraryTest {
             '   '                             | ''
             'no whitespace'                   | no whitespace
             """)
-    void trim_removesLeadingAndTrailingWhitespace(String input, String expected) {
-        TextValue result = (TextValue) StringFunctionLibrary.trim((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+    void trimRemovesLeadingAndTrailingWhitespace(String input, String expected) {
+        val result = (TextValue) StringFunctionLibrary.trim((TextValue) Value.of(input));
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "trimStart: [{0}] -> [{1}]")
@@ -107,9 +108,9 @@ class StringFunctionLibraryTest {
             text'                  | text
             'no leading space'          | 'no leading space'
             """)
-    void trimStart_removesLeadingWhitespaceOnly(String input, String expected) {
-        TextValue result = (TextValue) StringFunctionLibrary.trimStart((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+    void trimStartRemovesLeadingWhitespaceOnly(String input, String expected) {
+        val result = (TextValue) StringFunctionLibrary.trimStart((TextValue) Value.of(input));
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "trimEnd: [{0}] -> [{1}]")
@@ -120,9 +121,9 @@ class StringFunctionLibraryTest {
             '                  | text
             'no trailing space'         | 'no trailing space'
             """)
-    void trimEnd_removesTrailingWhitespaceOnly(String input, String expected) {
+    void trimEndRemovesTrailingWhitespaceOnly(String input, String expected) {
         val result = (TextValue) StringFunctionLibrary.trimEnd((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "isBlank: [{0}] -> {1}")
@@ -134,9 +135,9 @@ class StringFunctionLibraryTest {
             text                  | false
             ' '                   | true
             """)
-    void isBlank_detectsEmptyOrWhitespaceOnlyText(String input, boolean expected) {
+    void isBlankDetectsEmptyOrWhitespaceOnlyText(String input, boolean expected) {
         val result = (BooleanValue) StringFunctionLibrary.isBlank((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "{0} contains {1} -> {2}")
@@ -147,10 +148,10 @@ class StringFunctionLibraryTest {
             'necronomicon'                | nom            | true
             'R''lyeh'                     | lyeh           | true
             """)
-    void contains_searchesForSubstring(String text, String substring, boolean expected) {
+    void containsSearchesForSubstring(String text, String substring, boolean expected) {
         val result = (BooleanValue) StringFunctionLibrary.contains((TextValue) Value.of(text),
                 (TextValue) Value.of(substring));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "{0} starts with {1} -> {2}")
@@ -161,10 +162,10 @@ class StringFunctionLibraryTest {
             Necronomicon           | Necro       | true
             'elder things'         | elder       | true
             """)
-    void startsWith_checksForPrefix(String text, String prefix, boolean expected) {
+    void startsWithChecksForPrefix(String text, String prefix, boolean expected) {
         val result = (BooleanValue) StringFunctionLibrary.startsWith((TextValue) Value.of(text),
                 (TextValue) Value.of(prefix));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "{0} ends with {1} -> {2}")
@@ -175,10 +176,10 @@ class StringFunctionLibraryTest {
             manuscript         | script    | true
             'deep ones'        | ones      | true
             """)
-    void endsWith_checksForSuffix(String text, String suffix, boolean expected) {
+    void endsWithChecksForSuffix(String text, String suffix, boolean expected) {
         val result = (BooleanValue) StringFunctionLibrary.endsWith((TextValue) Value.of(text),
                 (TextValue) Value.of(suffix));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "length of {0} is {1}")
@@ -189,9 +190,9 @@ class StringFunctionLibraryTest {
             'a b c'         | 5
             Nyarlathotep    | 12
             """)
-    void length_countsCharacters(String input, int expected) {
+    void lengthCountsCharacters(String input, int expected) {
         val result = (NumberValue) StringFunctionLibrary.length((TextValue) Value.of(input));
-        assertEquals(expected, result.value().intValue());
+        assertThat(result.value().intValue()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "isEmpty: [{0}] -> {1}")
@@ -201,9 +202,9 @@ class StringFunctionLibraryTest {
             '   '           | false
             'x'             | false
             """)
-    void isEmpty_checksForZeroLength(String input, boolean expected) {
+    void isEmptyChecksForZeroLength(String input, boolean expected) {
         val result = (BooleanValue) StringFunctionLibrary.isEmpty((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "substring({0}, {1}) -> {2}")
@@ -213,9 +214,9 @@ class StringFunctionLibraryTest {
             nightgaunt       | 5  | gaunt
             'deep one'       | 5  | 'one'
             """)
-    void substring_extractsFromStartToEnd(String text, int start, String expected) {
+    void substringExtractsFromStartToEnd(String text, int start, String expected) {
         val result = (TextValue) StringFunctionLibrary.substring((TextValue) Value.of(text), Value.of(start));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "substring({0}, {1}) -> error")
@@ -224,7 +225,7 @@ class StringFunctionLibraryTest {
             byakhee     | 100
             text        | 10
             """)
-    void substring_returnsErrorForInvalidIndices(String text, int start) {
+    void substringReturnsErrorForInvalidIndices(String text, int start) {
         val result = StringFunctionLibrary.substring((TextValue) Value.of(text), Value.of(start));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
@@ -237,10 +238,10 @@ class StringFunctionLibraryTest {
             'mi-go'             | 0  | 2  | mi
             Nyarlathotep        | 5  | 10 | athot
             """)
-    void substringRange_extractsBetweenIndices(String text, int start, int end, String expected) {
+    void substringRangeExtractsBetweenIndices(String text, int start, int end, String expected) {
         val result = (TextValue) StringFunctionLibrary.substringRange((TextValue) Value.of(text), Value.of(start),
                 Value.of(end));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "substringRange({0}, {1}, {2}) -> error")
@@ -250,7 +251,7 @@ class StringFunctionLibraryTest {
             hydra    | 0   | 100
             text     | 10  | 5
             """)
-    void substringRange_returnsErrorForInvalidIndices(String text, int start, int end) {
+    void substringRangeReturnsErrorForInvalidIndices(String text, int start, int end) {
         Value result = StringFunctionLibrary.substringRange((TextValue) Value.of(text), Value.of(start), Value.of(end));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
@@ -263,10 +264,10 @@ class StringFunctionLibraryTest {
             'ia ia cthulhu'         | ia         | 0
             shoggoth                | goth       | 4
             """)
-    void indexOf_findsFirstOccurrence(String text, String substring, int expected) {
+    void indexOfFindsFirstOccurrence(String text, String substring, int expected) {
         val result = (NumberValue) StringFunctionLibrary.indexOf((TextValue) Value.of(text),
                 (TextValue) Value.of(substring));
-        assertEquals(expected, result.value().intValue());
+        assertThat(result.value().intValue()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "lastIndexOf({0}, {1}) -> {2}")
@@ -277,10 +278,10 @@ class StringFunctionLibraryTest {
             'ia ia ia'              | ia      | 6
             'a b a b'               | a       | 4
             """)
-    void lastIndexOf_findsLastOccurrence(String text, String substring, int expected) {
+    void lastIndexOfFindsLastOccurrence(String text, String substring, int expected) {
         val result = (NumberValue) StringFunctionLibrary.lastIndexOf((TextValue) Value.of(text),
                 (TextValue) Value.of(substring));
-        assertEquals(expected, result.value().intValue());
+        assertThat(result.value().intValue()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "join([{0}], {1}) -> {2}")
@@ -290,7 +291,7 @@ class StringFunctionLibraryTest {
             Nyarlathotep               | '|'   | Nyarlathotep
             'a,b,c'                    | '-'   | 'a-b-c'
             """)
-    void join_combinesArrayElementsWithDelimiter(String elements, String delimiter, String expected) {
+    void joinCombinesArrayElementsWithDelimiter(String elements, String delimiter, String expected) {
         val builder = ArrayValue.builder();
         if (!elements.isEmpty()) {
             for (String element : elements.split(",")) {
@@ -298,11 +299,11 @@ class StringFunctionLibraryTest {
             }
         }
         val result = (TextValue) StringFunctionLibrary.join(builder.build(), (TextValue) Value.of(delimiter));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @Test
-    void join_returnsErrorWhenTextFollowedByNumber() {
+    void joinReturnsErrorWhenTextFollowedByNumber() {
         val builder = ArrayValue.builder();
         builder.add(Value.of("text"));
         builder.add(Value.of(42));
@@ -311,7 +312,7 @@ class StringFunctionLibraryTest {
     }
 
     @Test
-    void join_returnsErrorWhenNumberFollowedByText() {
+    void joinReturnsErrorWhenNumberFollowedByText() {
         val builder = ArrayValue.builder();
         builder.add(Value.of(42));
         builder.add(Value.of("text"));
@@ -320,7 +321,7 @@ class StringFunctionLibraryTest {
     }
 
     @Test
-    void join_returnsErrorForBooleanElements() {
+    void joinReturnsErrorForBooleanElements() {
         val builder = ArrayValue.builder();
         builder.add(Value.of(true));
         builder.add(Value.of(false));
@@ -335,14 +336,14 @@ class StringFunctionLibraryTest {
             'Yog-Sothoth'                                        | Yog-Sothoth
             'a,b,c,d,e'                                          | abcde
             """)
-    void concat_combinesMultipleStrings(String parts, String expected) {
+    void concatCombinesMultipleStrings(String parts, String expected) {
         String[]    partsArray = parts.split(",");
         TextValue[] values     = new TextValue[partsArray.length];
         for (int i = 0; i < partsArray.length; i++) {
             values[i] = (TextValue) Value.of(partsArray[i]);
         }
         val result = (TextValue) StringFunctionLibrary.concat(values);
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "replace({0}, {1}, {2}) -> {3}")
@@ -352,15 +353,15 @@ class StringFunctionLibraryTest {
             'horror horror'                         | horror   | terror  | 'terror terror'
             abcabc                                  | a        | x       | xbcxbc
             """)
-    void replace_replacesAllOccurrences(String text, String target, String replacement, String expected) {
+    void replaceReplacesAllOccurrences(String text, String target, String replacement, String expected) {
         val result = (TextValue) StringFunctionLibrary.replace((TextValue) Value.of(text), (TextValue) Value.of(target),
                 (TextValue) Value.of(replacement));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "replace with empty target returns error")
     @ValueSource(strings = { "text", "another", "something" })
-    void replace_returnsErrorForEmptyTarget(String text) {
+    void replaceReturnsErrorForEmptyTarget(String text) {
         val result = StringFunctionLibrary.replace((TextValue) Value.of(text), (TextValue) Value.of(""),
                 (TextValue) Value.of("x"));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -373,15 +374,15 @@ class StringFunctionLibraryTest {
             'a b a b'             | a       | x       | 'x b a b'
             abcabc                | bc      | XY      | aXYabc
             """)
-    void replaceFirst_replacesOnlyFirstOccurrence(String text, String target, String replacement, String expected) {
+    void replaceFirstReplacesOnlyFirstOccurrence(String text, String target, String replacement, String expected) {
         val result = (TextValue) StringFunctionLibrary.replaceFirst((TextValue) Value.of(text),
                 (TextValue) Value.of(target), (TextValue) Value.of(replacement));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "replaceFirst with empty target returns error")
     @ValueSource(strings = { "text", "another", "something" })
-    void replaceFirst_returnsErrorForEmptyTarget(String text) {
+    void replaceFirstReturnsErrorForEmptyTarget(String text) {
         val result = StringFunctionLibrary.replaceFirst((TextValue) Value.of(text), (TextValue) Value.of(""),
                 (TextValue) Value.of("x"));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -394,15 +395,15 @@ class StringFunctionLibraryTest {
             ritual | 10 | ' ' | '    ritual'
             abc | 7 | '-' | '----abc'
             """)
-    void leftPad_addsLeadingPadding(String text, int length, String padChar, String expected) {
+    void leftPadAddsLeadingPadding(String text, int length, String padChar, String expected) {
         val result = (TextValue) StringFunctionLibrary.leftPad((TextValue) Value.of(text), Value.of(length),
                 (TextValue) Value.of(padChar));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "leftPad with multi-char pad returns error")
     @ValueSource(strings = { "xx", "ab", "---" })
-    void leftPad_returnsErrorForMultiCharacterPad(String padChar) {
+    void leftPadReturnsErrorForMultiCharacterPad(String padChar) {
         val result = StringFunctionLibrary.leftPad((TextValue) Value.of("text"), Value.of(10),
                 (TextValue) Value.of(padChar));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -415,15 +416,15 @@ class StringFunctionLibraryTest {
             tome | 10 | ' ' | 'tome      '
             abc | 7 | '*' | 'abc****'
             """)
-    void rightPad_addsTrailingPadding(String text, int length, String padChar, String expected) {
+    void rightPadAddsTrailingPadding(String text, int length, String padChar, String expected) {
         val result = (TextValue) StringFunctionLibrary.rightPad((TextValue) Value.of(text), Value.of(length),
                 (TextValue) Value.of(padChar));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "rightPad with multi-char pad returns error")
     @ValueSource(strings = { "ab", "xyz", "--" })
-    void rightPad_returnsErrorForMultiCharacterPad(String padChar) {
+    void rightPadReturnsErrorForMultiCharacterPad(String padChar) {
         var result = StringFunctionLibrary.rightPad((TextValue) Value.of("text"), Value.of(10),
                 (TextValue) Value.of(padChar));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -437,23 +438,23 @@ class StringFunctionLibraryTest {
             x | 5 | xxxxx
             abc | 3 | abcabcabc
             """)
-    void repeat_repeatsStringMultipleTimes(String text, int count, String expected) {
+    void repeatRepeatsStringMultipleTimes(String text, int count, String expected) {
         val result = (TextValue) StringFunctionLibrary.repeat((TextValue) Value.of(text), Value.of(count));
-        assertEquals(expected, result.value());
+        assertThat(result.value()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "repeat with count {0} returns error")
     @ValueSource(ints = { -1, -10, 10_001, 20_000 })
-    void repeat_returnsErrorForInvalidCount(int count) {
+    void repeatReturnsErrorForInvalidCount(int count) {
         var result = StringFunctionLibrary.repeat((TextValue) Value.of("x"), Value.of(count));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @ParameterizedTest(name = "repeat handles maximum allowed count")
     @ValueSource(ints = { 10_000, 9_999, 5_000 })
-    void repeat_handlesLargeValidCounts(int count) {
+    void repeatHandlesLargeValidCounts(int count) {
         val result = (TextValue) StringFunctionLibrary.repeat((TextValue) Value.of("x"), Value.of(count));
-        assertEquals(count, result.value().length());
+        assertThat(result.value().length()).isEqualTo(count);
     }
 
     @ParameterizedTest(name = "reverse({0}) -> {1}")
@@ -466,8 +467,8 @@ class StringFunctionLibraryTest {
             abc | cba
             'ia ia' | 'ai ai'
             """)
-    void reverse_reversesCharacterOrder(String input, String expected) {
-        var result = (TextValue) StringFunctionLibrary.reverse((TextValue) Value.of(input));
-        assertEquals(expected, result.value());
+    void reverseReversesCharacterOrder(String input, String expected) {
+        val result = (TextValue) StringFunctionLibrary.reverse((TextValue) Value.of(input));
+        assertThat(result.value()).isEqualTo(expected);
     }
 }

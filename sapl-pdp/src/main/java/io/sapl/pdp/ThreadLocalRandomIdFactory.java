@@ -48,6 +48,7 @@ public class ThreadLocalRandomIdFactory implements IdFactory {
     private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
     @Override
+    /** {@inheritDoc} */
     public String newRandom() {
         val random = ThreadLocalRandom.current();
         val high   = random.nextLong();

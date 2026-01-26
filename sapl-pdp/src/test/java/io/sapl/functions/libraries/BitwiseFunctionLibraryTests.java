@@ -23,6 +23,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -35,17 +36,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("BitwiseFunctionLibrary")
 class BitwiseFunctionLibraryTests {
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(BitwiseFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBitwiseAndTestCases")
-    void when_bitwiseAnd_then_returnsCorrectResult(long left, long right, long expected) {
+    void whenBitwiseAndThenReturnsCorrectResult(long left, long right, long expected) {
         val actual = BitwiseFunctionLibrary.bitwiseAnd(Value.of(left), Value.of(right));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -57,9 +59,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(Long.MAX_VALUE, 1L, 1L), arguments(Long.MIN_VALUE, -1L, Long.MIN_VALUE));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBitwiseOrTestCases")
-    void when_bitwiseOr_then_returnsCorrectResult(long left, long right, long expected) {
+    void whenBitwiseOrThenReturnsCorrectResult(long left, long right, long expected) {
         val actual = BitwiseFunctionLibrary.bitwiseOr(Value.of(left), Value.of(right));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -70,9 +72,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(-1L, 42L, -1L), arguments(1L, 2L, 3L), arguments(255L, 256L, 511L), arguments(-8L, 7L, -1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBitwiseXorTestCases")
-    void when_bitwiseXor_then_returnsCorrectResult(long left, long right, long expected) {
+    void whenBitwiseXorThenReturnsCorrectResult(long left, long right, long expected) {
         val actual = BitwiseFunctionLibrary.bitwiseXor(Value.of(left), Value.of(right));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -83,9 +85,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(-1L, -1L, 0L), arguments(15L, 8L, 7L), arguments(-8L, 7L, -1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBitwiseNotTestCases")
-    void when_bitwiseNot_then_returnsCorrectResult(long value, long expected) {
+    void whenBitwiseNotThenReturnsCorrectResult(long value, long expected) {
         val actual = BitwiseFunctionLibrary.bitwiseNot(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -96,9 +98,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(1L, -2L), arguments(Long.MAX_VALUE, Long.MIN_VALUE));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideLeftShiftTestCases")
-    void when_leftShift_then_returnsCorrectResult(long value, long positions, long expected) {
+    void whenLeftShiftThenReturnsCorrectResult(long value, long positions, long expected) {
         val actual = BitwiseFunctionLibrary.leftShift(Value.of(value), Value.of(positions));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -109,9 +111,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(42L, 0L, 42L), arguments(1L, 63L, Long.MIN_VALUE), arguments(0L, 10L, 0L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideRightShiftTestCases")
-    void when_rightShift_then_returnsCorrectResult(long value, long positions, long expected) {
+    void whenRightShiftThenReturnsCorrectResult(long value, long positions, long expected) {
         val actual = BitwiseFunctionLibrary.rightShift(Value.of(value), Value.of(positions));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -122,9 +124,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(42L, 0L, 42L), arguments(-1L, 5L, -1L), arguments(0L, 10L, 0L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideUnsignedRightShiftTestCases")
-    void when_unsignedRightShift_then_returnsCorrectResult(long value, long positions, long expected) {
+    void whenUnsignedRightShiftThenReturnsCorrectResult(long value, long positions, long expected) {
         val actual = BitwiseFunctionLibrary.unsignedRightShift(Value.of(value), Value.of(positions));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -136,9 +138,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(Long.MIN_VALUE, 1L, 4611686018427387904L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideShiftInvalidPositionTestCases")
-    void when_shiftWithInvalidPosition_then_returnsError(long value, long position, String expectedContext) {
+    void whenShiftWithInvalidPositionThenReturnsError(long value, long position, String expectedContext) {
         val leftShiftResult = BitwiseFunctionLibrary.leftShift(Value.of(value), Value.of(position));
 
         assertThat(leftShiftResult).isInstanceOf(ErrorValue.class);
@@ -149,9 +151,9 @@ class BitwiseFunctionLibraryTests {
         return Stream.of(arguments(42L, -1L, "Shift"), arguments(42L, 64L, "Shift"), arguments(42L, 100L, "Shift"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideTestBitTestCases")
-    void when_testBit_then_returnsCorrectResult(long value, long position, boolean expected) {
+    void whenTestBitThenReturnsCorrectResult(long value, long position, boolean expected) {
         val actual = BitwiseFunctionLibrary.testBit(Value.of(value), Value.of(position));
 
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.of(expected));
@@ -163,9 +165,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(255L, 7L, true), arguments(255L, 8L, false), arguments(-1L, 63L, true));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBitInvalidPositionTestCases")
-    void when_bitOperationWithInvalidPosition_then_returnsError(long value, long position) {
+    void whenBitOperationWithInvalidPositionThenReturnsError(long value, long position) {
         val testResult  = BitwiseFunctionLibrary.testBit(Value.of(value), Value.of(position));
         val setResult   = BitwiseFunctionLibrary.setBit(Value.of(value), Value.of(position));
         val clearResult = BitwiseFunctionLibrary.clearBit(Value.of(value), Value.of(position));
@@ -180,9 +182,9 @@ class BitwiseFunctionLibraryTests {
         return Stream.of(arguments(42L, -1L), arguments(42L, 64L), arguments(42L, 100L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideSetBitTestCases")
-    void when_setBit_then_returnsCorrectResult(long value, long position, long expected) {
+    void whenSetBitThenReturnsCorrectResult(long value, long position, long expected) {
         val actual = BitwiseFunctionLibrary.setBit(Value.of(value), Value.of(position));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -193,9 +195,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(-1L, 5L, -1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideClearBitTestCases")
-    void when_clearBit_then_returnsCorrectResult(long value, long position, long expected) {
+    void whenClearBitThenReturnsCorrectResult(long value, long position, long expected) {
         val actual = BitwiseFunctionLibrary.clearBit(Value.of(value), Value.of(position));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -206,9 +208,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(0L, 5L, 0L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideToggleBitTestCases")
-    void when_toggleBit_then_returnsCorrectResult(long value, long position, long expected) {
+    void whenToggleBitThenReturnsCorrectResult(long value, long position, long expected) {
         val actual = BitwiseFunctionLibrary.toggleBit(Value.of(value), Value.of(position));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -219,9 +221,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(0L, 3L, 8L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBitCountTestCases")
-    void when_bitCount_then_returnsCorrectResult(long value, long expected) {
+    void whenBitCountThenReturnsCorrectResult(long value, long expected) {
         val actual = BitwiseFunctionLibrary.bitCount(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -233,9 +235,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(Long.MIN_VALUE, 1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideRotateLeftTestCases")
-    void when_rotateLeft_then_returnsCorrectResult(long value, long positions, long expected) {
+    void whenRotateLeftThenReturnsCorrectResult(long value, long positions, long expected) {
         val actual = BitwiseFunctionLibrary.rotateLeft(Value.of(value), Value.of(positions));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -246,9 +248,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(0x8000000000000001L, 1L, 3L), arguments(-1L, 10L, -1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideRotateRightTestCases")
-    void when_rotateRight_then_returnsCorrectResult(long value, long positions, long expected) {
+    void whenRotateRightThenReturnsCorrectResult(long value, long positions, long expected) {
         val actual = BitwiseFunctionLibrary.rotateRight(Value.of(value), Value.of(positions));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -259,9 +261,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(3L, 1L, 0x8000000000000001L), arguments(-1L, 10L, -1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideLeadingZerosTestCases")
-    void when_leadingZeros_then_returnsCorrectResult(long value, long expected) {
+    void whenLeadingZerosThenReturnsCorrectResult(long value, long expected) {
         val actual = BitwiseFunctionLibrary.leadingZeros(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -272,9 +274,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(255L, 56L), arguments(-1L, 0L), arguments(Long.MAX_VALUE, 1L), arguments(Long.MIN_VALUE, 0L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideTrailingZerosTestCases")
-    void when_trailingZeros_then_returnsCorrectResult(long value, long expected) {
+    void whenTrailingZerosThenReturnsCorrectResult(long value, long expected) {
         val actual = BitwiseFunctionLibrary.trailingZeros(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -285,9 +287,9 @@ class BitwiseFunctionLibraryTests {
                 arguments(16L, 4L), arguments(-1L, 0L), arguments(Long.MIN_VALUE, 63L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideReverseBitsTestCases")
-    void when_reverseBits_then_returnsCorrectResult(long value, long expected) {
+    void whenReverseBitsThenReturnsCorrectResult(long value, long expected) {
         val actual = BitwiseFunctionLibrary.reverseBits(Value.of(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -299,7 +301,7 @@ class BitwiseFunctionLibraryTests {
     }
 
     @Test
-    void when_reverseBits_then_doubleReverseReturnsOriginal() {
+    void whenReverseBitsThenDoubleReverseReturnsOriginal() {
         val original       = 12345678L;
         val reversed       = BitwiseFunctionLibrary.reverseBits(Value.of(original));
         val doubleReversed = BitwiseFunctionLibrary.reverseBits((NumberValue) reversed);
@@ -307,9 +309,9 @@ class BitwiseFunctionLibraryTests {
         assertThat(doubleReversed).isInstanceOf(NumberValue.class).isEqualTo(Value.of(original));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideIsPowerOfTwoTestCases")
-    void when_isPowerOfTwo_then_returnsCorrectResult(long value, boolean expected) {
+    void whenIsPowerOfTwoThenReturnsCorrectResult(long value, boolean expected) {
         val actual = BitwiseFunctionLibrary.isPowerOfTwo(Value.of(value));
 
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.of(expected));
@@ -325,7 +327,7 @@ class BitwiseFunctionLibraryTests {
     /* Edge Cases and Integration Tests */
 
     @Test
-    void when_combinedOperations_then_producesCorrectResult() {
+    void whenCombinedOperationsThenProducesCorrectResult() {
         val a = Value.of(12L);
         val b = Value.of(10L);
         val c = Value.of(4L);
@@ -338,7 +340,7 @@ class BitwiseFunctionLibraryTests {
     }
 
     @Test
-    void when_shiftAndRotate_then_produceDifferentResults() {
+    void whenShiftAndRotateThenProduceDifferentResults() {
         val value     = Value.of(0x8000000000000001L);
         val positions = Value.of(1L);
 
@@ -350,7 +352,7 @@ class BitwiseFunctionLibraryTests {
     }
 
     @Test
-    void when_signedVsUnsignedRightShift_then_produceDifferentResults() {
+    void whenSignedVsUnsignedRightShiftThenProduceDifferentResults() {
         val value     = Value.of(-8L);
         val positions = Value.of(1L);
 
@@ -362,7 +364,7 @@ class BitwiseFunctionLibraryTests {
     }
 
     @Test
-    void when_bitManipulation_then_maintainsConsistency() {
+    void whenBitManipulationThenMaintainsConsistency() {
         val original = Value.of(42L);
         val position = Value.of(6L);
 
@@ -378,9 +380,9 @@ class BitwiseFunctionLibraryTests {
         assertThat(withBitCleared).isInstanceOf(NumberValue.class).isEqualTo(Value.of(42L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBitwiseIdentityProperties")
-    void when_bitwiseOperation_then_satisfiesIdentityProperty(String propertyName,
+    void whenBitwiseOperationThenSatisfiesIdentityProperty(String propertyName,
             BiFunction<Value, Value, Value> operation, long testValue, long identityValue, long expectedResult) {
 
         val result = operation.apply(Value.of(testValue), Value.of(identityValue));
@@ -412,7 +414,7 @@ class BitwiseFunctionLibraryTests {
     }
 
     @Test
-    void when_bitCountWithPowerOfTwo_then_returnsOne() {
+    void whenBitCountWithPowerOfTwoThenReturnsOne() {
         val value = Value.of(256L);
         val count = BitwiseFunctionLibrary.bitCount(value);
 

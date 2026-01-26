@@ -19,11 +19,24 @@ package io.sapl.pdp;
 
 import io.sapl.compiler.document.TimestampedVote;
 
+/**
+ * Interceptor for processing votes during policy evaluation.
+ */
 public interface VoteInterceptor extends Comparable<VoteInterceptor> {
+
+    /**
+     * @return the priority of this interceptor (lower executes first)
+     */
     int priority();
 
+    /**
+     * Processes a vote.
+     *
+     * @param vote the vote to intercept
+     */
     void intercept(TimestampedVote vote);
 
+    @Override
     default int compareTo(VoteInterceptor otherInterceptor) {
         return Integer.compare(priority(), otherInterceptor.priority());
     }

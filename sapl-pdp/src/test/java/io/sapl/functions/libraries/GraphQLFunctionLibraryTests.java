@@ -26,6 +26,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,10 +43,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("GraphQLFunctionLibrary")
 class GraphQLFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GraphQLFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -141,10 +143,10 @@ class GraphQLFunctionLibraryTests {
 
     /* Basic Parsing Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBasicParsingTestCases")
-    void when_parseQuery_then_returnsExpectedResult(String query, String schema, boolean useSchema,
-            boolean expectedValid, String expectedOperation, int minFieldCount, String scenario) {
+    void whenParseQueryThenReturnsExpectedResult(String query, String schema, boolean useSchema, boolean expectedValid,
+            String expectedOperation, int minFieldCount, String scenario) {
         val result = useSchema ? GraphQLFunctionLibrary.validateQuery(Value.of(query), Value.of(schema))
                 : GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
 
@@ -183,10 +185,10 @@ class GraphQLFunctionLibraryTests {
                 arguments("type Query { invalid syntax }", BASIC_SCHEMA, true, false, "", 0, "invalid schema syntax"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "query InvestigateArkham { investigator(id: \"1\") { name } }, InvestigateArkham",
             "query { investigator(id: \"1\") { name } }, ''" })
-    void when_parseOperationWithName_then_extractsCorrectName(String query, String expectedName) {
+    void whenParseOperationWithNameThenExtractsCorrectName(String query, String expectedName) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -197,7 +199,7 @@ class GraphQLFunctionLibraryTests {
     /* Field Analysis Tests */
 
     @Test
-    void when_parseNestedFields_then_extractsAllFields() {
+    void whenParseNestedFieldsThenExtractsAllFields() {
         val query  = """
                 query {
                   investigator(id: "1") {
@@ -226,9 +228,9 @@ class GraphQLFunctionLibraryTests {
                 "name");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideMetricCalculationTestCases")
-    void when_parseQuery_then_calculatesMetricsCorrectly(String query, String metricName, int expectedValue,
+    void whenParseQueryThenCalculatesMetricsCorrectly(String query, String metricName, int expectedValue,
             String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
@@ -264,9 +266,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Depth Analysis Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideDepthTestCases")
-    void when_parseQuery_then_calculatesDepth(String query, int expectedDepth, String scenario) {
+    void whenParseQueryThenCalculatesDepth(String query, int expectedDepth, String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -296,10 +298,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Introspection Detection Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideIntrospectionTestCases")
-    void when_parseQuery_then_detectsIntrospectionCorrectly(String query, boolean expectedIntrospection,
-            String scenario) {
+    void whenParseQueryThenDetectsIntrospectionCorrectly(String query, boolean expectedIntrospection, String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -316,7 +317,7 @@ class GraphQLFunctionLibraryTests {
     /* Complexity Tests */
 
     @Test
-    void when_parseQuery_then_calculatesBasicComplexity() {
+    void whenParseQueryThenCalculatesBasicComplexity() {
         val query  = """
                 query {
                   investigator(id: "1") {
@@ -338,9 +339,9 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("complexity").asInt()).isEqualTo(expectedComplexity);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideComplexityTestCases")
-    void when_calculateWeightedComplexity_then_appliesWeightsCorrectly(String query, String weightsJson,
+    void whenCalculateWeightedComplexityThenAppliesWeightsCorrectly(String query, String weightsJson,
             int minExpectedComplexity, String scenario) throws JsonProcessingException {
         val parsed     = (ObjectValue) GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val weights    = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree(weightsJson));
@@ -377,9 +378,9 @@ class GraphQLFunctionLibraryTests {
                 arguments("query { investigator(id: \"1\") { name sanity } }", "{}", 2, "no weights"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideComplexityEdgeCases")
-    void when_calculateComplexity_withEdgeCases_then_handlesGracefully(String parsedJson, String weightsJson,
+    void whenCalculateComplexityWithEdgeCasesThenHandlesGracefully(String parsedJson, String weightsJson,
             int expectedComplexity) throws JsonProcessingException {
         val parsed     = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree(parsedJson));
         val weights    = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree(weightsJson));
@@ -396,9 +397,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Alias and Batching Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideAliasBatchingTestCases")
-    void when_parseQueryWithAliases_then_calculatesBatchingMetrics(String query, int expectedAliasCount,
+    void whenParseQueryWithAliasesThenCalculatesBatchingMetrics(String query, int expectedAliasCount,
             int expectedBatchingScore, String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
@@ -427,7 +428,7 @@ class GraphQLFunctionLibraryTests {
     /* Argument Analysis Tests */
 
     @Test
-    void when_parseQueryWithArguments_then_extractsArguments() {
+    void whenParseQueryWithArgumentsThenExtractsArguments() {
         val query  = """
                 query {
                   investigator(id: "cthulhu-cultist-42") {
@@ -447,9 +448,9 @@ class GraphQLFunctionLibraryTests {
         assertThat(args.get("investigator").get("id").asText()).contains("cthulhu-cultist-42");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("providePaginationTestCases")
-    void when_parseQueryWithPagination_then_tracksMaxLimit(String query, int expectedMax, String scenario) {
+    void whenParseQueryWithPaginationThenTracksMaxLimit(String query, int expectedMax, String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -486,7 +487,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_parseArgumentsWithComplexTypes_then_preservesStructure() {
+    void whenParseArgumentsWithComplexTypesThenPreservesStructure() {
         val query  = """
                 query {
                   investigator(
@@ -516,12 +517,12 @@ class GraphQLFunctionLibraryTests {
         assertThat(filters.get("names").get(0).asText()).isEqualTo("Carter");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "query { investigator(id: \"1\", filter: null) { name } }",
             "query { investigator(status: ACTIVE) { name } }",
             "query { investigator(coordinates: [[1, 2], [3, 4]]) { name } }",
             "query { investigator(id: $investigatorId) { name } }" })
-    void when_parseArgumentsWithEdgeCases_then_handlesCorrectly(String query) {
+    void whenParseArgumentsWithEdgeCasesThenHandlesCorrectly(String query) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -531,9 +532,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Fragment Analysis Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideFragmentCircularityTestCases")
-    void when_parseQueryWithFragments_then_detectsCircularityCorrectly(String query, boolean expectedCircular,
+    void whenParseQueryWithFragmentsThenDetectsCircularityCorrectly(String query, boolean expectedCircular,
             String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
@@ -598,7 +599,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_parseQueryWithFragments_then_extractsFragmentDetails() {
+    void whenParseQueryWithFragmentsThenExtractsFragmentDetails() {
         val query  = """
                 fragment InvestigatorDetails on Investigator {
                   name
@@ -623,9 +624,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Directive Analysis Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideDirectiveTestCases")
-    void when_parseQueryWithDirectives_then_analyzesCorrectly(String query, int expectedCount, double minRatio,
+    void whenParseQueryWithDirectivesThenAnalyzesCorrectly(String query, int expectedCount, double minRatio,
             String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
@@ -669,9 +670,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Variable Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideVariableTestCases")
-    void when_parseQueryWithVariables_then_extractsDefaults(String query, Map<String, Object> expectedVariables,
+    void whenParseQueryWithVariablesThenExtractsDefaults(String query, Map<String, Object> expectedVariables,
             String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
@@ -721,7 +722,7 @@ class GraphQLFunctionLibraryTests {
     /* Type Information Tests */
 
     @Test
-    void when_parseQueryWithInlineFragments_then_extractsTypes() {
+    void whenParseQueryWithInlineFragmentsThenExtractsTypes() {
         val query  = """
                 query {
                   investigator(id: "1") {
@@ -743,7 +744,7 @@ class GraphQLFunctionLibraryTests {
     /* Realistic Use Case Tests */
 
     @Test
-    void when_parseTypicalInvestigationQuery_then_analyzesCorrectly() {
+    void whenParseTypicalInvestigationQueryThenAnalyzesCorrectly() {
         val query  = """
                 query InvestigateArkham($investigatorId: ID!) {
                   investigator(id: $investigatorId) {
@@ -774,7 +775,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_analyzeQueryForSensitiveFields_then_detectsForbiddenKnowledge() {
+    void whenAnalyzeQueryForSensitiveFieldsThenDetectsForbiddenKnowledge() {
         val query  = """
                 query {
                   investigator(id: "1") {
@@ -793,7 +794,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_enforceComplexityLimit_then_detectsViolation() throws JsonProcessingException {
+    void whenEnforceComplexityLimitThenDetectsViolation() throws JsonProcessingException {
         val query   = """
                 query {
                   investigator(id: "1") {
@@ -822,9 +823,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Security Tests - Malicious Queries */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideMaliciousQueryTestCases")
-    void when_parseMaliciousQuery_then_detectsThreatIndicators(String queryTemplate, int repetitions, String metric,
+    void whenParseMaliciousQueryThenDetectsThreatIndicators(String queryTemplate, int repetitions, String metric,
             int minExpectedValue, String scenario) {
         val query  = buildRepeatedQuery(queryTemplate, repetitions);
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
@@ -874,7 +875,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_parseCombinedAttackQuery_then_detectsMultipleThreatIndicators() {
+    void whenParseCombinedAttackQueryThenDetectsMultipleThreatIndicators() {
         val query  = """
                 query MaliciousQuery {
                   inv1: investigator(id: "1") {
@@ -912,9 +913,9 @@ class GraphQLFunctionLibraryTests {
 
     /* Edge Case Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideEdgeCaseTestCases")
-    void when_parseEdgeCases_then_handlesCorrectly(String query, boolean shouldBeValid, String scenario) {
+    void whenParseEdgeCasesThenHandlesCorrectly(String query, boolean shouldBeValid, String scenario) {
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -951,9 +952,9 @@ class GraphQLFunctionLibraryTests {
                         "Cyrillic in operation name (invalid)"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideInvalidSchemaTestCases")
-    void when_parseWithInvalidSchema_then_returnsError(String query, String schema) {
+    void whenParseWithInvalidSchemaThenReturnsError(String query, String schema) {
         val result = GraphQLFunctionLibrary.validateQuery(Value.of(query), Value.of(schema));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -971,7 +972,7 @@ class GraphQLFunctionLibraryTests {
     /* Schema Parsing Tests */
 
     @Test
-    void when_parseValidSchema_then_returnsValidResult() {
+    void whenParseValidSchemaThenReturnsValidResult() {
         val result = GraphQLFunctionLibrary.parseSchema(Value.of(BASIC_SCHEMA));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -980,9 +981,9 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("ast")).isNotNull();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = { "type Query { invalid syntax }", "type Query {", "", "   \n\t  " })
-    void when_parseInvalidSchema_then_returnsError(String schema) {
+    void whenParseInvalidSchemaThenReturnsError(String schema) {
         val result = GraphQLFunctionLibrary.parseSchema(Value.of(schema));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -992,7 +993,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_parseSchema_then_extractsTypes() {
+    void whenParseSchemaThenExtractsTypes() {
         val result = GraphQLFunctionLibrary.parseSchema(Value.of(BASIC_SCHEMA));
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
@@ -1003,7 +1004,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_parseSchemaWithDirectives_then_extractsDirectives() {
+    void whenParseSchemaWithDirectivesThenExtractsDirectives() {
         val schemaWithDirectives = """
                 directive @auth(requires: String!) on FIELD_DEFINITION
 
@@ -1026,7 +1027,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     @Test
-    void when_parseSchemaWithScalars_then_includesScalars() {
+    void whenParseSchemaWithScalarsThenIncludesScalars() {
         val schemaWithScalars = """
                 scalar DateTime
                 scalar JSON
@@ -1052,7 +1053,7 @@ class GraphQLFunctionLibraryTests {
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
-    void when_parseComplexQuery_then_completesQuickly() {
+    void whenParseComplexQueryThenCompletesQuickly() {
         val queryBuilder = new StringBuilder("query ComplexQuery {\n");
         for (int i = 0; i < 20; i++) {
             queryBuilder.append(String.format("""
@@ -1079,7 +1080,7 @@ class GraphQLFunctionLibraryTests {
 
     @Test
     @Timeout(value = 1, unit = TimeUnit.SECONDS)
-    void when_parseMultipleTimes_then_completesQuickly() {
+    void whenParseMultipleTimesThenCompletesQuickly() {
         val query = """
                 query {
                   investigator(id: "1") {

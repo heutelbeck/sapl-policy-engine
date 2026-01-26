@@ -48,13 +48,13 @@ class TrojanSourceUtilTests {
 
         @Test
         @DisplayName("accepts null input")
-        void whenNull_thenNoException() {
+        void whenNullThenNoException() {
             assertThatCode(() -> TrojanSourceUtil.assertNoTrojanSourceCharacters(null)).doesNotThrowAnyException();
         }
 
         @Test
         @DisplayName("accepts valid policy without trojan characters")
-        void whenValidPolicy_thenNoException() {
+        void whenValidPolicyThenNoException() {
             assertThatCode(() -> TrojanSourceUtil.assertNoTrojanSourceCharacters("policy \"test\" permit"))
                     .doesNotThrowAnyException();
         }
@@ -62,7 +62,7 @@ class TrojanSourceUtilTests {
         @ParameterizedTest(name = "rejects input containing {0}")
         @ValueSource(chars = { LRI, RLI, PDI, RLO })
         @DisplayName("rejects input containing trojan source characters")
-        void whenTrojanCharacter_thenThrows(char trojanChar) {
+        void whenTrojanCharacterThenThrows(char trojanChar) {
             val malicious = "policy \"te" + trojanChar + "st\" permit";
             assertThatThrownBy(() -> TrojanSourceUtil.assertNoTrojanSourceCharacters(malicious))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("trojan source");
@@ -75,7 +75,7 @@ class TrojanSourceUtilTests {
 
         @Test
         @DisplayName("passes through valid input unchanged")
-        void whenValidInput_thenPassesThrough() throws Exception {
+        void whenValidInputThenPassesThrough() throws Exception {
             val valid  = "policy \"test\" permit";
             val stream = TrojanSourceUtil
                     .guardInputStream(new ByteArrayInputStream(valid.getBytes(StandardCharsets.UTF_8)));
@@ -86,7 +86,7 @@ class TrojanSourceUtilTests {
         @ParameterizedTest(name = "detects {0} in stream")
         @ValueSource(chars = { LRI, RLI, PDI, RLO })
         @DisplayName("detects trojan source characters in stream")
-        void whenTrojanCharacterInStream_thenThrows(char trojanChar) {
+        void whenTrojanCharacterInStreamThenThrows(char trojanChar) {
             val malicious = "policy \"te" + trojanChar + "st\" permit";
             val stream    = TrojanSourceUtil
                     .guardInputStream(new ByteArrayInputStream(malicious.getBytes(StandardCharsets.UTF_8)));
@@ -98,7 +98,7 @@ class TrojanSourceUtilTests {
         @Test
         @Timeout(10)
         @DisplayName("handles large input efficiently")
-        void whenLargeInput_thenCompletesInTime() {
+        void whenLargeInputThenCompletesInTime() {
             val large  = "*".repeat(10_000_000);
             val stream = TrojanSourceUtil
                     .guardInputStream(new ByteArrayInputStream(large.getBytes(StandardCharsets.UTF_8)));

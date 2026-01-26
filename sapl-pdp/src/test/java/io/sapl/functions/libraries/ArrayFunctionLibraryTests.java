@@ -21,6 +21,7 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.IntStream;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 /**
  * Tests for ArrayFunctionLibrary using the new Value model.
  */
+@DisplayName("ArrayFunctionLibrary")
 class ArrayFunctionLibraryTests {
 
     private static ArrayValue array(int... numbers) {
@@ -42,48 +44,48 @@ class ArrayFunctionLibraryTests {
     }
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(ArrayFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void when_concatenateNoParameters_then_returnsEmptyArray() {
+    void whenConcatenateNoParametersThenReturnsEmptyArray() {
         val result = ArrayFunctionLibrary.concatenate();
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).isEmpty();
     }
 
     @Test
-    void when_concatenate_then_concatenatesCorrectly() {
+    void whenConcatenateThenConcatenatesCorrectly() {
         val result = ArrayFunctionLibrary.concatenate(array(1, 2), Value.EMPTY_ARRAY, array(3, 4), array(5, 6));
         assertThat(result).isInstanceOf(ArrayValue.class).isEqualTo(array(1, 2, 3, 4, 5, 6));
     }
 
     @Test
-    void when_intersectNoParameters_then_returnsEmptyArray() {
+    void whenIntersectNoParametersThenReturnsEmptyArray() {
         val result = ArrayFunctionLibrary.intersect();
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).isEmpty();
     }
 
     @Test
-    void when_intersect_then_returnsIntersection() {
+    void whenIntersectThenReturnsIntersection() {
         val result = ArrayFunctionLibrary.intersect(array(1, 2, 3, 4), array(3, 4), array(4, 1, 3));
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).hasSize(2).containsExactlyInAnyOrder(values(4, 3));
     }
 
     @Test
-    void when_intersectWithOneEmptySet_then_returnsEmptyArray() {
+    void whenIntersectWithOneEmptySetThenReturnsEmptyArray() {
         val result = ArrayFunctionLibrary.intersect(array(1, 2, 3, 4), Value.EMPTY_ARRAY, array(3, 4), array(4, 1, 3));
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).isEmpty();
     }
 
     @Test
-    void when_intersectWithManyArrays_then_performsCorrectly() {
+    void whenIntersectWithManyArraysThenPerformsCorrectly() {
         val result = ArrayFunctionLibrary.intersect(array(1, 2, 3, 4, 5), array(2, 3, 4, 5, 6), array(3, 4, 5, 6, 7),
                 array(4, 5, 6, 7, 8), array(5, 6, 7, 8, 9));
         assertThat(result).isInstanceOf(ArrayValue.class);
@@ -93,35 +95,35 @@ class ArrayFunctionLibraryTests {
     }
 
     @Test
-    void when_intersectWithNoCommonElements_then_returnsEmpty() {
+    void whenIntersectWithNoCommonElementsThenReturnsEmpty() {
         val result = ArrayFunctionLibrary.intersect(array(1, 2, 3), array(4, 5, 6), array(7, 8, 9));
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).isEmpty();
     }
 
     @Test
-    void when_unionNoParameters_then_returnsEmptyArray() {
+    void whenUnionNoParametersThenReturnsEmptyArray() {
         val result = ArrayFunctionLibrary.union();
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).isEmpty();
     }
 
     @Test
-    void when_union_then_returnsUnion() {
+    void whenUnionThenReturnsUnion() {
         val result = ArrayFunctionLibrary.union(array(1, 2, 3), Value.EMPTY_ARRAY, array(3, 4), array(4, 1, 3));
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).hasSize(4).containsExactlyInAnyOrder(values(4, 3, 1, 2));
     }
 
     @Test
-    void when_unionWithManyArrays_then_performsCorrectly() {
+    void whenUnionWithManyArraysThenPerformsCorrectly() {
         val result = ArrayFunctionLibrary.union(array(1, 2), array(2, 3), array(3, 4), array(4, 5));
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).hasSize(5).containsExactlyInAnyOrder(values(1, 2, 3, 4, 5));
     }
 
     @Test
-    void when_toSet_then_returnsSet() {
+    void whenToSetThenReturnsSet() {
         val result = ArrayFunctionLibrary.toSet(array(1, 2, 3, 2, 1, 1, 1, 5, 8, 10, 8, 10, 3));
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).hasSize(6).containsExactlyInAnyOrder(values(1, 2, 3, 5, 8, 10));
@@ -129,7 +131,7 @@ class ArrayFunctionLibraryTests {
 
     // Performance tests continue with builder pattern
     @Test
-    void when_unionWithLargeArrays_then_performsEfficiently() {
+    void whenUnionWithLargeArraysThenPerformsEfficiently() {
         val array1 = ArrayValue.builder();
         val array2 = ArrayValue.builder();
 

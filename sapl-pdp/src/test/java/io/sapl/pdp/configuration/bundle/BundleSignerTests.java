@@ -19,6 +19,7 @@ package io.sapl.pdp.configuration.bundle;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -39,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("BundleSigner")
 class BundleSignerTests {
 
     private static PrivateKey cultPrivate;
@@ -62,7 +64,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenSigningWithValidKey_thenManifestContainsSignature() {
+    void whenSigningWithValidKeyThenManifestContainsSignature() {
         val files = createTestFiles();
 
         val manifest = BundleSigner.sign(files, cultPrivate, "necronomicon-key");
@@ -75,7 +77,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenSigningWithExpiration_thenManifestContainsExpiration() {
+    void whenSigningWithExpirationThenManifestContainsExpiration() {
         val files   = createTestFiles();
         val expires = Instant.now().plus(7, ChronoUnit.DAYS);
 
@@ -85,7 +87,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenSigningWithNullPrivateKey_thenThrowsException() {
+    void whenSigningWithNullPrivateKeyThenThrowsException() {
         val files = createTestFiles();
 
         assertThatThrownBy(() -> BundleSigner.sign(files, null, "forbidden-key"))
@@ -93,7 +95,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenSigningWithNonEd25519Key_thenThrowsException() {
+    void whenSigningWithNonEd25519KeyThenThrowsException() {
         val files = createTestFiles();
 
         assertThatThrownBy(() -> BundleSigner.sign(files, rsaPrivate, "wrong-algorithm-key"))
@@ -101,7 +103,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingValidSignature_thenNoExceptionThrown() {
+    void whenVerifyingValidSignatureThenNoExceptionThrown() {
         val files    = createTestFiles();
         val manifest = BundleSigner.sign(files, cultPrivate, "miskatonic-key");
 
@@ -109,7 +111,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithWrongPublicKey_thenThrowsException() {
+    void whenVerifyingWithWrongPublicKeyThenThrowsException() {
         val files          = createTestFiles();
         val manifest       = BundleSigner.sign(files, cultPrivate, "arkham-key");
         val wrongKeyPair   = generateEd25519KeyPair();
@@ -119,7 +121,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithNullPublicKey_thenThrowsException() {
+    void whenVerifyingWithNullPublicKeyThenThrowsException() {
         val files    = createTestFiles();
         val manifest = BundleSigner.sign(files, cultPrivate, "innsmouth-key");
 
@@ -128,7 +130,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithRsaPublicKey_thenThrowsException() {
+    void whenVerifyingWithRsaPublicKeyThenThrowsException() {
         val files    = createTestFiles();
         val manifest = BundleSigner.sign(files, cultPrivate, "dagon-key");
 
@@ -137,7 +139,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithTamperedFile_thenThrowsException() {
+    void whenVerifyingWithTamperedFileThenThrowsException() {
         val originalFiles = createTestFiles();
         val manifest      = BundleSigner.sign(originalFiles, cultPrivate, "cthulhu-key");
 
@@ -149,7 +151,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithMissingFile_thenThrowsException() {
+    void whenVerifyingWithMissingFileThenThrowsException() {
         val originalFiles = createTestFiles();
         val manifest      = BundleSigner.sign(originalFiles, cultPrivate, "yog-sothoth-key");
 
@@ -161,7 +163,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithExtraFile_thenThrowsException() {
+    void whenVerifyingWithExtraFileThenThrowsException() {
         val originalFiles = createTestFiles();
         val manifest      = BundleSigner.sign(originalFiles, cultPrivate, "shub-niggurath-key");
 
@@ -173,7 +175,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingExpiredSignature_thenThrowsException() {
+    void whenVerifyingExpiredSignatureThenThrowsException() {
         val files       = createTestFiles();
         val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
         val manifest    = BundleSigner.sign(files, cultPrivate, "expired-tome-key", expiredTime);
@@ -183,7 +185,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingExpiredSignatureWithoutTimeCheck_thenNoExceptionThrown() {
+    void whenVerifyingExpiredSignatureWithoutTimeCheckThenNoExceptionThrown() {
         val files       = createTestFiles();
         val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
         val manifest    = BundleSigner.sign(files, cultPrivate, "old-ritual-key", expiredTime);
@@ -192,7 +194,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingValidFutureExpiration_thenNoExceptionThrown() {
+    void whenVerifyingValidFutureExpirationThenNoExceptionThrown() {
         val files      = createTestFiles();
         val futureTime = Instant.now().plus(30, ChronoUnit.DAYS);
         val manifest   = BundleSigner.sign(files, cultPrivate, "future-prophecy-key", futureTime);
@@ -201,7 +203,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingSignatureOnly_thenDoesNotCheckFileIntegrity() {
+    void whenVerifyingSignatureOnlyThenDoesNotCheckFileIntegrity() {
         val files    = createTestFiles();
         val manifest = BundleSigner.sign(files, cultPrivate, "quick-check-key");
 
@@ -209,7 +211,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenCheckingIfManifestIsSigned_thenReturnsCorrectly() {
+    void whenCheckingIfManifestIsSignedThenReturnsCorrectly() {
         val files          = createTestFiles();
         val signedManifest = BundleSigner.sign(files, cultPrivate, "signed-key");
 
@@ -219,14 +221,14 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingNullManifest_thenThrowsException() {
+    void whenVerifyingNullManifestThenThrowsException() {
         val variables = Map.<String, String>of();
         assertThatThrownBy(() -> BundleSigner.verify(null, variables, cultPublic))
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("null");
     }
 
     @Test
-    void whenVerifyingUnsignedManifest_thenThrowsException() {
+    void whenVerifyingUnsignedManifestThenThrowsException() {
         val files            = createTestFiles();
         val signedManifest   = BundleSigner.sign(files, cultPrivate, "test-key");
         val unsignedManifest = signedManifest.withoutSignature();
@@ -235,7 +237,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithEmptyFileList_thenThrowsException() {
+    void whenVerifyingWithEmptyFileListThenThrowsException() {
         val signedManifest = BundleSigner.sign(createTestFiles(), cultPrivate, "test-key");
         val emptyManifest  = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
                 Instant.now(), null, Map.of(), signedManifest.signature());
@@ -245,7 +247,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithInvalidBase64Signature_thenThrowsException() {
+    void whenVerifyingWithInvalidBase64SignatureThenThrowsException() {
         val invalidSig  = new BundleManifest.Signature("Ed25519", "bad-key", "not-valid-base64!!!");
         val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
                 Instant.now(), null, Map.of("test.sapl", BundleManifest.computeHash("test")), invalidSig);
@@ -255,7 +257,7 @@ class BundleSignerTests {
     }
 
     @Test
-    void whenVerifyingWithWrongAlgorithm_thenThrowsException() {
+    void whenVerifyingWithWrongAlgorithmThenThrowsException() {
         val wrongAlgSig = new BundleManifest.Signature("RSA", "wrong-alg-key", "abc123");
         val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
                 Instant.now(), null, Map.of("test.sapl", BundleManifest.computeHash("test")), wrongAlgSig);
@@ -264,9 +266,9 @@ class BundleSignerTests {
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("Unsupported signature algorithm");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("emptySignatureValueCases")
-    void whenVerifyingWithEmptySignatureValue_thenThrowsException(String signatureValue) {
+    void whenVerifyingWithEmptySignatureValueThenThrowsException(String signatureValue) {
         val emptySig    = new BundleManifest.Signature("Ed25519", "empty-sig-key", signatureValue);
         val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
                 Instant.now(), null, Map.of("test.sapl", BundleManifest.computeHash("test")), emptySig);

@@ -40,6 +40,7 @@ import javax.net.ssl.SSLException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.tcp.TcpClient;
@@ -97,7 +98,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
         return rSocketMono.flatMapMany(rSocket -> {
             try {
-                var payload = createPayload(ROUTE_DECIDE,
+                val payload = createPayload(ROUTE_DECIDE,
                         SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
                 return rSocket.requestStream(payload).map(this::decodeAuthorizationDecision);
             } catch (IOException e) {
@@ -114,7 +115,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
         return rSocketMono.flatMap(rSocket -> {
             try {
-                var payload = createPayload(ROUTE_DECIDE_ONCE,
+                val payload = createPayload(ROUTE_DECIDE_ONCE,
                         SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
                 return rSocket.requestResponse(payload).map(this::decodeAuthorizationDecision);
             } catch (IOException e) {
@@ -128,7 +129,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
         return rSocketMono.flatMapMany(rSocket -> {
             try {
-                var payload = createPayload(ROUTE_MULTI_DECIDE,
+                val payload = createPayload(ROUTE_MULTI_DECIDE,
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
                 return rSocket.requestStream(payload).map(this::decodeIdentifiableAuthorizationDecision);
             } catch (IOException e) {
@@ -145,7 +146,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
         return rSocketMono.flatMapMany(rSocket -> {
             try {
-                var payload = createPayload(ROUTE_MULTI_DECIDE_ALL,
+                val payload = createPayload(ROUTE_MULTI_DECIDE_ALL,
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
                 return rSocket.requestStream(payload).map(this::decodeMultiAuthorizationDecision);
             } catch (IOException e) {
@@ -164,7 +165,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
     private AuthorizationDecision decodeAuthorizationDecision(Payload payload) {
         try {
-            var data = extractData(payload);
+            val data = extractData(payload);
             return SaplProtobufCodec.readAuthorizationDecision(data);
         } catch (IOException e) {
             log.error(LOG_DECODE_AUTHORIZATION_DECISION, e.getMessage());
@@ -176,7 +177,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
     private IdentifiableAuthorizationDecision decodeIdentifiableAuthorizationDecision(Payload payload) {
         try {
-            var data = extractData(payload);
+            val data = extractData(payload);
             return SaplProtobufCodec.readIdentifiableAuthorizationDecision(data);
         } catch (IOException e) {
             log.error(LOG_DECODE_IDENTIFIABLE_AUTHORIZATION_DECISION, e.getMessage());
@@ -188,7 +189,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
     private MultiAuthorizationDecision decodeMultiAuthorizationDecision(Payload payload) {
         try {
-            var data = extractData(payload);
+            val data = extractData(payload);
             return SaplProtobufCodec.readMultiAuthorizationDecision(data);
         } catch (IOException e) {
             log.error(LOG_DECODE_MULTI_AUTHORIZATION_DECISION, e.getMessage());
@@ -199,8 +200,8 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     private byte[] extractData(Payload payload) {
-        var buf   = payload.data();
-        var bytes = new byte[buf.readableBytes()];
+        val buf   = payload.data();
+        val bytes = new byte[buf.readableBytes()];
         buf.readBytes(bytes);
         return bytes;
     }
@@ -244,7 +245,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
             log.warn(LOG_WARN_SEPARATOR);
             log.warn(LOG_WARN_INSECURE_SSL);
             log.warn(LOG_WARN_SEPARATOR);
-            var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            val sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
         }
 
@@ -311,7 +312,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
          * @return a new ProtobufRemotePolicyDecisionPoint instance
          */
         public ProtobufRemotePolicyDecisionPoint build() {
-            var rSocketMono = RSocketConnector.create().keepAlive(keepAlive, maxLifeTime)
+            val rSocketMono = RSocketConnector.create().keepAlive(keepAlive, maxLifeTime)
                     .connect(TcpClientTransport.create(tcpClient));
             return new ProtobufRemotePolicyDecisionPoint(rSocketMono);
         }

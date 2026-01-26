@@ -23,6 +23,7 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -34,10 +35,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Tests for FilterFunctionLibrary using new Value model.
  */
+@DisplayName("FilterFunctionLibrary")
 class FilterFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -48,20 +50,20 @@ class FilterFunctionLibraryTests {
     // ============================================================================
 
     @Test
-    void blacken_noArguments_throwsException() {
+    void blackenNoArgumentsThrowsException() {
         assertThatThrownBy(io.sapl.functions.libraries.FilterFunctionLibrary::blacken)
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("STRING");
     }
 
     @Test
-    void blacken_nonStringText_throwsException() {
+    void blackenNonStringTextThrowsException() {
         val nonStringValue = Value.of(9999);
         assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(nonStringValue))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("STRING");
     }
 
     @Test
-    void blacken_tooManyArguments_throwsException() {
+    void blackenTooManyArgumentsThrowsException() {
         var params = new Value[] { Value.of("test"), Value.of(2), Value.of(2), Value.of("*"), Value.of(2),
                 Value.of(2) };
         assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(params))
@@ -69,7 +71,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_negativeDiscloseLeft_throwsException() {
+    void blackenNegativeDiscloseLeftThrowsException() {
         val text               = Value.of("test");
         val negativeDisclosure = Value.of(-1);
         assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(text, negativeDisclosure))
@@ -77,7 +79,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_negativeDiscloseRight_throwsException() {
+    void blackenNegativeDiscloseRightThrowsException() {
         val text                  = Value.of("test");
         val discloseLeft          = Value.of(2);
         val negativeDiscloseRight = Value.of(-1);
@@ -87,7 +89,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_nonStringReplacement_throwsException() {
+    void blackenNonStringReplacementThrowsException() {
         val text                 = Value.of("test");
         val discloseLeft         = Value.of(2);
         val discloseRight        = Value.of(2);
@@ -98,7 +100,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_negativeLength_throwsException() {
+    void blackenNegativeLengthThrowsException() {
         val text           = Value.of("test");
         val discloseLeft   = Value.of(2);
         val discloseRight  = Value.of(2);
@@ -110,7 +112,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_nonNumericLength_throwsException() {
+    void blackenNonNumericLengthThrowsException() {
         val text             = Value.of("test");
         val discloseLeft     = Value.of(2);
         val discloseRight    = Value.of(2);
@@ -134,7 +136,7 @@ class FilterFunctionLibraryTests {
             Dunwich           | 4 | 4 | ▓   | Dunwich
             Kadath            | 2 | 1 | ◼   | Ka◼◼◼h
             """)
-    void blacken_variousInputs_redactsCorrectly(String text, int discloseLeft, int discloseRight, String replacement,
+    void blackenVariousInputsRedactsCorrectly(String text, int discloseLeft, int discloseRight, String replacement,
             String expected) {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(text), Value.of(discloseLeft),
                 Value.of(discloseRight), Value.of(replacement));
@@ -150,7 +152,7 @@ class FilterFunctionLibraryTests {
             Yog-Sothoth  | 3 | 4 | 0  | Yoghoth
             Azathoth     | 4 | 0 | 2  | Azat**
             """)
-    void blacken_withLengthOverride_redactsWithCustomLength(String text, int discloseLeft, int discloseRight,
+    void blackenWithLengthOverrideRedactsWithCustomLength(String text, int discloseLeft, int discloseRight,
             int blackenLength, String expected) {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(text), Value.of(discloseLeft),
                 Value.of(discloseRight), Value.of("*"), Value.of(blackenLength));
@@ -159,7 +161,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_fullyDisclosed_returnsOriginal() {
+    void blackenFullyDisclosedReturnsOriginal() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Shub-Niggurath"), Value.of(7),
                 Value.of(7), Value.of("*"));
 
@@ -167,7 +169,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_fullyBlackened_replacesAll() {
+    void blackenFullyBlackenedReplacesAll() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Yog-Sothoth"), Value.of(0),
                 Value.of(0), Value.of("#"));
 
@@ -175,7 +177,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_multiCharacterReplacement_repeatsReplacement() {
+    void blackenMultiCharacterReplacementRepeatsReplacement() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Nyarlathotep"), Value.of(4),
                 Value.of(4), Value.of("[REDACTED]"));
 
@@ -184,7 +186,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_unicodeCharacters_handlesCorrectly() {
+    void blackenUnicodeCharactersHandlesCorrectly() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("古のもの"), Value.of(1),
                 Value.of(1), Value.of("█"));
 
@@ -192,7 +194,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_emptyReplacement_withZeroLength_preservesEnds() {
+    void blackenEmptyReplacementWithZeroLengthPreservesEnds() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Nyarlathotep"), Value.of(4),
                 Value.of(4), Value.of(""), Value.of(0));
 
@@ -200,28 +202,28 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_emptyString_returnsEmpty() {
+    void blackenEmptyStringReturnsEmpty() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(""));
 
         assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of(""));
     }
 
     @Test
-    void blacken_singleCharacter_blackensCorrectly() {
+    void blackenSingleCharacterBlackensCorrectly() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("R"), Value.of(0), Value.of(0));
 
         assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("X"));
     }
 
     @Test
-    void blacken_singleCharacterFullyDisclosed_returnsOriginal() {
+    void blackenSingleCharacterFullyDisclosedReturnsOriginal() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("R"), Value.of(1), Value.of(0));
 
         assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("R"));
     }
 
     @Test
-    void blacken_longIncantation_redactsLargeText() {
+    void blackenLongIncantationRedactsLargeText() {
         val incantation   = "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn";
         val discloseLeft  = Value.of(10);
         val discloseRight = Value.of(10);
@@ -235,7 +237,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void blacken_veryLongText_handlesCorrectly() {
+    void blackenVeryLongTextHandlesCorrectly() {
         val longIncantation = "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn ".repeat(100);
         val result          = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(longIncantation),
                 Value.of(10), Value.of(10));
@@ -260,8 +262,8 @@ class FilterFunctionLibraryTests {
             Azathoth     | * | 4 | 0 | 2    | Azat**
             R'lyeh       | █ | 1 | 1 | null | R████h
             """)
-    void blackenUtil_variousInputs_redactsCorrectly(String text, String replacement, int left, int right,
-            Integer length, String expected) {
+    void blackenUtilVariousInputsRedactsCorrectly(String text, String replacement, int left, int right, Integer length,
+            String expected) {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blackenUtil(text, replacement, right, left,
                 length);
         assertThat(result).isEqualTo(expected);
@@ -272,14 +274,14 @@ class FilterFunctionLibraryTests {
     // ============================================================================
 
     @Test
-    void replace_normalValue_returnsReplacement() {
+    void replaceNormalValueReturnsReplacement() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.replace(Value.NULL, Value.of(13));
 
         assertThat(result).isEqualTo(Value.of(13));
     }
 
     @Test
-    void replace_errorValue_preservesError() {
+    void replaceErrorValuePreservesError() {
         val error  = Value.error("The ritual failed");
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.replace(error, Value.of("Safe"));
 
@@ -288,7 +290,7 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
-    void replace_undefinedValue_returnsReplacement() {
+    void replaceUndefinedValueReturnsReplacement() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.replace(Value.UNDEFINED,
                 Value.of("replacement"));
 
@@ -300,21 +302,21 @@ class FilterFunctionLibraryTests {
     // ============================================================================
 
     @Test
-    void remove_anyValue_returnsUndefined() {
+    void removeAnyValueReturnsUndefined() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.remove(Value.of("Elder Sign"));
 
         assertThat(result).isInstanceOf(UndefinedValue.class);
     }
 
     @Test
-    void remove_nullValue_returnsUndefined() {
+    void removeNullValueReturnsUndefined() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.remove(Value.NULL);
 
         assertThat(result).isInstanceOf(UndefinedValue.class);
     }
 
     @Test
-    void remove_errorValue_returnsUndefined() {
+    void removeErrorValueReturnsUndefined() {
         val result = FilterFunctionLibrary.remove(Value.error("error"));
 
         assertThat(result).isInstanceOf(UndefinedValue.class);

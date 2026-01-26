@@ -30,21 +30,24 @@ import static io.sapl.util.SaplTesting.evaluateExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
 /**
  * Tests for path navigation algorithm in ExtendedFilterCompiler.
  * Uses actual SAPL expressions with |- syntax and filter.replace("***").
  */
+@DisplayName("PathNavigation")
 class PathNavigationTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_pathNavigation_then_returnsExpected(String description, String expression, Value expected) {
+    void whenPathNavigationThenReturnsExpected(String description, String expression, Value expected) {
         var result = evaluateExpression(expression);
         assertThat(result).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_pathNavigation_then_returnsExpected() {
+    private static Stream<Arguments> whenPathNavigationThenReturnsExpected() {
         return Stream.of(
             // === KeyPath (@.key): navigate into object field ===
             arguments("keyPath_replacesDirectField",
@@ -901,13 +904,13 @@ class PathNavigationTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_pathNavigation_withError_then_returnsError(String description, String expression, String errorSubstring) {
+    void whenPathNavigationWithErrorThenReturnsError(String description, String expression, String errorSubstring) {
         var result = evaluateExpression(expression);
         assertIsErrorContaining(result, errorSubstring);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_pathNavigation_withError_then_returnsError() {
+    private static Stream<Arguments> whenPathNavigationWithErrorThenReturnsError() {
         return Stream.of(
             // === Error short-circuit tests for ExtendedFilter ===
             arguments("conditionPath_errorInCondition_bubblesUpImmediately",

@@ -18,8 +18,12 @@
 package io.sapl.server.lt;
 
 import lombok.experimental.UtilityClass;
-import org.passay.*;
+import lombok.val;
 import org.passay.CharacterData;
+import org.passay.CharacterRule;
+import org.passay.EnglishCharacterData;
+import org.passay.PasswordGenerator;
+import org.passay.Rule;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 @UtilityClass
@@ -42,25 +46,25 @@ public class SecretGenerator {
     }
 
     public String encodeWithArgon2(String secret) {
-        final var encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+        val  encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
         return encoder.encode(secret);
     }
 
     private String generateKey(int length) {
-        final var passwordGenerator = new PasswordGenerator();
-        final var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        final var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        final var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        final var rules             = new Rule[] { lowerCaseRule, upperCaseRule, digitRule };
+        val passwordGenerator = new PasswordGenerator();
+        val  lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
+        val  upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
+        val  digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
+        val  rules             = new Rule[] { lowerCaseRule, upperCaseRule, digitRule };
         return passwordGenerator.generatePassword(length, rules);
     }
 
     private String generatePassword(int length) {
-        final var passwordGenerator = new PasswordGenerator();
-        final var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        final var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        final var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        final var splCharRule       = new CharacterRule(new CharacterData() {
+        val  passwordGenerator = new PasswordGenerator();
+        val  lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
+        val  upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
+        val  digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
+        val  splCharRule       = new CharacterRule(new CharacterData() {
                                         @Override
                                         public String getErrorCode() {
                                             return "ERR_SPECIAL";
@@ -71,7 +75,7 @@ public class SecretGenerator {
                                             return "$-_.+!*'(),";
                                         }
                                     }, 2);
-        final var rules             = new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule };
+        val  rules             = new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule };
         return passwordGenerator.generatePassword(length, rules);
     }
 }

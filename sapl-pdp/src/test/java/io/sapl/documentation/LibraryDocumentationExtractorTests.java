@@ -32,6 +32,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -45,10 +46,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("LibraryDocumentationExtractor")
 class LibraryDocumentationExtractorTests {
 
     @Test
-    void whenExtractingFunctionLibrary_thenLibraryMetadataIsExtracted() {
+    void whenExtractingFunctionLibraryThenLibraryMetadataIsExtracted() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(FilterFunctionLibrary.class);
 
         assertThat(documentation.type()).isEqualTo(LibraryType.FUNCTION_LIBRARY);
@@ -57,7 +59,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingFunctionLibrary_thenFunctionEntriesAreExtracted() {
+    void whenExtractingFunctionLibraryThenFunctionEntriesAreExtracted() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(FilterFunctionLibrary.class);
 
         assertThat(documentation.entries()).isNotEmpty();
@@ -70,22 +72,22 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingClassWithoutAnnotation_thenExceptionIsThrown() {
+    void whenExtractingClassWithoutAnnotationThenExceptionIsThrown() {
         assertThatThrownBy(() -> LibraryDocumentationExtractor.extractFunctionLibrary(String.class))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not annotated with @FunctionLibrary");
     }
 
     @Test
-    void whenExtractingPipWithoutAnnotation_thenExceptionIsThrown() {
+    void whenExtractingPipWithoutAnnotationThenExceptionIsThrown() {
         assertThatThrownBy(() -> LibraryDocumentationExtractor.extractPolicyInformationPoint(String.class))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not annotated with @PolicyInformationPoint");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("parameterTypeDerivationCases")
-    void whenExtractingFunctionParameter_thenTypeIsDerivedFromValueClass(String functionName, String expectedType) {
+    void whenExtractingFunctionParameterThenTypeIsDerivedFromValueClass(String functionName, String expectedType) {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry(functionName);
 
@@ -101,7 +103,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingFunctionWithNamedParameter_thenParameterNameIsExtracted() {
+    void whenExtractingFunctionWithNamedParameterThenParameterNameIsExtracted() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("textFunction");
 
@@ -109,7 +111,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingFunctionWithMixedParameters_thenEachTypeIsDerived() {
+    void whenExtractingFunctionWithMixedParametersThenEachTypeIsDerived() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("mixedFunction");
 
@@ -120,9 +122,9 @@ class LibraryDocumentationExtractorTests {
         assertThat(entry.parameters().get(2).allowedTypes()).containsExactly("Bool");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("varArgsCases")
-    void whenExtractingFunctionWithVarArgs_thenVarArgsIsDetectedAndTypeIsDerived(String functionName,
+    void whenExtractingFunctionWithVarArgsThenVarArgsIsDetectedAndTypeIsDerived(String functionName,
             String expectedType) {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry(functionName);
@@ -138,7 +140,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingPolicyInformationPoint_thenPipMetadataIsExtracted() {
+    void whenExtractingPolicyInformationPointThenPipMetadataIsExtracted() {
         val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(TestPip.class);
 
         assertThat(documentation.type()).isEqualTo(LibraryType.POLICY_INFORMATION_POINT);
@@ -147,7 +149,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingEnvironmentAttribute_thenEntryTypeIsCorrect() {
+    void whenExtractingEnvironmentAttributeThenEntryTypeIsCorrect() {
         val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(TestPip.class);
         val entry         = documentation.findEntry("moonPhase");
 
@@ -157,7 +159,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingEntityAttribute_thenEntryTypeIsCorrect() {
+    void whenExtractingEntityAttributeThenEntryTypeIsCorrect() {
         val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(TestPip.class);
         val entry         = documentation.findEntry("madnessLevel");
 
@@ -167,7 +169,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingAttributeWithParameters_thenParametersExcludeEntityAndVariables() {
+    void whenExtractingAttributeWithParametersThenParametersExcludeEntityAndVariables() {
         val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(TestPip.class);
         val entry         = documentation.findEntry("forbiddenName");
 
@@ -178,7 +180,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingEnvironmentAttributeWithParameters_thenParametersExcludeVariables() {
+    void whenExtractingEnvironmentAttributeWithParametersThenParametersExcludeVariables() {
         val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(TestPip.class);
         val entry         = documentation.findEntry("eldritchHour");
 
@@ -189,7 +191,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenGeneratingFunctionCodeTemplate_thenTemplateIsCorrect() {
+    void whenGeneratingFunctionCodeTemplateThenTemplateIsCorrect() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("mixedFunction");
 
@@ -197,7 +199,7 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenGeneratingAttributeCodeTemplate_thenTemplateHasAngleBrackets() {
+    void whenGeneratingAttributeCodeTemplateThenTemplateHasAngleBrackets() {
         val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(TestPip.class);
         val entry         = documentation.findEntry("moonPhase");
 
@@ -205,28 +207,28 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenExtractingLibraryWithDefaultName_thenClassNameIsUsed() {
+    void whenExtractingLibraryWithDefaultNameThenClassNameIsUsed() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(DefaultNameLibrary.class);
 
         assertThat(documentation.name()).isEqualTo("DefaultNameLibrary");
     }
 
     @Test
-    void whenExtractingFunctionWithDefaultName_thenMethodNameIsUsed() {
+    void whenExtractingFunctionWithDefaultNameThenMethodNameIsUsed() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(DefaultNameLibrary.class);
 
         assertThat(documentation.findEntry("defaultNameFunction")).isNotNull();
     }
 
     @Test
-    void whenExtractingFunctionWithCustomName_thenCustomNameIsUsed() {
+    void whenExtractingFunctionWithCustomNameThenCustomNameIsUsed() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
 
         assertThat(documentation.findEntry("chant")).isNotNull();
     }
 
     @Test
-    void whenExtractingFunctionWithSchema_thenSchemaIsIncluded() {
+    void whenExtractingFunctionWithSchemaThenSchemaIsIncluded() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("schemaFunction");
 

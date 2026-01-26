@@ -53,13 +53,12 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_basicFilterApplied_then_producesExpectedResult(String description, String expression,
-                Value expected) {
+        void whenBasicFilterAppliedThenProducesExpectedResult(String description, String expression, Value expected) {
             assertEvaluatesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_basicFilterApplied_then_producesExpectedResult() {
+        static Stream<Arguments> whenBasicFilterAppliedThenProducesExpectedResult() {
             return Stream.of(
                 // NOTE: These require filter.blacken function - will fail without it
                 arguments("Blacken filter on string",
@@ -80,13 +79,13 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("filter.remove on object returns undefined")
-        void when_removeFilterOnObject_then_returnsUndefined() {
+        void whenRemoveFilterOnObjectThenReturnsUndefined() {
             assertEvaluatesTo("{} |- filter.remove", Value.UNDEFINED);
         }
 
         @Test
         @DisplayName("filter.remove on null returns undefined")
-        void when_removeFilterOnNull_then_returnsUndefined() {
+        void whenRemoveFilterOnNullThenReturnsUndefined() {
             assertEvaluatesTo("null |- filter.remove", Value.UNDEFINED);
         }
     }
@@ -97,11 +96,11 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_eachFilterApplied_then_producesExpectedResult(String description, String expression, Value expected) {
+        void whenEachFilterAppliedThenProducesExpectedResult(String description, String expression, Value expected) {
             assertEvaluatesTo(expression, expected);
         }
 
-        static Stream<Arguments> when_eachFilterApplied_then_producesExpectedResult() {
+        static Stream<Arguments> whenEachFilterAppliedThenProducesExpectedResult() {
             return Stream.of(
                     arguments("Each removes all elements", "[null, 5] |- each filter.remove", Value.EMPTY_ARRAY),
                     arguments("Empty array unchanged", "[] |- each filter.remove", Value.EMPTY_ARRAY),
@@ -120,13 +119,13 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_extendedFilterApplied_then_producesExpectedResult(String description, String expression,
+        void whenExtendedFilterAppliedThenProducesExpectedResult(String description, String expression,
                 Value expected) {
             assertEvaluatesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_extendedFilterApplied_then_producesExpectedResult() {
+        static Stream<Arguments> whenExtendedFilterAppliedThenProducesExpectedResult() {
             return Stream.of(
                 arguments("Extended filter with single statement",
                     """
@@ -170,13 +169,13 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_wildcardFilterApplied_then_producesExpectedResult(String description, String expression,
+        void whenWildcardFilterAppliedThenProducesExpectedResult(String description, String expression,
                 Value expected) {
             assertEvaluatesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_wildcardFilterApplied_then_producesExpectedResult() {
+        static Stream<Arguments> whenWildcardFilterAppliedThenProducesExpectedResult() {
             return Stream.of(
                 arguments("Wildcard filter on object applies to all fields",
                     """
@@ -198,12 +197,12 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_conditionStepFilterApplied_then_producesExpectedResult(String description, String expression,
+        void whenConditionStepFilterAppliedThenProducesExpectedResult(String description, String expression,
                 Value expected) {
             assertEvaluatesTo(expression, expected);
         }
 
-        static Stream<Arguments> when_conditionStepFilterApplied_then_producesExpectedResult() {
+        static Stream<Arguments> whenConditionStepFilterAppliedThenProducesExpectedResult() {
             return Stream.of(
                     arguments("Condition step with constant true applies to all",
                             "[1, 2, 3, 4, 5] |- { @[?(true)] : simple.doubleValue }",
@@ -222,7 +221,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Index union removes array elements at union indices")
-        void when_indexUnionFilterApplied_then_removesCorrectElements() {
+        void whenIndexUnionFilterAppliedThenRemovesCorrectElements() {
             val expression = """
                     [ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[1,3] : filter.remove }
                     """;
@@ -239,7 +238,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Attribute union removes fields in union")
-        void when_attributeUnionFilterApplied_then_removesCorrectFields() {
+        void whenAttributeUnionFilterAppliedThenRemovesCorrectFields() {
             val expression = """
                     { "a" : 1, "b" : 2, "c" : 3, "d" : 4 } |- { @["b" , "d"] : filter.remove }
                     """;
@@ -255,11 +254,11 @@ class FilterExpressionTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource
         @DisplayName("Empty path in extended filter statement is rejected by parser")
-        void when_emptyPathInExtendedFilter_then_parserRejects(String description, String expression) {
+        void whenEmptyPathInExtendedFilterThenParserRejects(String description, String expression) {
             assertThatThrownBy(() -> parseExpression(expression)).isInstanceOf(RuntimeException.class);
         }
 
-        static Stream<Arguments> when_emptyPathInExtendedFilter_then_parserRejects() {
+        static Stream<Arguments> whenEmptyPathInExtendedFilterThenParserRejects() {
             return Stream.of(arguments("Single statement with empty path", "\"test\" |- { : filter.blacken }"),
                     arguments("Multiple statements with empty paths",
                             "5 |- { : simple.doubleValue, : simple.doubleValue }"),
@@ -274,13 +273,13 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0} - {1}")
         @MethodSource
-        void when_errorCondition_then_producesError(String description, String expression, String errorFragment) {
+        void whenErrorConditionThenProducesError(String description, String expression, String errorFragment) {
             val result = evaluate(expression);
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message().toLowerCase()).contains(errorFragment.toLowerCase());
         }
 
-        static Stream<Arguments> when_errorCondition_then_producesError() {
+        static Stream<Arguments> whenErrorConditionThenProducesError() {
             return Stream.of(arguments("Error propagates from parent", "(10/0) |- filter.remove", "division by zero"),
                     arguments("Extended filter errors in parent propagates", "(10/0) |- { @ : filter.remove }",
                             "division by zero"));
@@ -289,13 +288,13 @@ class FilterExpressionTests {
         // Blacklist semantics: path type mismatches return unchanged, not errors
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_pathTypeMismatch_then_returnsUnchanged(String description, String expression, String expected) {
+        void whenPathTypeMismatchThenReturnsUnchanged(String description, String expression, String expected) {
             val result = evaluate(expression);
             assertThat(result).isEqualTo(json(expected));
         }
 
         // @formatter:off
-        static Stream<Arguments> when_pathTypeMismatch_then_returnsUnchanged() {
+        static Stream<Arguments> whenPathTypeMismatchThenReturnsUnchanged() {
             return Stream.of(
                 arguments("Extended filter key path on non-object",
                     "12 |- { @.field : filter.blacken }",
@@ -323,7 +322,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Each filter short-circuits on first type errors in array")
-        void when_eachFilterEncountersTypeError_then_shortCircuitsAndReturnsError() {
+        void whenEachFilterEncountersTypeErrorThenShortCircuitsAndReturnsError() {
             // doubleValue requires number, "string" causes type errors - should
             // short-circuit
             val result = evaluate("""
@@ -335,7 +334,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Each filter returns errors on first bad element not last")
-        void when_eachFilterErrorOnFirstElement_then_returnsErrorImmediately() {
+        void whenEachFilterErrorOnFirstElementThenReturnsErrorImmediately() {
             // First element is a string, should errors immediately without processing rest
             val result = evaluate("""
                     ["bad", 2, 3, 4] |- each simple.doubleValue
@@ -346,7 +345,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Each filter on object works")
-        void when_eachFilterOnObject_then_filterApplied() {
+        void whenEachFilterOnObjectThenFilterApplied() {
             // Each only works on arrays, not objects
             val result   = evaluate("""
                     {"a": 1, "b": 2, "c": 3} |- each simple.doubleValue
@@ -359,7 +358,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Negate filter short-circuits on non-boolean in array")
-        void when_negateFilterEncountersNonBoolean_then_shortCircuits() {
+        void whenNegateFilterEncountersNonBooleanThenShortCircuits() {
             // negate requires boolean, number causes errors
             val result = evaluate("[true, false, 42, true] |- each simple.negate");
             assertThat(result).isInstanceOf(ErrorValue.class);
@@ -368,7 +367,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Length filter short-circuits on invalid type")
-        void when_lengthFilterEncountersInvalidType_then_shortCircuits() {
+        void whenLengthFilterEncountersInvalidTypeThenShortCircuits() {
             // length requires text or array, number causes errors
             val result = evaluate("[[1,2], \"hello\", 42, [3,4]] |- each simple.length");
             assertThat(result).isInstanceOf(ErrorValue.class);
@@ -382,13 +381,12 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_subtemplateApplied_then_producesExpectedResult(String description, String expression,
-                Value expected) {
+        void whenSubtemplateAppliedThenProducesExpectedResult(String description, String expression, Value expected) {
             assertEvaluatesTo(expression, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> when_subtemplateApplied_then_producesExpectedResult() {
+        static Stream<Arguments> whenSubtemplateAppliedThenProducesExpectedResult() {
             return Stream.of(
                 // Scalar parent: @ = scalar, # = 0, returns single transformed value
                 arguments("Subtemplate on simple value wraps in object",
@@ -449,7 +447,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Subtemplate on undefined returns undefined")
-        void when_subtemplateOnUndefined_then_returnsUndefined() {
+        void whenSubtemplateOnUndefinedThenReturnsUndefined() {
             assertEvaluatesTo("""
                     undefined :: { "name": "foo" }
                     """, Value.UNDEFINED);
@@ -457,7 +455,7 @@ class FilterExpressionTests {
 
         @Test
         @DisplayName("Subtemplate on filtered array maps over filtered elements")
-        void when_subtemplateOnFilteredArray_then_mapsOverFilteredElements() {
+        void whenSubtemplateOnFilteredArrayThenMapsOverFilteredElements() {
             val expression = """
                     [ { "key1": 1, "key2": 2 }, { "key1": 3, "key2": 4 }, { "key1": 5, "key2": 6 } ]
                     [?(@.key1 > 2)] :: { "key20": @.key2 }
@@ -474,15 +472,14 @@ class FilterExpressionTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void when_subtemplateWithError_then_producesError(String description, String expression,
-                String expectedErrorMsg) {
+        void whenSubtemplateWithErrorThenProducesError(String description, String expression, String expectedErrorMsg) {
             val result = evaluate(expression);
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message().toLowerCase()).contains(expectedErrorMsg.toLowerCase());
         }
 
         // @formatter:off
-        static Stream<Arguments> when_subtemplateWithError_then_producesError() {
+        static Stream<Arguments> whenSubtemplateWithErrorThenProducesError() {
             return Stream.of(
                 arguments("Subtemplate errors propagates from parent",
                     """

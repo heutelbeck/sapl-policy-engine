@@ -38,6 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("DirectoryPDPConfigurationSource")
 class DirectoryPDPConfigurationSourceTests {
 
     private static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
@@ -58,7 +61,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingFromDirectory_thenCallbackIsInvokedWithConfiguration() throws IOException {
+    void whenLoadingFromDirectoryThenCallbackIsInvokedWithConfiguration() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         {
@@ -83,7 +86,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingWithCustomPdpId_thenConfigurationHasCorrectPdpId() throws IOException {
+    void whenLoadingWithCustomPdpIdThenConfigurationHasCorrectPdpId() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         val receivedConfig = new AtomicReference<PDPConfiguration>();
@@ -94,7 +97,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPdpJsonHasConfigurationId_thenUsesExplicitId() throws IOException {
+    void whenPdpJsonHasConfigurationIdThenUsesExplicitId() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
         createFile(tempDir.resolve("pdp.json"), "{\"configurationId\":\"eldritch-v1\"}");
 
@@ -107,7 +110,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPdpJsonHasNoConfigurationId_thenAutoGeneratesId() throws IOException {
+    void whenPdpJsonHasNoConfigurationIdThenAutoGeneratesId() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         val receivedConfig = new AtomicReference<PDPConfiguration>();
@@ -121,7 +124,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDoesNotExist_thenThrowsException() {
+    void whenDirectoryDoesNotExistThenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent");
 
         assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(nonExistentPath, config -> {}))
@@ -129,7 +132,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPathIsNotADirectory_thenThrowsException() throws IOException {
+    void whenPathIsNotADirectoryThenThrowsException() throws IOException {
         val file = tempDir.resolve("not-a-directory.txt");
         createFile(file, "content");
 
@@ -138,7 +141,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNoPdpJsonPresent_thenUsesDefaultAlgorithm() throws IOException {
+    void whenNoPdpJsonPresentThenUsesDefaultAlgorithm() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         val receivedConfig = new AtomicReference<PDPConfiguration>();
@@ -149,7 +152,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileIsModified_thenCallbackIsInvokedAgain() throws IOException {
+    void whenFileIsModifiedThenCallbackIsInvokedAgain() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
@@ -175,7 +178,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileIsAdded_thenCallbackIsInvokedAgain() throws IOException {
+    void whenFileIsAddedThenCallbackIsInvokedAgain() throws IOException {
         createFile(tempDir.resolve("first.sapl"), "policy \"first\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -194,7 +197,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileIsDeleted_thenCallbackIsInvokedWithUpdatedConfiguration() throws IOException {
+    void whenFileIsDeletedThenCallbackIsInvokedWithUpdatedConfiguration() throws IOException {
         val firstPolicy  = tempDir.resolve("first.sapl");
         val secondPolicy = tempDir.resolve("second.sapl");
         createFile(firstPolicy, "policy \"first\" permit true;");
@@ -216,7 +219,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalled_thenIsDisposedReturnsTrue() throws IOException {
+    void whenDisposeIsCalledThenIsDisposedReturnsTrue() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         source = new DirectoryPDPConfigurationSource(tempDir, config -> {});
@@ -229,7 +232,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalledTwice_thenIsIdempotent() throws IOException {
+    void whenDisposeIsCalledTwiceThenIsIdempotent() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         source = new DirectoryPDPConfigurationSource(tempDir, config -> {});
@@ -241,7 +244,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenEmptyDirectory_thenCallbackIsStillInvokedWithEmptyConfiguration() {
+    void whenEmptyDirectoryThenCallbackIsStillInvokedWithEmptyConfiguration() {
         val receivedConfig = new AtomicReference<PDPConfiguration>();
 
         source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
@@ -251,7 +254,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkFilePresent_thenItIsSkipped() throws IOException {
+    void whenSymlinkFilePresentThenItIsSkipped() throws IOException {
         createFile(tempDir.resolve("real.sapl"), "policy \"real\" permit true;");
 
         val target = tempDir.resolve("target.sapl");
@@ -273,7 +276,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkDirectoryProvided_thenThrowsException() throws IOException {
+    void whenSymlinkDirectoryProvidedThenThrowsException() throws IOException {
         val realDir = tempDir.resolve("real");
         Files.createDirectory(realDir);
         createFile(realDir.resolve("policy.sapl"), "policy \"test\" permit true;");
@@ -290,7 +293,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenTotalSizeExceedsLimit_thenThrowsException() throws IOException {
+    void whenTotalSizeExceedsLimitThenThrowsException() throws IOException {
         val largeContent = "x".repeat(2 * 1024 * 1024);
         for (int i = 0; i < 6; i++) {
             createFile(tempDir.resolve("large" + i + ".sapl"),
@@ -302,7 +305,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileCountExceedsLimit_thenThrowsException() throws IOException {
+    void whenFileCountExceedsLimitThenThrowsException() throws IOException {
         for (int i = 0; i < 1002; i++) {
             createFile(tempDir.resolve("policy" + i + ".sapl"), "policy \"p%d\" permit true;".formatted(i));
         }
@@ -312,7 +315,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryOrNonSaplFilesExist_thenTheyAreIgnored() throws IOException {
+    void whenSubdirectoryOrNonSaplFilesExistThenTheyAreIgnored() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
         createFile(tempDir.resolve("readme.txt"), "This should be ignored.");
         createFile(tempDir.resolve("security.yaml"), "key: value");
@@ -329,7 +332,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenInvalidPdpId_thenThrowsException() throws IOException {
+    void whenInvalidPdpIdThenThrowsException() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, "invalid id with spaces", config -> {}))
@@ -337,7 +340,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenMultipleSaplFiles_thenAllAreLoaded() throws IOException {
+    void whenMultipleSaplFilesThenAllAreLoaded() throws IOException {
         createFile(tempDir.resolve("access.sapl"), "policy \"access\" permit true;");
         createFile(tempDir.resolve("audit.sapl"), "policy \"audit\" deny false;");
         createFile(tempDir.resolve("admin.sapl"), "policy \"admin\" permit action == \"admin\";");
@@ -350,7 +353,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPdpJsonHasVariables_thenVariablesAreLoaded() throws IOException {
+    void whenPdpJsonHasVariablesThenVariablesAreLoaded() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         {
@@ -373,7 +376,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileChangesAfterDispose_thenTheyAreIgnored() throws IOException {
+    void whenFileChangesAfterDisposeThenTheyAreIgnored() throws IOException {
         val policyFile = tempDir.resolve("policy.sapl");
         createFile(policyFile, "policy \"test\" permit true;");
 
@@ -396,7 +399,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPdpJsonIsInvalid_thenThrowsException() throws IOException {
+    void whenPdpJsonIsInvalidThenThrowsException() throws IOException {
         createFile(tempDir.resolve("pdp.json"), "not valid json {{{");
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
@@ -405,7 +408,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPdpJsonHasInvalidAlgorithm_thenThrowsException() throws IOException {
+    void whenPdpJsonHasInvalidAlgorithmThenThrowsException() throws IOException {
         createFile(tempDir.resolve("pdp.json"), """
                 { "algorithm": "INVALID_ALGORITHM" }
                 """);
@@ -416,7 +419,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPdpJsonOnlyNoSaplFiles_thenConfigHasEmptyDocuments() throws IOException {
+    void whenPdpJsonOnlyNoSaplFilesThenConfigHasEmptyDocuments() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }

@@ -17,6 +17,13 @@
  */
 package io.sapl.pdp;
 
+/**
+ * Factory for generating unique identifiers.
+ */
 public interface IdFactory {
+
+    /**
+     * @return a new random identifier
+     */
     String newRandom();
 }

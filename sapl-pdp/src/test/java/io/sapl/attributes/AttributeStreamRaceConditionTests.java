@@ -24,6 +24,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -53,6 +54,7 @@ import static org.awaitility.Awaitility.await;
  * </ul>
  */
 @Timeout(10)
+@DisplayName("AttributeStreamRaceCondition")
 class AttributeStreamRaceConditionTests {
 
     private static final Duration SHORT_GRACE_PERIOD = Duration.ofMillis(100);
@@ -78,7 +80,7 @@ class AttributeStreamRaceConditionTests {
      * threads racing to update currentPipSubscription.
      */
     @RepeatedTest(10)
-    void concurrentConnects_streamRemainsFunctional() throws Exception {
+    void concurrentConnectsStreamRemainsFunctional() throws Exception {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val results    = new CopyOnWriteArrayList<Value>();
@@ -133,7 +135,7 @@ class AttributeStreamRaceConditionTests {
      * swap and re-subscription during grace period.
      */
     @RepeatedTest(5)
-    void reconnectAndResubscribeDuringGracePeriod_pipPreserved() throws Exception {
+    void reconnectAndResubscribeDuringGracePeriodPipPreserved() throws Exception {
         val invocation    = createInvocation();
         val cleanupCalled = new AtomicInteger(0);
         val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), LONG_GRACE_PERIOD);
@@ -179,7 +181,7 @@ class AttributeStreamRaceConditionTests {
      * integration with broker.
      */
     @RepeatedTest(20)
-    void afterGracePeriodExpiration_brokerCreatesNewStream() throws Exception {
+    void afterGracePeriodExpirationBrokerCreatesNewStream() throws Exception {
         val invocation    = createInvocation();
         val cleanupCalled = new AtomicInteger(0);
         val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), SHORT_GRACE_PERIOD);
@@ -211,7 +213,7 @@ class AttributeStreamRaceConditionTests {
      * subscription setup.
      */
     @RepeatedTest(10)
-    void disconnectRacingWithConnect_streamRemainsStable() throws Exception {
+    void disconnectRacingWithConnectStreamRemainsStable() throws Exception {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val results    = new CopyOnWriteArrayList<Value>();
@@ -271,7 +273,7 @@ class AttributeStreamRaceConditionTests {
      * disconnected flag and publish errors.
      */
     @RepeatedTest(10)
-    void concurrentDisconnects_singleErrorPublished() throws Exception {
+    void concurrentDisconnectsSingleErrorPublished() throws Exception {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val results    = new CopyOnWriteArrayList<Value>();
@@ -331,7 +333,7 @@ class AttributeStreamRaceConditionTests {
      * old subscription during concurrent connects.
      */
     @RepeatedTest(10)
-    void concurrentConnectsWithStreamingPips_noValueueMixing() throws Exception {
+    void concurrentConnectsWithStreamingPipsNoValueMixing() throws Exception {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val results    = new CopyOnWriteArrayList<Value>();
@@ -405,7 +407,7 @@ class AttributeStreamRaceConditionTests {
      * unpredictable load.
      */
     @RepeatedTest(3)
-    void chaosMonkey_mixedOperations() throws Exception {
+    void chaosMonkeyMixedOperations() throws Exception {
         val invocation     = createInvocation();
         val cleanupCalled  = new AtomicInteger(0);
         val stream         = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), SHORT_GRACE_PERIOD);
@@ -478,7 +480,7 @@ class AttributeStreamRaceConditionTests {
      * elements) under extreme load.
      */
     @Test
-    void extremeBackpressure_handlesGracefully() throws Exception {
+    void extremeBackpressureHandlesGracefully() throws Exception {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val received   = new AtomicInteger(0);
@@ -512,7 +514,7 @@ class AttributeStreamRaceConditionTests {
      * replacement under load.
      */
     @Test
-    void hotSwapDuringHighFrequencyEmission_swapSucceeds() throws Exception {
+    void hotSwapDuringHighFrequencyEmissionSwapSucceeds() throws Exception {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val results    = new CopyOnWriteArrayList<Value>();

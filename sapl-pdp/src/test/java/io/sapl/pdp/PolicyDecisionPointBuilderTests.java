@@ -31,6 +31,7 @@ import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import reactor.test.StepVerifier;
@@ -47,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 
+@DisplayName("PolicyDecisionPointBuilder")
 class PolicyDecisionPointBuilderTests {
 
     private static final String DEFAULT_PDP_ID = "default";
@@ -68,7 +70,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithDefaults_thenPdpIsCreated() throws Exception {
+    void whenBuildingWithDefaultsThenPdpIsCreated() throws Exception {
         val components = PolicyDecisionPointBuilder.withDefaults().build();
 
         assertThat(components.pdp()).isNotNull();
@@ -81,7 +83,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithoutDefaults_thenMinimalPdpIsCreated() throws Exception {
+    void whenBuildingWithoutDefaultsThenMinimalPdpIsCreated() throws Exception {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
 
         assertThat(components.pdp()).isNotNull();
@@ -92,7 +94,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithConfiguration_thenConfigurationIsLoaded() throws Exception {
+    void whenBuildingWithConfigurationThenConfigurationIsLoaded() throws Exception {
         val policy = "policy \"permit-all\" permit";
         val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", PERMIT_OVERRIDES, List.of(policy),
                 new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
@@ -106,7 +108,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithBundle_thenConfigurationIsLoaded() throws Exception {
+    void whenBuildingWithBundleThenConfigurationIsLoaded() throws Exception {
         val bundleBytes = createBundle("policy \"deny-all\" deny");
 
         val components = PolicyDecisionPointBuilder.withoutDefaults()
@@ -119,7 +121,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithDirectorySource_thenPoliciesAreLoaded() throws Exception {
+    void whenBuildingWithDirectorySourceThenPoliciesAreLoaded() throws Exception {
         val policyDir = tempDir.resolve("policies");
         Files.createDirectories(policyDir);
         Files.writeString(policyDir.resolve("permit.sapl"), "policy \"permit\" permit");
@@ -137,7 +139,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithBundleDirectorySource_thenBundlesAreLoaded() throws Exception {
+    void whenBuildingWithBundleDirectorySourceThenBundlesAreLoaded() throws Exception {
         val bundleDir = tempDir.resolve("bundles");
         Files.createDirectories(bundleDir);
         // Bundle filename (minus extension) becomes pdpId
@@ -156,7 +158,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenDisposeSource_thenResourcesAreReleased() throws Exception {
+    void whenDisposeSourceThenResourcesAreReleased() throws Exception {
         val policyDir = tempDir.resolve("dispose-test");
         Files.createDirectories(policyDir);
         Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
@@ -174,7 +176,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithMultipleConfigurations_thenAllAreLoaded() throws Exception {
+    void whenBuildingWithMultipleConfigurationsThenAllAreLoaded() throws Exception {
         val config1 = new PDPConfiguration("pdp1", "v1", PERMIT_OVERRIDES, List.of("policy \"p1\" permit"),
                 new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         val config2 = new PDPConfiguration("pdp2", "v1", DENY_OVERRIDES, List.of("policy \"p2\" deny"),
@@ -190,7 +192,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenRegisteringDirectorySourceTwice_thenExceptionIsThrown() {
+    void whenRegisteringDirectorySourceTwiceThenExceptionIsThrown() {
         val policyDir1 = tempDir.resolve("policies1");
         val policyDir2 = tempDir.resolve("policies2");
 
@@ -201,7 +203,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenRegisteringBundleSourceAfterDirectorySource_thenExceptionIsThrown() {
+    void whenRegisteringBundleSourceAfterDirectorySourceThenExceptionIsThrown() {
         val policyDir = tempDir.resolve("policies");
         val bundleDir = tempDir.resolve("bundles");
 
@@ -213,7 +215,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenRegisteringResourcesSourceAfterDirectorySource_thenExceptionIsThrown() {
+    void whenRegisteringResourcesSourceAfterDirectorySourceThenExceptionIsThrown() {
         val policyDir = tempDir.resolve("policies");
 
         val builder = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir);
@@ -223,7 +225,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenRegisteringMultiDirectorySourceAfterBundleSource_thenExceptionIsThrown() {
+    void whenRegisteringMultiDirectorySourceAfterBundleSourceThenExceptionIsThrown() {
         val bundleDir = tempDir.resolve("bundles");
         val multiDir  = tempDir.resolve("multi");
 
@@ -235,7 +237,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenRegisteringCustomSourceAfterResourcesSource_thenExceptionIsThrown() {
+    void whenRegisteringCustomSourceAfterResourcesSourceThenExceptionIsThrown() {
         val builder = PolicyDecisionPointBuilder.withoutDefaults().withResourcesSource();
 
         assertThatThrownBy(() -> builder.withConfigurationSource(callback -> null))
@@ -244,7 +246,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithExternalFunctionBroker_thenBrokerIsUsed() throws Exception {
+    void whenBuildingWithExternalFunctionBrokerThenBrokerIsUsed() throws Exception {
         val externalBroker = mock(FunctionBroker.class);
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withFunctionBroker(externalBroker).build();
@@ -255,7 +257,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithExternalAttributeBroker_thenBrokerIsUsed() throws Exception {
+    void whenBuildingWithExternalAttributeBrokerThenBrokerIsUsed() throws Exception {
         val externalBroker = mock(AttributeBroker.class);
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withAttributeBroker(externalBroker).build();
@@ -266,7 +268,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithExternalBrokers_thenLibrariesAndPipsAreIgnored() throws Exception {
+    void whenBuildingWithExternalBrokersThenLibrariesAndPipsAreIgnored() throws Exception {
         val externalFunctionBroker  = mock(FunctionBroker.class);
         val externalAttributeBroker = mock(AttributeBroker.class);
 
@@ -283,7 +285,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithCollectionMethods_thenBuilderAcceptsCollections() throws Exception {
+    void whenBuildingWithCollectionMethodsThenBuilderAcceptsCollections() throws Exception {
         // Just verify the builder methods accept collections - actual loading is tested
         // elsewhere
         val builder = PolicyDecisionPointBuilder.withoutDefaults();
@@ -300,7 +302,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithPoliciesAndAlgorithm_thenPdpBuildsSuccessfully() throws Exception {
+    void whenBuildingWithPoliciesAndAlgorithmThenPdpBuildsSuccessfully() throws Exception {
         val policy = "policy \"elder-wards\" permit";
         val config = new PDPConfiguration(DEFAULT_PDP_ID, "v1", DENY_OVERRIDES, List.of(policy),
                 new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
@@ -314,7 +316,7 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithPolicies_thenPdpBuildsSuccessfully() throws Exception {
+    void whenBuildingWithPoliciesThenPdpBuildsSuccessfully() throws Exception {
         val components = PolicyDecisionPointBuilder.withoutDefaults().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("policy \"test\" permit").build();
 

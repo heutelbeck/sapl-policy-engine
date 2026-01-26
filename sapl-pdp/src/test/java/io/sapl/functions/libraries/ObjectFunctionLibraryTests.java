@@ -28,17 +28,20 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("ObjectFunctionLibrary")
 class ObjectFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(ObjectFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void whenKeysOnObject_thenReturnsAllKeys() {
+    void whenKeysOnObjectThenReturnsAllKeys() {
         val object = ObjectValue.builder().put("cultist", Value.of("Wilbur Whateley")).put("role", Value.of("ACOLYTE"))
                 .put("sanity", Value.of(42)).build();
 
@@ -51,7 +54,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenKeysOnEmptyObject_thenReturnsEmptyArray() {
+    void whenKeysOnEmptyObjectThenReturnsEmptyArray() {
         val result = ObjectFunctionLibrary.keys(Value.EMPTY_OBJECT);
 
         assertThat(result).isInstanceOf(ArrayValue.class);
@@ -59,7 +62,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenValuesOnObject_thenReturnsAllValues() {
+    void whenValuesOnObjectThenReturnsAllValues() {
         val object = ObjectValue.builder().put("entity", Value.of("Azathoth")).put("title", Value.of("Daemon Sultan"))
                 .put("threatLevel", Value.of(9)).build();
 
@@ -72,7 +75,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenValuesOnEmptyObject_thenReturnsEmptyArray() {
+    void whenValuesOnEmptyObjectThenReturnsEmptyArray() {
         val result = ObjectFunctionLibrary.values(Value.EMPTY_OBJECT);
 
         assertThat(result).isInstanceOf(ArrayValue.class);
@@ -80,7 +83,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenValuesContainsNestedObjects_thenReturnsNestedValues() {
+    void whenValuesContainsNestedObjectsThenReturnsNestedValues() {
         val nested = ObjectValue.builder().put("site", Value.of("R'lyeh")).build();
         val object = ObjectValue.builder().put("location", nested).put("name", Value.of("Cthulhu")).build();
 
@@ -92,7 +95,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenSizeOnObject_thenReturnsPropertyCount() {
+    void whenSizeOnObjectThenReturnsPropertyCount() {
         val object = ObjectValue.builder().put("name", Value.of("Carter")).put("sanity", Value.of(77))
                 .put("artifacts", Value.of(3)).build();
 
@@ -102,14 +105,14 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenSizeOnEmptyObject_thenReturnsZero() {
+    void whenSizeOnEmptyObjectThenReturnsZero() {
         val result = ObjectFunctionLibrary.size(Value.EMPTY_OBJECT);
 
         assertThat(result).isEqualTo(Value.of(0));
     }
 
     @Test
-    void whenSizeOnSinglePropertyObject_thenReturnsOne() {
+    void whenSizeOnSinglePropertyObjectThenReturnsOne() {
         val object = ObjectValue.builder().put("sealed", Value.TRUE).build();
 
         val result = ObjectFunctionLibrary.size(object);
@@ -118,7 +121,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenHasKeyWithExistingKey_thenReturnsTrue() {
+    void whenHasKeyWithExistingKeyThenReturnsTrue() {
         val object = ObjectValue.builder().put("name", Value.of("Pickman")).put("role", Value.of("Artist")).build();
 
         val result = ObjectFunctionLibrary.hasKey(object, Value.of("name"));
@@ -127,7 +130,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenHasKeyWithMissingKey_thenReturnsFalse() {
+    void whenHasKeyWithMissingKeyThenReturnsFalse() {
         val object = ObjectValue.builder().put("name", Value.of("Pickman")).build();
 
         val result = ObjectFunctionLibrary.hasKey(object, Value.of("email"));
@@ -136,7 +139,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenHasKeyWithNullValue_thenReturnsTrue() {
+    void whenHasKeyWithNullValueThenReturnsTrue() {
         val object = ObjectValue.builder().put("value", Value.NULL).build();
 
         val result = ObjectFunctionLibrary.hasKey(object, Value.of("value"));
@@ -145,21 +148,21 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenHasKeyOnEmptyObject_thenReturnsFalse() {
+    void whenHasKeyOnEmptyObjectThenReturnsFalse() {
         val result = ObjectFunctionLibrary.hasKey(Value.EMPTY_OBJECT, Value.of("anyKey"));
 
         assertThat(result).isEqualTo(Value.FALSE);
     }
 
     @Test
-    void whenIsEmptyOnEmptyObject_thenReturnsTrue() {
+    void whenIsEmptyOnEmptyObjectThenReturnsTrue() {
         val result = ObjectFunctionLibrary.isEmpty(Value.EMPTY_OBJECT);
 
         assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @Test
-    void whenIsEmptyOnNonEmptyObject_thenReturnsFalse() {
+    void whenIsEmptyOnNonEmptyObjectThenReturnsFalse() {
         val object = ObjectValue.builder().put("key", Value.of("value")).build();
 
         val result = ObjectFunctionLibrary.isEmpty(object);
@@ -168,7 +171,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenIsEmptyOnMultiPropertyObject_thenReturnsFalse() {
+    void whenIsEmptyOnMultiPropertyObjectThenReturnsFalse() {
         val object = ObjectValue.builder().put("name", Value.of("Herbert West"))
                 .put("profession", Value.of("Reanimator")).put("sanity", Value.of(35)).build();
 
@@ -178,7 +181,7 @@ class ObjectFunctionLibraryTests {
     }
 
     @Test
-    void whenKeysAndValuesCorrespond_thenOrderMatches() {
+    void whenKeysAndValuesCorrespondThenOrderMatches() {
         val object = ObjectValue.builder().put("alpha", Value.of(1)).put("beta", Value.of(2)).put("gamma", Value.of(3))
                 .build();
 

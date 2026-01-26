@@ -27,6 +27,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -108,7 +109,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        final var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
+        val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return decide(DECIDE, type, authzSubscription)
                 .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -116,7 +117,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
-        final var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+        val type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return client.post().uri(DECIDE_ONCE).accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(authzSubscription).retrieve().bodyToMono(type)
                 .doOnError(error -> log.error("Error : {}", error.getMessage()));
@@ -124,7 +125,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-        final var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
+        val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -132,7 +133,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-        final var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
+        val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -159,8 +160,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
             log.warn("------------------------------------------------------------------");
             log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
             log.warn("------------------------------------------------------------------");
-            final var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .build();
+            val sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
         }
 
@@ -211,11 +211,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
         public RemoteHttpPolicyDecisionPointBuilder oauth2(
                 ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
-            InMemoryReactiveOAuth2AuthorizedClientService                clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
+            val clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
                     clientRegistrationRepository);
-            AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+            val authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
                     clientRegistrationRepository, clientService);
-            final var                                                    oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
+            val oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
                     authorizedClientManager);
             oauth2FilterFunction.setDefaultClientRegistrationId(registrationId);
             setApplyAuthenticationFunction(builder -> builder.filter(oauth2FilterFunction));
@@ -223,15 +223,12 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteHttpPolicyDecisionPoint build() {
-            var               mapper     = new ObjectMapper().registerModule(new SaplJacksonModule());
-            var               strategies = ExchangeStrategies.builder().codecs(configurer -> {
-                                             configurer.defaultCodecs()
-                                                     .jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
-                                             configurer.defaultCodecs()
-                                                     .jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
-                                         })
-                    .build();
-            WebClient.Builder builder    = WebClient.builder().exchangeStrategies(strategies)
+            val mapper     = new ObjectMapper().registerModule(new SaplJacksonModule());
+            val strategies = ExchangeStrategies.builder().codecs(configurer -> {
+                               configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+                               configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+                           }).build();
+            var builder    = WebClient.builder().exchangeStrategies(strategies)
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
             if (this.authenticationCustomizer != null) {

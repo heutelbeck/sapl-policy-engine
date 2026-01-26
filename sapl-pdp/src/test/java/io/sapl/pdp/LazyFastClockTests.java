@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -26,10 +27,11 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+@DisplayName("LazyFastClock")
 class LazyFastClockTests {
 
     @Test
-    void whenCreated_thenReturnsValidIsoTimestamp() {
+    void whenCreatedThenReturnsValidIsoTimestamp() {
         try (var clock = new LazyFastClock()) {
             var timestamp = clock.now();
 
@@ -38,7 +40,7 @@ class LazyFastClockTests {
     }
 
     @Test
-    void whenCalledMultipleTimes_thenReturnsConsistentFormat() {
+    void whenCalledMultipleTimesThenReturnsConsistentFormat() {
         try (var clock = new LazyFastClock()) {
             for (int i = 0; i < 1000; i++) {
                 var timestamp = clock.now();
@@ -48,7 +50,7 @@ class LazyFastClockTests {
     }
 
     @Test
-    void whenWaitingForUpdateInterval_thenTimestampChanges() {
+    void whenWaitingForUpdateIntervalThenTimestampChanges() {
         try (var clock = new LazyFastClock(5)) {
             var initial = clock.now();
 
@@ -58,7 +60,7 @@ class LazyFastClockTests {
     }
 
     @Test
-    void whenClosed_thenStillReturnsLastCachedValue() {
+    void whenClosedThenStillReturnsLastCachedValue() {
         var clock     = new LazyFastClock();
         var timestamp = clock.now();
 
@@ -68,7 +70,7 @@ class LazyFastClockTests {
     }
 
     @Test
-    void whenAccessedFromMultipleThreads_thenNoExceptions() throws InterruptedException {
+    void whenAccessedFromMultipleThreadsThenNoExceptions() throws InterruptedException {
         try (var clock = new LazyFastClock(1)) {
             var threads = new Thread[10];
             var errors  = new boolean[1];
@@ -100,7 +102,7 @@ class LazyFastClockTests {
     }
 
     @Test
-    void whenCustomIntervalProvided_thenUsesCustomInterval() {
+    void whenCustomIntervalProvidedThenUsesCustomInterval() {
         try (var clock = new LazyFastClock(50)) {
             var initial = clock.now();
 

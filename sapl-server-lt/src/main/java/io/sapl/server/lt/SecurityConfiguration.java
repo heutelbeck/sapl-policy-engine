@@ -21,6 +21,7 @@ import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
 import io.sapl.server.lt.apikey.ApiKeyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -102,7 +103,7 @@ public class SecurityConfiguration {
                 log.warn(
                         "No API keys for clients defined. Please set: 'io.sapl.server-lt.key.allowedApiKeys'. With a list of valid keys.");
             }
-            final var customAuthenticationWebFilter = new AuthenticationWebFilter(
+            val customAuthenticationWebFilter = new AuthenticationWebFilter(
                     new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
                     .setServerAuthenticationConverter(apiKeyService.getHttpApiKeyAuthenticationConverter());
@@ -147,17 +148,17 @@ public class SecurityConfiguration {
         if (!pdpProperties.isAllowBasicAuth()) {
             return null;
         }
-        final var key = pdpProperties.getKey();
+        val  key = pdpProperties.getKey();
         if (key == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.server-lt.key'.");
         }
-        final var secret = pdpProperties.getSecret();
+        val  secret = pdpProperties.getSecret();
         if (secret == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.server-lt.secret'. As a BCrypt encoded secret.");
         }
-        final var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
+        val  client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
     }
 
@@ -168,7 +169,7 @@ public class SecurityConfiguration {
      */
     @Bean
     RSocketMessageHandler rsocketMessageHandler(RSocketStrategies rSocketStrategies) {
-        final var rSocketMessageHandler = new RSocketMessageHandler();
+        val  rSocketMessageHandler = new RSocketMessageHandler();
         rSocketMessageHandler.getArgumentResolverConfigurer()
                 .addCustomResolver(new AuthenticationPrincipalArgumentResolver());
         rSocketMessageHandler.setRSocketStrategies(rSocketStrategies);
@@ -216,9 +217,9 @@ public class SecurityConfiguration {
             jwtManager = new JwtReactiveAuthenticationManager(ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI));
         }
 
-        final var finalSimpleManager = simpleManager;
-        final var finalJwtManager    = jwtManager;
-        final var auth               = new AuthenticationPayloadInterceptor(authentication -> {
+        val  finalSimpleManager = simpleManager;
+        val  finalJwtManager    = jwtManager;
+        val  auth               = new AuthenticationPayloadInterceptor(authentication -> {
                                          if (finalSimpleManager != null
                                                  && authentication instanceof UsernamePasswordAuthenticationToken) {
                                              return finalSimpleManager.authenticate(authentication);
@@ -236,8 +237,8 @@ public class SecurityConfiguration {
 
         // Configure ApiKey authentication
         if (pdpProperties.isAllowApiKeyAuth()) {
-            final var manager           = new ApiKeyReactiveAuthenticationManager();
-            final var apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
+            val  manager           = new ApiKeyReactiveAuthenticationManager();
+            val  apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
             apikeyInterceptor.setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);

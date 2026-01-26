@@ -23,6 +23,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -30,19 +31,20 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+@DisplayName("JWTFunctionLibrary")
 class JWTFunctionLibraryTests {
 
     private static final String WELL_FORMED_TOKEN = "eyJraWQiOiI3ZGRkYzMwNy1kZGE0LTQ4ZjUtYmU1Yi00MDZlZGFmYjc5ODgiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMSIsImF1ZCI6Im1pc2thdG9uaWMtY2xpZW50IiwibmJmIjoxNjM1MjUxNDE1LCJzY29wZSI6WyJmYWN1bHR5LnJlYWQiLCJib29rcy5yZWFkIl0sImlzcyI6Imh0dHA6XC9cL2F1dGgtc2VydmVyOjkwMDAiLCJleHAiOjE2MzUyNTE3MTUsImlhdCI6MTYzNTI1MTQxNX0.V0-bViu4pFVufOzrn8yTQO9TnDAbE-qEKW8DnBKNLKCn2BlrQHbLYNSCpc4RdFU-cj32OwNn3in5cFPtiL5CTiD-lRXxnnc5WaNPNW2FchYag0zc252UdfV0Hs2sOAaNJ8agJ_uv0fFupMRS340gNDFFZthmjhTrDHGErZU7qxc1Lk2NF7-TGngre66-5W3NZzBsexkDO9yDLP11StjF63705juPFL2hTdgAIqLpsIOMwfrgoAsl0-6P98ecRwtGZKK4rEjUxBwghxCu1gm7eZiYoet4K28wPoBzF3hso4LG789N6GJt5HBIKpob9Q6G1ZJhMgieLeXH__9jvw1e0w";
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(JWTFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void when_parsingWellFormedToken_then_headerAndPayloadExtracted() {
+    void whenParsingWellFormedTokenThenHeaderAndPayloadExtracted() {
         val result = JWTFunctionLibrary.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -57,7 +59,7 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    void when_parsingWellFormedToken_then_epochTimestampsConvertedToIso() {
+    void whenParsingWellFormedTokenThenEpochTimestampsConvertedToIso() {
         val result = JWTFunctionLibrary.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -70,7 +72,7 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    void when_parsingWellFormedToken_then_scopesExtracted() {
+    void whenParsingWellFormedTokenThenScopesExtracted() {
         val result = JWTFunctionLibrary.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -82,10 +84,10 @@ class JWTFunctionLibraryTests {
         assertThat(scopes).isNotNull().hasSize(2).containsExactly(Value.of("faculty.read"), Value.of("books.read"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = { "This is not a JWT token at all", "eyJhbGciOiJSUzI1NiJ9.incomplete",
             "eyJhbGciOiJSUzI1NiJ9eyJzdWIiOiJ0ZXN0In0", "", "...", "a.b.c.d", "header.payload", "x" })
-    void when_parsingMalformedToken_then_returnsError(String malformedToken) {
+    void whenParsingMalformedTokenThenReturnsError(String malformedToken) {
         var result = JWTFunctionLibrary.parseJwt(Value.of(malformedToken));
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())

@@ -40,17 +40,20 @@ import static io.sapl.util.SaplTesting.obj;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("SubtemplateCompiler")
 class SubtemplateCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_subtemplateExpression_then_returnsExpected(String description, String expression, Value expected) {
+    void whenSubtemplateExpressionThenReturnsExpected(String description, String expression, Value expected) {
         val result = evaluateExpression(expression);
         assertThat(result).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_subtemplateExpression_then_returnsExpected() {
+    private static Stream<Arguments> whenSubtemplateExpressionThenReturnsExpected() {
         return Stream.of(
             arguments("array with identity template", "[1, 2, 3] :: @", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
             arguments("array with index only", "[10, 20, 30] :: #", Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
@@ -83,23 +86,23 @@ class SubtemplateCompilerTests {
     // @formatter:on
 
     @Test
-    void when_undefinedParent_then_propagatesUndefined() {
+    void whenUndefinedParentThenPropagatesUndefined() {
         assertCompilesTo("undefined :: 1", Value.UNDEFINED);
     }
 
     @Test
-    void when_errorParent_then_propagatesError() {
+    void whenErrorParentThenPropagatesError() {
         assertCompilesToError("(1/0) :: 1", "Division by zero");
     }
 
     @Test
-    void when_errorTemplate_then_propagatesError() {
+    void whenErrorTemplateThenPropagatesError() {
         assertCompilesToError("5 :: (1/0)", "Division by zero");
     }
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_applyPureTemplate_then_returnsExpected(String description, Value parent, TestPureOperator template,
+    void whenApplyPureTemplateThenReturnsExpected(String description, Value parent, TestPureOperator template,
             Value expected) {
         val result = SubtemplateCompiler.applyPureTemplate(parent, template, evaluationContext());
         if (expected instanceof ErrorValue) {
@@ -114,7 +117,7 @@ class SubtemplateCompilerTests {
     private static final TestPureOperator ERROR_TEMPLATE    = new TestPureOperator(
             ctx -> Value.error("template errors"));
 
-    private static Stream<Arguments> when_applyPureTemplate_then_returnsExpected() {
+    private static Stream<Arguments> whenApplyPureTemplateThenReturnsExpected() {
         val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
         val scalar = Value.of(42);
         val error  = Value.error("parent errors");
@@ -131,7 +134,7 @@ class SubtemplateCompilerTests {
     }
 
     @Test
-    void when_applyPureTemplate_withObject_then_setsKeyCorrectly() {
+    void whenApplyPureTemplateWithObjectThenSetsKeyCorrectly() {
         val obj      = obj("alpha", Value.of(1), "beta", Value.of(2));
         val template = new TestPureOperator(EvaluationContext::relativeLocation);
 
@@ -141,7 +144,7 @@ class SubtemplateCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_applyConstantTemplate_then_returnsExpected(String description, Value parent, Value template,
+    void whenApplyConstantTemplateThenReturnsExpected(String description, Value parent, Value template,
             Value expected) {
         val result = SubtemplateCompiler.applyConstantTemplate(parent, template);
         if (expected instanceof ErrorValue) {
@@ -151,7 +154,7 @@ class SubtemplateCompilerTests {
         }
     }
 
-    private static Stream<Arguments> when_applyConstantTemplate_then_returnsExpected() {
+    private static Stream<Arguments> whenApplyConstantTemplateThenReturnsExpected() {
         val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
         val obj    = obj("a", Value.of(1), "b", Value.of(2));
         val error  = Value.error("parent errors");
@@ -170,7 +173,7 @@ class SubtemplateCompilerTests {
     }
 
     @Test
-    void when_subtemplateValuePure_isDependingOnSubscription_then_delegatesToTemplate() {
+    void whenSubtemplateValuePureIsDependingOnSubscriptionThenDelegatesToTemplate() {
         val parent   = Value.of(5);
         val template = new TestPureOperator(EvaluationContext::relativeValue, true);
 
@@ -179,7 +182,7 @@ class SubtemplateCompilerTests {
     }
 
     @Test
-    void when_subtemplatePureValue_isDependingOnSubscription_then_delegatesToParent() {
+    void whenSubtemplatePureValueIsDependingOnSubscriptionThenDelegatesToParent() {
         val parent = new TestPureOperator(ctx -> Value.of(5), true);
 
         val op = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(1), TEST_LOCATION);
@@ -188,7 +191,7 @@ class SubtemplateCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "parent={0}, template={1} -> {2}")
-    void when_subtemplatePurePure_isDependingOnSubscription_then_combinesParentAndTemplate(boolean parentDepends,
+    void whenSubtemplatePurePureIsDependingOnSubscriptionThenCombinesParentAndTemplate(boolean parentDepends,
             boolean templateDepends, boolean expected) {
         val parent   = new TestPureOperator(ctx -> Value.of(5), parentDepends);
         val template = new TestPureOperator(EvaluationContext::relativeValue, templateDepends);
@@ -197,7 +200,7 @@ class SubtemplateCompilerTests {
         assertThat(op.isDependingOnSubscription()).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_subtemplatePurePure_isDependingOnSubscription_then_combinesParentAndTemplate() {
+    private static Stream<Arguments> whenSubtemplatePurePureIsDependingOnSubscriptionThenCombinesParentAndTemplate() {
         return Stream.of(arguments(true, true, true),    // Both depend -> true
                 arguments(true, false, true),   // Only parent depends -> true
                 arguments(false, true, true),   // Only template depends -> true
@@ -205,7 +208,7 @@ class SubtemplateCompilerTests {
     }
 
     @Test
-    void when_subtemplateValuePure_evaluate_then_appliesTemplateWithContext() {
+    void whenSubtemplateValuePureEvaluateThenAppliesTemplateWithContext() {
         val parent   = Value.ofArray(Value.of(10), Value.of(20));
         val template = new TestPureOperator(ctx -> {
                          val value = (NumberValue) ctx.relativeValue();
@@ -220,7 +223,7 @@ class SubtemplateCompilerTests {
     }
 
     @Test
-    void when_subtemplatePureValue_evaluate_then_appliesConstantTemplate() {
+    void whenSubtemplatePureValueEvaluateThenAppliesConstantTemplate() {
         val arrayValue = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
         val parent     = new TestPureOperator(ctx -> arrayValue);
 
@@ -231,7 +234,7 @@ class SubtemplateCompilerTests {
     }
 
     @Test
-    void when_subtemplatePurePure_evaluate_then_appliesTemplateWithContext() {
+    void whenSubtemplatePurePureEvaluateThenAppliesTemplateWithContext() {
         val arrayValue = Value.ofArray(Value.of(5), Value.of(10));
         val parent     = new TestPureOperator(ctx -> arrayValue);
 

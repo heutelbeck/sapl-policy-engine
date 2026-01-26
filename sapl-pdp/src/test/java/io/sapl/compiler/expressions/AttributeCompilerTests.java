@@ -37,10 +37,13 @@ import static io.sapl.util.SaplTesting.evaluateExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("AttributeCompiler")
 class AttributeCompilerTests {
 
     @Test
-    void when_environmentAttribute_withBroker_then_returnsStreamWithTrace() {
+    void whenEnvironmentAttributeWithBrokerThenReturnsStreamWithTrace() {
         var broker = attributeBroker("test.attr", Value.of("result"));
         var ctx    = evaluationContext(broker);
         var result = evaluateExpression("<test.attr>", ctx);
@@ -58,7 +61,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_environmentAttribute_withErrorBroker_then_returnsErrorWithTrace() {
+    void whenEnvironmentAttributeWithErrorBrokerThenReturnsErrorWithTrace() {
         // When using a broker that returns errors, the errors is returned with a trace
         var ctx    = evaluationContext(ATTRIBUTE_BROKER);
         var result = evaluateExpression("<test.attr>", ctx);
@@ -74,7 +77,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_environmentAttribute_withArguments_then_passesArguments() {
+    void whenEnvironmentAttributeWithArgumentsThenPassesArguments() {
         var capturedInvocation = new AttributeFinderInvocation[1];
         var broker             = capturingAttributeBroker(capturedInvocation, Value.of("ok"));
         var ctx                = evaluationContext(broker);
@@ -88,7 +91,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_headEnvironmentAttribute_then_takesOnlyFirst() {
+    void whenHeadEnvironmentAttributeThenTakesOnlyFirst() {
         var broker = attributeBroker("test.attr", Value.of(1), Value.of(2), Value.of(3));
         var ctx    = evaluationContext(broker);
         var result = evaluateExpression("|<test.attr>", ctx);
@@ -98,7 +101,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_environmentAttribute_withOptions_then_passesOptions() {
+    void whenEnvironmentAttributeWithOptionsThenPassesOptions() {
         var capturedInvocation = new AttributeFinderInvocation[1];
         var broker             = capturingAttributeBroker(capturedInvocation, Value.of("ok"));
         var ctx                = evaluationContext(broker);
@@ -114,7 +117,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_environmentAttribute_withStreamArgument_then_combinesLatest() {
+    void whenEnvironmentAttributeWithStreamArgumentThenCombinesLatest() {
         var broker = new AttributeBroker() {
                        @Override
                        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
@@ -149,7 +152,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_environmentAttribute_withMixedArguments_then_combinesCorrectly() {
+    void whenEnvironmentAttributeWithMixedArgumentsThenCombinesCorrectly() {
         var capturedInvocations = new java.util.ArrayList<AttributeFinderInvocation>();
         var broker              = new AttributeBroker() {
                                     @Override
@@ -185,7 +188,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_attributeStep_withEntity_then_passesEntity() {
+    void whenAttributeStepWithEntityThenPassesEntity() {
         var capturedInvocation = new AttributeFinderInvocation[1];
         var broker             = capturingAttributeBroker(capturedInvocation, Value.of("role"));
         var subscription       = AuthorizationSubscription.of(Value.of("alice"), Value.of("action"),
@@ -203,7 +206,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_attributeStep_withUndefinedEntity_then_returnsError() {
+    void whenAttributeStepWithUndefinedEntityThenReturnsError() {
         var broker = attributeBroker("user.role", Value.of("admin"));
         var ctx    = evaluationContext(broker);
         var result = evaluateExpression("undefined.<user.role>", ctx);

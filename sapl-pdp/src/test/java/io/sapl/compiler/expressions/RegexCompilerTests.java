@@ -40,16 +40,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("RegexCompiler")
 class RegexCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_literalRegexExpression_then_returnsExpected(String description, String expression, Value expected) {
+    void whenLiteralRegexExpressionThenReturnsExpected(String description, String expression, Value expected) {
         assertCompilesTo(expression, expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_literalRegexExpression_then_returnsExpected() {
+    private static Stream<Arguments> whenLiteralRegexExpressionThenReturnsExpected() {
         return Stream.of(
             arguments("match", "\"hello\" =~ \"hello\"", Value.TRUE),
             arguments("no match", "\"hello\" =~ \"world\"", Value.FALSE),
@@ -63,24 +66,24 @@ class RegexCompilerTests {
     // @formatter:on
 
     @Test
-    void when_invalidRegexPattern_then_throwsException() {
+    void whenInvalidRegexPatternThenThrowsException() {
         assertThatThrownBy(() -> compileExpression("\"hello\" =~ \"[invalid\""))
                 .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid regular expression");
     }
 
     @Test
-    void when_nonTextPattern_then_returnsError() {
+    void whenNonTextPatternThenReturnsError() {
         assertCompilesToError("\"hello\" =~ 123", "Regular expression must be a string");
     }
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_regexExpression_then_hasExpectedStratum(String description, String expression, Stratum expected) {
+    void whenRegexExpressionThenHasExpectedStratum(String description, String expression, Stratum expected) {
         assertStratumOfCompiledExpression(expression, expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_regexExpression_then_hasExpectedStratum() {
+    private static Stream<Arguments> whenRegexExpressionThenHasExpectedStratum() {
         return Stream.of(
             arguments("literal =~ literal", "\"hello\" =~ \"hello\"", Stratum.VALUE),
             arguments("variable =~ literal", "subject.name =~ \"hello.*\"", Stratum.PURE_SUB),
@@ -95,13 +98,13 @@ class RegexCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_regexWithVariables_then_evaluatesCorrectly(String description, String expression,
+    void whenRegexWithVariablesThenEvaluatesCorrectly(String description, String expression,
             Map<String, Value> variables, Value expected) {
         assertEvaluatesTo(expression, variables, expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_regexWithVariables_then_evaluatesCorrectly() {
+    private static Stream<Arguments> whenRegexWithVariablesThenEvaluatesCorrectly() {
         return Stream.of(
             arguments("variable input matches", "input =~ \"hello.*\"", Map.of("input", Value.of("hello world")), Value.TRUE),
             arguments("variable input no match", "input =~ \"hello.*\"", Map.of("input", Value.of("goodbye")), Value.FALSE),
@@ -112,7 +115,7 @@ class RegexCompilerTests {
     // @formatter:on
 
     @Test
-    void when_pureRegexWithInvalidSubscriptionPattern_then_returnsError() {
+    void whenPureRegexWithInvalidSubscriptionPatternThenReturnsError() {
         // Use subscription element so pattern is resolved at runtime
         var subscription = AuthorizationSubscription.of(Value.NULL, Value.NULL, Value.NULL, Value.of("[invalid"));
         var evalCtx      = evaluationContext(subscription);

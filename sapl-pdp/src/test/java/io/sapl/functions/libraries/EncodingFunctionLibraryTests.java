@@ -23,6 +23,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -38,10 +39,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("EncodingFunctionLibrary")
 class EncodingFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(EncodingFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -49,101 +51,101 @@ class EncodingFunctionLibraryTests {
 
     /* Encoding Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @CsvSource({ "Cthulhu,           Q3RodWxodQ==", // "Cthulhu"
             "Necronomicon,      TmVjcm9ub21pY29u", // "Necronomicon"
             "'',                ''" // empty string
     })
-    void base64Encode_whenVariousInputs_encodesCorrectly(String input, String expected) {
+    void base64EncodeWhenVariousInputsEncodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64Encode(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
     @Test
-    void base64Encode_whenSpecialCharacters_encodesCorrectly() {
+    void base64EncodeWhenSpecialCharactersEncodesCorrectly() {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64Encode(Value.of("Yog-Sothoth!@#$%"));
         assertThat(result.value()).isASCII();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "Azathoth,     QXphdGhvdGg=", // "Azathoth"
             "R'lyeh?data,  UidseWVoP2RhdGE=" // "R'lyeh?data"
     })
-    void base64UrlEncode_whenVariousInputs_encodesCorrectly(String input, String expected) {
+    void base64UrlEncodeWhenVariousInputsEncodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64UrlEncode(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
     @Test
-    void base64UrlEncode_whenSpecialCharacters_encodesWithUrlSafeAlphabet() {
+    void base64UrlEncodeWhenSpecialCharactersEncodesWithUrlSafeAlphabet() {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64UrlEncode(Value.of("Nyarlathotep?query"));
         assertThat(result.value()).isASCII();
         assertThat(result.value()).doesNotContain("+", "/");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @CsvSource({ "Yog-Sothoth,      596f672d536f74686f7468", // "Yog-Sothoth"
             "Y,                59", // "Y"
             "'',               ''" // empty string
     })
-    void hexEncode_whenVariousInputs_encodesCorrectly(String input, String expected) {
+    void hexEncodeWhenVariousInputsEncodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.hexEncode(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
     @Test
-    void hexEncode_whenSpecialCharacters_encodesCorrectly() {
+    void hexEncodeWhenSpecialCharactersEncodesCorrectly() {
         TextValue result = (TextValue) EncodingFunctionLibrary.hexEncode(Value.of("Ia! Ia!"));
         assertThat(result.value()).isASCII();
     }
 
     /* Decoding Tests - Lenient */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "Q3RodWxodQ==,         Cthulhu", // "Cthulhu" with padding
             "TmVjcm9ub21pY29u,     Necronomicon", // "Necronomicon" no padding needed
             "Q3RodWxodQ,           Cthulhu" // "Cthulhu" lenient accepts missing padding
     })
-    void base64Decode_whenValidInput_decodesCorrectly(String input, String expected) {
+    void base64DecodeWhenValidInputDecodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64Decode(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
     @Test
-    void base64Decode_whenInvalidBase64_returnsError() {
+    void base64DecodeWhenInvalidBase64ReturnsError() {
         var result = EncodingFunctionLibrary.base64Decode(Value.of("Hastur!@#"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "QXphdGhvdGg=,  Azathoth", // "Azathoth" with padding
             "QXphdGhvdGg,   Azathoth" // "Azathoth" lenient accepts missing padding
     })
-    void base64UrlDecode_whenValidInput_decodesCorrectly(String input, String expected) {
+    void base64UrlDecodeWhenValidInputDecodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64UrlDecode(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
     @Test
-    void base64UrlDecode_whenInvalidBase64Url_returnsError() {
+    void base64UrlDecodeWhenInvalidBase64UrlReturnsError() {
         var result = EncodingFunctionLibrary.base64UrlDecode(Value.of("Dagon!@#"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "59,                   Y", // "Y"
             "59_20_59,             Y Y", // "Y Y" with underscore separators
             "4e7963726172,         Nycrar", // "Nycrar"
             "4E7963726172,         Nycrar" // "Nycrar" uppercase
     })
-    void hexDecode_whenValidInput_decodesCorrectly(String input, String expected) {
+    void hexDecodeWhenValidInputDecodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.hexDecode(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "Kadath", "123" })
-    void hexDecode_whenInvalidInput_returnsError(String input) {
+    void hexDecodeWhenInvalidInputReturnsError(String input) {
         var result = EncodingFunctionLibrary.hexDecode(Value.of(input));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
@@ -151,54 +153,54 @@ class EncodingFunctionLibraryTests {
     /* Decoding Tests - Strict */
 
     @Test
-    void base64DecodeStrict_whenProperlyPadded_decodesCorrectly() {
+    void base64DecodeStrictWhenProperlyPaddedDecodesCorrectly() {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64DecodeStrict(Value.of("Q3RodWxodQ=="));
         assertThat(result.value()).isEqualTo("Cthulhu");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "Q3RodWxodQ", "Shoggoth!@#", "abc" })
-    void base64DecodeStrict_whenInvalidInput_returnsError(String input) {
+    void base64DecodeStrictWhenInvalidInputReturnsError(String input) {
         var result = EncodingFunctionLibrary.base64DecodeStrict(Value.of(input));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test
-    void base64UrlDecodeStrict_whenProperlyPadded_decodesCorrectly() {
+    void base64UrlDecodeStrictWhenProperlyPaddedDecodesCorrectly() {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64UrlDecodeStrict(Value.of("QXphdGhvdGg="));
         assertThat(result.value()).isEqualTo("Azathoth");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "QXphdGhvdGg", "Elder!@#", "abc" })
-    void base64UrlDecodeStrict_whenInvalidInput_returnsError(String input) {
+    void base64UrlDecodeStrictWhenInvalidInputReturnsError(String input) {
         var result = EncodingFunctionLibrary.base64UrlDecodeStrict(Value.of(input));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     /* Validation Tests - Lenient */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "Q3RodWxodQ==,     true", // "Cthulhu" with padding
             "Q3RodWxodQ,      true", // "Cthulhu" without padding (lenient)
             "Miskatonic!@#,   false" // invalid characters
     })
-    void isValidBase64_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
+    void isValidBase64WhenVariousInputsReturnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "QXphdGhvdGg=,     true", // "Azathoth" with padding
             "QXphdGhvdGg,     true", // "Azathoth" without padding (lenient)
             "Elder+/==,       false" // wrong alphabet (+ and /)
     })
-    void isValidBase64Url_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
+    void isValidBase64UrlWhenVariousInputsReturnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64Url(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @CsvSource({ "59,                   true", // "Y"
             "4e7963726172,         true", // "Nycrar"
             "59_20_59,             true", // "Y Y" with underscores
@@ -206,26 +208,26 @@ class EncodingFunctionLibraryTests {
             "123,                  false", // odd length
             "'',                   false" // empty string
     })
-    void isValidHex_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
+    void isValidHexWhenVariousInputsReturnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidHex(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
     /* Validation Tests - Strict */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "Q3RodWxodQ==,     true", // "Cthulhu" properly padded
             "Q3RodWxodQ,      false", // "Cthulhu" missing padding (strict rejects)
             "Arkham!@#,       false", // invalid characters
             "abc,             false", // wrong length
             "Q3=RodWxodQ=,    false" // padding in middle
     })
-    void isValidBase64Strict_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
+    void isValidBase64StrictWhenVariousInputsReturnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64Strict(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "QXphdGhvdGg=,     true", // "Azathoth" properly padded
             "QXphdGhvdGg,     false", // "Azathoth" missing padding (strict rejects)
             "Dunwich!@#,      false", // invalid characters
@@ -233,14 +235,14 @@ class EncodingFunctionLibraryTests {
             "Elder+/==,       false", // wrong alphabet
             "QX=pdGhvdGg=,    false" // padding in middle
     })
-    void isValidBase64UrlStrict_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
+    void isValidBase64UrlStrictWhenVariousInputsReturnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64UrlStrict(Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
 
     /* Lenient vs Strict Comparison Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "Q3RodWxodQ", // "Cthulhu" unpadded
             "QXphdGhvdGg", // "Azathoth" unpadded
             "RGFnb24" // "Dagon" unpadded
@@ -253,7 +255,7 @@ class EncodingFunctionLibraryTests {
         assertThat(strictResult.value()).isFalse();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "Q3RodWxodQ", // "Cthulhu" unpadded
             "QXphdGhvdGg", // "Azathoth" unpadded
             "U2hvZ2dvdGg" // "Shoggoth" unpadded
@@ -268,9 +270,9 @@ class EncodingFunctionLibraryTests {
 
     /* Round-trip Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideEncodingDecodingPairs")
-    void roundTrip_whenEncodingAndDecoding_recoversOriginal(EncoderDecoder pair, String testData) {
+    void roundTripWhenEncodingAndDecodingRecoversOriginal(EncoderDecoder pair, String testData) {
         var original = Value.of(testData);
         var encoded  = (TextValue) pair.encoder().apply(original);
         var decoded  = (TextValue) pair.decoder().apply((TextValue) encoded);
@@ -297,9 +299,9 @@ class EncodingFunctionLibraryTests {
 
     /* Unicode Edge Cases */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideUnicodeEncodingDecodingPairs")
-    void roundTrip_whenUnicodeCharacters_handlesCorrectly(EncoderDecoder pair) {
+    void roundTripWhenUnicodeCharactersHandlesCorrectly(EncoderDecoder pair) {
         var original = Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn 世界 🌍");
         var encoded  = (TextValue) pair.encoder().apply(original);
         var decoded  = (TextValue) pair.decoder().apply(encoded);
@@ -316,7 +318,7 @@ class EncodingFunctionLibraryTests {
     /* Security Tests - Resource Exhaustion Prevention */
 
     @Test
-    void base64Encode_whenInputExceedsMaxLength_returnsError() {
+    void base64EncodeWhenInputExceedsMaxLengthReturnsError() {
         var largeInput = "A".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.base64Encode(Value.of(largeInput));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -324,7 +326,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void base64Decode_whenInputExceedsMaxLength_returnsError() {
+    void base64DecodeWhenInputExceedsMaxLengthReturnsError() {
         var largeInput = "A".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.base64Decode(Value.of(largeInput));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -332,7 +334,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void base64UrlEncode_whenInputExceedsMaxLength_returnsError() {
+    void base64UrlEncodeWhenInputExceedsMaxLengthReturnsError() {
         var largeInput = "A".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.base64UrlEncode(Value.of(largeInput));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -340,7 +342,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void base64UrlDecode_whenInputExceedsMaxLength_returnsError() {
+    void base64UrlDecodeWhenInputExceedsMaxLengthReturnsError() {
         var largeInput = "A".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.base64UrlDecode(Value.of(largeInput));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -348,7 +350,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void hexEncode_whenInputExceedsMaxLength_returnsError() {
+    void hexEncodeWhenInputExceedsMaxLengthReturnsError() {
         var largeInput = "A".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.hexEncode(Value.of(largeInput));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -356,7 +358,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void hexDecode_whenInputExceedsMaxLength_returnsError() {
+    void hexDecodeWhenInputExceedsMaxLengthReturnsError() {
         var largeInput = "4".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.hexDecode(Value.of(largeInput));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -364,7 +366,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void isValidBase64_whenInputExceedsMaxLength_returnsFalse() {
+    void isValidBase64WhenInputExceedsMaxLengthReturnsFalse() {
         var largeInput = "A".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.isValidBase64(Value.of(largeInput));
         assertThat(result).isInstanceOf(BooleanValue.class);
@@ -372,7 +374,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void isValidBase64Url_whenInputExceedsMaxLength_returnsFalse() {
+    void isValidBase64UrlWhenInputExceedsMaxLengthReturnsFalse() {
         var largeInput = "A".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.isValidBase64Url(Value.of(largeInput));
         assertThat(result).isInstanceOf(BooleanValue.class);
@@ -380,7 +382,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void isValidHex_whenInputExceedsMaxLength_returnsFalse() {
+    void isValidHexWhenInputExceedsMaxLengthReturnsFalse() {
         var largeInput = "4".repeat(10_000_001);
         var result     = EncodingFunctionLibrary.isValidHex(Value.of(largeInput));
         assertThat(result).isInstanceOf(BooleanValue.class);
@@ -390,7 +392,7 @@ class EncodingFunctionLibraryTests {
     /* Security Tests - Invalid UTF-8 Handling */
 
     @Test
-    void base64Decode_whenDecodedBytesAreInvalidUtf8_returnsError() {
+    void base64DecodeWhenDecodedBytesAreInvalidUtf8ReturnsError() {
         // 0xFF 0xFE is not valid UTF-8
         var invalidUtf8Base64 = Base64.getEncoder().encodeToString(new byte[] { (byte) 0xFF, (byte) 0xFE });
         var result            = EncodingFunctionLibrary.base64Decode(Value.of(invalidUtf8Base64));
@@ -399,7 +401,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void base64UrlDecode_whenDecodedBytesAreInvalidUtf8_returnsError() {
+    void base64UrlDecodeWhenDecodedBytesAreInvalidUtf8ReturnsError() {
         // 0xFF 0xFE is not valid UTF-8
         var invalidUtf8Base64 = Base64.getUrlEncoder().encodeToString(new byte[] { (byte) 0xFF, (byte) 0xFE });
         var result            = EncodingFunctionLibrary.base64UrlDecode(Value.of(invalidUtf8Base64));
@@ -408,7 +410,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void hexDecode_whenDecodedBytesAreInvalidUtf8_returnsError() {
+    void hexDecodeWhenDecodedBytesAreInvalidUtf8ReturnsError() {
         // fffe is not valid UTF-8
         var result = EncodingFunctionLibrary.hexDecode(Value.of("fffe"));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -418,7 +420,7 @@ class EncodingFunctionLibraryTests {
     /* Security Tests - Control Characters */
 
     @Test
-    void base64_whenControlCharacters_handlesCorrectly() {
+    void base64WhenControlCharactersHandlesCorrectly() {
         var controlChars = "The\u0000Deep\u0001Ones\u001Fawait";
         var encoded      = (TextValue) EncodingFunctionLibrary.base64Encode(Value.of(controlChars));
         var decoded      = (TextValue) EncodingFunctionLibrary.base64Decode(encoded);
@@ -426,7 +428,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void hex_whenControlCharacters_handlesCorrectly() {
+    void hexWhenControlCharactersHandlesCorrectly() {
         var controlChars = "Nyarlathotep\u0000\u0001\u0002";
         var encoded      = (TextValue) EncodingFunctionLibrary.hexEncode(Value.of(controlChars));
         var decoded      = (TextValue) EncodingFunctionLibrary.hexDecode(encoded);
@@ -436,7 +438,7 @@ class EncodingFunctionLibraryTests {
     /* Security Tests - Null Bytes */
 
     @Test
-    void base64_whenNullBytesInMiddle_preservesNullBytes() {
+    void base64WhenNullBytesInMiddlePreservesNullBytes() {
         var withNullBytes = "Shub\u0000Niggurath";
         var encoded       = (TextValue) EncodingFunctionLibrary.base64Encode(Value.of(withNullBytes));
         var decoded       = (TextValue) EncodingFunctionLibrary.base64Decode(encoded);
@@ -445,7 +447,7 @@ class EncodingFunctionLibraryTests {
     }
 
     @Test
-    void hex_whenNullBytesInMiddle_preservesNullBytes() {
+    void hexWhenNullBytesInMiddlePreservesNullBytes() {
         var withNullBytes = "Elder\u0000Things";
         var encoded       = (TextValue) EncodingFunctionLibrary.hexEncode(Value.of(withNullBytes));
         var decoded       = (TextValue) EncodingFunctionLibrary.hexDecode(encoded);
@@ -456,14 +458,14 @@ class EncodingFunctionLibraryTests {
     /* Security Tests - Early Rejection */
 
     @Test
-    void isValidBase64Strict_whenObviouslyInvalidCharacter_rejectsQuickly() {
+    void isValidBase64StrictWhenObviouslyInvalidCharacterRejectsQuickly() {
         // Test early rejection with character outside Base64 range
         var result = (BooleanValue) EncodingFunctionLibrary.isValidBase64Strict(Value.of("AAA\u007FAAA="));
         assertThat(result.value()).isFalse();
     }
 
     @Test
-    void isValidBase64Strict_whenCharacterBelowRange_rejectsQuickly() {
+    void isValidBase64StrictWhenCharacterBelowRangeRejectsQuickly() {
         // Test early rejection with character below valid range
         var result = (BooleanValue) EncodingFunctionLibrary.isValidBase64Strict(Value.of("AAA\u0020AAA="));
         assertThat(result.value()).isFalse();

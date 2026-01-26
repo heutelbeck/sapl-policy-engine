@@ -17,11 +17,11 @@
  */
 package io.sapl.pdp.remote;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLException;
-
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.springframework.boot.SpringBootConfiguration;
@@ -37,13 +37,12 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.ImagePullPolicy;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import javax.net.ssl.SSLException;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
@@ -69,10 +68,10 @@ class RemoteHttpDecisionPointServerIT {
 
     // HTTP Protocol
     @Test
-    void whenRequestingDecisionFromHttpPdp_withNoAuth_thenDecisionIsProvided() {
+    void whenRequestingDecisionFromHttpPdpWithNoAuthThenDecisionIsProvided() {
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
         // @formatter:off
-                final var container = baseContainer.withImagePullPolicy(NEVER_PULL)
+                val container = baseContainer.withImagePullPolicy(NEVER_PULL)
                         .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                         .withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("spring_rsocket_server_ssl_enabled", "false")
@@ -85,7 +84,7 @@ class RemoteHttpDecisionPointServerIT {
             container.start();
             log.debug("connecting to: " + "http://" + container.getHost() + ":"
                     + container.getMappedPort(SAPL_SERVER_PORT));
-            final var pdp = RemotePolicyDecisionPoint.builder().http()
+            val  pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("http://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT)).build();
             requestDecision(pdp);
         }
@@ -93,12 +92,12 @@ class RemoteHttpDecisionPointServerIT {
 
     // HTTPS Protocol
     @Test
-    void whenRequestingDecisionFromHttpsPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
+    void whenRequestingDecisionFromHttpsPdpWithNoAuthThenDecisionIsProvided() throws SSLException {
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
-                final var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth",
+                val  container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth",
                         "true")) {
             container.start();
-            final var pdp = RemotePolicyDecisionPoint.builder().http()
+            val  pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                     .withUnsecureSSL().build();
             requestDecision(pdp);
@@ -129,16 +128,16 @@ class RemoteHttpDecisionPointServerIT {
     }
 
     @Test
-    void whenRequestingDecisionFromHttpsPdp_withBasicAuth_thenDecisionIsProvided() throws SSLException {
-        final var key           = "mpI3KjU7n1";
-        final var secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
-        final var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+    void whenRequestingDecisionFromHttpsPdpWithBasicAuthThenDecisionIsProvided() throws SSLException {
+        val  key           = "mpI3KjU7n1";
+        val  secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
+        val  encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
-                final var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")
+                val  container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)
                         .withEnv("io_sapl_server-lt_secret", encodedSecret)) {
             container.start();
-            final var pdp = RemotePolicyDecisionPoint.builder().http()
+            val  pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                     .basicAuth(key, secret).withUnsecureSSL().build();
             requestDecision(pdp);
@@ -147,17 +146,17 @@ class RemoteHttpDecisionPointServerIT {
     }
 
     @Test
-    void whenRequestingDecisionFromHttpsPdp_withInvalidBasicAuth_thenIndeterminateDecisionIsProvided()
+    void whenRequestingDecisionFromHttpsPdpWithInvalidBasicAuthThenIndeterminateDecisionIsProvided()
             throws SSLException {
-        final var key           = "mpI3KjU7n1";
-        final var secret        = "incalidSecret";
-        final var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+        val  key           = "mpI3KjU7n1";
+        val  secret        = "incalidSecret";
+        val  encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
-                final var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")
+                val  container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)
                         .withEnv("io_sapl_server-lt_secret", encodedSecret)) {
             container.start();
-            final var pdp = RemotePolicyDecisionPoint.builder().http()
+            val  pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                     .basicAuth(key, secret).withUnsecureSSL().build();
             StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.INDETERMINATE)
@@ -167,15 +166,15 @@ class RemoteHttpDecisionPointServerIT {
     }
 
     @Test
-    void whenRequestingDecisionFromHttpsPdp_withApiKeyAuth_thenDecisionIsProvided() throws SSLException {
-        final var apiKey        = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
-        final var encodedApiKey = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
+    void whenRequestingDecisionFromHttpsPdpWithApiKeyAuthThenDecisionIsProvided() throws SSLException {
+        val  apiKey        = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
+        val  encodedApiKey = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
-                final var container = saplServerWithTls(baseContainer)
+                val  container = saplServerWithTls(baseContainer)
                         .withEnv("io_sapl_server-lt_allowApiKeyAuth", "true")
                         .withEnv("io_sapl_server-lt_allowedApiKeys[0]", encodedApiKey)) {
             container.start();
-            final var pdp = RemotePolicyDecisionPoint.builder().http()
+            val  pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                     .apiKey(apiKey).withUnsecureSSL().build();
             requestDecision(pdp);
@@ -184,22 +183,22 @@ class RemoteHttpDecisionPointServerIT {
     }
 
     @Test
-    void whenRequestingDecisionFromHttpsPdp_withOauth2Auth_thenDecisionIsProvided() throws SSLException {
+    void whenRequestingDecisionFromHttpsPdpWithOauth2AuthThenDecisionIsProvided() throws SSLException {
         try (var oauthBaseContainer = new GenericContainer<>(
                 DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
-                final var oauth2Container = oauthBaseContainer.withExposedPorts(8080)
+                val  oauth2Container = oauthBaseContainer.withExposedPorts(8080)
                         .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(2)))) {
             oauth2Container.start();
 
             try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
-                    final var container = saplServerWithTls(baseContainer)
+                    val  container = saplServerWithTls(baseContainer)
                             .withEnv("io_sapl_server-lt_allowOauth2Auth", "True")
                             .withExtraHost("auth-host", "host-gateway")
                             .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri",
                                     "http://auth-host:" + oauth2Container.getMappedPort(8080) + "/default")) {
                 container.start();
 
-                final var clientRegistrationRepository = new ReactiveClientRegistrationRepository() {
+                val  clientRegistrationRepository = new ReactiveClientRegistrationRepository() {
                                                            @Override
                                                            public Mono<ClientRegistration> findByRegistrationId(
                                                                    String registrationId) {
@@ -216,7 +215,7 @@ class RemoteHttpDecisionPointServerIT {
                                                                        .scope("sapl").build());
                                                            }
                                                        };
-                final var pdp                          = RemotePolicyDecisionPoint.builder().http()
+                val  pdp                          = RemotePolicyDecisionPoint.builder().http()
                         .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                         .withUnsecureSSL().oauth2(clientRegistrationRepository, "saplPdp").build();
                 requestDecision(pdp);

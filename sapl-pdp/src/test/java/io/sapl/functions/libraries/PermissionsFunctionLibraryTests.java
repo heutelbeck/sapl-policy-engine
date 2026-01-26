@@ -36,10 +36,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("PermissionsFunctionLibrary")
 class PermissionsFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(PermissionsFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -47,9 +50,9 @@ class PermissionsFunctionLibraryTests {
 
     /* Core Permission Semantics Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasAllTestCases")
-    void when_hasAll_then_returnsCorrectResult(long value, long[] masks, boolean expected) {
+    void whenHasAllThenReturnsCorrectResult(long value, long[] masks, boolean expected) {
         val masksArray = createLongArray(masks);
         val actual     = PermissionsFunctionLibrary.hasAll(Value.of(value), masksArray);
 
@@ -67,9 +70,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasAnyTestCases")
-    void when_hasAny_then_returnsCorrectResult(long value, long[] masks, boolean expected) {
+    void whenHasAnyThenReturnsCorrectResult(long value, long[] masks, boolean expected) {
         val masksArray = createLongArray(masks);
         val actual     = PermissionsFunctionLibrary.hasAny(Value.of(value), masksArray);
 
@@ -86,9 +89,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasNoneTestCases")
-    void when_hasNone_then_returnsCorrectResult(long value, long[] masks, boolean expected) {
+    void whenHasNoneThenReturnsCorrectResult(long value, long[] masks, boolean expected) {
         val masksArray = createLongArray(masks);
         val actual     = PermissionsFunctionLibrary.hasNone(Value.of(value), masksArray);
 
@@ -105,9 +108,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasExactTestCases")
-    void when_hasExact_then_returnsCorrectResult(long value, long mask, boolean expected) {
+    void whenHasExactThenReturnsCorrectResult(long value, long mask, boolean expected) {
         val actual = PermissionsFunctionLibrary.hasExact(Value.of(value), Value.of(mask));
 
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.of(expected));
@@ -123,9 +126,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasOnlyTestCases")
-    void when_hasOnly_then_returnsCorrectResult(long value, long[] masks, boolean expected) {
+    void whenHasOnlyThenReturnsCorrectResult(long value, long[] masks, boolean expected) {
         val masksArray = createLongArray(masks);
         val actual     = PermissionsFunctionLibrary.hasOnly(Value.of(value), masksArray);
 
@@ -142,9 +145,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideCombineTestCases")
-    void when_combine_then_returnsCorrectResult(long[] masks, long expected) {
+    void whenCombineThenReturnsCorrectResult(long[] masks, long expected) {
         val masksArray = createLongArray(masks);
         val actual     = PermissionsFunctionLibrary.combine(masksArray);
 
@@ -160,9 +163,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideCombineAllTestCases")
-    void when_combineAll_then_returnsCorrectResult(long[] masks, long expected) {
+    void whenCombineAllThenReturnsCorrectResult(long[] masks, long expected) {
         val masksArray = createLongArray(masks);
         val actual     = PermissionsFunctionLibrary.combineAll(masksArray);
 
@@ -178,7 +181,7 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void when_combineAll_withEmptyArray_then_returnsError() {
+    void whenCombineAllWithEmptyArrayThenReturnsError() {
         val emptyArray = ArrayValue.builder().build();
         val actual     = PermissionsFunctionLibrary.combineAll(emptyArray);
 
@@ -186,9 +189,9 @@ class PermissionsFunctionLibraryTests {
         assertThat(((ErrorValue) actual).message()).contains("Cannot combine empty array");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideIsSubsetOfTestCases")
-    void when_isSubsetOf_then_returnsCorrectResult(long permissions, long superset, boolean expected) {
+    void whenIsSubsetOfThenReturnsCorrectResult(long permissions, long superset, boolean expected) {
         val actual = PermissionsFunctionLibrary.isSubsetOf(Value.of(permissions), Value.of(superset));
 
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.of(expected));
@@ -204,9 +207,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideOverlapsTestCases")
-    void when_overlaps_then_returnsCorrectResult(long permissions1, long permissions2, boolean expected) {
+    void whenOverlapsThenReturnsCorrectResult(long permissions1, long permissions2, boolean expected) {
         val actual = PermissionsFunctionLibrary.overlaps(Value.of(permissions1), Value.of(permissions2));
 
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.of(expected));
@@ -222,9 +225,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideAreDisjointTestCases")
-    void when_areDisjoint_then_returnsCorrectResult(long permissions1, long permissions2, boolean expected) {
+    void whenAreDisjointThenReturnsCorrectResult(long permissions1, long permissions2, boolean expected) {
         val actual = PermissionsFunctionLibrary.areDisjoint(Value.of(permissions1), Value.of(permissions2));
 
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.of(expected));
@@ -242,9 +245,9 @@ class PermissionsFunctionLibraryTests {
 
     /* Unix/POSIX Permission Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideUnixExtractTestCases")
-    void when_unixExtract_then_returnsCorrectPermissions(long mode, long owner, long group, long other) {
+    void whenUnixExtractThenReturnsCorrectPermissions(long mode, long owner, long group, long other) {
         val actualOwner = PermissionsFunctionLibrary.unixOwner(Value.of(mode));
         val actualGroup = PermissionsFunctionLibrary.unixGroup(Value.of(mode));
         val actualOther = PermissionsFunctionLibrary.unixOther(Value.of(mode));
@@ -266,9 +269,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideUnixModeTestCases")
-    void when_unixMode_then_constructsCorrectMode(long owner, long group, long other, long expected) {
+    void whenUnixModeThenConstructsCorrectMode(long owner, long group, long other, long expected) {
         val actual = PermissionsFunctionLibrary.unixMode(Value.of(owner), Value.of(group), Value.of(other));
 
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(expected));
@@ -286,18 +289,17 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(longs = { -1L, 8L, 10L, 100L })
-    void when_unixMode_withInvalidPermission_then_returnsError(long invalidValue) {
+    void whenUnixModeWithInvalidPermissionThenReturnsError(long invalidValue) {
         val actual = PermissionsFunctionLibrary.unixMode(Value.of(invalidValue), Value.of(5L), Value.of(5L));
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("must be between 0 and 7");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideUnixCanCheckTestCases")
-    void when_unixCan_then_returnsCorrectResult(long permissions, boolean canRead, boolean canWrite,
-            boolean canExecute) {
+    void whenUnixCanThenReturnsCorrectResult(long permissions, boolean canRead, boolean canWrite, boolean canExecute) {
         val actualRead    = PermissionsFunctionLibrary.unixCanRead(Value.of(permissions));
         val actualWrite   = PermissionsFunctionLibrary.unixCanWrite(Value.of(permissions));
         val actualExecute = PermissionsFunctionLibrary.unixCanExecute(Value.of(permissions));
@@ -322,7 +324,7 @@ class PermissionsFunctionLibraryTests {
     /* POSIX Constants Tests */
 
     @Test
-    void when_posixConstants_then_returnCorrectValues() {
+    void whenPosixConstantsThenReturnCorrectValues() {
         assertThat(PermissionsFunctionLibrary.posixRead()).isEqualTo(Value.of(4L));
         assertThat(PermissionsFunctionLibrary.posixWrite()).isEqualTo(Value.of(2L));
         assertThat(PermissionsFunctionLibrary.posixExecute()).isEqualTo(Value.of(1L));
@@ -334,7 +336,7 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void when_posixModeConstants_then_returnCorrectValues() {
+    void whenPosixModeConstantsThenReturnCorrectValues() {
         assertThat(PermissionsFunctionLibrary.posixMode755()).isEqualTo(Value.of(493L));
         assertThat(PermissionsFunctionLibrary.posixMode644()).isEqualTo(Value.of(420L));
         assertThat(PermissionsFunctionLibrary.posixMode777()).isEqualTo(Value.of(511L));
@@ -344,9 +346,9 @@ class PermissionsFunctionLibraryTests {
 
     /* Manipulation Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideGrantTestCases")
-    void when_grant_then_addsPermissions(long current, long[] toGrant, long expected) {
+    void whenGrantThenAddsPermissions(long current, long[] toGrant, long expected) {
         val grantArray = createLongArray(toGrant);
         val actual     = PermissionsFunctionLibrary.grant(Value.of(current), grantArray);
 
@@ -362,9 +364,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideRevokeTestCases")
-    void when_revoke_then_removesPermissions(long current, long[] toRevoke, long expected) {
+    void whenRevokeThenRemovesPermissions(long current, long[] toRevoke, long expected) {
         val revokeArray = createLongArray(toRevoke);
         val actual      = PermissionsFunctionLibrary.revoke(Value.of(current), revokeArray);
 
@@ -380,9 +382,9 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideToggleTestCases")
-    void when_toggle_then_flipsPermissions(long current, long[] toToggle, long expected) {
+    void whenToggleThenFlipsPermissions(long current, long[] toToggle, long expected) {
         val toggleArray = createLongArray(toToggle);
         val actual      = PermissionsFunctionLibrary.toggle(Value.of(current), toggleArray);
 
@@ -401,27 +403,27 @@ class PermissionsFunctionLibraryTests {
     /* Universal Constants Tests */
 
     @Test
-    void when_none_then_returnsZero() {
+    void whenNoneThenReturnsZero() {
         val actual = PermissionsFunctionLibrary.none();
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(0L));
     }
 
     @Test
-    void when_all_then_returnsMinusOne() {
+    void whenAllThenReturnsMinusOne() {
         val actual = PermissionsFunctionLibrary.all();
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(-1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(longs = { 0L, 1L, 2L, 31L, 32L, 63L })
-    void when_bit_withValidPosition_then_returnsSingleBit(long position) {
+    void whenBitWithValidPositionThenReturnsSingleBit(long position) {
         val actual = PermissionsFunctionLibrary.bit(Value.of(position));
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(1L << position));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(longs = { -1L, -10L, 64L, 65L, 100L })
-    void when_bit_withInvalidPosition_then_returnsError(long invalidPosition) {
+    void whenBitWithInvalidPositionThenReturnsError(long invalidPosition) {
         val actual = PermissionsFunctionLibrary.bit(Value.of(invalidPosition));
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("Bit position must be between 0 and 63");
@@ -430,7 +432,7 @@ class PermissionsFunctionLibraryTests {
     /* Error Handling Tests */
 
     @Test
-    void when_hasAll_withNonArrayMask_then_returnsError() {
+    void whenHasAllWithNonArrayMaskThenReturnsError() {
         // This test verifies error handling for incorrect parameter type
         // We need to pass something that's not an ArrayValue to test the error case
         val singleValue = ArrayValue.builder().build(); // Pass empty array to trigger different error
@@ -440,7 +442,7 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void when_combine_withNonIntegerElement_then_returnsError() {
+    void whenCombineWithNonIntegerElementThenReturnsError() {
         val array  = ArrayValue.builder().add(Value.of("not a number")).build();
         val actual = PermissionsFunctionLibrary.combine(array);
         assertThat(actual).isInstanceOf(ErrorValue.class);
@@ -448,7 +450,7 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void when_combine_withFloatingPointNumber_then_returnsError() {
+    void whenCombineWithFloatingPointNumberThenReturnsError() {
         val array  = ArrayValue.builder().add(Value.of(3.55)).build();
         val actual = PermissionsFunctionLibrary.combine(array);
         assertThat(actual).isInstanceOf(ErrorValue.class);
@@ -456,7 +458,7 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void when_combine_withIntegralEquivalentNumbers_then_succeeds() {
+    void whenCombineWithIntegralEquivalentNumbersThenSucceeds() {
         val array  = ArrayValue.builder().add(Value.of(1.0)).add(Value.of(2.00)).add(Value.of(4)).build();
         val actual = PermissionsFunctionLibrary.combine(array);
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
@@ -465,7 +467,7 @@ class PermissionsFunctionLibraryTests {
     /* Integration Tests */
 
     @Test
-    void when_unixPermissionWorkflow_then_worksCorrectly() {
+    void whenUnixPermissionWorkflowThenWorksCorrectly() {
         // Create mode 493 (0755 = rwxr-xr-x)
         val mode = PermissionsFunctionLibrary.unixMode(Value.of(7L), Value.of(5L), Value.of(5L));
         assertThat(mode).isInstanceOf(NumberValue.class);
@@ -485,7 +487,7 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void when_permissionManipulationChain_then_worksCorrectly() {
+    void whenPermissionManipulationChainThenWorksCorrectly() {
         val initial = Value.of(0b0001L);
 
         // Grant permissions
@@ -504,7 +506,7 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void when_combineWithConstants_then_worksCorrectly() {
+    void whenCombineWithConstantsThenWorksCorrectly() {
         val read    = PermissionsFunctionLibrary.posixRead();
         val write   = PermissionsFunctionLibrary.posixWrite();
         val execute = PermissionsFunctionLibrary.posixExecute();

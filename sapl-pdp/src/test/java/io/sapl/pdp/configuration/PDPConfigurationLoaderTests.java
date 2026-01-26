@@ -42,13 +42,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("PDPConfigurationLoader")
 class PDPConfigurationLoaderTests {
 
     @TempDir
     Path tempDir;
 
     @Test
-    void whenLoadingFromEmptyDirectory_thenUsesDefaults() {
+    void whenLoadingFromEmptyDirectoryThenUsesDefaults() {
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
 
         assertThat(config.pdpId()).isEqualTo("arkham-pdp");
@@ -59,7 +62,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingWithPdpJson_thenParsesAlgorithmAndVariables() throws IOException {
+    void whenLoadingWithPdpJsonThenParsesAlgorithmAndVariables() throws IOException {
         val pdpJson = """
                 {
                   "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" },
@@ -82,9 +85,9 @@ class PDPConfigurationLoaderTests {
                 .containsEntry("memberCount", Value.of(42)).containsEntry("isActive", Value.TRUE);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("algorithmCases")
-    void whenLoadingWithDifferentAlgorithms_thenParsesCorrectly(String algorithmJson, CombiningAlgorithm expected)
+    void whenLoadingWithDifferentAlgorithmsThenParsesCorrectly(String algorithmJson, CombiningAlgorithm expected)
             throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
                 {"algorithm": %s}
@@ -117,7 +120,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingWithSaplFiles_thenLoadsAllDocuments() throws IOException {
+    void whenLoadingWithSaplFilesThenLoadsAllDocuments() throws IOException {
         Files.writeString(tempDir.resolve("access.sapl"), """
                 policy "grant access to deep ones"
                 permit subject.species == "deep_one"
@@ -134,7 +137,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingWithMixedFiles_thenOnlyLoadsSaplFiles() throws IOException {
+    void whenLoadingWithMixedFilesThenOnlyLoadsSaplFiles() throws IOException {
         Files.writeString(tempDir.resolve("valid.sapl"), "policy \"valid\" permit");
         Files.writeString(tempDir.resolve("readme.md"), "# Documentation");
         Files.writeString(tempDir.resolve("security.json"), "{}");
@@ -146,7 +149,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingWithNestedVariables_thenParsesCorrectly() throws IOException {
+    void whenLoadingWithNestedVariablesThenParsesCorrectly() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
                 {
                   "variables": {
@@ -166,7 +169,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingWithInvalidJson_thenThrowsException() throws IOException {
+    void whenLoadingWithInvalidJsonThenThrowsException() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), "{ invalid json }");
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
@@ -174,7 +177,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingWithInvalidAlgorithm_thenThrowsException() throws IOException {
+    void whenLoadingWithInvalidAlgorithmThenThrowsException() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
                 {"algorithm": { "votingMode": "INVALID", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }}
                 """);
@@ -184,7 +187,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingFromContent_thenCreatesConfiguration() {
+    void whenLoadingFromContentThenCreatesConfiguration() {
         val pdpJsonContent = """
                 {
                   "algorithm": { "votingMode": "UNIQUE", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" },
@@ -209,7 +212,7 @@ class PDPConfigurationLoaderTests {
     @ParameterizedTest(name = "pdpJson = \"{0}\" should use defaults")
     @NullAndEmptySource
     @ValueSource(strings = { "   \n\t  ", "{}" })
-    void whenLoadingFromContentWithAbsentOrEmptyPdpJson_thenUsesDefaults(String pdpJson) {
+    void whenLoadingFromContentWithAbsentOrEmptyPdpJsonThenUsesDefaults(String pdpJson) {
         val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
 
         val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, "test-pdp", "/test/policies");
@@ -220,7 +223,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingFromContentWithOnlyAlgorithm_thenVariablesAreEmpty() {
+    void whenLoadingFromContentWithOnlyAlgorithmThenVariablesAreEmpty() {
         val config = PDPConfigurationLoader.loadFromContent(
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
@@ -234,7 +237,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingFromContentWithOnlyVariables_thenUsesDefaultAlgorithm() {
+    void whenLoadingFromContentWithOnlyVariablesThenUsesDefaultAlgorithm() {
         val config = PDPConfigurationLoader.loadFromContent("""
                 { "variables": { "realm": "arkham" } }
                 """, Map.of(), "test-pdp", "/policies/arkham");
@@ -244,7 +247,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingFromContentWithInvalidJson_thenThrowsException() {
+    void whenLoadingFromContentWithInvalidJsonThenThrowsException() {
         val emptyMap = Map.<String, String>of();
         assertThatThrownBy(
                 () -> PDPConfigurationLoader.loadFromContent("not valid {{{", emptyMap, "test-pdp", "/invalid"))
@@ -252,7 +255,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingWithSubdirectory_thenSubdirectoryIsIgnored() throws IOException {
+    void whenLoadingWithSubdirectoryThenSubdirectoryIsIgnored() throws IOException {
         Files.writeString(tempDir.resolve("root.sapl"), "policy \"root\" permit true;");
         val subdir = tempDir.resolve("subdir");
         Files.createDirectory(subdir);
@@ -264,7 +267,7 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenPdpJsonContainsNullAndArrayValues_thenTheyAreHandled() throws IOException {
+    void whenPdpJsonContainsNullAndArrayValuesThenTheyAreHandled() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
                 {
                   "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" },

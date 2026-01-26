@@ -23,6 +23,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -39,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("BundleSecurityPolicy")
 class BundleSecurityPolicyTests {
 
     private static final CombiningAlgorithm DENY_OVERRIDES      = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
@@ -59,7 +61,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenCreatingRequireSignature_thenSignatureIsRequired() {
+    void whenCreatingRequireSignatureThenSignatureIsRequired() {
         val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
 
         assertThat(policy.signatureRequired()).isTrue();
@@ -69,7 +71,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenEnablingExpirationCheck_thenExpirationIsChecked() {
+    void whenEnablingExpirationCheckThenExpirationIsChecked() {
         val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck().build();
 
         assertThat(policy.signatureRequired()).isTrue();
@@ -77,19 +79,19 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenRequireSignatureWithNullKey_thenThrowsException() {
+    void whenRequireSignatureWithNullKeyThenThrowsException() {
         assertThatThrownBy(() -> BundleSecurityPolicy.requireSignature(null))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Public key must not be null");
     }
 
     @Test
-    void whenBuilderWithNullKey_thenThrowsException() {
+    void whenBuilderWithNullKeyThenThrowsException() {
         assertThatThrownBy(() -> BundleSecurityPolicy.builder(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Public key must not be null");
     }
 
     @Test
-    void whenDisablingSignatureWithoutAcceptingRisks_thenBuildSucceedsButValidateFails() {
+    void whenDisablingSignatureWithoutAcceptingRisksThenBuildSucceedsButValidateFails() {
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
         assertThat(policy.signatureRequired()).isFalse();
@@ -100,7 +102,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenDisablingSignatureAndAcceptingRisks_thenValidateSucceeds() {
+    void whenDisablingSignatureAndAcceptingRisksThenValidateSucceeds() {
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
 
         assertThat(policy.signatureRequired()).isFalse();
@@ -110,7 +112,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenAcceptingRisksWithoutDisablingSignature_thenValidateSucceeds() {
+    void whenAcceptingRisksWithoutDisablingSignatureThenValidateSucceeds() {
         val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).acceptUnsignedBundleRisks().build();
 
         assertThat(policy.signatureRequired()).isTrue();
@@ -119,14 +121,14 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenSignatureRequiredButNoKey_thenBuildFails() {
+    void whenSignatureRequiredButNoKeyThenBuildFails() {
         val builder = BundleSecurityPolicy.builder();
         assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("requires a public key");
     }
 
     @Test
-    void whenParsingUnsignedBundleWithRequiredSignature_thenThrowsException() {
+    void whenParsingUnsignedBundleWithRequiredSignatureThenThrowsException() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                 .withPolicy("cultist-access.sapl", "policy \"cultist\" permit subject.initiated == true").build();
 
@@ -137,7 +139,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingUnsignedBundleWithDisabledVerificationAndAcceptedRisks_thenSucceeds() {
+    void whenParsingUnsignedBundleWithDisabledVerificationAndAcceptedRisksThenSucceeds() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("public-access.sapl", "policy \"public\" permit true").build();
 
@@ -149,7 +151,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingUnsignedBundleWithDisabledVerificationButNoAcceptedRisks_thenThrowsException() {
+    void whenParsingUnsignedBundleWithDisabledVerificationButNoAcceptedRisksThenThrowsException() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("public-access.sapl", "policy \"public\" permit true").build();
 
@@ -160,7 +162,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingSignedBundleWithValidKey_thenSucceeds() {
+    void whenParsingSignedBundleWithValidKeyThenSucceeds() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
                 .withPolicy("necronomicon.sapl", "policy \"tome\" deny subject.sanity < 50")
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
@@ -173,7 +175,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingSignedBundleWithWrongKey_thenThrowsException() {
+    void whenParsingSignedBundleWithWrongKeyThenThrowsException() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(ONLY_ONE_APPLICABLE)
                 .withPolicy("ritual.sapl", "policy \"ritual\" permit action.type == \"summon\"")
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
@@ -186,7 +188,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingExpiredSignatureWithExpirationCheck_thenThrowsException() {
+    void whenParsingExpiredSignatureWithExpirationCheckThenThrowsException() {
         val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
         val bundle      = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                 .withPolicy("old-tome.sapl", "policy \"ancient\" deny true")
@@ -199,7 +201,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingExpiredSignatureWithoutExpirationCheck_thenSucceeds() {
+    void whenParsingExpiredSignatureWithoutExpirationCheckThenSucceeds() {
         val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
         val bundle      = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("ancient-scroll.sapl", "policy \"scroll\" permit subject.scholar == true")
@@ -212,7 +214,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingValidFutureExpiration_thenSucceeds() {
+    void whenParsingValidFutureExpirationThenSucceeds() {
         val futureTime = Instant.now().plus(365, ChronoUnit.DAYS);
         val bundle     = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
                 .withPolicy("prophecy.sapl", "policy \"stars\" permit environment.starsRight == true")
@@ -225,7 +227,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenCheckUnsignedBundleAllowedWithSignatureRequired_thenThrows() {
+    void whenCheckUnsignedBundleAllowedWithSignatureRequiredThenThrows() {
         val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
 
         assertThatThrownBy(() -> policy.checkUnsignedBundleAllowed("test-bundle"))
@@ -234,7 +236,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenCheckUnsignedBundleAllowedWithDisabledVerificationButNoRiskAcceptance_thenThrows() {
+    void whenCheckUnsignedBundleAllowedWithDisabledVerificationButNoRiskAcceptanceThenThrows() {
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
         assertThatThrownBy(() -> policy.checkUnsignedBundleAllowed("test-bundle"))
@@ -242,21 +244,21 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenCheckUnsignedBundleAllowedWithFullOptOut_thenSucceeds() {
+    void whenCheckUnsignedBundleAllowedWithFullOptOutThenSucceeds() {
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
 
         policy.checkUnsignedBundleAllowed("test-bundle");
     }
 
     @Test
-    void whenValidateWithRequiredSignatureAndKey_thenSucceeds() {
+    void whenValidateWithRequiredSignatureAndKeyThenSucceeds() {
         val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
 
         policy.validate();
     }
 
     @Test
-    void whenWithExpirationCheckBoolean_thenSetsCorrectly() {
+    void whenWithExpirationCheckBooleanThenSetsCorrectly() {
         val policyWithCheck = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck(true).build();
 
         val policyWithoutCheck = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck(false)
@@ -267,7 +269,7 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenAcceptUnsignedBundleRisksBoolean_thenSetsCorrectly() {
+    void whenAcceptUnsignedBundleRisksBooleanThenSetsCorrectly() {
         val policyAccepted = BundleSecurityPolicy.builder().disableSignatureVerification()
                 .acceptUnsignedBundleRisks(true).build();
 
@@ -278,9 +280,9 @@ class BundleSecurityPolicyTests {
         assertThat(policyNotAccepted.unsignedBundleRiskAccepted()).isFalse();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("nonEd25519KeyAlgorithms")
-    void whenRequireSignatureWithNonEd25519Key_thenThrowsException(String algorithm) throws Exception {
+    void whenRequireSignatureWithNonEd25519KeyThenThrowsException(String algorithm) throws Exception {
         val keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
         val keyPair          = keyPairGenerator.generateKeyPair();
         val publicKey        = keyPair.getPublic();

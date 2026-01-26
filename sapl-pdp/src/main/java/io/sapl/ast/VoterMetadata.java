@@ -17,14 +17,33 @@
  */
 package io.sapl.ast;
 
+/**
+ * Metadata about a voter (policy or policy set) in the evaluation process.
+ */
 public interface VoterMetadata {
+
+    /**
+     * @return the name of the voter
+     */
     String name();
 
+    /**
+     * @return the PDP identifier
+     */
     String pdpId();
 
+    /**
+     * @return the configuration identifier
+     */
     String configurationId();
 
+    /**
+     * @return the outcome of the voter evaluation
+     */
     Outcome outcome();
 
+    /**
+     * @return true if the voter has constraints (obligations or advice)
+     */
     boolean hasConstraints();
 }

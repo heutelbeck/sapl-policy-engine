@@ -32,17 +32,20 @@ import static io.sapl.functions.libraries.SchemaValidationLibrary.validate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SchemaValidationLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void when_validatingCompliantValue_then_returnsTrue() {
+    void whenValidatingCompliantValueThenReturnsTrue() {
         val schema = ObjectValue.builder().put("type", Value.of("boolean")).build();
 
         val result = isCompliant(Value.TRUE, schema);
@@ -51,7 +54,7 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    void when_validatingNonCompliantValue_then_returnsFalse() {
+    void whenValidatingNonCompliantValueThenReturnsFalse() {
         val schema = ObjectValue.builder().put("type", Value.of("boolean")).build();
 
         val result = isCompliant(Value.of(123), schema);
@@ -60,7 +63,7 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    void when_validatingUndefinedValue_then_returnsFalse() {
+    void whenValidatingUndefinedValueThenReturnsFalse() {
         val schema = ObjectValue.builder().put("type", Value.of("string")).build();
 
         val result = validate(Value.UNDEFINED, schema);
@@ -72,7 +75,7 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    void when_validatingErrorValue_then_propagatesError() {
+    void whenValidatingErrorValueThenPropagatesError() {
         val schema     = ObjectValue.builder().put("type", Value.of("string")).build();
         val errorValue = Value.error("test error");
 
@@ -82,7 +85,7 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    void when_validateReturnsCompliant_then_structuredResultCorrect() {
+    void whenValidateReturnsCompliantThenStructuredResultCorrect() {
         val schema = ObjectValue.builder().put("type", Value.of("object"))
                 .put("properties",
                         ObjectValue.builder().put("name", ObjectValue.builder().put("type", Value.of("string")).build())
@@ -101,7 +104,7 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    void when_validateReturnsNonCompliant_then_structuredResultWithErrors() {
+    void whenValidateReturnsNonCompliantThenStructuredResultWithErrors() {
         val schema = ObjectValue.builder().put("type", Value.of("object"))
                 .put("properties",
                         ObjectValue.builder().put("name", ObjectValue.builder().put("type", Value.of("string")).build())
@@ -129,7 +132,7 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    void when_validateWithExternalSchemas_then_referencesAreResolved() {
+    void whenValidateWithExternalSchemasThenReferencesAreResolved() {
         val coordinatesSchema = ObjectValue.builder().put("$id", Value.of("https://example.com/coordinates"))
                 .put("$schema", Value.of("https://json-schema.org/draft/2020-12/schema"))
                 .put("type", Value.of("object"))
@@ -168,7 +171,7 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    void when_validateWithExternalSchemasAndInvalidData_then_returnsFalse() {
+    void whenValidateWithExternalSchemasAndInvalidDataThenReturnsFalse() {
         val coordinatesSchema = ObjectValue.builder().put("$id", Value.of("https://example.com/coordinates"))
                 .put("$schema", Value.of("https://json-schema.org/draft/2020-12/schema"))
                 .put("type", Value.of("object"))

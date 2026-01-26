@@ -24,6 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -31,17 +32,18 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+@DisplayName("YamlFunctionLibrary")
 class YamlFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(YamlFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void whenSimpleKeyValuePairs_thenParsesCorrectly() {
+    void whenSimpleKeyValuePairsThenParsesCorrectly() {
         val yaml   = """
                 cultist: "Wilbur Whateley"
                 role: "ACOLYTE"
@@ -56,7 +58,7 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedObjects_thenParsesCorrectly() {
+    void whenNestedObjectsThenParsesCorrectly() {
         val yaml   = """
                 entity:
                   name: "Azathoth"
@@ -72,7 +74,7 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenDeeplyNestedObjects_thenParsesCorrectly() {
+    void whenDeeplyNestedObjectsThenParsesCorrectly() {
         val yaml   = """
                 ritual:
                   name: "Summoning"
@@ -91,7 +93,7 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenArrays_thenParsesCorrectly() {
+    void whenArraysThenParsesCorrectly() {
         val yaml   = """
                 artifacts:
                   - "Necronomicon"
@@ -118,7 +120,7 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenArrayOfObjects_thenParsesCorrectly() {
+    void whenArrayOfObjectsThenParsesCorrectly() {
         val yaml   = """
                 investigators:
                   - name: "Carter"
@@ -135,9 +137,9 @@ class YamlFunctionLibraryTests {
         assertThat((ObjectValue) investigators.get(1)).containsEntry("name", Value.of("Pickman"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "true", "false" })
-    void whenBooleans_thenParsesCorrectly(String boolValue) {
+    void whenBooleansThenParsesCorrectly(String boolValue) {
         val yaml   = "sealed: " + boolValue;
         val result = YamlFunctionLibrary.yamlToVal(Value.of(yaml));
 
@@ -147,14 +149,14 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyDocument_thenReturnsError() {
+    void whenEmptyDocumentThenReturnsError() {
         val result = YamlFunctionLibrary.yamlToVal(Value.of(""));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test
-    void whenInvalidYaml_thenReturnsError() {
+    void whenInvalidYamlThenReturnsError() {
         val result = YamlFunctionLibrary.yamlToVal(Value.of("invalid: [unclosed"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -162,7 +164,7 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenObjectToYaml_thenConvertsCorrectly() {
+    void whenObjectToYamlThenConvertsCorrectly() {
         val object = ObjectValue.builder().put("name", Value.of("Nyarlathotep"))
                 .put("title", Value.of("Crawling Chaos")).put("threatLevel", Value.of(8)).build();
 
@@ -175,7 +177,7 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedObjectToYaml_thenConvertsCorrectly() {
+    void whenNestedObjectToYamlThenConvertsCorrectly() {
         val location = ObjectValue.builder().put("site", Value.of("R'lyeh")).build();
         val ritual   = ObjectValue.builder().put("location", location).build();
 
@@ -187,7 +189,7 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenArrayToYaml_thenConvertsCorrectly() {
+    void whenArrayToYamlThenConvertsCorrectly() {
         val deities = ArrayValue.builder().add(Value.of("Dagon")).add(Value.of("Hydra")).build();
         val object  = ObjectValue.builder().put("deities", deities).build();
 
@@ -199,14 +201,14 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyObject_thenConvertsToEmptyYaml() {
+    void whenEmptyObjectThenConvertsToEmptyYaml() {
         val result = YamlFunctionLibrary.valToYaml(Value.EMPTY_OBJECT);
 
         assertThat(result).isInstanceOf(TextValue.class);
     }
 
     @Test
-    void whenRoundTrip_thenPreservesData() {
+    void whenRoundTripThenPreservesData() {
         val original   = """
                 investigator:
                   name: "Carter"

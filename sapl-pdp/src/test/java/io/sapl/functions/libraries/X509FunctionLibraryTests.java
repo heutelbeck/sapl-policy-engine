@@ -37,6 +37,7 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -66,10 +67,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("X509FunctionLibrary")
 class X509FunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(X509FunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -104,9 +106,9 @@ class X509FunctionLibraryTests {
 
     /* Certificate Parsing Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("validCertificates")
-    void when_parseCertificateWithValidPem_then_extractsAllFields(String certPem, String expectedFragment,
+    void whenParseCertificateWithValidPemThenExtractsAllFields(String certPem, String expectedFragment,
             String description) {
         val result = X509FunctionLibrary.parseCertificate(Value.of(certPem));
 
@@ -140,9 +142,9 @@ class X509FunctionLibraryTests {
                 arguments(unicodeCertPem, "克苏鲁", "Chinese Unicode"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("malformedCertificates")
-    void when_parseCertificateWithMalformed_then_returnsError(String certInput, String description) {
+    void whenParseCertificateWithMalformedThenReturnsError(String certInput, String description) {
         val result = X509FunctionLibrary.parseCertificate(Value.of(certInput));
 
         assertThat(result).as(description).isInstanceOf(ErrorValue.class);
@@ -161,9 +163,9 @@ class X509FunctionLibraryTests {
                         ""), "Missing PEM markers"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = { " \n", "\r\n" })
-    void when_parseCertificateWithWhitespaceVariations_then_succeeds(String padding) {
+    void whenParseCertificateWithWhitespaceVariationsThenSucceeds(String padding) {
         val modified = padding + cthulhuCertPem.replace("\n", padding) + padding;
         val result   = X509FunctionLibrary.parseCertificate(Value.of(modified));
 
@@ -172,9 +174,9 @@ class X509FunctionLibraryTests {
 
     /* Field Extraction Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("fieldExtractors")
-    void when_extractFieldWithValidCert_then_returnsExpectedValue(Function<TextValue, Value> extractor,
+    void whenExtractFieldWithValidCertThenReturnsExpectedValue(Function<TextValue, Value> extractor,
             String expectedContent, String description) {
         val result = extractor.apply(Value.of(cthulhuCertPem));
 
@@ -184,9 +186,9 @@ class X509FunctionLibraryTests {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("fieldExtractors")
-    void when_extractFieldWithInvalidCert_then_returnsError(Function<TextValue, Value> extractor, String description) {
+    void whenExtractFieldWithInvalidCertThenReturnsError(Function<TextValue, Value> extractor, String description) {
         val result = extractor.apply(Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn"));
 
         assertThat(result).as(description).isInstanceOf(ErrorValue.class);
@@ -201,9 +203,9 @@ class X509FunctionLibraryTests {
                 arguments((Function<TextValue, Value>) X509FunctionLibrary::extractSerialNumber, "", "Serial Number"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("validityDateExtractors")
-    void when_extractValidityDateWithValidCert_then_returnsIsoDate(Function<TextValue, Value> extractor,
+    void whenExtractValidityDateWithValidCertThenReturnsIsoDate(Function<TextValue, Value> extractor,
             String description) {
         val result = extractor.apply(Value.of(cthulhuCertPem));
 
@@ -218,9 +220,9 @@ class X509FunctionLibraryTests {
 
     /* Fingerprint Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "SHA-256, 64", "SHA-1, 40", "SHA-512, 128" })
-    void when_extractFingerprintWithValidAlgorithm_then_computesCorrectLength(String algorithm, int expectedLength) {
+    void whenExtractFingerprintWithValidAlgorithmThenComputesCorrectLength(String algorithm, int expectedLength) {
         val result = X509FunctionLibrary.extractFingerprint(Value.of(cthulhuCertPem), Value.of(algorithm));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -228,7 +230,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_extractFingerprintWithInvalidAlgorithm_then_returnsError() {
+    void whenExtractFingerprintWithInvalidAlgorithmThenReturnsError() {
         val result = X509FunctionLibrary.extractFingerprint(Value.of(cthulhuCertPem), Value.of("ELDER-SIGN-HASH"));
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
@@ -236,7 +238,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_extractFingerprintMultipleTimes_then_isConsistent() {
+    void whenExtractFingerprintMultipleTimesThenIsConsistent() {
         val result1 = X509FunctionLibrary.extractFingerprint(Value.of(cthulhuCertPem), Value.of("SHA-256"));
         val result2 = X509FunctionLibrary.extractFingerprint(Value.of(cthulhuCertPem), Value.of("SHA-256"));
 
@@ -244,7 +246,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_matchesFingerprintWithCorrectFingerprint_then_returnsTrue()
+    void whenMatchesFingerprintWithCorrectFingerprintThenReturnsTrue()
             throws CertificateException, NoSuchAlgorithmException {
         val cert                = CertificateUtils.parseCertificate(cthulhuCertPem);
         val digest              = MessageDigest.getInstance("SHA-256");
@@ -255,13 +257,13 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_matchesFingerprintWithWrongFingerprint_then_returnsFalse() {
+    void whenMatchesFingerprintWithWrongFingerprintThenReturnsFalse() {
         assertThat(X509FunctionLibrary.matchesFingerprint(Value.of(cthulhuCertPem), Value.of("deadbeefdeadbeef"),
                 Value.of("SHA-256"))).isEqualTo(Value.FALSE);
     }
 
     @Test
-    void when_matchesFingerprint_then_isCaseInsensitive() throws CertificateException, NoSuchAlgorithmException {
+    void whenMatchesFingerprintThenIsCaseInsensitive() throws CertificateException, NoSuchAlgorithmException {
         val cert        = CertificateUtils.parseCertificate(cthulhuCertPem);
         val digest      = MessageDigest.getInstance("SHA-256");
         val fingerprint = HexFormat.of().formatHex(digest.digest(cert.getEncoded()));
@@ -275,14 +277,14 @@ class X509FunctionLibraryTests {
     /* Subject Alternative Names Tests */
 
     @Test
-    void when_extractSubjectAltNamesWithNoSans_then_returnsEmptyArray() {
+    void whenExtractSubjectAltNamesWithNoSansThenReturnsEmptyArray() {
         val result = X509FunctionLibrary.extractSubjectAltNames(Value.of(cthulhuCertPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isInstanceOf(ArrayValue.class);
     }
 
     @Test
-    void when_extractSubjectAltNamesWithSans_then_returnsSanList() {
+    void whenExtractSubjectAltNamesWithSansThenReturnsSanList() {
         val result = X509FunctionLibrary.extractSubjectAltNames(Value.of(certWithSansPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isInstanceOf(ArrayValue.class);
@@ -296,7 +298,7 @@ class X509FunctionLibraryTests {
     /* DNS Name Tests */
 
     @Test
-    void when_hasDnsNameWithMatchingDns_then_returnsTrue() {
+    void whenHasDnsNameWithMatchingDnsThenReturnsTrue() {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of(DEFAULT_DNS_1));
 
@@ -304,7 +306,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_hasDnsNameWithNonMatchingDns_then_returnsFalse() {
+    void whenHasDnsNameWithNonMatchingDnsThenReturnsFalse() {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of("miskatonic-university.edu"));
 
@@ -312,7 +314,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_hasDnsNameWithWildcardCert_then_matchesSubdomain()
+    void whenHasDnsNameWithWildcardCertThenMatchesSubdomain()
             throws OperatorCreationException, CertificateException, IOException {
         val now  = Instant.now();
         val cert = generateCertificate("CN=*.rlyeh.deep,O=Wildcard Services,C=US", now.minus(1, ChronoUnit.DAYS),
@@ -325,9 +327,9 @@ class X509FunctionLibraryTests {
         assertThat(result).isEqualTo(Value.TRUE);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "RITUAL-CHAMBER.RLYEH.DEEP", "Ritual-Chamber.Rlyeh.Deep" })
-    void when_hasDnsName_then_isCaseInsensitive(String dnsVariation) {
+    void whenHasDnsNameThenIsCaseInsensitive(String dnsVariation) {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of(dnsVariation));
 
@@ -337,7 +339,7 @@ class X509FunctionLibraryTests {
     /* IP Address Tests */
 
     @Test
-    void when_hasIpAddressWithMatchingIp_then_returnsTrue() {
+    void whenHasIpAddressWithMatchingIpThenReturnsTrue() {
         val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of(DEFAULT_IP));
 
@@ -345,7 +347,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_hasIpAddressWithNonMatchingIp_then_returnsFalse() {
+    void whenHasIpAddressWithNonMatchingIpThenReturnsFalse() {
         val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of("10.0.0.1"));
 
@@ -353,7 +355,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_hasIpAddressWithNonSanCert_then_returnsFalse() {
+    void whenHasIpAddressWithNonSanCertThenReturnsFalse() {
         val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(cthulhuCertPem),
                 (TextValue) Value.of(DEFAULT_IP));
 
@@ -362,19 +364,19 @@ class X509FunctionLibraryTests {
 
     /* Validity Check Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "false, Valid certificate", "true, Expired certificate" })
-    void when_isExpired_then_checksExpirationCorrectly(boolean shouldBeExpired, String description) {
+    void whenIsExpiredThenChecksExpirationCorrectly(boolean shouldBeExpired, String description) {
         val certPem = shouldBeExpired ? expiredCertPem : cthulhuCertPem;
         val result  = X509FunctionLibrary.isExpired((TextValue) Value.of(certPem));
 
         assertThat(result).as(description).isEqualTo(Value.of(shouldBeExpired));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "1, DAYS, true, Within validity period", "-365, DAYS, false, Before validity start",
             "400, DAYS, false, After validity end" })
-    void when_isValidAtWithVariousTimestamps_then_returnsExpectedResult(long amount, ChronoUnit unit, boolean expected,
+    void whenIsValidAtWithVariousTimestampsThenReturnsExpectedResult(long amount, ChronoUnit unit, boolean expected,
             String description) {
         val timestamp = Instant.now().plus(amount, unit).toString();
         val result    = X509FunctionLibrary.isValidAt((TextValue) Value.of(cthulhuCertPem),
@@ -383,18 +385,18 @@ class X509FunctionLibraryTests {
         assertThat(result).as(description).isEqualTo(Value.of(expected));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "not-a-timestamp", "invalid-format", "2024-13-45T99:99:99Z" })
-    void when_isValidAtWithInvalidTimestamp_then_returnsError(String timestamp) {
+    void whenIsValidAtWithInvalidTimestampThenReturnsError(String timestamp) {
         val result = X509FunctionLibrary.isValidAt((TextValue) Value.of(cthulhuCertPem),
                 (TextValue) Value.of(timestamp));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("boundaryTimestamps")
-    void when_isValidAtAtBoundaries_then_isValid(Function<TextValue, Value> extractDate) {
+    void whenIsValidAtAtBoundariesThenIsValid(Function<TextValue, Value> extractDate) {
         val timestamp = ((TextValue) extractDate.apply((TextValue) Value.of(cthulhuCertPem))).value();
         val result    = X509FunctionLibrary.isValidAt((TextValue) Value.of(cthulhuCertPem),
                 (TextValue) Value.of(timestamp));
@@ -410,7 +412,7 @@ class X509FunctionLibraryTests {
     /* Remaining Validity Tests */
 
     @Test
-    void when_remainingValidityDaysWithValidCert_then_returnsPositiveNumber() {
+    void whenRemainingValidityDaysWithValidCertThenReturnsPositiveNumber() {
         val result = X509FunctionLibrary.remainingValidityDays((TextValue) Value.of(cthulhuCertPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -418,7 +420,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_remainingValidityDaysWithExpiredCert_then_returnsNegativeNumber() {
+    void whenRemainingValidityDaysWithExpiredCertThenReturnsNegativeNumber() {
         val result = X509FunctionLibrary.remainingValidityDays((TextValue) Value.of(expiredCertPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -426,7 +428,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void when_remainingValidityDaysWithCertExpiringInTwoDays_then_returnsOneOrTwo()
+    void whenRemainingValidityDaysWithCertExpiringInTwoDaysThenReturnsOneOrTwo()
             throws OperatorCreationException, CertificateException, IOException {
         val now     = Instant.now();
         val cert    = generateCertificate(CTHULHU_DN, now.minus(365, ChronoUnit.DAYS), now.plus(2, ChronoUnit.DAYS),
@@ -439,9 +441,9 @@ class X509FunctionLibraryTests {
 
     /* Unicode Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("unicodeDns")
-    void when_parseAndExtractWithVariousUnicodeScripts_then_succeeds(String dn, String description)
+    void whenParseAndExtractWithVariousUnicodeScriptsThenSucceeds(String dn, String description)
             throws OperatorCreationException, CertificateException, IOException {
         val cert = generateCertificate(dn, Instant.now().minus(1, ChronoUnit.DAYS),
                 Instant.now().plus(365, ChronoUnit.DAYS), false, null);
@@ -471,7 +473,7 @@ class X509FunctionLibraryTests {
     /* Temporal Edge Cases */
 
     @Test
-    void when_isValidAtWithCertValidForOneHour_then_handlesCorrectly()
+    void whenIsValidAtWithCertValidForOneHourThenHandlesCorrectly()
             throws OperatorCreationException, CertificateException, IOException {
         val now     = Instant.now();
         val cert    = generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.HOURS), now.plus(1, ChronoUnit.HOURS),

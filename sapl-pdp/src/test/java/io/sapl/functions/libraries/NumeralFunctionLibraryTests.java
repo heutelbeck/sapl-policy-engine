@@ -35,11 +35,15 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("NumeralFunctionLibrary")
 class NumeralFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(NumeralFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -47,9 +51,9 @@ class NumeralFunctionLibraryTests {
 
     /* Parsing Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHexParsingTestCases")
-    void when_fromHex_then_returnsCorrectValue(String input, long expected) {
+    void whenFromHexThenReturnsCorrectValue(String input, long expected) {
         val actual = NumeralFunctionLibrary.fromHex(Value.of(input));
         assertThat(actual).isInstanceOf(NumberValue.class);
         val number = (NumberValue) actual;
@@ -57,17 +61,16 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideHexParsingTestCases() {
-        return Stream.of(Arguments.of("0", 0L), Arguments.of("1", 1L), Arguments.of("FF", 255L),
-                Arguments.of("ff", 255L), Arguments.of("Ff", 255L), Arguments.of("0xFF", 255L),
-                Arguments.of("0XFF", 255L), Arguments.of("FFF", 4095L), Arguments.of("FFFF", 65535L),
-                Arguments.of("FF_FF", 65535L), Arguments.of("F_F_F_F", 65535L), Arguments.of("-1", -1L),
-                Arguments.of("-FF", -255L), Arguments.of("FFFFFFFFFFFFFFFF", -1L),
-                Arguments.of("7FFFFFFFFFFFFFFF", Long.MAX_VALUE), Arguments.of("8000000000000000", Long.MIN_VALUE));
+        return Stream.of(arguments("0", 0L), arguments("1", 1L), arguments("FF", 255L), arguments("ff", 255L),
+                arguments("Ff", 255L), arguments("0xFF", 255L), arguments("0XFF", 255L), arguments("FFF", 4095L),
+                arguments("FFFF", 65535L), arguments("FF_FF", 65535L), arguments("F_F_F_F", 65535L),
+                arguments("-1", -1L), arguments("-FF", -255L), arguments("FFFFFFFFFFFFFFFF", -1L),
+                arguments("7FFFFFFFFFFFFFFF", Long.MAX_VALUE), arguments("8000000000000000", Long.MIN_VALUE));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBinaryParsingTestCases")
-    void when_fromBinary_then_returnsCorrectValue(String input, long expected) {
+    void whenFromBinaryThenReturnsCorrectValue(String input, long expected) {
         val actual = NumeralFunctionLibrary.fromBinary(Value.of(input));
         assertThat(actual).isInstanceOf(NumberValue.class);
         val number = (NumberValue) actual;
@@ -75,16 +78,15 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideBinaryParsingTestCases() {
-        return Stream.of(Arguments.of("0", 0L), Arguments.of("1", 1L), Arguments.of("1010", 10L),
-                Arguments.of("0b1010", 10L), Arguments.of("0B1010", 10L), Arguments.of("11111111", 255L),
-                Arguments.of("1111_1111", 255L), Arguments.of("1_0_1_0", 10L), Arguments.of("-1", -1L),
-                Arguments.of("-1010", -10L),
-                Arguments.of("1111111111111111111111111111111111111111111111111111111111111111", -1L));
+        return Stream.of(arguments("0", 0L), arguments("1", 1L), arguments("1010", 10L), arguments("0b1010", 10L),
+                arguments("0B1010", 10L), arguments("11111111", 255L), arguments("1111_1111", 255L),
+                arguments("1_0_1_0", 10L), arguments("-1", -1L), arguments("-1010", -10L),
+                arguments("1111111111111111111111111111111111111111111111111111111111111111", -1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideOctalParsingTestCases")
-    void when_fromOctal_then_returnsCorrectValue(String input, long expected) {
+    void whenFromOctalThenReturnsCorrectValue(String input, long expected) {
         val actual = NumeralFunctionLibrary.fromOctal(Value.of(input));
         assertThat(actual).isInstanceOf(NumberValue.class);
         val number = (NumberValue) actual;
@@ -92,15 +94,14 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideOctalParsingTestCases() {
-        return Stream.of(Arguments.of("0", 0L), Arguments.of("7", 7L), Arguments.of("10", 8L), Arguments.of("77", 63L),
-                Arguments.of("0o77", 63L), Arguments.of("0O77", 63L), Arguments.of("755", 493L),
-                Arguments.of("7_5_5", 493L), Arguments.of("-1", -1L), Arguments.of("-10", -8L),
-                Arguments.of("1777777777777777777777", -1L));
+        return Stream.of(arguments("0", 0L), arguments("7", 7L), arguments("10", 8L), arguments("77", 63L),
+                arguments("0o77", 63L), arguments("0O77", 63L), arguments("755", 493L), arguments("7_5_5", 493L),
+                arguments("-1", -1L), arguments("-10", -8L), arguments("1777777777777777777777", -1L));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideInvalidParsingTestCases")
-    void when_parseWithInvalidInput_then_returnsError(String baseName, Function<Value, Value> parseFunction,
+    void whenParseWithInvalidInputThenReturnsError(String baseName, Function<Value, Value> parseFunction,
             String invalidInput) {
 
         val actual = parseFunction.apply(Value.of(invalidInput));
@@ -108,26 +109,26 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideInvalidParsingTestCases() {
-        return Stream.of(Arguments.of("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, ""),
-                Arguments.of("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "   "),
-                Arguments.of("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "GG"),
-                Arguments.of("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "0x"),
-                Arguments.of("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "-"),
+        return Stream.of(arguments("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, ""),
+                arguments("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "   "),
+                arguments("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "GG"),
+                arguments("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "0x"),
+                arguments("hex", (Function<TextValue, Value>) NumeralFunctionLibrary::fromHex, "-"),
 
-                Arguments.of("binary", (Function<TextValue, Value>) NumeralFunctionLibrary::fromBinary, ""),
-                Arguments.of("binary", (Function<TextValue, Value>) NumeralFunctionLibrary::fromBinary, "102"),
-                Arguments.of("binary", (Function<TextValue, Value>) NumeralFunctionLibrary::fromBinary, "0b"),
+                arguments("binary", (Function<TextValue, Value>) NumeralFunctionLibrary::fromBinary, ""),
+                arguments("binary", (Function<TextValue, Value>) NumeralFunctionLibrary::fromBinary, "102"),
+                arguments("binary", (Function<TextValue, Value>) NumeralFunctionLibrary::fromBinary, "0b"),
 
-                Arguments.of("octal", (Function<TextValue, Value>) NumeralFunctionLibrary::fromOctal, ""),
-                Arguments.of("octal", (Function<TextValue, Value>) NumeralFunctionLibrary::fromOctal, "88"),
-                Arguments.of("octal", (Function<TextValue, Value>) NumeralFunctionLibrary::fromOctal, "0o"));
+                arguments("octal", (Function<TextValue, Value>) NumeralFunctionLibrary::fromOctal, ""),
+                arguments("octal", (Function<TextValue, Value>) NumeralFunctionLibrary::fromOctal, "88"),
+                arguments("octal", (Function<TextValue, Value>) NumeralFunctionLibrary::fromOctal, "0o"));
     }
 
     /* Formatting Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHexFormattingTestCases")
-    void when_toHex_then_returnsCorrectString(long value, String expected) {
+    void whenToHexThenReturnsCorrectString(long value, String expected) {
         val actual = NumeralFunctionLibrary.toHex(Value.of(value));
         assertThat(actual).isInstanceOf(TextValue.class);
         val text = (TextValue) actual;
@@ -135,15 +136,14 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideHexFormattingTestCases() {
-        return Stream.of(Arguments.of(0L, "0"), Arguments.of(1L, "1"), Arguments.of(255L, "FF"),
-                Arguments.of(4095L, "FFF"), Arguments.of(65535L, "FFFF"), Arguments.of(-1L, "FFFFFFFFFFFFFFFF"),
-                Arguments.of(-255L, "FFFFFFFFFFFFFF01"), Arguments.of(Long.MAX_VALUE, "7FFFFFFFFFFFFFFF"),
-                Arguments.of(Long.MIN_VALUE, "8000000000000000"));
+        return Stream.of(arguments(0L, "0"), arguments(1L, "1"), arguments(255L, "FF"), arguments(4095L, "FFF"),
+                arguments(65535L, "FFFF"), arguments(-1L, "FFFFFFFFFFFFFFFF"), arguments(-255L, "FFFFFFFFFFFFFF01"),
+                arguments(Long.MAX_VALUE, "7FFFFFFFFFFFFFFF"), arguments(Long.MIN_VALUE, "8000000000000000"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideBinaryFormattingTestCases")
-    void when_toBinary_then_returnsCorrectString(long value, String expected) {
+    void whenToBinaryThenReturnsCorrectString(long value, String expected) {
         val actual = NumeralFunctionLibrary.toBinary(Value.of(value));
         assertThat(actual).isInstanceOf(TextValue.class);
         val text = (TextValue) actual;
@@ -151,14 +151,13 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideBinaryFormattingTestCases() {
-        return Stream.of(Arguments.of(0L, "0"), Arguments.of(1L, "1"), Arguments.of(10L, "1010"),
-                Arguments.of(255L, "11111111"),
-                Arguments.of(-1L, "1111111111111111111111111111111111111111111111111111111111111111"));
+        return Stream.of(arguments(0L, "0"), arguments(1L, "1"), arguments(10L, "1010"), arguments(255L, "11111111"),
+                arguments(-1L, "1111111111111111111111111111111111111111111111111111111111111111"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideOctalFormattingTestCases")
-    void when_toOctal_then_returnsCorrectString(long value, String expected) {
+    void whenToOctalThenReturnsCorrectString(long value, String expected) {
         val actual = NumeralFunctionLibrary.toOctal(Value.of(value));
         assertThat(actual).isInstanceOf(TextValue.class);
         val text = (TextValue) actual;
@@ -166,15 +165,15 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideOctalFormattingTestCases() {
-        return Stream.of(Arguments.of(0L, "0"), Arguments.of(7L, "7"), Arguments.of(8L, "10"), Arguments.of(63L, "77"),
-                Arguments.of(493L, "755"), Arguments.of(-1L, "1777777777777777777777"));
+        return Stream.of(arguments(0L, "0"), arguments(7L, "7"), arguments(8L, "10"), arguments(63L, "77"),
+                arguments(493L, "755"), arguments(-1L, "1777777777777777777777"));
     }
 
     /* Prefixed Formatting Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("providePrefixedFormattingTestCases")
-    void when_toPrefixedFormat_then_returnsCorrectString(String baseName, Function<Value, Value> formatFunction,
+    void whenToPrefixedFormatThenReturnsCorrectString(String baseName, Function<Value, Value> formatFunction,
             long value, String expected) {
 
         val actual = formatFunction.apply(Value.of(value));
@@ -185,27 +184,24 @@ class NumeralFunctionLibraryTests {
 
     private static Stream<Arguments> providePrefixedFormattingTestCases() {
         return Stream.of(
-                Arguments.of("hex", (Function<NumberValue, Value>) NumeralFunctionLibrary::toHexPrefixed, 255L, "0xFF"),
-                Arguments.of("hex", (Function<NumberValue, Value>) NumeralFunctionLibrary::toHexPrefixed, 0L, "0x0"),
-                Arguments.of("hex", (Function<NumberValue, Value>) NumeralFunctionLibrary::toHexPrefixed, -1L,
+                arguments("hex", (Function<NumberValue, Value>) NumeralFunctionLibrary::toHexPrefixed, 255L, "0xFF"),
+                arguments("hex", (Function<NumberValue, Value>) NumeralFunctionLibrary::toHexPrefixed, 0L, "0x0"),
+                arguments("hex", (Function<NumberValue, Value>) NumeralFunctionLibrary::toHexPrefixed, -1L,
                         "0xFFFFFFFFFFFFFFFF"),
 
-                Arguments.of("binary", (Function<NumberValue, Value>) NumeralFunctionLibrary::toBinaryPrefixed, 10L,
+                arguments("binary", (Function<NumberValue, Value>) NumeralFunctionLibrary::toBinaryPrefixed, 10L,
                         "0b1010"),
-                Arguments.of("binary", (Function<NumberValue, Value>) NumeralFunctionLibrary::toBinaryPrefixed, 0L,
-                        "0b0"),
+                arguments("binary", (Function<NumberValue, Value>) NumeralFunctionLibrary::toBinaryPrefixed, 0L, "0b0"),
 
-                Arguments.of("octal", (Function<NumberValue, Value>) NumeralFunctionLibrary::toOctalPrefixed, 63L,
-                        "0o77"),
-                Arguments.of("octal", (Function<NumberValue, Value>) NumeralFunctionLibrary::toOctalPrefixed, 0L,
-                        "0o0"));
+                arguments("octal", (Function<NumberValue, Value>) NumeralFunctionLibrary::toOctalPrefixed, 63L, "0o77"),
+                arguments("octal", (Function<NumberValue, Value>) NumeralFunctionLibrary::toOctalPrefixed, 0L, "0o0"));
     }
 
     /* Padded Formatting Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("providePaddedFormattingTestCases")
-    void when_toPaddedFormat_then_returnsCorrectString(String baseName,
+    void whenToPaddedFormatThenReturnsCorrectString(String baseName,
             java.util.function.BiFunction<Value, Value, Value> formatFunction, long value, int width, String expected) {
 
         val actual = formatFunction.apply(Value.of(value), Value.of(width));
@@ -215,43 +211,43 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> providePaddedFormattingTestCases() {
-        return Stream.of(Arguments.of("hex",
+        return Stream.of(arguments("hex",
                 (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
                 255L, 4, "00FF"),
-                Arguments.of("hex",
+                arguments("hex",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
                         255L, 2, "FF"),
-                Arguments.of("hex",
+                arguments("hex",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
                         4095L, 2, "FFF"),
-                Arguments.of("hex",
+                arguments("hex",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
                         0L, 4, "0000"),
 
-                Arguments.of("binary",
+                arguments("binary",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded,
                         10L, 8, "00001010"),
-                Arguments.of("binary",
+                arguments("binary",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded,
                         10L, 4, "1010"),
-                Arguments.of("binary",
+                arguments("binary",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded,
                         255L, 4, "11111111"),
 
-                Arguments.of("octal",
+                arguments("octal",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
                         63L, 4, "0077"),
-                Arguments.of("octal",
+                arguments("octal",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
                         63L, 2, "77"),
-                Arguments.of("octal",
+                arguments("octal",
                         (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
                         493L, 2, "755"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(ints = { 0, -1, -10 })
-    void when_toPaddedFormatWithInvalidWidth_then_returnsError(int invalidWidth) {
+    void whenToPaddedFormatWithInvalidWidthThenReturnsError(int invalidWidth) {
         val actualHex = NumeralFunctionLibrary.toHexPadded(Value.of(255L), Value.of(invalidWidth));
         assertThat(actualHex).isInstanceOf(ErrorValue.class);
         assertThat(actualHex.toString()).contains("Width must be positive");
@@ -267,9 +263,9 @@ class NumeralFunctionLibraryTests {
 
     /* Validation Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideValidHexStrings")
-    void when_isValidHex_withValidInput_then_returnsTrue(String validInput) {
+    void whenIsValidHexWithValidInputThenReturnsTrue(String validInput) {
         val actual = NumeralFunctionLibrary.isValidHex(Value.of(validInput));
         assertThat(actual).isInstanceOf(BooleanValue.class);
         val bool = (BooleanValue) actual;
@@ -281,9 +277,9 @@ class NumeralFunctionLibraryTests {
                 "FFFFFFFFFFFFFFFF");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("provideInvalidHexStrings")
-    void when_isValidHex_withInvalidInput_then_returnsFalse(String invalidInput) {
+    void whenIsValidHexWithInvalidInputThenReturnsFalse(String invalidInput) {
         val actual = NumeralFunctionLibrary.isValidHex(Value.of(invalidInput));
         assertThat(actual).isInstanceOf(BooleanValue.class);
         val bool = (BooleanValue) actual;
@@ -294,9 +290,9 @@ class NumeralFunctionLibraryTests {
         return Stream.of("", "   ", "GG", "XYZ", "0x", "-", "0x-");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideValidBinaryStrings")
-    void when_isValidBinary_withValidInput_then_returnsTrue(String validInput) {
+    void whenIsValidBinaryWithValidInputThenReturnsTrue(String validInput) {
         val actual = NumeralFunctionLibrary.isValidBinary(Value.of(validInput));
         assertThat(actual).isInstanceOf(BooleanValue.class);
         val bool = (BooleanValue) actual;
@@ -307,9 +303,9 @@ class NumeralFunctionLibraryTests {
         return Stream.of("0", "1", "1010", "0b1010", "0B1010", "1111_1111", "1_0_1_0", "-1", "-1010");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("provideInvalidBinaryStrings")
-    void when_isValidBinary_withInvalidInput_then_returnsFalse(String invalidInput) {
+    void whenIsValidBinaryWithInvalidInputThenReturnsFalse(String invalidInput) {
         val actual = NumeralFunctionLibrary.isValidBinary(Value.of(invalidInput));
         assertThat(actual).isInstanceOf(BooleanValue.class);
         val bool = (BooleanValue) actual;
@@ -320,9 +316,9 @@ class NumeralFunctionLibraryTests {
         return Stream.of("", "   ", "102", "abc", "0b", "-", "0b-");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideValidOctalStrings")
-    void when_isValidOctal_withValidInput_then_returnsTrue(String validInput) {
+    void whenIsValidOctalWithValidInputThenReturnsTrue(String validInput) {
         val actual = NumeralFunctionLibrary.isValidOctal(Value.of(validInput));
         assertThat(actual).isInstanceOf(BooleanValue.class);
         val bool = (BooleanValue) actual;
@@ -333,9 +329,9 @@ class NumeralFunctionLibraryTests {
         return Stream.of("0", "7", "10", "77", "0o77", "0O77", "7_5_5", "755", "-1", "-10");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("provideInvalidOctalStrings")
-    void when_isValidOctal_withInvalidInput_then_returnsFalse(String invalidInput) {
+    void whenIsValidOctalWithInvalidInputThenReturnsFalse(String invalidInput) {
         val actual = NumeralFunctionLibrary.isValidOctal(Value.of(invalidInput));
         assertThat(actual).isInstanceOf(BooleanValue.class);
         val bool = (BooleanValue) actual;
@@ -348,9 +344,9 @@ class NumeralFunctionLibraryTests {
 
     /* Round-trip Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideRoundTripValues")
-    void when_formatThenParse_then_returnsOriginalValue(long originalValue) {
+    void whenFormatThenParseThenReturnsOriginalValue(long originalValue) {
         val hexString = NumeralFunctionLibrary.toHex(Value.of(originalValue));
         assertThat(hexString).isInstanceOf(TextValue.class);
         val parsedFromHex = NumeralFunctionLibrary.fromHex((TextValue) hexString);
@@ -378,7 +374,7 @@ class NumeralFunctionLibraryTests {
     /* Edge Cases */
 
     @Test
-    void when_parseMaxAndMinValues_then_returnsCorrectResults() {
+    void whenParseMaxAndMinValuesThenReturnsCorrectResults() {
         val maxHex = NumeralFunctionLibrary.fromHex(Value.of("7FFFFFFFFFFFFFFF"));
         assertThat(maxHex).isInstanceOf(NumberValue.class);
         assertThat(((NumberValue) maxHex).value().longValue()).isEqualTo(Long.MAX_VALUE);
@@ -389,7 +385,7 @@ class NumeralFunctionLibraryTests {
     }
 
     @Test
-    void when_parseCaseInsensitive_then_returnsCorrectValue() {
+    void whenParseCaseInsensitiveThenReturnsCorrectValue() {
         val lower = NumeralFunctionLibrary.fromHex(Value.of("deadbeef"));
         val upper = NumeralFunctionLibrary.fromHex(Value.of("DEADBEEF"));
         val mixed = NumeralFunctionLibrary.fromHex(Value.of("DeAdBeEf"));
@@ -405,7 +401,7 @@ class NumeralFunctionLibraryTests {
     }
 
     @Test
-    void when_formatAlwaysUppercase_then_returnsUppercaseHex() {
+    void whenFormatAlwaysUppercaseThenReturnsUppercaseHex() {
         val result = NumeralFunctionLibrary.toHex(Value.of(0xDEADBEEFL));
         assertThat(result).isInstanceOf(TextValue.class);
         val text = (TextValue) result;
@@ -414,7 +410,7 @@ class NumeralFunctionLibraryTests {
     }
 
     @Test
-    void when_parseWithMultipleUnderscores_then_ignoresAllUnderscores() {
+    void whenParseWithMultipleUnderscoresThenIgnoresAllUnderscores() {
         val result = NumeralFunctionLibrary.fromHex(Value.of("F_F_F_F"));
         assertThat(result).isInstanceOf(NumberValue.class);
         assertThat(((NumberValue) result).value().longValue()).isEqualTo(0xFFFFL);

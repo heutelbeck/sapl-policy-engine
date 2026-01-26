@@ -26,6 +26,7 @@ import io.sapl.api.model.Value;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -45,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("DefaultFunctionBroker")
 class DefaultFunctionBrokerTests {
 
     private DefaultFunctionBroker broker;
@@ -59,19 +61,19 @@ class DefaultFunctionBrokerTests {
     // ========================================================================
 
     @Test
-    void when_loadStaticFunctionLibraryWithNull_then_throwsException() {
+    void whenLoadStaticFunctionLibraryWithNullThenThrowsException() {
         assertThatThrownBy(() -> broker.loadStaticFunctionLibrary(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Library class must not be null.");
     }
 
     @Test
-    void when_loadInstantiatedFunctionLibraryWithNull_then_throwsException() {
+    void whenLoadInstantiatedFunctionLibraryWithNullThenThrowsException() {
         assertThatThrownBy(() -> broker.loadInstantiatedFunctionLibrary(null))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("Library instance must not be null.");
     }
 
     @Test
-    void when_evaluateFunctionWithNull_then_throwsException() {
+    void whenEvaluateFunctionWithNullThenThrowsException() {
         assertThatThrownBy(() -> broker.evaluateFunction(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Function invocation must not be null.");
     }
@@ -81,7 +83,7 @@ class DefaultFunctionBrokerTests {
     // ========================================================================
 
     @Test
-    void when_loadLibraryWithoutAnnotation_then_throwsException() {
+    void whenLoadLibraryWithoutAnnotationThenThrowsException() {
         class NotAnnotated {
             @SuppressWarnings("unused")
             public Value someMethod() {
@@ -95,7 +97,7 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_loadLibraryWithBlankName_then_usesClassName() {
+    void whenLoadLibraryWithBlankNameThenUsesClassName() {
         broker.loadStaticFunctionLibrary(LibraryWithoutName.class);
 
         val invocation = new FunctionInvocation("LibraryWithoutName.invoke", List.of());
@@ -109,7 +111,7 @@ class DefaultFunctionBrokerTests {
     // ========================================================================
 
     @Test
-    void when_instanceMethodsWithInstanceLibrary_then_worksCorrectly() {
+    void whenInstanceMethodsWithInstanceLibraryThenWorksCorrectly() {
         broker.loadInstantiatedFunctionLibrary(new MixedMethodLibrary());
 
         val staticInvocation = new FunctionInvocation("nyarlathotep.summonMessenger", List.of());
@@ -132,14 +134,14 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_instanceMethodsInStaticLibrary_then_throwsException() {
+    void whenInstanceMethodsInStaticLibraryThenThrowsException() {
         assertThatThrownBy(() -> broker.loadStaticFunctionLibrary(MixedMethodLibrary.class))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("must be static when no library instance is provided");
     }
 
     @Test
-    void when_staticMethodsFromMixedLibraryInInstanceMode_then_worksCorrectly() {
+    void whenStaticMethodsFromMixedLibraryInInstanceModeThenWorksCorrectly() {
         broker.loadInstantiatedFunctionLibrary(new MixedMethodLibrary());
 
         val staticInvocation = new FunctionInvocation("nyarlathotep.summonMessenger", List.of());
@@ -154,7 +156,7 @@ class DefaultFunctionBrokerTests {
     // ========================================================================
 
     @Test
-    void when_loadMultipleLibraries_then_allSuccessful() {
+    void whenLoadMultipleLibrariesThenAllSuccessful() {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
         broker.loadStaticFunctionLibrary(AzathothLibrary.class);
 
@@ -166,7 +168,7 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_loadingDuplicateFunctionSignature_then_throwsException() {
+    void whenLoadingDuplicateFunctionSignatureThenThrowsException() {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
 
         assertThatThrownBy(() -> broker.loadStaticFunctionLibrary(DuplicateCthulhuLibrary.class))
@@ -175,7 +177,7 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_loadingOverloadedFunctionsWithDifferentArity_then_succeeds() {
+    void whenLoadingOverloadedFunctionsWithDifferentArityThenSucceeds() {
         broker.loadStaticFunctionLibrary(YogSothothLibrary.class);
 
         val noArgsInvocation  = new FunctionInvocation("yog.gate", List.of());
@@ -199,7 +201,7 @@ class DefaultFunctionBrokerTests {
     // ========================================================================
 
     @Test
-    void when_evaluateNonExistentFunction_then_returnsError() {
+    void whenEvaluateNonExistentFunctionThenReturnsError() {
         val invocation = new FunctionInvocation("nonexistent.function", List.of());
         val result     = broker.evaluateFunction(invocation);
 
@@ -208,7 +210,7 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_bestMatchingFunction_then_selected() {
+    void whenBestMatchingFunctionThenSelected() {
         broker.loadStaticFunctionLibrary(ShubNiggurathLibrary.class);
 
         val stringInvocation = new FunctionInvocation("shub.transform", List.of(Value.of("goat")));
@@ -224,7 +226,7 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_functionAddedOnce_then_evaluatesConsistently() {
+    void whenFunctionAddedOnceThenEvaluatesConsistently() {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
 
         val invocation = new FunctionInvocation("cthulhu.summonEntity", List.of());
@@ -242,7 +244,7 @@ class DefaultFunctionBrokerTests {
     // ========================================================================
 
     @Test
-    void when_concurrentFunctionEvaluation_then_threadSafe() throws Exception {
+    void whenConcurrentFunctionEvaluationThenThreadSafe() throws Exception {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
 
         val threadCount  = 1000;
@@ -279,7 +281,7 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_concurrentLibraryLoading_then_threadSafe() throws Exception {
+    void whenConcurrentLibraryLoadingThenThreadSafe() throws Exception {
         val threadCount = 10;
         val latch       = new CountDownLatch(threadCount);
         val errors      = Collections.synchronizedList(new ArrayList<Throwable>());
@@ -312,7 +314,7 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void when_concurrentLoadAndEvaluate_then_threadSafe() throws Exception {
+    void whenConcurrentLoadAndEvaluateThenThreadSafe() throws Exception {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
 
         val operations = 1000;
@@ -354,9 +356,9 @@ class DefaultFunctionBrokerTests {
     // Parameterized Tests
     // ========================================================================
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideInvocationsWithExpectedResults")
-    void when_evaluatingFunctions_then_correctResults(String functionName, List<Value> params, String expectedResult) {
+    void whenEvaluatingFunctionsThenCorrectResults(String functionName, List<Value> params, String expectedResult) {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
         broker.loadStaticFunctionLibrary(YogSothothLibrary.class);
 
@@ -375,9 +377,9 @@ class DefaultFunctionBrokerTests {
                 arguments("yog.gate", List.of(Value.of("silver"), Value.of("key")), "two gate"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideInvalidInvocations")
-    void when_evaluatingInvalidInvocations_then_returnsError(String functionName, List<Value> params) {
+    void whenEvaluatingInvalidInvocationsThenReturnsError(String functionName, List<Value> params) {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
 
         val invocation = new FunctionInvocation(functionName, params);

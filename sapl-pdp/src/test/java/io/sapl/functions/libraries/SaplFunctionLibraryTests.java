@@ -27,17 +27,20 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("SaplFunctionLibrary")
 class SaplFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SaplFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void when_info_then_returnsObjectWithRequiredFields() {
+    void whenInfoThenReturnsObjectWithRequiredFields() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -49,7 +52,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_jdkVersionIsNotEmpty() {
+    void whenInfoThenJdkVersionIsNotEmpty() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -60,7 +63,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_javaVersionIsNotEmpty() {
+    void whenInfoThenJavaVersionIsNotEmpty() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -71,7 +74,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_javaVendorIsNotEmpty() {
+    void whenInfoThenJavaVendorIsNotEmpty() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -82,7 +85,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_osNameIsNotEmpty() {
+    void whenInfoThenOsNameIsNotEmpty() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -93,7 +96,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_osVersionIsNotEmpty() {
+    void whenInfoThenOsVersionIsNotEmpty() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -104,7 +107,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_osArchIsNotEmpty() {
+    void whenInfoThenOsArchIsNotEmpty() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -115,7 +118,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_versionInfoMayBeUnknownIfPropertiesNotAvailable() {
+    void whenInfoThenVersionInfoMayBeUnknownIfPropertiesNotAvailable() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -126,7 +129,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_info_then_gitInfoMayBeUnknownIfPropertiesNotAvailable() {
+    void whenInfoThenGitInfoMayBeUnknownIfPropertiesNotAvailable() {
         val result = SaplFunctionLibrary.info();
 
         assertThat(result).isInstanceOf(ObjectValue.class);
@@ -138,7 +141,7 @@ class SaplFunctionLibraryTests {
     }
 
     @Test
-    void when_infoCalledMultipleTimes_then_returnsConsistentResults() {
+    void whenInfoCalledMultipleTimesThenReturnsConsistentResults() {
         val result1 = SaplFunctionLibrary.info();
         val result2 = SaplFunctionLibrary.info();
 

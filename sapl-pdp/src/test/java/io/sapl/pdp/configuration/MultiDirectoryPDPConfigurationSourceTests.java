@@ -37,6 +37,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("MultiDirectoryPDPConfigurationSource")
 class MultiDirectoryPDPConfigurationSourceTests {
 
     private static final CombiningAlgorithm DENY_OVERRIDES     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
@@ -59,7 +62,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingFromSubdirectories_thenCallbackIsInvokedForEach() throws IOException {
+    void whenLoadingFromSubdirectoriesThenCallbackIsInvokedForEach() throws IOException {
         createSubdirectoryWithPolicy("arkham", DENY_OVERRIDES, "forbidden.sapl",
                 "policy \"forbidden\" deny subject.sanity < 50;");
         createSubdirectoryWithPolicy("innsmouth", PERMIT_OVERRIDES, "access.sapl",
@@ -83,7 +86,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenIncludeRootFilesIsTrue_thenRootFilesAreLoadedAsDefaultPdp() throws IOException {
+    void whenIncludeRootFilesIsTrueThenRootFilesAreLoadedAsDefaultPdp() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
@@ -105,7 +108,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenIncludeRootFilesIsFalse_thenRootFilesAreIgnored() throws IOException {
+    void whenIncludeRootFilesIsFalseThenRootFilesAreIgnored() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
@@ -122,7 +125,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryNamedDefaultExists_thenRootFilesNotLoadedAsDefault() throws IOException {
+    void whenSubdirectoryNamedDefaultExistsThenRootFilesNotLoadedAsDefault() throws IOException {
         createSubdirectoryWithPolicy("default", PERMIT_OVERRIDES, "default.sapl", "policy \"default-dir\" deny true;");
         createFile(tempDir.resolve("root-policy.sapl"), "policy \"root\" permit true;");
 
@@ -136,7 +139,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDoesNotExist_thenThrowsException() {
+    void whenDirectoryDoesNotExistThenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent");
 
         assertThatThrownBy(() -> new MultiDirectoryPDPConfigurationSource(nonExistentPath, config -> {}))
@@ -144,7 +147,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPathIsNotADirectory_thenThrowsException() throws IOException {
+    void whenPathIsNotADirectoryThenThrowsException() throws IOException {
         val file = tempDir.resolve("not-a-directory.txt");
         createFile(file, "content");
 
@@ -153,7 +156,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenEmptyDirectory_thenNoCallbackInvoked() {
+    void whenEmptyDirectoryThenNoCallbackInvoked() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
@@ -162,7 +165,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryHasInvalidName_thenItIsSkipped() throws IOException {
+    void whenSubdirectoryHasInvalidNameThenItIsSkipped() throws IOException {
         createSubdirectoryWithPolicy("valid-name", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
         val invalidDir = tempDir.resolve("invalid name with spaces");
         Files.createDirectory(invalidDir);
@@ -177,7 +180,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryIsAdded_thenNewSourceIsCreated() throws IOException {
+    void whenSubdirectoryIsAddedThenNewSourceIsCreated() throws IOException {
         createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -196,7 +199,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryIsRemoved_thenSourceIsDisposed() throws IOException {
+    void whenSubdirectoryIsRemovedThenSourceIsDisposed() throws IOException {
         val keepDir = tempDir.resolve("keep");
         Files.createDirectory(keepDir);
         createFile(keepDir.resolve("policy.sapl"), "policy \"keep\" permit true;");
@@ -234,7 +237,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileInSubdirectoryChanges_thenCallbackIsInvokedAgain() throws IOException {
+    void whenFileInSubdirectoryChangesThenCallbackIsInvokedAgain() throws IOException {
         val subdirPath = createSubdirectoryWithPolicy("mutable", DENY_OVERRIDES, "policy.sapl",
                 "policy \"original\" permit true;");
 
@@ -253,7 +256,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenChildPdpJsonHasConfigurationId_thenUsesExplicitId() throws IOException {
+    void whenChildPdpJsonHasConfigurationIdThenUsesExplicitId() throws IOException {
         val cultistDir = tempDir.resolve("cultist");
         Files.createDirectories(cultistDir);
         createFile(cultistDir.resolve("ritual.sapl"), "policy \"ritual\" permit true;");
@@ -269,7 +272,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenChildPdpJsonHasNoConfigurationId_thenAutoGeneratesId() throws IOException {
+    void whenChildPdpJsonHasNoConfigurationIdThenAutoGeneratesId() throws IOException {
         createSubdirectoryWithPolicy("cultist", DENY_OVERRIDES, "ritual.sapl", "policy \"ritual\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -283,7 +286,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalled_thenIsDisposedReturnsTrue() throws IOException {
+    void whenDisposeIsCalledThenIsDisposedReturnsTrue() throws IOException {
         createSubdirectoryWithPolicy("disposable", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, config -> {});
@@ -296,7 +299,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalledTwice_thenIsIdempotent() throws IOException {
+    void whenDisposeIsCalledTwiceThenIsIdempotent() throws IOException {
         createSubdirectoryWithPolicy("disposable", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, config -> {});
@@ -308,7 +311,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkSubdirectoryPresent_thenItIsSkipped(@TempDir Path externalDir) throws IOException {
+    void whenSymlinkSubdirectoryPresentThenItIsSkipped(@TempDir Path externalDir) throws IOException {
         createSubdirectoryWithPolicy("real", DENY_OVERRIDES, "policy.sapl", "policy \"real\" permit true;");
 
         // Create target directory OUTSIDE the watched directory
@@ -333,7 +336,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkDirectoryProvided_thenThrowsException() throws IOException {
+    void whenSymlinkDirectoryProvidedThenThrowsException() throws IOException {
         val realDir = tempDir.resolve("real");
         Files.createDirectory(realDir);
 
@@ -350,7 +353,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkSubdirectoryAddedAfterStart_thenItIsIgnored(@TempDir Path externalDir) throws IOException {
+    void whenSymlinkSubdirectoryAddedAfterStartThenItIsIgnored(@TempDir Path externalDir) throws IOException {
         createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
         // Create target directory OUTSIDE the watched directory
@@ -384,7 +387,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenManySubdirectories_thenAllAreLoaded() throws IOException {
+    void whenManySubdirectoriesThenAllAreLoaded() throws IOException {
         for (int i = 0; i < 10; i++) {
             createSubdirectoryWithPolicy("tenant-" + i, DENY_OVERRIDES, "policy.sapl",
                     "policy \"tenant%d\" permit subject.tenantId == %d;".formatted(i, i));
@@ -398,7 +401,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryHasNoSaplFiles_thenEmptyConfigIsLoaded() throws IOException {
+    void whenSubdirectoryHasNoSaplFilesThenEmptyConfigIsLoaded() throws IOException {
         val emptyDir = tempDir.resolve("empty-tenant");
         Files.createDirectory(emptyDir);
         createFile(emptyDir.resolve("pdp.json"),
@@ -417,7 +420,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNestedSubdirectories_thenOnlyFirstLevelIsProcessed() throws IOException {
+    void whenNestedSubdirectoriesThenOnlyFirstLevelIsProcessed() throws IOException {
         val parentDir = tempDir.resolve("parent");
         Files.createDirectories(parentDir);
         createFile(parentDir.resolve("parent.sapl"), "policy \"parent\" permit true;");
@@ -438,7 +441,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileDeletedInSubdirectory_thenConfigIsReloaded() throws IOException {
+    void whenFileDeletedInSubdirectoryThenConfigIsReloaded() throws IOException {
         val subdirPath = tempDir.resolve("modifiable");
         Files.createDirectory(subdirPath);
         val firstPolicy  = subdirPath.resolve("first.sapl");
@@ -478,7 +481,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryAddedAfterDispose_thenItIsIgnored() throws IOException {
+    void whenDirectoryAddedAfterDisposeThenItIsIgnored() throws IOException {
         createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -502,7 +505,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDeletedAfterDispose_thenItIsIgnored() throws IOException {
+    void whenDirectoryDeletedAfterDisposeThenItIsIgnored() throws IOException {
         val removable = tempDir.resolve("removable");
         Files.createDirectory(removable);
         createFile(removable.resolve("policy.sapl"), "policy \"removable\" permit true;");
@@ -525,7 +528,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenIncludeRootFilesAndRootFailsToLoad_thenSubdirectoriesStillWork() throws IOException {
+    void whenIncludeRootFilesAndRootFailsToLoadThenSubdirectoriesStillWork() throws IOException {
         createSubdirectoryWithPolicy("tenant", DENY_OVERRIDES, "policy.sapl", "policy \"tenant\" permit true;");
         // Create an invalid pdp.json at root level that won't parse
         createFile(tempDir.resolve("pdp.json"), "not valid json {{{");
@@ -541,7 +544,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryFailsToLoad_thenOtherSubdirectoriesStillWork() throws IOException {
+    void whenSubdirectoryFailsToLoadThenOtherSubdirectoriesStillWork() throws IOException {
         createSubdirectoryWithPolicy("working", DENY_OVERRIDES, "policy.sapl", "policy \"working\" permit true;");
 
         // Create a subdirectory with invalid pdp.json
@@ -560,7 +563,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenIncludeRootFilesAndDefaultSubdirectoryExists_thenRootIsNotLoadedAsDefault() throws IOException {
+    void whenIncludeRootFilesAndDefaultSubdirectoryExistsThenRootIsNotLoadedAsDefault() throws IOException {
         // Create a subdirectory named "default" to test the collision scenario
         val defaultDir = tempDir.resolve("default");
         Files.createDirectory(defaultDir);

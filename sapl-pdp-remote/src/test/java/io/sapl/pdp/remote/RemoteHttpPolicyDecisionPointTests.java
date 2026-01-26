@@ -21,10 +21,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.sapl.api.pdp.*;
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -101,7 +106,7 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
                 AuthorizationDecision.PERMIT });
 
-        final var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        val  subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
@@ -112,16 +117,16 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
-        final var decision1 = new MultiAuthorizationDecision();
+        val decision1 = new MultiAuthorizationDecision();
         decision1.setDecision(ID, AuthorizationDecision.PERMIT);
-        final var decision2 = new MultiAuthorizationDecision();
+        val  decision2 = new MultiAuthorizationDecision();
         decision2.setDecision(ID, AuthorizationDecision.DENY);
-        final var indeterminate = MultiAuthorizationDecision.indeterminate();
+        val  indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+        val  subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
                 JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
@@ -130,14 +135,14 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
-        final var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-        final var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-        final var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+        val  decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        val  decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        val  indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+        val  subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
                 JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
@@ -154,7 +159,7 @@ class RemoteHttpPolicyDecisionPointTests {
                 body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
             }
         }
-        final var response = new MockResponse()
+        val  response = new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
                 .setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
         server.enqueue(response);
@@ -162,23 +167,23 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        final var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
+        val  sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .build();
-        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").secure(sslContext).build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);

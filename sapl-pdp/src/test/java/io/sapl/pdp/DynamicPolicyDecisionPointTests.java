@@ -27,6 +27,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -46,6 +47,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * complete PDP with all dependencies, load policies, and verify authorization
  * decisions.
  */
+@DisplayName("DynamicPolicyDecisionPoint")
 class DynamicPolicyDecisionPointTests {
 
     // Commonly used combining algorithm configurations
@@ -71,7 +73,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenNoConfigurationLoaded_thenThrowException() {
+    void whenNoConfigurationLoadedThenThrowException() {
         val subscription = subscription("Nyarlathotep", "invoke", "outer_gods_council");
 
         StepVerifier.create(pdp.decide(subscription).take(1)).expectErrorMatches(
@@ -80,7 +82,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenSimplePermitPolicy_thenReturnPermit() {
+    void whenSimplePermitPolicyThenReturnPermit() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "allow all"
                 permit
@@ -93,7 +95,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenSimpleDenyPolicy_thenReturnDeny() {
+    void whenSimpleDenyPolicyThenReturnDeny() {
         loadConfiguration(PERMIT_UNLESS_DENY, """
                 policy "deny all"
                 deny
@@ -107,7 +109,7 @@ class DynamicPolicyDecisionPointTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void when_combiningAlgorithm_then_returnsExpectedDecision(String description, CombiningAlgorithm algorithm,
+    void whenCombiningAlgorithmThenReturnsExpectedDecision(String description, CombiningAlgorithm algorithm,
             List<String> policies, AuthorizationSubscription subscription, Decision expectedDecision) {
         loadConfiguration(algorithm, policies.toArray(new String[0]));
 
@@ -115,7 +117,7 @@ class DynamicPolicyDecisionPointTests {
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(expectedDecision)).verifyComplete();
     }
 
-    private static Stream<Arguments> when_combiningAlgorithm_then_returnsExpectedDecision() {
+    private static Stream<Arguments> whenCombiningAlgorithmThenReturnsExpectedDecision() {
         val cultistSubscription      = subscription("cultist", "summon", "deep_one");
         val investigatorSubscription = subscription("investigator", "investigate", "innsmouth");
 
@@ -179,7 +181,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenPolicyWithTargetExpression_thenOnlyMatchingPoliciesApply() {
+    void whenPolicyWithTargetExpressionThenOnlyMatchingPoliciesApply() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit investigators"
                 permit
@@ -201,7 +203,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenPolicyWithObligations_thenObligationsIncludedInDecision() {
+    void whenPolicyWithObligationsThenObligationsIncludedInDecision() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with obligation"
                 permit
@@ -220,7 +222,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenPolicyWithAdvice_thenAdviceIncludedInDecision() {
+    void whenPolicyWithAdviceThenAdviceIncludedInDecision() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with advice"
                 permit
@@ -238,7 +240,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenPolicyWithTransformation_thenResourceTransformed() {
+    void whenPolicyWithTransformationThenResourceTransformed() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with transformation"
                 permit
@@ -257,7 +259,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenPolicyWithWhereClause_thenConditionEvaluated() {
+    void whenPolicyWithWhereClauseThenConditionEvaluated() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit only for specific action"
                 permit
@@ -275,7 +277,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenPolicyAccessesSubscriptionFields_thenFieldsAvailable() {
+    void whenPolicyAccessesSubscriptionFieldsThenFieldsAvailable() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on environment"
                 permit
@@ -298,7 +300,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenMultiplePoliciesWithObligations_thenObligationsCombined() {
+    void whenMultiplePoliciesWithObligationsThenObligationsCombined() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with first obligation"
                 permit
@@ -318,7 +320,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenConfigurationUpdated_thenNewConfigurationUsed() {
+    void whenConfigurationUpdatedThenNewConfigurationUsed() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "initial deny"
                 deny
@@ -339,7 +341,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenPolicyWithVariableDefinition_thenVariableUsedInDecision() {
+    void whenPolicyWithVariableDefinitionThenVariableUsedInDecision() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with local variable"
                 permit
@@ -358,7 +360,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenComplexSubscriptionWithObjectSubject_thenObjectFieldsAccessible() {
+    void whenComplexSubscriptionWithObjectSubjectThenObjectFieldsAccessible() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on subject role"
                 permit

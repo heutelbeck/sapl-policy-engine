@@ -22,6 +22,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -35,10 +36,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("DigestFunctionLibrary")
 class DigestFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(DigestFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -89,7 +91,7 @@ class DigestFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}(\"{1}\") should produce correct hash")
     @MethodSource("hashCorrectnessTestCases")
-    void digestFunction_whenGivenInput_computesCorrectHash(String algorithm, String input, String expectedHash) {
+    void digestFunctionWhenGivenInputComputesCorrectHash(String algorithm, String input, String expectedHash) {
         var digestFunction = getDigestFunction(algorithm);
         var result         = digestFunction.apply(Value.of(input));
 
@@ -103,7 +105,7 @@ class DigestFunctionLibraryTests {
     @ParameterizedTest(name = "{0} should return lowercase hex of length {1}")
     @CsvSource({ "sha256, 64", "sha384, 96", "sha512, 128", "sha3_256, 64", "sha3_384, 96", "sha3_512, 128", "md5, 32",
             "sha1, 40" })
-    void digestFunction_returnsLowercaseHexOfCorrectLength(String algorithm, int expectedLength) {
+    void digestFunctionReturnsLowercaseHexOfCorrectLength(String algorithm, int expectedLength) {
         var digestFunction = getDigestFunction(algorithm);
         var result         = digestFunction.apply(Value.of("test"));
 
@@ -113,7 +115,7 @@ class DigestFunctionLibraryTests {
     }
 
     @Test
-    void allDigests_whenSameInput_produceConsistentHashes() {
+    void allDigestsWhenSameInputProduceConsistentHashes() {
         var input = Value.of("consistency test");
 
         assertThat(DigestFunctionLibrary.sha256(input)).isEqualTo(DigestFunctionLibrary.sha256(input));
@@ -125,7 +127,7 @@ class DigestFunctionLibraryTests {
     }
 
     @Test
-    void allDigests_whenDifferentInput_produceDifferentHashes() {
+    void allDigestsWhenDifferentInputProduceDifferentHashes() {
         var input1 = Value.of("test");
         var input2 = Value.of("test2");
 
@@ -135,7 +137,7 @@ class DigestFunctionLibraryTests {
     }
 
     @Test
-    void differentAlgorithms_whenSameInput_produceDifferentHashes() {
+    void differentAlgorithmsWhenSameInputProduceDifferentHashes() {
         var input  = Value.of("test");
         var sha256 = DigestFunctionLibrary.sha256(input);
         var sha512 = DigestFunctionLibrary.sha512(input);
@@ -148,7 +150,7 @@ class DigestFunctionLibraryTests {
     }
 
     @Test
-    void sha2AndSha3Families_produceDifferentHashesForSameInput() {
+    void sha2AndSha3FamiliesProduceDifferentHashesForSameInput() {
         var input = Value.of("hello");
 
         assertThat(DigestFunctionLibrary.sha256(input)).isNotEqualTo(DigestFunctionLibrary.sha3256(input));
@@ -168,7 +170,7 @@ class DigestFunctionLibraryTests {
 
     @ParameterizedTest(name = "All algorithms should handle: {0}")
     @MethodSource("specialInputTestCases")
-    void allDigests_handleSpecialInputsCorrectly(String description, String input) {
+    void allDigestsHandleSpecialInputsCorrectly(String description, String input) {
         var value = Value.of(input);
 
         assertThat(DigestFunctionLibrary.sha256(value)).isNotInstanceOf(ErrorValue.class);
@@ -187,7 +189,7 @@ class DigestFunctionLibraryTests {
      * computed with UTF-8 encoding.
      */
     @Test
-    void allDigests_whenUnicodeInput_useUtf8Encoding() {
+    void allDigestsWhenUnicodeInputUseUtf8Encoding() {
         // "Hello 世界 🌍" encoded as UTF-8 and hashed with SHA-256
         var unicodeInput = Value.of("Hello 世界 🌍");
         var result       = DigestFunctionLibrary.sha256(unicodeInput);

@@ -24,6 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -38,10 +39,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("CidrFunctionLibrary")
 class CidrFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(CidrFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -75,7 +77,7 @@ class CidrFunctionLibraryTests {
             ::1/128            | ::1                | true
             ::1/128            | ::2                | false
             """)
-    void contains_whenValidInputs_thenReturnsExpectedResult(String cidr, String cidrOrIp, boolean expected) {
+    void containsWhenValidInputsThenReturnsExpectedResult(String cidr, String cidrOrIp, boolean expected) {
         val result = CidrFunctionLibrary.contains(Value.of(cidr), Value.of(cidrOrIp));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -90,7 +92,7 @@ class CidrFunctionLibraryTests {
             192.168.1.0/-1     | 192.168.1.1
             192.168.1.0/abc    | 192.168.1.1
             """)
-    void contains_whenInvalidInput_thenReturnsError(String cidr, String cidrOrIp) {
+    void containsWhenInvalidInputThenReturnsError(String cidr, String cidrOrIp) {
         val result = CidrFunctionLibrary.contains(Value.of(cidr), Value.of(cidrOrIp));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -103,7 +105,7 @@ class CidrFunctionLibraryTests {
             10.0.0.0/8         | fe80::1
             ::1/128            | 127.0.0.1
             """)
-    void contains_whenMixedAddressFamilies_thenReturnsFalse(String cidr, String cidrOrIp) {
+    void containsWhenMixedAddressFamiliesThenReturnsFalse(String cidr, String cidrOrIp) {
         val result = CidrFunctionLibrary.contains(Value.of(cidr), Value.of(cidrOrIp));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.FALSE);
@@ -111,8 +113,8 @@ class CidrFunctionLibraryTests {
 
     @ParameterizedTest(name = "{3}")
     @MethodSource("containsMatchesScenarios")
-    void containsMatches_whenValidInputs_thenReturnsExpectedMatches(String[] cidrs, String[] ips,
-            int[][] expectedMatches, String description) {
+    void containsMatchesWhenValidInputsThenReturnsExpectedMatches(String[] cidrs, String[] ips, int[][] expectedMatches,
+            String description) {
         val cidrArray = buildStringArray(cidrs);
         val ipArray   = buildStringArray(ips);
 
@@ -141,7 +143,7 @@ class CidrFunctionLibraryTests {
     }
 
     @Test
-    void containsMatches_whenInvalidInput_thenReturnsError() {
+    void containsMatchesWhenInvalidInputThenReturnsError() {
         val cidrs = buildStringArray("10.0.0.0/8", "invalid");
         val ips   = buildStringArray("10.1.1.1");
 
@@ -152,7 +154,7 @@ class CidrFunctionLibraryTests {
 
     @ParameterizedTest(name = "Expand {0} into expected addresses")
     @MethodSource("expandTestCases")
-    void expand_whenValidCidr_thenReturnsExpectedAddresses(String cidr, String[] expectedAddresses) {
+    void expandWhenValidCidrThenReturnsExpectedAddresses(String cidr, String[] expectedAddresses) {
         val result = CidrFunctionLibrary.expand(Value.of(cidr));
 
         assertThat(result).isInstanceOf(ArrayValue.class);
@@ -177,7 +179,7 @@ class CidrFunctionLibraryTests {
 
     @ParameterizedTest(name = "Large expansion {0} should fail")
     @ValueSource(strings = { "10.0.0.0/8", "192.168.0.0/15", "2001:db8::/64" })
-    void expand_whenTooLarge_thenReturnsError(String cidr) {
+    void expandWhenTooLargeThenReturnsError(String cidr) {
         val result = CidrFunctionLibrary.expand(Value.of(cidr));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -205,7 +207,7 @@ class CidrFunctionLibraryTests {
             # IPv6 Non-Overlapping
             2001:db8::/32      | 2001:db9::/32      | false
             """)
-    void intersects_whenValidInputs_thenReturnsExpectedResult(String cidr1, String cidr2, boolean expected) {
+    void intersectsWhenValidInputsThenReturnsExpectedResult(String cidr1, String cidr2, boolean expected) {
         val result = CidrFunctionLibrary.intersects(Value.of(cidr1), Value.of(cidr2));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -214,7 +216,7 @@ class CidrFunctionLibraryTests {
     @ParameterizedTest(name = "Valid CIDR: {0}")
     @ValueSource(strings = { "192.168.1.0/24", "10.0.0.0/8", "172.16.0.0/12", "0.0.0.0/0", "255.255.255.255/32",
             "2001:db8::/32", "fe80::/10", "::/0", "::1/128" })
-    void isValid_whenValidCidr_thenReturnsTrue(String cidr) {
+    void isValidWhenValidCidrThenReturnsTrue(String cidr) {
         val result = CidrFunctionLibrary.isValid(Value.of(cidr));
 
         assertThat(result).isEqualTo(Value.TRUE);
@@ -223,7 +225,7 @@ class CidrFunctionLibraryTests {
     @ParameterizedTest(name = "Invalid CIDR: {0}")
     @ValueSource(strings = { "999.999.999.999/24", "not-an-ip/24", "192.168.1.0/33", "192.168.1.0/-1", "2001:db8::/129",
             "192.168.1.0//24" })
-    void isValid_whenInvalidCidr_thenReturnsFalse(String cidr) {
+    void isValidWhenInvalidCidrThenReturnsFalse(String cidr) {
         val result = CidrFunctionLibrary.isValid(Value.of(cidr));
 
         assertThat(result).isEqualTo(Value.FALSE);
@@ -231,7 +233,7 @@ class CidrFunctionLibraryTests {
 
     @ParameterizedTest(name = "Merge: {0}")
     @MethodSource("mergeTestCases")
-    void merge_whenValidInputs_thenReturnsExpectedCidrs(String[] inputCidrs, String[] expectedCidrs) {
+    void mergeWhenValidInputsThenReturnsExpectedCidrs(String[] inputCidrs, String[] expectedCidrs) {
         val inputArray = buildStringArray(inputCidrs);
 
         val result = CidrFunctionLibrary.merge(inputArray);
@@ -284,7 +286,7 @@ class CidrFunctionLibraryTests {
             2001:db8::1        | false
             ::1                | false
             """)
-    void isPrivateIpv4_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isPrivateIpv4WhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isPrivateIpv4(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -306,7 +308,7 @@ class CidrFunctionLibraryTests {
             2001:db8::1        | false
             ::2                | false
             """)
-    void isLoopback_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isLoopbackWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isLoopback(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -329,7 +331,7 @@ class CidrFunctionLibraryTests {
             fc00::1            | false
             fec0::1            | false
             """)
-    void isLinkLocal_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isLinkLocalWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isLinkLocal(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -351,7 +353,7 @@ class CidrFunctionLibraryTests {
             192.168.1.1        | false
             fe80::1            | false
             """)
-    void isMulticast_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isMulticastWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isMulticast(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -377,7 +379,7 @@ class CidrFunctionLibraryTests {
             2001:db7:ffff:ffff:ffff:ffff:ffff:ffff | false
             2001:db9::1        | false
             """)
-    void isDocumentation_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isDocumentationWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isDocumentation(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -395,7 +397,7 @@ class CidrFunctionLibraryTests {
             10.0.0.0           | false
             192.168.1.1        | false
             """)
-    void isCgnat_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isCgnatWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isCgnat(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -412,7 +414,7 @@ class CidrFunctionLibraryTests {
             198.20.0.0         | false
             192.168.1.1        | false
             """)
-    void isBenchmark_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isBenchmarkWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isBenchmark(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -441,7 +443,7 @@ class CidrFunctionLibraryTests {
             2606:4700::1111    | false
             2a00:1450:4001::   | false
             """)
-    void isReserved_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isReservedWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isReserved(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -456,7 +458,7 @@ class CidrFunctionLibraryTests {
             0.0.0.0            | false
             192.168.1.255      | false
             """)
-    void isBroadcast_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isBroadcastWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isBroadcast(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -482,7 +484,7 @@ class CidrFunctionLibraryTests {
             fe80::1            | false
             2001:db8::1        | false
             """)
-    void isPublicRoutable_whenValidInput_thenReturnsExpectedResult(String ipAddress, boolean expected) {
+    void isPublicRoutableWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isPublicRoutable(Value.of(ipAddress));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -500,7 +502,7 @@ class CidrFunctionLibraryTests {
             2001:db8::1        | 32 | 2001:db8::
             fe80::1234:5678    | 10 | fe80::
             """)
-    void anonymizeIp_whenValidInputs_thenReturnsExpectedResult(String ipAddress, int prefixLength, String expected) {
+    void anonymizeIpWhenValidInputsThenReturnsExpectedResult(String ipAddress, int prefixLength, String expected) {
         val result = CidrFunctionLibrary.anonymizeIp(Value.of(ipAddress), Value.of(prefixLength));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -508,7 +510,7 @@ class CidrFunctionLibraryTests {
 
     @ParameterizedTest(name = "{4}")
     @MethodSource("hashIpPrefixTestCases")
-    void hashIpPrefix_whenValidInputs_thenReturnsExpectedHashComparison(String ip1, String ip2, String salt1,
+    void hashIpPrefixWhenValidInputsThenReturnsExpectedHashComparison(String ip1, String ip2, String salt1,
             String salt2, boolean shouldMatch, String description) {
         val hash1 = CidrFunctionLibrary.hashIpPrefix(Value.of(ip1), Value.of(24), Value.of(salt1));
         val hash2 = CidrFunctionLibrary.hashIpPrefix(Value.of(ip2), Value.of(24), Value.of(salt2));
@@ -536,7 +538,7 @@ class CidrFunctionLibraryTests {
             10.20.30.40/16     | 10.20.0.0
             2001:db8:abcd::/48 | 2001:db8:abcd::
             """)
-    void getNetworkAddress_whenValidCidr_thenReturnsExpectedAddress(String cidr, String expected) {
+    void getNetworkAddressWhenValidCidrThenReturnsExpectedAddress(String cidr, String expected) {
         val result = CidrFunctionLibrary.getNetworkAddress(Value.of(cidr));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -549,7 +551,7 @@ class CidrFunctionLibraryTests {
             10.0.0.0/8         | 10.255.255.255
             2001:db8::/32      | 2001:db8:ffff:ffff:ffff:ffff:ffff:ffff
             """)
-    void getBroadcastAddress_whenValidCidr_thenReturnsExpectedAddress(String cidr, String expected) {
+    void getBroadcastAddressWhenValidCidrThenReturnsExpectedAddress(String cidr, String expected) {
         val result = CidrFunctionLibrary.getBroadcastAddress(Value.of(cidr));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -563,7 +565,7 @@ class CidrFunctionLibraryTests {
             192.168.1.0/32     | 1
             2001:db8::/64      | 18446744073709551616
             """)
-    void getAddressCount_whenValidCidr_thenReturnsExpectedCount(String cidr, String expected) {
+    void getAddressCountWhenValidCidrThenReturnsExpectedCount(String cidr, String expected) {
         val result = CidrFunctionLibrary.getAddressCount(Value.of(cidr));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -578,7 +580,7 @@ class CidrFunctionLibraryTests {
             192.168.1.0/32     | 0
             2001:db8::/64      | 18446744073709551615
             """)
-    void getUsableHostCount_whenValidCidr_thenReturnsExpectedCount(String cidr, String expected) {
+    void getUsableHostCountWhenValidCidrThenReturnsExpectedCount(String cidr, String expected) {
         val result = CidrFunctionLibrary.getUsableHostCount(Value.of(cidr));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -591,7 +593,7 @@ class CidrFunctionLibraryTests {
             192.168.1.64/26    | 192.168.1.65
             2001:db8::/64      | 2001:db8::1
             """)
-    void getFirstUsableAddress_whenValidCidr_thenReturnsExpectedAddress(String cidr, String expected) {
+    void getFirstUsableAddressWhenValidCidrThenReturnsExpectedAddress(String cidr, String expected) {
         val result = CidrFunctionLibrary.getFirstUsableAddress(Value.of(cidr));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -604,7 +606,7 @@ class CidrFunctionLibraryTests {
             192.168.1.64/26    | 192.168.1.126
             2001:db8::/64      | 2001:db8::ffff:ffff:ffff:ffff
             """)
-    void getLastUsableAddress_whenValidCidr_thenReturnsExpectedAddress(String cidr, String expected) {
+    void getLastUsableAddressWhenValidCidrThenReturnsExpectedAddress(String cidr, String expected) {
         val result = CidrFunctionLibrary.getLastUsableAddress(Value.of(cidr));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -627,7 +629,7 @@ class CidrFunctionLibraryTests {
             # IPv6 Different Subnet
             2001:db8::1        | 2001:db9::1        | 32 | false
             """)
-    void sameSubnet_whenValidInputs_thenReturnsExpectedResult(String ip1, String ip2, int prefixLength,
+    void sameSubnetWhenValidInputsThenReturnsExpectedResult(String ip1, String ip2, int prefixLength,
             boolean expected) {
         val result = CidrFunctionLibrary.sameSubnet(Value.of(ip1), Value.of(ip2), Value.of(prefixLength));
 
@@ -650,7 +652,7 @@ class CidrFunctionLibraryTests {
             2001:db8::1        | 2001:db8::2        | 126
             2001:db8::1        | 2001:db8:1::1      | 47
             """)
-    void getCommonPrefixLength_whenValidInputs_thenReturnsExpectedResult(String ip1, String ip2, int expected) {
+    void getCommonPrefixLengthWhenValidInputsThenReturnsExpectedResult(String ip1, String ip2, int expected) {
         val result = CidrFunctionLibrary.getCommonPrefixLength(Value.of(ip1), Value.of(ip2));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
@@ -673,14 +675,14 @@ class CidrFunctionLibraryTests {
             2001:db8::/32      | 48 | true
             2001:db8::/48      | 64 | true
             """)
-    void canSubdivide_whenValidInputs_thenReturnsExpectedResult(String cidr, int targetPrefix, boolean expected) {
+    void canSubdivideWhenValidInputsThenReturnsExpectedResult(String cidr, int targetPrefix, boolean expected) {
         val result = CidrFunctionLibrary.canSubdivide(Value.of(cidr), Value.of(targetPrefix));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
     }
 
     @Test
-    void anonymizeIp_whenInvalidPrefix_thenReturnsError() {
+    void anonymizeIpWhenInvalidPrefixThenReturnsError() {
         val result = CidrFunctionLibrary.anonymizeIp(Value.of("192.168.1.1"), Value.of(33));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -688,7 +690,7 @@ class CidrFunctionLibraryTests {
     }
 
     @Test
-    void canSubdivide_whenInvalidTargetPrefix_thenReturnsError() {
+    void canSubdivideWhenInvalidTargetPrefixThenReturnsError() {
         val result = CidrFunctionLibrary.canSubdivide(Value.of("192.168.0.0/24"), Value.of(33));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -696,7 +698,7 @@ class CidrFunctionLibraryTests {
     }
 
     @Test
-    void isPublicRoutable_whenInvalidIp_thenReturnsError() {
+    void isPublicRoutableWhenInvalidIpThenReturnsError() {
         val result = CidrFunctionLibrary.isPublicRoutable(Value.of("invalid-ip"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -704,14 +706,14 @@ class CidrFunctionLibraryTests {
     }
 
     @Test
-    void sameSubnet_whenDifferentAddressFamilies_thenReturnsFalse() {
+    void sameSubnetWhenDifferentAddressFamiliesThenReturnsFalse() {
         val result = CidrFunctionLibrary.sameSubnet(Value.of("192.168.1.1"), Value.of("2001:db8::1"), Value.of(24));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.FALSE);
     }
 
     @Test
-    void getCommonPrefixLength_whenDifferentFamilies_thenReturnsZero() {
+    void getCommonPrefixLengthWhenDifferentFamiliesThenReturnsZero() {
         val result = CidrFunctionLibrary.getCommonPrefixLength(Value.of("192.168.1.1"), Value.of("2001:db8::1"));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(0));

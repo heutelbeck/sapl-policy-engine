@@ -23,6 +23,7 @@ import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,10 +46,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("SignatureFunctionLibrary")
 class SignatureFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SignatureFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -112,7 +114,7 @@ class SignatureFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {0} with valid signature returns true")
     @MethodSource("validSignatureScenarios")
-    void isValid_whenValidSignature_returnsTrue(String algorithmName, Function<SignatureParams, Value> verifyFunction,
+    void isValidWhenValidSignatureReturnsTrue(String algorithmName, Function<SignatureParams, Value> verifyFunction,
             KeyPair keyPair, String javaAlgorithm, String testMessage) throws Exception {
         var signature    = createSignature(keyPair.getPrivate(), javaAlgorithm, testMessage);
         var publicKeyPem = toPem(keyPair.getPublic());
@@ -145,7 +147,7 @@ class SignatureFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {0} with tampered message returns false")
     @MethodSource("invalidSignatureScenarios")
-    void isValid_whenTamperedMessage_returnsFalse(String algorithmName, Function<SignatureParams, Value> verifyFunction,
+    void isValidWhenTamperedMessageReturnsFalse(String algorithmName, Function<SignatureParams, Value> verifyFunction,
             KeyPair keyPair, String javaAlgorithm, String originalMessage, String tamperedMessage) throws Exception {
         var signature    = createSignature(keyPair.getPrivate(), javaAlgorithm, originalMessage);
         var publicKeyPem = toPem(keyPair.getPublic());
@@ -179,7 +181,7 @@ class SignatureFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {0} with wrong key returns false")
     @MethodSource("wrongKeyScenarios")
-    void isValid_whenWrongPublicKey_returnsFalse(String algorithmName, Function<SignatureParams, Value> verifyFunction,
+    void isValidWhenWrongPublicKeyReturnsFalse(String algorithmName, Function<SignatureParams, Value> verifyFunction,
             KeyPair correctKeyPair, KeyPair wrongKeyPair, String javaAlgorithm) throws Exception {
         var signature      = createSignature(correctKeyPair.getPrivate(), javaAlgorithm, NYARLATHOTEP_RIDDLE);
         var wrongPublicKey = toPem(wrongKeyPair.getPublic());
@@ -216,7 +218,7 @@ class SignatureFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {0} with {1} encoding")
     @MethodSource("signatureFormatScenarios")
-    void verify_withDifferentEncodings_succeeds(String algorithmName, String encodingType,
+    void verifyWithDifferentEncodingsSucceeds(String algorithmName, String encodingType,
             Function<SignatureParams, Value> verifyFunction, KeyPair keyPair, String javaAlgorithm,
             java.util.function.Function<byte[], String> encoder) throws Exception {
         var signature        = createSignature(keyPair.getPrivate(), javaAlgorithm, MISKATONIC_RECORDS);
@@ -257,7 +259,7 @@ class SignatureFunctionLibraryTests {
             "   ", // Only whitespace
             "\uD83D\uDC19 The King in Yellow \uD83D\uDC51", // Emojis (🐙 octopus, 👑 crown)
     })
-    void verify_withVariousMessageFormats_handlesCorrectly(String message) throws Exception {
+    void verifyWithVariousMessageFormatsHandlesCorrectly(String message) throws Exception {
         var signature    = createSignature(rsaKeyPair.getPrivate(), "SHA256withRSA", message);
         var publicKeyPem = toPem(rsaKeyPair.getPublic());
         var signatureHex = HexFormat.of().formatHex(signature);
@@ -269,7 +271,7 @@ class SignatureFunctionLibraryTests {
     }
 
     @Test
-    void verify_withVeryLongMessage_handlesCorrectly() throws Exception {
+    void verifyWithVeryLongMessageHandlesCorrectly() throws Exception {
         var longMessage  = FORBIDDEN_KNOWLEDGE.repeat(10000); // ~700KB message
         var signature    = createSignature(rsaKeyPair.getPrivate(), "SHA256withRSA", longMessage);
         var publicKeyPem = toPem(rsaKeyPair.getPublic());
@@ -282,7 +284,7 @@ class SignatureFunctionLibraryTests {
     }
 
     @Test
-    void verify_withLeadingAndTrailingWhitespace_stripsAndSucceeds() throws Exception {
+    void verifyWithLeadingAndTrailingWhitespaceStripsAndSucceeds() throws Exception {
         var signature    = createSignature(rsaKeyPair.getPrivate(), "SHA256withRSA", RITUAL_INCANTATION);
         var publicKeyPem = toPem(rsaKeyPair.getPublic());
         var signatureHex = HexFormat.of().formatHex(signature);
@@ -298,7 +300,7 @@ class SignatureFunctionLibraryTests {
     }
 
     @Test
-    void verify_withWhitespaceInMiddle_returnsError() throws Exception {
+    void verifyWithWhitespaceInMiddleReturnsError() throws Exception {
         var signature    = createSignature(rsaKeyPair.getPrivate(), "SHA256withRSA", RITUAL_INCANTATION);
         var publicKeyPem = toPem(rsaKeyPair.getPublic());
         var signatureHex = HexFormat.of().formatHex(signature);
@@ -316,7 +318,7 @@ class SignatureFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("errorScenarios")
-    void verify_withInvalidInput_returnsError(String scenarioName, Function<SignatureParams, Value> verifyFunction,
+    void verifyWithInvalidInputReturnsError(String scenarioName, Function<SignatureParams, Value> verifyFunction,
             String message, String signature, String publicKey) {
         var result = verifyFunction.apply(new SignatureParams(message, signature, publicKey));
 
@@ -343,7 +345,7 @@ class SignatureFunctionLibraryTests {
     /* RFC Test Vectors */
 
     @Test
-    void verify_withRfc8032Ed25519TestVector1_succeeds() {
+    void verifyWithRfc8032Ed25519TestVector1Succeeds() {
         // RFC 8032 Test Vector 1 for Ed25519
         var message   = "";
         var publicKey = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n-----END PUBLIC KEY-----";
@@ -356,7 +358,7 @@ class SignatureFunctionLibraryTests {
     }
 
     @Test
-    void verify_withRfc8032Ed25519TestVectorModified_fails() {
+    void verifyWithRfc8032Ed25519TestVectorModifiedFails() {
         // RFC 8032 Test Vector 1 with tampered message
         var tamperedMessage = "tampered";
         var publicKey       = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n-----END PUBLIC KEY-----";
@@ -371,7 +373,7 @@ class SignatureFunctionLibraryTests {
     /* Thread Safety / Concurrent Verification Tests */
 
     @RepeatedTest(100)
-    void isValid_whenConcurrentAccess_remainsThreadSafe() throws Exception {
+    void isValidWhenConcurrentAccessRemainsThreadSafe() throws Exception {
         var signature    = createSignature(rsaKeyPair.getPrivate(), "SHA256withRSA", AZATHOTH_PROPHECY);
         var publicKeyPem = toPem(rsaKeyPair.getPublic());
         var signatureHex = HexFormat.of().formatHex(signature);

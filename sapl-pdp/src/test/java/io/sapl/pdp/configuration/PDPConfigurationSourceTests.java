@@ -33,17 +33,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("PDPConfigurationSource")
 class PDPConfigurationSourceTests {
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @NullAndEmptySource
-    void whenValidatePdpIdWithNullOrEmpty_thenThrowsException(String pdpId) {
+    void whenValidatePdpIdWithNullOrEmptyThenThrowsException(String pdpId) {
         assertThatThrownBy(() -> PDPConfigurationSource.validatePdpId(pdpId))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("must not be null or empty");
     }
 
     @Test
-    void whenValidatePdpIdExceedsMaxLength_thenThrowsException() {
+    void whenValidatePdpIdExceedsMaxLengthThenThrowsException() {
         var longId = "a".repeat(PDPConfigurationSource.MAX_PDP_ID_LENGTH + 1);
 
         assertThatThrownBy(() -> PDPConfigurationSource.validatePdpId(longId))
@@ -51,14 +54,14 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenValidatePdpIdAtMaxLength_thenSucceeds() {
+    void whenValidatePdpIdAtMaxLengthThenSucceeds() {
         var maxLengthId = "a".repeat(PDPConfigurationSource.MAX_PDP_ID_LENGTH);
 
         PDPConfigurationSource.validatePdpId(maxLengthId);
         // No exception thrown
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "invalid id", // space
             "invalid/id", // slash
             "invalid\\id", // backslash
@@ -90,42 +93,42 @@ class PDPConfigurationSourceTests {
             "invalid~id", // tilde
             "invalid!id" // exclamation
     })
-    void whenValidatePdpIdWithInvalidCharacters_thenThrowsException(String pdpId) {
+    void whenValidatePdpIdWithInvalidCharactersThenThrowsException(String pdpId) {
         assertThatThrownBy(() -> PDPConfigurationSource.validatePdpId(pdpId))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("invalid characters");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "valid-id", "valid_id", "valid.id", "ValidId", "VALID_ID", "valid123", "123valid", "a",
             "A", "0", "my-pdp-security", "tenant_a.production", "v1.0.0-beta", "PDP-2024-01" })
-    void whenValidatePdpIdWithValidCharacters_thenSucceeds(String pdpId) {
+    void whenValidatePdpIdWithValidCharactersThenSucceeds(String pdpId) {
         PDPConfigurationSource.validatePdpId(pdpId);
         // No exception thrown
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @NullAndEmptySource
-    void whenIsValidPdpIdWithNullOrEmpty_thenReturnsFalse(String pdpId) {
+    void whenIsValidPdpIdWithNullOrEmptyThenReturnsFalse(String pdpId) {
         assertThat(PDPConfigurationSource.isValidPdpId(pdpId)).isFalse();
     }
 
     @Test
-    void whenIsValidPdpIdExceedsMaxLength_thenReturnsFalse() {
+    void whenIsValidPdpIdExceedsMaxLengthThenReturnsFalse() {
         var longId = "a".repeat(PDPConfigurationSource.MAX_PDP_ID_LENGTH + 1);
 
         assertThat(PDPConfigurationSource.isValidPdpId(longId)).isFalse();
     }
 
     @Test
-    void whenIsValidPdpIdAtMaxLength_thenReturnsTrue() {
+    void whenIsValidPdpIdAtMaxLengthThenReturnsTrue() {
         var maxLengthId = "a".repeat(PDPConfigurationSource.MAX_PDP_ID_LENGTH);
 
         assertThat(PDPConfigurationSource.isValidPdpId(maxLengthId)).isTrue();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("invalidPdpIdCases")
-    void whenIsValidPdpIdWithInvalidCharacters_thenReturnsFalse(String pdpId, String description) {
+    void whenIsValidPdpIdWithInvalidCharactersThenReturnsFalse(String pdpId, String description) {
         assertThat(PDPConfigurationSource.isValidPdpId(pdpId)).as("PDP ID with %s should be invalid", description)
                 .isFalse();
     }
@@ -136,9 +139,9 @@ class PDPConfigurationSourceTests {
                 arguments("../traversal", "path traversal"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("validPdpIdCases")
-    void whenIsValidPdpIdWithValidCharacters_thenReturnsTrue(String pdpId, String description) {
+    void whenIsValidPdpIdWithValidCharactersThenReturnsTrue(String pdpId, String description) {
         assertThat(PDPConfigurationSource.isValidPdpId(pdpId)).as("PDP ID with %s should be valid", description)
                 .isTrue();
     }
@@ -150,12 +153,12 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDefaultPdpIdConstant_thenIsValid() {
+    void whenDefaultPdpIdConstantThenIsValid() {
         assertThat(PDPConfigurationSource.isValidPdpId(PDPConfigurationSource.DEFAULT_PDP_ID)).isTrue();
     }
 
     @Test
-    void whenResolveHomeFolderWithTildePath_thenResolvesToUserHome() {
+    void whenResolveHomeFolderWithTildePathThenResolvesToUserHome() {
         var userHome = System.getProperty("user.home");
         var result   = PDPConfigurationSource.resolveHomeFolderIfPresent("~/sapl");
 
@@ -163,7 +166,7 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenResolveHomeFolderWithTildeNestedPath_thenResolvesToUserHome() {
+    void whenResolveHomeFolderWithTildeNestedPathThenResolvesToUserHome() {
         var userHome = System.getProperty("user.home");
         var result   = PDPConfigurationSource.resolveHomeFolderIfPresent("~/policies/production");
 
@@ -171,7 +174,7 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenResolveHomeFolderWithForwardSlashes_thenNormalizesToSystemSeparator() {
+    void whenResolveHomeFolderWithForwardSlashesThenNormalizesToSystemSeparator() {
         var userHome = System.getProperty("user.home");
         var result   = PDPConfigurationSource.resolveHomeFolderIfPresent("~/path/to/policies");
 
@@ -179,7 +182,7 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenResolveHomeFolderWithAbsolutePath_thenReturnsUnchanged() {
+    void whenResolveHomeFolderWithAbsolutePathThenReturnsUnchanged() {
         var absolutePath = "/var/data/policies";
         var result       = PDPConfigurationSource.resolveHomeFolderIfPresent(absolutePath);
 
@@ -187,7 +190,7 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenResolveHomeFolderWithRelativePath_thenReturnsUnchanged() {
+    void whenResolveHomeFolderWithRelativePathThenReturnsUnchanged() {
         var relativePath = "policies/sapl";
         var result       = PDPConfigurationSource.resolveHomeFolderIfPresent(relativePath);
 
@@ -195,7 +198,7 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenResolveHomeFolderWithTildeNotAtStart_thenReturnsUnchanged() {
+    void whenResolveHomeFolderWithTildeNotAtStartThenReturnsUnchanged() {
         var pathWithTilde = "data/~user/policies";
         var result        = PDPConfigurationSource.resolveHomeFolderIfPresent(pathWithTilde);
 
@@ -203,14 +206,14 @@ class PDPConfigurationSourceTests {
     }
 
     @Test
-    void whenResolveHomeFolderWithTildeOnly_thenReturnsUnchanged() {
+    void whenResolveHomeFolderWithTildeOnlyThenReturnsUnchanged() {
         var result = PDPConfigurationSource.resolveHomeFolderIfPresent("~");
 
         assertThat(result).isEqualTo(Paths.get("~"));
     }
 
     @Test
-    void whenResolveHomeFolderWithPathObject_thenResolvesCorrectly() {
+    void whenResolveHomeFolderWithPathObjectThenResolvesCorrectly() {
         var userHome = System.getProperty("user.home");
         var tilePath = Path.of("~", "sapl");
         var result   = PDPConfigurationSource.resolveHomeFolderIfPresent(tilePath);

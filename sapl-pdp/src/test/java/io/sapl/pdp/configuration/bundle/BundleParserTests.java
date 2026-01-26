@@ -24,6 +24,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("BundleParser")
 class BundleParserTests {
 
     private static final String TEST_PDP_ID    = "cthulhu-pdp";
@@ -67,7 +69,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingValidBundle_thenExtractsAllContent() throws IOException {
+    void whenParsingValidBundleThenExtractsAllContent() throws IOException {
         val bundleBytes = createBundleWithConfigId(
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" }, "configurationId": "%s" }
@@ -84,7 +86,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingBundleWithoutPdpJson_thenThrowsException() throws IOException {
+    void whenParsingBundleWithoutPdpJsonThenThrowsException() throws IOException {
         val bundleBytes = createBundleWithoutPdpJson("cultist.sapl", "policy \"cultist\" deny true;");
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
@@ -92,7 +94,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingBundleWithoutConfigurationId_thenThrowsException() throws IOException {
+    void whenParsingBundleWithoutConfigurationIdThenThrowsException() throws IOException {
         val bundleBytes = createBundleWithConfigId(
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
@@ -104,7 +106,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingBundleWithMultiplePolicies_thenAllPoliciesExtracted() throws IOException {
+    void whenParsingBundleWithMultiplePoliciesThenAllPoliciesExtracted() throws IOException {
         val bundleBytes = createBundleWithMultiplePolicies();
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
@@ -113,7 +115,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingFromPath_thenConfigurationIsExtracted() throws IOException {
+    void whenParsingFromPathThenConfigurationIsExtracted() throws IOException {
         val bundlePath = tempDir.resolve("test.saplbundle");
         Files.write(bundlePath,
                 createBundleWithConfigId(
@@ -131,7 +133,7 @@ class BundleParserTests {
 
     @ParameterizedTest(name = "parse from InputStream with size known = {0}")
     @ValueSource(booleans = { true, false })
-    void whenParsingFromInputStream_thenConfigurationIsExtracted(boolean sizeKnown) throws IOException {
+    void whenParsingFromInputStreamThenConfigurationIsExtracted(boolean sizeKnown) throws IOException {
         val bundleBytes = createBundleWithConfigId("""
                 { "configurationId": "%s" }
                 """.formatted(TEST_CONFIG_ID), "dagon.sapl", "policy \"dagon\" permit true;");
@@ -144,7 +146,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleContainsNestedDirectories_thenNestedFilesAreSkipped() throws IOException {
+    void whenBundleContainsNestedDirectoriesThenNestedFilesAreSkipped() throws IOException {
         val bundleBytes = createBundleWithNestedDirectory();
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
@@ -152,9 +154,9 @@ class BundleParserTests {
         assertThat(config.saplDocuments()).hasSize(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("pathTraversalAttempts")
-    void whenBundleContainsPathTraversal_thenThrowsException(String maliciousPath) throws IOException {
+    void whenBundleContainsPathTraversalThenThrowsException(String maliciousPath) throws IOException {
         val bundleBytes = createBundleWithEntryAndConfig(maliciousPath, "malicious content");
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
@@ -166,9 +168,9 @@ class BundleParserTests {
                 arguments("/etc/passwd"), arguments("\\windows\\system32"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("nestedArchiveExtensions")
-    void whenBundleContainsNestedArchive_thenThrowsException(String archiveName) throws IOException {
+    void whenBundleContainsNestedArchiveThenThrowsException(String archiveName) throws IOException {
         val bundleBytes = createBundleWithEntryAndConfig(archiveName, "PK\003\004");
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
@@ -181,7 +183,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleHasTooManyEntries_thenThrowsException() throws IOException {
+    void whenBundleHasTooManyEntriesThenThrowsException() throws IOException {
         val bundleBytes = createBundleWithManyEntries(1001);
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
@@ -189,7 +191,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleExceedsCompressionRatio_thenThrowsException() throws IOException {
+    void whenBundleExceedsCompressionRatioThenThrowsException() throws IOException {
         val largeRepetitiveContent = "A".repeat(50_000);
         val bundleBytes            = createBundleWithConfigId("""
                 { "configurationId": "%s" }
@@ -201,7 +203,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenUncompressedSizeExceedsLimit_thenThrowsException() throws IOException {
+    void whenUncompressedSizeExceedsLimitThenThrowsException() throws IOException {
         val hugeContent = "X".repeat(11 * 1024 * 1024);
         val bundleBytes = createBundleWithEntryAndConfig("necronomicon.sapl", hugeContent);
 
@@ -210,7 +212,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleHasEntryWithLongName_thenThrowsException() throws IOException {
+    void whenBundleHasEntryWithLongNameThenThrowsException() throws IOException {
         val longName    = "a".repeat(256) + ".sapl";
         val bundleBytes = createBundleWithEntryAndConfig(longName, "policy \"test\" permit true;");
 
@@ -219,7 +221,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleContainsOnlyPdpJson_thenReturnsEmptyDocuments() throws IOException {
+    void whenBundleContainsOnlyPdpJsonThenReturnsEmptyDocuments() throws IOException {
         val pdpJsonBundle = createBundleWithOnlyPdpJson();
 
         val pdpJsonConfig = BundleParser.parse(pdpJsonBundle, TEST_PDP_ID, developmentPolicy);
@@ -229,7 +231,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleHasWindowsStylePaths_thenNestedPathsAreSkipped() throws IOException {
+    void whenBundleHasWindowsStylePathsThenNestedPathsAreSkipped() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             addPdpJsonEntry(zos);
@@ -245,7 +247,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingNonExistentFile_thenThrowsException() {
+    void whenParsingNonExistentFileThenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent.saplbundle");
 
         assertThatThrownBy(() -> BundleParser.parse(nonExistentPath, TEST_PDP_ID, developmentPolicy))
@@ -253,7 +255,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingInvalidZipData_thenThrowsExceptionForMissingPdpJson() {
+    void whenParsingInvalidZipDataThenThrowsExceptionForMissingPdpJson() {
         val invalidData = "This is not a ZIP file".getBytes(StandardCharsets.UTF_8);
 
         assertThatThrownBy(() -> BundleParser.parse(invalidData, TEST_PDP_ID, developmentPolicy))
@@ -261,7 +263,7 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleContainsNonSaplFiles_thenTheyAreIgnored() throws IOException {
+    void whenBundleContainsNonSaplFilesThenTheyAreIgnored() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             addPdpJsonEntry(zos);

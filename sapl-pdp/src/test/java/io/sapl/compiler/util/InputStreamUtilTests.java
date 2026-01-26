@@ -25,6 +25,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -45,7 +47,7 @@ class InputStreamUtilTests {
 
         @Test
         @DisplayName("detects UTF-8 without BOM")
-        void whenUtf8WithoutBom_thenConvertsCorrectly() throws IOException {
+        void whenUtf8WithoutBomThenConvertsCorrectly() throws IOException {
             val inputStream          = new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8));
             val convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
             val out                  = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
@@ -56,7 +58,7 @@ class InputStreamUtilTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource("encodingsWithBom")
         @DisplayName("detects and converts encoding with BOM")
-        void whenEncodingWithBom_thenConvertsToUtf8(String name, int[] bom, String charsetName) throws IOException {
+        void whenEncodingWithBomThenConvertsToUtf8(String name, int[] bom, String charsetName) throws IOException {
             val charset              = Charset.forName(charsetName);
             val inputStream          = createStreamWithBom(TEST_CONTENT, bom, charset);
             val convertedInputStream = InputStreamUtil.detectAndConvertEncodingOfStream(inputStream);
@@ -66,11 +68,11 @@ class InputStreamUtilTests {
         }
 
         static Stream<Arguments> encodingsWithBom() {
-            return Stream.of(Arguments.of("UTF-8 with BOM", new int[] { 0xEF, 0xBB, 0xBF }, "UTF-8"),
-                    Arguments.of("UTF-16BE", new int[] { 0xFE, 0xFF }, "UTF-16BE"),
-                    Arguments.of("UTF-16LE", new int[] { 0xFF, 0xFE }, "UTF-16LE"),
-                    Arguments.of("UTF-32BE", new int[] { 0x00, 0x00, 0xFE, 0xFF }, "UTF-32BE"),
-                    Arguments.of("UTF-32LE", new int[] { 0xFF, 0xFE, 0x00, 0x00 }, "UTF-32LE"));
+            return Stream.of(arguments("UTF-8 with BOM", new int[] { 0xEF, 0xBB, 0xBF }, "UTF-8"),
+                    arguments("UTF-16BE", new int[] { 0xFE, 0xFF }, "UTF-16BE"),
+                    arguments("UTF-16LE", new int[] { 0xFF, 0xFE }, "UTF-16LE"),
+                    arguments("UTF-32BE", new int[] { 0x00, 0x00, 0xFE, 0xFF }, "UTF-32BE"),
+                    arguments("UTF-32LE", new int[] { 0xFF, 0xFE, 0x00, 0x00 }, "UTF-32LE"));
         }
 
         private static ByteArrayInputStream createStreamWithBom(String content, int[] bom, Charset charset)

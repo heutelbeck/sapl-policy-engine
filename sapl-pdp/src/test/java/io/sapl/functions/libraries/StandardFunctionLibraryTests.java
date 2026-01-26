@@ -20,6 +20,7 @@ package io.sapl.functions.libraries;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -32,18 +33,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("StandardFunctionLibrary")
 class StandardFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("emptyCollections")
-    void when_lengthOfEmptyCollections_then_isZero(Value emptyCollection) {
+    void whenLengthOfEmptyCollectionsThenIsZero(Value emptyCollection) {
         assertThat(StandardFunctionLibrary.length(emptyCollection)).isEqualTo(Value.of(0));
     }
 
@@ -52,13 +54,13 @@ class StandardFunctionLibraryTests {
     }
 
     @Test
-    void when_lengthOfArrayWithElements_then_returnsCorrectCount() {
+    void whenLengthOfArrayWithElementsThenReturnsCorrectCount() {
         val array = Value.ofArray(Value.FALSE, Value.FALSE, Value.FALSE, Value.FALSE);
         assertThat(StandardFunctionLibrary.length(array)).isEqualTo(Value.of(4));
     }
 
     @Test
-    void when_lengthOfObjectWithElements_then_returnsCorrectCount() {
+    void whenLengthOfObjectWithElementsThenReturnsCorrectCount() {
         val map = new HashMap<String, Value>();
         map.put("key1", Value.FALSE);
         map.put("key2", Value.FALSE);
@@ -69,9 +71,9 @@ class StandardFunctionLibraryTests {
         assertThat(StandardFunctionLibrary.length(object)).isEqualTo(Value.of(5));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("textAndLengths")
-    void when_lengthOfText_then_returnsExpectedLength(String text, int expectedLength) {
+    void whenLengthOfTextThenReturnsExpectedLength(String text, int expectedLength) {
         assertThat(StandardFunctionLibrary.length(Value.of(text))).isEqualTo(Value.of(expectedLength));
     }
 
@@ -80,9 +82,9 @@ class StandardFunctionLibraryTests {
                 arguments("多言語", 3));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("valuesAndStringRepresentations")
-    void when_asString_then_convertsValuesToStrings(Value value, String expected) {
+    void whenAsStringThenConvertsValuesToStrings(Value value, String expected) {
         assertThat(StandardFunctionLibrary.asString(value)).isEqualTo(Value.of(expected));
     }
 
@@ -93,19 +95,19 @@ class StandardFunctionLibraryTests {
     }
 
     @Test
-    void when_onErrorMapWithNoError_then_returnsOriginalValue() {
+    void whenOnErrorMapWithNoErrorThenReturnsOriginalValue() {
         assertThat(StandardFunctionLibrary.onErrorMap(Value.of("ORIGINAL"), Value.of("FALLBACK")))
                 .isEqualTo(Value.of("ORIGINAL"));
     }
 
     @Test
-    void when_onErrorMapWithError_then_returnsFallbackValue() {
+    void whenOnErrorMapWithErrorThenReturnsFallbackValue() {
         assertThat(StandardFunctionLibrary.onErrorMap(Value.error(""), Value.of("FALLBACK")))
                 .isEqualTo(Value.of("FALLBACK"));
     }
 
     @Test
-    void when_onErrorMapWithErrorMessage_then_returnsFallback() {
+    void whenOnErrorMapWithErrorMessageThenReturnsFallback() {
         assertThat(StandardFunctionLibrary.onErrorMap(Value.error("Something went wrong"), Value.of(999)))
                 .isEqualTo(Value.of(999));
     }

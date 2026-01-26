@@ -24,6 +24,7 @@ import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
@@ -33,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+@DisplayName("CachingAttributeBroker")
 class CachingAttributeBrokerTests {
 
     @PolicyInformationPoint(name = "simple")
@@ -148,7 +150,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadLibrary_then_succeeds() {
+    void whenLoadLibraryThenSucceeds() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -158,7 +160,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadMultipleLibraries_then_succeeds() {
+    void whenLoadMultipleLibrariesThenSucceeds() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -169,7 +171,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_unloadLibrary_then_succeeds() {
+    void whenUnloadLibraryThenSucceeds() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -183,7 +185,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_unloadNonExistentLibrary_then_returnsFalse() {
+    void whenUnloadNonExistentLibraryThenReturnsFalse() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -193,7 +195,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadLibraryWithoutAnnotation_then_throwsException() {
+    void whenLoadLibraryWithoutAnnotationThenThrowsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -202,7 +204,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadLibraryWithBlankName_then_throwsException() {
+    void whenLoadLibraryWithBlankNameThenThrowsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -211,7 +213,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadLibraryWithNoAttributes_then_throwsException() {
+    void whenLoadLibraryWithNoAttributesThenThrowsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -220,7 +222,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadDuplicateLibrary_then_throwsException() {
+    void whenLoadDuplicateLibraryThenThrowsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -231,7 +233,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadPIPAttributesWithDifferentNamespaces_then_noCollision() {
+    void whenLoadPIPAttributesWithDifferentNamespacesThenNoCollision() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -245,7 +247,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadPIPWithNonCollidingAttributesDifferentNames_then_succeeds() {
+    void whenLoadPIPWithNonCollidingAttributesDifferentNamesThenSucceeds() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -256,7 +258,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadPIPWithNonCollidingAttributesDifferentParameterCount_then_succeeds() {
+    void whenLoadPIPWithNonCollidingAttributesDifferentParameterCountThenSucceeds() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -268,7 +270,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_loadPIPWithMultipleAttributes_then_succeeds() {
+    void whenLoadPIPWithMultipleAttributesThenSucceeds() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -278,7 +280,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_reloadLibraryAfterUnloading_then_succeeds() {
+    void whenReloadLibraryAfterUnloadingThenSucceeds() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -290,7 +292,7 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void when_getLoadedLibraryNamesInitially_then_returnsEmptySet() {
+    void whenGetLoadedLibraryNamesInitiallyThenReturnsEmptySet() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 

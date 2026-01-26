@@ -35,6 +35,9 @@ import static io.sapl.util.SaplTesting.TEST_LOCATION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("ArithmeticOperators")
 class ArithmeticOperatorsTests {
 
     private static final BiFunction<Value, Value, Value> ADD    = (a, b) -> ArithmeticOperators.add(a, b,
@@ -60,13 +63,13 @@ class ArithmeticOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_binaryOp_then_returnsExpected(String description, BiFunction<Value, Value, Value> op, Value a, Value b,
+    void whenBinaryOpThenReturnsExpected(String description, BiFunction<Value, Value, Value> op, Value a, Value b,
             Value expected) {
         assertThat(op.apply(a, b)).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_binaryOp_then_returnsExpected() {
+    private static Stream<Arguments> whenBinaryOpThenReturnsExpected() {
         return Stream.of(
             arguments("add integers", ADD, Value.of(3), Value.of(2), Value.of(5)),
             arguments("add decimals", ADD, Value.of(1.5), Value.of(2.5), Value.of(4.0)),
@@ -89,14 +92,14 @@ class ArithmeticOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_binaryOp_withInvalidInput_then_returnsError(String description, BiFunction<Value, Value, Value> op,
-            Value a, Value b, String errorContains) {
+    void whenBinaryOpWithInvalidInputThenReturnsError(String description, BiFunction<Value, Value, Value> op, Value a,
+            Value b, String errorContains) {
         assertThat(op.apply(a, b)).isInstanceOfSatisfying(ErrorValue.class,
                 e -> assertThat(e.message()).contains(errorContains));
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_binaryOp_withInvalidInput_then_returnsError() {
+    private static Stream<Arguments> whenBinaryOpWithInvalidInputThenReturnsError() {
         return Stream.of(
             arguments("add number + text", ADD, Value.of(5), Value.of("text"), "Numeric operation"),
             arguments("subtract type errors", SUB, Value.of(5), Value.of("text"), "Numeric operation"),
@@ -114,12 +117,12 @@ class ArithmeticOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_unaryOp_then_returnsExpected(String description, UnaryOperator<Value> op, Value input, Value expected) {
+    void whenUnaryOpThenReturnsExpected(String description, UnaryOperator<Value> op, Value input, Value expected) {
         assertThat(op.apply(input)).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_unaryOp_then_returnsExpected() {
+    private static Stream<Arguments> whenUnaryOpThenReturnsExpected() {
         return Stream.of(
             arguments("unary plus preserves positive", UPLUS, Value.of(5), Value.of(5)),
             arguments("unary plus preserves negative", UPLUS, Value.of(-5), Value.of(-5)),
@@ -131,12 +134,12 @@ class ArithmeticOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_unaryOp_withInvalidInput_then_returnsError(String description, UnaryOperator<Value> op, Value input) {
+    void whenUnaryOpWithInvalidInputThenReturnsError(String description, UnaryOperator<Value> op, Value input) {
         assertThat(op.apply(input)).isInstanceOf(ErrorValue.class);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_unaryOp_withInvalidInput_then_returnsError() {
+    private static Stream<Arguments> whenUnaryOpWithInvalidInputThenReturnsError() {
         return Stream.of(
             arguments("unary plus with text", UPLUS, Value.of("text")),
             arguments("unary plus with boolean", UPLUS, Value.TRUE),
@@ -146,7 +149,7 @@ class ArithmeticOperatorsTests {
     // @formatter:on
 
     @Test
-    void when_divide_nonTerminating_then_usesDecimal128Precision() {
+    void whenDivideNonTerminatingThenUsesDecimal128Precision() {
         val result = DIV.apply(Value.of(1), Value.of(3));
         assertThat(result).isInstanceOfSatisfying(NumberValue.class,
                 n -> assertThat(n.value().precision()).isEqualTo(34));

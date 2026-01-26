@@ -24,6 +24,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,7 +53,9 @@ import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("BundleBuilder")
 class BundleBuilderTests {
 
     @TempDir
@@ -82,7 +85,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenBuildingEmptyBundle_thenCreatesValidZip() throws IOException {
+    void whenBuildingEmptyBundleThenCreatesValidZip() throws IOException {
         val bundle = BundleBuilder.create().build();
 
         assertThat(bundle).isNotEmpty();
@@ -90,7 +93,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenAddingPdpJson_thenBundleContainsPdpJson() throws IOException {
+    void whenAddingPdpJsonThenBundleContainsPdpJson() throws IOException {
         val pdpJsonContent = """
                 { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
                 """;
@@ -101,10 +104,10 @@ class BundleBuilderTests {
         assertThat(entries.get("pdp.json")).contains("PRIORITY_DENY");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("algorithmCases")
-    void whenSettingCombiningAlgorithm_thenPdpJsonContainsAlgorithm(CombiningAlgorithm algorithm,
-            String expectedContent) throws IOException {
+    void whenSettingCombiningAlgorithmThenPdpJsonContainsAlgorithm(CombiningAlgorithm algorithm, String expectedContent)
+            throws IOException {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(algorithm).build();
 
         val entries = extractEntries(bundle);
@@ -114,22 +117,22 @@ class BundleBuilderTests {
 
     static Stream<Arguments> algorithmCases() {
         return Stream.of(
-                Arguments.of(
+                arguments(
                         new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.PROPAGATE),
                         "PRIORITY_DENY"),
-                Arguments.of(new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
+                arguments(new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
                         ErrorHandling.ABSTAIN), "PRIORITY_PERMIT"),
-                Arguments.of(
+                arguments(
                         new CombiningAlgorithm(VotingMode.UNANIMOUS, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE),
                         "UNANIMOUS"),
-                Arguments.of(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN),
+                arguments(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN),
                         "UNIQUE"),
-                Arguments.of(new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.PERMIT, ErrorHandling.PROPAGATE),
+                arguments(new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.PERMIT, ErrorHandling.PROPAGATE),
                         "FIRST"));
     }
 
     @Test
-    void whenAddingPolicy_thenBundleContainsPolicy() throws IOException {
+    void whenAddingPolicyThenBundleContainsPolicy() throws IOException {
         val policyContent = """
                 policy "elder-access"
                 permit subject.cultRank == "elder"
@@ -141,9 +144,9 @@ class BundleBuilderTests {
         assertThat(entries.get("access.sapl")).contains("elder-access");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "ritual", "ritual.sapl" })
-    void whenAddingPolicyWithOrWithoutExtension_thenExtensionIsNormalized(String filename) throws IOException {
+    void whenAddingPolicyWithOrWithoutExtensionThenExtensionIsNormalized(String filename) throws IOException {
         val bundle = BundleBuilder.create().withPolicy(filename, "policy \"ritual\" permit true").build();
 
         val entries = extractEntries(bundle);
@@ -151,7 +154,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenAddingMultiplePolicies_thenBundleContainsAll() throws IOException {
+    void whenAddingMultiplePoliciesThenBundleContainsAll() throws IOException {
         val bundle = BundleBuilder.create().withPolicy("forbidden-tome.sapl", "policy \"tome\" deny true")
                 .withPolicy("altar-access.sapl", "policy \"altar\" permit subject.initiated == true")
                 .withPolicy("deep-one-greeting.sapl", "policy \"greeting\" permit resource.location == \"Innsmouth\"")
@@ -163,7 +166,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenAddingPoliciesAsMap_thenBundleContainsAll() throws IOException {
+    void whenAddingPoliciesAsMapThenBundleContainsAll() throws IOException {
         val policies = new LinkedHashMap<String, String>();
         policies.put("shoggoth-containment.sapl", "policy \"containment\" deny subject.sanity < 20");
         policies.put("mi-go-trade.sapl", "policy \"trade\" permit resource.type == \"brain_cylinder\"");
@@ -175,7 +178,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenBuildingCompletBundle_thenContainsPdpJsonAndPolicies() throws IOException {
+    void whenBuildingCompletBundleThenContainsPdpJsonAndPolicies() throws IOException {
         val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.DENY, ErrorHandling.ABSTAIN);
         val bundle    = BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("necronomicon-access.sapl", """
@@ -193,7 +196,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenWritingToPath_thenFileIsCreated() throws IOException {
+    void whenWritingToPathThenFileIsCreated() throws IOException {
         val bundlePath = tempDir.resolve("cthulhu-cult.saplbundle");
         val algorithm  = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
                 ErrorHandling.ABSTAIN);
@@ -210,7 +213,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenWritingToOutputStream_thenStreamContainsBundle() throws IOException {
+    void whenWritingToOutputStreamThenStreamContainsBundle() throws IOException {
         val outputStream = new ByteArrayOutputStream();
         val algorithm    = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
@@ -222,10 +225,10 @@ class BundleBuilderTests {
         assertThat(entries).hasSize(2).containsKeys("pdp.json", "yog-sothoth.sapl");
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @NullAndEmptySource
     @ValueSource(strings = { "   ", "\t", "\n" })
-    void whenAddingPolicyWithInvalidFilename_thenThrowsException(String filename) {
+    void whenAddingPolicyWithInvalidFilenameThenThrowsException(String filename) {
         val builder = BundleBuilder.create();
 
         assertThatThrownBy(() -> builder.withPolicy(filename, "policy \"test\" permit true"))
@@ -233,7 +236,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenAddingPolicyWithNullContent_thenEmptyPolicyIsAdded() throws IOException {
+    void whenAddingPolicyWithNullContentThenEmptyPolicyIsAdded() throws IOException {
         val bundle = BundleBuilder.create().withPolicy("empty.sapl", null).build();
 
         val entries = extractEntries(bundle);
@@ -242,7 +245,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenWritingToInvalidPath_thenThrowsException() {
+    void whenWritingToInvalidPathThenThrowsException() {
         val invalidPath = tempDir.resolve("non-existent-dir/bundle.saplbundle");
 
         val builder = BundleBuilder.create().withPolicy("test.sapl", "policy \"test\" permit true");
@@ -252,7 +255,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenBuildingWithConfiguration_thenPdpJsonContainsVariables() throws IOException {
+    void whenBuildingWithConfigurationThenPdpJsonContainsVariables() throws IOException {
         val variables = new LinkedHashMap<String, String>();
         variables.put("maxSanity", "100");
         variables.put("cultName", "\"Esoteric Order of Dagon\"");
@@ -266,7 +269,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenBuildingAndParsing_thenRoundtripPreservesContent() {
+    void whenBuildingAndParsingThenRoundtripPreservesContent() {
         val originalPolicy = """
                 policy "arkham-asylum"
                 permit subject.role == "doctor"
@@ -287,7 +290,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenBuildingWithEmptyVariablesMap_thenPdpJsonContainsEmptyObject() throws IOException {
+    void whenBuildingWithEmptyVariablesMapThenPdpJsonContainsEmptyObject() throws IOException {
         val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
                 ErrorHandling.ABSTAIN);
         val bundle    = BundleBuilder.create().withConfiguration(algorithm, Map.of()).build();
@@ -297,7 +300,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenOverwritingPdpJson_thenLastValueWins() throws IOException {
+    void whenOverwritingPdpJsonThenLastValueWins() throws IOException {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                 .withPdpJson(
                         """
@@ -310,7 +313,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenAddingSamePolicyTwice_thenLastContentWins() throws IOException {
+    void whenAddingSamePolicyTwiceThenLastContentWins() throws IOException {
         val bundle = BundleBuilder.create().withPolicy("duplicate.sapl", "policy \"first\" permit true")
                 .withPolicy("duplicate.sapl", "policy \"second\" deny true").build();
 
@@ -320,7 +323,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningBundle_thenManifestIsIncluded() throws IOException {
+    void whenSigningBundleThenManifestIsIncluded() throws IOException {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                 .withPolicy("elder-ritual.sapl", "policy \"ritual\" permit subject.initiated == true")
                 .signWith(cultKeyPair.getPrivate(), "necronomicon-key").build();
@@ -331,7 +334,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningBundle_thenManifestContainsValidSignature() throws IOException {
+    void whenSigningBundleThenManifestContainsValidSignature() throws IOException {
         val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
                 ErrorHandling.ABSTAIN);
         val bundle    = BundleBuilder.create().withCombiningAlgorithm(algorithm)
@@ -349,7 +352,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningBundleWithExpiration_thenManifestContainsExpiration() throws IOException {
+    void whenSigningBundleWithExpirationThenManifestContainsExpiration() throws IOException {
         val expirationTime = Instant.now().plus(30, ChronoUnit.DAYS);
         val algorithm      = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.DENY,
                 ErrorHandling.ABSTAIN);
@@ -365,7 +368,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningWithNullKey_thenThrowsException() {
+    void whenSigningWithNullKeyThenThrowsException() {
         val builder = BundleBuilder.create().withPolicy("forbidden.sapl", "policy \"forbidden\" deny true");
 
         assertThatThrownBy(() -> builder.signWith(null, "null-key")).isInstanceOf(IllegalArgumentException.class)
@@ -373,7 +376,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningWithNonEd25519Key_thenThrowsException() {
+    void whenSigningWithNonEd25519KeyThenThrowsException() {
         val builder = BundleBuilder.create().withPolicy("wrong-key.sapl", "policy \"wrong\" deny true");
 
         assertThatThrownBy(() -> builder.signWith(rsaPrivate, "rsa-key")).isInstanceOf(IllegalArgumentException.class)
@@ -381,7 +384,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningWithNullKeyId_thenDefaultKeyIdIsUsed() throws IOException {
+    void whenSigningWithNullKeyIdThenDefaultKeyIdIsUsed() throws IOException {
         val bundle = BundleBuilder.create().withPolicy("default-key.sapl", "policy \"default\" permit true")
                 .signWith(cultKeyPair.getPrivate(), null).build();
 
@@ -393,7 +396,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenCheckingIfBuilderIsSigned_thenReturnsCorrectly() {
+    void whenCheckingIfBuilderIsSignedThenReturnsCorrectly() {
         val unsignedBuilder = BundleBuilder.create().withPolicy("unsigned.sapl", "policy \"unsigned\" permit true");
 
         val signedBuilder = BundleBuilder.create().withPolicy("signed.sapl", "policy \"signed\" permit true")
@@ -404,7 +407,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningAndParsing_thenVerificationSucceeds() {
+    void whenSigningAndParsingThenVerificationSucceeds() {
         val algorithm = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.PROPAGATE);
         val bundle    = BundleBuilder.create().withCombiningAlgorithm(algorithm)
                 .withPolicy("mi-go.sapl", "policy \"brain-cylinder\" permit resource.type == \"specimen\"")
@@ -417,7 +420,7 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningAndParsingWithWrongKey_thenVerificationFails() {
+    void whenSigningAndParsingWithWrongKeyThenVerificationFails() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                 .withPolicy("cthulhu.sapl", "policy \"awakening\" deny subject.stars != \"right\"")
                 .signWith(cultKeyPair.getPrivate(), "rlyeh-key").build();

@@ -26,6 +26,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -41,7 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-class MethodSignatureProcessorTest {
+@DisplayName("MethodSignatureProcessor")
+class MethodSignatureProcessorTests {
 
     // ========================================================================
     // Static/Instance Method Handling
@@ -49,9 +51,8 @@ class MethodSignatureProcessorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("staticInstanceMethodCases")
-    void whenMethodWithInstanceConfiguration_thenHandledCorrectly(String description, Object instance,
-            String methodName, Class<?>[] paramTypes, boolean shouldSucceed, String expectedNameSuffix)
-            throws Exception {
+    void whenMethodWithInstanceConfigurationThenHandledCorrectly(String description, Object instance, String methodName,
+            Class<?>[] paramTypes, boolean shouldSucceed, String expectedNameSuffix) throws Exception {
         val method = StormbringerLibrary.class.getMethod(methodName, paramTypes);
 
         if (shouldSucceed) {
@@ -78,7 +79,7 @@ class MethodSignatureProcessorTest {
     }
 
     @Test
-    void whenMixedStaticAndInstanceMethods_thenBothExecuteCorrectly() throws Exception {
+    void whenMixedStaticAndInstanceMethodsThenBothExecuteCorrectly() throws Exception {
         val library        = new StormbringerLibrary();
         val staticMethod   = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
         val instanceMethod = StormbringerLibrary.class.getMethod("drainSoul", TextValue.class);
@@ -102,7 +103,7 @@ class MethodSignatureProcessorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("functionNameResolutionCases")
-    void whenResolvingFunctionName_thenCorrectNameUsed(String description, String methodName, Class<?>[] paramTypes,
+    void whenResolvingFunctionNameThenCorrectNameUsed(String description, String methodName, Class<?>[] paramTypes,
             String expectedFunctionName) throws Exception {
         val method = StormbringerLibrary.class.getMethod(methodName, paramTypes);
 
@@ -121,7 +122,7 @@ class MethodSignatureProcessorTest {
     }
 
     @Test
-    void whenMethodWithoutAnnotation_thenReturnsNull() throws Exception {
+    void whenMethodWithoutAnnotationThenReturnsNull() throws Exception {
         val method = StormbringerLibrary.class.getMethod("notAFunction");
 
         val spec = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
@@ -135,7 +136,7 @@ class MethodSignatureProcessorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("validSignatureCases")
-    void whenValidSignature_thenAccepted(String description, Class<?> libraryClass, String methodName,
+    void whenValidSignatureThenAccepted(String description, Class<?> libraryClass, String methodName,
             Class<?>[] paramTypes, String libraryName, int expectedArgCount, boolean hasVarArgs) throws Exception {
         val method = libraryClass.getMethod(methodName, paramTypes);
 
@@ -162,7 +163,7 @@ class MethodSignatureProcessorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidSignatureCases")
-    void whenInvalidSignature_thenRejected(String description, Class<?> libraryClass, String methodName,
+    void whenInvalidSignatureThenRejected(String description, Class<?> libraryClass, String methodName,
             Class<?>[] paramTypes, Class<? extends Exception> expectedException, String expectedMessage)
             throws Exception {
         val method = libraryClass.getMethod(methodName, paramTypes);
@@ -187,7 +188,7 @@ class MethodSignatureProcessorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("methodExecutionCases")
-    void whenInvokingMethod_thenExecutesCorrectly(String description, MethodReference methodRef, Object instance,
+    void whenInvokingMethodThenExecutesCorrectly(String description, MethodReference methodRef, Object instance,
             List<Value> arguments, String expectedResultContains) throws Exception {
         val method = methodRef.resolve();
         val spec   = MethodSignatureProcessor.functionSpecification(instance, methodRef.libraryName(), method);
@@ -223,7 +224,7 @@ class MethodSignatureProcessorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("varArgsExecutionCases")
-    void whenInvokingVarArgsMethod_thenExecutesCorrectly(String description, List<Value> arguments,
+    void whenInvokingVarArgsMethodThenExecutesCorrectly(String description, List<Value> arguments,
             String expectedResult) throws Exception {
         val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
         val spec   = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
@@ -249,7 +250,7 @@ class MethodSignatureProcessorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("argumentValidationErrorCases")
-    void whenInvalidArguments_thenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
+    void whenInvalidArgumentsThenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
             String expectedErrorContains) throws Exception {
         val method = methodRef.resolve();
         val spec   = MethodSignatureProcessor.functionSpecification(null, methodRef.libraryName(), method);
@@ -294,7 +295,7 @@ class MethodSignatureProcessorTest {
     // ========================================================================
 
     @Test
-    void whenMethodThrowsException_thenCapturedAsError() throws Exception {
+    void whenMethodThrowsExceptionThenCapturedAsError() throws Exception {
         val method = StormbringerLibrary.class.getMethod("throwsException", TextValue.class);
         val spec   = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
 

@@ -24,6 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -35,17 +36,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("CsvFunctionLibrary")
 class CsvFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(CsvFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void csvToVal_whenSimpleCsv_thenParsesCorrectly() {
+    void csvToValWhenSimpleCsvThenParsesCorrectly() {
         val csv = """
                 cultist,city,sanity
                 Cthulhu,R'lyeh,0
@@ -68,7 +70,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenSingleRow_thenParsesCorrectly() {
+    void csvToValWhenSingleRowThenParsesCorrectly() {
         val csv = """
                 entity,power
                 Azathoth,999
@@ -84,7 +86,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenSingleColumn_thenParsesCorrectly() {
+    void csvToValWhenSingleColumnThenParsesCorrectly() {
         val csv = """
                 location
                 Arkham
@@ -103,7 +105,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenEmptyCells_thenHandlesCorrectly() {
+    void csvToValWhenEmptyCellsThenHandlesCorrectly() {
         val csv = """
                 name,ritual,cost
                 Yog-Sothoth,Gate Opening,
@@ -120,7 +122,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenQuotedFields_thenHandlesCorrectly() {
+    void csvToValWhenQuotedFieldsThenHandlesCorrectly() {
         val csv = """
                 cultist,chant
                 "Wilbur, Whateley","Ph'nglui mglw'nafh"
@@ -136,7 +138,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenHeadersOnly_thenReturnsEmptyArray() {
+    void csvToValWhenHeadersOnlyThenReturnsEmptyArray() {
         val csv = "entity,power,location";
 
         val result = CsvFunctionLibrary.csvToVal(Value.of(csv));
@@ -146,7 +148,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenManyRows_thenParsesAll() {
+    void csvToValWhenManyRowsThenParsesAll() {
         val csvBuilder = new StringBuilder("cultistId,ritual\n");
         for (int i = 0; i < 100; i++) {
             csvBuilder.append(i).append(",Ritual").append(i).append('\n');
@@ -163,7 +165,7 @@ class CsvFunctionLibraryTests {
 
     @ParameterizedTest(name = "Line endings: {0}")
     @MethodSource("lineEndingTestCases")
-    void csvToVal_whenVariousLineEndings_thenParsesCorrectly(String description, String csv) {
+    void csvToValWhenVariousLineEndingsThenParsesCorrectly(String description, String csv) {
         val result = CsvFunctionLibrary.csvToVal(Value.of(csv));
 
         assertThat(result).isInstanceOf(ArrayValue.class);
@@ -181,7 +183,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenEmptyString_thenReturnsError() {
+    void csvToValWhenEmptyStringThenReturnsError() {
         val result = CsvFunctionLibrary.csvToVal(Value.of(""));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -189,7 +191,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void csvToVal_whenMalformedCsv_thenReturnsError() {
+    void csvToValWhenMalformedCsvThenReturnsError() {
         val csv = "entity,chant\n\"Cthulhu,Ph'nglui mglw'nafh";
 
         val result = CsvFunctionLibrary.csvToVal(Value.of(csv));
@@ -200,7 +202,7 @@ class CsvFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("unicodeTestCases")
-    void csvToVal_whenInternationalCharacters_thenParsesCorrectly(String description, String csv, String fieldName,
+    void csvToValWhenInternationalCharactersThenParsesCorrectly(String description, String csv, String fieldName,
             String expectedValue) {
         val result = CsvFunctionLibrary.csvToVal(Value.of(csv));
 
@@ -218,7 +220,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void valToCsv_whenArrayOfObjects_thenConvertsCorrectly() {
+    void valToCsvWhenArrayOfObjectsThenConvertsCorrectly() {
         val array = ArrayValue.builder()
                 .add(ObjectValue.builder().put("cultist", Value.of("Cthulhu")).put("city", Value.of("R'lyeh"))
                         .put("sanity", Value.of("0")).build())
@@ -235,7 +237,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void valToCsv_whenSingleObject_thenConvertsCorrectly() {
+    void valToCsvWhenSingleObjectThenConvertsCorrectly() {
         val array = ArrayValue.builder()
                 .add(ObjectValue.builder().put("entity", Value.of("Azathoth")).put("power", Value.of("999")).build())
                 .build();
@@ -248,14 +250,14 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void valToCsv_whenEmptyArray_thenReturnsEmptyString() {
+    void valToCsvWhenEmptyArrayThenReturnsEmptyString() {
         val result = CsvFunctionLibrary.valToCsv(Value.EMPTY_ARRAY);
 
         assertThat(result).isEqualTo(Value.EMPTY_TEXT);
     }
 
     @Test
-    void valToCsv_whenNonObjectFirstElement_thenReturnsError() {
+    void valToCsvWhenNonObjectFirstElementThenReturnsError() {
         val array = ArrayValue.builder().add(Value.of("not an object")).build();
 
         val result = CsvFunctionLibrary.valToCsv(array);
@@ -265,7 +267,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void valToCsv_whenNonObjectAtLaterIndex_thenReturnsError() {
+    void valToCsvWhenNonObjectAtLaterIndexThenReturnsError() {
         val array = ArrayValue.builder().add(ObjectValue.builder().put("entity", Value.of("Cthulhu")).build())
                 .add(Value.of(42)).build();
 
@@ -277,7 +279,7 @@ class CsvFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("unicodeGenerationTestCases")
-    void valToCsv_whenInternationalCharacters_thenGeneratesCorrectly(String description, ArrayValue array,
+    void valToCsvWhenInternationalCharactersThenGeneratesCorrectly(String description, ArrayValue array,
             String expectedInCsv) {
         val result = CsvFunctionLibrary.valToCsv(array);
 
@@ -298,7 +300,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void roundTrip_preservesDataCorrectly() {
+    void roundTripPreservesDataCorrectly() {
         val original = ArrayValue.builder()
                 .add(ObjectValue.builder().put("cultist", Value.of("Cthulhu")).put("city", Value.of("R'lyeh"))
                         .put("sanity", Value.of("0")).build())
@@ -318,7 +320,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void roundTrip_preservesUnicodeDataCorrectly() {
+    void roundTripPreservesUnicodeDataCorrectly() {
         val original = ArrayValue.builder()
                 .add(ObjectValue.builder().put("entity", Value.of("克苏鲁")).put("symbol", Value.of("🐙")).build())
                 .add(ObjectValue.builder().put("entity", Value.of("ナイアーラトテップ")).put("symbol", Value.of("👁️")).build())
@@ -336,7 +338,7 @@ class CsvFunctionLibraryTests {
     }
 
     @Test
-    void roundTrip_preservesEmptyFieldsCorrectly() {
+    void roundTripPreservesEmptyFieldsCorrectly() {
         val original = ArrayValue.builder()
                 .add(ObjectValue.builder().put("entity", Value.of("Hastur")).put("ritual", Value.of(""))
                         .put("power", Value.of("666")).build())

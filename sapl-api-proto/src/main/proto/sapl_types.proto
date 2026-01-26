@@ -33,10 +33,6 @@ option java_package = "io.sapl.api.proto";
 option java_outer_classname = "SaplProtos";
 option java_multiple_files = true;
 
-// ============================================================================
-// Value Types
-// ============================================================================
-
 // Mirrors io.sapl.api.model.Value - the central value type for policy evaluation.
 // Supports null, boolean, number, text, array, object, undefined, and error states.
 message Value {
@@ -70,10 +66,6 @@ message ErrorValue {
   string message = 1;
   repeated string arguments = 2;
 }
-
-// ============================================================================
-// Authorization Types
-// ============================================================================
 
 // Mirrors io.sapl.api.pdp.Decision
 // INDETERMINATE is value 0 (proto3 default) so uninitialized fields fail safely.

@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration.bundle;
 
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -30,10 +31,11 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("BundleManifest")
 class BundleManifestTests {
 
     @Test
-    void whenBuildingUnsignedManifest_thenContainsFileHashes() {
+    void whenBuildingUnsignedManifestThenContainsFileHashes() {
         val manifest = BundleManifest.builder()
                 .addFile("necronomicon.sapl", "policy \"forbidden\" deny subject.sanity < 10")
                 .addFile("pdp.json", "{ \"algorithm\": \"DENY_OVERRIDES\" }").buildUnsigned();
@@ -45,7 +47,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenBuildingSignedManifest_thenContainsSignature() {
+    void whenBuildingSignedManifestThenContainsSignature() {
         val manifest = BundleManifest.builder()
                 .addFile("ritual.sapl", "policy \"ritual\" permit action.type == \"summon\"")
                 .signature("elder-key", "base64signature==").build();
@@ -57,7 +59,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenSettingExpiration_thenManifestContainsExpiration() {
+    void whenSettingExpirationThenManifestContainsExpiration() {
         val expirationTime = Instant.now().plus(7, ChronoUnit.DAYS);
         val manifest       = BundleManifest.builder().addFile("prophecy.sapl", "policy \"stars\" permit true")
                 .expires(expirationTime).buildUnsigned();
@@ -66,7 +68,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenSettingCreationTime_thenManifestContainsCreatedTime() {
+    void whenSettingCreationTimeThenManifestContainsCreatedTime() {
         val createdTime = Instant.parse("2024-01-15T10:30:00Z");
         val manifest    = BundleManifest.builder().created(createdTime)
                 .addFile("tome.sapl", "policy \"tome\" permit true").buildUnsigned();
@@ -75,7 +77,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenAddingFileBytes_thenHashIsComputed() {
+    void whenAddingFileBytesThenHashIsComputed() {
         val content  = "policy \"byte-test\" permit true".getBytes(StandardCharsets.UTF_8);
         val manifest = BundleManifest.builder().addFile("byte-policy.sapl", content).buildUnsigned();
 
@@ -84,7 +86,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenAddingPrecomputedHash_thenHashIsStored() {
+    void whenAddingPrecomputedHashThenHashIsStored() {
         val precomputedHash = "sha256:abc123def456";
         val manifest        = BundleManifest.builder().addFileHash("precomputed.sapl", precomputedHash).buildUnsigned();
 
@@ -92,7 +94,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenSettingFilesMap_thenAllFilesAreStored() {
+    void whenSettingFilesMapThenAllFilesAreStored() {
         val files    = Map.of("policy1.sapl", "sha256:hash1", "policy2.sapl", "sha256:hash2", "pdp.json",
                 "sha256:hash3");
         val manifest = BundleManifest.builder().files(files).buildUnsigned();
@@ -101,7 +103,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenRemovingSignature_thenSignatureIsNull() {
+    void whenRemovingSignatureThenSignatureIsNull() {
         val manifest = BundleManifest.builder().addFile("test.sapl", "policy \"test\" permit true")
                 .signature("key-id", "signature-value").build();
 
@@ -113,7 +115,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenSerializingToJson_thenValidJsonIsProduced() {
+    void whenSerializingToJsonThenValidJsonIsProduced() {
         val manifest = BundleManifest.builder().addFile("cult.sapl", "policy \"cult\" permit true")
                 .signature("dagon-key", "ZWxkZXJfc2lnbg==").build();
 
@@ -124,7 +126,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenParsingFromJson_thenManifestIsRestored() {
+    void whenParsingFromJsonThenManifestIsRestored() {
         val json = """
                 {
                   "version": "1.0",
@@ -150,7 +152,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenParsingInvalidJson_thenThrowsException() {
+    void whenParsingInvalidJsonThenThrowsException() {
         val invalidJson = "{ invalid json }";
 
         assertThatThrownBy(() -> BundleManifest.fromJson(invalidJson)).isInstanceOf(BundleSignatureException.class)
@@ -158,7 +160,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenSerializingAndParsing_thenRoundtripPreservesContent() {
+    void whenSerializingAndParsingThenRoundtripPreservesContent() {
         val original = BundleManifest.builder().created(Instant.parse("2024-06-15T12:00:00Z"))
                 .expires(Instant.parse("2025-06-15T12:00:00Z"))
                 .addFile("arkham.sapl", "policy \"asylum\" permit subject.role == \"doctor\"")
@@ -178,7 +180,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenComputingHash_thenDeterministicResultIsProduced() {
+    void whenComputingHashThenDeterministicResultIsProduced() {
         val content = "policy \"deterministic\" permit true";
 
         val hash1 = BundleManifest.computeHash(content);
@@ -188,7 +190,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenComputingHashFromBytes_thenSameAsString() {
+    void whenComputingHashFromBytesThenSameAsString() {
         val content    = "policy \"byte-equality\" permit true";
         val stringHash = BundleManifest.computeHash(content);
         val bytesHash  = BundleManifest.computeHash(content.getBytes(StandardCharsets.UTF_8));
@@ -196,10 +198,10 @@ class BundleManifestTests {
         assertThat(stringHash).isEqualTo(bytesHash);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "policy \"elder\" permit true", "policy \"different\" deny false",
             "{ \"algorithm\": \"PERMIT_OVERRIDES\" }" })
-    void whenComputingHashForDifferentContent_thenDifferentHashesAreProduced(String content) {
+    void whenComputingHashForDifferentContentThenDifferentHashesAreProduced(String content) {
         val baseHash    = BundleManifest.computeHash("policy \"base\" permit true");
         val contentHash = BundleManifest.computeHash(content);
 
@@ -207,7 +209,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenConvertingToCanonicalBytes_thenDeterministicOutputIsProduced() {
+    void whenConvertingToCanonicalBytesThenDeterministicOutputIsProduced() {
         val manifest = BundleManifest.builder().addFile("z-file.sapl", "policy \"z\" permit true")
                 .addFile("a-file.sapl", "policy \"a\" permit true").buildUnsigned();
 
@@ -218,7 +220,7 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenConvertingToCanonicalBytes_thenFilesAreSorted() {
+    void whenConvertingToCanonicalBytesThenFilesAreSorted() {
         val manifest = BundleManifest.builder().addFile("zeta.sapl", "z").addFile("alpha.sapl", "a")
                 .addFile("beta.sapl", "b").buildUnsigned();
 
@@ -233,12 +235,12 @@ class BundleManifestTests {
     }
 
     @Test
-    void whenManifestFilenameConstant_thenIsCorrect() {
+    void whenManifestFilenameConstantThenIsCorrect() {
         assertThat(BundleManifest.MANIFEST_FILENAME).isEqualTo(".sapl-manifest.json");
     }
 
     @Test
-    void whenAlgorithmConstants_thenAreCorrect() {
+    void whenAlgorithmConstantsThenAreCorrect() {
         assertThat(BundleManifest.HASH_ALGORITHM).isEqualTo("SHA-256");
         assertThat(BundleManifest.SIGNATURE_ALGORITHM).isEqualTo("Ed25519");
         assertThat(BundleManifest.MANIFEST_VERSION).isEqualTo("1.0");

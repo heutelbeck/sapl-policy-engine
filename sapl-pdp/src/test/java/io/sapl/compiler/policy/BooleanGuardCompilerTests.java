@@ -63,35 +63,35 @@ class BooleanGuardCompilerTests {
         return Stream.of(true, false);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("booleanValues")
     @DisplayName("applyBooleanGuard: when input is boolean then returns unchanged")
-    void applyBooleanGuard_whenBooleanValue_thenReturnsUnchanged(BooleanValue input) {
+    void applyBooleanGuardWhenBooleanValueThenReturnsUnchanged(BooleanValue input) {
         val result = applyBooleanGuard(input, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(result).isSameAs(input);
     }
 
     @Test
     @DisplayName("applyBooleanGuard: when input is ErrorValue then returns unchanged")
-    void applyBooleanGuard_whenErrorValue_thenReturnsUnchanged() {
+    void applyBooleanGuardWhenErrorValueThenReturnsUnchanged() {
         val error  = Value.error("some errors");
         val result = applyBooleanGuard(error, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(result).isSameAs(error);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("nonBooleanValues")
     @DisplayName("applyBooleanGuard: when input is non-boolean then returns errors")
-    void applyBooleanGuard_whenNonBooleanValue_thenReturnsError(Value input) {
+    void applyBooleanGuardWhenNonBooleanValueThenReturnsError(Value input) {
         val result = applyBooleanGuard(input, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(input.toString());
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("booleanFlags")
     @DisplayName("applyBooleanGuard: when PureOperator then preserves isDependingOnSubscription flag")
-    void applyBooleanGuard_whenPureOperator_thenPreservesFlag(boolean dependsOnSub) {
+    void applyBooleanGuardWhenPureOperatorThenPreservesFlag(boolean dependsOnSub) {
         val pureOp = new TestPureOperator(ctx -> Value.TRUE, dependsOnSub);
         val result = applyBooleanGuard(pureOp, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(result).isInstanceOf(PureBooleanTypeCheck.class);
@@ -100,7 +100,7 @@ class BooleanGuardCompilerTests {
 
     @Test
     @DisplayName("applyBooleanGuard: when StreamOperator then returns StreamBooleanTypeCheck")
-    void applyBooleanGuard_whenStreamOperator_thenReturnsStreamBooleanTypeCheck() {
+    void applyBooleanGuardWhenStreamOperatorThenReturnsStreamBooleanTypeCheck() {
         val streamOp = new TestStreamOperator(Value.TRUE);
         val result   = applyBooleanGuard(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(result).isInstanceOf(StreamBooleanTypeCheck.class);
@@ -108,10 +108,10 @@ class BooleanGuardCompilerTests {
 
     // PureBooleanTypeCheck tests
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("booleanValues")
     @DisplayName("PureBooleanTypeCheck: when evaluates to boolean then returns unchanged")
-    void pureBooleanTypeCheck_whenEvaluatesToBoolean_thenReturnsUnchanged(BooleanValue input) {
+    void pureBooleanTypeCheckWhenEvaluatesToBooleanThenReturnsUnchanged(BooleanValue input) {
         val pureOp = new TestPureOperator(ctx -> input);
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
         val result = guard.evaluate(evaluationContext());
@@ -120,7 +120,7 @@ class BooleanGuardCompilerTests {
 
     @Test
     @DisplayName("PureBooleanTypeCheck: when evaluates to ErrorValue then returns unchanged")
-    void pureBooleanTypeCheck_whenEvaluatesToError_thenReturnsError() {
+    void pureBooleanTypeCheckWhenEvaluatesToErrorThenReturnsError() {
         val error  = Value.error("inner errors");
         val pureOp = new TestPureOperator(ctx -> error);
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
@@ -128,10 +128,10 @@ class BooleanGuardCompilerTests {
         assertThat(result).isSameAs(error);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("nonBooleanValues")
     @DisplayName("PureBooleanTypeCheck: when evaluates to non-boolean then returns errors")
-    void pureBooleanTypeCheck_whenEvaluatesToNonBoolean_thenReturnsError(Value nonBoolean) {
+    void pureBooleanTypeCheckWhenEvaluatesToNonBooleanThenReturnsError(Value nonBoolean) {
         val pureOp = new TestPureOperator(ctx -> nonBoolean);
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
         val result = guard.evaluate(evaluationContext());
@@ -141,25 +141,25 @@ class BooleanGuardCompilerTests {
 
     @Test
     @DisplayName("PureBooleanTypeCheck: location returns guard location")
-    void pureBooleanTypeCheck_locationReturnsGuardLocation() {
+    void pureBooleanTypeCheckLocationReturnsGuardLocation() {
         val pureOp = new TestPureOperator(ctx -> Value.TRUE);
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
         assertThat(guard.location()).isSameAs(TEST_LOCATION);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("booleanFlags")
     @DisplayName("PureBooleanTypeCheck: isDependingOnSubscription returns configured value")
-    void pureBooleanTypeCheck_isDependingOnSubscriptionReturnsConfiguredValue(boolean flag) {
+    void pureBooleanTypeCheckIsDependingOnSubscriptionReturnsConfiguredValue(boolean flag) {
         val pureOp = new TestPureOperator(ctx -> Value.TRUE);
         val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, flag, ERROR_TEMPLATE);
         assertThat(guard.isDependingOnSubscription()).isEqualTo(flag);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("booleanValues")
     @DisplayName("StreamBooleanTypeCheck: when stream emits boolean then passes through")
-    void streamBooleanTypeCheck_whenStreamEmitsBoolean_thenPassesThrough(BooleanValue input) {
+    void streamBooleanTypeCheckWhenStreamEmitsBooleanThenPassesThrough(BooleanValue input) {
         val streamOp = new TestStreamOperator(input);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
         verifyStreamEmits(guard, evaluationContext(), input);
@@ -167,17 +167,17 @@ class BooleanGuardCompilerTests {
 
     @Test
     @DisplayName("StreamBooleanTypeCheck: when stream emits ErrorValue then passes through")
-    void streamBooleanTypeCheck_whenStreamEmitsError_thenPassesThrough() {
+    void streamBooleanTypeCheckWhenStreamEmitsErrorThenPassesThrough() {
         val error    = Value.error("stream errors");
         val streamOp = new TestStreamOperator(error);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
         verifyStream(guard, evaluationContext(), tv -> assertThat(tv.value()).isSameAs(error));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("nonBooleanValues")
     @DisplayName("StreamBooleanTypeCheck: when stream emits non-boolean then maps to errors")
-    void streamBooleanTypeCheck_whenStreamEmitsNonBoolean_thenMapsToError(Value nonBoolean) {
+    void streamBooleanTypeCheckWhenStreamEmitsNonBooleanThenMapsToError(Value nonBoolean) {
         val streamOp = new TestStreamOperator(nonBoolean);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
         verifyStream(guard, evaluationContext(), tv -> {
@@ -188,7 +188,7 @@ class BooleanGuardCompilerTests {
 
     @Test
     @DisplayName("StreamBooleanTypeCheck: when stream emits multiple values then each is type-checked")
-    void streamBooleanTypeCheck_whenStreamEmitsMultipleValues_thenEachIsTypeChecked() {
+    void streamBooleanTypeCheckWhenStreamEmitsMultipleValuesThenEachIsTypeChecked() {
         val streamOp = new TestStreamOperator(Value.TRUE, Value.FALSE, Value.of("bad"), Value.TRUE);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
         verifyStream(guard, evaluationContext(), tv -> assertThat(tv.value()).isEqualTo(Value.TRUE),
@@ -199,7 +199,7 @@ class BooleanGuardCompilerTests {
 
     @Test
     @DisplayName("StreamBooleanTypeCheck: preserves contributing attributes from traced value")
-    void streamBooleanTypeCheck_preservesContributingAttributes() {
+    void streamBooleanTypeCheckPreservesContributingAttributes() {
         val attrs    = List.<AttributeRecord>of();
         val traced   = new TracedValue(Value.of("not boolean"), attrs);
         val streamOp = new TestStreamOperatorWithTraced(traced);
@@ -212,7 +212,7 @@ class BooleanGuardCompilerTests {
 
     @Test
     @DisplayName("StreamBooleanTypeCheck: location returns guard location")
-    void streamBooleanTypeCheck_locationReturnsGuardLocation() {
+    void streamBooleanTypeCheckLocationReturnsGuardLocation() {
         val streamOp = new TestStreamOperator(Value.TRUE);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
         assertThat(guard.location()).isSameAs(TEST_LOCATION);

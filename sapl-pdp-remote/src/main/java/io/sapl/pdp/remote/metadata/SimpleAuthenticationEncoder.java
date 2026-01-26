@@ -32,6 +32,8 @@ import reactor.core.publisher.Flux;
 
 import java.util.Map;
 
+import lombok.val;
+
 public class SimpleAuthenticationEncoder extends AbstractEncoder<UsernamePasswordMetadata> {
 
     private static final MimeType AUTHENTICATION_MIME_TYPE = MimeTypeUtils
@@ -53,12 +55,12 @@ public class SimpleAuthenticationEncoder extends AbstractEncoder<UsernamePasswor
     @Override
     public DataBuffer encodeValue(UsernamePasswordMetadata credentials, DataBufferFactory bufferFactory,
             ResolvableType valueType, MimeType mimeType, Map<String, Object> hints) {
-        String                 username             = credentials.username();
-        String                 password             = credentials.password();
-        NettyDataBufferFactory factory              = nettyFactory(bufferFactory);
-        ByteBufAllocator       allocator            = factory.getByteBufAllocator();
-        ByteBuf                simpleAuthentication = AuthMetadataCodec.encodeSimpleMetadata(allocator,
-                username.toCharArray(), password.toCharArray());
+        val username             = credentials.username();
+        val password             = credentials.password();
+        val factory              = nettyFactory(bufferFactory);
+        val allocator            = factory.getByteBufAllocator();
+        val simpleAuthentication = AuthMetadataCodec.encodeSimpleMetadata(allocator, username.toCharArray(),
+                password.toCharArray());
         return factory.wrap(simpleAuthentication);
     }
 

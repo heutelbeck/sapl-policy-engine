@@ -49,6 +49,8 @@ import static io.sapl.util.SaplTesting.singleValueAttributeBroker;
 import static io.sapl.util.SaplTesting.testContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
+
 /**
  * Tests for N-ary operator compilation: XOR (^), Sum (+), Product (*).
  * <p>
@@ -59,6 +61,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <li>Errors propagate early without unnecessary evaluation</li>
  * </ul>
  */
+@DisplayName("NaryOperatorCompiler")
 class NaryOperatorCompilerTests {
 
     @Nested
@@ -68,33 +71,33 @@ class NaryOperatorCompilerTests {
         @CsvSource({ "true ^ true ^ true,   true", "true ^ true ^ false,  false", "true ^ false ^ true,  false",
                 "true ^ false ^ false, true", "false ^ true ^ true,  false", "false ^ true ^ false, true",
                 "false ^ false ^ true, true", "false ^ false ^ false, false" })
-        void when_allValues_then_foldAtCompileTime(String expr, boolean expected) {
+        void whenAllValuesThenFoldAtCompileTime(String expr, boolean expected) {
             var compiled = compileExpression(expr);
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
 
         @Test
-        void when_fourOperands_then_correctResult() {
+        void whenFourOperandsThenCorrectResult() {
             assertCompilesTo("true ^ true ^ true ^ true", Value.FALSE);
         }
 
         @Test
-        void when_valueWithSubscriptionElement_then_returnsPureOperator() {
+        void whenValueWithSubscriptionElementThenReturnsPureOperator() {
             assertThat(compileExpression("true ^ subject")).isInstanceOf(PureOperator.class);
         }
 
         @Test
-        void when_valueWithVariable_then_evaluatesCorrectly() {
+        void whenValueWithVariableThenEvaluatesCorrectly() {
             assertEvaluatesTo("true ^ flag ^ false", Map.of("flag", Value.TRUE), Value.FALSE);
         }
 
         @Test
-        void when_typeMismatchInValues_then_compileTimeError() {
+        void whenTypeMismatchInValuesThenCompileTimeError() {
             assertCompilesToError("true ^ 5 ^ false", "boolean");
         }
 
         @Test
-        void when_typeMismatchInPure_then_runtimeError() {
+        void whenTypeMismatchInPureThenRuntimeError() {
             var result = evaluateExpression("true ^ notBoolean", testContext(Map.of("notBoolean", of("hello"))));
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
@@ -104,50 +107,50 @@ class NaryOperatorCompilerTests {
     class SumTests {
 
         @Test
-        void when_allValues_then_foldAtCompileTime() {
+        void whenAllValuesThenFoldAtCompileTime() {
             assertCompilesTo("1 + 2 + 3", of(6));
         }
 
         @Test
-        void when_manyOperands_then_correctResult() {
+        void whenManyOperandsThenCorrectResult() {
             assertCompilesTo("1 + 2 + 3 + 4 + 5", of(15));
         }
 
         @Test
-        void when_decimals_then_correctResult() {
+        void whenDecimalsThenCorrectResult() {
             var compiled = compileExpression("1.5 + 2.5 + 3.0");
             assertThat(compiled).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) compiled).value()).isEqualByComparingTo(new BigDecimal("7.0"));
         }
 
         @Test
-        void when_valueWithSubscriptionElement_then_returnsPureOperator() {
+        void whenValueWithSubscriptionElementThenReturnsPureOperator() {
             assertThat(compileExpression("1 + subject + 3")).isInstanceOf(PureOperator.class);
         }
 
         @Test
-        void when_valueWithVariable_then_evaluatesCorrectly() {
+        void whenValueWithVariableThenEvaluatesCorrectly() {
             assertEvaluatesTo("1 + x + 3", Map.of("x", of(10)), of(14));
         }
 
         @Test
-        void when_multipleVariables_then_evaluatesCorrectly() {
+        void whenMultipleVariablesThenEvaluatesCorrectly() {
             assertEvaluatesTo("a + b + c", Map.of("a", of(1), "b", of(2), "c", of(3)), of(6));
         }
 
         @Test
-        void when_typeMismatchInValues_then_compileTimeError() {
+        void whenTypeMismatchInValuesThenCompileTimeError() {
             assertCompilesToError("1 + \"hello\" + 3", "number");
         }
 
         @Test
-        void when_typeMismatchInPure_then_runtimeError() {
+        void whenTypeMismatchInPureThenRuntimeError() {
             var result = evaluateExpression("1 + notNumber + 3", testContext(Map.of("notNumber", of("text"))));
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
 
         @Test
-        void when_errorInValues_then_compileTimeError() {
+        void whenErrorInValuesThenCompileTimeError() {
             assertThat(compileExpression("undefined + 1 + 2")).isInstanceOf(ErrorValue.class);
         }
     }
@@ -156,57 +159,57 @@ class NaryOperatorCompilerTests {
     class ProductTests {
 
         @Test
-        void when_allValues_then_foldAtCompileTime() {
+        void whenAllValuesThenFoldAtCompileTime() {
             assertCompilesTo("2 * 3 * 4", of(24));
         }
 
         @Test
-        void when_manyOperands_then_correctResult() {
+        void whenManyOperandsThenCorrectResult() {
             assertCompilesTo("1 * 2 * 3 * 4 * 5", of(120));
         }
 
         @Test
-        void when_includesZero_then_resultIsZero() {
+        void whenIncludesZeroThenResultIsZero() {
             assertCompilesTo("5 * 0 * 100", of(0));
         }
 
         @Test
-        void when_decimals_then_correctResult() {
+        void whenDecimalsThenCorrectResult() {
             var compiled = compileExpression("1.5 * 2.0 * 3.0");
             assertThat(compiled).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) compiled).value()).isEqualByComparingTo(new BigDecimal("9.0"));
         }
 
         @Test
-        void when_valueWithSubscriptionElement_then_returnsPureOperator() {
+        void whenValueWithSubscriptionElementThenReturnsPureOperator() {
             assertThat(compileExpression("2 * subject * 3")).isInstanceOf(PureOperator.class);
         }
 
         @Test
-        void when_valueWithVariable_then_evaluatesCorrectly() {
+        void whenValueWithVariableThenEvaluatesCorrectly() {
             assertEvaluatesTo("2 * x * 3", Map.of("x", of(5)), of(30));
         }
 
         @Test
-        void when_typeMismatchInValues_then_compileTimeError() {
+        void whenTypeMismatchInValuesThenCompileTimeError() {
             assertThat(compileExpression("2 * true * 3")).isInstanceOf(ErrorValue.class);
         }
 
         @Test
-        void when_typeMismatchInPure_then_runtimeError() {
+        void whenTypeMismatchInPureThenRuntimeError() {
             var array  = ArrayValue.builder().add(of(1)).add(of(2)).add(of(3)).build();
             var result = evaluateExpression("2 * notNumber", testContext(Map.of("notNumber", array)));
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
 
         @Test
-        void when_zeroTimesError_then_errorNotZero() {
+        void whenZeroTimesErrorThenErrorNotZero() {
             // 0 * undefined should be ERROR, not 0
             assertThat(compileExpression("0 * undefined")).isInstanceOf(ErrorValue.class);
         }
 
         @Test
-        void when_zeroTimesPureError_then_errorNotZero() {
+        void whenZeroTimesPureErrorThenErrorNotZero() {
             var result = evaluateExpression("0 * broken",
                     testContext(Map.of("broken", Value.error("variable is broken"))));
             assertThat(result).isInstanceOf(ErrorValue.class);
@@ -214,7 +217,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_zeroInMiddle_stillEvaluatesRest() {
+        void whenZeroInMiddleStillEvaluatesRest() {
             var result = evaluateExpression("5 * 0 * broken", testContext(Map.of("broken", Value.error("broken"))));
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
@@ -226,7 +229,7 @@ class NaryOperatorCompilerTests {
         @ParameterizedTest(name = "{0} -> {1}")
         @CsvSource({ "1 + 2 + 3,   Value", "1 + subject + 3,   PureOperator",
                 "subject + action + resource,   PureOperator" })
-        void when_expression_then_returnsExpectedType(String expr, String expectedType) {
+        void whenExpressionThenReturnsExpectedType(String expr, String expectedType) {
             var compiled = compileExpression(expr);
             if ("Value".equals(expectedType)) {
                 assertThat(compiled).isInstanceOf(Value.class);
@@ -236,12 +239,12 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_valueErrorFirst_then_noFurtherEvaluation() {
+        void whenValueErrorFirstThenNoFurtherEvaluation() {
             assertThat(compileExpression("undefined + 1 + 2")).isInstanceOf(ErrorValue.class);
         }
 
         @Test
-        void when_valueErrorMiddle_then_stopsAtError() {
+        void whenValueErrorMiddleThenStopsAtError() {
             assertThat(compileExpression("1 + undefined + 2")).isInstanceOf(ErrorValue.class);
         }
     }
@@ -250,7 +253,7 @@ class NaryOperatorCompilerTests {
     class DependsOnSubscriptionTests {
 
         @Test
-        void when_subscriptionElement_then_resultDependsOnSubscription() {
+        void whenSubscriptionElementThenResultDependsOnSubscription() {
             var compiled = compileExpression("1 + subject + 2");
             assertThat(compiled).isInstanceOf(PureOperator.class);
             assertThat(((PureOperator) compiled).isDependingOnSubscription()).isTrue();
@@ -261,77 +264,77 @@ class NaryOperatorCompilerTests {
     class EvaluationTests {
 
         @Test
-        void xor_variableEvaluatesToTrue() {
+        void xorVariableEvaluatesToTrue() {
             assertEvaluatesTo("false ^ flag", Map.of("flag", Value.TRUE), Value.TRUE);
         }
 
         @Test
-        void xor_multipleVariables() {
+        void xorMultipleVariables() {
             assertEvaluatesTo("a ^ b ^ c", Map.of("a", Value.TRUE, "b", Value.FALSE, "c", Value.TRUE), Value.FALSE);
         }
 
         @Test
-        void sum_singleVariable() {
+        void sumSingleVariable() {
             assertEvaluatesTo("x + 5", Map.of("x", of(10)), of(15));
         }
 
         @Test
-        void sum_multipleVariables() {
+        void sumMultipleVariables() {
             assertEvaluatesTo("a + b + c + 10", Map.of("a", of(1), "b", of(2), "c", of(3)), of(16));
         }
 
         @Test
-        void product_singleVariable() {
+        void productSingleVariable() {
             assertEvaluatesTo("x * 4", Map.of("x", of(7)), of(28));
         }
 
         @Test
-        void product_multipleVariables() {
+        void productMultipleVariables() {
             assertEvaluatesTo("a * b * c * 2", Map.of("a", of(2), "b", of(3), "c", of(4)), of(48));
         }
 
         @Test
-        void xor_variableTypeMismatchError() {
+        void xorVariableTypeMismatchError() {
             assertEvaluatesToError("true ^ x", Map.of("x", of(123)));
         }
 
         @Test
-        void sum_variableTypeMismatchError() {
+        void sumVariableTypeMismatchError() {
             assertEvaluatesToError("1 + x", Map.of("x", of("not a number")));
         }
 
         @Test
-        void product_variableTypeMismatchError() {
+        void productVariableTypeMismatchError() {
             assertEvaluatesToError("2 * x", Map.of("x", Value.TRUE));
         }
 
         @Test
-        void xor_compileTimeFolding() {
+        void xorCompileTimeFolding() {
             assertCompilesTo("true ^ false ^ true", Value.FALSE);
         }
 
         @Test
-        void sum_compileTimeFolding() {
+        void sumCompileTimeFolding() {
             assertCompilesTo("10 + 20 + 30", of(60));
         }
 
         @Test
-        void product_compileTimeFolding() {
+        void productCompileTimeFolding() {
             assertCompilesTo("2 * 3 * 4 * 5", of(120));
         }
 
         @Test
-        void xor_compileTimeError() {
+        void xorCompileTimeError() {
             assertCompilesToError("true ^ \"string\" ^ false", "boolean");
         }
 
         @Test
-        void sum_compileTimeError() {
+        void sumCompileTimeError() {
             assertCompilesToError("1 + true + 3", "number");
         }
 
         @Test
-        void product_compileTimeError() {
+        void productCompileTimeError() {
             assertCompilesToError("2 * \"text\" * 4", "number");
         }
     }
@@ -340,12 +343,12 @@ class NaryOperatorCompilerTests {
     class KeyStepDependentTests {
 
         @Test
-        void when_valueWithPure_propertyAccess_then_returnsPureOperator() {
+        void whenValueWithPurePropertyAccessThenReturnsPureOperator() {
             assertThat(compileExpression("1 + (subject.x) + 3")).isInstanceOf(PureOperator.class);
         }
 
         @Test
-        void when_multipleSubscriptionElement_propertyAccess_then_evaluatesCorrectly() {
+        void whenMultipleSubscriptionElementPropertyAccessThenEvaluatesCorrectly() {
             var subjectValue = ObjectValue.builder().put("a", of(1)).put("b", of(2)).put("c", of(3)).build();
             assertPureEvaluatesToWithSubject("(subject.a) + (subject.b) + (subject.c)", subjectValue, of(6));
         }
@@ -355,14 +358,14 @@ class NaryOperatorCompilerTests {
     class StreamOperatorTests {
 
         @Test
-        void when_valuesAndStream_then_returnsStreamOperator() {
+        void whenValuesAndStreamThenReturnsStreamOperator() {
             var broker   = attributeBroker("test.attr", of(10));
             var compiled = compileExpression("1 + <test.attr> + 2", broker);
             assertThat(compiled).isInstanceOf(StreamOperator.class);
         }
 
         @Test
-        void when_streamEmitsValue_then_combinesWithValues() {
+        void whenStreamEmitsValueThenCombinesWithValues() {
             var broker   = attributeBroker("test.attr", of(10));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("1 + <test.attr> + 2", broker);
@@ -372,7 +375,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_multipleStreams_then_combineLatest() {
+        void whenMultipleStreamsThenCombineLatest() {
             var broker   = singleValueAttributeBroker(Map.of("a.attr", of(5), "b.attr", of(3)));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("<a.attr> + <b.attr>", broker);
@@ -382,7 +385,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_streamWithProduct_then_multipliesCorrectly() {
+        void whenStreamWithProductThenMultipliesCorrectly() {
             var broker   = attributeBroker("test.attr", of(7));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("2 * <test.attr> * 3", broker);
@@ -392,7 +395,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_streamWithXor_then_xorsCorrectly() {
+        void whenStreamWithXorThenXorsCorrectly() {
             var broker   = attributeBroker("test.attr", Value.TRUE);
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("true ^ <test.attr> ^ false", broker);
@@ -403,7 +406,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_streamEmitsError_then_propagatesError() {
+        void whenStreamEmitsErrorThenPropagatesError() {
             var broker   = errorAttributeBroker("test.attr", "Stream errors");
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("1 + <test.attr> + 2", broker);
@@ -416,7 +419,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_streamWithTypeMismatch_then_returnsError() {
+        void whenStreamWithTypeMismatchThenReturnsError() {
             var broker   = attributeBroker("test.attr", of("not a number"));
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("1 + <test.attr> + 2", broker);
@@ -427,7 +430,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_valuesAndPuresAndStream_then_allCombined() {
+        void whenValuesAndPuresAndStreamThenAllCombined() {
             var broker   = attributeBroker("test.attr", of(100));
             var ctx      = testContext(broker, Map.of("x", of(10)));
             var compiled = compileExpression("1 + x + <test.attr>", ctx.compilationContext());
@@ -439,7 +442,7 @@ class NaryOperatorCompilerTests {
         }
 
         @Test
-        void when_zeroTimesErrorStream_then_errorNotZero() {
+        void whenZeroTimesErrorStreamThenErrorNotZero() {
             var broker   = errorAttributeBroker("test.attr", "attribute failed");
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("0 * <test.attr>", broker);

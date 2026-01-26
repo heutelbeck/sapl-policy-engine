@@ -31,17 +31,20 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("ComparisonOperators")
 class ComparisonOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_equals_then_returnsExpected(String description, Value a, Value b, Value expected) {
+    void whenEqualsThenReturnsExpected(String description, Value a, Value b, Value expected) {
         val actual = ComparisonOperators.equals(a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_equals_then_returnsExpected() {
+    private static Stream<Arguments> whenEqualsThenReturnsExpected() {
         // Complex values for composite tests
         val arr123 = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
         val arr12  = Value.ofArray(Value.of(1), Value.of(2));
@@ -78,13 +81,13 @@ class ComparisonOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_notEquals_then_returnsExpected(String description, Value a, Value b, Value expected) {
+    void whenNotEqualsThenReturnsExpected(String description, Value a, Value b, Value expected) {
         val actual = ComparisonOperators.notEquals(a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_notEquals_then_returnsExpected() {
+    private static Stream<Arguments> whenNotEqualsThenReturnsExpected() {
         return Stream.of(
             // Same values - should return FALSE
             arguments("same integers", Value.of(5), Value.of(5), Value.FALSE),
@@ -102,12 +105,12 @@ class ComparisonOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_isContainedIn_then_returnsExpected(String description, Value needle, Value haystack, Value expected) {
+    void whenIsContainedInThenReturnsExpected(String description, Value needle, Value haystack, Value expected) {
         val actual = ComparisonOperators.isContainedIn(needle, haystack, null);
         assertThat(actual).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_isContainedIn_then_returnsExpected() {
+    private static Stream<Arguments> whenIsContainedInThenReturnsExpected() {
         // Reusable test data
         val array123        = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
         val mixedArray      = Value.ofArray(Value.of("1"), Value.of(2), Value.TRUE);
@@ -146,12 +149,12 @@ class ComparisonOperatorsTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_isContainedIn_withInvalidTypes_then_returnsError(String description, Value needle, Value haystack) {
+    void whenIsContainedInWithInvalidTypesThenReturnsError(String description, Value needle, Value haystack) {
         val actual = ComparisonOperators.isContainedIn(needle, haystack, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
-    private static Stream<Arguments> when_isContainedIn_withInvalidTypes_then_returnsError() {
+    private static Stream<Arguments> whenIsContainedInWithInvalidTypesThenReturnsError() {
         return Stream.of(arguments("non-string needle in string haystack", Value.of(5), Value.of("hello")),
                 arguments("number in number (incompatible)", Value.of(1), Value.of(5)),
                 arguments("value in boolean haystack", Value.of(1), Value.TRUE),

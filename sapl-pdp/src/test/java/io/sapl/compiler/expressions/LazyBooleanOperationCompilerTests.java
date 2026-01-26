@@ -40,6 +40,9 @@ import static io.sapl.util.SaplTesting.sequenceBroker;
 import static io.sapl.util.SaplTesting.trackingBroker;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("LazyBooleanOperationCompiler")
 class LazyBooleanOperationCompilerTests {
 
     @Nested
@@ -53,7 +56,7 @@ class LazyBooleanOperationCompilerTests {
         }
 
         @Test
-        void when_leftShortCircuits_then_constantFolded() {
+        void whenLeftShortCircuitsThenConstantFolded() {
             // false && anything = false (short-circuit at compile time)
             var compiled = compileExpression("false && true");
             assertThat(compiled).isEqualTo(Value.FALSE);
@@ -71,7 +74,7 @@ class LazyBooleanOperationCompilerTests {
         }
 
         @Test
-        void when_leftShortCircuits_then_constantFolded() {
+        void whenLeftShortCircuitsThenConstantFolded() {
             // true || anything = true (short-circuit at compile time)
             var compiled = compileExpression("true || false");
             assertThat(compiled).isEqualTo(Value.TRUE);
@@ -84,7 +87,7 @@ class LazyBooleanOperationCompilerTests {
         @ParameterizedTest(name = "{0}")
         @CsvSource({ "1 && true,        Expected BOOLEAN", "true && 1,        Expected BOOLEAN",
                 "\"text\" || false, Expected BOOLEAN", "false || \"text\", Expected BOOLEAN" })
-        void when_nonBoolean_then_error(String expr, String expectedError) {
+        void whenNonBooleanThenError(String expr, String expectedError) {
             var result = evaluateExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains(expectedError);
@@ -97,7 +100,7 @@ class LazyBooleanOperationCompilerTests {
         @ParameterizedTest(name = "{0} = {1}")
         @CsvSource({ "(1 == 1) && true,   true", "false || (2 > 1),   true", "(1 == 1) && (2 == 2), true",
                 "(1 != 1) && (2 == 2), false", "(1 != 1) || (2 == 2), true", "(1 == 1) || (2 != 2), true" })
-        void when_pureOperands_then_evaluatesCorrectly(String expr, boolean expected) {
+        void whenPureOperandsThenEvaluatesCorrectly(String expr, boolean expected) {
             var result = evaluateExpression(expr);
             assertThat(result).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
@@ -107,7 +110,7 @@ class LazyBooleanOperationCompilerTests {
     class StreamShortCircuit {
 
         @Test
-        void when_andWithStreamOnRight_andLeftFalse_then_shortCircuitsAtCompileTime() {
+        void whenAndWithStreamOnRightAndLeftFalseThenShortCircuitsAtCompileTime() {
             var subscribed = new AtomicBoolean(false);
             var broker     = trackingBroker(subscribed, Value.TRUE);
             var ctx        = compilationContext(broker);
@@ -120,7 +123,7 @@ class LazyBooleanOperationCompilerTests {
         }
 
         @Test
-        void when_orWithStreamOnRight_andLeftTrue_then_shortCircuitsAtCompileTime() {
+        void whenOrWithStreamOnRightAndLeftTrueThenShortCircuitsAtCompileTime() {
             var subscribed = new AtomicBoolean(false);
             var broker     = trackingBroker(subscribed, Value.TRUE);
             var ctx        = compilationContext(broker);
@@ -133,7 +136,7 @@ class LazyBooleanOperationCompilerTests {
         }
 
         @Test
-        void when_andWithStreamOnRight_andLeftTrue_then_returnsStream() {
+        void whenAndWithStreamOnRightAndLeftTrueThenReturnsStream() {
             var broker   = attributeBroker("test.attr", Value.TRUE);
             var ctx      = compilationContext(broker);
             var compiled = compileExpression("true && <test.attr>", ctx);
@@ -147,7 +150,7 @@ class LazyBooleanOperationCompilerTests {
         }
 
         @Test
-        void when_orWithStreamOnRight_andLeftFalse_then_returnsStream() {
+        void whenOrWithStreamOnRightAndLeftFalseThenReturnsStream() {
             var broker   = attributeBroker("test.attr", Value.TRUE);
             var ctx      = compilationContext(broker);
             var compiled = compileExpression("false || <test.attr>", ctx);
@@ -161,7 +164,7 @@ class LazyBooleanOperationCompilerTests {
         }
 
         @Test
-        void when_streamAndStream_leftEmitsFalse_then_shortCircuitsRight() {
+        void whenStreamAndStreamLeftEmitsFalseThenShortCircuitsRight() {
             var broker = sequenceBroker(Map.of("test.left", List.of(Value.FALSE, Value.TRUE, Value.FALSE), "test.right",
                     List.of(Value.TRUE)));
             var ctx    = compilationContext(broker);

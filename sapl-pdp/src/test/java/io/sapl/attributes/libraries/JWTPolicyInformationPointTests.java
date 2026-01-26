@@ -40,6 +40,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -64,6 +65,7 @@ import static io.sapl.attributes.libraries.JWTPolicyInformationPointTests.CtxUti
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("JWTPolicyInformationPoint")
 class JWTPolicyInformationPointTests {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -103,7 +105,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void when_brokerLoadsLibrary_then_jwtLibraryIsAvailable() {
+    void whenBrokerLoadsLibraryThenJwtLibraryIsAvailable() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new JWTPolicyInformationPoint(provider);
@@ -114,7 +116,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void when_loadLibraryWithoutAnnotation_then_throwsException() {
+    void whenLoadLibraryWithoutAnnotationThenThrowsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -130,7 +132,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void when_loadDuplicateLibrary_then_throwsException() {
+    void whenLoadDuplicateLibraryThenThrowsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new JWTPolicyInformationPoint(provider);
@@ -146,7 +148,7 @@ class JWTPolicyInformationPointTests {
      */
 
     @Test
-    void validity_withInvalidKey_shouldBeUntrusted() throws JOSEException {
+    void validityWithInvalidKeyShouldBeUntrusted() throws JOSEException {
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().build();
@@ -162,14 +164,14 @@ class JWTPolicyInformationPointTests {
      */
 
     @Test
-    void validity_withWrongValueType_shouldBeMalformed() {
+    void validityWithWrongValueTypeShouldBeMalformed() {
         val flux = jwtPolicyInformationPoint.validity((TextValue) Value.of("50000"), emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
                 .verifyComplete();
     }
 
     @Test
-    void validity_withMalformedToken_shouldBeMalformed() {
+    void validityWithMalformedTokenShouldBeMalformed() {
         val source = Value.of("MALFORMED TOKEN");
         val flux   = jwtPolicyInformationPoint.validity(source, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
@@ -177,7 +179,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_ofNull_shouldBeMalformed() {
+    void validityOfNullShouldBeMalformed() {
         val flux = jwtPolicyInformationPoint.validity(null, emptyCtx());
         StepVerifier.create(flux).expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
                 .verifyComplete();
@@ -188,7 +190,7 @@ class JWTPolicyInformationPointTests {
      */
 
     @Test
-    void validity_withWhitelist_emptyEntry_shouldBeUntrusted() throws JOSEException {
+    void validityWithWhitelistEmptyEntryShouldBeUntrusted() throws JOSEException {
         val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().build();
@@ -199,7 +201,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withWhitelist_bogusEntry_shouldBeUntrusted() throws JOSEException {
+    void validityWithWhitelistBogusEntryShouldBeUntrusted() throws JOSEException {
         val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();
         val claims    = new JWTClaimsSet.Builder().build();
@@ -210,7 +212,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withWhitelist_multiTest_shouldBeTrustedThenTrustedThenUntrusted()
+    void validityWithWhitelistMultiTestShouldBeTrustedThenTrustedThenUntrusted()
             throws NoSuchAlgorithmException, IOException, JOSEException {
         val keyPairs   = new KeyPair[] { keyPair, keyPair2, Base64DataUtil.generateRSAKeyPair() };
         val accessCtx  = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2));
@@ -232,7 +234,7 @@ class JWTPolicyInformationPointTests {
      */
 
     @Test
-    void validity_withEmptyEnvironment_shouldBeUntrusted() throws JOSEException {
+    void validityWithEmptyEnvironmentShouldBeUntrusted() throws JOSEException {
         val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims = new JWTClaimsSet.Builder().build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -242,7 +244,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
+    void validityWithUriEnvironmentMissingServerShouldBeUntrusted() throws JOSEException {
         val accessCtx = ctx(Map.of("jwt", Value.EMPTY_OBJECT));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().build();
@@ -253,7 +255,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withUriEnvironment_usingWrongKey_shouldBeUntrusted() throws JOSEException {
+    void validityWithUriEnvironmentUsingWrongKeyShouldBeUntrusted() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.WRONG);
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -265,7 +267,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldBeUntrusted() throws JOSEException {
+    void validityWithUriEnvironmentAndInvalidCachingTtlUsingBase64UrlShouldBeUntrusted() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val jwtNode   = MAPPER.createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
                 JsonTestUtility.serverNode(server, null, "invalid TTL format"));
@@ -283,7 +285,7 @@ class JWTPolicyInformationPointTests {
      */
 
     @Test
-    void validity_withoutKeyID_shouldBeIncomplete() throws JOSEException {
+    void validityWithoutKeyIdShouldBeIncomplete() throws JOSEException {
         val header = new JWSHeader.Builder(JWSAlgorithm.RS256).build();
         val claims = new JWTClaimsSet.Builder().build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -293,7 +295,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withEmptyKeyID_shouldBeIncomplete() throws JOSEException {
+    void validityWithEmptyKeyIdShouldBeIncomplete() throws JOSEException {
         val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("").build();
         val claims = new JWTClaimsSet.Builder().build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -303,7 +305,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withCriticalHeader_shouldBeIncompatible() throws JOSEException {
+    void validityWithCriticalHeaderShouldBeIncompatible() throws JOSEException {
         val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).criticalParams(Set.of("critparam")).build();
         val claims = new JWTClaimsSet.Builder().build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -317,7 +319,7 @@ class JWTPolicyInformationPointTests {
      */
 
     @Test
-    void validity_withWrongAlgorithm_shouldBeIncompatible() throws JOSEException {
+    void validityWithWrongAlgorithmShouldBeIncompatible() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
         val claims = new JWTClaimsSet.Builder().build();
@@ -328,7 +330,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void valid_withWrongAlgorithm_shouldBeFalse() throws JOSEException {
+    void validWithWrongAlgorithmShouldBeFalse() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
         val claims = new JWTClaimsSet.Builder().build();
@@ -338,7 +340,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withTamperedPayload_withUriEnvironment_shouldBeUntrusted() throws JOSEException {
+    void validityWithTamperedPayloadWithUriEnvironmentShouldBeUntrusted() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val accessCtx      = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header         = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -356,7 +358,7 @@ class JWTPolicyInformationPointTests {
      */
 
     @Test
-    void validity_withNbfAfterExp_shouldBeNeverValid() throws JOSEException {
+    void validityWithNbfAfterExpShouldBeNeverValid() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -369,7 +371,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withExpBeforeNow_shouldBeExpired() throws JOSEException {
+    void validityWithExpBeforeNowShouldBeExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -381,7 +383,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withExpAfterNow_shouldBeValidThenExpired() throws JOSEException {
+    void validityWithExpAfterNowShouldBeValidThenExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -394,7 +396,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withNbfAfterNow_shouldBeImmatureThenValid() throws JOSEException {
+    void validityWithNbfAfterNowShouldBeImmatureThenValid() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -407,7 +409,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withNbfBeforeNow_shouldBeValid() throws JOSEException {
+    void validityWithNbfBeforeNowShouldBeValid() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -419,7 +421,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
+    void validityWithNbfAfterNowAndExpAfterNbfShouldBeImmatureThenValidThenExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null));
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();

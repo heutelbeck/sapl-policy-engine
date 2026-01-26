@@ -61,7 +61,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         @DisplayName("with no PDP settings returns all defaults")
-        void withNoPdpSettings_returnsDefaultSettings() {
+        void withNoPdpSettingsReturnsDefaultSettings() {
             val ctx    = compilationContext();
             val result = AttributeOptionsCompiler.compileOptions(null, ctx);
 
@@ -77,7 +77,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         @DisplayName("with PDP settings merges them into defaults")
-        void withPdpSettings_mergesPdpIntoDefaults() {
+        void withPdpSettingsMergesPdpIntoDefaults() {
             val pdpOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(9999L))
                     .put(OPTION_RETRIES, Value.of(10L)).build();
             val variables  = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpOptions).build();
@@ -94,7 +94,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         @DisplayName("with invalid PDP settings throws exception")
-        void withInvalidPdpSettings_throwsException() {
+        void withInvalidPdpSettingsThrowsException() {
             val invalidPdpOptions = Value.of("not an object");
             val variables         = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, invalidPdpOptions)
                     .build();
@@ -112,7 +112,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         @DisplayName("with all options returns merged ObjectValue")
-        void withAllOptions_returnsMergedObjectValue() {
+        void withAllOptionsReturnsMergedObjectValue() {
             val allOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L))
                     .put(OPTION_POLL_INTERVAL, Value.of(60000L)).put(OPTION_BACKOFF, Value.of(2000L))
                     .put(OPTION_RETRIES, Value.of(5L)).put(OPTION_FRESH, Value.TRUE).build();
@@ -130,7 +130,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         @DisplayName("with partial options merges with defaults")
-        void withPartialOptions_mergesWithDefaults() {
+        void withPartialOptionsMergesWithDefaults() {
             val partialOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(5000L)).build();
             val expr           = new Literal(partialOptions, TEST_LOCATION);
             val ctx            = compilationContext();
@@ -146,7 +146,7 @@ class AttributeOptionsCompilerTests {
 
         @Test
         @DisplayName("policy options take priority over PDP options")
-        void withPolicyAndPdpOptions_policyTakesPriority() {
+        void withPolicyAndPdpOptionsPolicyTakesPriority() {
             val policyOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(1111L)).build();
             val pdpOptions    = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(9999L))
                     .put(OPTION_RETRIES, Value.of(10L)).build();

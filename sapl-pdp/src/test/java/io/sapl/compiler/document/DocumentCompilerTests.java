@@ -57,7 +57,7 @@ class DocumentCompilerTests {
 
         @Test
         @DisplayName("returns valid document for correct policy")
-        void whenValidPolicy_thenDocumentIsValid() {
+        void whenValidPolicyThenDocumentIsValid() {
             val document = DocumentCompiler.parseDocument("policy \"test\" permit");
 
             assertThat(document.isInvalid()).isFalse();
@@ -66,7 +66,7 @@ class DocumentCompilerTests {
 
         @Test
         @DisplayName("returns invalid document for syntax errors")
-        void whenInvalidSyntax_thenDocumentIsInvalid() {
+        void whenInvalidSyntaxThenDocumentIsInvalid() {
             val document = DocumentCompiler.parseDocument("xyz");
 
             assertThat(document.isInvalid()).isTrue();
@@ -74,7 +74,7 @@ class DocumentCompilerTests {
 
         @Test
         @DisplayName("identifies policy type correctly")
-        void whenSinglePolicy_thenTypeIsPolicy() {
+        void whenSinglePolicyThenTypeIsPolicy() {
             val document = DocumentCompiler.parseDocument("policy \"single-policy\" deny");
 
             assertThat(document.isInvalid()).isFalse();
@@ -83,7 +83,7 @@ class DocumentCompilerTests {
 
         @Test
         @DisplayName("identifies policy set type correctly")
-        void whenPolicySet_thenTypeIsPolicySet() {
+        void whenPolicySetThenTypeIsPolicySet() {
             val policySetDefinition = """
                     set "test-set"
                     priority deny or abstain errors propagate
@@ -98,7 +98,7 @@ class DocumentCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource("invalidPolicyDefinitions")
         @DisplayName("detects validation errors")
-        void whenValidationError_thenDocumentIsInvalid(String description, String policyDefinition) {
+        void whenValidationErrorThenDocumentIsInvalid(String description, String policyDefinition) {
             val document = DocumentCompiler.parseDocument(policyDefinition);
 
             assertThat(document.isInvalid()).isTrue();
@@ -116,7 +116,7 @@ class DocumentCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource("validPolicyDefinitions")
         @DisplayName("parses valid policy variants")
-        void whenValidPolicyVariant_thenDocumentIsValid(String description, String policyDefinition) {
+        void whenValidPolicyVariantThenDocumentIsValid(String description, String policyDefinition) {
             val document = DocumentCompiler.parseDocument(policyDefinition);
 
             assertThat(document.isInvalid()).isFalse();
@@ -150,14 +150,14 @@ class DocumentCompilerTests {
 
         @Test
         @DisplayName("compiles valid policy successfully")
-        void whenValidPolicy_thenCompiles() {
+        void whenValidPolicyThenCompiles() {
             assertThatCode(() -> DocumentCompiler.compileDocument("policy \"test\" permit", ctx))
                     .doesNotThrowAnyException();
         }
 
         @Test
         @DisplayName("returns compiled document with metadata")
-        void whenValidPolicy_thenReturnsCompiledDocument() {
+        void whenValidPolicyThenReturnsCompiledDocument() {
             val compiled = DocumentCompiler.compileDocument("policy \"test\" permit", ctx);
 
             assertThat(compiled).isNotNull();
@@ -166,24 +166,24 @@ class DocumentCompilerTests {
 
         @Test
         @DisplayName("throws on syntax errors")
-        void whenInvalidSyntax_thenThrows() {
+        void whenInvalidSyntaxThenThrows() {
             assertThatThrownBy(() -> DocumentCompiler.compileDocument("xyz", ctx))
                     .isInstanceOf(SaplCompilerException.class);
         }
 
-        @ParameterizedTest
+        @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432",
                 "policy \"p\" permit var subject = {};", "policy \"p\" permit var action = {};",
                 "policy \"p\" permit var resource = {};", "policy \"p\" permit var environment = {};" })
         @DisplayName("throws on validation errors")
-        void whenValidationError_thenThrows(String policyDefinition) {
+        void whenValidationErrorThenThrows(String policyDefinition) {
             assertThatThrownBy(() -> DocumentCompiler.compileDocument(policyDefinition, ctx))
                     .isInstanceOf(SaplCompilerException.class);
         }
 
         @Test
         @DisplayName("compiles policy set successfully")
-        void whenValidPolicySet_thenCompiles() {
+        void whenValidPolicySetThenCompiles() {
             val policySetDefinition = """
                     set "test-set"
                     priority deny or abstain errors propagate
@@ -206,7 +206,7 @@ class DocumentCompilerTests {
         @ParameterizedTest(name = "rejects input containing {0}")
         @ValueSource(chars = { LRI, RLI, PDI, RLO })
         @DisplayName("parseDocument rejects trojan source characters")
-        void whenTrojanCharacterInParseDocument_thenThrows(char trojanChar) {
+        void whenTrojanCharacterInParseDocumentThenThrows(char trojanChar) {
             val malicious = "policy \"te" + trojanChar + "st\" permit";
 
             assertThatThrownBy(() -> DocumentCompiler.parseDocument(malicious))
@@ -216,7 +216,7 @@ class DocumentCompilerTests {
         @ParameterizedTest(name = "rejects input containing {0}")
         @ValueSource(chars = { LRI, RLI, PDI, RLO })
         @DisplayName("compileDocument rejects trojan source characters")
-        void whenTrojanCharacterInCompileDocument_thenThrows(char trojanChar) {
+        void whenTrojanCharacterInCompileDocumentThenThrows(char trojanChar) {
             val malicious = "policy \"te" + trojanChar + "st\" permit";
 
             assertThatThrownBy(() -> DocumentCompiler.compileDocument(malicious, ctx))

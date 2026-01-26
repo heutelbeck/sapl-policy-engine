@@ -48,11 +48,14 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
 /**
  * Integration tests verifying that KeysFunctionLibrary produces valid,
  * functionally correct cryptographic keys that can
  * be used for actual cryptographic operations.
  */
+@DisplayName("KeysFunctionLibraryRoundtrip")
 class KeysFunctionLibraryRoundtripTests {
 
     private static KeyPair rsaKeyPair;
@@ -90,7 +93,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* Round-trip Functional Verification */
 
     @Test
-    void rsaKey_roundTripConversion_producesEquivalentKey() {
+    void rsaKeyRoundTripConversionProducesEquivalentKey() {
         // Convert to JWK
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
         assertThat(jwkResult).isNotInstanceOf(ErrorValue.class);
@@ -119,7 +122,7 @@ class KeysFunctionLibraryRoundtripTests {
 
     @ParameterizedTest(name = "EC {2} round-trip")
     @MethodSource("ecKeyTestCases")
-    void ecKey_roundTripConversion_producesEquivalentKey(String pemKey, KeyPair keyPair, String jwkCurve,
+    void ecKeyRoundTripConversionProducesEquivalentKey(String pemKey, KeyPair keyPair, String jwkCurve,
             String javaCurve) {
         // Convert to JWK
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(pemKey));
@@ -143,7 +146,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ed25519Key_roundTripConversion_producesEquivalentKey() {
+    void ed25519KeyRoundTripConversionProducesEquivalentKey() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
         assertThat(jwk).isNotInstanceOf(ErrorValue.class).containsKey("x").containsEntry("kty", Value.of("OKP"))
                 .containsEntry("crv", Value.of("Ed25519"));
@@ -167,7 +170,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* Signature Verification Tests */
 
     @Test
-    void rsaKey_afterRoundTrip_canVerifySignature() throws Exception {
+    void rsaKeyAfterRoundTripCanVerifySignature() throws Exception {
         val message = "The stars are right, Cthulhu awakens".getBytes(StandardCharsets.UTF_8);
 
         // Sign with original private key
@@ -184,7 +187,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ecKey_afterRoundTrip_canVerifySignature() throws Exception {
+    void ecKeyAfterRoundTripCanVerifySignature() throws Exception {
         val message = "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn".getBytes(StandardCharsets.UTF_8);
 
         // Sign with original private key
@@ -201,7 +204,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ed25519Key_afterRoundTrip_canVerifySignature() throws Exception {
+    void ed25519KeyAfterRoundTripCanVerifySignature() throws Exception {
         val message = "That is not dead which can eternal lie".getBytes(StandardCharsets.UTF_8);
 
         // Sign with original private key
@@ -220,7 +223,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* JWK RFC Compliance Tests */
 
     @Test
-    void rsaJwk_followsRfc7517Structure() {
+    void rsaJwkFollowsRfc7517Structure() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
 
         // Verify required fields per RFC 7517 and RSA-specific fields per RFC 7518
@@ -247,7 +250,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ecJwk_followsRfc7517Structure() {
+    void ecJwkFollowsRfc7517Structure() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
         // Verify required fields per RFC 7517 and EC-specific fields per RFC 7518
@@ -274,7 +277,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ed25519Jwk_followsRfc8037Structure() {
+    void ed25519JwkFollowsRfc8037Structure() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
 
         // Verify required fields per RFC 8037 Section 2
@@ -293,7 +296,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* JWK Reconstruction from Scratch */
 
     @Test
-    void rsaJwk_canBeReconstructedIntoFunctionalKey() throws Exception {
+    void rsaJwkCanBeReconstructedIntoFunctionalKey() throws Exception {
         // Get JWK from library
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
 
@@ -316,7 +319,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ecJwk_canBeReconstructedIntoFunctionalKey() throws Exception {
+    void ecJwkCanBeReconstructedIntoFunctionalKey() throws Exception {
         // Get JWK from library
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
@@ -346,7 +349,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* Edge Case Integration Tests */
 
     @Test
-    void rsaKey_withLargeExponent_handlesCorrectly() {
+    void rsaKeyWithLargeExponentHandlesCorrectly() {
         // Most RSA keys use 65537 (0x10001) but library should handle any valid
         // exponent
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
@@ -362,7 +365,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ecKey_coordinates_haveCorrectLength() {
+    void ecKeyCoordinatesHaveCorrectLength() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
         val xBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x"));

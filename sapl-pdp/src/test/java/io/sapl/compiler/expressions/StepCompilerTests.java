@@ -96,30 +96,30 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableKey_compilesToPure() {
+            void variableKeyCompilesToPure() {
                 assertCompilesTo("subject.name", PureOperator.class);
             }
 
             @Test
-            void variableKey_evaluatesCorrectly() {
+            void variableKeyEvaluatesCorrectly() {
                 var subjectData = obj("name", Value.of("alice"), "age", Value.of(30));
                 assertPureEvaluatesToWithSubject("subject.name", subjectData, Value.of("alice"));
             }
 
             @Test
-            void chainedKeys_workAtRuntime() {
+            void chainedKeysWorkAtRuntime() {
                 var subjectData = obj("address", obj("city", Value.of("Berlin")));
                 assertPureEvaluatesToWithSubject("subject.address.city", subjectData, Value.of("Berlin"));
             }
 
             @Test
-            void missingKey_returnsUndefined() {
+            void missingKeyReturnsUndefined() {
                 var subjectData = obj("name", Value.of("alice"));
                 assertPureEvaluatesToWithSubject("subject.missing", subjectData, Value.UNDEFINED);
             }
 
             @Test
-            void preserves_isDependingOnSubscription() {
+            void preservesIsDependingOnSubscription() {
                 assertPureDependsOnSubscription("subject.name", true);
             }
         }
@@ -132,28 +132,28 @@ class StepCompilerTests {
         @ParameterizedTest(name = "{0} = {1}")
         @MethodSource
         @DisplayName("on Value - valid indices")
-        void onValue_valid(String expr, Value expected) {
+        void onValueValid(String expr, Value expected) {
             assertCompilesTo(expr, expected);
         }
 
-        static Stream<Arguments> onValue_valid() {
+        static Stream<Arguments> onValueValid() {
             return Stream.of(arguments("[10, 20, 30][0]", Value.of(10)), arguments("[10, 20, 30][1]", Value.of(20)),
                     arguments("[10, 20, 30][-1]", Value.of(30)), arguments("[10, 20, 30][-2]", Value.of(20)));
         }
 
-        @ParameterizedTest
+        @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "[1, 2, 3][3]", "[1, 2, 3][10]", "[1, 2, 3][-4]", "[1, 2, 3][-10]", "[][0]" })
         @DisplayName("out of bounds returns errors")
-        void outOfBounds_returnsError(String expr) {
+        void outOfBoundsReturnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("out of bounds");
         }
 
-        @ParameterizedTest
+        @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "{\"a\": 1}[0]", "42[0]", "\"hello\"[0]", "null[0]", "true[0]" })
         @DisplayName("index on non-array returns errors")
-        void nonArray_returnsError(String expr) {
+        void nonArrayReturnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("Cannot apply index step");
@@ -164,30 +164,30 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableIndex_compilesToPure() {
+            void variableIndexCompilesToPure() {
                 assertCompilesTo("resource[0]", PureOperator.class);
             }
 
             @Test
-            void variableIndex_evaluatesCorrectly() {
+            void variableIndexEvaluatesCorrectly() {
                 var resourceData = array(Value.of("a"), Value.of("b"), Value.of("c"));
                 assertPureEvaluatesToWithResource("resource[1]", resourceData, Value.of("b"));
             }
 
             @Test
-            void negativeIndex_evaluatesCorrectly() {
+            void negativeIndexEvaluatesCorrectly() {
                 var resourceData = array(Value.of("x"), Value.of("y"), Value.of("z"));
                 assertPureEvaluatesToWithResource("resource[-1]", resourceData, Value.of("z"));
             }
 
             @Test
-            void outOfBounds_returnsError() {
+            void outOfBoundsReturnsError() {
                 var resourceData = array(Value.of(1), Value.of(2));
                 assertPureEvaluatesToErrorWithResource("resource[5]", resourceData);
             }
 
             @Test
-            void preserves_isDependingOnSubscription() {
+            void preservesIsDependingOnSubscription() {
                 assertPureDependsOnSubscription("resource[0]", true);
             }
         }
@@ -233,10 +233,10 @@ class StepCompilerTests {
                     arguments("empty object.* returns empty", "{}.*", Value.EMPTY_ARRAY));
         }
 
-        @ParameterizedTest
+        @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "42.*", "\"hello\".*", "true.*", "null.*" })
         @DisplayName("wildcard on non-collection returns errors")
-        void nonCollection_returnsError(String expr) {
+        void nonCollectionReturnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("Cannot apply wildcard");
@@ -247,18 +247,18 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableWildcard_compilesToPure() {
+            void variableWildcardCompilesToPure() {
                 assertCompilesTo("resource.*", PureOperator.class);
             }
 
             @Test
-            void arrayVariable_evaluatesCorrectly() {
+            void arrayVariableEvaluatesCorrectly() {
                 var resourceData = array(Value.of("x"), Value.of("y"));
                 assertPureEvaluatesToWithResource("resource.*", resourceData, resourceData);
             }
 
             @Test
-            void objectVariable_evaluatesCorrectly() {
+            void objectVariableEvaluatesCorrectly() {
                 var resourceData = obj("a", Value.of(1), "b", Value.of(2));
                 var result       = evaluateWithResource("resource.*", resourceData);
                 assertThat(result).isInstanceOf(ArrayValue.class);
@@ -289,10 +289,10 @@ class StepCompilerTests {
                     arguments("negative out of bounds ignored", "[10, 20, 30][-100, 0]", array(Value.of(10))));
         }
 
-        @ParameterizedTest
+        @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "{\"a\": 1}[0, 1]", "42[0, 1]", "\"hello\"[0, 1]", "true[0, 1]", "null[0, 1]" })
         @DisplayName("index union on non-array returns errors")
-        void nonArray_returnsError(String expr) {
+        void nonArrayReturnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("Cannot apply index union");
@@ -303,18 +303,18 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableIndexUnion_compilesToPure() {
+            void variableIndexUnionCompilesToPure() {
                 assertCompilesTo("resource[0, 2]", PureOperator.class);
             }
 
             @Test
-            void variableIndexUnion_evaluatesCorrectly() {
+            void variableIndexUnionEvaluatesCorrectly() {
                 var resourceData = array(Value.of("a"), Value.of("b"), Value.of("c"), Value.of("d"));
                 assertPureEvaluatesToWithResource("resource[0, 2]", resourceData, array(Value.of("a"), Value.of("c")));
             }
 
             @Test
-            void outOfBounds_isIgnored() {
+            void outOfBoundsIsIgnored() {
                 var resourceData = array(Value.of(1), Value.of(2));
                 assertPureEvaluatesToWithResource("resource[0, 100]", resourceData, array(Value.of(1)));
             }
@@ -343,11 +343,11 @@ class StepCompilerTests {
                     arguments("all missing returns empty", "{\"a\": 1}[\"x\", \"y\"]", Value.EMPTY_ARRAY));
         }
 
-        @ParameterizedTest
+        @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "[1, 2, 3][\"a\", \"b\"]", "42[\"a\", \"b\"]", "\"hello\"[\"a\", \"b\"]",
                 "true[\"a\", \"b\"]", "null[\"a\", \"b\"]" })
         @DisplayName("attribute union on non-object returns errors")
-        void nonObject_returnsError(String expr) {
+        void nonObjectReturnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("Cannot apply attribute union");
@@ -358,19 +358,19 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableAttributeUnion_compilesToPure() {
+            void variableAttributeUnionCompilesToPure() {
                 assertCompilesTo("resource[\"a\", \"b\"]", PureOperator.class);
             }
 
             @Test
-            void variableAttributeUnion_evaluatesCorrectly() {
+            void variableAttributeUnionEvaluatesCorrectly() {
                 var resourceData = obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3));
                 assertPureEvaluatesToWithResource("resource[\"a\", \"c\"]", resourceData,
                         array(Value.of(1), Value.of(3)));
             }
 
             @Test
-            void missingKeys_areIgnored() {
+            void missingKeysAreIgnored() {
                 var resourceData = obj("a", Value.of(1));
                 assertPureEvaluatesToWithResource("resource[\"a\", \"missing\"]", resourceData, array(Value.of(1)));
             }
@@ -384,12 +384,12 @@ class StepCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource
         @DisplayName("on Value - valid slices")
-        void onValue_valid(String description, String expr, Value expected) {
+        void onValueValid(String description, String expr, Value expected) {
             assertCompilesTo(expr, expected);
         }
 
         // @formatter:off
-        static Stream<Arguments> onValue_valid() {
+        static Stream<Arguments> onValueValid() {
             return Stream.of(
                     // Basic slicing
                     arguments("basic [1:3]", "[10, 20, 30, 40, 50][1:3]",
@@ -439,16 +439,16 @@ class StepCompilerTests {
 
         @Test
         @DisplayName("step zero returns errors")
-        void stepZero_returnsError() {
+        void stepZeroReturnsError() {
             var result = compileExpression("[1, 2, 3][::0]");
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("zero");
         }
 
-        @ParameterizedTest
+        @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "{\"a\": 1}[1:3]", "42[1:3]", "\"hello\"[1:3]", "true[1:3]", "null[1:3]" })
         @DisplayName("slice on non-array returns errors")
-        void nonArray_returnsError(String expr) {
+        void nonArrayReturnsError(String expr) {
             var result = compileExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("Cannot apply slice");
@@ -459,12 +459,12 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableSlice_compilesToPure() {
+            void variableSliceCompilesToPure() {
                 assertCompilesTo("resource[1:3]", PureOperator.class);
             }
 
             @Test
-            void variableSlice_evaluatesCorrectly() {
+            void variableSliceEvaluatesCorrectly() {
                 var resourceData = array(Value.of(10), Value.of(20), Value.of(30), Value.of(40));
                 assertPureEvaluatesToWithResource("resource[1:3]", resourceData, array(Value.of(20), Value.of(30)));
             }
@@ -495,7 +495,7 @@ class StepCompilerTests {
 
         @Test
         @DisplayName("invalid type returns errors")
-        void invalidType_returnsError() {
+        void invalidTypeReturnsError() {
             var result = compileExpression("[1, 2, 3][(true)]");
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("number or string");
@@ -506,12 +506,12 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableExpressionStep_compilesToPure() {
+            void variableExpressionStepCompilesToPure() {
                 assertCompilesTo("resource[(0)]", PureOperator.class);
             }
 
             @Test
-            void variableExpressionStep_evaluatesCorrectly() {
+            void variableExpressionStepEvaluatesCorrectly() {
                 var resourceData = array(Value.of("a"), Value.of("b"), Value.of("c"));
                 assertPureEvaluatesToWithResource("resource[(1)]", resourceData, Value.of("b"));
             }
@@ -552,7 +552,7 @@ class StepCompilerTests {
 
         @Test
         @DisplayName("condition on scalar returns errors")
-        void onScalar_returnsError() {
+        void onScalarReturnsError() {
             var result = compileExpression("42[?(@ > 0)]");
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                     .contains("Cannot apply condition");
@@ -563,12 +563,12 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableCondition_compilesToPure() {
+            void variableConditionCompilesToPure() {
                 assertCompilesTo("resource[?(@ > 0)]", PureOperator.class);
             }
 
             @Test
-            void variableCondition_evaluatesCorrectly() {
+            void variableConditionEvaluatesCorrectly() {
                 var resourceData = array(Value.of(1), Value.of(2), Value.of(3), Value.of(4));
                 assertPureEvaluatesToWithResource("resource[?(@ > 2)]", resourceData, array(Value.of(3), Value.of(4)));
             }
@@ -597,7 +597,7 @@ class StepCompilerTests {
 
         @Test
         @DisplayName("key not found returns empty")
-        void keyNotFound_returnsEmpty() {
+        void keyNotFoundReturnsEmpty() {
             assertCompilesTo("{\"a\": 1}..b", Value.EMPTY_ARRAY);
         }
 
@@ -606,12 +606,12 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableRecursiveKey_compilesToPure() {
+            void variableRecursiveKeyCompilesToPure() {
                 assertCompilesTo("resource..name", PureOperator.class);
             }
 
             @Test
-            void variableRecursiveKey_evaluatesCorrectly() {
+            void variableRecursiveKeyEvaluatesCorrectly() {
                 var resourceData = obj("items", array(obj("name", Value.of("a")), obj("name", Value.of("b"))));
                 assertPureEvaluatesToWithResource("resource..name", resourceData, array(Value.of("a"), Value.of("b")));
             }
@@ -660,12 +660,12 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableRecursiveIndex_compilesToPure() {
+            void variableRecursiveIndexCompilesToPure() {
                 assertCompilesTo("resource..[0]", PureOperator.class);
             }
 
             @Test
-            void variableRecursiveIndex_evaluatesCorrectly() {
+            void variableRecursiveIndexEvaluatesCorrectly() {
                 var resourceData = array(Value.of(10), Value.of(20));
                 assertPureEvaluatesToWithResource("resource..[0]", resourceData, array(Value.of(10)));
             }
@@ -707,12 +707,12 @@ class StepCompilerTests {
         class OnPure {
 
             @Test
-            void variableRecursiveWildcard_compilesToPure() {
+            void variableRecursiveWildcardCompilesToPure() {
                 assertCompilesTo("resource..*", PureOperator.class);
             }
 
             @Test
-            void variableRecursiveWildcard_evaluatesCorrectly() {
+            void variableRecursiveWildcardEvaluatesCorrectly() {
                 var resourceData = array(Value.of(1), Value.of(2));
                 assertPureEvaluatesToWithResource("resource..*", resourceData, array(Value.of(1), Value.of(2)));
             }
@@ -728,12 +728,12 @@ class StepCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource
         @DisplayName("step on errors propagates errors")
-        void stepOnError_propagatesError(String description, Value result) {
+        void stepOnErrorPropagatesError(String description, Value result) {
             assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
                     .isEqualTo("test errors");
         }
 
-        static Stream<Arguments> stepOnError_propagatesError() {
+        static Stream<Arguments> stepOnErrorPropagatesError() {
             return Stream.of(arguments("key step", StepCompiler.applyKeyStep(ERROR, "key")),
                     arguments("index step", StepCompiler.applyIndexStep(ERROR, 0, null)),
                     arguments("wildcard step", StepCompiler.applyWildcardStep(ERROR, null)),

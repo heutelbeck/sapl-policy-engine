@@ -32,10 +32,22 @@ import java.util.Optional;
 @UtilityClass
 public class JWTEncodingDecodingUtils {
 
+    /**
+     * Converts a Base64-encoded X509 key to an RSA public key.
+     *
+     * @param encodedKey the Base64-encoded key
+     * @return the RSA public key, or empty if conversion fails
+     */
     static Optional<RSAPublicKey> encodedX509ToRSAPublicKey(String encodedKey) {
         return decode(encodedKey).map(X509EncodedKeySpec::new).flatMap(JWTEncodingDecodingUtils::generatePublicKey);
     }
 
+    /**
+     * Extracts an RSA public key from a JSON text node.
+     *
+     * @param jsonNode the JSON node containing the key
+     * @return the RSA public key, or empty if extraction fails
+     */
     public static Optional<RSAPublicKey> jsonNodeToKey(JsonNode jsonNode) {
         if (!jsonNode.isTextual())
             return Optional.empty();
@@ -54,7 +66,7 @@ public class JWTEncodingDecodingUtils {
     private static Optional<byte[]> decode(String base64) {
 
         // ensure base64url encoding
-        final var pattern = "\\+";
+        val pattern = "\\+";
         base64 = base64.replace(pattern, "-").replace('/', '_').replace(',', '_');
 
         try {

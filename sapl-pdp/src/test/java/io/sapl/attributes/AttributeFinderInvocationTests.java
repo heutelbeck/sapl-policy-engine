@@ -22,6 +22,7 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("AttributeFinderInvocation")
 class AttributeFinderInvocationTests {
 
     private static final Duration               FIFTY_MILLISECONDS = Duration.ofMillis(50L);
@@ -41,7 +43,7 @@ class AttributeFinderInvocationTests {
             Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
     @Test
-    void when_constructingWithBadParameters_then_throws() {
+    void whenConstructingWithBadParametersThenThrows() {
         // Null configurationId
         assertThatThrownBy(() -> new AttributeFinderInvocation(null, "abc.def", Value.TRUE, EMPTY_ARGS, ONE_SECOND,
                 ONE_SECOND, FIFTY_MILLISECONDS, 20L, false, EMPTY_CTX)).isInstanceOf(NullPointerException.class);
@@ -84,7 +86,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void when_constructingWithEnvironmentAttributeConstructor_then_entityIsNull() {
+    void whenConstructingWithEnvironmentAttributeConstructorThenEntityIsNull() {
         val invocation = new AttributeFinderInvocation(CONFIG_ID, "abc.def", EMPTY_ARGS, ONE_SECOND, ONE_SECOND,
                 FIFTY_MILLISECONDS, 3L, false, EMPTY_CTX);
 
@@ -93,7 +95,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void when_constructingWithEntity_then_isNotEnvironmentAttribute() {
+    void whenConstructingWithEntityThenIsNotEnvironmentAttribute() {
         val invocation = new AttributeFinderInvocation(CONFIG_ID, "abc.def", Value.TRUE, EMPTY_ARGS, ONE_SECOND,
                 ONE_SECOND, FIFTY_MILLISECONDS, 3L, false, EMPTY_CTX);
 
@@ -102,7 +104,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void when_constructingInvocation_then_allFieldsCorrectlySet() {
+    void whenConstructingInvocationThenAllFieldsCorrectlySet() {
         val         entity    = Value.of("test-entity");
         List<Value> arguments = List.of(Value.of(1), Value.of("arg2"));
         val         ctx       = new AttributeAccessContext(
@@ -127,7 +129,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void when_constructingTwoEqualInvocations_then_equalsAndHashCodeMatch() {
+    void whenConstructingTwoEqualInvocationsThenEqualsAndHashCodeMatch() {
         val invocation1 = new AttributeFinderInvocation(CONFIG_ID, "test.attr", Value.TRUE, EMPTY_ARGS, ONE_SECOND,
                 FIFTY_MILLISECONDS, Duration.ofMillis(100L), 3L, false, EMPTY_CTX);
         val invocation2 = new AttributeFinderInvocation(CONFIG_ID, "test.attr", Value.TRUE, EMPTY_ARGS, ONE_SECOND,

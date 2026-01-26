@@ -42,12 +42,10 @@ import java.util.concurrent.Executors;
 @Slf4j
 public class LspWebSocketEndpoint extends TextWebSocketHandler implements DisposableBean {
 
-    // ==================== LSP Protocol Constants ====================
     private static final String LSP_CONTENT_LENGTH_HEADER = "content-length:";
     private static final String LSP_HEADER_SEPARATOR      = "\r\n\r\n";
     private static final String LSP_LINE_SEPARATOR        = "\r\n";
 
-    // ==================== Session Attribute Keys ====================
     private static final String SESSION_KEY_CLIENT_TO_SERVER = "clientToServer";
     private static final String SESSION_KEY_SERVER_INPUT     = "serverInput";
 

@@ -49,7 +49,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders decision in text report")
-    void whenTextReport_thenContainsDecision() {
+    void whenTextReportThenContainsDecision() {
         val report = createSimpleReport(Decision.PERMIT);
 
         val text = ReportTextRenderUtil.textReport(report);
@@ -59,7 +59,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders PDP ID in text report")
-    void whenTextReport_thenContainsPdpId() {
+    void whenTextReportThenContainsPdpId() {
         val report = createSimpleReport(Decision.PERMIT);
 
         val text = ReportTextRenderUtil.textReport(report);
@@ -69,7 +69,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders algorithm in text report")
-    void whenTextReport_thenContainsAlgorithm() {
+    void whenTextReportThenContainsAlgorithm() {
         val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp",
                 "test-config", DENY_OVERRIDES, List.of(), List.of());
 
@@ -80,7 +80,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders PDP-level errors in text report")
-    void whenReportHasPdpErrors_thenErrorsAreRendered() {
+    void whenReportHasPdpErrorsThenErrorsAreRendered() {
         val error  = new ErrorValue("Ritual interrupted by investigators", null);
         val report = new VoteReport(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",
                 "test-pdp", "test-config", DENY_OVERRIDES, List.of(), List.of(error));
@@ -92,7 +92,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders contributing documents in text report")
-    void whenReportHasDocuments_thenDocumentsAreRendered() {
+    void whenReportHasDocumentsThenDocumentsAreRendered() {
         val doc    = new ContributingDocument("forbidden-knowledge-access", Decision.PERMIT, List.of(), List.of());
         val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp",
                 "test-config", DENY_OVERRIDES, List.of(doc), List.of());
@@ -104,7 +104,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders multiple contributing documents")
-    void whenReportHasMultipleDocuments_thenAllAreRendered() {
+    void whenReportHasMultipleDocumentsThenAllAreRendered() {
         val doc1   = new ContributingDocument("outer-set", Decision.DENY, List.of(), List.of());
         val doc2   = new ContributingDocument("inner-policy", Decision.DENY, List.of(), List.of());
         val report = new VoteReport(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "top-set", "test-pdp",
@@ -117,7 +117,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders obligations when present")
-    void whenObligationsPresent_thenObligationsAreRendered() {
+    void whenObligationsPresentThenObligationsAreRendered() {
         val obligations = ArrayValue.builder().add(Value.of("log_access")).build();
         val report      = new VoteReport(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, null, "test-set",
                 "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(), List.of());
@@ -129,7 +129,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders advice when present")
-    void whenAdvicePresent_thenAdviceIsRendered() {
+    void whenAdvicePresentThenAdviceIsRendered() {
         val advice = ArrayValue.builder().add(Value.of("consider_logging")).build();
         val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, advice, null, "test-set", "cthulhu-pdp",
                 "test-config", DENY_OVERRIDES, List.of(), List.of());
@@ -141,7 +141,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders environment attributes with timestamp under contributing document")
-    void whenDocumentHasEnvironmentAttributes_thenAttributesAndTimestampAreRendered() {
+    void whenDocumentHasEnvironmentAttributesThenAttributesAndTimestampAreRendered() {
         val timestamp  = Instant.parse("2024-01-23T10:30:05.123Z");
         val invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), Duration.ofSeconds(10),
                 Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
@@ -158,7 +158,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders entity attributes with timestamp under contributing document")
-    void whenDocumentHasEntityAttributes_thenAttributesAndTimestampAreRendered() {
+    void whenDocumentHasEntityAttributesThenAttributesAndTimestampAreRendered() {
         val timestamp  = Instant.parse("2024-01-23T10:30:05.456Z");
         val entity     = Value.of("test-subject");
         val invocation = new AttributeFinderInvocation("test-config", "user.role", entity, List.of(),
@@ -177,7 +177,7 @@ class ReportTextRenderUtilTests {
 
     @Test
     @DisplayName("renders document-level errors under contributing document")
-    void whenDocumentHasErrors_thenErrorsAreRendered() {
+    void whenDocumentHasErrorsThenErrorsAreRendered() {
         val error  = new ErrorValue("Failed to evaluate condition", null);
         val doc    = new ContributingDocument("broken-policy", Decision.INDETERMINATE, List.of(), List.of(error));
         val report = new VoteReport(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",

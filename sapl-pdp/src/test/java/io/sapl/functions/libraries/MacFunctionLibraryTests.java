@@ -35,10 +35,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("MacFunctionLibrary")
 class MacFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(MacFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -46,9 +49,9 @@ class MacFunctionLibraryTests {
 
     /* HMAC Computation Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHmacKnownVectors")
-    void hmac_whenKnownInput_computesExpectedMac(BiFunction<TextValue, TextValue, Value> hmacFunction, String message,
+    void hmacWhenKnownInputComputesExpectedMac(BiFunction<TextValue, TextValue, Value> hmacFunction, String message,
             String key, String expectedMac, int expectedLength) {
         var result = hmacFunction.apply(Value.of(message), Value.of(key));
 
@@ -70,26 +73,26 @@ class MacFunctionLibraryTests {
                         128));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHmacFunctions")
-    void hmac_whenEmptyMessage_computesMac(BiFunction<TextValue, TextValue, Value> hmacFunction) {
+    void hmacWhenEmptyMessageComputesMac(BiFunction<TextValue, TextValue, Value> hmacFunction) {
         var result = hmacFunction.apply(Value.of(""), Value.of("secret"));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHmacFunctions")
-    void hmac_whenSameInputs_producesConsistentMac(BiFunction<TextValue, TextValue, Value> hmacFunction) {
+    void hmacWhenSameInputsProducesConsistentMac(BiFunction<TextValue, TextValue, Value> hmacFunction) {
         var message = Value.of("test message");
         var key     = Value.of("test key");
 
         assertThat(hmacFunction.apply(message, key)).isEqualTo(hmacFunction.apply(message, key));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHmacFunctions")
-    void hmac_returnsLowercaseHex(BiFunction<TextValue, TextValue, Value> hmacFunction) {
+    void hmacReturnsLowercaseHex(BiFunction<TextValue, TextValue, Value> hmacFunction) {
         var result = hmacFunction.apply(Value.of("test"), Value.of("secret"));
 
         assertThat(result).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value()).satisfies(hash -> {
@@ -106,7 +109,7 @@ class MacFunctionLibraryTests {
     /* HMAC Behavior Tests */
 
     @Test
-    void hmacSha256_whenEmptyKey_returnsError() {
+    void hmacSha256WhenEmptyKeyReturnsError() {
         var result = MacFunctionLibrary.hmacSha256(Value.of("hello"), Value.of(""));
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message().toLowerCase())
@@ -114,7 +117,7 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void hmacSha256_whenDifferentKey_producesDifferentMac() {
+    void hmacSha256WhenDifferentKeyProducesDifferentMac() {
         var message = Value.of("test message");
 
         assertThat(MacFunctionLibrary.hmacSha256(message, Value.of("key1")))
@@ -122,7 +125,7 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void hmacSha256_whenDifferentMessage_producesDifferentMac() {
+    void hmacSha256WhenDifferentMessageProducesDifferentMac() {
         var key = Value.of("secret");
 
         assertThat(MacFunctionLibrary.hmacSha256(Value.of("message1"), key))
@@ -130,7 +133,7 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void differentAlgorithms_produceDifferentMacs() {
+    void differentAlgorithmsProduceDifferentMacs() {
         var message    = Value.of("test message");
         var key        = Value.of("secret");
         var hmacSha256 = MacFunctionLibrary.hmacSha256(message, key);
@@ -143,23 +146,23 @@ class MacFunctionLibraryTests {
 
     /* Timing-Safe Comparison Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @CsvSource({ "abc123def456, abc123def456, true,  'identical MACs'",
             "abc123def456, abc123def457, false, 'different MACs'",
             "abc123DEF456, ABC123def456, true,  'case difference'",
             "abc123,       abc123de,     false, 'different length'",
             "'',           '',           true,  'empty strings'", "abc123,       '',           false, 'one empty'",
             "ab_c1_23,     abc123,       true,  'with underscores'" })
-    void timingSafeEquals_whenVariousInputs_returnsExpectedResult(String mac1, String mac2, boolean expected,
+    void timingSafeEqualsWhenVariousInputsReturnsExpectedResult(String mac1, String mac2, boolean expected,
             String scenario) {
         var result = MacFunctionLibrary.timingSafeEquals(Value.of(mac1), Value.of(mac2));
 
         assertThat(result).as(scenario).isEqualTo(Value.of(expected));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @CsvSource({ "xyz,    abc", "abc123, abc123def" })
-    void timingSafeEquals_whenInvalidHex_returnsError(String mac1, String mac2) {
+    void timingSafeEqualsWhenInvalidHexReturnsError(String mac1, String mac2) {
         var result = MacFunctionLibrary.timingSafeEquals(Value.of(mac1), Value.of(mac2));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -167,9 +170,9 @@ class MacFunctionLibraryTests {
 
     /* HMAC Verification Tests */
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("provideHmacVerificationScenarios")
-    void isValidHmac_whenVariousScenarios_returnsExpectedResult(String message, String key, String algorithm,
+    void isValidHmacWhenVariousScenariosReturnsExpectedResult(String message, String key, String algorithm,
             BiFunction<TextValue, TextValue, Value> macGenerator, boolean expectSuccess) {
         var messageVal  = Value.of(message);
         var keyVal      = Value.of(key);
@@ -190,7 +193,7 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void isValidHmac_whenIncorrectMac_returnsFalse() {
+    void isValidHmacWhenIncorrectMacReturnsFalse() {
         var result = MacFunctionLibrary.isValidHmac(Value.of("test message"),
                 Value.of("0000000000000000000000000000000000000000000000000000000000000000"), Value.of("secret"),
                 Value.of("HmacSHA256"));
@@ -199,7 +202,7 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void isValidHmac_whenWrongKey_returnsFalse() {
+    void isValidHmacWhenWrongKeyReturnsFalse() {
         var message     = Value.of("test message");
         var correctKey  = Value.of("secret");
         var expectedMac = MacFunctionLibrary.hmacSha256(message, correctKey);
@@ -209,7 +212,7 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void isValidHmac_whenInvalidAlgorithm_returnsError() {
+    void isValidHmacWhenInvalidAlgorithmReturnsError() {
         var result = MacFunctionLibrary.isValidHmac(Value.of("test message"), Value.of("abc123"), Value.of("secret"),
                 Value.of("InvalidAlgorithm"));
 
@@ -219,7 +222,7 @@ class MacFunctionLibraryTests {
     /* Real-world Use Case Tests */
 
     @Test
-    void githubWebhookSignatureVerification_example() {
+    void githubWebhookSignatureVerificationExample() {
         var payload   = Value.of("{\"action\":\"opened\",\"number\":1}");
         var secret    = Value.of("my_webhook_secret");
         var signature = MacFunctionLibrary.hmacSha256(payload, secret);
@@ -229,7 +232,7 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void webhookSignature_whenPayloadModified_failsVerification() {
+    void webhookSignatureWhenPayloadModifiedFailsVerification() {
         var originalPayload   = Value.of("{\"action\":\"opened\",\"number\":1}");
         var secret            = Value.of("my_webhook_secret");
         var originalSignature = MacFunctionLibrary.hmacSha256(originalPayload, secret);

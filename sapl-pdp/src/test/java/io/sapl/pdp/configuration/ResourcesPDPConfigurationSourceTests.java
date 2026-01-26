@@ -31,6 +31,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("ResourcesPDPConfigurationSource")
 class ResourcesPDPConfigurationSourceTests {
 
     private static final CombiningAlgorithm PERMIT_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
@@ -41,7 +44,7 @@ class ResourcesPDPConfigurationSourceTests {
             DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
 
     @Test
-    void whenLoadingSinglePdpFromRootLevelFiles_thenCallbackIsInvokedOnce() {
+    void whenLoadingSinglePdpFromRootLevelFilesThenCallbackIsInvokedOnce() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", configs::add);
@@ -56,7 +59,7 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingMultiPdpFromSubdirectories_thenCallbackIsInvokedPerSubdirectory() {
+    void whenLoadingMultiPdpFromSubdirectoriesThenCallbackIsInvokedPerSubdirectory() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         val source = new ResourcesPDPConfigurationSource("/multi-pdp-policies", configs::add);
@@ -78,7 +81,7 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingMixedSetup_thenCallbackIsInvokedForBothDefaultAndSubdirectories() {
+    void whenLoadingMixedSetupThenCallbackIsInvokedForBothDefaultAndSubdirectories() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         val source = new ResourcesPDPConfigurationSource("/mixed-pdp-policies", configs::add);
@@ -98,7 +101,7 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingFromEmptyOrNonExistentPath_thenCallbackIsNotInvoked() {
+    void whenLoadingFromEmptyOrNonExistentPathThenCallbackIsNotInvoked() {
         val emptyConfigs       = new CopyOnWriteArrayList<PDPConfiguration>();
         val nonExistentConfigs = new CopyOnWriteArrayList<PDPConfiguration>();
 
@@ -113,7 +116,7 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNoPdpJsonConfigurationId_thenAutoGeneratesResourceId() {
+    void whenNoPdpJsonConfigurationIdThenAutoGeneratesResourceId() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", configs::add);
@@ -129,7 +132,7 @@ class ResourcesPDPConfigurationSourceTests {
     @ParameterizedTest(name = "path \"{0}\" should load single-pdp-policies")
     @ValueSource(strings = { "/single-pdp-policies", "single-pdp-policies", "/single-pdp-policies/",
             "single-pdp-policies/" })
-    void whenResourcePathHasVariousSlashFormats_thenNormalizationHandlesIt(String resourcePath) {
+    void whenResourcePathHasVariousSlashFormatsThenNormalizationHandlesIt(String resourcePath) {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         val source = new ResourcesPDPConfigurationSource(resourcePath, configs::add);
@@ -140,7 +143,7 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalled_thenIsDisposedReturnsTrue() {
+    void whenDisposeIsCalledThenIsDisposedReturnsTrue() {
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", config -> {});
 
         assertThat(source.isDisposed()).isFalse();
@@ -151,7 +154,7 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalledTwice_thenIsIdempotent() {
+    void whenDisposeIsCalledTwiceThenIsIdempotent() {
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", config -> {});
 
         source.dispose();

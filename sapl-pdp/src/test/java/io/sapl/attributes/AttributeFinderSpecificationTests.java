@@ -21,6 +21,7 @@ import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderSpecification;
 import io.sapl.api.model.Value;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
@@ -29,12 +30,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("AttributeFinderSpecification")
 class AttributeFinderSpecificationTests {
 
     private static final AttributeFinder MOCK_FINDER = inv -> Flux.just(Value.UNDEFINED);
 
     @Test
-    void when_constructingWithBadParameters_then_throws() {
+    void whenConstructingWithBadParametersThenThrows() {
         val validName = "a";
         val emptyList = List.<Class<? extends Value>>of();
         assertThatThrownBy(() -> new AttributeFinderSpecification(null, validName, true, emptyList, null, MOCK_FINDER))
@@ -44,7 +46,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void when_varArgsChecked_then_varArgsCorrectlyDetected() {
+    void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
         var withVarArgs    = new AttributeFinderSpecification("abc", "def", true, List.of(), Value.class, MOCK_FINDER);
         var notWithVarArgs = new AttributeFinderSpecification("abc", "def", true, List.of(), null, MOCK_FINDER);
         assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();

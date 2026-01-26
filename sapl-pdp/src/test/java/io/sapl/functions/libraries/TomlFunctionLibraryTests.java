@@ -24,6 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -31,17 +32,18 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+@DisplayName("TomlFunctionLibrary")
 class TomlFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(TomlFunctionLibrary.class))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void whenSimpleKeyValuePairs_thenParsesCorrectly() {
+    void whenSimpleKeyValuePairsThenParsesCorrectly() {
         val toml   = """
                 cultist = "Wilbur Whateley"
                 role = "ACOLYTE"
@@ -56,7 +58,7 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenTable_thenParsesCorrectly() {
+    void whenTableThenParsesCorrectly() {
         val toml   = """
                 [entity]
                 name = "Azathoth"
@@ -72,7 +74,7 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedTables_thenParsesCorrectly() {
+    void whenNestedTablesThenParsesCorrectly() {
         val toml   = """
                 [ritual]
                 name = "Summoning"
@@ -92,7 +94,7 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenArrays_thenParsesCorrectly() {
+    void whenArraysThenParsesCorrectly() {
         val toml   = """
                 artifacts = ["Necronomicon", "Silver Key", "Shining Trapezohedron"]
                 threatLevels = [1, 2, 3, 4, 5]
@@ -111,7 +113,7 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenArrayOfTables_thenParsesCorrectly() {
+    void whenArrayOfTablesThenParsesCorrectly() {
         val toml   = """
                 [[investigators]]
                 name = "Carter"
@@ -130,9 +132,9 @@ class TomlFunctionLibraryTests {
         assertThat((ObjectValue) investigators.get(1)).containsEntry("name", Value.of("Pickman"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "true", "false" })
-    void whenBooleans_thenParsesCorrectly(String boolValue) {
+    void whenBooleansThenParsesCorrectly(String boolValue) {
         val toml   = "sealed = " + boolValue;
         val result = TomlFunctionLibrary.tomlToVal(Value.of(toml));
 
@@ -142,16 +144,16 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyDocument_thenReturnsEmptyObject() {
+    void whenEmptyDocumentThenReturnsEmptyObject() {
         val result = TomlFunctionLibrary.tomlToVal(Value.of(""));
 
         assertThat(result).isInstanceOf(ObjectValue.class);
         assertThat((ObjectValue) result).isEmpty();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "invalid = ", "[unclosed", "= value", "[table\nkey = value" })
-    void whenInvalidToml_thenReturnsError(String invalidToml) {
+    void whenInvalidTomlThenReturnsError(String invalidToml) {
         val result = TomlFunctionLibrary.tomlToVal(Value.of(invalidToml));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -159,7 +161,7 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenObjectToToml_thenConvertsCorrectly() {
+    void whenObjectToTomlThenConvertsCorrectly() {
         val object = ObjectValue.builder().put("name", Value.of("Nyarlathotep"))
                 .put("title", Value.of("Crawling Chaos")).put("threatLevel", Value.of(8)).build();
 
@@ -172,7 +174,7 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenNestedObjectToToml_thenConvertsCorrectly() {
+    void whenNestedObjectToTomlThenConvertsCorrectly() {
         val location = ObjectValue.builder().put("site", Value.of("R'lyeh")).build();
         val ritual   = ObjectValue.builder().put("location", location).build();
 
@@ -184,7 +186,7 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenArrayToToml_thenConvertsCorrectly() {
+    void whenArrayToTomlThenConvertsCorrectly() {
         val deities = ArrayValue.builder().add(Value.of("Dagon")).add(Value.of("Hydra")).build();
         val object  = ObjectValue.builder().put("deities", deities).build();
 
@@ -196,14 +198,14 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
-    void whenEmptyObject_thenConvertsToEmptyToml() {
+    void whenEmptyObjectThenConvertsToEmptyToml() {
         val result = TomlFunctionLibrary.valToToml(Value.EMPTY_OBJECT);
 
         assertThat(result).isInstanceOf(TextValue.class);
     }
 
     @Test
-    void whenRoundTrip_thenPreservesData() {
+    void whenRoundTripThenPreservesData() {
         val original   = """
                 [investigator]
                 name = "Carter"

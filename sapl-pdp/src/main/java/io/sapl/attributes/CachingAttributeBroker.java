@@ -191,6 +191,11 @@ public class CachingAttributeBroker implements AttributeBroker {
         }
     }
 
+    /**
+     * Registers a PIP and its attribute finders.
+     *
+     * @param pipImplementation the PIP implementation to load
+     */
     public void loadPolicyInformationPoint(PolicyInformationPointImplementation pipImplementation) {
         synchronized (lock) {
             val pipSpecification = pipImplementation.specification();
@@ -273,6 +278,11 @@ public class CachingAttributeBroker implements AttributeBroker {
         }
     }
 
+    /**
+     * Removes a PIP and its attribute finders.
+     *
+     * @param name the name of the PIP to unload
+     */
     public void unloadPolicyInformationPoint(String name) {
         synchronized (lock) {
             val pipToRemove = pipRegistry.get(name);

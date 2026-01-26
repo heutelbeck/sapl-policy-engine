@@ -33,10 +33,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("SanitizationFunctionLibrary")
 class SanitizationFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SanitizationFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -44,7 +47,7 @@ class SanitizationFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {1}: {0}")
     @MethodSource("balancedModeLegitimateInputs")
-    void assertNoSqlInjection_whenLegitimateInput_thenReturnsInputUnchanged(String input, String description) {
+    void assertNoSqlInjectionWhenLegitimateInputThenReturnsInputUnchanged(String input, String description) {
         val inputVal = Value.of(input);
 
         val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
@@ -54,7 +57,7 @@ class SanitizationFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {1}: {0}")
     @MethodSource("balancedModeInjectionAttempts")
-    void assertNoSqlInjection_whenInjectionAttempt_thenReturnsError(String input, String description) {
+    void assertNoSqlInjectionWhenInjectionAttemptThenReturnsError(String input, String description) {
         val inputVal = Value.of(input);
 
         val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
@@ -64,7 +67,7 @@ class SanitizationFunctionLibraryTests {
     }
 
     @Test
-    void assertNoSqlInjection_whenEmptyString_thenReturnsInputUnchanged() {
+    void assertNoSqlInjectionWhenEmptyStringThenReturnsInputUnchanged() {
         val inputVal = Value.of("");
 
         val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
@@ -74,7 +77,7 @@ class SanitizationFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {1}: {0}")
     @MethodSource("strictModeValidIdentifiers")
-    void assertNoSqlInjectionStrict_whenCleanIdentifier_thenReturnsInputUnchanged(String input, String description) {
+    void assertNoSqlInjectionStrictWhenCleanIdentifierThenReturnsInputUnchanged(String input, String description) {
         val inputVal = Value.of(input);
 
         val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
@@ -84,7 +87,7 @@ class SanitizationFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {1}: {0}")
     @MethodSource("strictModeRejectedInputs")
-    void assertNoSqlInjectionStrict_whenAnySqlSyntax_thenReturnsError(String input, String description) {
+    void assertNoSqlInjectionStrictWhenAnySqlSyntaxThenReturnsError(String input, String description) {
         val inputVal = Value.of(input);
 
         val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
@@ -94,7 +97,7 @@ class SanitizationFunctionLibraryTests {
     }
 
     @Test
-    void assertNoSqlInjectionStrict_whenEmptyString_thenReturnsInputUnchanged() {
+    void assertNoSqlInjectionStrictWhenEmptyStringThenReturnsInputUnchanged() {
         val inputVal = Value.of("");
 
         val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
@@ -104,7 +107,7 @@ class SanitizationFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {3}: {0}")
     @MethodSource("balancedVsStrictComparison")
-    void compareModes_whenDifferentInputs_thenBehavesAsExpected(String input, boolean balancedBlocks,
+    void compareModesWhenDifferentInputsThenBehavesAsExpected(String input, boolean balancedBlocks,
             boolean strictBlocks, String description) {
         val inputVal       = Value.of(input);
         val balancedResult = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
@@ -125,8 +128,7 @@ class SanitizationFunctionLibraryTests {
 
     @ParameterizedTest(name = "[{index}] {2}: {0}")
     @MethodSource("edgeCasesAndSecurityTests")
-    void assertNoSqlInjection_whenEdgeCases_thenHandlesCorrectly(String input, boolean shouldBlock,
-            String description) {
+    void assertNoSqlInjectionWhenEdgeCasesThenHandlesCorrectly(String input, boolean shouldBlock, String description) {
         val inputVal = Value.of(input);
 
         val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);

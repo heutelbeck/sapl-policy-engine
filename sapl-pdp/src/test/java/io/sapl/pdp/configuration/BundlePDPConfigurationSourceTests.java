@@ -48,6 +48,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("BundlePDPConfigurationSource")
 class BundlePDPConfigurationSourceTests {
 
     private static final CombiningAlgorithm PERMIT_OVERRIDES   = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
@@ -85,7 +88,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingSingleBundle_thenCallbackIsInvokedWithDerivedPdpId() throws IOException {
+    void whenLoadingSingleBundleThenCallbackIsInvokedWithDerivedPdpId() throws IOException {
         createBundle(tempDir.resolve("necronomicon.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "necronomicon-v1" }
@@ -103,7 +106,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingMultipleBundles_thenCallbackIsInvokedForEach() throws IOException {
+    void whenLoadingMultipleBundlesThenCallbackIsInvokedForEach() throws IOException {
         createBundle(tempDir.resolve("rlyeh.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "rlyeh-v1" }
@@ -133,7 +136,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDoesNotExist_thenThrowsException() {
+    void whenDirectoryDoesNotExistThenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent");
 
         assertThatThrownBy(() -> new BundlePDPConfigurationSource(nonExistentPath, developmentPolicy, config -> {}))
@@ -141,7 +144,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPathIsNotADirectory_thenThrowsException() throws IOException {
+    void whenPathIsNotADirectoryThenThrowsException() throws IOException {
         val file = tempDir.resolve("not-a-directory.txt");
         Files.writeString(file, "content");
 
@@ -150,7 +153,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenEmptyDirectory_thenCallbackIsNotInvoked() {
+    void whenEmptyDirectoryThenCallbackIsNotInvoked() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
@@ -159,7 +162,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleHasExplicitConfigurationId_thenConfigurationIdIsUsed() throws IOException {
+    void whenBundleHasExplicitConfigurationIdThenConfigurationIdIsUsed() throws IOException {
         createBundle(tempDir.resolve("arkham.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "eldritch-bundle-v1" }
@@ -175,7 +178,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNoPdpJsonInBundle_thenBundleIsSkipped() throws IOException {
+    void whenNoPdpJsonInBundleThenBundleIsSkipped() throws IOException {
         createBundleWithoutPdpJson(tempDir.resolve("miskatonic.saplbundle"), "policy.sapl",
                 "policy \"test\" permit true;");
 
@@ -188,7 +191,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleIsModified_thenCallbackIsInvokedAgain() throws IOException {
+    void whenBundleIsModifiedThenCallbackIsInvokedAgain() throws IOException {
         createBundle(tempDir.resolve("innsmouth.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "innsmouth-v1" }
@@ -215,7 +218,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleContainsNestedArchive_thenBundleIsSkippedAndCallbackNotInvoked() throws IOException {
+    void whenBundleContainsNestedArchiveThenBundleIsSkippedAndCallbackNotInvoked() throws IOException {
         val bundlePath = tempDir.resolve("malicious.saplbundle");
         createBundleWithNestedArchive(bundlePath);
 
@@ -230,7 +233,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleContainsPathTraversal_thenBundleIsSkippedAndCallbackNotInvoked() throws IOException {
+    void whenBundleContainsPathTraversalThenBundleIsSkippedAndCallbackNotInvoked() throws IOException {
         val bundlePath = tempDir.resolve("malicious.saplbundle");
         createBundleWithPathTraversal(bundlePath);
 
@@ -245,7 +248,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleContainsNestedDirectories_thenNestedFilesAreSkipped() throws IOException {
+    void whenBundleContainsNestedDirectoriesThenNestedFilesAreSkipped() throws IOException {
         val bundlePath = tempDir.resolve("nested.saplbundle");
         createBundleWithNestedDirectory(bundlePath);
 
@@ -259,7 +262,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalled_thenIsDisposedReturnsTrue() throws IOException {
+    void whenDisposeIsCalledThenIsDisposedReturnsTrue() throws IOException {
         createBundle(tempDir.resolve("disposable.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v1" }
@@ -276,7 +279,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalledTwice_thenIsIdempotent() throws IOException {
+    void whenDisposeIsCalledTwiceThenIsIdempotent() throws IOException {
         createBundle(tempDir.resolve("disposable.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v2" }
@@ -292,7 +295,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkDirectoryProvided_thenThrowsException() throws IOException {
+    void whenSymlinkDirectoryProvidedThenThrowsException() throws IOException {
         val realDir = tempDir.resolve("real");
         Files.createDirectory(realDir);
 
@@ -309,7 +312,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkBundleFilePresent_thenItIsSkipped() throws IOException {
+    void whenSymlinkBundleFilePresentThenItIsSkipped() throws IOException {
         createBundle(tempDir.resolve("real.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "real-v1" }
@@ -335,7 +338,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNewBundleIsAdded_thenCallbackIsInvoked() throws IOException {
+    void whenNewBundleIsAddedThenCallbackIsInvoked() throws IOException {
         createBundle(tempDir.resolve("initial.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v1" }
@@ -362,7 +365,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleIsDeleted_thenNoExceptionIsThrown() throws IOException {
+    void whenBundleIsDeletedThenNoExceptionIsThrown() throws IOException {
         val bundlePath = tempDir.resolve("deletable.saplbundle");
         createBundle(bundlePath,
                 """
@@ -385,7 +388,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNonBundleFilesPresent_thenTheyAreIgnored() throws IOException {
+    void whenNonBundleFilesPresentThenTheyAreIgnored() throws IOException {
         createBundle(tempDir.resolve("valid.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v1" }
@@ -405,7 +408,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleWithVariables_thenVariablesAreLoaded() throws IOException {
+    void whenBundleWithVariablesThenVariablesAreLoaded() throws IOException {
         createBundleWithVariables(tempDir.resolve("cultist.saplbundle"));
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
@@ -418,7 +421,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenManyBundles_thenAllAreLoaded() throws IOException {
+    void whenManyBundlesThenAllAreLoaded() throws IOException {
         for (int i = 0; i < 10; i++) {
             createBundle(tempDir.resolve("tenant" + i + ".saplbundle"),
                     """
@@ -505,7 +508,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleChangesAfterDispose_thenTheyAreIgnored() throws IOException {
+    void whenBundleChangesAfterDisposeThenTheyAreIgnored() throws IOException {
         val bundlePath = tempDir.resolve("disposable.saplbundle");
         createBundle(bundlePath,
                 """
@@ -540,7 +543,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleHasInvalidName_thenItIsSkipped() throws IOException {
+    void whenBundleHasInvalidNameThenItIsSkipped() throws IOException {
         // Create bundle with valid name
         createBundle(tempDir.resolve("valid.saplbundle"),
                 """
@@ -565,7 +568,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleIsCorrupt_thenItIsSkipped() throws IOException {
+    void whenBundleIsCorruptThenItIsSkipped() throws IOException {
         createBundle(tempDir.resolve("valid.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v3" }
@@ -587,7 +590,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkBundleAddedAfterStart_thenItIsIgnored(@TempDir Path externalDir) throws IOException {
+    void whenSymlinkBundleAddedAfterStartThenItIsIgnored(@TempDir Path externalDir) throws IOException {
         createBundle(tempDir.resolve("initial.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v2" }
@@ -626,13 +629,13 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSecurityPolicyIsNull_thenThrowsException() {
+    void whenSecurityPolicyIsNullThenThrowsException() {
         assertThatThrownBy(() -> new BundlePDPConfigurationSource(tempDir, null, config -> {}))
                 .isInstanceOf(NullPointerException.class).hasMessageContaining("Security policy");
     }
 
     @Test
-    void whenSecurityPolicyDisabledWithoutRiskAcceptance_thenThrowsException() {
+    void whenSecurityPolicyDisabledWithoutRiskAcceptanceThenThrowsException() {
         val invalidPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
         assertThatThrownBy(() -> new BundlePDPConfigurationSource(tempDir, invalidPolicy, config -> {}))
@@ -640,7 +643,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingSignedBundleWithCorrectKey_thenSucceeds() throws IOException {
+    void whenLoadingSignedBundleWithCorrectKeyThenSucceeds() throws IOException {
         val signedBundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                 .withPolicy("signed.sapl", "policy \"signed\" permit true")
                 .signWith(elderKeyPair.getPrivate(), "test-key").build();
@@ -656,7 +659,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingUnsignedBundleWithRequiredSignature_thenBundleIsSkipped() throws IOException {
+    void whenLoadingUnsignedBundleWithRequiredSignatureThenBundleIsSkipped() throws IOException {
         createBundle(tempDir.resolve("unsigned.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "unsigned-v1" }

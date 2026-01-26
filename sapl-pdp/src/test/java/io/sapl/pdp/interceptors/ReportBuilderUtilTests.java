@@ -45,7 +45,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("extracts decision from vote")
-    void whenExtractReport_thenDecisionIsExtracted() {
+    void whenExtractReportThenDecisionIsExtracted() {
         val vote = createSimplePermitVote();
 
         val report = ReportBuilderUtil.extractReport(vote);
@@ -55,7 +55,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("extracts PDP metadata from vote")
-    void whenExtractReport_thenPdpMetadataIsExtracted() {
+    void whenExtractReportThenPdpMetadataIsExtracted() {
         val vote = createSimplePermitVote();
 
         val report = ReportBuilderUtil.extractReport(vote);
@@ -66,7 +66,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("extracts obligations from vote")
-    void whenExtractReport_thenObligationsAreExtracted() {
+    void whenExtractReportThenObligationsAreExtracted() {
         val obligation    = Value.of("log_access");
         val obligations   = ArrayValue.builder().add(obligation).build();
         val authzDecision = new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED);
@@ -81,7 +81,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("extracts contributing documents from nested votes")
-    void whenVoteHasContributingVotes_thenContributingDocumentsAreExtracted() {
+    void whenVoteHasContributingVotesThenContributingDocumentsAreExtracted() {
         val policyVoter = new PolicyVoterMetadata("forbidden-knowledge-access", "cthulhu-pdp", "test-security", "doc-1",
                 Outcome.PERMIT, false);
         val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
@@ -100,7 +100,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("handles vote with no contributing votes")
-    void whenVoteHasNoContributingVotes_thenReportHasEmptyContributingDocuments() {
+    void whenVoteHasNoContributingVotesThenReportHasEmptyContributingDocuments() {
         val voter = new PolicySetVoterMetadata("minimal-set", "minimal-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.DENY, false);
         val vote  = new Vote(AuthorizationDecision.INDETERMINATE, List.of(), List.of(), List.of(), voter, Outcome.DENY);
@@ -113,7 +113,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("converts report to ObjectValue for JSON serialization")
-    void whenToObjectValue_thenReportIsConvertedToObjectValue() {
+    void whenToObjectValueThenReportIsConvertedToObjectValue() {
         val vote   = createSimplePermitVote();
         val report = ReportBuilderUtil.extractReport(vote);
 
@@ -125,7 +125,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("extractReportAsValue combines extraction and conversion")
-    void whenExtractReportAsValue_thenReturnsObjectValue() {
+    void whenExtractReportAsValueThenReturnsObjectValue() {
         val vote = createSimplePermitVote();
 
         val objectValue = ReportBuilderUtil.extractReportAsValue(vote);
@@ -135,7 +135,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("extracts algorithm from policy set voter")
-    void whenVoterIsPolicySet_thenAlgorithmIsExtracted() {
+    void whenVoterIsPolicySetThenAlgorithmIsExtracted() {
         val vote = createSimplePermitVote();
 
         val report = ReportBuilderUtil.extractReport(vote);
@@ -146,7 +146,7 @@ class ReportBuilderUtilTests {
 
     @Test
     @DisplayName("flattens nested policy sets into contributing documents")
-    void whenNestedPolicySets_thenAllAreFlattened() {
+    void whenNestedPolicySetsThenAllAreFlattened() {
         val innerPolicyVoter = new PolicyVoterMetadata("inner-policy", "pdp", "config", null, Outcome.DENY, false);
         val innerPolicyVote  = Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 innerPolicyVoter, List.of());

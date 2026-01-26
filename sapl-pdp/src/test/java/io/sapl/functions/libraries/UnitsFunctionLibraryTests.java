@@ -23,6 +23,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,10 +38,11 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("UnitsFunctionLibrary")
 class UnitsFunctionLibraryTests {
 
     @Test
-    void when_loadedIntoBroker_then_noError() {
+    void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(UnitsFunctionLibrary.class))
                 .doesNotThrowAnyException();
@@ -50,7 +52,7 @@ class UnitsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("parseValidCases")
-    void parse_whenValidInput_thenReturnsCorrectValue(String input, double expected, String description) {
+    void parseWhenValidInputThenReturnsCorrectValue(String input, double expected, String description) {
         val result = UnitsFunctionLibrary.parse(Value.of(input));
 
         assertThat(result).isInstanceOf(NumberValue.class);
@@ -114,7 +116,7 @@ class UnitsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{1}")
     @MethodSource("parseWhitespaceCases")
-    void parse_whenWhitespace_thenTrimsAndParsesCorrectly(String input, String description) {
+    void parseWhenWhitespaceThenTrimsAndParsesCorrectly(String input, String description) {
         val result = UnitsFunctionLibrary.parse(Value.of(input));
 
         assertThat(result).isInstanceOf(NumberValue.class);
@@ -128,7 +130,7 @@ class UnitsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("parseErrorCases")
-    void parse_whenInvalidInput_thenReturnsError(String input, String expectedMessage, String description) {
+    void parseWhenInvalidInputThenReturnsError(String input, String expectedMessage, String description) {
         val result = UnitsFunctionLibrary.parse(Value.of(input));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -153,7 +155,7 @@ class UnitsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("parseBytesValidCases")
-    void parseBytes_whenValidInput_thenReturnsCorrectValue(String input, double expected, String description) {
+    void parseBytesWhenValidInputThenReturnsCorrectValue(String input, double expected, String description) {
         val result = UnitsFunctionLibrary.parseBytes(Value.of(input));
 
         assertThat(result).isInstanceOf(NumberValue.class);
@@ -231,7 +233,7 @@ class UnitsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{1}")
     @MethodSource("parseBytesWhitespaceCases")
-    void parseBytes_whenWhitespace_thenTrimsAndParsesCorrectly(String input, String description) {
+    void parseBytesWhenWhitespaceThenTrimsAndParsesCorrectly(String input, String description) {
         val result = UnitsFunctionLibrary.parseBytes(Value.of(input));
 
         assertThat(result).isInstanceOf(NumberValue.class);
@@ -245,7 +247,7 @@ class UnitsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("parseBytesErrorCases")
-    void parseBytes_whenInvalidInput_thenReturnsError(String input, String expectedMessage, String description) {
+    void parseBytesWhenInvalidInputThenReturnsError(String input, String expectedMessage, String description) {
         val result = UnitsFunctionLibrary.parseBytes(Value.of(input));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -270,7 +272,7 @@ class UnitsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("extremeValueCases")
-    void parseBytes_whenExtremeValues_thenHandlesCorrectly(String input, double expectedMinimum, String description) {
+    void parseBytesWhenExtremeValuesThenHandlesCorrectly(String input, double expectedMinimum, String description) {
         val result = UnitsFunctionLibrary.parseBytes(Value.of(input));
 
         assertThat(result).isInstanceOf(NumberValue.class);
@@ -283,14 +285,14 @@ class UnitsFunctionLibraryTests {
     }
 
     @Test
-    void parse_whenMaxLongValue_thenHandlesWithoutOverflow() {
+    void parseWhenMaxLongValueThenHandlesWithoutOverflow() {
         val result = UnitsFunctionLibrary.parse(Value.of("9223372036854775807"));
 
         assertThat(result).isInstanceOf(NumberValue.class);
     }
 
     @Test
-    void parse_whenVeryLargeExponent_thenHandlesCorrectly() {
+    void parseWhenVeryLargeExponentThenHandlesCorrectly() {
         val result = UnitsFunctionLibrary.parse(Value.of("1e15K"));
 
         assertThat(result).isInstanceOf(NumberValue.class);
@@ -300,7 +302,7 @@ class UnitsFunctionLibraryTests {
     @ParameterizedTest(name = "{1}")
     @MethodSource("reDoSPatternCases")
     @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
-    void parse_whenPotentialReDoSPatterns_thenCompletesQuickly(String input, String description) {
+    void parseWhenPotentialReDoSPatternsThenCompletesQuickly(String input, String description) {
         val result = UnitsFunctionLibrary.parse(Value.of(input));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -318,7 +320,7 @@ class UnitsFunctionLibraryTests {
     @ParameterizedTest(name = "{1}")
     @MethodSource("reDoSBytePatternCases")
     @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
-    void parseBytes_whenPotentialReDoSPatterns_thenCompletesQuickly(String input, String description) {
+    void parseBytesWhenPotentialReDoSPatternsThenCompletesQuickly(String input, String description) {
         val result = UnitsFunctionLibrary.parseBytes(Value.of(input));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -333,7 +335,7 @@ class UnitsFunctionLibraryTests {
 
     @Test
     @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
-    void parse_whenVeryLongInvalidString_thenCompletesQuickly() {
+    void parseWhenVeryLongInvalidStringThenCompletesQuickly() {
         val result = UnitsFunctionLibrary.parse(VERY_LONG_NUMBER);
 
         assertThat(result).isInstanceOf(ErrorValue.class);

@@ -47,7 +47,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("returns highest priority to execute last")
-    void whenGetPriority_thenReturnsMaxValue() {
+    void whenGetPriorityThenReturnsMaxValue() {
         val interceptor = new ReportingDecisionInterceptor(false, false, false, false);
 
         assertThat(interceptor.priority()).isEqualTo(Integer.MAX_VALUE);
@@ -55,7 +55,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("executes without exception when all logging disabled")
-    void whenInterceptWithAllLoggingDisabled_thenNoException() {
+    void whenInterceptWithAllLoggingDisabledThenNoException() {
         val interceptor = new ReportingDecisionInterceptor(false, false, false, false);
         val vote        = createTimestampedVote(Decision.PERMIT);
 
@@ -65,7 +65,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("executes without exception when trace logging enabled")
-    void whenInterceptWithTraceLogging_thenNoException() {
+    void whenInterceptWithTraceLoggingThenNoException() {
         val interceptor = new ReportingDecisionInterceptor(false, true, false, false);
         val vote        = createTimestampedVote(Decision.PERMIT);
 
@@ -75,7 +75,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("executes without exception when JSON report enabled")
-    void whenInterceptWithJsonReport_thenNoException() {
+    void whenInterceptWithJsonReportThenNoException() {
         val interceptor = new ReportingDecisionInterceptor(false, false, true, false);
         val vote        = createTimestampedVote(Decision.DENY);
 
@@ -85,7 +85,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("executes without exception when text report enabled")
-    void whenInterceptWithTextReport_thenNoException() {
+    void whenInterceptWithTextReportThenNoException() {
         val interceptor = new ReportingDecisionInterceptor(false, false, false, true);
         val vote        = createTimestampedVote(Decision.INDETERMINATE);
 
@@ -95,7 +95,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("executes without exception when all logging enabled")
-    void whenInterceptWithAllLoggingEnabled_thenNoException() {
+    void whenInterceptWithAllLoggingEnabledThenNoException() {
         val interceptor = new ReportingDecisionInterceptor(false, true, true, true);
         val vote        = createTimestampedVote(Decision.PERMIT);
 
@@ -105,7 +105,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("implements VoteInterceptor interface")
-    void whenCreated_thenImplementsInterface() {
+    void whenCreatedThenImplementsInterface() {
         val interceptor = new ReportingDecisionInterceptor(false, false, false, false);
 
         assertThat(interceptor).isInstanceOf(VoteInterceptor.class);
@@ -113,7 +113,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("handles vote with contributing votes")
-    void whenInterceptWithContributingVotes_thenNoException() {
+    void whenInterceptWithContributingVotesThenNoException() {
         val interceptor = new ReportingDecisionInterceptor(false, false, false, true);
         val policyVoter = new PolicyVoterMetadata("test-policy", "pdp", "config", null, Outcome.PERMIT, false);
         val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
@@ -131,7 +131,7 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     @DisplayName("has correct comparison ordering based on priority")
-    void whenComparedWithOtherInterceptor_thenOrderedByPriority() {
+    void whenComparedWithOtherInterceptorThenOrderedByPriority() {
         val reportingInterceptor     = new ReportingDecisionInterceptor(false, false, false, false);
         val lowerPriorityInterceptor = new VoteInterceptor() {
                                          @Override

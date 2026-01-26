@@ -18,25 +18,27 @@
 package io.sapl.attributes;
 
 import io.sapl.api.shared.NameValidator;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("NameValidator")
 class NameValidatorTests {
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = { "", " ", " abc.def", "abc.def ", " abc.def ", "abc. def", "abc", "abc.123as",
             "a.b.c.d.e.f.g.h.i.j.k" })
-    void when_presentedWithInvalidNames_then_throwsIllegalArgumentException(String invalidName) {
+    void whenPresentedWithInvalidNamesThenThrowsIllegalArgumentException(String invalidName) {
         assertThatThrownBy(() -> NameValidator.requireValidName(invalidName))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "a.b", "a1.b2", "a2.d.x333", "a.b.c.d.e.f.g.h.i.j" })
-    void when_presentedWithValidNames_then_doesNotThrow(String validName) {
+    void whenPresentedWithValidNamesThenDoesNotThrow(String validName) {
         assertThatCode(() -> NameValidator.requireValidName(validName)).doesNotThrowAnyException();
     }
 

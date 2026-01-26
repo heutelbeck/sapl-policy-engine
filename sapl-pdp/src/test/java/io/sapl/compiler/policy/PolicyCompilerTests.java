@@ -80,7 +80,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("No target yields static PERMIT")
-        void whenNoTarget_thenStaticPermit() {
+        void whenNoTargetThenStaticPermit() {
             val policy = """
                     policy "Unseen University Open Door"
                     permit
@@ -93,7 +93,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("False body yields static NOT_APPLICABLE")
-        void whenBodyIsFalse_thenStaticNotApplicable() {
+        void whenBodyIsFalseThenStaticNotApplicable() {
             val policy = """
                     policy "Patrician Palace Sealed"
                     permit
@@ -107,7 +107,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("True body yields static PERMIT")
-        void whenBodyIsTrue_thenMendedDrumOpen() {
+        void whenBodyIsTrueThenMendedDrumOpen() {
             val policy = """
                     policy "Mended Drum Open Hours"
                     permit
@@ -121,7 +121,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Pure body yields PureVoter")
-        void whenPureBody_thenPureVoter() {
+        void whenPureBodyThenPureVoter() {
             val policy   = """
                     policy "Wizard Guild Verification"
                     permit
@@ -143,7 +143,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Empty body permit yields static PERMIT")
-        void whenEmptyBodyPermit_thenStaticPermit() {
+        void whenEmptyBodyPermitThenStaticPermit() {
             val policy = """
                     policy "City Watch Patrol Authorization"
                     permit
@@ -156,7 +156,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Empty body deny yields static DENY")
-        void whenEmptyBodyDeny_thenAssassinsContractDenied() {
+        void whenEmptyBodyDenyThenAssassinsContractDenied() {
             val policy = """
                     policy "Assassins Guild Contract Rejection"
                     deny
@@ -169,7 +169,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("False body yields static NOT_APPLICABLE")
-        void whenBodyFalse_thenStaticNotApplicable() {
+        void whenBodyFalseThenStaticNotApplicable() {
             val policy = """
                     policy "Thieves Guild Membership Verification"
                     permit
@@ -183,7 +183,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Pure body without constraints yields PureVoter")
-        void whenPureCondition_thenPureVoter() {
+        void whenPureConditionThenPureVoter() {
             val policy   = """
                     policy "Librarian Species Verification"
                     permit
@@ -195,7 +195,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Stream attribute in body yields StreamPolicyBodyPolicy")
-        void whenAttributeInBody_thenWeatherMonitoringProducesStream() {
+        void whenAttributeInBodyThenWeatherMonitoringProducesStream() {
             val policy   = """
                     policy "Ankh-Morpork Weather Advisory"
                     permit
@@ -208,7 +208,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Static errors in body yields static INDETERMINATE")
-        void whenStaticErrorInBody_thenStaticIndeterminate() {
+        void whenStaticErrorInBodyThenStaticIndeterminate() {
             val policy = """
                     policy "Hex Arithmetic Failure"
                     permit
@@ -333,7 +333,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("PureVoter evaluates to PERMIT when body condition matches")
-        void whenBodyConditionMatches_thenPermit() {
+        void whenBodyConditionMatchesThenPermit() {
             val policy = """
                     policy "Rincewind Emergency Escape Protocol"
                     permit
@@ -350,7 +350,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("SimplePureVoter evaluates to NOT_APPLICABLE when body condition fails")
-        void whenBodyConditionFails_thenNotApplicable() {
+        void whenBodyConditionFailsThenNotApplicable() {
             val policy                = """
                     policy "Twoflower Tourist Visa Check"
                     permit
@@ -366,7 +366,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Undefined field access in body evaluates to NOT_APPLICABLE")
-        void whenUndefinedFieldAccess_thenNotApplicable() {
+        void whenUndefinedFieldAccessThenNotApplicable() {
             val policy                = """
                     policy "Luggage Inventory Check"
                     permit
@@ -381,7 +381,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("PureVoter evaluates obligation, advice, and transform correctly")
-        void whenPureConstraints_thenAllEvaluated() {
+        void whenPureConstraintsThenAllEvaluated() {
             val policy = """
                     policy "Lord Vetinari Executive Order"
                     permit
@@ -405,7 +405,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Deny policy evaluates to DENY when body condition matches")
-        void whenDenyPolicyBodyMatches_thenDeny() {
+        void whenDenyPolicyBodyMatchesThenDeny() {
             val policy                = """
                     policy "Forbidden Octavo Section"
                     deny
@@ -420,7 +420,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Single obligation wrapped in array")
-        void whenSingleStringObligation_thenWrappedInArray() {
+        void whenSingleStringObligationThenWrappedInArray() {
             val policy                = """
                     policy "Clacks Tower Duty Roster"
                     permit
@@ -442,7 +442,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("StreamPolicyBodyPolicy emits decisions on attribute state changes")
-        void whenStreamAttribute_thenEmitsOnChanges() {
+        void whenStreamAttributeThenEmitsOnChanges() {
             val policy     = """
                     policy "Luggage Proximity Alert"
                     permit
@@ -468,7 +468,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("StreamValuePolicyBodyPolicy includes static constraints in emissions")
-        void whenCarrotPatrol_thenStaticConstraintsIncluded() {
+        void whenCarrotPatrolThenStaticConstraintsIncluded() {
             val policy     = """
                     policy "Captain Carrot Patrol Protocol"
                     permit
@@ -492,7 +492,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("StreamPurePolicyBody evaluates pure constraints per emission")
-        void whenStreamBodyPureConstraints_thenConstraintsEvaluatedPerEmission() {
+        void whenStreamBodyPureConstraintsThenConstraintsEvaluatedPerEmission() {
             val policy     = """
                     policy "Commander Vimes Duty Protocol"
                     permit
@@ -514,7 +514,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("StreamStreamPolicyBodyPolicy combines body and constraint streams")
-        void whenStreamBodyAndStreamConstraints_thenAllStreamsCombined() {
+        void whenStreamBodyAndStreamConstraintsThenAllStreamsCombined() {
             val policy     = """
                     policy "Guild Membership Continuous Verification"
                     permit
@@ -537,7 +537,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("StreamPolicyBodyPolicy emits NOT_APPLICABLE when body becomes false")
-        void whenBodyBecomesFalse_thenAccessRevoked() {
+        void whenBodyBecomesFalseThenAccessRevoked() {
             val policy     = """
                     policy "Dynamic Guild Access Revocation"
                     permit
@@ -557,7 +557,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Attribute errors in body produces INDETERMINATE")
-        void whenAttributeError_thenIndeterminateDecision() {
+        void whenAttributeErrorThenIndeterminateDecision() {
             val policy     = """
                     policy "Clacks Network Error Handling"
                     permit
@@ -612,7 +612,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("multiple body conditions with obligation and advice yields PERMIT with constraints")
-        void whenMultipleBodyConditionsMatch_thenPermitWithAttributesObligationAndAdvice() {
+        void whenMultipleBodyConditionsMatchThenPermitWithAttributesObligationAndAdvice() {
             val policy = """
                     policy "Unseen University Library Access Control"
                     permit
@@ -648,7 +648,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("deny entitlement with matching body conditions yields DENY with advice")
-        void whenDenyPolicyBodyMatches_thenDenyWithAttributesAdvice() {
+        void whenDenyPolicyBodyMatchesThenDenyWithAttributesAdvice() {
             val policy = """
                     policy "City Watch Commander Patrol Restriction"
                     deny
@@ -680,7 +680,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("stream attribute in body with stream obligation compiles to StreamVoter")
-        void whenStreamBodyAndStreamObligation_thenStreamVoter() {
+        void whenStreamBodyAndStreamObligationThenStreamVoter() {
             val policy   = """
                     policy "Assassins Guild Active Contract Protocol"
                     permit
@@ -697,7 +697,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("body condition with undefined comparison evaluates correctly")
-        void whenBodyChecksNotUndefined_thenEvaluatesCorrectly() {
+        void whenBodyChecksNotUndefinedThenEvaluatesCorrectly() {
             val policy = """
                     policy "DEATH Duty Verification Protocol"
                     permit
@@ -727,7 +727,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("object literal transform yields non-undefined resource in vote")
-        void whenObjectLiteralTransform_thenResourceIsObject() {
+        void whenObjectLiteralTransformThenResourceIsObject() {
             val policy = """
                     policy "Patrician Surveillance Network Access"
                     permit
@@ -763,7 +763,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Multiple obligations combined into array")
-        void whenMultipleObligations_thenCombinedInArray() {
+        void whenMultipleObligationsThenCombinedInArray() {
             val policy = """
                     policy "Igor Medical Procedure Checklist"
                     permit
@@ -781,7 +781,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Multiple advice combined into array")
-        void whenMultipleAdvice_thenWitchesCombineCorrectly() {
+        void whenMultipleAdviceThenWitchesCombineCorrectly() {
             val policy = """
                     policy "Witch Coven Guidance Protocol"
                     permit
@@ -798,7 +798,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Empty body with constraints yields static applicableDecision with obligations")
-        void whenEmptyBodyWithConstraints_thenClacksObligationsEvaluated() {
+        void whenEmptyBodyWithConstraintsThenClacksObligationsEvaluated() {
             val policy = """
                     policy "Clacks Tower Always-On Protocol"
                     permit
@@ -815,7 +815,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Complex nested object transform preserved in applicableDecision")
-        void whenComplexTransformation_thenCensusDataPreserved() {
+        void whenComplexTransformationThenCensusDataPreserved() {
             val policy = """
                     policy "Ankh-Morpork Census Record"
                     permit
@@ -838,7 +838,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Boolean short-circuit prevents evaluation errors in body")
-        void whenShortCircuit_thenErrorPrevented() {
+        void whenShortCircuitThenErrorPrevented() {
             val policy = """
                     policy "Hex Safety Short-Circuit"
                     permit
@@ -852,7 +852,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("Undefined field comparison with undefined evaluates to PERMIT")
-        void whenUndefinedField_thenHandledGracefully() {
+        void whenUndefinedFieldThenHandledGracefully() {
             val policy = """
                     policy "Morporkian Citizen Records"
                     permit
@@ -878,7 +878,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("PureStreamPolicyBody evaluates pure body with stream constraints")
-        void whenHistoryMonksStreaming_thenPureBodyEvaluated() {
+        void whenHistoryMonksStreamingThenPureBodyEvaluated() {
             val policy     = """
                     policy "History Monks Time Stream Monitoring"
                     permit
@@ -903,7 +903,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("PureStreamPolicyBody returns NOT_APPLICABLE when pure body is false")
-        void whenPureBodyFalse_thenSusanDenied() {
+        void whenPureBodyFalseThenSusanDenied() {
             val policy     = """
                     policy "Susan Sto Helit Death Duty Check"
                     permit
@@ -928,7 +928,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("PureStreamPolicyBody includes pure advice in stream emissions")
-        void whenPureAdviceWithAttributesStreamObligation_thenLiftedViaPathOfPureToStream() {
+        void whenPureAdviceWithAttributesStreamObligationThenLiftedViaPathOfPureToStream() {
             val policy     = """
                     policy "Granny Weatherwax Mixed Constraint Protocol"
                     permit
@@ -956,7 +956,7 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("PureStreamPolicyBody returns INDETERMINATE on pure body evaluation errors")
-        void whenPureBodyError_thenIndeterminate() {
+        void whenPureBodyErrorThenIndeterminate() {
             val policy     = """
                     policy "Rincewind Spell Attempt"
                     permit

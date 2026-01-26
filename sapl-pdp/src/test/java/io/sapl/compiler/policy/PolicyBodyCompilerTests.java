@@ -230,7 +230,7 @@ class PolicyBodyCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource("testCases")
         @DisplayName("pure and streaming sections compile correctly")
-        void whenBodyCompiled_thenBothSectionsCorrect(TestCase tc) {
+        void whenBodyCompiledThenBothSectionsCorrect(TestCase tc) {
             verifySplitBodyCompilation(tc);
         }
 
@@ -293,7 +293,7 @@ class PolicyBodyCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource("errorCases")
         @DisplayName("errors propagate through appropriate section")
-        void whenError_thenAppropiateSectionReturnsError(ErrorTestCase tc) {
+        void whenErrorThenAppropiateSectionReturnsError(ErrorTestCase tc) {
             val body = parsePolicyBody(tc.bodyContent());
             val vars = toObjectValue(tc.variables());
 
@@ -347,7 +347,7 @@ class PolicyBodyCompilerTests {
 
         @Test
         @DisplayName("VarDef redefinition throws at compile time")
-        void whenVarDefRedefinition_thenCompileTimeException() {
+        void whenVarDefRedefinitionThenCompileTimeException() {
             val body    = parsePolicyBody("var x = 1; var x = 2;");
             val compCtx = compilationContext(ATTRIBUTE_BROKER);
             assertThatThrownBy(() -> PolicyBodyCompiler.compilePolicyBody(body, compCtx))
@@ -362,7 +362,7 @@ class PolicyBodyCompilerTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource("reEmissionCases")
         @DisplayName("streaming section re-emissions work correctly")
-        void whenStreamReEmits_thenStreamingSectionEmitsSequence(StreamTestCase tc) {
+        void whenStreamReEmitsThenStreamingSectionEmitsSequence(StreamTestCase tc) {
             val body = parsePolicyBody(tc.bodyContent());
 
             // Streaming section pathway
