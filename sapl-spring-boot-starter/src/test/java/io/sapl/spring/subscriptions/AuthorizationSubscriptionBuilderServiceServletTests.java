@@ -22,6 +22,8 @@ import static com.spotify.hamcrest.jackson.JsonMatchers.jsonMissing;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -39,7 +41,11 @@ import java.util.Collection;
 import org.aopalliance.intercept.MethodInvocation;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.MockedStatic;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
@@ -67,6 +73,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.method.metadata.PreEnforce;
@@ -333,13 +340,54 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     }
 
     private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
+        return attributeWithSecrets(subject, action, resource, environment, null, type);
+    }
+
+    private SaplAttribute attributeWithSecrets(String subject, String action, String resource, String environment,
+            String secrets, Class<?> type) {
         return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
-                parameterToExpression(resource), parameterToExpression(environment), type);
+                parameterToExpression(resource), parameterToExpression(environment), parameterToExpression(secrets),
+                type);
     }
 
     private Expression parameterToExpression(String parameter) {
         val parser = new SpelExpressionParser();
         return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
+    }
+
+    @Nested
+    @DisplayName("Secrets handling")
+    class SecretsTests {
+
+        @ParameterizedTest(name = "when secrets expression is ''{0}'', then secrets default to empty object")
+        @NullAndEmptySource
+        void whenSecretsNullOrEmpty_thenSecretsAreEmptyObject(String secretsExpr) {
+            val attribute    = attributeWithSecrets(null, null, null, null, secretsExpr, Object.class);
+            val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+                    attribute);
+            assertThat(subscription.secrets()).isEqualTo(Value.EMPTY_OBJECT);
+        }
+
+        @Test
+        @DisplayName("when secrets expression evaluates to object, then secrets are passed correctly")
+        void whenSecretsProvidedAsObject_thenSecretsArePassedToSubscription() {
+            val attribute    = attributeWithSecrets(null, null, null, null, "{apiKey: 'abc123', token: 'xyz'}",
+                    Object.class);
+            val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+                    attribute);
+            assertThat(subscription.secrets()).containsEntry("apiKey", new TextValue("abc123")).containsEntry("token",
+                    new TextValue("xyz"));
+        }
+
+        @Test
+        @DisplayName("when secrets expression evaluates to non-object, then exception is thrown")
+        void whenSecretsEvaluateToNonObject_thenThrowsException() {
+            val attribute = attributeWithSecrets(null, null, null, null, "'not an object'", Object.class);
+            assertThatThrownBy(() -> defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                    invocation, attribute)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Secrets expression must evaluate to an object");
+        }
+
     }
 
     public static class TestClass {

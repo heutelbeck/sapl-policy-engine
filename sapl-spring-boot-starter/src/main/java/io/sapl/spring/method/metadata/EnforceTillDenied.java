@@ -77,6 +77,13 @@ public @interface EnforceTillDenied {
     String environment() default "";
 
     /**
+     * @return the Spring-EL expression whose evaluation result is to be used as the
+     * secrets in the authorization subscription to the PDP. Must evaluate to an
+     * object. If empty, no secrets are set in the subscription.
+     */
+    String secrets() default "";
+
+    /**
      * @return the type of the generic parameter of the return type being secured.
      * Helps due to Java type erasure at runtime. Defaults to {@code Object.class}.
      */

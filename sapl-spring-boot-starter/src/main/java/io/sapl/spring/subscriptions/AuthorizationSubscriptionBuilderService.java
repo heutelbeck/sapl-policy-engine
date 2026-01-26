@@ -47,12 +47,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
@@ -67,14 +70,18 @@ import reactor.util.context.ContextView;
 @Slf4j
 public class AuthorizationSubscriptionBuilderService {
 
+    private static final String ERROR_EXPRESSION_EVALUATION_FAILED = "Failed to evaluate expression '";
+    private static final String ERROR_SECRETS_MUST_BE_OBJECT       = "Secrets expression must evaluate to an object, but got: ";
+
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
             AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
-    private static final SpelExpressionParser PARSER            = new SpelExpressionParser();
-    public static final String                AUTHENTICATION    = "authentication";
-    public static final String                METHOD_INVOCATION = "methodInvocation";
+    private static final SpelExpressionParser PARSER = new SpelExpressionParser();
+
+    public static final String AUTHENTICATION    = "authentication";
+    public static final String METHOD_INVOCATION = "methodInvocation";
 
     private final ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider;
     private final ObjectProvider<ObjectMapper>                    mapperProvider;
@@ -86,6 +93,9 @@ public class AuthorizationSubscriptionBuilderService {
 
     /**
      * Constructor for reactive method security context with resolved beans.
+     *
+     * @param expressionHandler the method security expression handler
+     * @param mapper the object mapper for JSON serialization
      */
     public AuthorizationSubscriptionBuilderService(MethodSecurityExpressionHandler expressionHandler,
             ObjectMapper mapper) {
@@ -99,6 +109,11 @@ public class AuthorizationSubscriptionBuilderService {
 
     /**
      * Constructor for lazy bean resolution via ObjectProviders.
+     *
+     * @param expressionHandlerProvider provider for the expression handler
+     * @param mapperProvider provider for the object mapper
+     * @param defaultsProvider provider for granted authority defaults
+     * @param applicationContext the application context
      */
     public AuthorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
@@ -111,6 +126,98 @@ public class AuthorizationSubscriptionBuilderService {
         this.applicationContext        = applicationContext;
     }
 
+    /**
+     * Constructs an authorization subscription for Servlet/blocking context.
+     *
+     * @param authentication the current authentication
+     * @param methodInvocation the method invocation
+     * @param attribute the SAPL attribute containing expressions
+     * @return the constructed authorization subscription
+     */
+    public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
+            MethodInvocation methodInvocation, SaplAttribute attribute) {
+        val evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
+        evaluationCtx.setVariable(AUTHENTICATION, authentication);
+        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
+        return constructServletAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
+    }
+
+    /**
+     * Constructs an authorization subscription for Servlet/blocking context with
+     * return object.
+     *
+     * @param authentication the current authentication
+     * @param methodInvocation the method invocation
+     * @param attribute the SAPL attribute containing expressions
+     * @param returnObject the return object from the method
+     * @return the constructed authorization subscription
+     */
+    public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
+            MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
+        val evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
+        expressionHandler().setReturnObject(returnObject, evaluationCtx);
+        evaluationCtx.setVariable(AUTHENTICATION, authentication);
+        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
+        return constructServletAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
+    }
+
+    /**
+     * Constructs a reactive authorization subscription for WebFlux context.
+     *
+     * @param methodInvocation the method invocation
+     * @param attribute the SAPL attribute containing expressions
+     * @return a Mono emitting the constructed authorization subscription
+     */
+    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
+            SaplAttribute attribute) {
+        return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+                attribute, contextView, Optional.empty()));
+    }
+
+    /**
+     * Constructs a reactive authorization subscription for WebFlux context with
+     * return object.
+     *
+     * @param methodInvocation the method invocation
+     * @param attribute the SAPL attribute containing expressions
+     * @param returnedObject the return object from the method
+     * @return a Mono emitting the constructed authorization subscription
+     */
+    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
+            SaplAttribute attribute, Object returnedObject) {
+        return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+                attribute, contextView, Optional.ofNullable(returnedObject)));
+    }
+
+    /**
+     * Builds a reactive {@link AuthorizationSubscription} from a
+     * {@link QueryEnforce} annotation.
+     *
+     * @param methodInvocation the method invocation
+     * @param queryEnforce the QueryEnforce annotation
+     * @param domainType the domain type for the query
+     * @return a Mono emitting the constructed authorization subscription
+     */
+    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
+            QueryEnforce queryEnforce, Class<?> domainType) {
+        if (queryEnforce == null) {
+            return Mono.error(new IllegalArgumentException("QueryEnforce annotation must not be null"));
+        }
+
+        return ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication)
+                .switchIfEmpty(Mono.fromCallable(() -> SecurityContextHolder.getContext().getAuthentication()))
+                .defaultIfEmpty(ANONYMOUS).map(authentication -> {
+                    val evaluationCtx = createQueryEnforceEvaluationContext(authentication, methodInvocation);
+                    return constructAuthorizationSubscription(authentication, evaluationCtx,
+                            parseExpressionIfNotEmpty(queryEnforce.subject()),
+                            parseExpressionIfNotEmpty(queryEnforce.action()),
+                            parseExpressionIfNotEmpty(queryEnforce.resource()),
+                            parseExpressionIfNotEmpty(queryEnforce.environment()),
+                            parseExpressionIfNotEmpty(queryEnforce.secrets()), methodInvocation, Optional.empty(),
+                            domainType);
+                });
+    }
+
     private MethodSecurityExpressionHandler expressionHandler() {
         if (expressionHandler == null && expressionHandlerProvider != null) {
             expressionHandler = expressionHandlerProvider
@@ -121,7 +228,7 @@ public class AuthorizationSubscriptionBuilderService {
 
     private static MethodSecurityExpressionHandler defaultExpressionHandler(
             ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
-        var handler = new DefaultMethodSecurityExpressionHandler();
+        val handler = new DefaultMethodSecurityExpressionHandler();
         defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
         handler.setApplicationContext(context);
         return handler;
@@ -134,67 +241,19 @@ public class AuthorizationSubscriptionBuilderService {
         return mapper;
     }
 
-    // ==================== Servlet (blocking) API for SaplAttribute
-    // ====================
-
-    /**
-     * Constructs an authorization subscription for Servlet/blocking context.
-     */
-    public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-            MethodInvocation methodInvocation, SaplAttribute attribute) {
-        var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
-        evaluationCtx.setVariable(AUTHENTICATION, authentication);
-        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
-        return constructServletAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
-    }
-
-    /**
-     * Constructs an authorization subscription for Servlet/blocking context with
-     * return object.
-     */
-    public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
-            MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
-        var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
-        expressionHandler().setReturnObject(returnObject, evaluationCtx);
-        evaluationCtx.setVariable(AUTHENTICATION, authentication);
-        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
-        return constructServletAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
-    }
-
     private AuthorizationSubscription constructServletAuthorizationSubscription(Authentication authentication,
             MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
         Optional<HttpServletRequest> httpRequest = retrieveServletRequest();
         return constructAuthorizationSubscription(authentication, evaluationCtx, attribute.subjectExpression(),
                 attribute.actionExpression(), attribute.resourceExpression(), attribute.environmentExpression(),
-                methodInvocation, httpRequest, Object.class);
+                attribute.secretsExpression(), methodInvocation, httpRequest, Object.class);
     }
 
     private static Optional<HttpServletRequest> retrieveServletRequest() {
-        var requestAttributes = RequestContextHolder.getRequestAttributes();
-        var httpRequest       = requestAttributes != null ? ((ServletRequestAttributes) requestAttributes).getRequest()
+        val requestAttributes = RequestContextHolder.getRequestAttributes();
+        val httpRequest       = requestAttributes != null ? ((ServletRequestAttributes) requestAttributes).getRequest()
                 : null;
         return Optional.ofNullable(httpRequest);
-    }
-
-    // ==================== Reactive API for SaplAttribute ====================
-
-    /**
-     * Constructs a reactive authorization subscription for WebFlux context.
-     */
-    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-            SaplAttribute attribute) {
-        return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
-                attribute, contextView, Optional.empty()));
-    }
-
-    /**
-     * Constructs a reactive authorization subscription for WebFlux context with
-     * return object.
-     */
-    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-            SaplAttribute attribute, Object returnedObject) {
-        return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
-                attribute, contextView, Optional.ofNullable(returnedObject)));
     }
 
     private Mono<AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
@@ -209,54 +268,28 @@ public class AuthorizationSubscriptionBuilderService {
                 .map(ctx -> ctx.map(SecurityContext::getAuthentication).defaultIfEmpty(ANONYMOUS))
                 .orElseGet(() -> Mono.just(ANONYMOUS));
 
-        return authentication.map(authn -> {
-            var evaluationCtx = expressionHandler().createEvaluationContext(authn, methodInvocation);
-            evaluationCtx.setVariable(AUTHENTICATION, authn);
+        return authentication.map(auth -> {
+            val evaluationCtx = expressionHandler().createEvaluationContext(auth, methodInvocation);
+            evaluationCtx.setVariable(AUTHENTICATION, auth);
             evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
             returnedObject.ifPresent(returnObject -> expressionHandler().setReturnObject(returnObject, evaluationCtx));
-            return constructAuthorizationSubscription(authn, evaluationCtx, attribute.subjectExpression(),
+            return constructAuthorizationSubscription(auth, evaluationCtx, attribute.subjectExpression(),
                     attribute.actionExpression(), attribute.resourceExpression(), attribute.environmentExpression(),
-                    methodInvocation, serverHttpRequest, Object.class);
+                    attribute.secretsExpression(), methodInvocation, serverHttpRequest, Object.class);
         });
-    }
-
-    // ==================== Reactive API for QueryEnforce (data repository)
-    // ====================
-
-    /**
-     * Builds a reactive {@link AuthorizationSubscription} from a
-     * {@link QueryEnforce} annotation.
-     */
-    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-            QueryEnforce queryEnforce, Class<?> domainType) {
-        if (queryEnforce == null) {
-            return Mono.error(new IllegalArgumentException("QueryEnforce annotation must not be null"));
-        }
-
-        return ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication)
-                .switchIfEmpty(Mono.fromCallable(() -> SecurityContextHolder.getContext().getAuthentication()))
-                .defaultIfEmpty(ANONYMOUS).map(authentication -> {
-                    var evaluationCtx = createQueryEnforceEvaluationContext(authentication, methodInvocation);
-                    return constructAuthorizationSubscription(authentication, evaluationCtx,
-                            parseExpressionIfNotEmpty(queryEnforce.subject()),
-                            parseExpressionIfNotEmpty(queryEnforce.action()),
-                            parseExpressionIfNotEmpty(queryEnforce.resource()),
-                            parseExpressionIfNotEmpty(queryEnforce.environment()), methodInvocation, Optional.empty(),
-                            domainType);
-                });
     }
 
     private EvaluationContext createQueryEnforceEvaluationContext(Authentication authentication,
             MethodInvocation methodInvocation) {
-        var evaluationCtx = new StandardEvaluationContext(methodInvocation);
+        val evaluationCtx = new StandardEvaluationContext(methodInvocation);
         if (applicationContext != null) {
             evaluationCtx.setBeanResolver(new BeanFactoryResolver(applicationContext));
         }
         evaluationCtx.setVariable(AUTHENTICATION, authentication);
         evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
 
-        var params = methodInvocation.getMethod().getParameters();
-        var args   = methodInvocation.getArguments();
+        val params = methodInvocation.getMethod().getParameters();
+        val args   = methodInvocation.getArguments();
         for (int i = 0; i < params.length; i++) {
             evaluationCtx.setVariable(params[i].getName(), args[i]);
         }
@@ -264,51 +297,50 @@ public class AuthorizationSubscriptionBuilderService {
         return evaluationCtx;
     }
 
-    // ==================== Shared subscription construction ====================
-
     private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
             EvaluationContext evaluationCtx, Expression subjectExpr, Expression actionExpr, Expression resourceExpr,
-            Expression environmentExpr, MethodInvocation methodInvocation, Optional<?> httpRequest,
-            Class<?> domainType) {
+            Expression environmentExpr, Expression secretsExpr, MethodInvocation methodInvocation,
+            Optional<?> httpRequest, Class<?> domainType) {
 
-        var subject     = retrieveSubject(authentication, subjectExpr, evaluationCtx);
-        var action      = retrieveAction(methodInvocation, actionExpr, evaluationCtx, httpRequest);
-        var resource    = retrieveResource(methodInvocation, resourceExpr, evaluationCtx, httpRequest, domainType);
-        var environment = retrieveEnvironment(environmentExpr, evaluationCtx);
+        val subject     = retrieveSubject(authentication, subjectExpr, evaluationCtx);
+        val action      = retrieveAction(methodInvocation, actionExpr, evaluationCtx, httpRequest);
+        val resource    = retrieveResource(methodInvocation, resourceExpr, evaluationCtx, httpRequest, domainType);
+        val environment = retrieveEnvironment(environmentExpr, evaluationCtx);
+        val secrets     = retrieveSecrets(secretsExpr, evaluationCtx);
 
         return new AuthorizationSubscription(ValueJsonMarshaller.fromJsonNode(mapper().valueToTree(subject)),
                 ValueJsonMarshaller.fromJsonNode(mapper().valueToTree(action)),
                 ValueJsonMarshaller.fromJsonNode(mapper().valueToTree(resource)),
-                ValueJsonMarshaller.fromJsonNode(mapper().valueToTree(environment)));
+                ValueJsonMarshaller.fromJsonNode(mapper().valueToTree(environment)), secrets);
     }
 
-    // ==================== Subject/Action/Resource/Environment retrieval
-    // ====================
-
     private JsonNode retrieveSubject(Authentication authentication, Expression subjectExpr, EvaluationContext ctx) {
-        if (subjectExpr != null)
+        if (subjectExpr != null) {
             return evaluateToJson(subjectExpr, ctx);
+        }
 
         ObjectNode subject = mapper().valueToTree(authentication);
         subject.remove("credentials");
-        var principal = subject.get("principal");
-        if (principal instanceof ObjectNode objectPrincipal)
+        val principal = subject.get("principal");
+        if (principal instanceof ObjectNode objectPrincipal) {
             objectPrincipal.remove("password");
+        }
 
         return subject;
     }
 
     private Object retrieveAction(MethodInvocation mi, Expression actionExpr, EvaluationContext ctx,
             Optional<?> requestObject) {
-        if (actionExpr != null)
+        if (actionExpr != null) {
             return evaluateToJson(actionExpr, ctx);
+        }
 
-        var actionNode = mapper().createObjectNode();
+        val actionNode = mapper().createObjectNode();
         requestObject.ifPresent(request -> actionNode.set("http", mapper().valueToTree(request)));
-        var java      = (ObjectNode) mapper().valueToTree(mi);
-        var arguments = mi.getArguments();
+        val java      = (ObjectNode) mapper().valueToTree(mi);
+        val arguments = mi.getArguments();
         if (arguments.length > 0) {
-            var array = JSON.arrayNode();
+            val array = JSON.arrayNode();
             for (Object o : arguments) {
                 try {
                     array.add(mapper().valueToTree(o));
@@ -316,8 +348,9 @@ public class AuthorizationSubscriptionBuilderService {
                     // drop if not mappable to JSON
                 }
             }
-            if (!array.isEmpty())
+            if (!array.isEmpty()) {
                 java.set("arguments", array);
+            }
         }
         actionNode.set("java", java);
         return actionNode;
@@ -325,12 +358,13 @@ public class AuthorizationSubscriptionBuilderService {
 
     private Object retrieveResource(MethodInvocation mi, Expression resourceExpr, EvaluationContext ctx,
             Optional<?> httpRequest, Class<?> domainType) {
-        if (resourceExpr != null)
+        if (resourceExpr != null) {
             return evaluateToJson(resourceExpr, ctx);
+        }
 
-        var resourceNode = mapper().createObjectNode();
+        val resourceNode = mapper().createObjectNode();
         httpRequest.ifPresent(request -> resourceNode.set("http", mapper().valueToTree(request)));
-        var java = (ObjectNode) mapper().valueToTree(mi);
+        val java = (ObjectNode) mapper().valueToTree(mi);
         resourceNode.set("java", java);
         if (domainType != null && domainType != Object.class) {
             resourceNode.put("entityType", domainType.getName());
@@ -339,20 +373,32 @@ public class AuthorizationSubscriptionBuilderService {
     }
 
     private Object retrieveEnvironment(Expression environmentExpr, EvaluationContext ctx) {
-        if (environmentExpr == null)
+        if (environmentExpr == null) {
             return null;
+        }
         return evaluateToJson(environmentExpr, ctx);
+    }
+
+    private ObjectValue retrieveSecrets(Expression secretsExpr, EvaluationContext ctx) {
+        if (secretsExpr == null) {
+            return Value.EMPTY_OBJECT;
+        }
+        val result = evaluateToJson(secretsExpr, ctx);
+        val value  = ValueJsonMarshaller.fromJsonNode(result);
+        if (value instanceof ObjectValue ov) {
+            return ov;
+        }
+        throw new IllegalArgumentException(ERROR_SECRETS_MUST_BE_OBJECT + value.getClass().getSimpleName());
     }
 
     private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
         try {
             return mapper().valueToTree(expr.getValue(ctx));
         } catch (EvaluationException e) {
-            throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
+            throw new IllegalArgumentException(ERROR_EXPRESSION_EVALUATION_FAILED + expr.getExpressionString() + "'",
+                    e);
         }
     }
-
-    // ==================== Expression parsing ====================
 
     private Expression parseExpressionIfNotEmpty(String expressionString) {
         if (expressionString == null || expressionString.isEmpty()) {

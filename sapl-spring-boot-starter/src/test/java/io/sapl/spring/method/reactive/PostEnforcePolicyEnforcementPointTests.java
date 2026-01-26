@@ -346,7 +346,7 @@ class PostEnforcePolicyEnforcementPointTests {
     private SaplAttribute postEnforceAttributeFrom(String subject, String action, String resource, String environment,
             Class<?> genericsType) {
         return new SaplAttribute(PostEnforce.class, toExpression(subject), toExpression(action), toExpression(resource),
-                toExpression(environment), genericsType);
+                toExpression(environment), null, genericsType);
     }
 
     private static Expression toExpression(String expression) {

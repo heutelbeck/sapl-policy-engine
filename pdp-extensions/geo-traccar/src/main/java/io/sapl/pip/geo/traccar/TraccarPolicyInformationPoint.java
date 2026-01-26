@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.*;
@@ -147,9 +148,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Value> server(Map<String, Value> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return server((ObjectValue) variables.get(TRACCAR_CONFIG));
+    public Flux<Value> server(AttributeAccessContext ctx) {
+        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(ctx.variables());
+        return server((ObjectValue) ctx.variables().get(TRACCAR_CONFIG));
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.SERVER_SCHEMA, docs = """
@@ -233,9 +234,9 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Flux<Value> devices(Map<String, Value> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return devices((ObjectValue) variables.get(TRACCAR_CONFIG));
+    public Flux<Value> devices(AttributeAccessContext ctx) {
+        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(ctx.variables());
+        return devices((ObjectValue) ctx.variables().get(TRACCAR_CONFIG));
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.DEVICES_SCHEMA, docs = """
@@ -318,9 +319,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Value> device(TextValue deviceEntityId, Map<String, Value> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return device(deviceEntityId, (ObjectValue) variables.get(TRACCAR_CONFIG));
+    public Flux<Value> device(TextValue deviceEntityId, AttributeAccessContext ctx) {
+        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(ctx.variables());
+        return device(deviceEntityId, (ObjectValue) ctx.variables().get(TRACCAR_CONFIG));
     }
 
     @Attribute(schema = TraccarSchemata.DEVICE_SCHEMA, docs = """
@@ -392,9 +393,9 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Flux<Value> geofences(Map<String, Value> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return geofences((ObjectValue) variables.get(TRACCAR_CONFIG));
+    public Flux<Value> geofences(AttributeAccessContext ctx) {
+        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(ctx.variables());
+        return geofences((ObjectValue) ctx.variables().get(TRACCAR_CONFIG));
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.GEOFENCES_SCHEMA, docs = """
@@ -457,9 +458,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Value> traccarGeofence(TextValue geofenceEntityId, Map<String, Value> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return traccarGeofence(geofenceEntityId, (ObjectValue) variables.get(TRACCAR_CONFIG));
+    public Flux<Value> traccarGeofence(TextValue geofenceEntityId, AttributeAccessContext ctx) {
+        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(ctx.variables());
+        return traccarGeofence(geofenceEntityId, (ObjectValue) ctx.variables().get(TRACCAR_CONFIG));
     }
 
     @Attribute(schema = TraccarSchemata.GEOFENCE_SCHEMA, docs = """
@@ -526,8 +527,8 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Value> geofenceGeometry(TextValue geofenceEntityId, Map<String, Value> variables) {
-        return traccarGeofence(geofenceEntityId, variables).map(value -> value instanceof ErrorValue ? value
+    public Flux<Value> geofenceGeometry(TextValue geofenceEntityId, AttributeAccessContext ctx) {
+        return traccarGeofence(geofenceEntityId, ctx.variables()).map(value -> value instanceof ErrorValue ? value
                 : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
     }
 
@@ -606,9 +607,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Value> traccarPosition(TextValue deviceEntityId, Map<String, Value> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return traccarPosition(deviceEntityId, (ObjectValue) variables.get(TRACCAR_CONFIG));
+    public Flux<Value> traccarPosition(TextValue deviceEntityId, AttributeAccessContext ctx) {
+        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(ctx.variables());
+        return traccarPosition(deviceEntityId, (ObjectValue) ctx.variables().get(TRACCAR_CONFIG));
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -686,8 +687,8 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Value> position(TextValue deviceEntityId, Map<String, Value> variables) {
-        return traccarPosition(deviceEntityId, variables).map(value -> value instanceof ErrorValue ? value
+    public Flux<Value> position(TextValue deviceEntityId, AttributeAccessContext ctx) {
+        return traccarPosition(deviceEntityId, ctx.variables()).map(value -> value instanceof ErrorValue ? value
                 : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
     }
 
@@ -779,15 +780,15 @@ public class TraccarPolicyInformationPoint {
                     "Required field '%s' missing from traccar configuration.".formatted(fieldName));
         }
         val value = traccarConfig.get(fieldName);
-        if (value instanceof TextValue textValue) {
-            return JSON.textNode(textValue.value());
-        } else if (value instanceof NumberValue numberValue) {
-            return JSON.numberNode(numberValue.value());
+        if (value instanceof TextValue(String value1)) {
+            return JSON.textNode(value1);
+        } else if (value instanceof NumberValue(java.math.BigDecimal value1)) {
+            return JSON.numberNode(value1);
         }
         return ValueJsonMarshaller.toJsonNode(value);
     }
 
-    private void assertThatTraccarConfigurationIsPresentInEnvironmentVariables(Map<String, Value> variables) {
+    private void assertThatTraccarConfigurationIsPresentInEnvironmentVariables(ObjectValue variables) {
         if (!variables.containsKey(TRACCAR_CONFIG)) {
             throw new IllegalArgumentException(
                     "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.");

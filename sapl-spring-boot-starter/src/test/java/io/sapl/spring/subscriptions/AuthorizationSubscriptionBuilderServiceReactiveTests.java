@@ -294,7 +294,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
     private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
         return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
-                parameterToExpression(resource), parameterToExpression(environment), type);
+                parameterToExpression(resource), parameterToExpression(environment), null, type);
     }
 
     private Expression parameterToExpression(String parameter) {

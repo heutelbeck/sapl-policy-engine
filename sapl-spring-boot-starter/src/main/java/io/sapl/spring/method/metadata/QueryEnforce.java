@@ -17,28 +17,70 @@
  */
 package io.sapl.spring.method.metadata;
 
-import org.springframework.stereotype.Component;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.stereotype.Component;
+
+/**
+ * The @QueryEnforce annotation establishes a policy enforcement point (PEP)
+ * for Spring Data repository query methods. It enables attribute-based access
+ * control for data queries, allowing policies to filter or transform query
+ * results based on the current authorization context.
+ */
 @Component
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
 public @interface QueryEnforce {
 
+    /**
+     * @return the Spring-EL expression whose evaluation result is to be used as
+     * the subject in the authorization subscription to the PDP. If empty, the PEP
+     * attempts to derive a guess to describe the subject based on the current
+     * Principal.
+     */
     String subject() default "";
 
+    /**
+     * @return the Spring-EL expression whose evaluation result is to be used as
+     * the action in the authorization subscription to the PDP. If empty, the PEP
+     * attempts to derive a guess to describe the action based on reflection.
+     */
     String action() default "";
 
+    /**
+     * @return the Spring-EL expression whose evaluation result is to be used as
+     * the resource in the authorization subscription to the PDP. If empty, the PEP
+     * attempts to derive a guess to describe the resource based on reflection.
+     */
     String resource() default "";
 
+    /**
+     * @return the Spring-EL expression whose evaluation result is to be used as
+     * the environment in the authorization subscription to the PDP. If empty, no
+     * environment is set in the subscription.
+     */
     String environment() default "";
 
+    /**
+     * @return the Spring-EL expression whose evaluation result is to be used as the
+     * secrets in the authorization subscription to the PDP. Must evaluate to an
+     * object. If empty, no secrets are set in the subscription.
+     */
+    String secrets() default "";
+
+    /**
+     * @return static classes to be made available in SpEL expressions for calling
+     * static methods. Defaults to an empty array.
+     */
     Class<?>[] staticClasses() default Class.class;
 
+    /**
+     * @return the type of the generic parameter of the return type being secured.
+     * Helps due to Java type erasure at runtime. Defaults to {@code Object.class}.
+     */
     Class<?> genericsType() default Object.class;
 
 }
