@@ -390,8 +390,6 @@ public class KeysFunctionLibrary {
         }
     }
 
-    /* JWK Conversion */
-
     @Function(docs = """
             ```jwkFromPublicKey(TEXT publicKeyPem)```: Converts a PEM public key to JWK format.
 

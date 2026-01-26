@@ -52,10 +52,10 @@ public class StringFunctionLibrary {
     private static final String ERROR_START_INDEX_OUT_OF_BOUNDS       = "Start index out of bounds: %d.";
     private static final String ERROR_TARGET_STRING_CANNOT_BE_EMPTY   = "Target string cannot be empty.";
 
-    final BigDecimal minLong = BigDecimal.valueOf(Long.MIN_VALUE);
-    final BigDecimal maxLong = BigDecimal.valueOf(Long.MAX_VALUE);
-    final BigDecimal minInt  = BigDecimal.valueOf(Integer.MIN_VALUE);
-    final BigDecimal maxInt  = BigDecimal.valueOf(Integer.MAX_VALUE);
+    private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
+    private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
+    private static final BigDecimal MIN_INT  = BigDecimal.valueOf(Integer.MIN_VALUE);
+    private static final BigDecimal MAX_INT  = BigDecimal.valueOf(Integer.MAX_VALUE);
 
     public static final String NAME        = "string";
     public static final String DESCRIPTION = "Functions for string manipulation in authorization policies.";
