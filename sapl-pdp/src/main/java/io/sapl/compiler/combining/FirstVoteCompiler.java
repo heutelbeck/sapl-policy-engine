@@ -144,7 +144,7 @@ public class FirstVoteCompiler {
             CombiningAlgorithm.ErrorHandling errorHandling) {
         // 1. Short-circuit: collect static decisions, return first non-NOT_APPLICABLE
         val contributingVotes = new ArrayList<Vote>();
-        int firstNonStatic    = 0;
+        var firstNonStatic    = 0;
         for (var policy : policies) {
             if (!(policy.applicabilityAndVote() instanceof Vote policyVote)) {
                 break; // non-static, stop short-circuit scan

@@ -32,6 +32,14 @@ public class StandardFunctionLibrary {
 
     private static final String ERROR_ARGUMENT_MUST_BE_TEXT_ARRAY_OR_OBJECT = "Argument must be a text, array, or object.";
 
+    /**
+     * Returns the length of the given value.
+     *
+     * @param value
+     * the value to measure (TEXT, ARRAY, or OBJECT)
+     *
+     * @return the length as a NumberValue, or an ErrorValue for unsupported types
+     */
     @Function(docs = """
             ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string.
             For ARRAY, it returns the number of elements in the array.
@@ -60,6 +68,14 @@ public class StandardFunctionLibrary {
 
     }
 
+    /**
+     * Converts any value to its string representation.
+     *
+     * @param value
+     * the value to convert to a string
+     *
+     * @return a TextValue containing the string representation
+     */
     @Function(name = "toString", docs = """
             ```toString(value)```: Converts any ```value``` to a string representation.
 
@@ -82,6 +98,16 @@ public class StandardFunctionLibrary {
         return Value.of(value.toString());
     }
 
+    /**
+     * Returns the fallback value if the guarded expression is an error.
+     *
+     * @param guardedExpression
+     * the expression result to check for errors
+     * @param fallback
+     * the value to return if guardedExpression is an error
+     *
+     * @return the guardedExpression if not an error, otherwise the fallback
+     */
     @Function(docs = """
             ```onErrorMap(guardedExpression, fallbackExpression)```: If evaluation of ```guardedExpression``` results in an error,
             the ```fallback``` is returned instead. Otherwise the result of ```guardedExpression``` is returned.

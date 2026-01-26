@@ -124,8 +124,6 @@ public class X509FunctionLibrary {
     private static final int SAN_TYPE_IP_ADDRESS    = 7;
     private static final int SAN_TYPE_REGISTERED_ID = 8;
 
-    /* Certificate Parsing */
-
     @Function(docs = """
             ```parseCertificate(TEXT certPem)```: Parses an X.509 certificate and returns its structure.
 
@@ -149,8 +147,6 @@ public class X509FunctionLibrary {
                 certificate -> ValueJsonMarshaller.fromJsonNode(buildCertificateObject(certificate)),
                 "Failed to parse certificate");
     }
-
-    /* Field Extraction */
 
     @Function(docs = """
             ```extractSubjectDn(TEXT certPem)```: Extracts the Subject Distinguished Name.
@@ -211,7 +207,7 @@ public class X509FunctionLibrary {
             val subjectDn  = certificate.getSubjectX500Principal().getName();
             val commonName = extractCnFromDn(subjectDn);
             if (commonName == null) {
-                return new ErrorValue(ERROR_NO_COMMON_NAME);
+                return Value.error(ERROR_NO_COMMON_NAME);
             }
             return Value.of(commonName);
         }, "Failed to extract common name");
@@ -278,8 +274,6 @@ public class X509FunctionLibrary {
                 "Failed to extract notAfter date");
     }
 
-    /* Fingerprint Computation */
-
     @Function(docs = """
             ```extractFingerprint(TEXT certPem, TEXT algorithm)```: Computes the certificate fingerprint.
 
@@ -330,8 +324,6 @@ public class X509FunctionLibrary {
         }, "Failed to match fingerprint");
     }
 
-    /* Subject Alternative Names */
-
     @Function(docs = """
             ```extractSubjectAltNames(TEXT certPem)```: Extracts Subject Alternative Names.
 
@@ -362,7 +354,7 @@ public class X509FunctionLibrary {
 
                 return ValueJsonMarshaller.fromJsonNode(subjectAltNamesArray);
             } catch (CertificateParsingException exception) {
-                return new ErrorValue(ERROR_FAILED_TO_EXTRACT_SANS.formatted(exception.getMessage()));
+                return Value.error(ERROR_FAILED_TO_EXTRACT_SANS.formatted(exception.getMessage()));
             }
         }, "Failed to extract subject alternative names");
     }
@@ -398,7 +390,7 @@ public class X509FunctionLibrary {
                     }
                 }
             } catch (CertificateParsingException exception) {
-                return new ErrorValue(ERROR_FAILED_TO_CHECK_DNS_NAMES.formatted(exception.getMessage()));
+                return Value.error(ERROR_FAILED_TO_CHECK_DNS_NAMES.formatted(exception.getMessage()));
             }
 
             return Value.of(false);
@@ -426,7 +418,7 @@ public class X509FunctionLibrary {
                 val subjectAltNames = CertificateUtils.extractSubjectAlternativeNames(certificate);
                 return Value.of(containsIpAddress(subjectAltNames, targetIp));
             } catch (CertificateParsingException exception) {
-                return new ErrorValue(ERROR_FAILED_TO_CHECK_IP_ADDRS.formatted(exception.getMessage()));
+                return Value.error(ERROR_FAILED_TO_CHECK_IP_ADDRS.formatted(exception.getMessage()));
             }
         }, "Failed to check IP address");
     }
@@ -449,7 +441,6 @@ public class X509FunctionLibrary {
         }
         return false;
     }
-    /* Validity Checks */
 
     @Function(docs = """
             ```isExpired(TEXT certPem)```: Checks if a certificate has expired.
@@ -495,7 +486,7 @@ public class X509FunctionLibrary {
                         && !timestamp.after(certificate.getNotAfter());
                 return Value.of(isValid);
             } catch (CryptoException exception) {
-                return new ErrorValue(ERROR_INVALID_TIMESTAMP.formatted(exception.getMessage()));
+                return Value.error(ERROR_INVALID_TIMESTAMP.formatted(exception.getMessage()));
             }
         }, "Failed to check validity");
     }
@@ -532,8 +523,6 @@ public class X509FunctionLibrary {
         }, "Failed to calculate remaining validity");
     }
 
-    /* Helper Methods */
-
     /**
      * Executes an operation on a parsed certificate with automatic error handling.
      * Parses the certificate string and
@@ -558,7 +547,7 @@ public class X509FunctionLibrary {
             val message      = exception.getMessage();
             val errorMessage = message != null && message.endsWith(".") ? errorPrefix + ": " + message
                     : errorPrefix + ": " + message + ".";
-            return new ErrorValue(errorMessage);
+            return Value.error(errorMessage);
         }
     }
 
@@ -580,9 +569,9 @@ public class X509FunctionLibrary {
             val fingerprintHex   = HexFormat.of().formatHex(fingerprintBytes);
             return Value.of(fingerprintHex);
         } catch (NoSuchAlgorithmException exception) {
-            return new ErrorValue(ERROR_HASH_ALGORITHM_UNSUPPORTED.formatted(algorithm));
+            return Value.error(ERROR_HASH_ALGORITHM_UNSUPPORTED.formatted(algorithm));
         } catch (CertificateEncodingException exception) {
-            return new ErrorValue(ERROR_FAILED_TO_ENCODE_CERT.formatted(exception.getMessage()));
+            return Value.error(ERROR_FAILED_TO_ENCODE_CERT.formatted(exception.getMessage()));
         }
     }
 

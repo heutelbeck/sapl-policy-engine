@@ -84,8 +84,6 @@ public class SignatureFunctionLibrary {
     private static final String ERROR_SIGNATURE_FORMAT_INVALID = "Signature must be in hexadecimal or Base64 format. Hex parsing failed: %s. Base64 parsing failed: %s";
     private static final String ERROR_VERIFICATION_FAILED      = "Signature verification failed: ";
 
-    /* RSA Signature Verification */
-
     @Function(docs = """
             ```isValidRsaSha256(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an RSA signature using SHA-256.
 
@@ -161,8 +159,6 @@ public class SignatureFunctionLibrary {
                 ALGORITHM_RSA);
     }
 
-    /* ECDSA Signature Verification */
-
     @Function(docs = """
             ```isValidEcdsaP256(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an ECDSA signature using P-256 curve.
 
@@ -233,8 +229,6 @@ public class SignatureFunctionLibrary {
                 ALGORITHM_EC);
     }
 
-    /* EdDSA Signature Verification */
-
     @Function(docs = """
             ```isValidEd25519(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an Ed25519 signature.
 
@@ -259,8 +253,6 @@ public class SignatureFunctionLibrary {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_ED25519,
                 ALGORITHM_EDDSA);
     }
-
-    /* Helper Methods */
 
     /**
      * Verifies a digital signature using the specified algorithm. Parses the public
@@ -295,15 +287,15 @@ public class SignatureFunctionLibrary {
             val isValid = signature.verify(signatureBytes);
             return Value.of(isValid);
         } catch (CryptoException exception) {
-            return new ErrorValue(exception.getMessage());
+            return Value.error(exception.getMessage());
         } catch (NoSuchAlgorithmException exception) {
-            return new ErrorValue(ERROR_ALGORITHM_NOT_SUPPORTED + signatureAlgorithm);
+            return Value.error(ERROR_ALGORITHM_NOT_SUPPORTED + signatureAlgorithm);
         } catch (InvalidKeyException exception) {
-            return new ErrorValue(ERROR_INVALID_PUBLIC_KEY + exception.getMessage());
+            return Value.error(ERROR_INVALID_PUBLIC_KEY + exception.getMessage());
         } catch (SignatureException exception) {
-            return new ErrorValue(ERROR_VERIFICATION_FAILED + exception.getMessage());
+            return Value.error(ERROR_VERIFICATION_FAILED + exception.getMessage());
         } catch (Exception exception) {
-            return new ErrorValue(ERROR_FAILED_TO_VERIFY + exception.getMessage());
+            return Value.error(ERROR_FAILED_TO_VERIFY + exception.getMessage());
         }
     }
 

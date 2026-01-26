@@ -39,7 +39,14 @@ import java.util.regex.Pattern;
 @FunctionLibrary(name = StringFunctionLibrary.NAME, description = StringFunctionLibrary.DESCRIPTION)
 public class StringFunctionLibrary {
 
-    private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE = "NumberValue out of range.";
+    private static final String ERROR_ALL_ARRAY_ELEMENTS_MUST_BE_TEXT = "All array elements must be text values.";
+    private static final String ERROR_COUNT_CANNOT_BE_NEGATIVE        = "Count cannot be negative.";
+    private static final String ERROR_COUNT_EXCEEDS_MAXIMUM           = "Count exceeds maximum allowed value of %d.";
+    private static final String ERROR_END_INDEX_OUT_OF_BOUNDS         = "End index out of bounds: %d.";
+    private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE       = "NumberValue out of range.";
+    private static final String ERROR_PADDING_MUST_BE_ONE_CHARACTER   = "Padding must be exactly one character.";
+    private static final String ERROR_START_INDEX_OUT_OF_BOUNDS       = "Start index out of bounds: %d.";
+    private static final String ERROR_TARGET_STRING_CANNOT_BE_EMPTY   = "Target string cannot be empty.";
 
     final BigDecimal minLong = BigDecimal.valueOf(Long.MIN_VALUE);
     final BigDecimal maxLong = BigDecimal.valueOf(Long.MAX_VALUE);
@@ -497,7 +504,7 @@ public class StringFunctionLibrary {
         while (iterator.hasNext()) {
             val element = iterator.next();
             if (!(element instanceof TextValue)) {
-                return Value.error("All array elements must be text values");
+                return Value.error(ERROR_ALL_ARRAY_ELEMENTS_MUST_BE_TEXT);
             }
 
             if (!result.isEmpty()) {
@@ -566,7 +573,7 @@ public class StringFunctionLibrary {
         val replacementText = replacement.value();
 
         if (targetText.isEmpty()) {
-            return Value.error("Target string cannot be empty");
+            return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
         return Value.of(text.replace(targetText, replacementText));
@@ -599,7 +606,7 @@ public class StringFunctionLibrary {
         val replacementText = replacement.value();
 
         if (targetText.isEmpty()) {
-            return Value.error("Target string cannot be empty");
+            return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
         return Value.of(text.replaceFirst(Pattern.quote(targetText), replacementText));
@@ -702,11 +709,11 @@ public class StringFunctionLibrary {
         val countValue = count.value().intValue();
 
         if (countValue < 0) {
-            return Value.error("Count cannot be negative");
+            return Value.error(ERROR_COUNT_CANNOT_BE_NEGATIVE);
         }
 
         if (countValue > MAX_REPEAT_COUNT) {
-            return Value.error("Count exceeds maximum allowed value of " + MAX_REPEAT_COUNT);
+            return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
         }
 
         return Value.of(text.repeat(countValue));
@@ -740,11 +747,11 @@ public class StringFunctionLibrary {
      */
     private static Value extractSubstring(String text, int start, int end) {
         if (start < 0 || start > text.length()) {
-            return Value.error("Start index out of bounds: " + start);
+            return Value.error(ERROR_START_INDEX_OUT_OF_BOUNDS, start);
         }
 
         if (end < start || end > text.length()) {
-            return Value.error("End index out of bounds: " + end);
+            return Value.error(ERROR_END_INDEX_OUT_OF_BOUNDS, end);
         }
 
         return Value.of(text.substring(start, end));
@@ -755,7 +762,7 @@ public class StringFunctionLibrary {
      */
     private static Value padString(String text, int targetLength, String padString, boolean padLeft) {
         if (padString.length() != 1) {
-            return Value.error("Padding must be exactly one character");
+            return Value.error(ERROR_PADDING_MUST_BE_ONE_CHARACTER);
         }
 
         if (text.length() >= targetLength) {

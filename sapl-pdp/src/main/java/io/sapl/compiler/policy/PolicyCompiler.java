@@ -212,7 +212,7 @@ public class PolicyCompiler {
      */
     private static CompiledExpression compileConstraintArray(List<Expression> expressions, SourceLocation location,
             String name, CompilationContext ctx) {
-        var result = ArrayCompiler.buildFromCompiled(
+        val result = ArrayCompiler.buildFromCompiled(
                 expressions.stream().map(e -> ExpressionCompiler.compile(e, ctx)).toList(), location);
         if (result instanceof PureOperator po && !po.isDependingOnSubscription()) {
             throw new SaplCompilerException(ERROR_CONSTRAINT_RELATIVE_ACCESSOR.formatted(name), location);

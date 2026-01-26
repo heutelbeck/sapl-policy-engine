@@ -28,7 +28,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static io.sapl.functions.libraries.SanitizationFunctionLibrary.POTENTIAL_SQL_INJECTION_DETECTED;
+import static io.sapl.functions.libraries.SanitizationFunctionLibrary.ERROR_POTENTIAL_SQL_INJECTION_DETECTED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -60,7 +60,7 @@ class SanitizationFunctionLibraryTests {
         val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).isEqualTo(POTENTIAL_SQL_INJECTION_DETECTED);
+        assertThat(((ErrorValue) result).message()).isEqualTo(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
     }
 
     @Test
@@ -90,7 +90,7 @@ class SanitizationFunctionLibraryTests {
         val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).isEqualTo(POTENTIAL_SQL_INJECTION_DETECTED);
+        assertThat(((ErrorValue) result).message()).isEqualTo(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
     }
 
     @Test

@@ -349,7 +349,7 @@ public class SchemaValidationLibrary {
         resultBuilder.put(FIELD_VALID, Value.of(valid));
 
         val errorsBuilder = ArrayValue.builder();
-        for (var message : messages) {
+        for (val message : messages) {
             val errorBuilder = ObjectValue.builder();
             errorBuilder.put(FIELD_PATH, Value.of(message.getInstanceLocation().toString()));
             errorBuilder.put(FIELD_MESSAGE, Value.of(message.getMessage()));

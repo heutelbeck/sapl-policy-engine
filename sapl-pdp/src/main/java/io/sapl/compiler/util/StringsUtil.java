@@ -18,6 +18,7 @@
 package io.sapl.compiler.util;
 
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.util.Map;
 
@@ -55,7 +56,7 @@ public class StringsUtil {
         if (text == null || !text.contains("\\")) {
             return text;
         }
-        var result = new StringBuilder(text.length());
+        val result = new StringBuilder(text.length());
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c != '\\' || i + 1 >= text.length()) {
@@ -63,7 +64,7 @@ public class StringsUtil {
                 continue;
             }
             char next    = text.charAt(++i);
-            var  escaped = ESCAPE_CHARS.get(next);
+            val  escaped = ESCAPE_CHARS.get(next);
             if (escaped != null) {
                 result.append(escaped);
             } else if (next == 'u' && i + 4 < text.length()) {

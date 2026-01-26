@@ -27,7 +27,6 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class CryptoConstants {
 
-    /* PEM Markers */
     public static final String PEM_PUBLIC_KEY_BEGIN  = "-----BEGIN PUBLIC KEY-----";
     public static final String PEM_PUBLIC_KEY_END    = "-----END PUBLIC KEY-----";
     public static final String PEM_CERTIFICATE_BEGIN = "-----BEGIN CERTIFICATE-----";
@@ -35,12 +34,10 @@ public class CryptoConstants {
     public static final String PEM_PRIVATE_KEY_BEGIN = "-----BEGIN PRIVATE KEY-----";
     public static final String PEM_PRIVATE_KEY_END   = "-----END PRIVATE KEY-----";
 
-    /* Key Algorithms */
     public static final String ALGORITHM_RSA   = "RSA";
     public static final String ALGORITHM_EC    = "EC";
     public static final String ALGORITHM_EDDSA = "EdDSA";
 
-    /* Signature Algorithms */
     public static final String ALGORITHM_RSA_SHA256   = "SHA256withRSA";
     public static final String ALGORITHM_RSA_SHA384   = "SHA384withRSA";
     public static final String ALGORITHM_RSA_SHA512   = "SHA512withRSA";
@@ -49,12 +46,10 @@ public class CryptoConstants {
     public static final String ALGORITHM_ECDSA_SHA512 = "SHA512withECDSA";
     public static final String ALGORITHM_ED25519      = "Ed25519";
 
-    /* JWK Key Types */
     public static final String JWK_KEY_TYPE_RSA = "RSA";
     public static final String JWK_KEY_TYPE_EC  = "EC";
     public static final String JWK_KEY_TYPE_OKP = "OKP";
 
-    /* Elliptic Curves */
     public static final String CURVE_SECP256R1  = "secp256r1";
     public static final String CURVE_PRIME256V1 = "prime256v1";
     public static final String CURVE_SECP384R1  = "secp384r1";
@@ -65,13 +60,11 @@ public class CryptoConstants {
     public static final String CURVE_P521_JWK   = "P-521";
     public static final String CURVE_UNKNOWN    = "unknown";
 
-    /* Key Sizes */
     public static final int EDDSA_KEY_SIZE_BITS = 256;
     public static final int EC_P256_BITS        = 256;
     public static final int EC_P384_BITS        = 384;
     public static final int EC_P521_BITS        = 521;
 
-    /* Certificate Factory */
     public static final String CERTIFICATE_TYPE_X509 = "X.509";
 
     public static final String ERROR_ALGORITHM_NOT_AVAILABLE = "Algorithm not available";

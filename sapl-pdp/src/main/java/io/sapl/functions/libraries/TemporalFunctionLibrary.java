@@ -126,8 +126,6 @@ public class TemporalFunctionLibrary {
     private static final String ERROR_INVALID_EPOCH_SECONDS = "Invalid epoch seconds: %s.";
     private static final String ERROR_INVALID_EPOCH_MILLIS  = "Invalid epoch milliseconds: %s.";
 
-    /* ######## DURATION ######## */
-
     @Function(docs = """
             ```durationOfSeconds(NUMBER seconds)```: Converts seconds to milliseconds for duration values.
 
@@ -176,8 +174,6 @@ public class TemporalFunctionLibrary {
     public static Value durationOfDays(NumberValue days) {
         return Value.of(days.value().longValue() * 24 * 60 * 60 * 1000);
     }
-
-    /* ######## INSTANT/UTC COMPARISON ######## */
 
     @Function(docs = """
             ```before(TEXT timeA, TEXT timeB)```: Compares two instants and returns true if timeA is before timeB.
@@ -284,8 +280,6 @@ public class TemporalFunctionLibrary {
             return unit.between(dateFrom, dateTo);
         }
     }
-
-    /* ######## DATE ARITHMETIC ######## */
 
     @Function(docs = """
             ```plusDays(TEXT startTime, INTEGER days)```: Adds the specified number of days to startTime.
@@ -405,8 +399,6 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    /* ######## INSTANT/UTC MANIPULATION ######## */
-
     @Function(docs = """
             ```plusNanos(TEXT startTime, INTEGER nanos)```: Adds the specified number of nanoseconds to startTime.
 
@@ -521,8 +513,6 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    /* ######## INSTANT/UTC EPOCH ######## */
-
     @Function(docs = """
             ```epochSecond(TEXT utcDateTime)```: Converts an ISO 8601 UTC timestamp to seconds since
             the epoch (1970-01-01T00:00:00Z).
@@ -581,8 +571,6 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    /* ######## INSTANT/UTC CALENDAR ######## */
-
     @Function(docs = """
             ```weekOfYear(TEXT utcDateTime)```: Returns the calendar week number (1-52) for the given date.
 
@@ -634,8 +622,6 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    /* ######## VALIDATION ######## */
-
     @Function(docs = """
             ```validUTC(TEXT utcDateTime)```: Returns true if the value is a valid ISO 8601 UTC timestamp.
 
@@ -685,8 +671,6 @@ public class TemporalFunctionLibrary {
             return Value.FALSE;
         }
     }
-
-    /* ######## TEMPORAL BOUNDS ######## */
 
     @Function(docs = """
             ```startOfDay(TEXT dateTime)```: Returns the start of the day (00:00:00.000) for the given date-time at UTC.
@@ -825,8 +809,6 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    /* ######## TEMPORAL ROUNDING ######## */
-
     @Function(docs = """
             ```truncateToHour(TEXT dateTime)```: Truncates the date-time to the hour, setting minutes, seconds, and nanoseconds to zero.
 
@@ -897,8 +879,6 @@ public class TemporalFunctionLibrary {
             return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
-
-    /* ######## VALIDATION ######## */
 
     @Function(docs = """
             ```localIso(TEXT localDateTime)```: Parses an ISO 8601 date-time string without timezone offset using
@@ -991,8 +971,6 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    /* ######## TIME CONVERSION ######## */
-
     @Function(docs = """
             ```offsetTime(TEXT isoTime)```: Parses an ISO 8601 time with offset and
             returns the matching time at UTC.
@@ -1058,8 +1036,6 @@ public class TemporalFunctionLibrary {
             return Value.error(ERROR_INVALID_AMPM_TIME.formatted(timeInAMPM), e);
         }
     }
-
-    /* ######## EXTRACT PARTS ######## */
 
     @Function(docs = """
             ```dateOf(TEXT isoDateTime)```: Returns the date part of an ISO 8601 string.
@@ -1132,8 +1108,6 @@ public class TemporalFunctionLibrary {
             return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
-
-    /* ######## ISO DURATION ######## */
 
     @Function(docs = """
             ```durationFromISO(TEXT isoDuration)```: Parses an ISO 8601 duration string and returns the duration
@@ -1258,8 +1232,6 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    /* ######## TIMEZONE CONVERSION FROM UTC ######## */
-
     @Function(docs = """
             ```toZone(TEXT utcTime, TEXT zoneId)```: Converts a UTC timestamp to a specific timezone, returning
             an ISO 8601 timestamp with offset.
@@ -1297,8 +1269,6 @@ public class TemporalFunctionLibrary {
             return Value.error(ERROR_INVALID_OFFSET.formatted(offsetId, utcTime), e);
         }
     }
-
-    /* ######## AGE CALCULATION ######## */
 
     @Function(docs = """
             ```ageInYears(TEXT birthDate, TEXT currentDate)```: Calculates the age in complete years between
@@ -1338,8 +1308,6 @@ public class TemporalFunctionLibrary {
             return Value.error(ERROR_INVALID_DATES.formatted(birthDate, currentDate), e);
         }
     }
-
-    /* ######## HELPER METHODS ######## */
 
     /**
      * Parses time parameter to an Instant. Accepts ISO 8601 instant or date format.
