@@ -50,9 +50,10 @@ import reactor.test.StepVerifier;
 @SpringBootTest
 @ActiveProfiles(profiles = "quiet")
 class RemoteRsocketDecisionPointServerIT {
-    private static final int             SAPL_SERVER_RSOCKET_PORT = 7000;
-    private static final String          CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT";
-    private static final ImagePullPolicy NEVER_PULL               = imageName -> false;
+    private static final int             SAPL_SERVER_RSOCKET_PORT          = 7000;
+    private static final int             SAPL_SERVER_PROTOBUF_RSOCKET_PORT = 7001;
+    private static final String          CONTAINER_IMAGE                   = "ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT";
+    private static final ImagePullPolicy NEVER_PULL                        = imageName -> false;
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 
@@ -84,7 +85,7 @@ class RemoteRsocketDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(NEVER_PULL)
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
-                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
+                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT, SAPL_SERVER_PROTOBUF_RSOCKET_PORT)
                 .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
                 .withEnv("spring_rsocket_server_address", "0.0.0.0")
@@ -93,6 +94,8 @@ class RemoteRsocketDecisionPointServerIT {
                 .withEnv("spring_rsocket_server_ssl_key-store-password", "changeme")
                 .withEnv("spring_rsocket_server_ssl_key-password", "changeme")
                 .withEnv("spring_rsocket_server_ssl_key-alias", "netty")
+                .withEnv("sapl_pdp_rsocket_protobuf_enabled", "true")
+                .withEnv("sapl_pdp_rsocket_protobuf_port", String.valueOf(SAPL_SERVER_PROTOBUF_RSOCKET_PORT))
                 .withEnv("server_ssl_key-store-type", "PKCS12")
                 .withEnv("server_ssl_key-store", "/pdp/data/keystore.p12")
                 .withEnv("server_ssl_key-store-password", "changeme")
@@ -106,12 +109,14 @@ class RemoteRsocketDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(NEVER_PULL)
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
-                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
+                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT, SAPL_SERVER_PROTOBUF_RSOCKET_PORT)
                 .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
                 .withEnv("server_ssl_enabled", "false")
                 .withEnv("spring_rsocket_server_ssl_enabled", "false")
-                .withEnv("spring_rsocket_server_address", "0.0.0.0");
+                .withEnv("spring_rsocket_server_address", "0.0.0.0")
+                .withEnv("sapl_pdp_rsocket_protobuf_enabled", "true")
+                .withEnv("sapl_pdp_rsocket_protobuf_port", String.valueOf(SAPL_SERVER_PROTOBUF_RSOCKET_PORT));
         // @formatter:on
     }
 

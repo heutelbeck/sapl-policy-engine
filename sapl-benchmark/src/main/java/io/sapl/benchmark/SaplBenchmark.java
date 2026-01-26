@@ -75,7 +75,8 @@ public class SaplBenchmark {
                 .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data").withEnv("spring_profiles_active", "local")
                 .withExposedPorts(BenchmarkConfiguration.DOCKER_DEFAULT_HTTP_PORT,
-                        BenchmarkConfiguration.DOCKER_DEFAULT_RSOCKET_PORT)
+                        BenchmarkConfiguration.DOCKER_DEFAULT_RSOCKET_PORT,
+                        BenchmarkConfiguration.DOCKER_DEFAULT_PROTOBUF_RSOCKET_PORT)
                 .waitingFor(Wait.forListeningPorts())
 
                 // http settings
@@ -89,6 +90,10 @@ public class SaplBenchmark {
                 .withEnv("spring_rsocket_server_address", "0.0.0.0")
                 .withEnv("spring_rsocket_server_port",
                         String.valueOf(BenchmarkConfiguration.DOCKER_DEFAULT_RSOCKET_PORT))
+                // protobuf rsocket settings
+                .withEnv("sapl_pdp_rsocket_protobuf_enabled", "true")
+                .withEnv("sapl_pdp_rsocket_protobuf_port",
+                        String.valueOf(BenchmarkConfiguration.DOCKER_DEFAULT_PROTOBUF_RSOCKET_PORT))
                 .withEnv("spring_rsocket_server_ssl_enabled", String.valueOf(config.isDockerUseSsl()))
                 .withEnv("spring_rsocket_server_ssl_key-store-type", "PKCS12")
                 .withEnv("spring_rsocket_server_ssl__key-store", dockerKeystoreLocation)
