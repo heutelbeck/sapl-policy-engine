@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.function.Function;
 
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -47,7 +46,7 @@ import reactor.core.publisher.Mono;
  * meaning they can change their state over time according to the JWT's
  * signature, maturity, and expiration. Public keys
  * must be fetched from the trusted authentication server for validating
- * signatures. For this purpose, the url and http
+ * signatures. For this purpose, the URL and HTTP
  * method for fetching public keys need to be specified in the pdp.json
  * configuration file.
  */
@@ -180,7 +179,7 @@ public class JWTPolicyInformationPoint {
             * t=30s: Emits EXPIRED (policy re-evaluated)
             """;
 
-    private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whitelist. All JWT tokens will be treated as if the signatures could not be validated.";
+    private static final String ERROR_JWT_CONFIG_MISSING = "The key 'jwt' with the configuration of public key server and key whitelist. All JWT tokens will be treated as if the signatures could not be validated.";
 
     /**
      * Possible states of validity a JWT can have
@@ -395,16 +394,16 @@ public class JWTPolicyInformationPoint {
     private Mono<Boolean> validateSignature(SignedJWT signedJwt, AttributeAccessContext ctx) {
 
         val jwtConfig = ctx.pdpSecrets().get(JWT_KEY);
-        if (null == jwtConfig || !(jwtConfig instanceof ObjectValue jwtConfigObj)) {
-            log.error(JWT_CONFIG_MISSING_ERROR);
+        if (!(jwtConfig instanceof ObjectValue jwtConfigObj)) {
+            log.error(ERROR_JWT_CONFIG_MISSING);
             return Mono.just(Boolean.FALSE);
         }
 
         val keyId = signedJwt.getHeader().getKeyID();
 
-        var publicKey       = (Mono<RSAPublicKey>) null;
-        val whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
-        var isFromWhitelist = false;
+        Mono<RSAPublicKey> publicKey       = null;
+        val                whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
+        var                isFromWhitelist = false;
         if (whitelist instanceof ObjectValue whitelistObj && whitelistObj.containsKey(keyId)) {
             val keyValue = whitelistObj.get(keyId);
             val key      = JWTEncodingDecodingUtils.jsonNodeToKey(ValueJsonMarshaller.toJsonNode(keyValue));

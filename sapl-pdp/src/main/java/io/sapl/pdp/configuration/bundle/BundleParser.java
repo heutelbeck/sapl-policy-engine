@@ -309,7 +309,7 @@ public class BundleParser {
             }
         }
 
-        var manifest = (BundleManifest) null;
+        BundleManifest manifest = null;
         if (manifestJson != null) {
             manifest = BundleManifest.fromJson(manifestJson);
         }

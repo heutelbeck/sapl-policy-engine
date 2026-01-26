@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static io.sapl.attributes.InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE;
+import static io.sapl.attributes.InMemoryAttributeRepository.ERROR_ATTRIBUTE_UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -110,7 +110,7 @@ class InMemoryAttributeRepositoryTests {
         val invocation = createInvocation(Value.of(ARIOCH), CHAOS_PACT);
 
         StepVerifier.create(repository.invoke(invocation).take(2)).expectNext(pactActive)
-                .expectNext(ATTRIBUTE_UNAVAILABLE).verifyComplete();
+                .expectNext(ERROR_ATTRIBUTE_UNAVAILABLE).verifyComplete();
     }
 
     @Test
@@ -138,7 +138,7 @@ class InMemoryAttributeRepositoryTests {
 
         StepVerifier.create(flux.take(2)).expectNext(bondStrength).then(() -> {
             repository.removeAttribute(Value.of(ELRIC), DRAGON_BOND).subscribe();
-        }).expectNext(ATTRIBUTE_UNAVAILABLE).verifyComplete();
+        }).expectNext(ERROR_ATTRIBUTE_UNAVAILABLE).verifyComplete();
     }
 
     @Test
@@ -183,7 +183,8 @@ class InMemoryAttributeRepositoryTests {
     void when_queryingNonExistentAttribute_then_receivesUnavailable() {
         val invocation = createInvocation(Value.of(CYMORIL), "sorcery.unknown");
 
-        StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ATTRIBUTE_UNAVAILABLE).verifyComplete();
+        StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ERROR_ATTRIBUTE_UNAVAILABLE)
+                .verifyComplete();
     }
 
     @Test
@@ -263,7 +264,7 @@ class InMemoryAttributeRepositoryTests {
 
         val invocation = createInvocation(Value.of(ARIOCH), CHAOS_PACT);
 
-        StepVerifier.create(newRepository.invoke(invocation).take(1)).expectNext(ATTRIBUTE_UNAVAILABLE)
+        StepVerifier.create(newRepository.invoke(invocation).take(1)).expectNext(ERROR_ATTRIBUTE_UNAVAILABLE)
                 .verifyComplete();
     }
 
@@ -281,7 +282,8 @@ class InMemoryAttributeRepositoryTests {
 
         val invocation = createInvocation(Value.of(YYRKOON), "yyrkoon.treachery");
 
-        StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ATTRIBUTE_UNAVAILABLE).verifyComplete();
+        StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ERROR_ATTRIBUTE_UNAVAILABLE)
+                .verifyComplete();
     }
 
     @ParameterizedTest
@@ -300,9 +302,9 @@ class InMemoryAttributeRepositoryTests {
     }
 
     private static Stream<Arguments> provideTimeoutStrategyScenarios() {
-        return Stream.of(arguments("chaos.shield", TimeOutStrategy.REMOVE, ATTRIBUTE_UNAVAILABLE),
+        return Stream.of(arguments("chaos.shield", TimeOutStrategy.REMOVE, ERROR_ATTRIBUTE_UNAVAILABLE),
                 arguments("elric.drug", TimeOutStrategy.BECOME_UNDEFINED, Value.UNDEFINED),
-                arguments("dragon.stamina", TimeOutStrategy.REMOVE, ATTRIBUTE_UNAVAILABLE),
+                arguments("dragon.stamina", TimeOutStrategy.REMOVE, ERROR_ATTRIBUTE_UNAVAILABLE),
                 arguments("sorcery.concentration", TimeOutStrategy.BECOME_UNDEFINED, Value.UNDEFINED));
     }
 
@@ -470,7 +472,7 @@ class InMemoryAttributeRepositoryTests {
 
             val invocation = createInvocation(null, shieldId);
             repository.invoke(invocation).subscribe(value -> {
-                if (ATTRIBUTE_UNAVAILABLE.equals(value)) {
+                if (ERROR_ATTRIBUTE_UNAVAILABLE.equals(value)) {
                     counter.incrementAndGet();
                 }
             });
@@ -525,9 +527,9 @@ class InMemoryAttributeRepositoryTests {
         Awaitility.await().atMost(Duration.ofSeconds(1))
                 .until(() -> values1.size() == 2 && values2.size() == 2 && values3.size() == 2);
 
-        assertThat(values1.get(1)).isEqualTo(ATTRIBUTE_UNAVAILABLE);
-        assertThat(values2.get(1)).isEqualTo(ATTRIBUTE_UNAVAILABLE);
-        assertThat(values3.get(1)).isEqualTo(ATTRIBUTE_UNAVAILABLE);
+        assertThat(values1.get(1)).isEqualTo(ERROR_ATTRIBUTE_UNAVAILABLE);
+        assertThat(values2.get(1)).isEqualTo(ERROR_ATTRIBUTE_UNAVAILABLE);
+        assertThat(values3.get(1)).isEqualTo(ERROR_ATTRIBUTE_UNAVAILABLE);
     }
 
     @Test
@@ -589,7 +591,7 @@ class InMemoryAttributeRepositoryTests {
 
         Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> values.size() == 2);
 
-        assertThat(values).containsExactly(bondActive, ATTRIBUTE_UNAVAILABLE);
+        assertThat(values).containsExactly(bondActive, ERROR_ATTRIBUTE_UNAVAILABLE);
     }
 
     @Test
@@ -662,7 +664,7 @@ class InMemoryAttributeRepositoryTests {
 
         Awaitility.await().atMost(Duration.ofMillis(200)).pollDelay(Duration.ofMillis(120)).untilAsserted(() -> {
             val invocation = createInvocation(Value.of(ARIOCH), CHAOS_PACT);
-            StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ATTRIBUTE_UNAVAILABLE)
+            StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ERROR_ATTRIBUTE_UNAVAILABLE)
                     .verifyComplete();
         });
 
@@ -673,7 +675,7 @@ class InMemoryAttributeRepositoryTests {
         StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(pactActive).verifyComplete();
 
         Awaitility.await().atMost(Duration.ofMillis(300)).pollDelay(Duration.ofMillis(220)).untilAsserted(() -> {
-            StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ATTRIBUTE_UNAVAILABLE)
+            StepVerifier.create(repository.invoke(invocation).take(1)).expectNext(ERROR_ATTRIBUTE_UNAVAILABLE)
                     .verifyComplete();
         });
     }

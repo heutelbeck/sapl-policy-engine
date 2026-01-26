@@ -285,7 +285,7 @@ public class PDPConfigurationLoader {
                 algorithm = MAPPER.treeToValue(node.get("algorithm"), CombiningAlgorithm.class);
             }
 
-            var configurationId = (String) null;
+            String configurationId = null;
             if (node.has("configurationId")) {
                 val idNode = node.get("configurationId");
                 if (idNode.isTextual() && !idNode.asText().isBlank()) {

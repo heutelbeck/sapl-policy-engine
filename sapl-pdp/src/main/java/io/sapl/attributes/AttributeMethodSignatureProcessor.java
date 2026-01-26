@@ -52,6 +52,25 @@ public class AttributeMethodSignatureProcessor {
     public static final String ERROR_TYPE_TEMPLATE                  = "Attribute '%%s' argument %d: expected %s but received %%s";
     public static final String ERROR_VARARG_TYPE_TEMPLATE           = "Attribute '%%s' varargs argument %%d: expected %s but received %%s";
 
+    /**
+     * Processes a method to create an attribute finder specification.
+     *
+     * @param pipInstance
+     * the PIP instance to bind instance methods to, or null for static
+     * methods
+     * @param namespace
+     * the namespace prefix for the attribute
+     * @param method
+     * the method annotated with {@link Attribute} or
+     * {@link EnvironmentAttribute}
+     *
+     * @return an AttributeFinderSpecification for the method, or null if not
+     * annotated
+     *
+     * @throws IllegalStateException
+     * if the method is invalid (non-static without instance, bad
+     * parameter/return types)
+     */
     public static AttributeFinderSpecification processAttributeMethod(Object pipInstance, String namespace,
             Method method) {
         val hasAttribute            = method.isAnnotationPresent(Attribute.class);
@@ -131,8 +150,8 @@ public class AttributeMethodSignatureProcessor {
             startIndex++;
         }
 
-        val parameterTypes       = new ArrayList<Class<? extends Value>>();
-        var varArgsParameterType = (Class<? extends Value>) null;
+        val                    parameterTypes       = new ArrayList<Class<? extends Value>>();
+        Class<? extends Value> varArgsParameterType = null;
 
         for (int i = startIndex; i < parameters.length; i++) {
             val parameterType   = parameters[i].getType();

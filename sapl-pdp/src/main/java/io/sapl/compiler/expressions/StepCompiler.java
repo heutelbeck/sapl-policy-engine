@@ -80,9 +80,9 @@ public class StepCompiler {
     }
 
     private CompiledExpression compileKeyStep(KeyStep step, CompilationContext ctx) {
-        var base = ExpressionCompiler.compile(step.base(), ctx);
-        var key  = step.key();
-        var loc  = step.location();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        val key  = step.key();
+        val loc  = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -96,7 +96,7 @@ public class StepCompiler {
         return switch (base) {
         case ErrorValue e    -> e;
         case ObjectValue obj -> {
-            var result = obj.get(key);
+            val result = obj.get(key);
             yield result != null ? result : Value.UNDEFINED;
         }
         case ArrayValue arr  -> projectKeyOverArray(arr, key);
@@ -105,10 +105,10 @@ public class StepCompiler {
     }
 
     private static Value projectKeyOverArray(ArrayValue arr, String key) {
-        var builder = ArrayValue.builder();
-        for (var element : arr) {
+        val builder = ArrayValue.builder();
+        for (val element : arr) {
             if (element instanceof ObjectValue obj) {
-                var value = obj.get(key);
+                val value = obj.get(key);
                 if (value != null) {
                     builder.add(value);
                 }
@@ -137,9 +137,9 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileIndexStep(IndexStep step, CompilationContext ctx) {
-        var base  = ExpressionCompiler.compile(step.base(), ctx);
-        var index = step.index();
-        var loc   = step.location();
+        val base  = ExpressionCompiler.compile(step.base(), ctx);
+        val index = step.index();
+        val loc   = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -184,8 +184,8 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileWildcardStep(WildcardStep step, CompilationContext ctx) {
-        var base = ExpressionCompiler.compile(step.base(), ctx);
-        var loc  = step.location();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        val loc  = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -225,9 +225,9 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileIndexUnionStep(IndexUnionStep step, CompilationContext ctx) {
-        var base    = ExpressionCompiler.compile(step.base(), ctx);
-        var indices = step.indices();
-        var loc     = step.location();
+        val base    = ExpressionCompiler.compile(step.base(), ctx);
+        val indices = step.indices();
+        val loc     = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -241,12 +241,12 @@ public class StepCompiler {
         return switch (base) {
         case ErrorValue e   -> e;
         case ArrayValue arr -> {
-            var size = arr.size();
+            val size = arr.size();
             // Normalize indices and skip out-of-bounds (silently ignored per sapl-lang
             // behavior)
-            var normalizedIndices = new java.util.ArrayList<Integer>();
-            var seen              = new HashSet<Integer>();
-            for (var index : indices) {
+            val normalizedIndices = new java.util.ArrayList<Integer>();
+            val seen              = new HashSet<Integer>();
+            for (val index : indices) {
                 int normalized = index >= 0 ? index : size + index;
                 // Skip out-of-bounds indices silently
                 if (normalized >= 0 && normalized < size && seen.add(normalized)) {
@@ -254,8 +254,8 @@ public class StepCompiler {
                 }
             }
             // Collect values in array order (preserving original array order)
-            var builder       = ArrayValue.builder();
-            var normalizedSet = new HashSet<>(normalizedIndices);
+            val builder       = ArrayValue.builder();
+            val normalizedSet = new HashSet<>(normalizedIndices);
             for (int i = 0; i < size; i++) {
                 if (normalizedSet.contains(i)) {
                     builder.add(arr.get(i));
@@ -290,9 +290,9 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileAttributeUnionStep(AttributeUnionStep step, CompilationContext ctx) {
-        var base       = ExpressionCompiler.compile(step.base(), ctx);
-        var attributes = step.attributes();
-        var loc        = step.location();
+        val base       = ExpressionCompiler.compile(step.base(), ctx);
+        val attributes = step.attributes();
+        val loc        = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -306,9 +306,9 @@ public class StepCompiler {
         return switch (base) {
         case ErrorValue e    -> e;
         case ObjectValue obj -> {
-            var builder = ArrayValue.builder();
-            var seen    = new HashSet<String>();
-            for (var attr : attributes) {
+            val builder = ArrayValue.builder();
+            val seen    = new HashSet<String>();
+            for (val attr : attributes) {
                 if (seen.add(attr) && obj.containsKey(attr)) {
                     builder.add(obj.get(attr));
                 }
@@ -342,11 +342,11 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileSliceStep(SliceStep step, CompilationContext ctx) {
-        var base = ExpressionCompiler.compile(step.base(), ctx);
-        var from = step.from();
-        var to   = step.to();
-        var s    = step.step();
-        var loc  = step.location();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        val from = step.from();
+        val to   = step.to();
+        val s    = step.step();
+        val loc  = step.location();
 
         // Validate step at compile time
         if (s != null && s == 0) {
@@ -374,7 +374,7 @@ public class StepCompiler {
         int fromVal = normalizeSliceIndex(from, size, stepVal > 0 ? 0 : size - 1);
         int toVal   = normalizeSliceIndex(to, size, stepVal > 0 ? size : -size - 1);
 
-        var builder = ArrayValue.builder();
+        val builder = ArrayValue.builder();
         if (stepVal > 0) {
             for (int i = fromVal; i < toVal && i < size; i += stepVal) {
                 if (i >= 0) {
@@ -424,9 +424,9 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileExpressionStep(ExpressionStep step, CompilationContext ctx) {
-        var base = ExpressionCompiler.compile(step.base(), ctx);
-        var expr = ExpressionCompiler.compile(step.expression(), ctx);
-        var loc  = step.location();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        val expr = ExpressionCompiler.compile(step.expression(), ctx);
+        val loc  = step.location();
 
         if (base instanceof ErrorValue e)
             return e;
@@ -482,8 +482,8 @@ public class StepCompiler {
             implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            var base    = baseValue != null ? baseValue : baseOp.evaluate(ctx);
-            var exprVal = expr instanceof Value v ? v : ((PureOperator) expr).evaluate(ctx);
+            val base    = baseValue != null ? baseValue : baseOp.evaluate(ctx);
+            val exprVal = expr instanceof Value v ? v : ((PureOperator) expr).evaluate(ctx);
             return applyExpressionStep(base, exprVal, location);
         }
 
@@ -521,8 +521,8 @@ public class StepCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(reactorCtx -> {
-                var ctx     = reactorCtx.get(EvaluationContext.class);
-                var exprVal = expr.evaluate(ctx);
+                val ctx     = reactorCtx.get(EvaluationContext.class);
+                val exprVal = expr.evaluate(ctx);
                 return base.stream().map(tv -> new TracedValue(applyExpressionStep(tv.value(), exprVal, location),
                         tv.contributingAttributes()));
             });
@@ -530,9 +530,9 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileConditionStep(ConditionStep step, CompilationContext compilationCtx) {
-        var base      = ExpressionCompiler.compile(step.base(), compilationCtx);
-        var condition = ExpressionCompiler.compile(step.condition(), compilationCtx);
-        var loc       = step.location();
+        val base      = ExpressionCompiler.compile(step.base(), compilationCtx);
+        val condition = ExpressionCompiler.compile(step.condition(), compilationCtx);
+        val loc       = step.location();
 
         if (base instanceof ErrorValue e)
             return e;
@@ -588,7 +588,7 @@ public class StepCompiler {
         return switch (base) {
         case ArrayValue arr  -> filterElements(arr.size(), arr::get, Value::of, constantCond, condOp, ctx, loc);
         case ObjectValue obj -> {
-            var entries = obj.entrySet().stream().toList();
+            val entries = obj.entrySet().stream().toList();
             yield filterElements(entries.size(), i -> entries.get(i).getValue(), i -> Value.of(entries.get(i).getKey()),
                     constantCond, condOp, ctx, loc);
         }
@@ -598,11 +598,11 @@ public class StepCompiler {
 
     private static Value filterElements(int size, IntFunction<Value> elementAt, IntFunction<Value> keyAt,
             Value constantCond, PureOperator condOp, EvaluationContext ctx, SourceLocation loc) {
-        var builder = ArrayValue.builder();
+        val builder = ArrayValue.builder();
         for (int i = 0; i < size; i++) {
-            var element = elementAt.apply(i);
-            var elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
-            var result  = evaluateCondition(constantCond, condOp, elemCtx);
+            val element = elementAt.apply(i);
+            val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
+            val result  = evaluateCondition(constantCond, condOp, elemCtx);
             if (result instanceof BooleanValue(boolean val)) {
                 if (val)
                     builder.add(element);
@@ -669,7 +669,7 @@ public class StepCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(reactorCtx -> {
-                var ctx = reactorCtx.get(EvaluationContext.class);
+                val ctx = reactorCtx.get(EvaluationContext.class);
                 return base.stream()
                         .map(tv -> new TracedValue(applyConditionStep(tv.value(), condition, null, ctx, location),
                                 tv.contributingAttributes()));
@@ -682,7 +682,7 @@ public class StepCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(reactorCtx -> {
-                var ctx = reactorCtx.get(EvaluationContext.class);
+                val ctx = reactorCtx.get(EvaluationContext.class);
                 return base.stream()
                         .map(tv -> new TracedValue(applyConditionStep(tv.value(), null, condition, ctx, location),
                                 tv.contributingAttributes()));
@@ -691,9 +691,9 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileRecursiveKeyStep(RecursiveKeyStep step, CompilationContext ctx) {
-        var base = ExpressionCompiler.compile(step.base(), ctx);
-        var key  = step.key();
-        var loc  = step.location();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        val key  = step.key();
+        val loc  = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -706,8 +706,8 @@ public class StepCompiler {
     static Value applyRecursiveKeyStep(Value base, String key, SourceLocation loc) {
         if (base instanceof ErrorValue e)
             return e;
-        var builder = ArrayValue.builder();
-        var result  = collectRecursiveKey(base, key, builder, 0);
+        val builder = ArrayValue.builder();
+        val result  = collectRecursiveKey(base, key, builder, 0);
         if (result != null) {
             return Value.errorAt(loc, ERROR_MAX_RECURSION_DEPTH_KEY);
         }
@@ -723,15 +723,15 @@ public class StepCompiler {
             if (obj.containsKey(key)) {
                 builder.add(obj.get(key));
             }
-            for (var v : obj.values()) {
-                var error = collectRecursiveKey(v, key, builder, depth + 1);
+            for (val v : obj.values()) {
+                val error = collectRecursiveKey(v, key, builder, depth + 1);
                 if (error != null)
                     return error;
             }
         }
         case ArrayValue arr  -> {
-            for (var element : arr) {
-                var error = collectRecursiveKey(element, key, builder, depth + 1);
+            for (val element : arr) {
+                val error = collectRecursiveKey(element, key, builder, depth + 1);
                 if (error != null)
                     return error;
             }
@@ -762,9 +762,9 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileRecursiveIndexStep(RecursiveIndexStep step, CompilationContext ctx) {
-        var base  = ExpressionCompiler.compile(step.base(), ctx);
-        var index = step.index();
-        var loc   = step.location();
+        val base  = ExpressionCompiler.compile(step.base(), ctx);
+        val index = step.index();
+        val loc   = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -777,8 +777,8 @@ public class StepCompiler {
     static Value applyRecursiveIndexStep(Value base, int index, SourceLocation loc) {
         if (base instanceof ErrorValue e)
             return e;
-        var builder = ArrayValue.builder();
-        var result  = collectRecursiveIndex(base, index, builder, 0);
+        val builder = ArrayValue.builder();
+        val result  = collectRecursiveIndex(base, index, builder, 0);
         if (result != null) {
             return Value.errorAt(loc, ERROR_MAX_RECURSION_DEPTH_INDEX);
         }
@@ -795,15 +795,15 @@ public class StepCompiler {
             if (normalizedIndex >= 0 && normalizedIndex < arr.size()) {
                 builder.add(arr.get(normalizedIndex));
             }
-            for (var element : arr) {
-                var error = collectRecursiveIndex(element, index, builder, depth + 1);
+            for (val element : arr) {
+                val error = collectRecursiveIndex(element, index, builder, depth + 1);
                 if (error != null)
                     return error;
             }
         }
         case ObjectValue obj -> {
-            for (var v : obj.values()) {
-                var error = collectRecursiveIndex(v, index, builder, depth + 1);
+            for (val v : obj.values()) {
+                val error = collectRecursiveIndex(v, index, builder, depth + 1);
                 if (error != null)
                     return error;
             }
@@ -834,8 +834,8 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileRecursiveWildcardStep(RecursiveWildcardStep step, CompilationContext ctx) {
-        var base = ExpressionCompiler.compile(step.base(), ctx);
-        var loc  = step.location();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        val loc  = step.location();
 
         return switch (base) {
         case ErrorValue e     -> e;
@@ -848,8 +848,8 @@ public class StepCompiler {
     static Value applyRecursiveWildcardStep(Value base, SourceLocation loc) {
         if (base instanceof ErrorValue e)
             return e;
-        var builder = ArrayValue.builder();
-        var result  = collectRecursiveWildcard(base, builder, 0);
+        val builder = ArrayValue.builder();
+        val result  = collectRecursiveWildcard(base, builder, 0);
         if (result != null) {
             return Value.errorAt(loc, ERROR_MAX_RECURSION_DEPTH_WILDCARD);
         }
@@ -862,17 +862,17 @@ public class StepCompiler {
         }
         switch (value) {
         case ArrayValue arr  -> {
-            for (var element : arr) {
+            for (val element : arr) {
                 builder.add(element);
-                var error = collectRecursiveWildcard(element, builder, depth + 1);
+                val error = collectRecursiveWildcard(element, builder, depth + 1);
                 if (error != null)
                     return error;
             }
         }
         case ObjectValue obj -> {
-            for (var v : obj.values()) {
+            for (val v : obj.values()) {
                 builder.add(v);
-                var error = collectRecursiveWildcard(v, builder, depth + 1);
+                val error = collectRecursiveWildcard(v, builder, depth + 1);
                 if (error != null)
                     return error;
             }

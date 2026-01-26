@@ -54,9 +54,13 @@ import java.util.Map;
 @UtilityClass
 public class LibraryDocumentationExtractor {
 
-    public static final String                 VALUE      = "Value";
-    private static final Map<Class<?>, String> TYPE_NAMES = Map.of(TextValue.class, "Text", NumberValue.class, "Number",
-            BooleanValue.class, "Bool", ArrayValue.class, "Array", ObjectValue.class, "Object", Value.class, VALUE);
+    public static final String VALUE = "Value";
+
+    private static final String                ERROR_NOT_ANNOTATED_WITH_FUNCTION_LIBRARY         = "Class %s is not annotated with @FunctionLibrary";
+    private static final String                ERROR_NOT_ANNOTATED_WITH_POLICY_INFORMATION_POINT = "Class %s is not annotated with @PolicyInformationPoint";
+    private static final Map<Class<?>, String> TYPE_NAMES                                        = Map.of(
+            TextValue.class, "Text", NumberValue.class, "Number", BooleanValue.class, "Bool", ArrayValue.class, "Array",
+            ObjectValue.class, "Object", Value.class, VALUE);
 
     /**
      * Extracts documentation from a function library class.
@@ -73,7 +77,7 @@ public class LibraryDocumentationExtractor {
         val annotation = libraryClass.getAnnotation(FunctionLibrary.class);
         if (annotation == null) {
             throw new IllegalArgumentException(
-                    "Class %s is not annotated with @FunctionLibrary".formatted(libraryClass.getName()));
+                    ERROR_NOT_ANNOTATED_WITH_FUNCTION_LIBRARY.formatted(libraryClass.getName()));
         }
 
         val name    = annotation.name().isEmpty() ? libraryClass.getSimpleName() : annotation.name();
@@ -105,7 +109,7 @@ public class LibraryDocumentationExtractor {
         val annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
         if (annotation == null) {
             throw new IllegalArgumentException(
-                    "Class %s is not annotated with @PolicyInformationPoint".formatted(pipClass.getName()));
+                    ERROR_NOT_ANNOTATED_WITH_POLICY_INFORMATION_POINT.formatted(pipClass.getName()));
         }
 
         val name    = annotation.name().isEmpty() ? pipClass.getSimpleName() : annotation.name();

@@ -31,6 +31,7 @@ import io.sapl.ast.PolicyVoterMetadata;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;
+import lombok.val;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.math.BigDecimal;
@@ -108,7 +109,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (tree == null) {
             return null;
         }
-        var result = tree.accept(this);
+        val result = tree.accept(this);
         if (result == null && tree instanceof ParserRuleContext ctx) {
             throw new SaplCompilerException(ERROR_UNHANDLED_CONTEXT.formatted(ctx.getClass().getSimpleName()),
                     fromContext(ctx));
@@ -136,19 +137,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     @Override
     public SaplDocument visitSapl(SaplContext ctx) {
         // Parse imports and build import map
-        var imports = ctx.importStatement().stream().map(this::visitImportStatement).toList();
+        val imports = ctx.importStatement().stream().map(this::visitImportStatement).toList();
         this.importMap      = buildImportMap(imports);
         this.currentImports = imports;
 
         // Parse schemas
-        var schemas = ctx.schemaStatement().stream().map(this::visitSchemaStatement).toList();
+        val schemas = ctx.schemaStatement().stream().map(this::visitSchemaStatement).toList();
         this.currentSchemas = schemas;
 
         // Compute schema block location (spanning all schema statements, or null if
         // none)
         if (!schemas.isEmpty()) {
-            var firstSchema = ctx.schemaStatement().getFirst();
-            var lastSchema  = ctx.schemaStatement().getLast();
+            val firstSchema = ctx.schemaStatement().getFirst();
+            val lastSchema  = ctx.schemaStatement().getLast();
             this.schemaBlockLocation = SourceLocation.spanning(fromContext(firstSchema), fromContext(lastSchema));
         } else {
             this.schemaBlockLocation = null;
@@ -158,7 +159,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
         // Visit the policy element (returns Policy or PolicySet, both implement
         // SaplDocument)
-        var document = (SaplDocument) visit(ctx.policyElement());
+        val document = (SaplDocument) visit(ctx.policyElement());
 
         // Clear state for safety if transformer is reused
         this.currentImports      = null;
@@ -169,17 +170,17 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private Map<String, List<String>> buildImportMap(List<Import> imports) {
-        var map        = new HashMap<String, List<String>>();
-        var importedBy = new HashMap<String, Import>();
-        for (var imp : imports) {
-            var shortName = imp.effectiveName();
-            var existing  = importedBy.get(shortName);
+        val map        = new HashMap<String, List<String>>();
+        val importedBy = new HashMap<String, Import>();
+        for (val imp : imports) {
+            val shortName = imp.effectiveName();
+            val existing  = importedBy.get(shortName);
             if (existing != null) {
                 throw new SaplCompilerException(
                         ERROR_IMPORT_CONFLICT.formatted(shortName, existing.fullName(), imp.fullName()),
                         imp.location());
             }
-            var fullPath = new ArrayList<>(imp.libraryPath());
+            val fullPath = new ArrayList<>(imp.libraryPath());
             fullPath.add(imp.functionName());
             map.put(shortName, fullPath);
             importedBy.put(shortName, imp);
@@ -189,16 +190,16 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public Import visitImportStatement(ImportStatementContext ctx) {
-        var libraryPath  = ctx.libSteps.stream().map(this::idText).toList();
-        var functionName = idText(ctx.functionName);
-        var alias        = ctx.functionAlias != null ? idText(ctx.functionAlias) : null;
+        val libraryPath  = ctx.libSteps.stream().map(this::idText).toList();
+        val functionName = idText(ctx.functionName);
+        val alias        = ctx.functionAlias != null ? idText(ctx.functionAlias) : null;
         return new Import(libraryPath, functionName, alias, fromContext(ctx));
     }
 
     @Override
     public SchemaStatement visitSchemaStatement(SchemaStatementContext ctx) {
-        var element = toSubscriptionElement(ctx.subscriptionElement);
-        var schema  = expr(ctx.schemaExpression);
+        val element = toSubscriptionElement(ctx.subscriptionElement);
+        val schema  = expr(ctx.schemaExpression);
         return new SchemaStatement(element, schema, fromContext(ctx));
     }
 
@@ -214,30 +215,30 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public PolicySet visitPolicySet(PolicySetContext ctx) {
-        var name       = unquoteString(ctx.saplName.getText());
-        var documentId = toDocumentId(name);
-        var algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
-        var target     = ctx.target != null ? expr(ctx.target) : null;
-        var variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
+        val name       = unquoteString(ctx.saplName.getText());
+        val documentId = toDocumentId(name);
+        val algorithm  = toCombiningAlgorithm(ctx.combiningAlgorithm());
+        val target     = ctx.target != null ? expr(ctx.target) : null;
+        val variables  = ctx.valueDefinition().stream().map(this::visitValueDefinition).toList();
 
         // Save document-level imports for the PolicySet
-        var policySetImports = currentImports;
+        val policySetImports = currentImports;
 
         // Inner policies don't carry imports (they're at PolicySet level)
         this.currentImports = List.of();
         this.inPolicySet    = true;
 
-        var policies = ctx.policy().stream().map(this::visitPolicy).toList();
+        val policies = ctx.policy().stream().map(this::visitPolicy).toList();
 
         this.inPolicySet = false;
 
         // Compute outcome and hasConstraints from contained policies
-        var outcome        = computeSetOutcome(policies, algorithm.defaultDecision());
-        var hasConstraints = policies.stream().anyMatch(p -> p.metadata().hasConstraints());
-        var metadata       = new PolicySetVoterMetadata(name, pdpId, configurationId, documentId, algorithm, outcome,
+        val outcome        = computeSetOutcome(policies, algorithm.defaultDecision());
+        val hasConstraints = policies.stream().anyMatch(p -> p.metadata().hasConstraints());
+        val metadata       = new PolicySetVoterMetadata(name, pdpId, configurationId, documentId, algorithm, outcome,
                 hasConstraints);
 
-        var match = (currentSchemas != null && !currentSchemas.isEmpty())
+        val match = (currentSchemas != null && !currentSchemas.isEmpty())
                 ? new SchemaCondition(currentSchemas, schemaBlockLocation)
                 : null;
 
@@ -250,8 +251,8 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case DENY    -> Outcome.DENY;
         case PERMIT  -> Outcome.PERMIT;
         };
-        for (var policy : policies) {
-            var policyOutcome = policy.metadata().outcome();
+        for (val policy : policies) {
+            val policyOutcome = policy.metadata().outcome();
             if (outcome == null) {
                 outcome = policyOutcome;
             } else if (policyOutcome != outcome) {
@@ -263,17 +264,17 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public Policy visitPolicy(PolicyContext ctx) {
-        var name           = unquoteString(ctx.saplName.getText());
-        var documentId     = toDocumentId(name);
-        var entitlement    = toEntitlement(ctx.entitlement());
-        var outcome        = entitlement == Entitlement.DENY ? Outcome.DENY : Outcome.PERMIT;
-        var hasConstraints = !ctx.obligations.isEmpty() || !ctx.adviceExpressions.isEmpty()
+        val name           = unquoteString(ctx.saplName.getText());
+        val documentId     = toDocumentId(name);
+        val entitlement    = toEntitlement(ctx.entitlement());
+        val outcome        = entitlement == Entitlement.DENY ? Outcome.DENY : Outcome.PERMIT;
+        val hasConstraints = !ctx.obligations.isEmpty() || !ctx.adviceExpressions.isEmpty()
                 || ctx.transformation != null;
-        var metadata       = new PolicyVoterMetadata(name, pdpId, configurationId, documentId, outcome, hasConstraints);
+        val metadata       = new PolicyVoterMetadata(name, pdpId, configurationId, documentId, outcome, hasConstraints);
 
         // Build body statements, prepending SchemaCondition if there are schemas
         // (only for standalone policies, not when inside a policy set)
-        var bodyStatements = new ArrayList<Statement>();
+        val bodyStatements = new ArrayList<Statement>();
 
         if (!inPolicySet && currentSchemas != null && !currentSchemas.isEmpty()) {
             bodyStatements.add(new SchemaCondition(currentSchemas, schemaBlockLocation));
@@ -283,15 +284,15 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             ctx.policyBody().statements.stream().map(s -> (Statement) visit(s)).forEach(bodyStatements::add);
         }
 
-        var bodyLocation = ctx.policyBody() != null ? fromContext(ctx.policyBody()) : fromContext(ctx);
-        var body         = new PolicyBody(bodyStatements, bodyLocation);
+        val bodyLocation = ctx.policyBody() != null ? fromContext(ctx.policyBody()) : fromContext(ctx);
+        val body         = new PolicyBody(bodyStatements, bodyLocation);
 
-        var obligations    = ctx.obligations.stream().map(this::expr).toList();
-        var advice         = ctx.adviceExpressions.stream().map(this::expr).toList();
-        var transformation = ctx.transformation != null ? expr(ctx.transformation) : null;
+        val obligations    = ctx.obligations.stream().map(this::expr).toList();
+        val advice         = ctx.adviceExpressions.stream().map(this::expr).toList();
+        val transformation = ctx.transformation != null ? expr(ctx.transformation) : null;
 
         // Use currentImports (empty if inside PolicySet, actual imports if standalone)
-        var policyImports = currentImports != null ? currentImports : List.<Import>of();
+        val policyImports = currentImports != null ? currentImports : List.<Import>of();
 
         return new Policy(policyImports, metadata, entitlement, body, obligations, advice, transformation,
                 fromContext(ctx));
@@ -309,19 +310,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public VarDef visitValueDefinition(ValueDefinitionContext ctx) {
-        var name    = ctx.name.getText();
-        var value   = expr(ctx.eval);
-        var schemas = ctx.schemaVarExpression.stream().map(this::expr).toList();
+        val name    = ctx.name.getText();
+        val value   = expr(ctx.eval);
+        val schemas = ctx.schemaVarExpression.stream().map(this::expr).toList();
         return new VarDef(name, value, schemas, fromContext(ctx));
     }
 
     @Override
     public AstNode visitLazyOr(LazyOrContext ctx) {
-        var operands = ctx.lazyAnd();
+        val operands = ctx.lazyAnd();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs = operands.stream().map(this::expr).toList();
+        val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
@@ -330,11 +331,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitLazyAnd(LazyAndContext ctx) {
-        var operands = ctx.eagerOr();
+        val operands = ctx.eagerOr();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs = operands.stream().map(this::expr).toList();
+        val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
@@ -345,11 +346,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public AstNode visitEagerOr(EagerOrContext ctx) {
         // Eager OR (|) is treated as alias for lazy OR (||) since SAPL is side-effect
         // free
-        var operands = ctx.exclusiveOr();
+        val operands = ctx.exclusiveOr();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs = operands.stream().map(this::expr).toList();
+        val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
@@ -358,11 +359,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitExclusiveOr(ExclusiveOrContext ctx) {
-        var operands = ctx.eagerAnd();
+        val operands = ctx.eagerAnd();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs = operands.stream().map(this::expr).toList();
+        val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.XOR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
@@ -373,11 +374,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public AstNode visitEagerAnd(EagerAndContext ctx) {
         // Eager AND (&) is treated as alias for lazy AND (&&) since SAPL is side-effect
         // free
-        var operands = ctx.equality();
+        val operands = ctx.equality();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs = operands.stream().map(this::expr).toList();
+        val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
@@ -386,13 +387,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitEquality(EqualityContext ctx) {
-        var operands = ctx.comparison();
+        val operands = ctx.comparison();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var left  = expr(operands.getFirst());
-        var right = expr(operands.get(1));
-        var op    = toEqualityOp(ctx);
+        val left  = expr(operands.getFirst());
+        val right = expr(operands.get(1));
+        val op    = toEqualityOp(ctx);
         return new BinaryOperator(op, left, right, fromContext(ctx));
     }
 
@@ -406,13 +407,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitComparison(ComparisonContext ctx) {
-        var operands = ctx.addition();
+        val operands = ctx.addition();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var left  = expr(operands.getFirst());
-        var right = expr(operands.get(1));
-        var op    = toComparisonOp(ctx);
+        val left  = expr(operands.getFirst());
+        val right = expr(operands.get(1));
+        val op    = toComparisonOp(ctx);
         return new BinaryOperator(op, left, right, fromContext(ctx));
     }
 
@@ -430,13 +431,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitAddition(AdditionContext ctx) {
-        var operands = ctx.multiplication();
+        val operands = ctx.multiplication();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var operators = new ArrayList<BinaryOperatorType>();
+        val operators = new ArrayList<BinaryOperatorType>();
         for (int i = 0; i < ctx.getChildCount(); i++) {
-            var child = ctx.getChild(i);
+            val child = ctx.getChild(i);
             if (child instanceof org.antlr.v4.runtime.tree.TerminalNode terminal) {
                 operators.add(terminal.getSymbol().getType() == SAPLParser.PLUS ? BinaryOperatorType.ADD
                         : BinaryOperatorType.SUB);
@@ -450,20 +451,20 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitMultiplication(MultiplicationContext ctx) {
-        var operands = ctx.unaryExpression();
+        val operands = ctx.unaryExpression();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var operators = new ArrayList<BinaryOperatorType>();
+        val operators = new ArrayList<BinaryOperatorType>();
         for (int i = 0; i < ctx.getChildCount(); i++) {
-            var child = ctx.getChild(i);
+            val child = ctx.getChild(i);
             if (child instanceof org.antlr.v4.runtime.tree.TerminalNode terminal) {
                 operators.add(toMultiplicationOp(terminal.getSymbol().getType()));
             }
         }
         // Only use Product for homogeneous multiplication chains (all *)
         if (operands.size() >= 3 && operators.stream().allMatch(op -> op == BinaryOperatorType.MUL)) {
-            var exprs = operands.stream().map(this::expr).toList();
+            val exprs = operands.stream().map(this::expr).toList();
             return new Product(exprs, fromContext(ctx));
         }
         return buildLeftAssociativeBinaryWithOps(operands, operators, ctx);
@@ -479,19 +480,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitNotExpression(NotExpressionContext ctx) {
-        var operand = expr(ctx.unaryExpression());
+        val operand = expr(ctx.unaryExpression());
         return new UnaryOperator(UnaryOperatorType.NOT, operand, fromContext(ctx));
     }
 
     @Override
     public AstNode visitUnaryMinusExpression(UnaryMinusExpressionContext ctx) {
-        var operand = expr(ctx.unaryExpression());
+        val operand = expr(ctx.unaryExpression());
         return new UnaryOperator(UnaryOperatorType.NEGATE, operand, fromContext(ctx));
     }
 
     @Override
     public AstNode visitUnaryPlusExpression(UnaryPlusExpressionContext ctx) {
-        var operand = expr(ctx.unaryExpression());
+        val operand = expr(ctx.unaryExpression());
         return new UnaryOperator(UnaryOperatorType.PLUS, operand, fromContext(ctx));
     }
 
@@ -502,12 +503,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitBasicExpression(BasicExpressionContext ctx) {
-        var base = (Expression) visit(ctx.basic());
+        val base = (Expression) visit(ctx.basic());
         if (ctx.filterComponent() != null) {
             return buildFilterExpression(base, ctx.filterComponent(), ctx);
         }
         if (ctx.basicExpression() != null) {
-            var template = (Expression) visit(ctx.basicExpression());
+            val template = (Expression) visit(ctx.basicExpression());
             return new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, base, template, fromContext(ctx));
         }
         return base;
@@ -523,23 +524,23 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private Expression buildSimpleFilter(Expression base, FilterSimpleContext ctx, ParserRuleContext fullCtx) {
-        var each      = ctx.each != null;
-        var name      = toQualifiedName(ctx.functionIdentifier());
-        var arguments = ctx.arguments() != null ? ctx.arguments().args.stream().map(this::expr).toList()
+        val each      = ctx.each != null;
+        val name      = toQualifiedName(ctx.functionIdentifier());
+        val arguments = ctx.arguments() != null ? ctx.arguments().args.stream().map(this::expr).toList()
                 : List.<Expression>of();
-        var location  = fromContext(fullCtx);
+        val location  = fromContext(fullCtx);
         return new SimpleFilter(base, name, arguments, each, location);
     }
 
     private Expression buildExtendedFilter(Expression base, FilterExtendedContext ctx) {
         Expression result = base;
         for (FilterStatementContext stmtCtx : ctx.filterStatement()) {
-            var each      = stmtCtx.each != null;
-            var target    = stmtCtx.target != null ? buildFilterPath(stmtCtx.target) : null;
-            var name      = toQualifiedName(stmtCtx.functionIdentifier());
-            var arguments = stmtCtx.arguments() != null ? stmtCtx.arguments().args.stream().map(this::expr).toList()
+            val each      = stmtCtx.each != null;
+            val target    = stmtCtx.target != null ? buildFilterPath(stmtCtx.target) : null;
+            val name      = toQualifiedName(stmtCtx.functionIdentifier());
+            val arguments = stmtCtx.arguments() != null ? stmtCtx.arguments().args.stream().map(this::expr).toList()
                     : List.<Expression>of();
-            var location  = fromContext(stmtCtx);
+            val location  = fromContext(stmtCtx);
 
             if (target == null || target.isWholeValue()) {
                 result = new SimpleFilter(result, name, arguments, each, location);
@@ -552,60 +553,60 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitGroupBasic(GroupBasicContext ctx) {
-        var group      = ctx.basicGroup();
-        var expression = expr(group.expression());
-        var base       = new Parenthesized(expression, fromContext(ctx));
+        val group      = ctx.basicGroup();
+        val expression = expr(group.expression());
+        val base       = new Parenthesized(expression, fromContext(ctx));
         return wrapWithSteps(base, group.step());
     }
 
     @Override
     public AstNode visitValueBasic(ValueBasicContext ctx) {
-        var valueCtx = ctx.basicValue();
-        var base     = (Expression) visit(valueCtx.value());
+        val valueCtx = ctx.basicValue();
+        val base     = (Expression) visit(valueCtx.value());
         return wrapWithSteps(base, valueCtx.step());
     }
 
     @Override
     public AstNode visitFunctionBasic(FunctionBasicContext ctx) {
-        var funcCtx   = ctx.basicFunction();
-        var name      = toQualifiedName(funcCtx.functionIdentifier());
-        var arguments = funcCtx.arguments().args.stream().map(this::expr).toList();
-        var base      = new FunctionCall(name, arguments, fromContext(ctx));
+        val funcCtx   = ctx.basicFunction();
+        val name      = toQualifiedName(funcCtx.functionIdentifier());
+        val arguments = funcCtx.arguments().args.stream().map(this::expr).toList();
+        val base      = new FunctionCall(name, arguments, fromContext(ctx));
         return wrapWithSteps(base, funcCtx.step());
     }
 
     @Override
     public AstNode visitIdentifierBasic(IdentifierBasicContext ctx) {
-        var idCtx = ctx.basicIdentifier();
-        var name  = idText(idCtx.saplId());
-        var base  = new Identifier(name, fromContext(ctx));
+        val idCtx = ctx.basicIdentifier();
+        val name  = idText(idCtx.saplId());
+        val base  = new Identifier(name, fromContext(ctx));
         return wrapWithSteps(base, idCtx.step());
     }
 
     @Override
     public AstNode visitRelativeBasic(RelativeBasicContext ctx) {
-        var relCtx = ctx.basicRelative();
-        var base   = new RelativeReference(RelativeType.VALUE, fromContext(ctx));
+        val relCtx = ctx.basicRelative();
+        val base   = new RelativeReference(RelativeType.VALUE, fromContext(ctx));
         return wrapWithSteps(base, relCtx.step());
     }
 
     @Override
     public AstNode visitRelativeLocationBasic(RelativeLocationBasicContext ctx) {
-        var relCtx = ctx.basicRelativeLocation();
-        var base   = new RelativeReference(RelativeType.LOCATION, fromContext(ctx));
+        val relCtx = ctx.basicRelativeLocation();
+        val base   = new RelativeReference(RelativeType.LOCATION, fromContext(ctx));
         return wrapWithSteps(base, relCtx.step());
     }
 
     @Override
     public AstNode visitEnvAttributeBasic(EnvAttributeBasicContext ctx) {
-        var attrCtx = ctx.basicEnvironmentAttribute();
+        val attrCtx = ctx.basicEnvironmentAttribute();
         return buildAttributeAccess(attrCtx.functionIdentifier(), attrCtx.arguments(), attrCtx.attributeFinderOptions,
                 false, attrCtx.step(), ctx);
     }
 
     @Override
     public AstNode visitEnvHeadAttributeBasic(EnvHeadAttributeBasicContext ctx) {
-        var attrCtx = ctx.basicEnvironmentHeadAttribute();
+        val attrCtx = ctx.basicEnvironmentHeadAttribute();
         return buildAttributeAccess(attrCtx.functionIdentifier(), attrCtx.arguments(), attrCtx.attributeFinderOptions,
                 true, attrCtx.step(), ctx);
     }
@@ -647,26 +648,26 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitObject(ObjectContext ctx) {
-        var entries = ctx.pair().stream()
+        val entries = ctx.pair().stream()
                 .map(p -> new ObjectEntry(pairKeyText(p.pairKey()), expr(p.pairValue), fromContext(p))).toList();
         return new ObjectExpression(entries, fromContext(ctx));
     }
 
     @Override
     public AstNode visitArray(ArrayContext ctx) {
-        var elements = ctx.items.stream().map(this::expr).toList();
+        val elements = ctx.items.stream().map(this::expr).toList();
         return new ArrayExpression(elements, fromContext(ctx));
     }
 
     @Override
     public AstNode visitNumberLiteral(NumberLiteralContext ctx) {
-        var value = new BigDecimal(ctx.NUMBER().getText());
+        val value = new BigDecimal(ctx.NUMBER().getText());
         return new Literal(Value.of(value), fromContext(ctx));
     }
 
     @Override
     public AstNode visitStringLiteral(StringLiteralContext ctx) {
-        var value = unquoteString(ctx.STRING().getText());
+        val value = unquoteString(ctx.STRING().getText());
         return new Literal(Value.of(value), fromContext(ctx));
     }
 
@@ -691,12 +692,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private FilterPath buildFilterPath(BasicRelativeContext ctx) {
-        var elements = ctx.step().stream().map(this::buildPathElement).toList();
+        val elements = ctx.step().stream().map(this::buildPathElement).toList();
         return new FilterPath(elements, fromContext(ctx));
     }
 
     private PathElement buildPathElement(StepContext ctx) {
-        var loc = fromContext(ctx);
+        val loc = fromContext(ctx);
         return switch (ctx) {
         case KeyDotStepContext c                  -> new KeyPath(idText(c.keyStep().saplId()), loc);
         case EscapedKeyDotStepContext c           ->
@@ -717,16 +718,16 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private PathElement buildSubscriptPath(SubscriptContext ctx) {
-        var loc = fromContext(ctx);
+        val loc = fromContext(ctx);
         return switch (ctx) {
         case EscapedKeySubscriptContext c     -> new KeyPath(unquoteString(c.escapedKeyStep().STRING().getText()), loc);
         case WildcardSubscriptContext c       -> new WildcardPath(loc);
         case IndexSubscriptContext c          -> new IndexPath(parseSignedNumber(c.indexStep().signedNumber()), loc);
         case SlicingSubscriptContext c        -> {
-            var slice = c.arraySlicingStep();
-            var from  = slice.index != null ? parseSignedNumber(slice.index) : null;
-            var to    = slice.to != null ? parseSignedNumber(slice.to) : null;
-            var step  = slice.stepValue != null ? parseSignedNumber(slice.stepValue) : null;
+            val slice = c.arraySlicingStep();
+            val from  = slice.index != null ? parseSignedNumber(slice.index) : null;
+            val to    = slice.to != null ? parseSignedNumber(slice.to) : null;
+            val step  = slice.stepValue != null ? parseSignedNumber(slice.stepValue) : null;
             yield new SlicePath(from, to, step, loc);
         }
         case ExpressionSubscriptContext c     -> new ExpressionPath(expr(c.expressionStep().expression()), loc);
@@ -765,13 +766,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private int parseSignedNumber(SignedNumberContext ctx) {
-        var text = ctx.getText();
+        val text = ctx.getText();
         return Integer.parseInt(text);
     }
 
     private QualifiedName toQualifiedName(FunctionIdentifierContext ctx) {
-        var parts = ctx.idFragment.stream().map(this::idText).toList();
-        var loc   = fromContext(ctx);
+        val parts = ctx.idFragment.stream().map(this::idText).toList();
+        val loc   = fromContext(ctx);
         if (parts.size() > 2) {
             throw new SaplCompilerException(ERROR_INVALID_QUALIFIED_NAME.formatted(String.join(".", parts)), loc);
         }
@@ -779,7 +780,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             return new QualifiedName(parts);
         }
         // Single-part name: resolve via imports
-        var resolved = importMap.get(parts.getFirst());
+        val resolved = importMap.get(parts.getFirst());
         if (resolved != null) {
             return new QualifiedName(resolved);
         }
@@ -807,9 +808,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private CombiningAlgorithm toCombiningAlgorithm(CombiningAlgorithmContext ctx) {
-        var votingMode      = toVotingMode(ctx.votingMode());
-        var defaultDecision = toDefaultDecision(ctx.defaultDecision());
-        var errorHandling   = ctx.errorHandling() != null ? toErrorHandling(ctx.errorHandling())
+        val votingMode      = toVotingMode(ctx.votingMode());
+        val defaultDecision = toDefaultDecision(ctx.defaultDecision());
+        val errorHandling   = ctx.errorHandling() != null ? toErrorHandling(ctx.errorHandling())
                 : ErrorHandling.ABSTAIN;
         return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);
     }
@@ -848,7 +849,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             List<BinaryOperatorType> operators, ParserRuleContext ctx) {
         var result = expr(operands.getFirst());
         for (int i = 1; i < operands.size(); i++) {
-            var right = expr(operands.get(i));
+            val right = expr(operands.get(i));
             result = new BinaryOperator(operators.get(i - 1), result, right, fromContext(ctx));
         }
         return result;
@@ -856,10 +857,10 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private Expression buildAttributeAccess(FunctionIdentifierContext nameCtx, ArgumentsContext argsCtx,
             ExpressionContext optionsCtx, boolean head, List<StepContext> stepCtxs, ParserRuleContext ctx) {
-        var name      = toQualifiedName(nameCtx);
-        var arguments = argsCtx != null ? argsCtx.args.stream().map(this::expr).toList() : List.<Expression>of();
-        var options   = optionsCtx != null ? expr(optionsCtx) : null;
-        var base      = new EnvironmentAttribute(name, arguments, options, head, fromContext(ctx));
+        val name      = toQualifiedName(nameCtx);
+        val arguments = argsCtx != null ? argsCtx.args.stream().map(this::expr).toList() : List.<Expression>of();
+        val options   = optionsCtx != null ? expr(optionsCtx) : null;
+        val base      = new EnvironmentAttribute(name, arguments, options, head, fromContext(ctx));
         return wrapWithSteps(base, stepCtxs);
     }
 
@@ -872,19 +873,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private Step buildStep(Expression base, StepContext ctx) {
-        var loc = fromContext(ctx);
+        val loc = fromContext(ctx);
         return switch (ctx) {
         case KeyDotStepContext c                  -> new KeyStep(base, idText(c.keyStep().saplId()), loc);
         case EscapedKeyDotStepContext c           ->
             new KeyStep(base, unquoteString(c.escapedKeyStep().STRING().getText()), loc);
         case WildcardDotStepContext c             -> new WildcardStep(base, loc);
         case AttributeFinderDotStepContext c      -> {
-            var stepCtx = c.attributeFinderStep();
+            val stepCtx = c.attributeFinderStep();
             yield buildAttributeFinderStep(base, stepCtx.functionIdentifier(), stepCtx.arguments(),
                     stepCtx.attributeFinderOptions, false, ctx);
         }
         case HeadAttributeFinderDotStepContext c  -> {
-            var stepCtx = c.headAttributeFinderStep();
+            val stepCtx = c.headAttributeFinderStep();
             yield buildAttributeFinderStep(base, stepCtx.functionIdentifier(), stepCtx.arguments(),
                     stepCtx.attributeFinderOptions, true, ctx);
         }
@@ -899,7 +900,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private Step buildSubscriptStep(Expression base, SubscriptContext ctx) {
-        var loc = fromContext(ctx);
+        val loc = fromContext(ctx);
         return switch (ctx) {
         case EscapedKeySubscriptContext c     ->
             new KeyStep(base, unquoteString(c.escapedKeyStep().STRING().getText()), loc);
@@ -907,10 +908,10 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case IndexSubscriptContext c          ->
             new IndexStep(base, parseSignedNumber(c.indexStep().signedNumber()), loc);
         case SlicingSubscriptContext c        -> {
-            var slice = c.arraySlicingStep();
-            var from  = slice.index != null ? parseSignedNumber(slice.index) : null;
-            var to    = slice.to != null ? parseSignedNumber(slice.to) : null;
-            var step  = slice.stepValue != null ? parseSignedNumber(slice.stepValue) : null;
+            val slice = c.arraySlicingStep();
+            val from  = slice.index != null ? parseSignedNumber(slice.index) : null;
+            val to    = slice.to != null ? parseSignedNumber(slice.to) : null;
+            val step  = slice.stepValue != null ? parseSignedNumber(slice.stepValue) : null;
             yield new SliceStep(base, from, to, step, loc);
         }
         case ExpressionSubscriptContext c     -> new ExpressionStep(base, expr(c.expressionStep().expression()), loc);
@@ -934,9 +935,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private AttributeStep buildAttributeFinderStep(Expression base, FunctionIdentifierContext nameCtx,
             ArgumentsContext argsCtx, ExpressionContext optionsCtx, boolean head, ParserRuleContext ctx) {
-        var name      = toQualifiedName(nameCtx);
-        var arguments = argsCtx != null ? argsCtx.args.stream().map(this::expr).toList() : List.<Expression>of();
-        var options   = optionsCtx != null ? expr(optionsCtx) : null;
+        val name      = toQualifiedName(nameCtx);
+        val arguments = argsCtx != null ? argsCtx.args.stream().map(this::expr).toList() : List.<Expression>of();
+        val options   = optionsCtx != null ? expr(optionsCtx) : null;
         return new AttributeStep(base, name, arguments, options, head, fromContext(ctx));
     }
 

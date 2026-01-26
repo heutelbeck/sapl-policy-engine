@@ -25,7 +25,11 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.sapl.api.model.*;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.core.ParameterizedTypeReference;
@@ -69,7 +73,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class ReactiveWebClient {
 
-    static final String        NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
+    static final String        ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
     public static final String BASE_URL                                    = "baseUrl";
     public static final String PATH                                        = "path";
     public static final String URL_PARAMS                                  = "urlParameters";
@@ -194,7 +198,7 @@ public class ReactiveWebClient {
 
     private String baseUrl(ObjectValue requestSettings) {
         if (!requestSettings.containsKey(BASE_URL)) {
-            throw new IllegalArgumentException(NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR);
+            throw new IllegalArgumentException(ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST);
         }
         val value = requestSettings.get(BASE_URL);
         if (value instanceof TextValue text) {

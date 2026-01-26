@@ -890,10 +890,10 @@ public class SemVerFunctionLibrary {
         try {
             val rangeExpression = range.value();
 
-            var maxVersion = (Semver) null;
+            Semver maxVersion = null;
             for (val element : versions) {
-                if (element instanceof TextValue textValue) {
-                    val currentVersion = new Semver(textValue.value());
+                if (element instanceof TextValue(String value)) {
+                    val currentVersion = new Semver(value);
                     if (currentVersion.satisfies(rangeExpression)
                             && (maxVersion == null || currentVersion.isGreaterThan(maxVersion))) {
                         maxVersion = currentVersion;
@@ -934,10 +934,10 @@ public class SemVerFunctionLibrary {
         try {
             val rangeExpression = range.value();
 
-            var minVersion = (Semver) null;
+            Semver minVersion = null;
             for (val element : versions) {
-                if (element instanceof TextValue textValue) {
-                    val currentVersion = new Semver(textValue.value());
+                if (element instanceof TextValue(String value)) {
+                    val currentVersion = new Semver(value);
                     if (currentVersion.satisfies(rangeExpression)
                             && (minVersion == null || currentVersion.isLowerThan(minVersion))) {
                         minVersion = currentVersion;

@@ -191,8 +191,8 @@ public class DefaultFunctionBroker implements FunctionBroker {
         val specs = functionIndex.get(invocation.functionName());
 
         if (specs != null) {
-            var bestMatch = (FunctionSpecification) null;
-            var match     = Match.NO_MATCH;
+            FunctionSpecification bestMatch = null;
+            var                   match     = Match.NO_MATCH;
 
             for (val spec : specs) {
                 val newMatch = invocation.matches(spec);

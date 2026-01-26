@@ -69,7 +69,7 @@ public record VoteReport(
         val authz = vote.authorizationDecision();
         val voter = vote.voter();
 
-        var algorithm = (CombiningAlgorithm) null;
+        CombiningAlgorithm algorithm = null;
         if (voter instanceof PolicySetVoterMetadata psm) {
             algorithm = psm.combiningAlgorithm();
         }

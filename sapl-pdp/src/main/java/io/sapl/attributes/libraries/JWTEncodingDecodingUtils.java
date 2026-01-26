@@ -18,6 +18,7 @@
 package io.sapl.attributes.libraries;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.security.KeyFactory;
@@ -28,6 +29,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Optional;
 
+@UtilityClass
 public class JWTEncodingDecodingUtils {
 
     static Optional<RSAPublicKey> encodedX509ToRSAPublicKey(String encodedKey) {
@@ -76,12 +78,9 @@ public class JWTEncodingDecodingUtils {
             val kf        = KeyFactory.getInstance("RSA");
             val publicKey = (RSAPublicKey) kf.generatePublic(x509Key);
             return Optional.of(publicKey);
-        } catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             return Optional.empty();
         }
-    }
-
-    private JWTEncodingDecodingUtils() {
     }
 
 }

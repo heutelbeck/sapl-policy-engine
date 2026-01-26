@@ -17,7 +17,14 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.attributes.*;
+import static io.sapl.api.attributes.AttributeRepository.INFINITE;
+
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.AttributeKey;
+import io.sapl.api.attributes.AttributeRepository;
+import io.sapl.api.attributes.AttributeRepository.TimeOutStrategy;
+import io.sapl.api.attributes.AttributeStorage;
+import io.sapl.api.attributes.PersistedAttribute;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public final class InMemoryAttributeRepository implements AttributeRepository {
 
-    public static final Value   ATTRIBUTE_UNAVAILABLE                = Value.error("Attribute unavailable.");
+    public static final Value   ERROR_ATTRIBUTE_UNAVAILABLE          = Value.error("Attribute unavailable.");
     private static final String ERROR_ARGUMENTS_MUST_NOT_BE_NULL     = "Arguments must not be null.";
     private static final String ERROR_NAME_MUST_NOT_BE_NULL_OR_BLANK = "Attribute name must not be null or blank.";
     private static final String ERROR_STRATEGY_MUST_NOT_BE_NULL      = "Timeout strategy must not be null.";
@@ -260,7 +267,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     /**
      * Removes an attribute and cancels its scheduled timeout if any. Active
      * subscribers are notified with
-     * ATTRIBUTE_UNAVAILABLE.
+     * ERROR_ATTRIBUTE_UNAVAILABLE.
      * <p>
      * If the attribute does not exist, the operation completes without error.
      *
@@ -287,7 +294,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             cancelScheduledTimeout(key);
             return storage.remove(key).doOnSuccess(v -> {
                 log.debug("Attribute removed successfully: {}", key);
-                notifySubscribers(key, ATTRIBUTE_UNAVAILABLE);
+                notifySubscribers(key, ERROR_ATTRIBUTE_UNAVAILABLE);
             }).doOnError(error -> log.error("Failed to remove attribute: {}", key, error));
 
         }).then();
@@ -336,7 +343,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         log.debug("Applying REMOVE strategy for timed-out attribute: {}", key);
         return storage.remove(key).doOnSuccess(v -> {
             log.debug("Timed-out attribute removed: {}", key);
-            notifySubscribers(key, ATTRIBUTE_UNAVAILABLE);
+            notifySubscribers(key, ERROR_ATTRIBUTE_UNAVAILABLE);
         });
     }
 
@@ -357,7 +364,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
      * subscription is cancelled.
      * <p>
      * On first subscription for a key, emits the current value from storage or
-     * ATTRIBUTE_UNAVAILABLE if not present.
+     * ERROR_ATTRIBUTE_UNAVAILABLE if not present.
      * Subsequent subscriptions share the same stream via replay(1).refCount(1)
      * semantics.
      * <p>
@@ -394,7 +401,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         }
 
         val sink = Sinks.many().multicast().<Value>onBackpressureBuffer();
-        val flux = storage.get(key).map(PersistedAttribute::value).defaultIfEmpty(ATTRIBUTE_UNAVAILABLE)
+        val flux = storage.get(key).map(PersistedAttribute::value).defaultIfEmpty(ERROR_ATTRIBUTE_UNAVAILABLE)
                 .concatWith(sink.asFlux()).doOnCancel(() -> cleanupSubscription(key, sink)).replay(1).refCount(1);
 
         return new SinkAndFlux(sink, flux);

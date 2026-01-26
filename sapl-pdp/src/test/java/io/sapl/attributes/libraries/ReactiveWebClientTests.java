@@ -282,7 +282,7 @@ class ReactiveWebClientTests {
     void when_noBaseUrl_thenError() {
         val httpTestRequest = Value.EMPTY_OBJECT;
         assertThatThrownBy(() -> clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest))
-                .hasMessage(ReactiveWebClient.NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR);
+                .hasMessage(ReactiveWebClient.ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST);
     }
 
     @Test

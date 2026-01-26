@@ -90,7 +90,7 @@ public class AttributeCompiler {
         }
 
         val compiledArgs = new ArrayList<CompiledExpression>(arguments.size());
-        for (var argExpr : arguments) {
+        for (val argExpr : arguments) {
             val compiled = ExpressionCompiler.compile(argExpr, ctx);
             if (compiled instanceof ErrorValue err) {
                 return errorStream(err);
@@ -141,7 +141,7 @@ public class AttributeCompiler {
             CompiledExpression options, boolean head, SourceLocation location, CompilationContext ctx) {
         int   entityOffset     = entityIsStream ? 1 : 0;
         int[] allStreamIndices = new int[cat.streamCount() + entityOffset];
-        var   allStreams       = new StreamOperator[cat.streamCount() + entityOffset];
+        val   allStreams       = new StreamOperator[cat.streamCount() + entityOffset];
 
         if (entityIsStream) {
             allStreamIndices[0] = -1;
@@ -172,7 +172,7 @@ public class AttributeCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
-                var evalCtx = ctx.get(EvaluationContext.class);
+                val evalCtx = ctx.get(EvaluationContext.class);
 
                 Value entity = entityValue;
                 if (entityPure != null) {
@@ -185,17 +185,17 @@ public class AttributeCompiler {
                     return Flux.just(errorTracedValue(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS)));
                 }
 
-                var optionsValue = evaluateOptions(options, evalCtx);
+                val optionsValue = evaluateOptions(options, evalCtx);
                 if (optionsValue instanceof ErrorValue) {
                     return Flux.just(errorTracedValue(optionsValue));
                 }
 
-                var args = buildArgumentArray(valueIndices, values, pureIndices, pureOperators, totalArgs, evalCtx);
+                val args = buildArgumentArray(valueIndices, values, pureIndices, pureOperators, totalArgs, evalCtx);
                 if (args instanceof ErrorValue err) {
                     return Flux.just(errorTracedValue(err));
                 }
                 @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
-                var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                val invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
                         evalCtx);
                 return invokeAndTrace(invocation, head, location);
             });
@@ -218,7 +218,7 @@ public class AttributeCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return entityStream.stream().switchMap(tracedEntity -> {
-                var entityVal = tracedEntity.value();
+                val entityVal = tracedEntity.value();
                 if (entityVal instanceof ErrorValue) {
                     return Flux.just(tracedEntity);
                 }
@@ -227,19 +227,19 @@ public class AttributeCompiler {
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx = ctx.get(EvaluationContext.class);
+                    val evalCtx = ctx.get(EvaluationContext.class);
 
-                    var optionsValue = evaluateOptions(options, evalCtx);
+                    val optionsValue = evaluateOptions(options, evalCtx);
                     if (optionsValue instanceof ErrorValue) {
                         return Flux.just(errorTracedValue(optionsValue));
                     }
 
-                    var args = buildArgumentArray(valueIndices, values, pureIndices, pureOperators, totalArgs, evalCtx);
+                    val args = buildArgumentArray(valueIndices, values, pureIndices, pureOperators, totalArgs, evalCtx);
                     if (args instanceof ErrorValue err) {
                         return Flux.just(errorTracedValue(err));
                     }
                     @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
-                    var invocation = createInvocation(attributeName, entityVal, (List<Value>) args, optionsValue,
+                    val invocation = createInvocation(attributeName, entityVal, (List<Value>) args, optionsValue,
                             pdpData, evalCtx);
                     return invokeAndTrace(invocation, head, location)
                             .map(tv -> mergeTraces(tv, tracedEntity.contributingAttributes()));
@@ -267,13 +267,13 @@ public class AttributeCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return argStream.stream().switchMap(tracedArg -> {
-                var argVal = tracedArg.value();
+                val argVal = tracedArg.value();
                 if (argVal instanceof ErrorValue) {
                     return Flux.just(tracedArg);
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx = ctx.get(EvaluationContext.class);
+                    val evalCtx = ctx.get(EvaluationContext.class);
 
                     Value entity = entityValue;
                     if (entityPure != null) {
@@ -283,18 +283,18 @@ public class AttributeCompiler {
                         }
                     }
 
-                    var optionsValue = evaluateOptions(options, evalCtx);
+                    val optionsValue = evaluateOptions(options, evalCtx);
                     if (optionsValue instanceof ErrorValue) {
                         return Flux.just(errorTracedValue(optionsValue));
                     }
 
-                    var args = buildArgumentArrayWithStreamValue(valueIndices, values, pureIndices, pureOperators,
+                    val args = buildArgumentArrayWithStreamValue(valueIndices, values, pureIndices, pureOperators,
                             streamIndex, argVal, totalArgs, evalCtx);
                     if (args instanceof ErrorValue err) {
                         return Flux.just(errorTracedValue(err));
                     }
                     @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
-                    var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                    val invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
                             evalCtx);
                     return invokeAndTrace(invocation, head, location)
                             .map(tv -> mergeTraces(tv, tracedArg.contributingAttributes()));
@@ -322,27 +322,27 @@ public class AttributeCompiler {
         @Override
         public Flux<TracedValue> stream() {
             List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
-            for (var s : streams) {
+            for (val s : streams) {
                 fluxList.add(s.stream());
             }
 
             return Flux.combineLatest(fluxList, arr -> {
-                var combinedTraces = new ArrayList<AttributeRecord>();
-                var streamValues   = new TracedValue[arr.length];
+                val combinedTraces = new ArrayList<AttributeRecord>();
+                val streamValues   = new TracedValue[arr.length];
                 for (int i = 0; i < arr.length; i++) {
                     streamValues[i] = (TracedValue) arr[i];
                     combinedTraces.addAll(streamValues[i].contributingAttributes());
                 }
                 return new CombinedStreams(streamValues, combinedTraces);
             }).switchMap(combined -> {
-                for (var tv : combined.values) {
+                for (val tv : combined.values) {
                     if (tv.value() instanceof ErrorValue) {
                         return Flux.just(new TracedValue(tv.value(), combined.traces));
                     }
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx = ctx.get(EvaluationContext.class);
+                    val evalCtx = ctx.get(EvaluationContext.class);
 
                     Value entity = entityValue;
                     if (streamIndices.length > 0 && streamIndices[0] == -1) {
@@ -354,18 +354,18 @@ public class AttributeCompiler {
                         }
                     }
 
-                    var optionsValue = evaluateOptions(options, evalCtx);
+                    val optionsValue = evaluateOptions(options, evalCtx);
                     if (optionsValue instanceof ErrorValue) {
                         return Flux.just(errorTracedValue(optionsValue));
                     }
 
-                    var args = buildArgumentArrayWithMultipleStreams(valueIndices, values, pureIndices, pureOperators,
+                    val args = buildArgumentArrayWithMultipleStreams(valueIndices, values, pureIndices, pureOperators,
                             streamIndices, combined.values, totalArgs, evalCtx);
                     if (args instanceof ErrorValue err) {
                         return Flux.just(errorTracedValue(err));
                     }
                     @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
-                    var invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                    val invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
                             evalCtx);
                     return invokeAndTrace(invocation, head, location).map(tv -> mergeTraces(tv, combined.traces));
                 });
@@ -387,7 +387,7 @@ public class AttributeCompiler {
 
     private static Object buildArgumentArray(int[] valueIndices, Value[] values, int[] pureIndices,
             PureOperator[] pureOperators, int totalArgs, EvaluationContext ctx) {
-        var args = new ArrayList<Value>(totalArgs);
+        val args = new ArrayList<Value>(totalArgs);
         for (int i = 0; i < totalArgs; i++) {
             args.add(null);
         }
@@ -397,7 +397,7 @@ public class AttributeCompiler {
         }
 
         for (int i = 0; i < pureIndices.length; i++) {
-            var value = pureOperators[i].evaluate(ctx);
+            val value = pureOperators[i].evaluate(ctx);
             if (value instanceof ErrorValue) {
                 return value;
             }
@@ -409,7 +409,7 @@ public class AttributeCompiler {
 
     private static Object buildArgumentArrayWithStreamValue(int[] valueIndices, Value[] values, int[] pureIndices,
             PureOperator[] pureOperators, int streamIndex, Value streamValue, int totalArgs, EvaluationContext ctx) {
-        var args = new ArrayList<Value>(totalArgs);
+        val args = new ArrayList<Value>(totalArgs);
         for (int i = 0; i < totalArgs; i++) {
             args.add(null);
         }
@@ -419,7 +419,7 @@ public class AttributeCompiler {
         }
 
         for (int i = 0; i < pureIndices.length; i++) {
-            var value = pureOperators[i].evaluate(ctx);
+            val value = pureOperators[i].evaluate(ctx);
             if (value instanceof ErrorValue) {
                 return value;
             }
@@ -434,7 +434,7 @@ public class AttributeCompiler {
     private static Object buildArgumentArrayWithMultipleStreams(int[] valueIndices, Value[] values, int[] pureIndices,
             PureOperator[] pureOperators, int[] streamIndices, TracedValue[] streamValues, int totalArgs,
             EvaluationContext ctx) {
-        var args = new ArrayList<Value>(totalArgs);
+        val args = new ArrayList<Value>(totalArgs);
         for (int i = 0; i < totalArgs; i++) {
             args.add(null);
         }
@@ -444,7 +444,7 @@ public class AttributeCompiler {
         }
 
         for (int i = 0; i < pureIndices.length; i++) {
-            var value = pureOperators[i].evaluate(ctx);
+            val value = pureOperators[i].evaluate(ctx);
             if (value instanceof ErrorValue) {
                 return value;
             }
@@ -463,13 +463,13 @@ public class AttributeCompiler {
 
     private static AttributeFinderInvocation createInvocation(String attributeName, Value entity, List<Value> arguments,
             Value options, PdpData data, EvaluationContext ctx) {
-        var configurationId = ctx.configurationId();
-        var timeout         = Duration.ofMillis(longOption(options, OPTION_INITIAL_TIMEOUT, DEFAULT_TIMEOUT_MS));
-        var pollInterval    = Duration.ofMillis(longOption(options, OPTION_POLL_INTERVAL, DEFAULT_POLL_INTERVAL_MS));
-        var backoff         = Duration.ofMillis(longOption(options, OPTION_BACKOFF, DEFAULT_BACKOFF_MS));
-        var retries         = longOption(options, OPTION_RETRIES, DEFAULT_RETRIES);
-        var fresh           = freshOption(options);
-        var accessCtx       = new AttributeAccessContext(data.variables(), data.secrets(),
+        val configurationId = ctx.configurationId();
+        val timeout         = Duration.ofMillis(longOption(options, OPTION_INITIAL_TIMEOUT, DEFAULT_TIMEOUT_MS));
+        val pollInterval    = Duration.ofMillis(longOption(options, OPTION_POLL_INTERVAL, DEFAULT_POLL_INTERVAL_MS));
+        val backoff         = Duration.ofMillis(longOption(options, OPTION_BACKOFF, DEFAULT_BACKOFF_MS));
+        val retries         = longOption(options, OPTION_RETRIES, DEFAULT_RETRIES);
+        val fresh           = freshOption(options);
+        val accessCtx       = new AttributeAccessContext(data.variables(), data.secrets(),
                 ctx.authorizationSubscription().secrets());
         return new AttributeFinderInvocation(configurationId, attributeName, entity, arguments, timeout, pollInterval,
                 backoff, retries, fresh, accessCtx);
@@ -478,9 +478,9 @@ public class AttributeCompiler {
     private static Flux<TracedValue> invokeAndTrace(AttributeFinderInvocation invocation, boolean head,
             SourceLocation location) {
         return Flux.deferContextual(ctx -> {
-            var evalCtx = ctx.get(EvaluationContext.class);
+            val evalCtx = ctx.get(EvaluationContext.class);
             var stream  = evalCtx.attributeBroker().attributeStream(invocation).map(value -> {
-                            var attributeRecord = new AttributeRecord(invocation, value, Instant.now(), location);
+                            val attributeRecord = new AttributeRecord(invocation, value, Instant.now(), location);
                             return new TracedValue(value, List.of(attributeRecord));
                         });
 
@@ -500,7 +500,7 @@ public class AttributeCompiler {
         if (additional.isEmpty()) {
             return base;
         }
-        var merged = new ArrayList<>(base.contributingAttributes());
+        val merged = new ArrayList<>(base.contributingAttributes());
         merged.addAll(additional);
         return new TracedValue(base.value(), merged);
     }
@@ -509,7 +509,7 @@ public class AttributeCompiler {
         if (!(options instanceof ObjectValue obj)) {
             return defaultValue;
         }
-        var value = obj.get(key);
+        val value = obj.get(key);
         if (value instanceof NumberValue(BigDecimal value1)) {
             return value1.longValue();
         }
@@ -520,7 +520,7 @@ public class AttributeCompiler {
         if (!(options instanceof ObjectValue obj)) {
             return false;
         }
-        var value = obj.get(OPTION_FRESH);
+        val value = obj.get(OPTION_FRESH);
         if (value instanceof BooleanValue(boolean value1)) {
             return value1;
         }

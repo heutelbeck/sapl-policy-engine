@@ -51,6 +51,25 @@ public class MethodSignatureProcessor {
     public static final String ERROR_TYPE_TEMPLATE                  = "Function '%%s' argument %d: expected %s but received %%s";
     public static final String ERROR_VARARG_TYPE_TEMPLATE           = "Function '%%s' varargs argument %%d: expected %s but received %%s";
 
+    /**
+     * Creates a function specification from an annotated method.
+     *
+     * @param libraryInstance
+     * the library instance to bind instance methods to, or null for
+     * static methods
+     * @param namespace
+     * the namespace prefix for the function
+     * @param method
+     * the method annotated with {@link Function}
+     *
+     * @return a FunctionSpecification for the method, or null if not annotated
+     *
+     * @throws IllegalStateException
+     * if the method is invalid (non-static without instance, bad
+     * parameter types)
+     * @throws IllegalArgumentException
+     * if the return type is not a Value subtype
+     */
     public static FunctionSpecification functionSpecification(Object libraryInstance, String namespace, Method method) {
         if (!method.isAnnotationPresent(Function.class)) {
             return null;
@@ -85,9 +104,9 @@ public class MethodSignatureProcessor {
     }
 
     private static ParameterInfo extractParameterTypes(Method method) {
-        val parameterTypes       = new ArrayList<Class<? extends Value>>();
-        var varArgsParameterType = (Class<? extends Value>) null;
-        val parameters           = method.getParameters();
+        val                    parameterTypes       = new ArrayList<Class<? extends Value>>();
+        Class<? extends Value> varArgsParameterType = null;
+        val                    parameters           = method.getParameters();
 
         for (int i = 0; i < parameters.length; i++) {
             val parameterType   = parameters[i].getType();
