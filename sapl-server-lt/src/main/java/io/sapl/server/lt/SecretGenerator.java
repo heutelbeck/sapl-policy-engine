@@ -46,36 +46,36 @@ public class SecretGenerator {
     }
 
     public String encodeWithArgon2(String secret) {
-        val  encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+        val encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
         return encoder.encode(secret);
     }
 
     private String generateKey(int length) {
         val passwordGenerator = new PasswordGenerator();
-        val  lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        val  upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        val  digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        val  rules             = new Rule[] { lowerCaseRule, upperCaseRule, digitRule };
+        val lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
+        val upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
+        val digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
+        val rules             = new Rule[] { lowerCaseRule, upperCaseRule, digitRule };
         return passwordGenerator.generatePassword(length, rules);
     }
 
     private String generatePassword(int length) {
-        val  passwordGenerator = new PasswordGenerator();
-        val  lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        val  upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        val  digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        val  splCharRule       = new CharacterRule(new CharacterData() {
-                                        @Override
-                                        public String getErrorCode() {
-                                            return "ERR_SPECIAL";
-                                        }
+        val passwordGenerator = new PasswordGenerator();
+        val lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
+        val upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
+        val digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
+        val splCharRule       = new CharacterRule(new CharacterData() {
+                                  @Override
+                                  public String getErrorCode() {
+                                      return "ERR_SPECIAL";
+                                  }
 
-                                        @Override
-                                        public String getCharacters() {
-                                            return "$-_.+!*'(),";
-                                        }
-                                    }, 2);
-        val  rules             = new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule };
+                                  @Override
+                                  public String getCharacters() {
+                                      return "$-_.+!*'(),";
+                                  }
+                              }, 2);
+        val rules             = new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule };
         return passwordGenerator.generatePassword(length, rules);
     }
 }

@@ -56,7 +56,7 @@ public class ApiKeyService {
         val cache = cacheManager.getCache("ApiKeyCache");
         // get authentication from cache of possible
         if (cache != null) {
-            val  cacheEntry = cache.get(apiKey);
+            val cacheEntry = cache.get(apiKey);
             if (cacheEntry != null) {
                 return Mono.just(new ApiKeyAuthenticationToken((String) cacheEntry.get()));
             }
@@ -77,7 +77,7 @@ public class ApiKeyService {
     }
 
     public static Optional<String> getApiKeyToken(ServerWebExchange exchange) {
-        val  authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
+        val authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
         if (authorization != null && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
             return Optional.of(authorization.substring(HEADER_PREFIX.length()));
         }
@@ -86,7 +86,7 @@ public class ApiKeyService {
 
     public ServerAuthenticationConverter getHttpApiKeyAuthenticationConverter() {
         return exchange -> {
-            val  apiKeyToken = getApiKeyToken(exchange);
+            val apiKeyToken = getApiKeyToken(exchange);
             if (apiKeyToken.isPresent()) {
                 return checkApiKey(apiKeyToken.get());
             } else {

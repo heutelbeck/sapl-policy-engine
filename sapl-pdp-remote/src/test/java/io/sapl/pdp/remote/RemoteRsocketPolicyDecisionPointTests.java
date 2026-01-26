@@ -122,17 +122,17 @@ class RemoteRsocketPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecideAll_thenGetResults() {
-        val  decision1 = new MultiAuthorizationDecision();
+        val decision1 = new MultiAuthorizationDecision();
         decision1.setDecision(ID, AuthorizationDecision.PERMIT);
-        val  decision2 = new MultiAuthorizationDecision();
+        val decision2 = new MultiAuthorizationDecision();
         decision2.setDecision(ID, AuthorizationDecision.DENY);
-        val  indeterminate = MultiAuthorizationDecision.indeterminate();
+        val indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        val  subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
-                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -140,15 +140,15 @@ class RemoteRsocketPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecide_thenGetResults() {
-        val  decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-        val  decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-        val  indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+        val decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        val decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        val indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        val  subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
-                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -202,7 +202,7 @@ class RemoteRsocketPolicyDecisionPointTests {
         RSocketMessageHandler serverMessageHandler() {
             RSocketMessageHandler handler    = new RSocketMessageHandler();
             var                   mapper     = new ObjectMapper().registerModule(new SaplJacksonModule());
-            val              strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder(mapper))
+            val                   strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder(mapper))
                     .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder(mapper)).build();
             handler.setRSocketStrategies(strategies);
             return handler;
@@ -211,23 +211,22 @@ class RemoteRsocketPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
                 .basicAuth("secret", "key").build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        val  sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build();
-        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+        val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
                 .basicAuth("secret", "key").secure(sslContext).build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
                 .basicAuth("secret", "key").build();
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);

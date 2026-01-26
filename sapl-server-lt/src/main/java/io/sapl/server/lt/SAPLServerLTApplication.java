@@ -41,13 +41,13 @@ public class SAPLServerLTApplication {
                 log.info("Key             : {}", SecretGenerator.newKey());
                 val secret = SecretGenerator.newSecret();
                 log.info("Secret Plaintext: {}", secret);
-                val  encodedSecret = SecretGenerator.encodeWithArgon2(secret);
+                val encodedSecret = SecretGenerator.encodeWithArgon2(secret);
                 log.info("Secret Encoded  : {}", encodedSecret);
             } else if ("-apiKey".equals(args[0])) {
                 log.info("Generating new API Key...");
-                val  key    = SecretGenerator.newKey();
-                val  secret = SecretGenerator.newApiKey();
-                val  apiKey = "sapl_" + key + "_" + secret;
+                val key    = SecretGenerator.newKey();
+                val secret = SecretGenerator.newApiKey();
+                val apiKey = "sapl_" + key + "_" + secret;
                 log.info("ApiKey Plaintext: {}", apiKey);
                 log.info("ApiKey Encoded  : {}", SecretGenerator.encodeWithArgon2(apiKey));
             }

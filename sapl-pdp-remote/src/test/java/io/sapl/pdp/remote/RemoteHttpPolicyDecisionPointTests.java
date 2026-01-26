@@ -106,7 +106,7 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
                 AuthorizationDecision.PERMIT });
 
-        val  subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
@@ -119,15 +119,15 @@ class RemoteHttpPolicyDecisionPointTests {
     void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
         val decision1 = new MultiAuthorizationDecision();
         decision1.setDecision(ID, AuthorizationDecision.PERMIT);
-        val  decision2 = new MultiAuthorizationDecision();
+        val decision2 = new MultiAuthorizationDecision();
         decision2.setDecision(ID, AuthorizationDecision.DENY);
-        val  indeterminate = MultiAuthorizationDecision.indeterminate();
+        val indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        val  subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
-                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -135,15 +135,15 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
-        val  decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-        val  decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-        val  indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+        val decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        val decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        val indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        val  subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
-                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -159,7 +159,7 @@ class RemoteHttpPolicyDecisionPointTests {
                 body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
             }
         }
-        val  response = new MockResponse()
+        val response = new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
                 .setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
         server.enqueue(response);
@@ -167,23 +167,22 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        val  sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build();
-        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").secure(sslContext).build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        val  pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);

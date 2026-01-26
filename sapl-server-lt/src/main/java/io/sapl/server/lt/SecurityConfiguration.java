@@ -103,8 +103,7 @@ public class SecurityConfiguration {
                 log.warn(
                         "No API keys for clients defined. Please set: 'io.sapl.server-lt.key.allowedApiKeys'. With a list of valid keys.");
             }
-            val customAuthenticationWebFilter = new AuthenticationWebFilter(
-                    new ApiKeyReactiveAuthenticationManager());
+            val customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
                     .setServerAuthenticationConverter(apiKeyService.getHttpApiKeyAuthenticationConverter());
             http = http.addFilterAt(customAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
@@ -148,17 +147,17 @@ public class SecurityConfiguration {
         if (!pdpProperties.isAllowBasicAuth()) {
             return null;
         }
-        val  key = pdpProperties.getKey();
+        val key = pdpProperties.getKey();
         if (key == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.server-lt.key'.");
         }
-        val  secret = pdpProperties.getSecret();
+        val secret = pdpProperties.getSecret();
         if (secret == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.server-lt.secret'. As a BCrypt encoded secret.");
         }
-        val  client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
+        val client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
     }
 
@@ -169,7 +168,7 @@ public class SecurityConfiguration {
      */
     @Bean
     RSocketMessageHandler rsocketMessageHandler(RSocketStrategies rSocketStrategies) {
-        val  rSocketMessageHandler = new RSocketMessageHandler();
+        val rSocketMessageHandler = new RSocketMessageHandler();
         rSocketMessageHandler.getArgumentResolverConfigurer()
                 .addCustomResolver(new AuthenticationPrincipalArgumentResolver());
         rSocketMessageHandler.setRSocketStrategies(rSocketStrategies);
@@ -217,28 +216,28 @@ public class SecurityConfiguration {
             jwtManager = new JwtReactiveAuthenticationManager(ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI));
         }
 
-        val  finalSimpleManager = simpleManager;
-        val  finalJwtManager    = jwtManager;
-        val  auth               = new AuthenticationPayloadInterceptor(authentication -> {
-                                         if (finalSimpleManager != null
-                                                 && authentication instanceof UsernamePasswordAuthenticationToken) {
-                                             return finalSimpleManager.authenticate(authentication);
-                                         } else if (finalJwtManager != null
-                                                 && authentication instanceof BearerTokenAuthenticationToken) {
-                                             return finalJwtManager.authenticate(authentication);
-                                         } else {
-                                             throw new IllegalArgumentException("Unsupported Authentication Type "
-                                                     + authentication.getClass().getSimpleName());
-                                         }
-                                     });
+        val finalSimpleManager = simpleManager;
+        val finalJwtManager    = jwtManager;
+        val auth               = new AuthenticationPayloadInterceptor(authentication -> {
+                                   if (finalSimpleManager != null
+                                           && authentication instanceof UsernamePasswordAuthenticationToken) {
+                                       return finalSimpleManager.authenticate(authentication);
+                                   } else if (finalJwtManager != null
+                                           && authentication instanceof BearerTokenAuthenticationToken) {
+                                       return finalJwtManager.authenticate(authentication);
+                                   } else {
+                                       throw new IllegalArgumentException("Unsupported Authentication Type "
+                                               + authentication.getClass().getSimpleName());
+                                   }
+                               });
         auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
         auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
         security.addPayloadInterceptor(auth);
 
         // Configure ApiKey authentication
         if (pdpProperties.isAllowApiKeyAuth()) {
-            val  manager           = new ApiKeyReactiveAuthenticationManager();
-            val  apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
+            val manager           = new ApiKeyReactiveAuthenticationManager();
+            val apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
             apikeyInterceptor.setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);

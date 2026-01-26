@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.benchmark;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -25,13 +26,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.benchmark.BenchmarkCommand;
 import picocli.CommandLine;
 
+@DisplayName("SaplPdpBenchmark")
 class SaplPdpBenchmarkIT {
     private static final String TMP_REPORT_PATH = "target/results/tmp_benchmark_test";
 
@@ -47,7 +49,7 @@ class SaplPdpBenchmarkIT {
         // start benchmark
         final var returnCode = new CommandLine(new BenchmarkCommand()).execute("--cfg",
                 "src/test/resources/integrationtest_benchmark_config.yaml", "--output", TMP_REPORT_PATH);
-        Assertions.assertEquals(0, returnCode);
+        assertEquals(0, returnCode);
 
         // build a list of expected report files
         List<String> reportFiles = new ArrayList<>(List.of("Report.html", "custom.css", "favicon.png",
@@ -74,7 +76,6 @@ class SaplPdpBenchmarkIT {
             File reportFile = new File(TMP_REPORT_PATH + "/" + fileName);
             assertTrue(reportFile.exists(), reportFile + " does not exist");
             assertTrue(reportFile.length() >= 0, reportFile + " is empty");
-
         }
     }
 }

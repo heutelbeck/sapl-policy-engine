@@ -96,8 +96,8 @@ class RsocketPDPControllerTests {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY,
                 AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
 
-        val  subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        val  result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
+        val subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        val result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.DENY, AuthorizationDecision.PERMIT,
                 AuthorizationDecision.INDETERMINATE).verifyComplete();
@@ -114,9 +114,8 @@ class RsocketPDPControllerTests {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY,
                 AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
 
-        val  subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        val  result       = requester.route("decide-once").data(subscription)
-                .retrieveMono(AuthorizationDecision.class);
+        val subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        val result       = requester.route("decide-once").data(subscription).retrieveMono(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.DENY).verifyComplete();
 
@@ -127,8 +126,8 @@ class RsocketPDPControllerTests {
     void decideWithValidProcessingError() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        val  subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        val  result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
+        val subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        val result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.INDETERMINATE).verifyComplete();
 
@@ -139,9 +138,8 @@ class RsocketPDPControllerTests {
     void decideOnceWithValidProcessingError() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        val  subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        val  result       = requester.route("decide-once").data(subscription)
-                .retrieveMono(AuthorizationDecision.class);
+        val subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        val result       = requester.route("decide-once").data(subscription).retrieveMono(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.INDETERMINATE).verifyComplete();
 
@@ -150,7 +148,7 @@ class RsocketPDPControllerTests {
 
     @Test
     void decideWithInvalidBody() {
-        val  result = requester.route("decide").data("INVALID BODY").retrieveMono(AuthorizationDecision.class);
+        val result = requester.route("decide").data("INVALID BODY").retrieveMono(AuthorizationDecision.class);
         StepVerifier.create(result).verifyError();
     }
 
@@ -160,12 +158,12 @@ class RsocketPDPControllerTests {
                 IdentifiableAuthorizationDecision.INDETERMINATE, IdentifiableAuthorizationDecision.INDETERMINATE,
                 IdentifiableAuthorizationDecision.INDETERMINATE));
 
-        val  multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        val multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        val  result = requester.route("multi-decide").data(multiAuthzSubscription)
+        val result = requester.route("multi-decide").data(multiAuthzSubscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(IdentifiableAuthorizationDecision.INDETERMINATE,
@@ -179,12 +177,12 @@ class RsocketPDPControllerTests {
     void subscribeToMultiDecisionsProcessingError() {
         when(pdp.decide(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        val  multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        val multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        val  result = requester.route("multi-decide").data(multiAuthzSubscription)
+        val result = requester.route("multi-decide").data(multiAuthzSubscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(IdentifiableAuthorizationDecision.INDETERMINATE).verifyComplete();
@@ -194,8 +192,8 @@ class RsocketPDPControllerTests {
 
     @Test
     void subscribeToMultiDecisionsInvalidBody() {
-        val  subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        val  result       = requester.route("multi-decide").data(subscription)
+        val subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        val result       = requester.route("multi-decide").data(subscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
         StepVerifier.create(result).expectError().verify();
     }
@@ -206,12 +204,12 @@ class RsocketPDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        val  multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        val multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        val  result = requester.route("multi-decide-all").data(multiAuthzSubscription)
+        val result = requester.route("multi-decide-all").data(multiAuthzSubscription)
                 .retrieveFlux(MultiAuthorizationDecision.class);
 
         StepVerifier
@@ -228,12 +226,12 @@ class RsocketPDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        val  multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        val multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        val  result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
+        val result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
                 .retrieveMono(MultiAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(MultiAuthorizationDecision.indeterminate()).verifyComplete();
@@ -245,12 +243,12 @@ class RsocketPDPControllerTests {
     void subscribeToMultiAllDecisionsProcessingError() {
         when(pdp.decideAll(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        val  multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        val multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        val  result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
+        val result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
                 .retrieveMono(MultiAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(MultiAuthorizationDecision.indeterminate()).verifyComplete();
@@ -260,8 +258,8 @@ class RsocketPDPControllerTests {
 
     @Test
     void subscribeToMultiDecisionsAllInvalidBody() {
-        val  subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        val  result       = requester.route("multi-decide-all").data(subscription)
+        val subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        val result       = requester.route("multi-decide-all").data(subscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
         StepVerifier.create(result).expectError().verify();
     }
