@@ -34,10 +34,13 @@ public record AttributeUnionStep(
         @NonNull Expression base,
         @NonNull List<String> attributes,
         @NonNull SourceLocation location) implements Step {
+
+    private static final String ERROR_REQUIRES_AT_LEAST_2_ATTRIBUTES = "Attribute union requires at least 2 attributes";
+
     public AttributeUnionStep {
         attributes = List.copyOf(attributes);
         if (attributes.size() < 2) {
-            throw new SaplCompilerException("Attribute union requires at least 2 attributes", location);
+            throw new SaplCompilerException(ERROR_REQUIRES_AT_LEAST_2_ATTRIBUTES, location);
         }
     }
 }

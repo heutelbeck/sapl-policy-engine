@@ -18,6 +18,7 @@
 package io.sapl.attributes.libraries;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.val;
 
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -55,7 +56,7 @@ public class JWTEncodingDecodingUtils {
         base64 = base64.replace(pattern, "-").replace('/', '_').replace(',', '_');
 
         try {
-            byte[] bytes = Base64.getUrlDecoder().decode(base64);
+            val bytes = Base64.getUrlDecoder().decode(base64);
             return Optional.of(bytes);
         } catch (IllegalArgumentException e) {
             return Optional.empty();
@@ -72,8 +73,8 @@ public class JWTEncodingDecodingUtils {
      */
     private static Optional<RSAPublicKey> generatePublicKey(X509EncodedKeySpec x509Key) {
         try {
-            KeyFactory   kf        = KeyFactory.getInstance("RSA");
-            RSAPublicKey publicKey = (RSAPublicKey) kf.generatePublic(x509Key);
+            val kf        = KeyFactory.getInstance("RSA");
+            val publicKey = (RSAPublicKey) kf.generatePublic(x509Key);
             return Optional.of(publicKey);
         } catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             return Optional.empty();

@@ -30,10 +30,13 @@ import java.util.List;
  * @param location source location
  */
 public record AttributeUnionPath(@NonNull List<String> keys, @NonNull SourceLocation location) implements PathElement {
+
+    private static final String ERROR_REQUIRES_AT_LEAST_2_KEYS = "Attribute union requires at least 2 keys";
+
     public AttributeUnionPath {
         keys = List.copyOf(keys);
         if (keys.size() < 2) {
-            throw new SaplCompilerException("Attribute union requires at least 2 keys", location);
+            throw new SaplCompilerException(ERROR_REQUIRES_AT_LEAST_2_KEYS, location);
         }
     }
 }

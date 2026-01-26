@@ -25,6 +25,7 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.util.List;
 import java.util.function.Function;
@@ -63,7 +64,7 @@ public class ReportBuilderUtil {
     }
 
     public static ObjectValue toObjectValue(VoteReport report) {
-        var builder = ObjectValue.builder().put(FIELD_DECISION, Value.of(report.decision().name()))
+        val builder = ObjectValue.builder().put(FIELD_DECISION, Value.of(report.decision().name()))
                 .put(FIELD_VOTER_NAME, Value.of(report.voterName())).put(FIELD_PDP_ID, Value.of(report.pdpId()))
                 .put(FIELD_CONFIGURATION_ID, Value.of(report.configurationId()));
 
@@ -83,7 +84,7 @@ public class ReportBuilderUtil {
     }
 
     private static ObjectValue documentToValue(ContributingDocument doc) {
-        var builder = ObjectValue.builder().put(FIELD_NAME, Value.of(doc.name())).put(FIELD_DECISION,
+        val builder = ObjectValue.builder().put(FIELD_NAME, Value.of(doc.name())).put(FIELD_DECISION,
                 Value.of(doc.decision().name()));
         putArray(builder, FIELD_ATTRIBUTES, doc.attributes(), ReportBuilderUtil::attributeToValue);
         putArray(builder, FIELD_ERRORS, doc.errors(), ReportBuilderUtil::errorToValue);
@@ -91,7 +92,7 @@ public class ReportBuilderUtil {
     }
 
     private static ObjectValue errorToValue(ErrorValue error) {
-        var builder = ObjectValue.builder().put(FIELD_MESSAGE, Value.of(error.message()));
+        val builder = ObjectValue.builder().put(FIELD_MESSAGE, Value.of(error.message()));
         if (error.location() != null) {
             builder.put(FIELD_LINE, Value.of(error.location().line()));
         }

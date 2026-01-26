@@ -32,10 +32,13 @@ import java.util.List;
  */
 public record IndexUnionStep(@NonNull Expression base, @NonNull List<Integer> indices, @NonNull SourceLocation location)
         implements Step {
+
+    private static final String ERROR_REQUIRES_AT_LEAST_2_INDICES = "Index union requires at least 2 indices";
+
     public IndexUnionStep {
         indices = List.copyOf(indices);
         if (indices.size() < 2) {
-            throw new SaplCompilerException("Index union requires at least 2 indices", location);
+            throw new SaplCompilerException(ERROR_REQUIRES_AT_LEAST_2_INDICES, location);
         }
     }
 }

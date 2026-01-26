@@ -56,7 +56,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public final class InMemoryAttributeRepository implements AttributeRepository {
 
-    public static final Value ATTRIBUTE_UNAVAILABLE = Value.error("Attribute unavailable.");
+    public static final Value   ATTRIBUTE_UNAVAILABLE                = Value.error("Attribute unavailable.");
+    private static final String ERROR_ARGUMENTS_MUST_NOT_BE_NULL     = "Arguments must not be null.";
+    private static final String ERROR_NAME_MUST_NOT_BE_NULL_OR_BLANK = "Attribute name must not be null or blank.";
+    private static final String ERROR_STRATEGY_MUST_NOT_BE_NULL      = "Timeout strategy must not be null.";
+    private static final String ERROR_TTL_MUST_NOT_BE_NEGATIVE       = "TTL must not be negative.";
+    private static final String ERROR_VALUE_MUST_NOT_BE_NULL         = "Value must not be null.";
 
     private final AttributeStorage                             storage;
     private final Clock                                        clock;
@@ -135,8 +140,8 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     private void scheduleTimeout(AttributeKey key, Instant deadline, TimeOutStrategy strategy) {
-        val      now          = clock.instant();
-        Duration practicalTTL = Duration.ofNanos(Long.MAX_VALUE);
+        val now          = clock.instant();
+        var practicalTTL = Duration.ofNanos(Long.MAX_VALUE);
         try {
             practicalTTL = Duration.between(now, deadline);
         } catch (ArithmeticException e) {
@@ -224,19 +229,19 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     private void validatePublishParameters(String attributeName, List<Value> arguments, Value value, Duration ttl,
             TimeOutStrategy strategy) {
         if (attributeName == null || attributeName.isBlank()) {
-            throw new IllegalArgumentException("Attribute name must not be null or blank.");
+            throw new IllegalArgumentException(ERROR_NAME_MUST_NOT_BE_NULL_OR_BLANK);
         }
         if (arguments == null) {
-            throw new IllegalArgumentException("Arguments must not be null.");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_NOT_BE_NULL);
         }
         if (value == null) {
-            throw new IllegalArgumentException("Value must not be null.");
+            throw new IllegalArgumentException(ERROR_VALUE_MUST_NOT_BE_NULL);
         }
         if (ttl != null && ttl.isNegative()) {
-            throw new IllegalArgumentException("TTL must not be negative.");
+            throw new IllegalArgumentException(ERROR_TTL_MUST_NOT_BE_NEGATIVE);
         }
         if (strategy == null) {
-            throw new IllegalArgumentException("Timeout strategy must not be null.");
+            throw new IllegalArgumentException(ERROR_STRATEGY_MUST_NOT_BE_NULL);
         }
     }
 
@@ -290,10 +295,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
     private void validateRemovalParameters(String attributeName, Iterable<Value> arguments) {
         if (attributeName == null || attributeName.isBlank()) {
-            throw new IllegalArgumentException("Attribute name must not be null or blank.");
+            throw new IllegalArgumentException(ERROR_NAME_MUST_NOT_BE_NULL_OR_BLANK);
         }
         if (arguments == null) {
-            throw new IllegalArgumentException("Arguments must not be null.");
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_NOT_BE_NULL);
         }
     }
 

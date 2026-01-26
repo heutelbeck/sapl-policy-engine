@@ -44,12 +44,12 @@ public class FilterFunctionLibrary {
     public static final String NAME        = "filter";
     public static final String DESCRIPTION = "Essential functions for content filtering.";
 
-    private static final String ILLEGAL_PARAMETERS_COUNT         = "Illegal number of parameters provided.";
-    private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT  = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer. Got: %s.";
-    private static final String ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer. Got: %s.";
-    private static final String ILLEGAL_PARAMETER_REPLACEMENT    = "Illegal parameter for REPLACEMENT. Expecting a string. Got: %s.";
-    private static final String ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_LENGTH. Expecting a positive integer. Got: %s.";
-    private static final String ILLEGAL_PARAMETER_STRING         = "Illegal parameter for STRING. Expecting a string. Got: %s.";
+    private static final String ERROR_ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_LENGTH. Expecting a positive integer. Got: %s.";
+    private static final String ERROR_ILLEGAL_PARAMETER_DISCLOSE_LEFT  = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer. Got: %s.";
+    private static final String ERROR_ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer. Got: %s.";
+    private static final String ERROR_ILLEGAL_PARAMETER_REPLACEMENT    = "Illegal parameter for REPLACEMENT. Expecting a string. Got: %s.";
+    private static final String ERROR_ILLEGAL_PARAMETER_STRING         = "Illegal parameter for STRING. Expecting a string. Got: %s.";
+    private static final String ERROR_ILLEGAL_PARAMETERS_COUNT         = "Illegal number of parameters provided.";
 
     private static final int    ORIGINAL_STRING_INDEX                      = 0;
     private static final int    DISCLOSE_LEFT_INDEX                        = 1;
@@ -162,12 +162,12 @@ public class FilterFunctionLibrary {
 
     private static int extractDiscloseLeft(Value... parameters) {
         return extractPositiveIntParameter(parameters, DISCLOSE_LEFT_INDEX, DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT,
-                ILLEGAL_PARAMETER_DISCLOSE_LEFT);
+                ERROR_ILLEGAL_PARAMETER_DISCLOSE_LEFT);
     }
 
     private static int extractDiscloseRight(Value... parameters) {
         return extractPositiveIntParameter(parameters, DISCLOSE_RIGHT_INDEX, DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT,
-                ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
+                ERROR_ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
     }
 
     private static String extractReplacement(Value... parameters) {
@@ -176,7 +176,7 @@ public class FilterFunctionLibrary {
         }
 
         if (!(parameters[REPLACEMENT_INDEX] instanceof TextValue(String value))) {
-            throw new IllegalArgumentException(ILLEGAL_PARAMETER_REPLACEMENT);
+            throw new IllegalArgumentException(ERROR_ILLEGAL_PARAMETER_REPLACEMENT);
         }
         return value;
     }
@@ -184,7 +184,7 @@ public class FilterFunctionLibrary {
     private static String extractOriginalText(Value... parameters) {
         if (hasNoParameterAtIndex(parameters.length, ORIGINAL_STRING_INDEX)
                 || !(parameters[ORIGINAL_STRING_INDEX] instanceof TextValue(String value))) {
-            throw new IllegalArgumentException(ILLEGAL_PARAMETER_STRING.formatted(Arrays.toString(parameters)));
+            throw new IllegalArgumentException(ERROR_ILLEGAL_PARAMETER_STRING.formatted(Arrays.toString(parameters)));
         }
 
         return value;
@@ -208,7 +208,7 @@ public class FilterFunctionLibrary {
 
         val parameter = parameters[BLACKEN_LENGTH_INDEX];
         if (!(parameter instanceof NumberValue(BigDecimal value)) || value.intValue() < 0) {
-            throw new IllegalArgumentException(ILLEGAL_PARAMETER_BLACKEN_LENGTH);
+            throw new IllegalArgumentException(ERROR_ILLEGAL_PARAMETER_BLACKEN_LENGTH);
         }
 
         return value.intValue();
@@ -220,7 +220,7 @@ public class FilterFunctionLibrary {
 
     private static void validateParameterCount(Value... parameters) {
         if (parameters.length > MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN) {
-            throw new IllegalArgumentException(ILLEGAL_PARAMETERS_COUNT);
+            throw new IllegalArgumentException(ERROR_ILLEGAL_PARAMETERS_COUNT);
         }
     }
 

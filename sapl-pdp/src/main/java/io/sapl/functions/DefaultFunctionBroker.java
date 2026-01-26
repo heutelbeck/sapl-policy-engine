@@ -144,7 +144,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
 
     private void loadFunction(FunctionSpecification functionSpecification) {
         functionIndex.compute(functionSpecification.functionName(), (functionName, functions) -> {
-            var functionList = functions != null ? functions : new ArrayList<FunctionSpecification>();
+            val functionList = functions != null ? functions : new ArrayList<FunctionSpecification>();
 
             validateNoCollision(functionList, functionSpecification);
 
@@ -191,8 +191,8 @@ public class DefaultFunctionBroker implements FunctionBroker {
         val specs = functionIndex.get(invocation.functionName());
 
         if (specs != null) {
-            FunctionSpecification bestMatch = null;
-            var                   match     = Match.NO_MATCH;
+            var bestMatch = (FunctionSpecification) null;
+            var match     = Match.NO_MATCH;
 
             for (val spec : specs) {
                 val newMatch = invocation.matches(spec);

@@ -256,8 +256,8 @@ public class UuidFunctionLibrary {
         randomBytes[8] &= 0x3f; // clear variant
         randomBytes[8] |= (byte) 0x80; // set to IETF variant
 
-        long mostSigBits  = 0;
-        long leastSigBits = 0;
+        var mostSigBits  = 0L;
+        var leastSigBits = 0L;
 
         // Convert first 8 bytes to most significant bits
         for (int i = 0; i < UUID_MOST_SIG_BYTE_SIZE; i++) {

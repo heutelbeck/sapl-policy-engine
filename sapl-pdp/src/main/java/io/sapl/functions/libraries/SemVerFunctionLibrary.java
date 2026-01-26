@@ -890,7 +890,7 @@ public class SemVerFunctionLibrary {
         try {
             val rangeExpression = range.value();
 
-            Semver maxVersion = null;
+            var maxVersion = (Semver) null;
             for (val element : versions) {
                 if (element instanceof TextValue textValue) {
                     val currentVersion = new Semver(textValue.value());
@@ -934,7 +934,7 @@ public class SemVerFunctionLibrary {
         try {
             val rangeExpression = range.value();
 
-            Semver minVersion = null;
+            var minVersion = (Semver) null;
             for (val element : versions) {
                 if (element instanceof TextValue textValue) {
                     val currentVersion = new Semver(textValue.value());

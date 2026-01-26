@@ -30,10 +30,12 @@ import java.util.List;
  */
 public record QualifiedName(@NonNull List<String> parts) implements Serializable {
 
+    private static final String ERROR_CANNOT_BE_EMPTY = "Qualified name cannot be empty.";
+
     public QualifiedName {
         parts = List.copyOf(parts);
         if (parts.isEmpty()) {
-            throw new SaplCompilerException("Qualified name cannot be empty.");
+            throw new SaplCompilerException(ERROR_CANNOT_BE_EMPTY);
         }
     }
 

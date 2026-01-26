@@ -37,6 +37,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -393,20 +394,20 @@ public class JWTPolicyInformationPoint {
 
     private Mono<Boolean> validateSignature(SignedJWT signedJwt, AttributeAccessContext ctx) {
 
-        final var jwtConfig = ctx.pdpSecrets().get(JWT_KEY);
+        val jwtConfig = ctx.pdpSecrets().get(JWT_KEY);
         if (null == jwtConfig || !(jwtConfig instanceof ObjectValue jwtConfigObj)) {
             log.error(JWT_CONFIG_MISSING_ERROR);
             return Mono.just(Boolean.FALSE);
         }
 
-        final var keyId = signedJwt.getHeader().getKeyID();
+        val keyId = signedJwt.getHeader().getKeyID();
 
-        Mono<RSAPublicKey> publicKey       = null;
-        final var          whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
-        var                isFromWhitelist = false;
+        var publicKey       = (Mono<RSAPublicKey>) null;
+        val whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
+        var isFromWhitelist = false;
         if (whitelist instanceof ObjectValue whitelistObj && whitelistObj.containsKey(keyId)) {
-            final var keyValue = whitelistObj.get(keyId);
-            final var key      = JWTEncodingDecodingUtils.jsonNodeToKey(ValueJsonMarshaller.toJsonNode(keyValue));
+            val keyValue = whitelistObj.get(keyId);
+            val key      = JWTEncodingDecodingUtils.jsonNodeToKey(ValueJsonMarshaller.toJsonNode(keyValue));
             if (key.isPresent()) {
                 publicKey       = Mono.just(key.get());
                 isFromWhitelist = true;
@@ -414,7 +415,7 @@ public class JWTPolicyInformationPoint {
         }
 
         if (null == publicKey) {
-            final var jPublicKeyServer = jwtConfigObj.get(PUBLIC_KEY_VARIABLES_KEY);
+            val jPublicKeyServer = jwtConfigObj.get(PUBLIC_KEY_VARIABLES_KEY);
 
             if (null == jPublicKeyServer)
                 return Mono.just(Boolean.FALSE);
@@ -433,9 +434,9 @@ public class JWTPolicyInformationPoint {
     private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(String keyId, SignedJWT signedJwt,
             boolean isFromWhitelist) {
         return publicKey -> {
-            final var verifier = new RSASSAVerifier(publicKey);
+            val verifier = new RSASSAVerifier(publicKey);
             try {
-                final var isValid = signedJwt.verify(verifier);
+                val isValid = signedJwt.verify(verifier);
                 if (isValid && !isFromWhitelist)
                     keyProvider.cache(keyId, publicKey);
                 return isValid;
@@ -455,9 +456,9 @@ public class JWTPolicyInformationPoint {
      */
     private Flux<ValidityState> validateTime(JWTClaimsSet claims) {
 
-        Date notBefore      = claims.getNotBeforeTime();
-        Date expirationTime = claims.getExpirationTime();
-        Date now            = new Date();
+        val notBefore      = claims.getNotBeforeTime();
+        val expirationTime = claims.getExpirationTime();
+        val now            = new Date();
 
         if (null != notBefore && null != expirationTime && notBefore.getTime() > expirationTime.getTime())
             return Flux.just(ValidityState.NEVER_VALID);
@@ -498,7 +499,7 @@ public class JWTPolicyInformationPoint {
      */
     private boolean hasRequiredClaims(SignedJWT jwt) {
 
-        String keyId = jwt.getHeader().getKeyID();
+        val keyId = jwt.getHeader().getKeyID();
         return null != keyId && !keyId.isBlank();
     }
 
@@ -512,7 +513,7 @@ public class JWTPolicyInformationPoint {
      */
     private boolean hasCompatibleClaims(SignedJWT jwt) {
 
-        JWSHeader header = jwt.getHeader();
+        val header = jwt.getHeader();
 
         if (!"RS256".equalsIgnoreCase(header.getAlgorithm().getName()))
             return false;

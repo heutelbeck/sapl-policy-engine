@@ -22,6 +22,7 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.text.Normalizer;
 import java.util.function.Predicate;
@@ -125,7 +126,7 @@ public class SanitizationFunctionLibrary {
             Complete guide: [OWASP SQL Injection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
             """;
 
-    static final String POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
+    static final String ERROR_POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
 
     private static final Pattern SQL_METACHARACTERS    = Pattern.compile("[';*()@]");
     private static final Pattern SQL_DML_DDL_KEYWORDS  = Pattern.compile(
@@ -195,7 +196,7 @@ public class SanitizationFunctionLibrary {
             if (userInput == null || userInput.isEmpty()) {
                 return false;
             }
-            var normalizedInput = Normalizer.normalize(userInput, Normalizer.Form.NFKC);
+            val normalizedInput = Normalizer.normalize(userInput, Normalizer.Form.NFKC);
             for (Pattern pattern : patterns) {
                 if (pattern.matcher(normalizedInput).find()) {
                     return true;
@@ -260,9 +261,9 @@ public class SanitizationFunctionLibrary {
             Use assertNoSqlInjectionStrict if the input should be a structured identifier where SQL syntax never belongs.
             """)
     public static Value assertNoSqlInjection(TextValue inputToSanitize) {
-        var potentialInjectionDetected = BALANCED_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
+        val potentialInjectionDetected = BALANCED_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
         if (potentialInjectionDetected) {
-            return Value.error(POTENTIAL_SQL_INJECTION_DETECTED);
+            return Value.error(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
         }
         return inputToSanitize;
     }
@@ -321,9 +322,9 @@ public class SanitizationFunctionLibrary {
             For natural language or user names, use assertNoSqlInjection instead.
             """)
     public static Value assertNoSqlInjectionStrict(TextValue inputToSanitize) {
-        var potentialInjectionDetected = STRICT_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
+        val potentialInjectionDetected = STRICT_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
         if (potentialInjectionDetected) {
-            return Value.error(POTENTIAL_SQL_INJECTION_DETECTED);
+            return Value.error(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
         }
         return inputToSanitize;
     }

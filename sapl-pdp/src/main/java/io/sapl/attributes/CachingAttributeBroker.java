@@ -74,7 +74,7 @@ public class CachingAttributeBroker implements AttributeBroker {
         log.debug("Requesting stream for: '{}'", invocation.attributeName());
 
         synchronized (lock) {
-            var streams = activeStreamIndex.computeIfAbsent(invocation, k -> new CopyOnWriteArrayList<>());
+            val streams = activeStreamIndex.computeIfAbsent(invocation, k -> new CopyOnWriteArrayList<>());
 
             if (!streams.isEmpty() && !invocation.fresh()) {
                 val stream = streams.getFirst();
@@ -366,9 +366,9 @@ public class CachingAttributeBroker implements AttributeBroker {
             throw new AttributeBrokerException(ERROR_FAILED_TO_PROCESS_PIP.formatted(e.getMessage()), e);
         }
 
-        String                            libraryName = pipImpl.specification().name();
-        String                            pipName     = pipImpl.specification().name(); // Same as library name
-        Set<AttributeFinderSpecification> finders     = pipImpl.specification().attributeFinders();
+        val libraryName = pipImpl.specification().name();
+        val pipName     = pipImpl.specification().name();
+        val finders     = pipImpl.specification().attributeFinders();
 
         // STEP 2: Fast pre-check BEFORE lock (optimization)
         if (libraryToPipNamesMap.containsKey(libraryName)) {
@@ -389,8 +389,8 @@ public class CachingAttributeBroker implements AttributeBroker {
 
             // Check ALL attribute finder name collisions
             for (AttributeFinderSpecification finder : finders) {
-                String                             attrName = finder.fullyQualifiedName();
-                List<AttributeFinderSpecification> existing = attributeFinderIndex.get(attrName);
+                val attrName = finder.fullyQualifiedName();
+                val existing = attributeFinderIndex.get(attrName);
 
                 if (existing != null) {
                     for (AttributeFinderSpecification existingSpec : existing) {
@@ -427,7 +427,7 @@ public class CachingAttributeBroker implements AttributeBroker {
     public boolean unloadPolicyInformationPointLibrary(String libraryName) {
 
         // Remove from library registry (atomic ConcurrentHashMap op)
-        List<String> pipNames = libraryToPipNamesMap.remove(libraryName);
+        val pipNames = libraryToPipNamesMap.remove(libraryName);
 
         if (pipNames == null) {
             log.warn("Library '{}' not found, nothing to unload", libraryName);
@@ -471,21 +471,21 @@ public class CachingAttributeBroker implements AttributeBroker {
      */
     private PolicyInformationPointImplementation processPipClass(Object pipInstance) {
 
-        Class<?> pipClass = pipInstance.getClass();
+        val pipClass = pipInstance.getClass();
         registeredLibraries.add(pipClass);
         // Get @PolicyInformationPoint annotation
-        PolicyInformationPoint annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
+        val annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
         if (annotation == null) {
             throw new AttributeBrokerException(ERROR_MISSING_PIP_ANNOTATION.formatted(pipClass.getName()));
         }
 
-        String pipName = annotation.name();
+        val pipName = annotation.name();
         if (pipName == null || pipName.isBlank()) {
             throw new AttributeBrokerException(ERROR_PIP_NAME_BLANK);
         }
 
         // Process ALL @Attribute methods
-        Set<AttributeFinderSpecification> attributeFinders = new HashSet<>();
+        val attributeFinders = new HashSet<AttributeFinderSpecification>();
 
         for (Method method : pipClass.getDeclaredMethods()) {
             try {
@@ -509,7 +509,7 @@ public class CachingAttributeBroker implements AttributeBroker {
         }
 
         // Construct specification
-        PolicyInformationPointSpecification spec = new PolicyInformationPointSpecification(pipName, attributeFinders);
+        val spec = new PolicyInformationPointSpecification(pipName, attributeFinders);
 
         return new PolicyInformationPointImplementation(spec);
     }

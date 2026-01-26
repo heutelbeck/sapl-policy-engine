@@ -280,12 +280,12 @@ public class PDPConfigurationLoader {
         try {
             val node = MAPPER.readTree(content);
 
-            CombiningAlgorithm algorithm = CombiningAlgorithm.DEFAULT;
+            var algorithm = CombiningAlgorithm.DEFAULT;
             if (node.has("algorithm")) {
                 algorithm = MAPPER.treeToValue(node.get("algorithm"), CombiningAlgorithm.class);
             }
 
-            String configurationId = null;
+            var configurationId = (String) null;
             if (node.has("configurationId")) {
                 val idNode = node.get("configurationId");
                 if (idNode.isTextual() && !idNode.asText().isBlank()) {
@@ -332,8 +332,8 @@ public class PDPConfigurationLoader {
         // Read files and validate size atomically to prevent TOCTOU attacks.
         // An attacker could replace a small file with a large one between a
         // size check and the actual read.
-        val  documents = new HashMap<String, String>();
-        long totalSize = 0;
+        val documents = new HashMap<String, String>();
+        var totalSize = 0L;
         for (val path : saplPaths) {
             val content = readSaplDocument(path);
             totalSize += content.getBytes(StandardCharsets.UTF_8).length;

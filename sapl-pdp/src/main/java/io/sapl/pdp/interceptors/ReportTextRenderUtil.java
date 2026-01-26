@@ -23,6 +23,7 @@ import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 /**
  * Utility class for rendering VoteReports as human-readable text.
@@ -41,7 +42,7 @@ public class ReportTextRenderUtil {
      * @return the formatted text report
      */
     public static String textReport(VoteReport report) {
-        var sb = new StringBuilder();
+        val sb = new StringBuilder();
         appendHeader(sb, report);
         appendComponents(sb, report);
         appendDocuments(sb, report.contributingDocuments());
@@ -99,9 +100,9 @@ public class ReportTextRenderUtil {
     }
 
     private static void appendAttribute(StringBuilder sb, AttributeRecord attr) {
-        var invocation = attr.invocation();
-        var name       = invocation.attributeName();
-        var entity     = invocation.entity();
+        val invocation = attr.invocation();
+        val name       = invocation.attributeName();
+        val entity     = invocation.entity();
         sb.append(INDENT_3);
         if (entity != null) {
             sb.append(entity).append(".<").append(name).append("> = ");

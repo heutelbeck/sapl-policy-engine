@@ -684,7 +684,7 @@ public class KeysFunctionLibrary {
      * encoding.
      */
     private static String base64UrlEncode(BigInteger value) {
-        byte[] bytes = value.toByteArray();
+        var bytes = value.toByteArray();
         // Strip leading zero byte (sign byte for positive numbers)
         if (bytes.length > 1 && bytes[0] == 0) {
             bytes = Arrays.copyOfRange(bytes, 1, bytes.length);

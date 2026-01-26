@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp;
 
+import lombok.val;
+
 import java.time.Instant;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -78,7 +80,7 @@ public final class LazyFastClock implements AutoCloseable {
     public LazyFastClock(long updateIntervalMilliseconds) {
         cachedTimestamp.set(Instant.ofEpochMilli(System.currentTimeMillis()).toString());
         scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            var thread = new Thread(runnable, "LazyFastClock-updater");
+            val thread = new Thread(runnable, "LazyFastClock-updater");
             thread.setDaemon(true);
             return thread;
         });

@@ -616,7 +616,7 @@ public class PatternsFunctionLibrary {
      */
     private static String templateEscapes(String input) {
         val result   = new StringBuilder(input.length());
-        int position = 0;
+        var position = 0;
 
         while (position < input.length()) {
             if (input.charAt(position) == '\\' && position + 1 < input.length()) {
@@ -693,8 +693,8 @@ public class PatternsFunctionLibrary {
             return defaultValue;
         }
 
-        val     result      = new ArrayList<String>(delimiters.size());
-        boolean hasNonEmpty = false;
+        val result      = new ArrayList<String>(delimiters.size());
+        var hasNonEmpty = false;
 
         for (val element : delimiters) {
             if (element instanceof TextValue text && !text.value().isEmpty()) {
@@ -736,7 +736,7 @@ public class PatternsFunctionLibrary {
 
         val regex = new StringBuilder(glob.length() * 2 + 2);
         regex.append(REGEX_ANCHOR_START);
-        int position = 0;
+        var position = 0;
 
         while (position < glob.length()) {
             val handler = switch (glob.charAt(position)) {
@@ -759,9 +759,9 @@ public class PatternsFunctionLibrary {
      * Counts the number of alternative groups in a glob pattern.
      */
     private static int countAlternativeGroups(String glob) {
-        int count    = 0;
-        int position = 0;
-        int depth    = 0;
+        var count    = 0;
+        var position = 0;
+        var depth    = 0;
 
         while (position < glob.length()) {
             val character = glob.charAt(position);
@@ -769,7 +769,7 @@ public class PatternsFunctionLibrary {
             if (character == '\\' && position + 1 < glob.length()) {
                 position += 2;
             } else if (character == '[') {
-                int closingBracket = findClosingBracket(glob, position);
+                val closingBracket = findClosingBracket(glob, position);
                 position = closingBracket != -1 ? closingBracket + 1 : position + 1;
             } else if (character == '{') {
                 if (depth == 0) {
@@ -827,7 +827,7 @@ public class PatternsFunctionLibrary {
      * Converts character class in glob pattern to regex fragment.
      */
     private static GlobConversionResult characterClass(String glob, int position) {
-        int closingBracket = findClosingBracket(glob, position);
+        val closingBracket = findClosingBracket(glob, position);
         if (closingBracket == -1) {
             throw new IllegalStateException(ERROR_UNCLOSED_CHAR_CLASS.formatted(position));
         }
@@ -836,7 +836,7 @@ public class PatternsFunctionLibrary {
         val processed = new StringBuilder(content.length() + 2);
         processed.append('[');
 
-        int contentPosition = 0;
+        var contentPosition = 0;
         if (content.startsWith("!")) {
             processed.append('^');
             contentPosition = 1;
@@ -873,7 +873,7 @@ public class PatternsFunctionLibrary {
             return true;
         }
         if (character == '-') {
-            boolean isRange = position > 0 && position < contentLength - 1;
+            val isRange = position > 0 && position < contentLength - 1;
             return !isRange;
         }
         return false;
@@ -884,7 +884,7 @@ public class PatternsFunctionLibrary {
      */
     private static GlobConversionResult alternatives(String glob, int position, List<String> delimiters,
             int recursionDepth) {
-        int closingBrace = findClosingBrace(glob, position);
+        val closingBrace = findClosingBrace(glob, position);
         if (closingBrace == -1) {
             throw new IllegalStateException(ERROR_UNCLOSED_ALT_GROUP.formatted(position));
         }
@@ -908,8 +908,8 @@ public class PatternsFunctionLibrary {
      * Converts literal character in glob pattern to regex fragment.
      */
     private static GlobConversionResult literalCharacter(String glob, int position) {
-        int codePoint        = glob.codePointAt(position);
-        int characterCount   = Character.charCount(codePoint);
+        val codePoint        = glob.codePointAt(position);
+        val characterCount   = Character.charCount(codePoint);
         val literalCharacter = glob.substring(position, position + characterCount);
         val result           = new StringBuilder(characterCount * 2);
 
@@ -949,8 +949,8 @@ public class PatternsFunctionLibrary {
      * Finds the closing brace matching an opening brace, handling nesting.
      */
     private static int findClosingBrace(String pattern, int startPosition) {
-        int depth    = 1;
-        int position = startPosition + 1;
+        var depth    = 1;
+        var position = startPosition + 1;
 
         while (position < pattern.length()) {
             val currentChar = pattern.charAt(position);
@@ -978,7 +978,7 @@ public class PatternsFunctionLibrary {
      * Finds the closing bracket matching an opening bracket.
      */
     private static int findClosingBracket(String pattern, int startPosition) {
-        int position = startPosition + 1;
+        var position = startPosition + 1;
 
         while (position < pattern.length()) {
             val currentChar = pattern.charAt(position);
@@ -1001,8 +1001,8 @@ public class PatternsFunctionLibrary {
     private static List<String> splitAlternatives(String alternatives) {
         val result       = new ArrayList<String>();
         val current      = new StringBuilder();
-        int position     = 0;
-        int nestingDepth = 0;
+        var position     = 0;
+        var nestingDepth = 0;
 
         while (position < alternatives.length()) {
             val character = alternatives.charAt(position);
@@ -1075,7 +1075,7 @@ public class PatternsFunctionLibrary {
             val matcher = compiledPattern.matcher(value.value());
             val matches = ArrayValue.builder();
 
-            int count = 0;
+            var count = 0;
             while (count < limit && matcher.find()) {
                 matches.add(Value.of(matcher.group()));
                 count++;
@@ -1103,7 +1103,7 @@ public class PatternsFunctionLibrary {
             val matcher = compiledPattern.matcher(value.value());
             val results = ArrayValue.builder();
 
-            int count = 0;
+            var count = 0;
             while (count < limit && matcher.find()) {
                 val matchArray = ArrayValue.builder();
                 matchArray.add(Value.of(matcher.group()));
@@ -1128,7 +1128,7 @@ public class PatternsFunctionLibrary {
      */
     private static String buildTemplateRegex(String template, String startDelimiter, String endDelimiter) {
         val result   = new StringBuilder(template.length() * 2);
-        int position = 0;
+        var position = 0;
 
         while (position < template.length()) {
             val startIndex = template.indexOf(startDelimiter, position);

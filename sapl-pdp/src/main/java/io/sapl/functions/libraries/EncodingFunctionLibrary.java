@@ -124,8 +124,8 @@ public class EncodingFunctionLibrary {
             return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
-        var bytes   = input.value().getBytes(StandardCharsets.UTF_8);
-        var encoded = Base64.getEncoder().encodeToString(bytes);
+        val bytes   = input.value().getBytes(StandardCharsets.UTF_8);
+        val encoded = Base64.getEncoder().encodeToString(bytes);
         return Value.of(encoded);
     }
 
@@ -148,7 +148,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_TEXT)
     public static Value base64Decode(TextValue data) {
-        var input = data.value();
+        val input = data.value();
 
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Base64 decode attempted with input length {}, exceeds maximum {}", input.length(),
@@ -157,8 +157,8 @@ public class EncodingFunctionLibrary {
         }
 
         try {
-            var bytes   = Base64.getDecoder().decode(input);
-            var decoded = decodeUtf8(bytes);
+            val bytes   = Base64.getDecoder().decode(input);
+            val decoded = decodeUtf8(bytes);
             return Value.of(decoded);
         } catch (IllegalArgumentException exception) {
             log.debug("Invalid Base64 data", exception);

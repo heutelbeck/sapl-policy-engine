@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp;
 
+import lombok.val;
+
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -47,12 +49,12 @@ public class ThreadLocalRandomIdFactory implements IdFactory {
 
     @Override
     public String newRandom() {
-        var random = ThreadLocalRandom.current();
-        var high   = random.nextLong();
-        var low    = random.nextLong();
+        val random = ThreadLocalRandom.current();
+        val high   = random.nextLong();
+        val low    = random.nextLong();
 
         // Format as UUID-like string: 8-4-4-4-12 hex digits
-        var chars = new char[36];
+        val chars = new char[36];
         formatHex(chars, 0, high >>> 32, 8);
         chars[8] = '-';
         formatHex(chars, 9, high >>> 16, 4);

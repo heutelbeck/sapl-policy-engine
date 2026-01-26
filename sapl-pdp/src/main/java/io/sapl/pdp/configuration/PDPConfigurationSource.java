@@ -19,6 +19,8 @@ package io.sapl.pdp.configuration;
 
 import reactor.core.Disposable;
 
+import lombok.val;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -131,7 +133,7 @@ public interface PDPConfigurationSource extends Disposable {
      * @return the resolved path
      */
     static Path resolveHomeFolderIfPresent(String path) {
-        var normalizedPath = path.replace("/", File.separator);
+        val normalizedPath = path.replace("/", File.separator);
 
         if (normalizedPath.startsWith("~" + File.separator)) {
             return Paths.get(System.getProperty("user.home") + normalizedPath.substring(1));

@@ -32,10 +32,11 @@ import java.util.List;
  */
 public record Disjunction(@NonNull List<Expression> operands, @NonNull SourceLocation location) implements Expression {
 
+    private static final String ERROR_REQUIRES_AT_LEAST_3_OPERANDS = "Disjunction requires at least 3 operands, use BinaryOperator for 2";
+
     public Disjunction {
         if (operands.size() < 3) {
-            throw new SaplCompilerException("Disjunction requires at least 3 operands, use BinaryOperator for 2",
-                    location);
+            throw new SaplCompilerException(ERROR_REQUIRES_AT_LEAST_3_OPERANDS, location);
         }
         operands = List.copyOf(operands);
     }

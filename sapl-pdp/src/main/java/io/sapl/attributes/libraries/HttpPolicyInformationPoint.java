@@ -24,6 +24,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
 
@@ -327,7 +328,7 @@ public class HttpPolicyInformationPoint {
     }
 
     private ObjectValue withBaseUrl(TextValue baseUrl, ObjectValue requestSettings) {
-        var builder = ObjectValue.builder();
+        val builder = ObjectValue.builder();
         builder.putAll(requestSettings);
         builder.put(ReactiveWebClient.BASE_URL, baseUrl);
         return builder.build();

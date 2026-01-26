@@ -27,6 +27,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.sapl.api.model.*;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -102,26 +103,26 @@ public class ReactiveWebClient {
      * @return a @see Flux&lt;@see Value&gt;
      */
     public Flux<Value> httpRequest(HttpMethod method, ObjectValue requestSettings) {
-        final var baseUrl            = baseUrl(requestSettings);
-        final var path               = getFieldAsTextOrDefault(requestSettings, PATH, "");
-        final var urlParameters      = toStringMap(
+        val baseUrl            = baseUrl(requestSettings);
+        val path               = getFieldAsTextOrDefault(requestSettings, PATH, "");
+        val urlParameters      = toStringMap(
                 getFieldAsJsonNodeOrDefault(requestSettings, URL_PARAMS, JSON.objectNode()));
-        final var requestHeaders     = getFieldAsJsonNodeOrDefault(requestSettings, HEADERS, JSON.objectNode());
-        final var pollingIntervallMs = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS);
-        final var repetitions        = longOrDefault(requestSettings, REPEAT_TIMES, DEFAULT_REPETITIONS);
-        final var accept             = toMediaType(
+        val requestHeaders     = getFieldAsJsonNodeOrDefault(requestSettings, HEADERS, JSON.objectNode());
+        val pollingIntervallMs = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS);
+        val repetitions        = longOrDefault(requestSettings, REPEAT_TIMES, DEFAULT_REPETITIONS);
+        val accept             = toMediaType(
                 getFieldAsJsonNodeOrDefault(requestSettings, ACCEPT_MEDIATYPE, APPLICATION_JSON));
-        final var contentType        = toMediaType(
+        val contentType        = toMediaType(
                 getFieldAsJsonNodeOrDefault(requestSettings, CONTENT_MEDIATYPE, APPLICATION_JSON));
-        final var body               = getFieldAsJsonNodeOrDefault(requestSettings, BODY, null);
+        val body               = getFieldAsJsonNodeOrDefault(requestSettings, BODY, null);
 
         // @formatter:off
-        final var httpClient = HttpClient.create()
+        val httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECTION_TIMEOUT_SECONDS * 1000)
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)));
 
-        final var spec = WebClient.builder()
+        val spec = WebClient.builder()
                             .clientConnector(new ReactorClientHttpConnector(httpClient))
                             .baseUrl(baseUrl).build()
                             .method(method)
@@ -130,7 +131,7 @@ public class ReactiveWebClient {
                             .accept(accept);
         // @formatter:on
 
-        RequestHeadersSpec<?> client = spec;
+        var client = (RequestHeadersSpec<?>) spec;
         if (method != HttpMethod.GET && body != null) {
             client = spec.contentType(contentType).bodyValue(body);
         }
@@ -154,17 +155,17 @@ public class ReactiveWebClient {
      * @return a Flux of incoming messages
      */
     public Flux<Value> consumeWebSocket(ObjectValue requestSettings) {
-        final var baseUrl        = baseUrl(requestSettings);
-        final var path           = getFieldAsTextOrDefault(requestSettings, PATH, "");
-        final var requestHeaders = getFieldAsJsonNodeOrDefault(requestSettings, HEADERS, JSON.objectNode());
-        final var uri            = URI.create(baseUrl + path);
-        final var body           = getFieldAsJsonNodeOrDefault(requestSettings, BODY, null);
-        final var client         = new ReactorNettyWebSocketClient();
+        val baseUrl        = baseUrl(requestSettings);
+        val path           = getFieldAsTextOrDefault(requestSettings, PATH, "");
+        val requestHeaders = getFieldAsJsonNodeOrDefault(requestSettings, HEADERS, JSON.objectNode());
+        val uri            = URI.create(baseUrl + path);
+        val body           = getFieldAsJsonNodeOrDefault(requestSettings, BODY, null);
+        val client         = new ReactorNettyWebSocketClient();
 
-        final var headers = new HttpHeaders();
+        val headers = new HttpHeaders();
         setHeaders(headers, requestHeaders);
 
-        final var         sessionReference = new AtomicReference<WebSocketSession>();
+        val               sessionReference = new AtomicReference<WebSocketSession>();
         Sinks.Many<Value> receiveBuffer    = Sinks.many().unicast().onBackpressureBuffer();
         client.execute(uri, headers, session -> {
             sessionReference.set(session);
@@ -179,10 +180,10 @@ public class ReactiveWebClient {
 
     private void setHeaders(HttpHeaders headers, JsonNode requestHeaders) {
         requestHeaders.properties().forEach(field -> {
-            final var key   = field.getKey();
-            final var value = field.getValue();
+            val key   = field.getKey();
+            val value = field.getValue();
             if (value.isArray()) {
-                final var elements = new ArrayList<String>();
+                val elements = new ArrayList<String>();
                 value.elements().forEachRemaining(e -> elements.add(e.asText()));
                 headers.put(key, elements);
             } else {
@@ -195,7 +196,7 @@ public class ReactiveWebClient {
         if (!requestSettings.containsKey(BASE_URL)) {
             throw new IllegalArgumentException(NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR);
         }
-        final var value = requestSettings.get(BASE_URL);
+        val value = requestSettings.get(BASE_URL);
         if (value instanceof TextValue text) {
             return text.value();
         }
@@ -206,7 +207,7 @@ public class ReactiveWebClient {
         if (!requestSettings.containsKey(fieldName)) {
             return defaultValue;
         }
-        final var value = requestSettings.get(fieldName);
+        val value = requestSettings.get(fieldName);
         if (value instanceof TextValue text) {
             return text.value();
         }
@@ -224,7 +225,7 @@ public class ReactiveWebClient {
         if (!requestSettings.containsKey(fieldName)) {
             return defaultValue;
         }
-        final var value = requestSettings.get(fieldName);
+        val value = requestSettings.get(fieldName);
         if (value == null) {
             throw new IllegalArgumentException(
                     fieldName + " must be a number in HTTP requestSpecification, but was: null");
@@ -252,12 +253,12 @@ public class ReactiveWebClient {
     }
 
     private Flux<JsonNode> retrieveSSE(RequestHeadersSpec<?> client) {
-        ParameterizedTypeReference<ServerSentEvent<JsonNode>> type = new ParameterizedTypeReference<ServerSentEvent<JsonNode>>() {};
+        val type = new ParameterizedTypeReference<ServerSentEvent<JsonNode>>() {};
         return client.retrieve().bodyToFlux(type).map(ServerSentEvent::data);
     }
 
     private Flux<Value> poll(Mono<Value> in, long pollingInterval, long repeatTimes) {
-        var safeRepeatTimes = (int) Math.min(repeatTimes, Integer.MAX_VALUE);
+        val safeRepeatTimes = (int) Math.min(repeatTimes, Integer.MAX_VALUE);
         return Flux.range(0, safeRepeatTimes)
                 .concatMap(i -> i == 0 ? in : Mono.delay(Duration.ofMillis(pollingInterval)).then(in));
     }
@@ -272,16 +273,16 @@ public class ReactiveWebClient {
 
     private Mono<Value> mapError(Throwable e) {
         if (e instanceof WebClientResponseException clientException) {
-            final var cause   = clientException.getRootCause();
-            final var message = cause == null ? e.getMessage() : cause.getMessage();
+            val cause   = clientException.getRootCause();
+            val message = cause == null ? e.getMessage() : cause.getMessage();
             return Mono.just(Value.error(message));
         }
         return Mono.just(Value.error(e.getMessage()));
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Value> receiveBuffer) {
-        final var send   = null == body ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
-        final var listen = listenAndSendEventsToSink(session, receiveBuffer);
+        val send   = null == body ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
+        val listen = listenAndSendEventsToSink(session, receiveBuffer);
         return send.and(listen);
     }
 

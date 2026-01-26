@@ -43,9 +43,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Slf4j
 public class JWTKeyProvider {
 
-    private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
-
-    private static final String JWT_KEY_CACHING_ERROR = "The provided caching configuration was not understood: ";
+    private static final String ERROR_JWT_KEY_CACHING_CONFIGURATION = "The provided caching configuration was not understood: ";
+    private static final String ERROR_JWT_KEY_SERVER_HTTP           = "Error trying to retrieve a public key: ";
 
     public static final String PUBLIC_KEY_URI_KEY     = "uri";
     public static final String PUBLIC_KEY_METHOD_KEY  = "method";
@@ -111,7 +110,7 @@ public class JWTKeyProvider {
             if (jTTL.canConvertToLong()) {
                 lTTL = jTTL.longValue();
             } else {
-                throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL);
+                throw new CachingException(ERROR_JWT_KEY_CACHING_CONFIGURATION + jTTL);
             }
         }
 
@@ -193,7 +192,7 @@ public class JWTKeyProvider {
     }
 
     private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
-        log.trace(JWT_KEY_SERVER_HTTP_ERROR + response.statusCode());
+        log.trace(ERROR_JWT_KEY_SERVER_HTTP + response.statusCode());
         return Mono.empty();
     }
 

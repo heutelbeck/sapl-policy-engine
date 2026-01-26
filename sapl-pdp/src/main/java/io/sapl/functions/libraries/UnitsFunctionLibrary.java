@@ -385,7 +385,7 @@ public class UnitsFunctionLibrary {
         }
 
         boolean parseRequiredDigits() {
-            int digitStart = position;
+            val digitStart = position;
             while (position < length && Character.isDigit(text.charAt(position))) {
                 position++;
             }
@@ -403,14 +403,14 @@ public class UnitsFunctionLibrary {
 
         void parseOptionalScientificNotation() {
             if (position < length && (text.charAt(position) == 'e' || text.charAt(position) == 'E')) {
-                int savedPosition = position;
+                val savedPosition = position;
                 position++;
 
                 if (position < length && (text.charAt(position) == '+' || text.charAt(position) == '-')) {
                     position++;
                 }
 
-                int exponentStart = position;
+                val exponentStart = position;
                 while (position < length && Character.isDigit(text.charAt(position))) {
                     position++;
                 }

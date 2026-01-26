@@ -46,12 +46,14 @@ public record PolicySet(
         @NonNull List<Policy> policies,
         @NonNull SourceLocation location) implements SaplDocument {
 
+    private static final String ERROR_REQUIRES_AT_LEAST_ONE_POLICY = "Policy set must contain at least one policy";
+
     public PolicySet {
         imports   = List.copyOf(imports);
         variables = List.copyOf(variables);
         policies  = List.copyOf(policies);
         if (policies.isEmpty()) {
-            throw new SaplCompilerException("Policy set must contain at least one policy", location);
+            throw new SaplCompilerException(ERROR_REQUIRES_AT_LEAST_ONE_POLICY, location);
         }
     }
 

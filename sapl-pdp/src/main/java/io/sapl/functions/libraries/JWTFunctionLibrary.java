@@ -29,6 +29,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -163,9 +164,9 @@ public class JWTFunctionLibrary {
             """)
     public Value parseJwt(TextValue rawToken) {
         try {
-            var signedJwt = SignedJWT.parse(rawToken.value());
-            var jsonToken = JSON.objectNode();
-            var payload   = MAPPER.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+            val signedJwt = SignedJWT.parse(rawToken.value());
+            val jsonToken = JSON.objectNode();
+            val payload   = MAPPER.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
 
             ifPresentReplaceEpochFieldWithIsoTime(payload, "nbf");
             ifPresentReplaceEpochFieldWithIsoTime(payload, "exp");
@@ -187,8 +188,8 @@ public class JWTFunctionLibrary {
             return;
         }
 
-        var epochSeconds = payload.get(key).asLong();
-        var isoString    = Instant.ofEpochSecond(epochSeconds).toString();
+        val epochSeconds = payload.get(key).asLong();
+        val isoString    = Instant.ofEpochSecond(epochSeconds).toString();
 
         ((ObjectNode) payload).set(key, JSON.textNode(isoString));
     }
