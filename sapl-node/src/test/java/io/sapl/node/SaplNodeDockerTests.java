@@ -15,16 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.remote;
+package io.sapl.node;
 
-public class RemotePolicyDecisionPoint {
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 
-    public static RemotePolicyDecisionPoint builder() {
-        return new RemotePolicyDecisionPoint();
-    }
+import static org.assertj.core.api.Assertions.assertThat;
 
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
-        return RemoteHttpPolicyDecisionPoint.builder();
+@DirtiesContext
+@SpringBootTest
+@ActiveProfiles(profiles = { "docker" })
+class SaplNodeDockerTests {
+
+    @Test
+    void contextLoads(ApplicationContext context) {
+        assertThat(context).isNotNull();
     }
 
 }

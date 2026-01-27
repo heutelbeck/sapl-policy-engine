@@ -55,7 +55,7 @@
 #            mitigated by such services. In any case this option will
 #            open up the server for malicious probing and exfiltration 
 #            attepts via the authorization endpoints, potentially 
-#            (depending on your policies) leading to unaothorized 
+#            (depending on your policies) leading to unaothorized
 #            access to your organization's data.
 #  
 # This option is controlled by the property io.sapl.node.allowNoAuth
@@ -151,8 +151,8 @@ spring.security.oauth2:
 # Setup paths for PDP configuration and SAPL documents. I.e. policies and policy sets.
 #
 io.sapl.pdp.embedded:
-      config-path: /pdp/data/sapl    # The server expects a pdp.json file in this folder
-      policies-path: /pdp/data/sapl  # The server will monitor this folder for *.sapl files
+      config-path: ~/sapl    # The server expects a pdp.json file in this folder
+      policies-path: ~/sapl  # The server will monitor this folder for *.sapl files
 
 #
 # The following options enable or disable different levels of logging for decisions.
@@ -161,16 +161,16 @@ io.sapl.pdp.embedded:
 #                         by the PDP each individual calculation step is documented.
 #                         The trace is in JSON format and may become very large.
 #                         Recommended only as a last resort for troubleshooting.
-      print-trace: true
+      print-trace: false
 # print-json-report: true|false This is a JSON report summarizing the applied algorithms
 #                               and results of each evaluated policy (set) in the
 #                               decision-making process. It includes lists of all errors and values
 #                               of policy information point attributes encountered
 #                               during the evaluation of each policy (set).
-      print-json-report: true
+      print-json-report: false
 # print-text-report: true|false This will log a human-readable textual report based on the
 #                               same data as the 'print-json-report' option generates.
-      print-text-report: true
+      print-text-report: false
 # pretty-print-reports: true|false This option can enable formatting of JSON data while
 #                                  printing JSON during reporting and tracing.
       pretty-print-reports: false
@@ -209,12 +209,14 @@ io.sapl.pdp.embedded:
 #
 server:
    address: localhost
+   port: 8080
    ssl:
-      key-store-type: PKCS12
-      key-store: file:/pdp/data/keystore.p12
-      key-store-password: changeme
-      key-password: changeme
-      key-alias: netty
+      enabled: false
+#      key-store-type: PKCS12
+#      key-store: file:security/keystore.p12
+#      key-store-password: changeme
+#      key-password: changeme
+#      key-alias: netty
 
 # Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
 # is dropped by a firewall or other network components. The default vlaue 0 disables keep-alive messages.

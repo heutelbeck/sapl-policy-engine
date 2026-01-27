@@ -35,16 +35,12 @@ public class RemotePDPProperties implements Validator {
 
     // general connection settings
     @NotEmpty
-    private String  type               = "rsocket"; // rsocket or http
+    private String  type               = "http";
     private boolean ignoreCertificates = false;
 
     // http
     @URL
     private String host = "";
-
-    // rsocket
-    private String  rsocketHost = "";
-    private Integer rsocketPort = 7000;
 
     // basic authentication
     private String key    = "";
@@ -61,16 +57,11 @@ public class RemotePDPProperties implements Validator {
     @Override
     public void validate(Object target, Errors errors) {
         RemotePDPProperties properties = (RemotePDPProperties) target;
-        if ("rsocket".equals(properties.type)) {
-            ValidationUtils.rejectIfEmpty(errors, "rsocketHost", "requires-rsocket-host", "rsocketHost is required");
-            ValidationUtils.rejectIfEmpty(errors, "rsocketPort", "requires-rsocket-port", "rsocketPort is required");
-
-        } else if ("http".equals(properties.type)) {
+        if ("http".equals(properties.type)) {
             ValidationUtils.rejectIfEmpty(errors, "host", "requires-host", "host containing http url is required");
-
         } else {
             errors.rejectValue("type", "type-invalid", new String[] { properties.type },
-                    "Invalid type specified, valid values are \"http\" or \"rsocket\"");
+                    "Invalid type specified, valid value is \"http\"");
         }
 
         // ensure that exactly one authentication mecanisn is specified

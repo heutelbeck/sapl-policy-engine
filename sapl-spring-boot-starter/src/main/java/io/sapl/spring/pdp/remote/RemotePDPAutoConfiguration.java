@@ -41,24 +41,7 @@ public class RemotePDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PolicyDecisionPoint policyDecisionPoint() throws SSLException {
-        if ("rsocket".equals(configuration.getType())) {
-            log.info("Binding to rsocket remote PDP server: {}:{}", configuration.getRsocketHost(),
-                    configuration.getRsocketPort());
-            final var builder = RemotePolicyDecisionPoint.builder().rsocket().host(configuration.getRsocketHost())
-                    .port(configuration.getRsocketPort());
-            if (!configuration.getKey().isEmpty()) {
-                log.info("Connecting with basic authentication");
-                builder.basicAuth(configuration.getKey(), configuration.getSecret());
-            } else if (!configuration.getApiKey().isEmpty()) {
-                log.info("Connecting with apiKey authentication");
-                builder.apiKey(configuration.getApiKey());
-            }
-            if (configuration.isIgnoreCertificates()) {
-                builder.withUnsecureSSL();
-            }
-            return builder.build();
-
-        } else {
+        if ("http".equals(configuration.getType())) {
             log.info("Binding to http remote PDP server: {}", configuration.getHost());
             final var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
             if (!configuration.getKey().isEmpty()) {
@@ -72,6 +55,8 @@ public class RemotePDPAutoConfiguration {
                 builder.withUnsecureSSL();
             }
             return builder.build();
+        } else {
+            throw new IllegalStateException("Unsupported remote PDP connection type: " + configuration.getType());
         }
     }
 

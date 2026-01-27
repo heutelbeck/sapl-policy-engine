@@ -47,7 +47,6 @@ Upon subscription, the PDP server will respond with an unbound stream of decisio
 
 ### Implementations
 
-The SAPL Policy engine comes with two implementations ready for deployment in an organization:
+The SAPL Policy engine comes with an implementations ready for deployment in an organization:
 
-- SAPL Server LT: This light (LT) PDP server implementation uses a configuration and policies stored on a file system. The server is available as a docker container. Documentation: <https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-lt>
-- SAPL Server CE: This community edition (CE) PDP server implementation uses a relational database (MariaDB) for persistence configuration and offers a convenient graphical Web interface to manage policies, configuration, and clients. The UI includes SAPL specific text editors with syntax highlighting and auto-completion features. The server is available as a docker container. Documentation: <https://github.com/heutelbeck/sapl-server/tree/main/sapl-server-ce>
+- SAPL Node: This light PDP server implementation uses a configuration and policies stored on a file system. The server is available as a docker container. Documentation: <https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-node>

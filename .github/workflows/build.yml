@@ -104,13 +104,13 @@ jobs:
         if: env.RUN_ANALYSIS == 'true'
         run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
 
-      - name: Build Dependencies of SAPL Server LT
+      - name: Build Dependencies of SAPL Node
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -U -B install -pl sapl-server-lt -am -DskipTests
+        run: mvn -U -B install -pl sapl-node -am -DskipTests
 
-      - name: Build SAPL Server LT Image
+      - name: Build SAPL Node Image
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+        run: mvn -B spring-boot:build-image -pl sapl-node -DskipTests
 
       - name: Run Unit Tests Only
         if: env.RUN_ANALYSIS == 'false'
@@ -213,9 +213,9 @@ jobs:
     name: Publish Project Assets
     runs-on: ubuntu-latest
     outputs:
-      sapl-server-lt-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
+      sapl-node-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
       artifact-version: ${{ steps.get-version.outputs.VERSION }}
-      sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
+      sapl-node-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
       sapl-playground-docker-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
     permissions:
       contents: read    # for checkout
@@ -272,7 +272,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Deploy Maven Artifacts
-        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
+        run: mvn -B --no-transfer-progress -pl !:sapl-node,!:sapl-server-ce,!:sapl-playground,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
@@ -285,8 +285,8 @@ jobs:
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Build SAPL Server LT Image
-        run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+      - name: Build SAPL Node Image
+        run: mvn -B spring-boot:build-image -pl sapl-node -DskipTests
 
       - name: Build SAPL Server CE Image
         run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Pproduction
@@ -312,13 +312,13 @@ jobs:
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Push Server LT Image to ghcr.io
+      - name: Push SAPL Node Image to ghcr.io
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: error
-          command: docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+          command: docker push ghcr.io/heutelbeck/sapl-node:${{ steps.get-version.outputs.VERSION }}
 
       - name: Push Server CE Image to ghcr.io
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
@@ -379,15 +379,15 @@ jobs:
             docker logs sapl-playground --tail 50
             exit 1
 
-      - name: Get hashes of Server LT
+      - name: Get hashes of SAPL Node
         id: get-server-lt-hash
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
           REGISTRY: ghcr.io
-          IMAGE: heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+          IMAGE: heutelbeck/sapl-node:${{ steps.get-version.outputs.VERSION }}
         run: |
           # Save the location of the maven output files for easier reference
-          ARTIFACT_PATTERN=sapl-server-lt/target/sapl-server-lt-*.jar
+          ARTIFACT_PATTERN=sapl-node/target/sapl-node-*.jar
           
           echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
           
@@ -407,17 +407,17 @@ jobs:
           echo "Digest of container: $IMAGE_DIGEST"
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
-      # Upload the sapl-server-lt artifact and additional files
+      # Upload the sapl-node artifact and additional files
       - name: Upload artifact and signature
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
           if-no-files-found: error
           path: |
-            sapl-server-lt/target/sapl-server-lt-*.jar
-            sapl-server-lt/target/sapl-server-lt-*.jar.asc
-            sapl-server-lt/target/sapl-server-lt-*.jar.sha1
-            sapl-server-lt/target/sapl-server-lt-*.jar.md5
-            sapl-server-lt/target/site/io.*.spdx.json    
+            sapl-node/target/sapl-node-*.jar
+            sapl-node/target/sapl-node-*.jar.asc
+            sapl-node/target/sapl-node-*.jar.sha1
+            sapl-node/target/sapl-node-*.jar.md5
+            sapl-node/target/site/io.*.spdx.json    
 
       - name: Trigger CI Build of sapl-demos
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2

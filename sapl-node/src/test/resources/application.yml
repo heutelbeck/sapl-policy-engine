@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+# Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -55,8 +55,8 @@
 #            mitigated by such services. In any case this option will
 #            open up the server for malicious probing and exfiltration 
 #            attepts via the authorization endpoints, potentially 
-#            (depending on your policies) leading to unaothorized 
-#            access to your organization's data.
+#            (depending on your policies) leading to unaothorized
+#            access to your organizations' data.
 #  
 # This option is controlled by the property io.sapl.node.allowNoAuth
 # which can be set to True or False.
@@ -95,7 +95,7 @@ io.sapl:
     # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
     #
     # There are various command line tools to hash a password with Argon2. 
-    # The server also comes with utilities to create credentials for Basic Authentication
+    # The server also comes with a utility to create credentials for Basic Authentication
     #
     # Run: java -jar sapl-node-3.0.0.jar -basicCredentials
     #
@@ -109,25 +109,23 @@ io.sapl:
 #
 # Clients will get an API key assigned and authenticate by providing the following HTTP header:
 #
-# Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+# API_KEY: <API KEY>
 #
 # Example:
 #
-# Authorization: Bearer phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
+# API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
 #
 # Advantage:    Low latency, no cryptography per request necessary.
 #
 # Disadvantage: Credentials are stored in plain text on the server.  
 #
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am Authorization Bearer header.
-    allowApiKeyAuth: true
+    # am API_KEY header.
+    allowApiKeyAuth: false
     # list of API keys
     allowedApiKeys:
-      # sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
-      - $argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM
-      # sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
-      - $argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k
+      - phsNZdvQAFX9P2jgGzq9TrzUecQhsnHh
+      - uQKyuL3LkBY84hJXLFPgF6cATCsTYGgy
 
 # - Authentication with OAuth2 and JWT 
 #
@@ -139,20 +137,21 @@ io.sapl:
 #               More complex authentication process for client application.  
 #
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am Authorization Bearer header.
+    # am API_KEY header.
     allowOauth2Auth: false
 # Setup Spring OAuth2 Resource Server.
 # Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html 
 spring.security.oauth2:
       resourceserver:
-         jwt.issuer-uri: http://auth-host:32769/default
+         jwt.issuer-uri: http://auth-server:9000
 
 #
 # Setup paths for PDP configuration and SAPL documents. I.e. policies and policy sets.
 #
 io.sapl.pdp.embedded:
-      config-path: /pdp/data/sapl    # The server expects a pdp.json file in this folder
-      policies-path: /pdp/data/sapl  # The server will monitor this folder for *.sapl files
+      enabled: true
+      config-path: ~/sapl    # The server expects a pdp.json file in this folder
+      policies-path: ~/sapl  # The server will monitor this folder for *.sapl files
 
 #
 # The following options enable or disable different levels of logging for decisions.
@@ -211,7 +210,7 @@ server:
    address: localhost
    ssl:
       key-store-type: PKCS12
-      key-store: file:/pdp/data/keystore.p12
+      key-store: classpath:keystore.p12
       key-store-password: changeme
       key-password: changeme
       key-alias: netty
@@ -220,5 +219,33 @@ server:
 # is dropped by a firewall or other network components. The default vlaue 0 disables keep-alive messages.
 # io.sapl.node.keep-alive: 15
 
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.rsocket.RSocketSecurityAutoConfiguration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h
+    cache-names:
+      - ApiKeyCache
+      - buckets
+bucket4j:
+  enabled: false
+  filters:
+    - id: filter1
+      cache-name: buckets
+      filter-method: webflux
+      url: .*
+      http-content-type: application/json;charset=UTF-8
+      filter-order: 1
+      rate-limits:
+        - bandwidths:
+            - capacity: 10000
+              time: 1
+              unit: seconds
+  cache-to-use: caffeine
+spring.main.banner-mode: OFF
 logging.level:
-  "[io.sapl]": DEBUG   
+  root: OFF
+  org.springframework: OFF
+  io.sapl: OFF

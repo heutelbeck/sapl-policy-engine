@@ -58,29 +58,10 @@
 			<artifactId>sapl-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<!-- Protobuf serialization for high-performance RSocket -->
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-api-proto</artifactId>
-			<version>${project.version}</version>
-		</dependency>
 		<!-- Dependency for the WebClient -->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webflux</artifactId>
-		</dependency>
-		<!-- Dependency for the RSocket -->
-		<dependency>
-			<groupId>io.rsocket</groupId>
-			<artifactId>rsocket-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.rsocket</groupId>
-			<artifactId>rsocket-transport-netty</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-messaging</artifactId>
 		</dependency>
 		<!-- Dependency for the Repeat and Back-Off -->
 		<dependency>

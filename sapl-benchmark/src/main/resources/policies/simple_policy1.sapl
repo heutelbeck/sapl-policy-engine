@@ -1,4 +1,0 @@
-policy "simple_policy1"
-permit
-    action == "eat";
-    resource == "apple";

@@ -44,7 +44,7 @@ import java.time.Duration;
 @RequestMapping("/api/pdp")
 public class PDPController {
     private final PolicyDecisionPoint pdp;
-    @Value("#{'${io.sapl.server.keep-alive:${io.sapl.server-lt.keep-alive:0}}'}")
+    @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}")
     private long                      keepAliveSeconds = 0;
 
     /**

@@ -515,21 +515,17 @@ For development, `RESOURCES` is convenient because policies are bundled in the J
 
 ### Remote PDP
 
-The remote PDP connects to an external PDP server (like sapl-server-lt). Use this when policies are managed centrally or when multiple applications share the same policies.
+The remote PDP connects to an external PDP server (like SAPL Node). Use this when policies are managed centrally or when multiple applications share the same policies.
 
 ```properties
 # Enable the remote PDP
 io.sapl.pdp.remote.enabled=true
 
-# Connection type: http or rsocket
-io.sapl.pdp.remote.type=rsocket
+# Connection type
+io.sapl.pdp.remote.type=http
 
-# For HTTP
+# HTTP URL of the PDP server
 io.sapl.pdp.remote.host=https://pdp.example.org:8443
-
-# For RSocket
-io.sapl.pdp.remote.rsocket-host=pdp.example.org
-io.sapl.pdp.remote.rsocket-port=7000
 
 # Authentication (choose one)
 # Basic auth:
@@ -545,10 +541,8 @@ The full list of remote PDP properties:
 | Property | Default | Description |
 |----------|---------|-------------|
 | `io.sapl.pdp.remote.enabled` | `false` | Enable or disable the remote PDP |
-| `io.sapl.pdp.remote.type` | `rsocket` | Connection type: `http` or `rsocket` |
+| `io.sapl.pdp.remote.type` | `http` | Connection type |
 | `io.sapl.pdp.remote.host` | | HTTP URL of the PDP server |
-| `io.sapl.pdp.remote.rsocket-host` | | Hostname for RSocket connection |
-| `io.sapl.pdp.remote.rsocket-port` | `7000` | Port for RSocket connection |
 | `io.sapl.pdp.remote.key` | | Username for basic authentication |
 | `io.sapl.pdp.remote.secret` | | Password for basic authentication |
 | `io.sapl.pdp.remote.api-key` | | API key for token authentication |

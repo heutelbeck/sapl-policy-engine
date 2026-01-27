@@ -15,16 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.remote;
+package io.sapl.node;
 
-public class RemotePolicyDecisionPoint {
+import org.junit.jupiter.api.Test;
 
-    public static RemotePolicyDecisionPoint builder() {
-        return new RemotePolicyDecisionPoint();
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+class SaplNodeMainTests {
+
+    @Test
+    void whenExecutingMain_withApiKeyParameter_thenSuccessful() {
+        assertDoesNotThrow(() -> SaplNodeApplication.main(new String[] { "-apiKey" }));
     }
 
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
-        return RemoteHttpPolicyDecisionPoint.builder();
+    @Test
+    void whenExecutingMain_withBasicCredentialsParameter_thenSuccessful() {
+        assertDoesNotThrow(() -> SaplNodeApplication.main(new String[] { "-basicCredentials" }));
     }
 
 }

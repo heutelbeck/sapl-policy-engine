@@ -15,16 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.remote;
+package io.sapl.node;
 
-public class RemotePolicyDecisionPoint {
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-    public static RemotePolicyDecisionPoint builder() {
-        return new RemotePolicyDecisionPoint();
-    }
+@Configuration
+@RequiredArgsConstructor
+public class PasswordConfiguration {
 
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
-        return RemoteHttpPolicyDecisionPoint.builder();
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 
 }

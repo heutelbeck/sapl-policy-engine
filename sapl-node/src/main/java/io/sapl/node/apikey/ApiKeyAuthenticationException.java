@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.remote;
+package io.sapl.node.apikey;
 
-public class RemotePolicyDecisionPoint {
+import io.sapl.api.SaplVersion;
+import lombok.experimental.StandardException;
+import org.springframework.security.core.AuthenticationException;
 
-    public static RemotePolicyDecisionPoint builder() {
-        return new RemotePolicyDecisionPoint();
-    }
+import java.io.Serial;
 
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
-        return RemoteHttpPolicyDecisionPoint.builder();
-    }
-
+@StandardException
+public class ApiKeyAuthenticationException extends AuthenticationException {
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

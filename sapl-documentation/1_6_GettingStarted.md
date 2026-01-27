@@ -20,25 +20,25 @@ The playground is primarily useful for learning the policy syntax and testing ba
 ### Running a Local PDP Server
 
 There are currently three SAPL Server implementations available:
-- One very lightweight and headless implementation, SAPL Server LT, which manages the policies and configuration directly on the hosts' filesystem. 
+- One very lightweight and headless implementation, SAPL Node, which manages the policies and configuration directly on the hosts' filesystem. 
 - The second version, SAPL Server CE, ships with a web-based administration UI and persists its data in a database. 
-- The third version, SAPL Server EE, provides an advanced administration model supporting atomic multi-policy updates, advanced authoring, testing and debugging tools, and implements a more fine-grained model for different stakeholder roles and the possibility for multi-tenant, multi-PDP deployments. SAPL Server LT and CE are available in the SAPL GitHub repository. The SAPL Server EE is currently in closed beta. Please inquire with the developers to get access.
+- The third version, SAPL Server EE, provides an advanced administration model supporting atomic multi-policy updates, advanced authoring, testing and debugging tools, and implements a more fine-grained model for different stakeholder roles and the possibility for multi-tenant, multi-PDP deployments. SAPL Node and CE are available in the SAPL GitHub repository. The SAPL Server EE is currently in closed beta. Please inquire with the developers to get access.
 
-To get up and running quickly, SAPL Server LT has the fewest dependencies, i.e., no database needed, and is the easiest to set up as a Docker container. It has some limitations on consistency enforcement based on the limitations of operating on the filesystem directly though.
+To get up and running quickly, SAPL Node has the fewest dependencies, i.e., no database needed, and is the easiest to set up as a Docker container. It has some limitations on consistency enforcement based on the limitations of operating on the filesystem directly though.
 
 The SAPL Server strictly follows a secure-by-default philosophy. This means that the application comes with secure default settings, and it intentionally makes it difficult to operate without secure settings. Any SAPL Server by default expects to be set up with TLS enabled for transport-level encryption of access tokens, authorization subscriptions, and authorization decisions. 
 
 For a quickstart, we provide a simple pre-configuration to use which can be dropped into the volume of the Docker container.
 
-1. Have Docker installed locally as a runtime environment for the SAPL Server LT
+1. Have Docker installed locally as a runtime environment for the SAPL Node
 2. Install curl to test the server
 3. Select a local folder to be used as a volume for the Docker container where the configuration files and policies will be located. For this tutorial, let's assume it is `C:\sapl`. Change this in the following steps to your local environment.
 4. Download the two files `application.yml` and `keystore.p12` to `C:\sapl`. [Download here](https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-documentation/configs) You can inspect the `.yml` file for the documentation of the different configuration parameters.
-5. Start the SAPL Server LT container, mounting `C:\sapl` to the container folder `/pdp/data`:
+5. Start the SAPL Node container, mounting `C:\sapl` to the container folder `/pdp/data`:
 ```powershell
-docker run -d --name sapl-server-lt -e SERVER_ADDRESS=0.0.0.0 -p 8443:8443 --expose=7000 -v C:\sapl:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT
+docker run -d --name sapl-node -e SERVER_ADDRESS=0.0.0.0 -p 8443:8443 --expose=7000 -v C:\sapl:/pdp/data ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
 ```
-If everything worked as expected, you should now see a line like `Started SAPLServerLTApplication in 4.729 seconds (process running for 5.227)` in the container logs.
+If everything worked as expected, you should now see a line like `Started SaplNodeApplication in 4.729 seconds (process running for 5.227)` in the container logs.
 6. Send the following authorization request to the server:
 ```powershell
 curl -v -k -H 'Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==' -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' https://localhost:8443/api/pdp/decide-once
@@ -62,7 +62,7 @@ curl -v -k -H 'Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2
 
 The request should now return `{"decision":"DENY"}`, as expected.
 
-9. Now define a first policy. You can add arbitrary policies to the same folder where `pdp.json` is stored. Files with SAPL policies and policy set, i.e., SAPL documents, must end with the file extension `.sapl`. The SAPL Server LT monitors the folder for changes to files and automatically loads, reloads, and unloads the respective `pdp.json` or `*.sapl` files. Create the file `housemd_mrt.sapl`:
+9. Now define a first policy. You can add arbitrary policies to the same folder where `pdp.json` is stored. Files with SAPL policies and policy set, i.e., SAPL documents, must end with the file extension `.sapl`. The SAPL Node monitors the folder for changes to files and automatically loads, reloads, and unloads the respective `pdp.json` or `*.sapl` files. Create the file `housemd_mrt.sapl`:
 
 ```sapl
 policy "Dr. House is allowed to use the MRT!"

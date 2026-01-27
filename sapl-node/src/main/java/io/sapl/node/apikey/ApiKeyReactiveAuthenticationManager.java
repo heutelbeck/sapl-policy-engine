@@ -15,16 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.remote;
+package io.sapl.node.apikey;
 
-public class RemotePolicyDecisionPoint {
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
+import org.springframework.security.core.Authentication;
+import reactor.core.publisher.Mono;
 
-    public static RemotePolicyDecisionPoint builder() {
-        return new RemotePolicyDecisionPoint();
+public class ApiKeyReactiveAuthenticationManager implements ReactiveAuthenticationManager {
+
+    @Override
+    public Mono<Authentication> authenticate(Authentication authentication) {
+        return Mono.fromSupplier(() -> {
+            if (authentication != null && authentication.getCredentials() != null) {
+                authentication.setAuthenticated(true);
+            }
+            return authentication;
+        });
     }
-
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
-        return RemoteHttpPolicyDecisionPoint.builder();
-    }
-
 }
