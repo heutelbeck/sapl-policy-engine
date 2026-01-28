@@ -17,24 +17,22 @@
  */
 package io.sapl.test.coverage;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.test.SaplTestFixture;
+import lombok.val;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import List;
+import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.test.SaplTestFixture;
-import lombok.val;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Fixture coverage integration tests")
 class FixtureCoverageIntegrationTests {
