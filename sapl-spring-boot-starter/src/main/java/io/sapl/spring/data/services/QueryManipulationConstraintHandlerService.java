@@ -38,9 +38,11 @@ import static io.sapl.spring.data.utils.Utilities.*;
 @AllArgsConstructor
 public class QueryManipulationConstraintHandlerService {
 
-    private List<RecordConstraintData> queryManipulationRecords;
+    private static final String ERROR_UNHANDABLE_OBLIGATION = "Unhandable Obligation: %s";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private List<RecordConstraintData> queryManipulationRecords;
 
     public JsonNode[] getQueryManipulationObligations() {
 
@@ -168,6 +170,6 @@ public class QueryManipulationConstraintHandlerService {
             return obligation.get(SELECTION);
         }
 
-        throw new AccessDeniedException("Unhandable Obligation: " + obligation.toPrettyString());
+        throw new AccessDeniedException(ERROR_UNHANDABLE_OBLIGATION.formatted(obligation.toPrettyString()));
     }
 }

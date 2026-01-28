@@ -17,7 +17,7 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
@@ -52,7 +52,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
 class TraccarPolicyInformationPointIT {
-    private static final ObjectMapper                  MAPPER      = new ObjectMapper();
+    private static final JsonMapper                    MAPPER      = JsonMapper.builder().build();
     private static final ReactiveWebClient             CLIENT      = new ReactiveWebClient(MAPPER);
     private static final TraccarPolicyInformationPoint TRACCAR_PIP = new TraccarPolicyInformationPoint(CLIENT);
 

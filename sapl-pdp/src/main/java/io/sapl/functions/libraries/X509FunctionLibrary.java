@@ -17,8 +17,8 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;

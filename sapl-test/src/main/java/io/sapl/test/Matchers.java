@@ -26,6 +26,7 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -543,7 +544,7 @@ public class Matchers {
             if (!(v instanceof ArrayValue arr)) {
                 return false;
             }
-            var remaining = new java.util.ArrayList<>(arr);
+            var remaining = new ArrayList<>(arr);
             for (var matcher : elementMatchers) {
                 boolean found = false;
                 for (int i = 0; i < remaining.size(); i++) {
@@ -615,7 +616,7 @@ public class Matchers {
             if (arr.size() != expected.length) {
                 return false;
             }
-            var remaining = new java.util.ArrayList<>(Arrays.asList(expected));
+            var remaining = new ArrayList<>(Arrays.asList(expected));
             for (var element : arr) {
                 if (!remaining.remove(element)) {
                     return false;

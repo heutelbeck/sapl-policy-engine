@@ -49,6 +49,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.IntFunction;
@@ -82,6 +83,7 @@ public class StepCompiler {
     private static final String ERROR_CONDITION_NON_BOOLEAN           = "Condition must evaluate to boolean, got %s.";
     private static final String ERROR_CONDITION_STREAMING_UNSUPPORTED = "Condition step with streaming condition not yet supported";
     private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Expression step with streaming expression not yet supported";
+    private static final String ERROR_HANDLED_ABOVE                   = "Handled above";
     private static final String ERROR_MAX_RECURSION_DEPTH_INDEX       = "Maximum nesting depth exceeded during recursive index step.";
     private static final String ERROR_MAX_RECURSION_DEPTH_KEY         = "Maximum nesting depth exceeded during recursive key step.";
     private static final String ERROR_MAX_RECURSION_DEPTH_WILDCARD    = "Maximum nesting depth exceeded during recursive wildcard step.";
@@ -268,7 +270,7 @@ public class StepCompiler {
             val size = arr.size();
             // Normalize indices and skip out-of-bounds (silently ignored per sapl-lang
             // behavior)
-            val normalizedIndices = new java.util.ArrayList<Integer>();
+            val normalizedIndices = new ArrayList<Integer>();
             val seen              = new HashSet<Integer>();
             for (val index : indices) {
                 int normalized = index >= 0 ? index : size + index;
@@ -467,20 +469,23 @@ public class StepCompiler {
                                    case Value exprVal              -> applyExpressionStep(baseVal, exprVal, loc);
                                    case PureOperator exprOp        ->
                                        new ExpressionStepPure(baseVal, null, exprOp, loc);
-                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   case StreamOperator ignored     ->
+                                       throw new IllegalStateException(ERROR_HANDLED_ABOVE);
                                    };
         case PureOperator baseOp       -> switch (expr) {
                                    case Value exprVal              ->
                                        new ExpressionStepPure(null, baseOp, exprVal, loc);
                                    case PureOperator exprOp        -> new ExpressionStepPurePure(baseOp, exprOp, loc);
-                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   case StreamOperator ignored     ->
+                                       throw new IllegalStateException(ERROR_HANDLED_ABOVE);
                                    };
         case StreamOperator baseStream -> switch (expr) {
                                    case Value exprVal              ->
                                        new ExpressionStepStream(baseStream, exprVal, loc);
                                    case PureOperator exprOp        ->
                                        new ExpressionStepStreamPure(baseStream, exprOp, loc);
-                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   case StreamOperator ignored     ->
+                                       throw new IllegalStateException(ERROR_HANDLED_ABOVE);
                                    };
         };
     }
@@ -580,20 +585,23 @@ public class StepCompiler {
                                        // Condition depends on subscription, must defer to runtime
                                        yield new ConditionStepConstBasePure(baseVal, condOp, loc);
                                    }
-                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   case StreamOperator ignored     ->
+                                       throw new IllegalStateException(ERROR_HANDLED_ABOVE);
                                    };
         case PureOperator baseOp       -> switch (condition) {
                                    case Value condVal              ->
                                        new ConditionStepPureConstCond(baseOp, condVal, loc);
                                    case PureOperator condOp        -> new ConditionStepPurePure(baseOp, condOp, loc);
-                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   case StreamOperator ignored     ->
+                                       throw new IllegalStateException(ERROR_HANDLED_ABOVE);
                                    };
         case StreamOperator baseStream -> switch (condition) {
                                    case Value condVal              ->
                                        new ConditionStepStreamConstCond(baseStream, condVal, loc);
                                    case PureOperator condOp        ->
                                        new ConditionStepStreamPure(baseStream, condOp, loc);
-                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   case StreamOperator ignored     ->
+                                       throw new IllegalStateException(ERROR_HANDLED_ABOVE);
                                    };
         };
     }

@@ -19,7 +19,7 @@ package io.sapl.lsp.sapl.evaluation;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ObjectValue;

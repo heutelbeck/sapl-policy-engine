@@ -29,6 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import reactor.test.StepVerifier;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -709,7 +710,7 @@ class LazyNaryBooleanCompilerTests {
         void conjunctionLongSequenceAllTrueFinallyTrue() {
             // 10 TRUE values in sequence
             var values = new Value[10];
-            java.util.Arrays.fill(values, Value.TRUE);
+            Arrays.fill(values, Value.TRUE);
             var broker   = attributeBroker("test.attr", values);
             var ctx      = evaluationContext(broker);
             var compiled = compileExpression("true && <test.attr>", broker);

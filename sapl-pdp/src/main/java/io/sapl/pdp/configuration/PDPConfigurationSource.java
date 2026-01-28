@@ -66,6 +66,10 @@ public interface PDPConfigurationSource extends Disposable {
 
     String DEFAULT_PDP_ID = "default";
 
+    String ERROR_PDP_ID_EXCEEDS_MAX_LENGTH = "PDP identifier exceeds maximum length of %d characters.";
+    String ERROR_PDP_ID_INVALID_CHARACTERS = "PDP identifier contains invalid characters. Only alphanumeric characters, hyphens, underscores, and dots are allowed.";
+    String ERROR_PDP_ID_NULL_OR_EMPTY      = "PDP identifier must not be null or empty.";
+
     /**
      * Maximum allowed length for PDP identifiers.
      */
@@ -88,15 +92,13 @@ public interface PDPConfigurationSource extends Disposable {
      */
     static void validatePdpId(String pdpId) {
         if (pdpId == null || pdpId.isEmpty()) {
-            throw new PDPConfigurationException("PDP identifier must not be null or empty.");
+            throw new PDPConfigurationException(ERROR_PDP_ID_NULL_OR_EMPTY);
         }
         if (pdpId.length() > MAX_PDP_ID_LENGTH) {
-            throw new PDPConfigurationException(
-                    "PDP identifier exceeds maximum length of %d characters.".formatted(MAX_PDP_ID_LENGTH));
+            throw new PDPConfigurationException(ERROR_PDP_ID_EXCEEDS_MAX_LENGTH.formatted(MAX_PDP_ID_LENGTH));
         }
         if (!VALID_PDP_ID_PATTERN.matcher(pdpId).matches()) {
-            throw new PDPConfigurationException(
-                    "PDP identifier contains invalid characters. Only alphanumeric characters, hyphens, underscores, and dots are allowed.");
+            throw new PDPConfigurationException(ERROR_PDP_ID_INVALID_CHARACTERS);
         }
     }
 

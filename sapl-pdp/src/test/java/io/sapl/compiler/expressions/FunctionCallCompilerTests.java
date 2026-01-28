@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static io.sapl.util.SaplTesting.attributeBroker;
@@ -97,7 +98,7 @@ class FunctionCallCompilerTests {
 
         assertThat(result).isEqualTo(Value.of("result"));
         assertThat(captured).hasSize(1).first().extracting(FunctionInvocation::arguments)
-                .isEqualTo(java.util.List.of(Value.of("static"), Value.of("dynamic"), Value.of(42)));
+                .isEqualTo(List.of(Value.of("static"), Value.of("dynamic"), Value.of(42)));
     }
 
     @Test
@@ -221,7 +222,7 @@ class FunctionCallCompilerTests {
         // Undefined should be filtered out, leaving 2 arguments
         assertThat(result).isEqualTo(Value.of(2));
         assertThat(captured).hasSize(1).first().extracting(FunctionInvocation::arguments)
-                .isEqualTo(java.util.List.of(Value.of(1), Value.of(3)));
+                .isEqualTo(List.of(Value.of(1), Value.of(3)));
     }
 
     @Test

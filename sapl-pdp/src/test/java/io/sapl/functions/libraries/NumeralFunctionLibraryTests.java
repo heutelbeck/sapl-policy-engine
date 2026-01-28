@@ -30,6 +30,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -201,8 +202,8 @@ class NumeralFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("providePaddedFormattingTestCases")
-    void whenToPaddedFormatThenReturnsCorrectString(String baseName,
-            java.util.function.BiFunction<Value, Value, Value> formatFunction, long value, int width, String expected) {
+    void whenToPaddedFormatThenReturnsCorrectString(String baseName, BiFunction<Value, Value, Value> formatFunction,
+            long value, int width, String expected) {
 
         val actual = formatFunction.apply(Value.of(value), Value.of(width));
         assertThat(actual).isInstanceOf(TextValue.class);
@@ -211,37 +212,31 @@ class NumeralFunctionLibraryTests {
     }
 
     private static Stream<Arguments> providePaddedFormattingTestCases() {
-        return Stream.of(arguments("hex",
-                (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
-                255L, 4, "00FF"),
-                arguments("hex",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
+        return Stream.of(
+                arguments("hex", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
+                        255L, 4, "00FF"),
+                arguments("hex", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
                         255L, 2, "FF"),
-                arguments("hex",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
+                arguments("hex", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
                         4095L, 2, "FFF"),
-                arguments("hex",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded,
-                        0L, 4, "0000"),
+                arguments("hex", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded, 0L,
+                        4, "0000"),
 
                 arguments("binary",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded,
-                        10L, 8, "00001010"),
+                        (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded, 10L, 8,
+                        "00001010"),
                 arguments("binary",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded,
-                        10L, 4, "1010"),
+                        (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded, 10L, 4,
+                        "1010"),
                 arguments("binary",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded,
-                        255L, 4, "11111111"),
+                        (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded, 255L, 4,
+                        "11111111"),
 
-                arguments("octal",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
+                arguments("octal", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
                         63L, 4, "0077"),
-                arguments("octal",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
+                arguments("octal", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
                         63L, 2, "77"),
-                arguments("octal",
-                        (java.util.function.BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
+                arguments("octal", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded,
                         493L, 2, "755"));
     }
 

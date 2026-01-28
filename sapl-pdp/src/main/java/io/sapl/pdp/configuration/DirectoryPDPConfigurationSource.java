@@ -101,6 +101,11 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
+    private static final String ERROR_DIRECTORY_DOES_NOT_EXIST     = "Configuration directory does not exist.";
+    private static final String ERROR_DIRECTORY_IS_SYMBOLIC_LINK   = "Configuration directory must not be a symbolic link.";
+    private static final String ERROR_FAILED_TO_START_FILE_MONITOR = "Failed to start file monitor for configuration directory.";
+    private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Configuration path is not a directory.";
+
     private final Path                       directoryPath;
     private final String                     pdpId;
     private final Consumer<PDPConfiguration> callback;
@@ -160,13 +165,13 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
 
     private void validateDirectory() {
         if (!Files.exists(directoryPath, LinkOption.NOFOLLOW_LINKS)) {
-            throw new PDPConfigurationException("Configuration directory does not exist.");
+            throw new PDPConfigurationException(ERROR_DIRECTORY_DOES_NOT_EXIST);
         }
         if (Files.isSymbolicLink(directoryPath)) {
-            throw new PDPConfigurationException("Configuration directory must not be a symbolic link.");
+            throw new PDPConfigurationException(ERROR_DIRECTORY_IS_SYMBOLIC_LINK);
         }
         if (!Files.isDirectory(directoryPath)) {
-            throw new PDPConfigurationException("Configuration path is not a directory.");
+            throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY);
         }
     }
 
@@ -186,7 +191,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             monitor.start();
             log.debug("Started file monitoring on directory: {}.", directoryPath);
         } catch (Exception e) {
-            throw new PDPConfigurationException("Failed to start file monitor for configuration directory.", e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_START_FILE_MONITOR, e);
         }
     }
 

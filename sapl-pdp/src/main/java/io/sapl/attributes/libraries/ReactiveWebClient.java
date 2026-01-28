@@ -17,12 +17,11 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.TextNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.sapl.api.model.NumberValue;
@@ -73,26 +72,29 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class ReactiveWebClient {
 
-    static final String        ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
-    public static final String BASE_URL                                    = "baseUrl";
-    public static final String PATH                                        = "path";
-    public static final String URL_PARAMS                                  = "urlParameters";
-    public static final String HEADERS                                     = "headers";
-    public static final String BODY                                        = "body";
-    public static final String POLLING_INTERVAL                            = "pollingIntervalMs";
-    public static final String REPEAT_TIMES                                = "repetitions";
-    public static final String ACCEPT_MEDIATYPE                            = "accept";
-    public static final String CONTENT_MEDIATYPE                           = "contentType";
-    static final long          DEFAULT_POLLING_INTERVALL_MS                = 1000L;
-    static final long          DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
+    private static final String ERROR_BASE_URL_MUST_BE_TEXT                 = "baseUrl must be a text value.";
+    private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
+    private static final String ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE       = "%s must be a number in HTTP requestSpecification, but was: %s.";
+    static final String         ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
+    public static final String  BASE_URL                                    = "baseUrl";
+    public static final String  PATH                                        = "path";
+    public static final String  URL_PARAMS                                  = "urlParameters";
+    public static final String  HEADERS                                     = "headers";
+    public static final String  BODY                                        = "body";
+    public static final String  POLLING_INTERVAL                            = "pollingIntervalMs";
+    public static final String  REPEAT_TIMES                                = "repetitions";
+    public static final String  ACCEPT_MEDIATYPE                            = "accept";
+    public static final String  CONTENT_MEDIATYPE                           = "contentType";
+    static final long           DEFAULT_POLLING_INTERVALL_MS                = 1000L;
+    static final long           DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
 
     private static final int CONNECTION_TIMEOUT_SECONDS = 10;
     private static final int READ_TIMEOUT_SECONDS       = 30;
 
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
-    private static final TextNode        APPLICATION_JSON = JSON.textNode(MediaType.APPLICATION_JSON.toString());
+    private static final JsonNode        APPLICATION_JSON = JSON.stringNode(MediaType.APPLICATION_JSON.toString());
 
-    private final ObjectMapper mapper;
+    private final JsonMapper mapper;
 
     /**
      * <p>
@@ -188,10 +190,10 @@ public class ReactiveWebClient {
             val value = field.getValue();
             if (value.isArray()) {
                 val elements = new ArrayList<String>();
-                value.elements().forEachRemaining(e -> elements.add(e.asText()));
+                value.iterator().forEachRemaining(e -> elements.add(e.asString()));
                 headers.put(key, elements);
             } else {
-                headers.set(key, value.asText());
+                headers.set(key, value.asString());
             }
         });
     }
@@ -204,7 +206,7 @@ public class ReactiveWebClient {
         if (value instanceof TextValue text) {
             return text.value();
         }
-        throw new IllegalArgumentException("baseUrl must be a text value");
+        throw new IllegalArgumentException(ERROR_BASE_URL_MUST_BE_TEXT);
     }
 
     private String getFieldAsTextOrDefault(ObjectValue requestSettings, String fieldName, String defaultValue) {
@@ -231,14 +233,13 @@ public class ReactiveWebClient {
         }
         val value = requestSettings.get(fieldName);
         if (value == null) {
-            throw new IllegalArgumentException(
-                    fieldName + " must be a number in HTTP requestSpecification, but was: null");
+            throw new IllegalArgumentException(ERROR_FIELD_MUST_BE_NUMBER_NULL.formatted(fieldName));
         }
         if (value instanceof NumberValue num) {
             return num.value().longValue();
         }
-        throw new IllegalArgumentException(fieldName + " must be a number in HTTP requestSpecification, but was: "
-                + value.getClass().getSimpleName());
+        throw new IllegalArgumentException(
+                ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE.formatted(fieldName, value.getClass().getSimpleName()));
     }
 
     private Map<String, String> toStringMap(JsonNode node) {
@@ -246,7 +247,7 @@ public class ReactiveWebClient {
     }
 
     public MediaType toMediaType(JsonNode mediaTypeJson) {
-        return MediaType.parseMediaType(mediaTypeJson.asText());
+        return MediaType.parseMediaType(mediaTypeJson.asString());
     }
 
     static UriBuilder setUrlParams(UriBuilder uri, Map<String, String> urlParams) {
@@ -285,7 +286,7 @@ public class ReactiveWebClient {
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Value> receiveBuffer) {
-        val send   = null == body ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
+        val send   = null == body ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asString())));
         val listen = listenAndSendEventsToSink(session, receiveBuffer);
         return send.and(listen);
     }
@@ -300,7 +301,7 @@ public class ReactiveWebClient {
             try {
                 JsonNode node = mapper.readTree(payload);
                 receiveBuffer.tryEmitNext(ValueJsonMarshaller.fromJsonNode(node));
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 receiveBuffer.tryEmitNext(Value.error(e.getMessage()));
             }
         }).then();

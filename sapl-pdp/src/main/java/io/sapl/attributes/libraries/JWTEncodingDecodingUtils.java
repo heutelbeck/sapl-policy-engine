@@ -17,7 +17,7 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -49,10 +49,10 @@ public class JWTEncodingDecodingUtils {
      * @return the RSA public key, or empty if extraction fails
      */
     public static Optional<RSAPublicKey> jsonNodeToKey(JsonNode jsonNode) {
-        if (!jsonNode.isTextual())
+        if (!jsonNode.isString())
             return Optional.empty();
 
-        return encodedX509ToRSAPublicKey(jsonNode.textValue());
+        return encodedX509ToRSAPublicKey(jsonNode.asString());
     }
 
     /**

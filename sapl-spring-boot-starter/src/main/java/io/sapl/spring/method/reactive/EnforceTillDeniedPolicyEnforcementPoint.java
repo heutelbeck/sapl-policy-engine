@@ -59,6 +59,10 @@ import static java.util.function.Predicate.not;
 @Slf4j
 public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
+    private static final String ERROR_ACCESS_DENIED_BY_PDP                 = "Access Denied by PDP";
+    private static final String ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE = "Operator may only be subscribed once.";
+    private static final String ERROR_REPLACING_STREAM_WITH_RESOURCE       = "Error replacing stream with resource. Ending Stream.";
+
     private final Flux<AuthorizationDecision> decisions;
 
     private Flux<T> resourceAccessPoint;
@@ -102,7 +106,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     @Override
     public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
         if (sink != null)
-            throw new IllegalStateException("Operator may only be subscribed once.");
+            throw new IllegalStateException(ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE);
         final var context = subscriber.currentContext();
         sink                = new EnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
@@ -125,7 +129,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         constraintHandler.get().handleOnDecisionConstraints();
 
         if (decision.decision() != Decision.PERMIT) {
-            sink.error(new AccessDeniedException("Access Denied by PDP"));
+            sink.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
             disposeDecisionsAndResourceAccessPoint();
             return;
         }
@@ -135,7 +139,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
             } catch (JsonProcessingException | IllegalArgumentException e) {
-                sink.error(new AccessDeniedException("Error replacing stream with resource. Ending Stream.", e));
+                sink.error(new AccessDeniedException(ERROR_REPLACING_STREAM_WITH_RESOURCE, e));
             }
             sink.complete();
             disposeDecisionsAndResourceAccessPoint();

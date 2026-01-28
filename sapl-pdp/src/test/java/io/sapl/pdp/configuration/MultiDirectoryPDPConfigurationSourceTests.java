@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -595,7 +596,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
     private void deleteDirectory(Path directory) throws IOException {
         try (var stream = Files.walk(directory)) {
-            stream.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+            stream.sorted(Comparator.reverseOrder()).forEach(path -> {
                 try {
                     Files.delete(path);
                 } catch (IOException e) {

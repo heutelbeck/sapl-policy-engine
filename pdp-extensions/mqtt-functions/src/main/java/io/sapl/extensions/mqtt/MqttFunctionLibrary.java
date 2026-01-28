@@ -37,9 +37,10 @@ public class MqttFunctionLibrary {
     static final String NAME        = "mqtt";
     static final String DESCRIPTION = "Functions for matching topics to mqtt topics which contain wildcards.";
 
-    private static final String TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE = "The wildcard topic must not be matched against topics containing wildcards.";
-    private static final String WILDCARD_TOPIC_MUST_BE_TEXT           = "The wildcard topic must be a text value.";
-    private static final String TOPICS_MUST_BE_TEXT_OR_ARRAY          = "The topics must be a text value or an array of text values.";
+    private static final String ERROR_ALL_TOPICS_MUST_BE_TEXT      = "All topics must be text values.";
+    private static final String ERROR_TOPIC_CONTAINS_WILDCARD      = "The wildcard topic must not be matched against topics containing wildcards.";
+    private static final String ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY = "The topics must be a text value or an array of text values.";
+    private static final String ERROR_WILDCARD_TOPIC_MUST_BE_TEXT  = "The wildcard topic must be a text value.";
 
     /**
      * This function checks whether all given mqtt topics are matching the wildcard
@@ -71,14 +72,14 @@ public class MqttFunctionLibrary {
             """)
     public static Value isMatchingAllTopics(Value wildcardTopic, Value topics) {
         if (!(wildcardTopic instanceof TextValue wildcardText)) {
-            return Value.error(WILDCARD_TOPIC_MUST_BE_TEXT);
+            return Value.error(ERROR_WILDCARD_TOPIC_MUST_BE_TEXT);
         }
         var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
         return switch (topics) {
         case ArrayValue arrayTopics -> isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
         case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        default                     -> Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
+        default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
         };
     }
 
@@ -112,20 +113,20 @@ public class MqttFunctionLibrary {
             """)
     public static Value isMatchingAtLeastOneTopic(Value wildcardTopic, Value topics) {
         if (!(wildcardTopic instanceof TextValue wildcardText)) {
-            return Value.error(WILDCARD_TOPIC_MUST_BE_TEXT);
+            return Value.error(ERROR_WILDCARD_TOPIC_MUST_BE_TEXT);
         }
         var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
         return switch (topics) {
         case ArrayValue arrayTopics -> isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
         case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        default                     -> Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
+        default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
         };
     }
 
     private static Value isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, TextValue topic) {
         if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
-            return Value.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+            return Value.error(ERROR_TOPIC_CONTAINS_WILDCARD);
         }
         var mqttTopic = MqttTopic.of(topic.value());
         return Value.of(mqttTopicFilter.matches(mqttTopic));
@@ -134,10 +135,10 @@ public class MqttFunctionLibrary {
     private static Value isMatchingAllTopicsInArray(MqttTopicFilter mqttTopicFilter, ArrayValue topics) {
         for (Value topicValue : topics) {
             if (!(topicValue instanceof TextValue topic)) {
-                return Value.error("All topics must be text values.");
+                return Value.error(ERROR_ALL_TOPICS_MUST_BE_TEXT);
             }
             if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
-                return Value.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+                return Value.error(ERROR_TOPIC_CONTAINS_WILDCARD);
             }
             var mqttTopic = MqttTopic.of(topic.value());
             if (!mqttTopicFilter.matches(mqttTopic)) {
@@ -150,10 +151,10 @@ public class MqttFunctionLibrary {
     private static Value isMatchingAtLeastOneTopicInArray(MqttTopicFilter mqttTopicFilter, ArrayValue topics) {
         for (Value topicValue : topics) {
             if (!(topicValue instanceof TextValue topic)) {
-                return Value.error("All topics must be text values.");
+                return Value.error(ERROR_ALL_TOPICS_MUST_BE_TEXT);
             }
             if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
-                return Value.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+                return Value.error(ERROR_TOPIC_CONTAINS_WILDCARD);
             }
             var mqttTopic = MqttTopic.of(topic.value());
             if (mqttTopicFilter.matches(mqttTopic)) {

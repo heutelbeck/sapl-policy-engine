@@ -109,6 +109,12 @@ public final class BundleBuilder {
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
 
+    private static final String ERROR_FAILED_TO_CREATE_BUNDLE     = "Failed to create bundle.";
+    private static final String ERROR_FAILED_TO_WRITE_BUNDLE      = "Failed to write bundle to path: %s.";
+    private static final String ERROR_POLICY_FILENAME_NULL_EMPTY  = "Policy filename must not be null or empty.";
+    private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519 = "Private key must be Ed25519, got: %s.";
+    private static final String ERROR_PRIVATE_KEY_NULL            = "Private key must not be null.";
+
     private String                    pdpJson;
     private final Map<String, String> policies = new LinkedHashMap<>();
 
@@ -257,7 +263,7 @@ public final class BundleBuilder {
      */
     public BundleBuilder withPolicy(String filename, String content) {
         if (filename == null || filename.isBlank()) {
-            throw new IllegalArgumentException("Policy filename must not be null or empty.");
+            throw new IllegalArgumentException(ERROR_POLICY_FILENAME_NULL_EMPTY);
         }
 
         val normalizedFilename = filename.endsWith(SAPL_EXTENSION) ? filename : filename + SAPL_EXTENSION;
@@ -302,10 +308,10 @@ public final class BundleBuilder {
      */
     public BundleBuilder signWith(PrivateKey privateKey, String keyId) {
         if (privateKey == null) {
-            throw new IllegalArgumentException("Private key must not be null.");
+            throw new IllegalArgumentException(ERROR_PRIVATE_KEY_NULL);
         }
         if (!Set.of("Ed25519", "EdDSA").contains(privateKey.getAlgorithm())) {
-            throw new IllegalArgumentException("Private key must be Ed25519, got: " + privateKey.getAlgorithm() + ".");
+            throw new IllegalArgumentException(ERROR_PRIVATE_KEY_MUST_BE_ED25519.formatted(privateKey.getAlgorithm()));
         }
         this.signingKey   = privateKey;
         this.signingKeyId = keyId != null ? keyId : "default";
@@ -357,7 +363,7 @@ public final class BundleBuilder {
         try (val outputStream = Files.newOutputStream(path)) {
             writeTo(outputStream);
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to write bundle to path: %s.".formatted(path), e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_WRITE_BUNDLE.formatted(path), e);
         }
     }
 
@@ -396,7 +402,7 @@ public final class BundleBuilder {
                 writeEntry(zipStream, BundleManifest.MANIFEST_FILENAME, manifest.toJson());
             }
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to create bundle.", e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_CREATE_BUNDLE, e);
         }
     }
 

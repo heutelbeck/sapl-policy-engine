@@ -114,6 +114,13 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
+    private static final String ERROR_DIRECTORY_DOES_NOT_EXIST     = "Bundle directory does not exist.";
+    private static final String ERROR_DIRECTORY_IS_SYMBOLIC_LINK   = "Bundle directory must not be a symbolic link.";
+    private static final String ERROR_FAILED_TO_LOAD_BUNDLES       = "Failed to load bundles from directory.";
+    private static final String ERROR_FAILED_TO_START_FILE_MONITOR = "Failed to start file monitor for bundle directory.";
+    private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Bundle path is not a directory.";
+    private static final String ERROR_SECURITY_POLICY_NULL         = "Security policy must not be null.";
+
     private final Path                       directoryPath;
     private final BundleSecurityPolicy       securityPolicy;
     private final Consumer<PDPConfiguration> callback;
@@ -148,7 +155,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
     public BundlePDPConfigurationSource(@NonNull Path directoryPath,
             @NonNull BundleSecurityPolicy securityPolicy,
             @NonNull Consumer<PDPConfiguration> callback) {
-        Objects.requireNonNull(securityPolicy, "Security policy must not be null.");
+        Objects.requireNonNull(securityPolicy, ERROR_SECURITY_POLICY_NULL);
         securityPolicy.validate();
 
         this.directoryPath  = PDPConfigurationSource.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath()
@@ -178,13 +185,13 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
 
     private void validateDirectory() {
         if (!Files.exists(directoryPath, LinkOption.NOFOLLOW_LINKS)) {
-            throw new PDPConfigurationException("Bundle directory does not exist.");
+            throw new PDPConfigurationException(ERROR_DIRECTORY_DOES_NOT_EXIST);
         }
         if (Files.isSymbolicLink(directoryPath)) {
-            throw new PDPConfigurationException("Bundle directory must not be a symbolic link.");
+            throw new PDPConfigurationException(ERROR_DIRECTORY_IS_SYMBOLIC_LINK);
         }
         if (!Files.isDirectory(directoryPath)) {
-            throw new PDPConfigurationException("Bundle path is not a directory.");
+            throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY);
         }
     }
 
@@ -200,7 +207,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
 
             log.info("Loaded {} bundle configurations.", bundles.size());
         } catch (Exception e) {
-            throw new PDPConfigurationException("Failed to load bundles from directory.", e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_LOAD_BUNDLES, e);
         }
     }
 
@@ -251,7 +258,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
             monitor.start();
             log.debug("Started file monitoring on bundle directory: {}.", directoryPath);
         } catch (Exception e) {
-            throw new PDPConfigurationException("Failed to start file monitor for bundle directory.", e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_START_FILE_MONITOR, e);
         }
     }
 

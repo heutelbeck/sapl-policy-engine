@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.pdp.Decision;
 import lombok.val;
@@ -37,7 +37,7 @@ import lombok.val;
 @DisplayName("CoverageWriter tests")
 class CoverageWriterTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     @TempDir
     Path tempDir;

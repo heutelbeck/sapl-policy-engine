@@ -31,6 +31,8 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class PreEnforcePolicyEnforcementPoint {
 
+    private static final String ERROR_ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
+
     private final ConstraintEnforcementService constraintEnforcementService;
 
     public <T> Flux<T> enforce(Flux<AuthorizationDecision> authorizationDecisions, MethodInvocation invocation,
@@ -47,7 +49,7 @@ public class PreEnforcePolicyEnforcementPoint {
 
             final var decisionIsPermit = Decision.PERMIT != decision.decision();
             if (decisionIsPermit) {
-                resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+                resourceAccessPoint = Flux.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
             } else {
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
                 try {

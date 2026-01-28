@@ -17,8 +17,8 @@
  */
 package io.sapl.test.coverage;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
@@ -37,8 +37,8 @@ import java.util.List;
  */
 public class CoverageReader {
 
-    private static final String       COVERAGE_FILENAME = "coverage.ndjson";
-    private static final ObjectMapper MAPPER            = new ObjectMapper();
+    private static final String     COVERAGE_FILENAME = "coverage.ndjson";
+    private static final JsonMapper MAPPER            = JsonMapper.builder().build();
 
     private final Path outputDirectory;
 
@@ -113,7 +113,7 @@ public class CoverageReader {
      */
     private TestCoverageRecord parseRecord(String json) throws IOException {
         val node           = MAPPER.readTree(json);
-        val testId         = node.path("testIdentifier").asText("unnamed-test");
+        val testId         = node.path("testIdentifier").asString("unnamed-test");
         val coverageRecord = new TestCoverageRecord(testId);
 
         parseDecisions(node, coverageRecord);
@@ -170,9 +170,9 @@ public class CoverageReader {
      * Parses a single policy coverage entry.
      */
     private PolicyCoverageData parsePolicyCoverage(JsonNode node) {
-        val documentName = node.path("documentName").asText("unknown");
-        val documentType = node.path("documentType").asText("policy");
-        val filePath     = node.has("filePath") ? node.path("filePath").asText() : null;
+        val documentName = node.path("documentName").asString("unknown");
+        val documentType = node.path("documentType").asString("policy");
+        val filePath     = node.has("filePath") ? node.path("filePath").asString() : null;
 
         val coverage = new PolicyCoverageData(documentName, null, documentType);
         if (filePath != null) {

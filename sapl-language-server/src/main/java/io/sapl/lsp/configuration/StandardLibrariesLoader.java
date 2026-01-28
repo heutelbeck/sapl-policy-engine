@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
@@ -141,7 +141,7 @@ public class StandardLibrariesLoader {
         }
 
         try {
-            var reactiveWebClient = new ReactiveWebClient(new ObjectMapper());
+            var reactiveWebClient = new ReactiveWebClient(JsonMapper.builder().build());
             broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(reactiveWebClient));
         } catch (Exception e) {
             log.warn("Failed to load HttpPolicyInformationPoint: {}", e.getMessage());

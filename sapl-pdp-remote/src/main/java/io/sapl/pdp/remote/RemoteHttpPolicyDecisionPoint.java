@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp.remote;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -32,8 +32,8 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.InMemoryReactiveOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
@@ -225,10 +225,10 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteHttpPolicyDecisionPoint build() {
-            val mapper     = new ObjectMapper().registerModule(new SaplJacksonModule());
+            val mapper     = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val strategies = ExchangeStrategies.builder().codecs(configurer -> {
-                               configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
-                               configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+                               configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
+                               configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
                            }).build();
             var builder    = WebClient.builder().exchangeStrategies(strategies)
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);

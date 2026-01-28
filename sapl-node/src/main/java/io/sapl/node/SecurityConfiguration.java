@@ -59,6 +59,11 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
+    private static final String ERROR_BASIC_AUTH_KEY_REQUIRED    = "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.node.key'.";
+    private static final String ERROR_BASIC_AUTH_SECRET_REQUIRED = "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.node.secret'. As an Argon2 encoded secret.";
+    private static final String ERROR_JWT_ISSUER_REQUIRED        = "If JWT authentication is active, a token issuer must be supplied. Please set: 'spring.security.oauth2.resourceserver.jwt.issuer-uri'.";
+    private static final String ERROR_NO_AUTH_MECHANISM_DEFINED  = "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated requests, this has to be explicitly activated.";
+
     private final ApiKeyService      apiKeyService;
     private final SaplNodeProperties pdpProperties;
     private final PasswordEncoder    passwordEncoder;
@@ -71,8 +76,7 @@ public class SecurityConfiguration {
         http = http.csrf(CsrfSpec::disable);
 
         if (noAuthenticationMechanismIsDefined()) {
-            throw new IllegalStateException(
-                    "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated requests, this has to be explicitly activated.");
+            throw new IllegalStateException(ERROR_NO_AUTH_MECHANISM_DEFINED);
         }
 
         if (pdpProperties.isAllowNoAuth()) {
@@ -103,8 +107,7 @@ public class SecurityConfiguration {
         if (pdpProperties.isAllowOauth2Auth()) {
             log.info("OAuth2 authentication activated. Accepting JWT tokens from issuer: {}", jwtIssuerURI);
             if (jwtIssuerURI == null) {
-                throw new IllegalStateException(
-                        "If JWT authentication is active, a token issuer must be supplied. Please set: 'spring.security.oauth2.resourceserver.jwt.issuer-uri'.");
+                throw new IllegalStateException(ERROR_JWT_ISSUER_REQUIRED);
             }
             http = http.oauth2ResourceServer(
                     oauth2 -> oauth2.bearerTokenConverter(new ServerBearerTokenAuthenticationConverter() {
@@ -135,13 +138,11 @@ public class SecurityConfiguration {
         }
         val key = pdpProperties.getKey();
         if (key == null) {
-            throw new IllegalStateException(
-                    "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.node.key'.");
+            throw new IllegalStateException(ERROR_BASIC_AUTH_KEY_REQUIRED);
         }
         val secret = pdpProperties.getSecret();
         if (secret == null) {
-            throw new IllegalStateException(
-                    "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.node.secret'. As an Argon2 encoded secret.");
+            throw new IllegalStateException(ERROR_BASIC_AUTH_SECRET_REQUIRED);
         }
         val client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);

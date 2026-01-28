@@ -57,6 +57,8 @@ import static java.util.function.Predicate.not;
 @Slf4j
 public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
+    private static final String ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE = "Operator may only be subscribed once.";
+
     private final Flux<AuthorizationDecision> decisions;
 
     private Flux<T> resourceAccessPoint;
@@ -98,7 +100,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     @Override
     public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
         if (sink != null)
-            throw new IllegalStateException("Operator may only be subscribed once.");
+            throw new IllegalStateException(ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE);
         ContextView context = actual.currentContext();
         sink                = new EnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);

@@ -17,8 +17,8 @@
  */
 package io.sapl.test.coverage;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.val;
 
@@ -58,7 +58,10 @@ import java.util.Map;
  */
 public class SonarQubeCoverageReportGenerator {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String ERROR_FAILED_TO_GENERATE_COVERAGE_XML       = "Failed to generate coverage XML";
+    private static final String ERROR_FAILED_TO_GENERATE_EMPTY_COVERAGE_XML = "Failed to generate empty coverage XML";
+
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private final Path coverageDirectory;
 
@@ -224,7 +227,7 @@ public class SonarQubeCoverageReportGenerator {
             xml.writeEndDocument();
             xml.close();
         } catch (XMLStreamException e) {
-            throw new IOException("Failed to generate coverage XML", e);
+            throw new IOException(ERROR_FAILED_TO_GENERATE_COVERAGE_XML, e);
         }
 
         return writer.toString();
@@ -289,7 +292,7 @@ public class SonarQubeCoverageReportGenerator {
             xml.writeEndDocument();
             xml.close();
         } catch (XMLStreamException e) {
-            throw new IOException("Failed to generate empty coverage XML", e);
+            throw new IOException(ERROR_FAILED_TO_GENERATE_EMPTY_COVERAGE_XML, e);
         }
 
         return writer.toString();
@@ -297,7 +300,7 @@ public class SonarQubeCoverageReportGenerator {
 
     private static String getTextOrNull(JsonNode node, String field) {
         val value = node.get(field);
-        return value != null && value.isTextual() ? value.asText() : null;
+        return value != null && value.isString() ? value.asString() : null;
     }
 
     private static String getTextOrDefault(JsonNode node) {

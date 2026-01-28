@@ -33,6 +33,9 @@ import java.nio.charset.StandardCharsets;
 @UtilityClass
 public class SaplTestParser {
 
+    private static final String ERROR_FAILED_TO_READ_TEST_DEFINITION = "Failed to read test definition.";
+    private static final String ERROR_PARSING_ERRORS                 = "Parsing errors: %s";
+
     /**
      * Parses a SAPL test definition from a string.
      *
@@ -61,7 +64,7 @@ public class SaplTestParser {
             var securedStream = secureInputStream(inputStream);
             return parseStream(securedStream);
         } catch (IOException e) {
-            throw new SaplTestException("Failed to read test definition.", e);
+            throw new SaplTestException(ERROR_FAILED_TO_READ_TEST_DEFINITION, e);
         }
     }
 
@@ -84,7 +87,7 @@ public class SaplTestParser {
         var parseTree = parser.saplTest();
 
         if (errorListener.hasErrors()) {
-            throw new SaplTestException("Parsing errors: " + errorListener.getErrors());
+            throw new SaplTestException(ERROR_PARSING_ERRORS.formatted(errorListener.getErrors()));
         }
 
         return parseTree;

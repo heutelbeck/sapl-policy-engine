@@ -36,6 +36,8 @@ import java.util.List;
 @UtilityClass
 public class SaplPartTreeCriteriaCreator {
 
+    private static final String ERROR_UNSUPPORTED_PART_TYPE = "Unsupported part type: %s";
+
     public static CriteriaDefinition create(List<Object> allParametersValueAsObjects, PartTree manipulatedPartTree) {
 
         return buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
@@ -103,7 +105,7 @@ public class SaplPartTreeCriteriaCreator {
         case LIKE:
             return Criteria.where(propertyName).regex((String) value);
         default:
-            throw new IllegalArgumentException("Unsupported part type: " + part.getType());
+            throw new IllegalArgumentException(ERROR_UNSUPPORTED_PART_TYPE.formatted(part.getType()));
         }
     }
 }

@@ -28,6 +28,8 @@ import java.util.function.UnaryOperator;
 @RequiredArgsConstructor
 public class ContentFilteringProvider implements MappingConstraintHandlerProvider<Object> {
 
+    private static final String ERROR_CONSTRAINT_NULL = "Not a valid constraint. Expected a non-null Value";
+
     private static final String CONSTRAINT_TYPE = "filterJsonContent";
 
     private final ObjectMapper objectMapper;
@@ -45,7 +47,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
     @Override
     public UnaryOperator<Object> getHandler(Value constraint) {
         if (constraint == null) {
-            throw new AccessConstraintViolationException("Not a valid constraint. Expected a non-null Value");
+            throw new AccessConstraintViolationException(ERROR_CONSTRAINT_NULL);
         }
         var jsonNode = ValueJsonMarshaller.toJsonNode(constraint);
         return ContentFilter.getHandler(jsonNode, objectMapper);

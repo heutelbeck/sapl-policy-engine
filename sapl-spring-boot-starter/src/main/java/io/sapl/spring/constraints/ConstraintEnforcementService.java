@@ -54,6 +54,14 @@ import java.util.function.UnaryOperator;
 @Service
 public class ConstraintEnforcementService {
 
+    private static final String ERROR_CANNOT_MAP_RESOURCE        = "Cannot map resource %s to type %s";
+    private static final String ERROR_CONSUMER_OBLIGATION_FAILED = "Failed to execute obligation handler ";
+    private static final String ERROR_INVOCATION_TYPE_INVALID    = "MethodInvocation not ReflectiveMethodInvocation";
+    private static final String ERROR_MAPPING_OBLIGATION_FAILED  = "Failed to execute mapping obligation handler";
+    private static final String ERROR_REQUEST_OBLIGATION_FAILED  = "Failed to execute request obligation handler";
+    private static final String ERROR_RUNNABLE_OBLIGATION_FAILED = "Failed to execute runnable obligation handler";
+    private static final String ERROR_UNHANDLED_OBLIGATIONS      = "Access Denied by PEP. The PDP required at least one obligation to be enforced for which no handler is registered. Obligations that could not be handled: %s";
+
     private final List<ConsumerConstraintHandlerProvider<?>>           globalConsumerProviders;
     private final List<SubscriptionHandlerProvider>                    globalSubscriptionHandlerProviders;
     private final List<RequestHandlerProvider>                         globalRequestHandlerProviders;
@@ -210,9 +218,7 @@ public class ConstraintEnforcementService {
     }
 
     private AccessDeniedException missingHandlerError(HashSet<Value> unhandledObligations) {
-        return new AccessDeniedException(String.format(
-                "Access Denied by PEP. The PDP required at least one obligation to be enforced for which no handler is registered. Obligations that could not be handled: %s",
-                unhandledObligations));
+        return new AccessDeniedException(String.format(ERROR_UNHANDLED_OBLIGATIONS, unhandledObligations));
     }
 
     /**
@@ -289,7 +295,7 @@ public class ConstraintEnforcementService {
     private Consumer<MethodInvocation> checkInvocationType(Consumer<ReflectiveMethodInvocation> handler) {
         return i -> {
             if (!(i instanceof ReflectiveMethodInvocation))
-                throw new IllegalArgumentException("MethodInvocation not ReflectiveMethodInvocation");
+                throw new IllegalArgumentException(ERROR_INVOCATION_TYPE_INVALID);
             handler.accept((ReflectiveMethodInvocation) i);
         };
     }
@@ -534,7 +540,7 @@ public class ConstraintEnforcementService {
                 return handlers.test(x);
             } catch (Throwable t) {
                 Exceptions.throwIfFatal(t);
-                throw new AccessDeniedException("Failed to execute runnable obligation handler", t);
+                throw new AccessDeniedException(ERROR_RUNNABLE_OBLIGATION_FAILED, t);
             }
         };
     }
@@ -556,7 +562,7 @@ public class ConstraintEnforcementService {
                 return handlers.apply(x);
             } catch (Throwable t) {
                 Exceptions.throwIfFatal(t);
-                throw new AccessDeniedException("Failed to execute mapping obligation handler", t);
+                throw new AccessDeniedException(ERROR_MAPPING_OBLIGATION_FAILED, t);
             }
         };
     }
@@ -578,7 +584,7 @@ public class ConstraintEnforcementService {
                 handlers.run();
             } catch (Throwable t) {
                 Exceptions.throwIfFatal(t);
-                throw new AccessDeniedException("Failed to execute runnable obligation handler", t);
+                throw new AccessDeniedException(ERROR_RUNNABLE_OBLIGATION_FAILED, t);
             }
         };
     }
@@ -599,8 +605,7 @@ public class ConstraintEnforcementService {
                 handlers.accept(s);
             } catch (Throwable t) {
                 Exceptions.throwIfFatal(t);
-                throw new AccessDeniedException("Failed to execute obligation handler " + s.getClass().getSimpleName(),
-                        t);
+                throw new AccessDeniedException(ERROR_CONSUMER_OBLIGATION_FAILED + s.getClass().getSimpleName(), t);
             }
         };
     }
@@ -621,7 +626,7 @@ public class ConstraintEnforcementService {
                 handlers.accept(s);
             } catch (Throwable t) {
                 Exceptions.throwIfFatal(t);
-                throw Exceptions.bubble(new AccessDeniedException("Failed to execute request obligation handler", t));
+                throw Exceptions.bubble(new AccessDeniedException(ERROR_REQUEST_OBLIGATION_FAILED, t));
             }
         };
     }
@@ -688,7 +693,7 @@ public class ConstraintEnforcementService {
             final var replacement = unmarshallResource(resource, clazz);
             return originalResult -> replacement;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            final var message = "Cannot map resource %s to type %s".formatted(resource, clazz.getSimpleName());
+            final var message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
             log.warn(message);
             throw new AccessDeniedException(message, e);
         }
@@ -711,7 +716,7 @@ public class ConstraintEnforcementService {
         try {
             return Flux.just(unmarshallResource(resource, clazz));
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            final var message = "Cannot map resource %s to type %s".formatted(resource, clazz.getSimpleName());
+            final var message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
             log.warn(message);
             return Flux.error(new AccessDeniedException(message, e));
         }

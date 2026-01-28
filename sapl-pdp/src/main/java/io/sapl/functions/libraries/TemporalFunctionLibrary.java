@@ -43,6 +43,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Locale;
 
@@ -100,43 +101,37 @@ public class TemporalFunctionLibrary {
     private static final DateTimeFormatter US_TIME_FORMATTER       = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
-    // Timestamp parsing (ISO 8601 instant format)
-    private static final String ERROR_INVALID_TIMESTAMP       = "Invalid timestamp: %s.";
-    private static final String ERROR_INVALID_TIMESTAMPS      = "Invalid timestamp(s) in comparison: %s, %s.";
-    private static final String ERROR_INVALID_TIMESTAMP_RANGE = "Invalid timestamp(s) in range check: %s in [%s, %s].";
-    private static final String ERROR_INVALID_CHRONO_UNIT     = "Invalid timestamps or chrono unit: %s, %s, %s.";
-
-    // Temporal arithmetic (timestamp + amount)
-    private static final String ERROR_TEMPORAL_ARITHMETIC = "Temporal arithmetic failed for %s with amount %s.";
-
-    // ISO datetime parsing (with time component)
-    private static final String ERROR_INVALID_ISO_DATETIME = "Invalid ISO datetime: %s.";
-
-    // Local datetime parsing (without timezone)
-    private static final String ERROR_INVALID_LOCAL_DATETIME = "Invalid local datetime: %s.";
-    private static final String ERROR_INVALID_DIN_DATETIME   = "Invalid DIN datetime (expected dd.MM.yyyy HH:mm:ss): %s.";
-
-    // Time format parsing
-    private static final String ERROR_INVALID_TIME      = "Invalid time: %s.";
-    private static final String ERROR_INVALID_AMPM_TIME = "Invalid AM/PM time (expected hh:mm:ss AM/PM): %s.";
-
-    // Date format parsing
-    private static final String ERROR_INVALID_DATES = "Invalid date(s): %s, %s.";
-
-    // Timezone and offset errors
-    private static final String ERROR_INVALID_TIMEZONE    = "Invalid timezone %s for datetime %s.";
-    private static final String ERROR_INVALID_OFFSET      = "Invalid offset %s for datetime %s.";
-    private static final String ERROR_INVALID_OFFSET_TIME = "Invalid offset %s for time %s.";
-    private static final String ERROR_INVALID_ZONE_TIME   = "Invalid timezone %s for time %s on date %s.";
-
-    // Duration errors
-    private static final String ERROR_ISO_DURATION_BLANK      = "ISO duration parameter cannot be blank.";
-    private static final String ERROR_INVALID_ISO_DURATION    = "Invalid ISO duration: %s.";
-    private static final String ERROR_INVALID_DURATION_MILLIS = "Invalid duration milliseconds: %s.";
-
-    // Epoch conversion
-    private static final String ERROR_INVALID_EPOCH_SECONDS = "Invalid epoch seconds: %s.";
-    private static final String ERROR_INVALID_EPOCH_MILLIS  = "Invalid epoch milliseconds: %s.";
+    // Error messages (sorted alphabetically by constant name)
+    private static final String ERROR_CHRONO_UNIT_BLANK            = "ChronoUnit parameter cannot be blank.";
+    private static final String ERROR_INVALID_AMPM_TIME            = "Invalid AM/PM time (expected hh:mm:ss AM/PM): %s.";
+    private static final String ERROR_INVALID_CHRONO_UNIT          = "Invalid timestamps or chrono unit: %s, %s, %s.";
+    private static final String ERROR_INVALID_CHRONO_UNIT_VALUE    = """
+            Invalid ChronoUnit: '%s'. Valid values are: NANOS, MICROS, MILLIS, SECONDS, MINUTES, \
+            HOURS, HALF_DAYS, DAYS, WEEKS, MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA.""";
+    private static final String ERROR_INVALID_DATES                = "Invalid date(s): %s, %s.";
+    private static final String ERROR_INVALID_DIN_DATETIME         = "Invalid DIN datetime (expected dd.MM.yyyy HH:mm:ss): %s.";
+    private static final String ERROR_INVALID_DURATION_MILLIS      = "Invalid duration milliseconds: %s.";
+    private static final String ERROR_INVALID_EPOCH_MILLIS         = "Invalid epoch milliseconds: %s.";
+    private static final String ERROR_INVALID_EPOCH_SECONDS        = "Invalid epoch seconds: %s.";
+    private static final String ERROR_INVALID_ISO_DATETIME         = "Invalid ISO datetime: %s.";
+    private static final String ERROR_INVALID_ISO_DURATION         = "Invalid ISO duration: %s.";
+    private static final String ERROR_INVALID_LOCAL_DATETIME       = "Invalid local datetime: %s.";
+    private static final String ERROR_INVALID_OFFSET               = "Invalid offset %s for datetime %s.";
+    private static final String ERROR_INVALID_OFFSET_TIME          = "Invalid offset %s for time %s.";
+    private static final String ERROR_INVALID_TIME                 = "Invalid time: %s.";
+    private static final String ERROR_INVALID_TIMESTAMP            = "Invalid timestamp: %s.";
+    private static final String ERROR_INVALID_TIMESTAMP_RANGE      = "Invalid timestamp(s) in range check: %s in [%s, %s].";
+    private static final String ERROR_INVALID_TIMESTAMPS           = "Invalid timestamp(s) in comparison: %s, %s.";
+    private static final String ERROR_INVALID_TIMEZONE             = "Invalid timezone %s for datetime %s.";
+    private static final String ERROR_INVALID_ZONE_ID              = "Invalid zone ID: '%s'.";
+    private static final String ERROR_INVALID_ZONE_OFFSET          = "Invalid zone offset: '%s'.";
+    private static final String ERROR_INVALID_ZONE_TIME            = "Invalid timezone %s for time %s on date %s.";
+    private static final String ERROR_ISO_DURATION_BLANK           = "ISO duration parameter cannot be blank.";
+    private static final String ERROR_OFFSET_PARAMETER_BLANK       = "Offset parameter cannot be blank.";
+    private static final String ERROR_TEMPORAL_ARITHMETIC          = "Temporal arithmetic failed for %s with amount %s.";
+    private static final String ERROR_TEMPORAL_ARITHMETIC_OVERFLOW = "Temporal arithmetic out of bounds: %s %s %s to/from %s %s.";
+    private static final String ERROR_TIME_PARAMETER_BLANK         = "Time parameter cannot be blank.";
+    private static final String ERROR_UNABLE_TO_PARSE_TIME         = "Unable to parse time parameter '%s'. Expected ISO 8601 instant or date format.";
 
     @Function(docs = """
             ```durationOfSeconds(NUMBER seconds)```: Converts seconds to milliseconds for duration values.
@@ -272,14 +267,12 @@ public class TemporalFunctionLibrary {
     private static ChronoUnit parseChronoUnit(TextValue chronoUnit) {
         val unitStr = chronoUnit.value().trim().toUpperCase();
         if (unitStr.isBlank()) {
-            throw new IllegalArgumentException("ChronoUnit parameter cannot be blank.");
+            throw new IllegalArgumentException(ERROR_CHRONO_UNIT_BLANK);
         }
         try {
             return ChronoUnit.valueOf(unitStr);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid ChronoUnit: '" + unitStr
-                    + "'. Valid values are: NANOS, MICROS, MILLIS, SECONDS, MINUTES, HOURS, HALF_DAYS, DAYS, WEEKS, MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA.",
-                    e);
+            throw new IllegalArgumentException(ERROR_INVALID_CHRONO_UNIT_VALUE.formatted(unitStr), e);
         }
     }
 
@@ -729,7 +722,7 @@ public class TemporalFunctionLibrary {
         try {
             val instant = instantOf(dateTime);
             val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
-            val monday  = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            val monday  = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             return Value.of(monday.atStartOfDay(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
@@ -748,7 +741,7 @@ public class TemporalFunctionLibrary {
         try {
             val instant = instantOf(dateTime);
             val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
-            val sunday  = date.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+            val sunday  = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
             return Value.of(sunday.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
@@ -1327,7 +1320,7 @@ public class TemporalFunctionLibrary {
     private static Instant instantOf(TextValue time) {
         val text = time.value();
         if (text.isBlank()) {
-            throw new IllegalArgumentException("Time parameter cannot be blank.");
+            throw new IllegalArgumentException(ERROR_TIME_PARAMETER_BLANK);
         }
         return parseInstantOrDate(text);
     }
@@ -1344,9 +1337,7 @@ public class TemporalFunctionLibrary {
         try {
             return LocalDate.parse(text).atStartOfDay().toInstant(ZoneOffset.UTC);
         } catch (DateTimeParseException dateException) {
-            throw new IllegalArgumentException(
-                    "Unable to parse time parameter '" + text + "'. Expected ISO 8601 instant or date format.",
-                    originalException);
+            throw new IllegalArgumentException(ERROR_UNABLE_TO_PARSE_TIME.formatted(text), originalException);
         }
     }
 
@@ -1365,7 +1356,7 @@ public class TemporalFunctionLibrary {
 
             return ZoneId.of(zoneIdStr);
         } catch (DateTimeException e) {
-            throw new IllegalArgumentException("Invalid zone ID: '" + zoneIdStr + "'.", e);
+            throw new IllegalArgumentException(ERROR_INVALID_ZONE_ID.formatted(zoneIdStr), e);
         }
     }
 
@@ -1375,13 +1366,13 @@ public class TemporalFunctionLibrary {
     private static ZoneOffset parseZoneOffset(TextValue offset) {
         val offsetStr = offset.value();
         if (offsetStr.isBlank()) {
-            throw new IllegalArgumentException("Offset parameter cannot be blank.");
+            throw new IllegalArgumentException(ERROR_OFFSET_PARAMETER_BLANK);
         }
 
         try {
             return ZoneOffset.of(offsetStr);
         } catch (DateTimeException e) {
-            throw new IllegalArgumentException("Invalid zone offset: '" + offsetStr + "'.", e);
+            throw new IllegalArgumentException(ERROR_INVALID_ZONE_OFFSET.formatted(offsetStr), e);
         }
     }
 
@@ -1396,13 +1387,14 @@ public class TemporalFunctionLibrary {
                 instant.minus(amount, unit);
             }
         } catch (ArithmeticException e) {
+            val operation = isAddition ? "adding" : "subtracting";
             throw new IllegalArgumentException(
-                    "Temporal arithmetic out of bounds: " + (isAddition ? "adding" : "subtracting") + " " + amount + " "
-                            + unit + " to/from " + instant + " would cause overflow",
+                    ERROR_TEMPORAL_ARITHMETIC_OVERFLOW.formatted(operation, amount, unit, instant, "would overflow"),
                     e);
         } catch (DateTimeException e) {
-            throw new IllegalArgumentException("Temporal arithmetic out of bounds: "
-                    + (isAddition ? "adding" : "subtracting") + " " + amount + " " + unit + " to/from " + instant, e);
+            val operation = isAddition ? "adding" : "subtracting";
+            throw new IllegalArgumentException(
+                    ERROR_TEMPORAL_ARITHMETIC_OVERFLOW.formatted(operation, amount, unit, instant, ""), e);
         }
     }
 

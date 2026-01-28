@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import io.sapl.api.model.ErrorValue;
@@ -43,7 +43,7 @@ import static io.sapl.extensions.mqtt.MqttTestUtility.*;
 
 class SaplMqttClientConnectionIT {
 
-    private static final ObjectMapper MAPPER   = new ObjectMapper();
+    private static final JsonMapper   MAPPER   = JsonMapper.builder().build();
     private static final long         DELAY_MS = 1000L;
     private static final Mqtt5Publish MESSAGE  = buildMqttPublishMessage("topic", "message", false);
     private static final Value        TOPIC    = Value.of("topic");

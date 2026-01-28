@@ -17,7 +17,7 @@
  */
 package io.sapl.server.pdpcontroller;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pdp.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -131,9 +131,9 @@ class PDPControllerTests {
                         IdentifiableAuthorizationDecision.INDETERMINATE));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
-                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
-                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
-                        JSON.textNode("other resource"));
+                JSON.stringNode("subject"), JSON.stringNode("action1"), JSON.stringNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.stringNode("subject"), JSON.stringNode("action2"),
+                        JSON.stringNode("other resource"));
 
         final var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -153,9 +153,9 @@ class PDPControllerTests {
                 .thenReturn(Flux.error(new RuntimeException()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
-                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
-                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
-                        JSON.textNode("other resource"));
+                JSON.stringNode("subject"), JSON.stringNode("action1"), JSON.stringNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.stringNode("subject"), JSON.stringNode("action2"),
+                        JSON.stringNode("other resource"));
 
         final var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -184,9 +184,9 @@ class PDPControllerTests {
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
-                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
-                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
-                        JSON.textNode("other resource"));
+                JSON.stringNode("subject"), JSON.stringNode("action1"), JSON.stringNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.stringNode("subject"), JSON.stringNode("action2"),
+                        JSON.stringNode("other resource"));
 
         final var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -208,9 +208,9 @@ class PDPControllerTests {
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
-                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
-                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
-                        JSON.textNode("other resource"));
+                JSON.stringNode("subject"), JSON.stringNode("action1"), JSON.stringNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.stringNode("subject"), JSON.stringNode("action2"),
+                        JSON.stringNode("other resource"));
 
         final var result = webClient.post().uri("/api/pdp/multi-decide-all-once")
                 .contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
@@ -229,9 +229,9 @@ class PDPControllerTests {
                 .thenReturn(Flux.error(new RuntimeException()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
-                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
-                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
-                        JSON.textNode("other resource"));
+                JSON.stringNode("subject"), JSON.stringNode("action1"), JSON.stringNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.stringNode("subject"), JSON.stringNode("action2"),
+                        JSON.stringNode("other resource"));
 
         final var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -250,9 +250,9 @@ class PDPControllerTests {
                 .thenReturn(Flux.error(new RuntimeException()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
-                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
-                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
-                        JSON.textNode("other resource"));
+                JSON.stringNode("subject"), JSON.stringNode("action1"), JSON.stringNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.stringNode("subject"), JSON.stringNode("action2"),
+                        JSON.stringNode("other resource"));
 
         final var result = webClient.post().uri("/api/pdp/multi-decide-all-once")
                 .contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)

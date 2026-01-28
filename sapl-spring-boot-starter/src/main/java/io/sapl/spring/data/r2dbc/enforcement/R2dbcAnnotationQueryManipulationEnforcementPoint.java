@@ -35,6 +35,7 @@ import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 /**
@@ -46,6 +47,8 @@ import java.util.function.Function;
  */
 @AllArgsConstructor
 public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> {
+
+    private static final String ERROR_ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
 
     private final ObjectProvider<PolicyDecisionPoint>               pdpProvider;
     private final ObjectProvider<QueryManipulationExecutor>         queryManipulationExecutorProvider;
@@ -83,7 +86,7 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> {
             var decisionIsPermit = Decision.PERMIT == decision.decision();
 
             if (!decisionIsPermit) {
-                resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+                resourceAccessPoint = Flux.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
             } else {
                 final var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForR2dbc(decision);
@@ -94,8 +97,8 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> {
                 var transformations = queryManipulationHandler.getTransformations();
                 var alias           = queryManipulationHandler.getAlias();
 
-                var obligations             = java.util.Arrays.stream(jsonObligations)
-                        .map(ValueJsonMarshaller::fromJsonNode).toArray(Value[]::new);
+                var obligations             = Arrays.stream(jsonObligations).map(ValueJsonMarshaller::fromJsonNode)
+                        .toArray(Value[]::new);
                 var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
                         obligations);
 
@@ -109,7 +112,7 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> {
                 return resourceAccessPoint;
             }
 
-            return Flux.error(new AccessDeniedException("Access Denied by PDP"));
+            return Flux.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
         };
     }
 

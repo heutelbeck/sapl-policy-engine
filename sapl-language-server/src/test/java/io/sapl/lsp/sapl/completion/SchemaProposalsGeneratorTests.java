@@ -30,8 +30,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonMapper;
+import tools.jackson.databind.JsonNode;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
@@ -691,7 +691,7 @@ class SchemaProposalsGeneratorTests {
     void when_givenSchemaAndVariables_then_generatorReturnsExpectedProposals(String testName, List<String> variables,
             String schema, String[] expectedProposals) {
         assertThat(testName).isNotEmpty();
-        var mapper       = new ObjectMapper();
+        var mapper       = JsonMapper.builder().build();
         var schemaJson   = mapper.readTree(schema);
         var variablesMap = new HashMap<String, Value>();
         var schemasArray = ArrayValue.builder();

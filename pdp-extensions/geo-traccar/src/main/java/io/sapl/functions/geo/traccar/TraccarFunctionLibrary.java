@@ -172,7 +172,7 @@ public class TraccarFunctionLibrary {
             return Value.error(GEOFENCE_MISSING_AREA_ERROR);
         }
         try {
-            val geometry = new WKTReader().read(area.asText());
+            val geometry = new WKTReader().read(area.asString());
             geometry.setSRID(WGS84);
             // GeoJSON needs coordinates in longitude then latitude. Geometry will have it
             // the other way around.

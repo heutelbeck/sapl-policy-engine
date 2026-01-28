@@ -17,28 +17,30 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-
-import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
  * Jackson serializer for IdentifiableAuthorizationDecision.
  * <p>
  * Serializes to a JSON object with subscriptionId and the decision fields.
  */
-public class IdentifiableAuthorizationDecisionSerializer extends JsonSerializer<IdentifiableAuthorizationDecision> {
+public class IdentifiableAuthorizationDecisionSerializer extends StdSerializer<IdentifiableAuthorizationDecision> {
 
     private final AuthorizationDecisionSerializer decisionSerializer = new AuthorizationDecisionSerializer();
 
+    public IdentifiableAuthorizationDecisionSerializer() {
+        super(IdentifiableAuthorizationDecision.class);
+    }
+
     @Override
     public void serialize(IdentifiableAuthorizationDecision identifiable, JsonGenerator generator,
-            SerializerProvider serializers) throws IOException {
+            SerializationContext serializers) {
         generator.writeStartObject();
-        generator.writeStringField("subscriptionId", identifiable.subscriptionId());
-        generator.writeFieldName("decision");
+        generator.writeStringProperty("subscriptionId", identifiable.subscriptionId());
+        generator.writeName("decision");
         decisionSerializer.serialize(identifiable.decision(), generator, serializers);
         generator.writeEndObject();
     }

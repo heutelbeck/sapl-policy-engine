@@ -36,6 +36,8 @@ import javax.net.ssl.SSLException;
 @EnableConfigurationProperties(RemotePDPProperties.class)
 public class RemotePDPAutoConfiguration {
 
+    private static final String ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE = "Unsupported remote PDP connection type: %s";
+
     private final RemotePDPProperties configuration;
 
     @Bean
@@ -56,7 +58,8 @@ public class RemotePDPAutoConfiguration {
             }
             return builder.build();
         } else {
-            throw new IllegalStateException("Unsupported remote PDP connection type: " + configuration.getType());
+            throw new IllegalStateException(
+                    ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE.formatted(configuration.getType()));
         }
     }
 

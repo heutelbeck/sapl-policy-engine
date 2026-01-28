@@ -17,7 +17,7 @@
  */
 package io.sapl.functions.geo;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.SneakyThrows;
@@ -468,7 +468,7 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void flattenGeometryBagTest_nestedArray() {
-        val mapper    = new ObjectMapper();
+        val mapper    = JsonMapper.builder().build();
         val arrayNode = mapper.createArrayNode();
 
         arrayNode.add(ValueJsonMarshaller.toJsonNode(POLYGON_1));

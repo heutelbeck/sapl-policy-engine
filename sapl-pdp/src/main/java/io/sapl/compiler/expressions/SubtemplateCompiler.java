@@ -60,6 +60,7 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class SubtemplateCompiler {
 
+    private static final String ERROR_HANDLED_ABOVE      = "Handled above";
     private static final String ERROR_STREAMING_TEMPLATE = "Subtemplate cannot contain streaming expressions.";
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
@@ -100,7 +101,7 @@ public class SubtemplateCompiler {
             // Template depends on subscription, must defer to runtime
             yield new SubtemplateValuePure(parent, tp, loc);
         }
-        case StreamOperator ignored -> throw new IllegalStateException("Handled above");
+        case StreamOperator ignored -> throw new IllegalStateException(ERROR_HANDLED_ABOVE);
         };
     }
 
@@ -108,7 +109,7 @@ public class SubtemplateCompiler {
         return switch (template) {
         case Value tv               -> new SubtemplatePureValue(parent, tv, loc);
         case PureOperator tp        -> new SubtemplatePurePure(parent, tp, loc);
-        case StreamOperator ignored -> throw new IllegalStateException("Handled above");
+        case StreamOperator ignored -> throw new IllegalStateException(ERROR_HANDLED_ABOVE);
         };
     }
 
@@ -117,7 +118,7 @@ public class SubtemplateCompiler {
         return switch (template) {
         case Value tv               -> new SubtemplateStreamValue(parent, tv, loc);
         case PureOperator tp        -> new SubtemplateStreamPure(parent, tp, loc);
-        case StreamOperator ignored -> throw new IllegalStateException("Handled above");
+        case StreamOperator ignored -> throw new IllegalStateException(ERROR_HANDLED_ABOVE);
         };
     }
 

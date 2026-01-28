@@ -48,6 +48,8 @@ public enum OperatorMongoDB {
     SIMPLE_PROPERTY(List.of("Is", "Equals"), List.of("$eq", "eq")),
     SORT(List.of(), List.of());
 
+    private static final String ERROR_UNKNOWN_OPERATOR_KEYWORD = "Unknown operator keyword: %s";
+
     final List<String> methodNameBasedKeywords;
     final List<String> mongoBasedKeywords;
 
@@ -75,7 +77,7 @@ public enum OperatorMongoDB {
                 return operator;
             }
         }
-        throw new UnsupportedOperationException("Unknown operator keyword: " + keyword);
+        throw new UnsupportedOperationException(ERROR_UNKNOWN_OPERATOR_KEYWORD.formatted(keyword));
     }
 
 }

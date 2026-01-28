@@ -17,14 +17,11 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
-
-import java.io.IOException;
-
 import lombok.val;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
  * Jackson serializer for MultiAuthorizationDecision.
@@ -38,16 +35,20 @@ import lombok.val;
  * }
  * }</pre>
  */
-public class MultiAuthorizationDecisionSerializer extends JsonSerializer<MultiAuthorizationDecision> {
+public class MultiAuthorizationDecisionSerializer extends StdSerializer<MultiAuthorizationDecision> {
 
     private final AuthorizationDecisionSerializer decisionSerializer = new AuthorizationDecisionSerializer();
 
+    public MultiAuthorizationDecisionSerializer() {
+        super(MultiAuthorizationDecision.class);
+    }
+
     @Override
     public void serialize(MultiAuthorizationDecision multiDecision, JsonGenerator generator,
-            SerializerProvider serializers) throws IOException {
+            SerializationContext serializers) {
         generator.writeStartObject();
         for (val identifiable : multiDecision) {
-            generator.writeFieldName(identifiable.subscriptionId());
+            generator.writeName(identifiable.subscriptionId());
             decisionSerializer.serialize(identifiable.decision(), generator, serializers);
         }
         generator.writeEndObject();

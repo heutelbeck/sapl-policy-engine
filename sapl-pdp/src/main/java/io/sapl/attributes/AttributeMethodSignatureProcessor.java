@@ -34,6 +34,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
@@ -169,7 +170,7 @@ public class AttributeMethodSignatureProcessor {
         return new SignatureInfo(parameterTypes, varArgsParameterType);
     }
 
-    private static int determineStartIndex(java.lang.reflect.Parameter[] parameters, boolean isEnvironmentAttribute) {
+    private static int determineStartIndex(Parameter[] parameters, boolean isEnvironmentAttribute) {
         if (isEnvironmentAttribute || parameters.length == 0) {
             return 0;
         }

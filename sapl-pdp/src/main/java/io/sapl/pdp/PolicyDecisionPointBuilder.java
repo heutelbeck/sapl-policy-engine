@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeBrokerException;
 import io.sapl.api.attributes.AttributeStorage;
@@ -152,8 +152,8 @@ import java.util.function.Function;
  */
 public class PolicyDecisionPointBuilder {
 
-    private final ObjectMapper mapper;
-    private final Clock        clock;
+    private final JsonMapper mapper;
+    private final Clock      clock;
 
     private boolean includeDefaultFunctionLibraries       = true;
     private boolean includeDefaultPolicyInformationPoints = true;
@@ -177,7 +177,9 @@ public class PolicyDecisionPointBuilder {
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
-    private PolicyDecisionPointBuilder(ObjectMapper mapper, Clock clock) {
+    private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
+
+    private PolicyDecisionPointBuilder(JsonMapper mapper, Clock clock) {
         this.mapper = mapper;
         this.clock  = clock;
     }
@@ -190,7 +192,7 @@ public class PolicyDecisionPointBuilder {
      * @return a new builder instance
      */
     public static PolicyDecisionPointBuilder withDefaults() {
-        return new PolicyDecisionPointBuilder(new ObjectMapper(), Clock.systemUTC());
+        return new PolicyDecisionPointBuilder(JsonMapper.builder().build(), Clock.systemUTC());
     }
 
     /**
@@ -198,13 +200,13 @@ public class PolicyDecisionPointBuilder {
      * points enabled.
      *
      * @param mapper
-     * the ObjectMapper for JSON processing
+     * the JsonMapper for JSON processing
      * @param clock
      * the clock for time-based operations
      *
      * @return a new builder instance
      */
-    public static PolicyDecisionPointBuilder withDefaults(ObjectMapper mapper, Clock clock) {
+    public static PolicyDecisionPointBuilder withDefaults(JsonMapper mapper, Clock clock) {
         return new PolicyDecisionPointBuilder(mapper, clock);
     }
 
@@ -215,7 +217,7 @@ public class PolicyDecisionPointBuilder {
      * @return a new builder instance with defaults disabled
      */
     public static PolicyDecisionPointBuilder withoutDefaults() {
-        return withoutDefaults(new ObjectMapper(), Clock.systemUTC());
+        return withoutDefaults(JsonMapper.builder().build(), Clock.systemUTC());
     }
 
     /**
@@ -223,13 +225,13 @@ public class PolicyDecisionPointBuilder {
      * configurations or testing.
      *
      * @param mapper
-     * the ObjectMapper for JSON processing
+     * the JsonMapper for JSON processing
      * @param clock
      * the clock for time-based operations
      *
      * @return a new builder instance with defaults disabled
      */
-    public static PolicyDecisionPointBuilder withoutDefaults(ObjectMapper mapper, Clock clock) {
+    public static PolicyDecisionPointBuilder withoutDefaults(JsonMapper mapper, Clock clock) {
         return new PolicyDecisionPointBuilder(mapper, clock).withoutDefaultFunctionLibraries()
                 .withoutDefaultPolicyInformationPoints();
     }
@@ -480,8 +482,7 @@ public class PolicyDecisionPointBuilder {
     public PolicyDecisionPointBuilder withConfigurationSource(
             Function<Consumer<PDPConfiguration>, PDPConfigurationSource> sourceFactory) {
         if (this.sourceFactory != null) {
-            throw new IllegalStateException(
-                    "A configuration source has already been registered. Only one source is allowed.");
+            throw new IllegalStateException(ERROR_SOURCE_ALREADY_REGISTERED);
         }
         this.sourceFactory = sourceFactory;
         return this;

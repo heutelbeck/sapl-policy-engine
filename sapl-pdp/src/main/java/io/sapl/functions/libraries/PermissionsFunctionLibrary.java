@@ -67,15 +67,15 @@ public class PermissionsFunctionLibrary {
     private static final Value POSIX_WX      = Value.of(0x3L);
 
     // POSIX file mode for owner: rwx, group: r-x, others: r-x (755)
-    private static final Value POSIX_MODE_755 = Value.of(java.lang.Long.parseLong("755", 8));
+    private static final Value POSIX_MODE_755 = Value.of(Long.parseLong("755", 8));
     // POSIX file mode for owner: rw-, group: r--, others: r-- (644)
-    private static final Value POSIX_MODE_644 = Value.of(java.lang.Long.parseLong("644", 8));
+    private static final Value POSIX_MODE_644 = Value.of(Long.parseLong("644", 8));
     // POSIX file mode for owner: rwx, group: rwx, others: rwx (777)
-    private static final Value POSIX_MODE_777 = Value.of(java.lang.Long.parseLong("777", 8));
+    private static final Value POSIX_MODE_777 = Value.of(Long.parseLong("777", 8));
     // POSIX file mode for owner: rw-, group: ---, others: --- (600)
-    private static final Value POSIX_MODE_600 = Value.of(java.lang.Long.parseLong("600", 8));
+    private static final Value POSIX_MODE_600 = Value.of(Long.parseLong("600", 8));
     // POSIX file mode for owner: rw-, group: rw-, others: rw- (666)
-    private static final Value POSIX_MODE_666 = Value.of(java.lang.Long.parseLong("666", 8));
+    private static final Value POSIX_MODE_666 = Value.of(Long.parseLong("666", 8));
 
     private static final Value NONE = Value.of(0x0L);
     private static final Value ALL  = Value.of(-1L);

@@ -30,6 +30,9 @@ import java.util.regex.Pattern;
 
 @UtilityClass
 public class Utilities {
+
+    private static final String ERROR_RETURN_TYPE_NOT_SUPPORTED = "Return type of method not supported: %s";
+
     public static final String R2DBC_QUERY_MANIPULATION = "r2dbcQueryManipulation";
     public static final String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
     public static final String TRANSFORMATIONS          = "transformations";
@@ -110,7 +113,7 @@ public class Utilities {
             return databaseObjects.collectList().toFuture().get();
         }
 
-        throw new ClassNotFoundException("Return type of method not supported: " + returnClassOfMethod);
+        throw new ClassNotFoundException(ERROR_RETURN_TYPE_NOT_SUPPORTED.formatted(returnClassOfMethod));
     }
 
 }

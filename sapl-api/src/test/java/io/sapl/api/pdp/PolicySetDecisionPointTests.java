@@ -26,6 +26,7 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,7 +88,7 @@ class PolicySetDecisionPointTests {
 
         StepVerifier.create(pdp.decide(multiSubscription).take(2).collectList()).assertNext(decisions -> {
             assertThat(decisions).hasSize(2);
-            val decisionMap = decisions.stream().collect(java.util.stream.Collectors.toMap(
+            val decisionMap = decisions.stream().collect(Collectors.toMap(
                     IdentifiableAuthorizationDecision::subscriptionId, IdentifiableAuthorizationDecision::decision));
             assertThat(decisionMap).containsEntry("read-tome", AuthorizationDecision.PERMIT).containsEntry("write-tome",
                     AuthorizationDecision.DENY);

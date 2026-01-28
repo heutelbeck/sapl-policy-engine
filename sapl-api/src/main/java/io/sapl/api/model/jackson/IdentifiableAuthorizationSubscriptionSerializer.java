@@ -17,12 +17,10 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
-
-import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
  * Jackson serializer for IdentifiableAuthorizationSubscription.
@@ -31,16 +29,20 @@ import java.io.IOException;
  * flattened.
  */
 public class IdentifiableAuthorizationSubscriptionSerializer
-        extends JsonSerializer<IdentifiableAuthorizationSubscription> {
+        extends StdSerializer<IdentifiableAuthorizationSubscription> {
 
     private final AuthorizationSubscriptionSerializer subscriptionSerializer = new AuthorizationSubscriptionSerializer();
 
+    public IdentifiableAuthorizationSubscriptionSerializer() {
+        super(IdentifiableAuthorizationSubscription.class);
+    }
+
     @Override
     public void serialize(IdentifiableAuthorizationSubscription identifiable, JsonGenerator generator,
-            SerializerProvider serializers) throws IOException {
+            SerializationContext serializers) {
         generator.writeStartObject();
-        generator.writeStringField("subscriptionId", identifiable.subscriptionId());
-        generator.writeFieldName("subscription");
+        generator.writeStringProperty("subscriptionId", identifiable.subscriptionId());
+        generator.writeName("subscription");
         subscriptionSerializer.serialize(identifiable.subscription(), generator, serializers);
         generator.writeEndObject();
     }

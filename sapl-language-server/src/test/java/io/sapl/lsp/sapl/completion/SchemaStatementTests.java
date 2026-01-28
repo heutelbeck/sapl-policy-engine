@@ -28,7 +28,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonMapper;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -130,7 +130,7 @@ class SchemaStatementTests {
                 """;
         var sapl         = parse(document);
         var cursorOffset = document.length();
-        var mapper       = new ObjectMapper();
+        var mapper       = JsonMapper.builder().build();
         var schemaNode   = mapper.readTree(schemaJson);
         var variables    = new HashMap<String, Value>();
         variables.put("personSchema", ValueJsonMarshaller.fromJsonNode(schemaNode));

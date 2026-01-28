@@ -17,7 +17,7 @@
  */
 package io.sapl.api.documentation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DocumentationSerializationTests {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper objectMapper = JsonMapper.builder().build();
 
     @Test
     void whenSerializingLibraryDocumentation_thenJsonIsValid() throws Exception {

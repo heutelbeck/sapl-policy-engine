@@ -17,7 +17,7 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.sapl.api.SaplVersion;
 import lombok.Getter;
 import lombok.experimental.StandardException;
@@ -98,10 +98,10 @@ public class JWTKeyProvider {
 
         final var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
         var       sMethod = "GET";
-        if (null != jMethod && jMethod.isTextual())
-            sMethod = jMethod.textValue();
+        if (null != jMethod && jMethod.isString())
+            sMethod = jMethod.asString();
 
-        final var sUri = jUri.textValue();
+        final var sUri = jUri.asString();
         final var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
         var       lTTL = DEFAULT_CACHING_TTL;
         // nested if-statement in order to cover all possible branches during testing

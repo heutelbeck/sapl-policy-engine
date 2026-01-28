@@ -147,6 +147,19 @@ public class BundleParser {
 
     private static final int READ_BUFFER_SIZE = 4096;
 
+    private static final String ERROR_BUNDLE_SIGNED_BUT_NO_PUBLIC_KEY   = "Bundle '%s' is signed but no public key is configured for verification. Configure a public key or explicitly accept unsigned bundle risks.";
+    private static final String ERROR_COMPRESSION_RATIO_EXCEEDS         = "Compression ratio exceeds %d:1.";
+    private static final String ERROR_COMPRESSION_RATIO_EXCEEDS_MAXIMUM = "Compression ratio %.1f:1 exceeds maximum %d:1.";
+    private static final String ERROR_ENTRY_NAME_TOO_LONG               = "Entry name too long (>%d).";
+    private static final String ERROR_FAILED_TO_PARSE_BUNDLE            = "Failed to parse bundle from %s.";
+    private static final String ERROR_FAILED_TO_READ_BUNDLE             = "Failed to read bundle file.";
+    private static final String ERROR_NESTED_ARCHIVE_DETECTED           = "Nested archive detected.";
+    private static final String ERROR_PATH_TRAVERSAL_ATTEMPT            = "ZIP security violation: Path traversal attempt in bundle from %s.";
+    private static final String ERROR_SECURITY_POLICY_REQUIRED          = "Security policy is required. Use BundleSecurityPolicy.requireSignature(publicKey) for production or explicitly disable verification with risk acceptance for development.";
+    private static final String ERROR_TOO_MANY_ENTRIES                  = "Too many entries (>%d).";
+    private static final String ERROR_UNCOMPRESSED_SIZE_EXCEEDS         = "Uncompressed size exceeds %d MB.";
+    private static final String ERROR_ZIP_BOMB_DETECTED                 = "ZIP bomb detected: %s Source: %s.";
+
     /**
      * Parses a bundle from a filesystem path with security policy enforcement.
      * <p>
@@ -175,7 +188,7 @@ public class BundleParser {
                         securityPolicy);
             }
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to read bundle file.", e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_READ_BUNDLE, e);
         }
     }
 
@@ -292,7 +305,7 @@ public class BundleParser {
                 content.put(entryName, entryContent);
             }
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to parse bundle from %s.".formatted(sourceDescription), e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_BUNDLE.formatted(sourceDescription), e);
         }
 
         return toBundleContent(content);
@@ -326,22 +339,21 @@ public class BundleParser {
 
     private void validateZipEntry(ZipEntry entry, int entryCount, String sourceDescription) {
         if (entryCount > MAX_ENTRY_COUNT) {
-            throw zipBombException("Too many entries (>%d).".formatted(MAX_ENTRY_COUNT), sourceDescription);
+            throw zipBombException(ERROR_TOO_MANY_ENTRIES.formatted(MAX_ENTRY_COUNT), sourceDescription);
         }
 
         val entryName = entry.getName();
 
         if (entryName.length() > MAX_ENTRY_NAME_LENGTH) {
-            throw zipBombException("Entry name too long (>%d).".formatted(MAX_ENTRY_NAME_LENGTH), sourceDescription);
+            throw zipBombException(ERROR_ENTRY_NAME_TOO_LONG.formatted(MAX_ENTRY_NAME_LENGTH), sourceDescription);
         }
 
         if (isNestedArchive(entryName)) {
-            throw zipBombException("Nested archive detected.", sourceDescription);
+            throw zipBombException(ERROR_NESTED_ARCHIVE_DETECTED, sourceDescription);
         }
 
         if (isPathTraversalAttempt(entryName)) {
-            throw new PDPConfigurationException(
-                    "ZIP security violation: Path traversal attempt in bundle from %s.".formatted(sourceDescription));
+            throw new PDPConfigurationException(ERROR_PATH_TRAVERSAL_ATTEMPT.formatted(sourceDescription));
         }
     }
 
@@ -355,7 +367,7 @@ public class BundleParser {
     }
 
     private PDPConfigurationException zipBombException(String reason, String sourceDescription) {
-        return new PDPConfigurationException("ZIP bomb detected: %s Source: %s.".formatted(reason, sourceDescription));
+        return new PDPConfigurationException(ERROR_ZIP_BOMB_DETECTED.formatted(reason, sourceDescription));
     }
 
     private String normalizeEntryName(String name) {
@@ -391,7 +403,7 @@ public class BundleParser {
 
     private void validateUncompressedSize(long totalUncompressed, String sourceDescription) {
         if (totalUncompressed > MAX_UNCOMPRESSED_SIZE_BYTES) {
-            throw zipBombException("Uncompressed size exceeds %d MB.".formatted(MAX_UNCOMPRESSED_SIZE_MB),
+            throw zipBombException(ERROR_UNCOMPRESSED_SIZE_EXCEEDS.formatted(MAX_UNCOMPRESSED_SIZE_MB),
                     sourceDescription);
         }
     }
@@ -399,7 +411,7 @@ public class BundleParser {
     private void validateCompressionRatioDuringRead(long compressedSize, long uncompressedSize,
             String sourceDescription) {
         if (exceedsCompressionRatio(compressedSize, uncompressedSize)) {
-            throw zipBombException("Compression ratio exceeds %d:1.".formatted((int) MAX_COMPRESSION_RATIO),
+            throw zipBombException(ERROR_COMPRESSION_RATIO_EXCEEDS.formatted((int) MAX_COMPRESSION_RATIO),
                     sourceDescription);
         }
     }
@@ -408,7 +420,7 @@ public class BundleParser {
         if (exceedsCompressionRatio(compressedSize, uncompressedSize)) {
             val ratio = (double) uncompressedSize / compressedSize;
             throw zipBombException(
-                    "Compression ratio %.1f:1 exceeds maximum %d:1.".formatted(ratio, (int) MAX_COMPRESSION_RATIO),
+                    ERROR_COMPRESSION_RATIO_EXCEEDS_MAXIMUM.formatted(ratio, (int) MAX_COMPRESSION_RATIO),
                     sourceDescription);
         }
     }
@@ -436,9 +448,7 @@ public class BundleParser {
 
         private void verifySignature(String pdpId, BundleSecurityPolicy securityPolicy) {
             if (securityPolicy == null) {
-                throw new BundleSignatureException(
-                        "Security policy is required. Use BundleSecurityPolicy.requireSignature(publicKey) "
-                                + "for production or explicitly disable verification with risk acceptance for development.");
+                throw new BundleSignatureException(ERROR_SECURITY_POLICY_REQUIRED);
             }
 
             val isSigned = manifest != null && BundleSigner.isSigned(manifest);
@@ -452,10 +462,7 @@ public class BundleParser {
             // Bundle is signed - verify it
             val publicKey = securityPolicy.publicKey();
             if (publicKey == null) {
-                throw new BundleSignatureException(
-                        ("Bundle '%s' is signed but no public key is configured for verification. "
-                                + "Configure a public key or explicitly accept unsigned bundle risks.")
-                                .formatted(pdpId));
+                throw new BundleSignatureException(ERROR_BUNDLE_SIGNED_BUT_NO_PUBLIC_KEY.formatted(pdpId));
             }
 
             val filesForVerification = buildVerificationMap();

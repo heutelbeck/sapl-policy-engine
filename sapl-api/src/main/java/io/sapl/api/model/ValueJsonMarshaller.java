@@ -17,10 +17,10 @@
  */
 package io.sapl.api.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.SaplVersion;
 import lombok.experimental.UtilityClass;
 
@@ -43,11 +43,15 @@ import lombok.val;
 public class ValueJsonMarshaller {
 
     private static final JsonNodeFactory FACTORY       = JsonNodeFactory.instance;
-    private static final ObjectMapper    OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper      OBJECT_MAPPER = JsonMapper.builder().build();
     static final int                     MAX_DEPTH     = 500;
 
-    private static final String ERROR_FAILED_TO_PARSE_JSON   = "Failed to parse JSON: %s";
-    private static final String ERROR_UNKNOWN_JSON_NODE_TYPE = "Unknown JsonNode type: %s.";
+    private static final String ERROR_CANNOT_MARSHALL_ERROR_VALUE     = "Cannot marshall ErrorValue to JSON: %s.";
+    private static final String ERROR_CANNOT_MARSHALL_NULL            = "Cannot marshall null to JsonNode.";
+    private static final String ERROR_CANNOT_MARSHALL_UNDEFINED_VALUE = "Cannot marshall UndefinedValue to JSON.";
+    private static final String ERROR_FAILED_TO_PARSE_JSON            = "Failed to parse JSON: %s";
+    private static final String ERROR_MAXIMUM_NESTING_DEPTH_EXCEEDED  = "Maximum nesting depth exceeded.";
+    private static final String ERROR_UNKNOWN_JSON_NODE_TYPE          = "Unknown JsonNode type: %s.";
 
     private static final String TYPE_FIELD     = "_type";
     private static final String TYPE_UNDEFINED = "undefined";
@@ -88,7 +92,7 @@ public class ValueJsonMarshaller {
      */
     public static JsonNode toJsonNode(Value value) {
         if (value == null) {
-            throw new IllegalArgumentException("Cannot marshall null to JsonNode.");
+            throw new IllegalArgumentException(ERROR_CANNOT_MARSHALL_NULL);
         }
         return toJsonNode(value, 0, false);
     }
@@ -109,7 +113,7 @@ public class ValueJsonMarshaller {
      */
     public static JsonNode toJsonNodeLenient(Value value) {
         if (value == null) {
-            throw new IllegalArgumentException("Cannot marshall null to JsonNode.");
+            throw new IllegalArgumentException(ERROR_CANNOT_MARSHALL_NULL);
         }
         return toJsonNode(value, 0, true);
     }
@@ -280,14 +284,14 @@ public class ValueJsonMarshaller {
     public static Value json(String json) {
         try {
             return fromJsonNode(OBJECT_MAPPER.readTree(json));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return Value.error(ERROR_FAILED_TO_PARSE_JSON.formatted(e.getMessage()));
         }
     }
 
     private static void checkDepthForMarshalling(int depth) {
         if (depth >= MAX_DEPTH) {
-            throw new IllegalArgumentException("Maximum nesting depth exceeded.");
+            throw new IllegalArgumentException(ERROR_MAXIMUM_NESTING_DEPTH_EXCEEDED);
         }
     }
 
@@ -303,20 +307,20 @@ public class ValueJsonMarshaller {
         case NullValue ignored           -> FACTORY.nullNode();
         case BooleanValue(boolean b)     -> FACTORY.booleanNode(b);
         case NumberValue(BigDecimal num) -> FACTORY.numberNode(num);
-        case TextValue(String text)      -> FACTORY.textNode(text);
+        case TextValue(String text)      -> FACTORY.stringNode(text);
         case ArrayValue array            -> toJsonArray(array, depth + 1, lenient);
         case ObjectValue object          -> toJsonObject(object, depth + 1, lenient);
         case UndefinedValue ignored      -> {
             if (lenient) {
                 yield toUndefinedJsonNode();
             }
-            throw new IllegalArgumentException("Cannot marshall UndefinedValue to JSON.");
+            throw new IllegalArgumentException(ERROR_CANNOT_MARSHALL_UNDEFINED_VALUE);
         }
         case ErrorValue e                -> {
             if (lenient) {
                 yield toErrorJsonNode(e);
             }
-            throw new IllegalArgumentException("Cannot marshall ErrorValue to JSON: " + e.message() + ".");
+            throw new IllegalArgumentException(ERROR_CANNOT_MARSHALL_ERROR_VALUE.formatted(e.message()));
         }
         };
     }
@@ -352,7 +356,7 @@ public class ValueJsonMarshaller {
         return switch (node.getNodeType()) {
         case BOOLEAN -> Value.of(node.asBoolean());
         case NUMBER  -> Value.of(node.decimalValue());
-        case STRING  -> Value.of(node.asText());
+        case STRING  -> Value.of(node.asString());
         case ARRAY   -> fromJsonArray(node, depth + 1);
         case OBJECT  -> fromJsonObject(node, depth + 1);
         default      -> Value.error(ERROR_UNKNOWN_JSON_NODE_TYPE.formatted(node.getNodeType()));
@@ -400,7 +404,7 @@ public class ValueJsonMarshaller {
         private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         DepthLimitExceededException() {
-            super("Maximum nesting depth exceeded.");
+            super(ERROR_MAXIMUM_NESTING_DEPTH_EXCEEDED);
         }
     }
 }

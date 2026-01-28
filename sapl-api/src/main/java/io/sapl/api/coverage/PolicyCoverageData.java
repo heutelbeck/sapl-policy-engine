@@ -32,6 +32,8 @@ import java.util.*;
 @Getter
 public class PolicyCoverageData {
 
+    private static final String ERROR_CANNOT_MERGE_DIFFERENT_DOCUMENTS = "Cannot merge coverage for different documents: '%s' vs '%s'.";
+
     private static final int IDX_COVERED = 0;
     private static final int IDX_TOTAL   = 1;
 
@@ -184,8 +186,8 @@ public class PolicyCoverageData {
      */
     public void merge(PolicyCoverageData other) {
         if (!this.documentName.equals(other.documentName)) {
-            throw new IllegalArgumentException("Cannot merge coverage for different documents: '%s' vs '%s'"
-                    .formatted(documentName, other.documentName));
+            throw new IllegalArgumentException(
+                    ERROR_CANNOT_MERGE_DIFFERENT_DOCUMENTS.formatted(documentName, other.documentName));
         }
         this.targetTrueHits  += other.targetTrueHits;
         this.targetFalseHits += other.targetFalseHits;

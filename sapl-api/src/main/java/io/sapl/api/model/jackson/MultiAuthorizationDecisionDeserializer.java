@@ -17,30 +17,35 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
-
-import java.io.IOException;
-
 import lombok.val;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
  * Jackson deserializer for MultiAuthorizationDecision.
  * <p>
  * Deserializes from a JSON object mapping subscription IDs to their decisions.
  */
-public class MultiAuthorizationDecisionDeserializer extends JsonDeserializer<MultiAuthorizationDecision> {
+public class MultiAuthorizationDecisionDeserializer extends StdDeserializer<MultiAuthorizationDecision> {
+
+    /**
+     * Default constructor required by Jackson 3.
+     */
+    public MultiAuthorizationDecisionDeserializer() {
+        super(MultiAuthorizationDecision.class);
+    }
+
+    private static final String ERROR_EXPECTED_START_OBJECT = "Expected START_OBJECT for MultiAuthorizationDecision.";
 
     private final AuthorizationDecisionDeserializer decisionDeserializer = new AuthorizationDecisionDeserializer();
 
     @Override
-    public MultiAuthorizationDecision deserialize(JsonParser parser, DeserializationContext context)
-            throws IOException {
+    public MultiAuthorizationDecision deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            throw new IOException("Expected START_OBJECT for MultiAuthorizationDecision.");
+            context.reportInputMismatch(MultiAuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         val multiDecision = new MultiAuthorizationDecision();

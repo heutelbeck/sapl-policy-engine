@@ -22,14 +22,13 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
@@ -136,10 +135,10 @@ public class SchemaProposalsGenerator {
 
     private JsonNode lookupReferencedSchema(JsonNode baseSchema, JsonNode referenceNode,
             Map<String, JsonNode> definitions) {
-        if (!referenceNode.isTextual()) {
+        if (!referenceNode.isString()) {
             return null;
         }
-        var reference = referenceNode.asText();
+        var reference = referenceNode.asString();
         try {
             var ref = URI.create(reference);
             if (ref.isAbsolute()) {
@@ -189,9 +188,8 @@ public class SchemaProposalsGenerator {
     }
 
     private JsonNode lookupAnchorReferenceInArray(ArrayNode arrayNode, String anchor) {
-        var elementsIterator = arrayNode.elements();
-        while (elementsIterator.hasNext()) {
-            var schema = lookupAnchorReference(elementsIterator.next(), anchor);
+        for (var element : arrayNode) {
+            var schema = lookupAnchorReference(element, anchor);
             if (schema != null) {
                 return schema;
             }
@@ -201,7 +199,7 @@ public class SchemaProposalsGenerator {
 
     private JsonNode lookupAnchorReferenceInObject(ObjectNode objectNode, String anchor) {
         var anchorField = objectNode.get(ANCHOR);
-        if (anchorField != null && anchorField.asText().equals(anchor)) {
+        if (anchorField != null && anchorField.asString().equals(anchor)) {
             return objectNode;
         }
         for (var entry : objectNode.properties()) {
@@ -237,11 +235,11 @@ public class SchemaProposalsGenerator {
         }
 
         var id = node.get(ID);
-        if (!id.isTextual()) {
+        if (!id.isString()) {
             return DEFAULT_ID;
         }
 
-        var idValue = id.asText();
+        var idValue = id.asString();
         if (idValue.isBlank()) {
             return DEFAULT_ID;
         }
@@ -262,7 +260,7 @@ public class SchemaProposalsGenerator {
 
         for (var multiTypeKeyword : KEYWORDS_INDICATING_TYPE_ARRAY) {
             if (hasArrayFieldNamed(schema, multiTypeKeyword)) {
-                addMultipleProposals(baseSchema, prefix, schema.get(multiTypeKeyword).elements(), definitions,
+                addMultipleProposals(baseSchema, prefix, (ArrayNode) schema.get(multiTypeKeyword), definitions,
                         proposals, recursionDepth);
                 return;
             }
@@ -273,7 +271,7 @@ public class SchemaProposalsGenerator {
         var arrayPrefix = prefix + "[]";
         if (schema.has(TYPE)) {
             var typeNode = schema.get(TYPE);
-            if (typeNode.isTextual() && ARRAY.equals(typeNode.asText())) {
+            if (typeNode.isString() && ARRAY.equals(typeNode.asString())) {
                 proposals.add(arrayPrefix);
             }
         }
@@ -281,10 +279,10 @@ public class SchemaProposalsGenerator {
         addArrayProposals(baseSchema, arrayPrefix, schema, definitions, proposals, recursionDepth);
     }
 
-    private static void addMultipleProposals(JsonNode baseSchema, String prefix, Iterator<JsonNode> elementsIterator,
+    private static void addMultipleProposals(JsonNode baseSchema, String prefix, Iterable<JsonNode> elements,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
-        while (elementsIterator.hasNext()) {
-            addProposals(baseSchema, prefix, elementsIterator.next(), definitions, proposals, recursionDepth);
+        for (var element : elements) {
+            addProposals(baseSchema, prefix, element, definitions, proposals, recursionDepth);
         }
     }
 
@@ -312,7 +310,7 @@ public class SchemaProposalsGenerator {
     private static void addArrayProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
         if (hasArrayFieldNamed(schema, PREFIX_ITEMS)) {
-            addMultipleProposals(baseSchema, prefix, schema.get(PREFIX_ITEMS).elements(), definitions, proposals,
+            addMultipleProposals(baseSchema, prefix, (ArrayNode) schema.get(PREFIX_ITEMS), definitions, proposals,
                     recursionDepth);
         }
         if (!schema.has(ITEMS)) {

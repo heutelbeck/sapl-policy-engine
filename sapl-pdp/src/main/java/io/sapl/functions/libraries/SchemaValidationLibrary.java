@@ -17,11 +17,11 @@
  */
 package io.sapl.functions.libraries;
 
-import com.networknt.schema.JsonMetaSchema;
-import com.networknt.schema.JsonSchemaException;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.ValidationMessage;
-import com.networknt.schema.resource.MapSchemaLoader;
+import com.networknt.schema.Error;
+import com.networknt.schema.SchemaException;
+import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
@@ -36,7 +36,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.HashMap;
-import java.util.Set;
+import java.util.List;
 
 @UtilityClass
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION)
@@ -108,12 +108,8 @@ public class SchemaValidationLibrary {
             }
             """;
 
-    private static final JsonSchemaFactory SCHEMA_FACTORY = configureSchemaFactoryBuilder().build();
-
-    private static JsonSchemaFactory.Builder configureSchemaFactoryBuilder() {
-        return JsonSchemaFactory.builder().metaSchema(JsonMetaSchema.getV202012())
-                .defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri());
-    }
+    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
+            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
 
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
@@ -310,18 +306,18 @@ public class SchemaValidationLibrary {
         }
 
         if (validationSubject instanceof UndefinedValue) {
-            return createValidationResult(false, Set.of());
+            return createValidationResult(false, List.of());
         }
         try {
             val schemaMap   = buildSchemaMap(externalSchemas);
-            val factory     = createSchemaFactory(schemaMap);
+            val registry    = createSchemaRegistry(schemaMap);
             val schemaNode  = ValueJsonMarshaller.toJsonNode(jsonSchema);
-            val validator   = factory.getSchema(schemaNode);
+            val validator   = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
-            val messages    = validator.validate(subjectNode);
-            return createValidationResult(messages.isEmpty(), messages);
-        } catch (JsonSchemaException e) {
-            return createValidationResult(false, Set.of());
+            val errors      = validator.validate(subjectNode);
+            return createValidationResult(errors.isEmpty(), errors);
+        } catch (SchemaException e) {
+            return createValidationResult(false, List.of());
         } catch (IllegalArgumentException e) {
             return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
         }
@@ -343,25 +339,25 @@ public class SchemaValidationLibrary {
         return schemaMap;
     }
 
-    private static JsonSchemaFactory createSchemaFactory(HashMap<String, String> schemaMap) {
+    private static SchemaRegistry createSchemaRegistry(HashMap<String, String> schemaMap) {
         if (schemaMap.isEmpty()) {
-            return SCHEMA_FACTORY;
+            return SCHEMA_REGISTRY;
         }
-        val schemaLoader = new MapSchemaLoader(schemaMap);
-        return configureSchemaFactoryBuilder().schemaLoaders(schemaLoaders -> schemaLoaders.add(schemaLoader)).build();
+        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
+                builder -> builder.schemas(schemaMap));
     }
 
-    private static Value createValidationResult(boolean valid, Set<ValidationMessage> messages) {
+    private static Value createValidationResult(boolean valid, List<Error> errors) {
         val resultBuilder = ObjectValue.builder();
         resultBuilder.put(FIELD_VALID, Value.of(valid));
 
         val errorsBuilder = ArrayValue.builder();
-        for (val message : messages) {
+        for (val error : errors) {
             val errorBuilder = ObjectValue.builder();
-            errorBuilder.put(FIELD_PATH, Value.of(message.getInstanceLocation().toString()));
-            errorBuilder.put(FIELD_MESSAGE, Value.of(message.getMessage()));
-            errorBuilder.put(FIELD_TYPE, Value.of(message.getType()));
-            errorBuilder.put(FIELD_SCHEMA_PATH, Value.of(message.getEvaluationPath().toString()));
+            errorBuilder.put(FIELD_PATH, Value.of(error.getInstanceLocation().toString()));
+            errorBuilder.put(FIELD_MESSAGE, Value.of(error.getMessage()));
+            errorBuilder.put(FIELD_TYPE, Value.of(error.getKeyword()));
+            errorBuilder.put(FIELD_SCHEMA_PATH, Value.of(error.getEvaluationPath().toString()));
             errorsBuilder.add(errorBuilder.build());
         }
         resultBuilder.put(FIELD_ERRORS, errorsBuilder.build());

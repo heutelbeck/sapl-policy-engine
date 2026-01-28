@@ -17,13 +17,11 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationSubscription;
-
-import java.io.IOException;
 
 /**
  * Jackson serializer for AuthorizationSubscription.
@@ -34,31 +32,35 @@ import java.io.IOException;
  * <li>environment field is omitted if UndefinedValue</li>
  * </ul>
  */
-public class AuthorizationSubscriptionSerializer extends JsonSerializer<AuthorizationSubscription> {
+public class AuthorizationSubscriptionSerializer extends StdSerializer<AuthorizationSubscription> {
 
     private final ValueSerializer valueSerializer = new ValueSerializer();
 
+    public AuthorizationSubscriptionSerializer() {
+        super(AuthorizationSubscription.class);
+    }
+
     @Override
     public void serialize(AuthorizationSubscription subscription, JsonGenerator generator,
-            SerializerProvider serializers) throws IOException {
+            SerializationContext serializers) {
         generator.writeStartObject();
 
-        generator.writeFieldName("subject");
+        generator.writeName("subject");
         valueSerializer.serialize(subscription.subject(), generator, serializers);
 
-        generator.writeFieldName("action");
+        generator.writeName("action");
         valueSerializer.serialize(subscription.action(), generator, serializers);
 
-        generator.writeFieldName("resource");
+        generator.writeName("resource");
         valueSerializer.serialize(subscription.resource(), generator, serializers);
 
         if (!(subscription.environment() instanceof UndefinedValue)) {
-            generator.writeFieldName("environment");
+            generator.writeName("environment");
             valueSerializer.serialize(subscription.environment(), generator, serializers);
         }
 
         if (!subscription.secrets().isEmpty()) {
-            generator.writeFieldName("secrets");
+            generator.writeName("secrets");
             valueSerializer.serialize(subscription.secrets(), generator, serializers);
         }
 

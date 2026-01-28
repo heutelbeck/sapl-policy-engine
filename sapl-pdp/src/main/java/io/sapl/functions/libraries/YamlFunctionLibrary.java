@@ -17,8 +17,8 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
@@ -55,7 +55,7 @@ public class YamlFunctionLibrary {
             }
             """;
 
-    private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
+    private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder().build();
 
     /**
      * Converts a well-formed YAML document into a SAPL value.
@@ -82,7 +82,7 @@ public class YamlFunctionLibrary {
         try {
             val jsonNode = YAML_MAPPER.readTree(yaml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_PARSE, exception.getMessage());
         }
     }
@@ -113,7 +113,7 @@ public class YamlFunctionLibrary {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
             val yamlString = YAML_MAPPER.writeValueAsString(jsonNode);
             return Value.of(yamlString);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

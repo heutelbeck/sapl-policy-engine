@@ -17,8 +17,8 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
@@ -45,7 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("ReactiveWebClient")
 class ReactiveWebClientTests {
 
-    private static final ObjectMapper MAPPER           = new ObjectMapper();
+    private static final JsonMapper   MAPPER           = JsonMapper.builder().build();
     private static final String       DEFAULT_BODY     = """
             {"message":"success"}""";
     private static final MockResponse DEFAULT_RESPONSE = new MockResponse().setBody(DEFAULT_BODY)
@@ -73,7 +73,7 @@ class ReactiveWebClientTests {
         mockBackEnd.shutdown();
     }
 
-    private String toJsonString(Value v) throws JsonProcessingException {
+    private String toJsonString(Value v) throws JacksonException {
         return MAPPER.writeValueAsString(ValueJsonMarshaller.toJsonNode(v));
     }
 
@@ -90,14 +90,14 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpGetThenReturnsExpectedResponse() throws JsonProcessingException {
+    void whenHttpGetThenReturnsExpectedResponse() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
         val response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(v -> {
                                 try {
                                     return toJsonString(v);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
@@ -105,7 +105,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenUrlParamsAndHeadersThenParamsAndHeadersInReqest() throws JsonProcessingException, InterruptedException {
+    void whenUrlParamsAndHeadersThenParamsAndHeadersInReqest() throws InterruptedException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val template        = """
@@ -129,7 +129,7 @@ class ReactiveWebClientTests {
         clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).<String>handle((v, sink) -> {
             try {
                 sink.next(toJsonString(v));
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 sink.error(new RuntimeException(e));
             }
         }).blockFirst();
@@ -148,7 +148,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpErrorThenValError() throws JsonProcessingException {
+    void whenHttpErrorThenValError() {
         val mockResponse = new MockResponse().setResponseCode(500).setHeader("content-type", "application/json")
                 .setBody("{}");
         mockBackEnd.enqueue(mockResponse);
@@ -171,7 +171,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenFetchingXMLThenIsInTextVal() throws JsonProcessingException {
+    void whenFetchingXMLThenIsInTextVal() {
         val minimalXML   = "<a/>";
         val mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
                 MediaType.APPLICATION_XML_VALUE);
@@ -184,7 +184,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenReturningXMLWhenExpectingJsonThenIsInTextVal() throws JsonProcessingException {
+    void whenReturningXMLWhenExpectingJsonThenIsInTextVal() {
         val minimalXML   = "<a/>";
         val mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
                 MediaType.APPLICATION_XML_VALUE);
@@ -204,7 +204,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenPollingIntervallNotDefinedFallsBackToDefaultAndWorks() throws JsonProcessingException {
+    void whenPollingIntervallNotDefinedFallsBackToDefaultAndWorks() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val template        = """
@@ -219,7 +219,7 @@ class ReactiveWebClientTests {
         val response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(v -> {
                                 try {
                                     return toJsonString(v);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
@@ -227,14 +227,14 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpPostThenReturnsExpectedResponse() throws JsonProcessingException {
+    void whenHttpPostThenReturnsExpectedResponse() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
         val response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(v -> {
                                 try {
                                     return toJsonString(v);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
@@ -242,7 +242,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpPostWithBodyThenReturnsExpectedResponse() throws JsonProcessingException {
+    void whenHttpPostWithBodyThenReturnsExpectedResponse() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val template        = """
@@ -262,7 +262,7 @@ class ReactiveWebClientTests {
         val response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(v -> {
                                 try {
                                     return toJsonString(v);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
@@ -270,7 +270,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenIntervalNotANumberThenError() throws JsonProcessingException {
+    void whenIntervalNotANumberThenError() {
         val template        = """
                 {
                     "baseUrl" : "%s",
@@ -281,7 +281,7 @@ class ReactiveWebClientTests {
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller
                 .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl)));
         assertThatThrownBy(() -> clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest))
-                .hasMessage("pollingIntervalMs must be a number in HTTP requestSpecification, but was: NullValue");
+                .hasMessage("pollingIntervalMs must be a number in HTTP requestSpecification, but was: NullValue.");
     }
 
     @Test
@@ -292,14 +292,14 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpPutThenReturnsExpectedResponse() throws JsonProcessingException {
+    void whenHttpPutThenReturnsExpectedResponse() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
         val response        = clientUnderTest.httpRequest(HttpMethod.PUT, httpTestRequest).map(v -> {
                                 try {
                                     return toJsonString(v);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
@@ -307,14 +307,14 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpPatchThenReturnsExpectedResponse() throws JsonProcessingException {
+    void whenHttpPatchThenReturnsExpectedResponse() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
         val response        = clientUnderTest.httpRequest(HttpMethod.PATCH, httpTestRequest).map(v -> {
                                 try {
                                     return toJsonString(v);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
@@ -322,14 +322,14 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpDeleteThenReturnsExpectedResponse() throws JsonProcessingException {
+    void whenHttpDeleteThenReturnsExpectedResponse() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
         val response        = clientUnderTest.httpRequest(HttpMethod.DELETE, httpTestRequest).map(v -> {
                                 try {
                                     return toJsonString(v);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
@@ -337,7 +337,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenServerSentEventsThenReceivesEventStream() throws JsonProcessingException {
+    void whenServerSentEventsThenReceivesEventStream() {
         val eventStream = "id:id1\nevent:event1\ndata:" + DEFAULT_BODY + "\n\n" + "id:id2\nevent:event2\ndata:"
                 + DEFAULT_BODY + "\n\n" + "id:id3\nevent:event3\ndata:" + DEFAULT_BODY + "\n\n";
         mockBackEnd.enqueue(new MockResponse().setBody(eventStream).addHeader("Content-Type", "text/event-stream"));
@@ -356,7 +356,7 @@ class ReactiveWebClientTests {
         val response = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).<String>handle((v, sink) -> {
             try {
                 sink.next(toJsonString(v));
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 sink.error(new RuntimeException(e));
             }
         });

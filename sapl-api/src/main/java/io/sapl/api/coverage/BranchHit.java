@@ -56,6 +56,9 @@ public record BranchHit(
         int trueHits,
         int falseHits) {
 
+    private static final String ERROR_CANNOT_MERGE_DIFFERENT_LINES = "Cannot merge BranchHits with different lines: %d vs %d.";
+    private static final String ERROR_CANNOT_MERGE_DIFFERENT_STATEMENT_IDS = "Cannot merge BranchHits with different statementId: %d vs %d.";
+
     /**
      * StatementId for policy outcome tracking when policy has no conditions.
      * Single-branch: policy either returns entitlement or is not applicable
@@ -160,8 +163,8 @@ public record BranchHit(
      */
     public BranchHit merge(BranchHit other) {
         if (this.statementId != other.statementId) {
-            throw new IllegalArgumentException("Cannot merge BranchHits with different statementId: %d vs %d"
-                    .formatted(statementId, other.statementId));
+            throw new IllegalArgumentException(
+                    ERROR_CANNOT_MERGE_DIFFERENT_STATEMENT_IDS.formatted(statementId, other.statementId));
         }
         return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
                 falseHits + other.falseHits);
@@ -197,7 +200,7 @@ public record BranchHit(
     public BranchHit mergeByLine(BranchHit other) {
         if (this.startLine != other.startLine) {
             throw new IllegalArgumentException(
-                    "Cannot merge BranchHits with different lines: %d vs %d".formatted(startLine, other.startLine));
+                    ERROR_CANNOT_MERGE_DIFFERENT_LINES.formatted(startLine, other.startLine));
         }
         return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
                 falseHits + other.falseHits);

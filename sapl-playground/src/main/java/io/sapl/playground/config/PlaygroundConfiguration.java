@@ -17,8 +17,8 @@
  */
 package io.sapl.playground.config;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
@@ -53,8 +53,9 @@ import java.util.Map;
 @Configuration
 public class PlaygroundConfiguration {
 
-    private static final Value PIP_CALL_BLOCKED = Value
-            .error("The call to an external data source has been blocked by the playground application.");
+    private static final String ERROR_EXTERNAL_DATA_SOURCE_BLOCKED = "The call to an external data source has been blocked by the playground application.";
+
+    private static final Value PIP_CALL_BLOCKED = Value.error(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED);
 
     @Bean
     SaplJacksonModule saplJacksonModule() {
@@ -74,7 +75,7 @@ public class PlaygroundConfiguration {
     }
 
     @Bean
-    AttributeBroker attributeBroker(ObjectMapper mapper) {
+    AttributeBroker attributeBroker(JsonMapper mapper) {
         var repository = new InMemoryAttributeRepository(Clock.systemUTC());
         var broker     = new CachingAttributeBroker(repository);
         var webClient  = new DummyReactiveWebClient(mapper);
@@ -111,8 +112,7 @@ public class PlaygroundConfiguration {
 
         @Override
         public Mono<RSAPublicKey> provide(String kid, JsonNode publicKeyServer) throws CachingException {
-            return Mono.error(new UnsupportedOperationException(
-                    "The call to an external data source has been blocked by the playground application."));
+            return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
         }
     }
 
@@ -126,7 +126,7 @@ public class PlaygroundConfiguration {
 
     public static class DummyReactiveWebClient extends ReactiveWebClient {
 
-        public DummyReactiveWebClient(ObjectMapper mapper) {
+        public DummyReactiveWebClient(JsonMapper mapper) {
             super(mapper);
         }
 

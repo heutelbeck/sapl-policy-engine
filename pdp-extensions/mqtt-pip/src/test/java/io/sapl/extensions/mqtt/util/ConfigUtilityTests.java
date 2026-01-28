@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ class ConfigUtilityTests {
         val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
 
         // THEN
-        assertThat(config.get("key").asText()).isEqualTo("value");
+        assertThat(config.get("key").asString()).isEqualTo("value");
     }
 
     @Test
@@ -59,7 +59,7 @@ class ConfigUtilityTests {
         val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
 
         // THEN
-        assertThat(config.get("key").asText()).isEqualTo("value");
+        assertThat(config.get("key").asString()).isEqualTo("value");
     }
 
     @Test
@@ -184,7 +184,7 @@ class ConfigUtilityTests {
         val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
 
         // THEN
-        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asText()).isEqualTo("broker2");
+        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
     }
 
     @Test
@@ -201,7 +201,7 @@ class ConfigUtilityTests {
         val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
 
         // THEN
-        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asText()).isEqualTo("broker2");
+        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
     }
 
     @Test
@@ -218,7 +218,7 @@ class ConfigUtilityTests {
         val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, undefined);
 
         // THEN
-        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asText()).isEqualTo("production");
+        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("production");
     }
 
 }

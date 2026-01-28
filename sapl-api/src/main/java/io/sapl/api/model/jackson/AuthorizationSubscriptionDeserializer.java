@@ -17,29 +17,37 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-
-import java.io.IOException;
 
 import lombok.val;
 
 /**
  * Jackson deserializer for AuthorizationSubscription.
  */
-public class AuthorizationSubscriptionDeserializer extends JsonDeserializer<AuthorizationSubscription> {
+public class AuthorizationSubscriptionDeserializer extends StdDeserializer<AuthorizationSubscription> {
+
+    /**
+     * Default constructor required by Jackson 3.
+     */
+    public AuthorizationSubscriptionDeserializer() {
+        super(AuthorizationSubscription.class);
+    }
+
+    private static final String ERROR_EXPECTED_START_OBJECT  = "Expected START_OBJECT for AuthorizationSubscription.";
+    private static final String ERROR_MISSING_REQUIRED_FIELD = "AuthorizationSubscription requires subject, action, and resource fields.";
 
     private final ValueDeserializer valueDeserializer = new ValueDeserializer();
 
     @Override
-    public AuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+    public AuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            throw new IOException("Expected START_OBJECT for AuthorizationSubscription.");
+            context.reportInputMismatch(AuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         Value       subject     = null;
@@ -63,7 +71,7 @@ public class AuthorizationSubscriptionDeserializer extends JsonDeserializer<Auth
         }
 
         if (subject == null || action == null || resource == null) {
-            throw new IOException("AuthorizationSubscription requires subject, action, and resource fields.");
+            context.reportInputMismatch(AuthorizationSubscription.class, ERROR_MISSING_REQUIRED_FIELD);
         }
 
         return new AuthorizationSubscription(subject, action, resource, environment, secrets);

@@ -19,6 +19,8 @@ package io.sapl.test.grammar.antlr.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.jupiter.api.DisplayName;
@@ -466,7 +468,7 @@ class SAPLTestValidatorTests {
         assertThat(errors).isEmpty();
     }
 
-    private java.util.List<ValidationError> validate(String document) {
+    private List<ValidationError> validate(String document) {
         var parseTree = parse(document);
         return validator.validate(parseTree);
     }

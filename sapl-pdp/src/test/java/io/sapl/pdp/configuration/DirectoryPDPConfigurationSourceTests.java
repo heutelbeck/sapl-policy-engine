@@ -415,7 +415,7 @@ class DirectoryPDPConfigurationSourceTests {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, config -> {}))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse");
     }
 
     @Test

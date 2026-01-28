@@ -17,7 +17,7 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -65,7 +65,8 @@ class ReactiveWebClientWebSocketTests {
                 }
                 """;
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller.json(template.formatted(port));
-        val streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
+        val streamUnderTest = new ReactiveWebClient(JsonMapper.builder().build()).consumeWebSocket(httpTestRequest)
+                .next();
         StepVerifier.create(streamUnderTest).expectNext(Value.of("hello")).expectComplete()
                 .verify(Duration.ofSeconds(5L));
     }
@@ -79,7 +80,8 @@ class ReactiveWebClientWebSocketTests {
                 }
                 """;
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller.json(template.formatted(port));
-        val streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
+        val streamUnderTest = new ReactiveWebClient(JsonMapper.builder().build()).consumeWebSocket(httpTestRequest)
+                .next();
         StepVerifier.create(streamUnderTest).expectNextMatches(
                 val -> (val instanceof ErrorValue) && ((ErrorValue) val).message().contains("Unrecognized token"))
                 .expectComplete().verify(Duration.ofSeconds(5L));
@@ -93,7 +95,8 @@ class ReactiveWebClientWebSocketTests {
                 }
                 """;
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller.json(template.formatted(port));
-        val streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).take(3);
+        val streamUnderTest = new ReactiveWebClient(JsonMapper.builder().build()).consumeWebSocket(httpTestRequest)
+                .take(3);
         StepVerifier.create(streamUnderTest).expectNext(Value.of(0)).expectNext(Value.of(1)).expectNext(Value.of(2))
                 .expectComplete().verify(Duration.ofSeconds(15L));
     }

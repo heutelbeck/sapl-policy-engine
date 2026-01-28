@@ -39,38 +39,44 @@ import java.util.stream.Collectors;
 @UtilityClass
 public class ContentFilter {
 
-    private static final String NOT_A_VALID_PREDICATE_CONDITION = "Not a valid predicate condition: ";
-    private static final String DISCLOSE_LEFT                   = "discloseLeft";
-    private static final String DISCLOSE_RIGHT                  = "discloseRight";
-    private static final String REPLACEMENT                     = "replacement";
-    private static final String REPLACE                         = "replace";
-    private static final String LENGTH                          = "length";
-    private static final String BLACKEN                         = "blacken";
-    private static final String DELETE                          = "delete";
-    private static final String PATH                            = "path";
-    private static final String ACTIONS                         = "actions";
-    private static final String CONDITIONS                      = "conditions";
-    private static final String VALUE                           = "value";
-    private static final String EQUALS                          = "==";
-    private static final String NEQ                             = "!=";
-    private static final String GEQ                             = ">=";
-    private static final String LEQ                             = "<=";
-    private static final String GT                              = ">";
-    private static final String LT                              = "<";
-    private static final String REGEX                           = "=~";
-    private static final String TYPE                            = "type";
-    private static final String BLACK_SQUARE                    = "█";
-    private static final String UNDEFINED_KEY_S                 = "An action does not declare '%s'.";
-    private static final String VALUE_NOT_INTEGER_S             = "An action's '%s' is not an integer.";
-    private static final String VALUE_NOT_TEXTUAL_S             = "An action's '%s' is not textual.";
-    private static final String PATH_NOT_TEXTUAL                = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
-    private static final String NO_REPLACEMENT_SPECIFIED        = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
-    private static final String REPLACEMENT_NOT_TEXTUAL         = "'replacement' of 'blacken' action is not textual.";
-    private static final String LENGTH_NOT_NUMBER               = "'length' of 'blacken' action is not numeric.";
-    private static final String UNKNOWN_ACTION_S                = "Unknown action type: '%s'.";
-    private static final String ACTION_NOT_AN_OBJECT            = "An action in 'actions' is not an object.";
-    private static final String ACTIONS_NOT_AN_ARRAY            = "'actions' is not an array.";
-    private static final int    BLACKEN_LENGTH_INVALID_VALUE    = -1;
+    private static final String ERROR_CONDITIONS_NOT_AN_ARRAY                 = "'conditions' not an array: ";
+    private static final String ERROR_CONSTRAINT_INVALID                      = "Not a valid constraint. Expected a JSON Object";
+    private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT             = "Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.";
+    private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT = "Constraint enforcement failed. Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.";
+    private static final String ERROR_CONVERTING_MODIFIED_OBJECT              = "Error converting modified object to original class type.";
+    private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
+
+    private static final String DISCLOSE_LEFT                = "discloseLeft";
+    private static final String DISCLOSE_RIGHT               = "discloseRight";
+    private static final String REPLACEMENT                  = "replacement";
+    private static final String REPLACE                      = "replace";
+    private static final String LENGTH                       = "length";
+    private static final String BLACKEN                      = "blacken";
+    private static final String DELETE                       = "delete";
+    private static final String PATH                         = "path";
+    private static final String ACTIONS                      = "actions";
+    private static final String CONDITIONS                   = "conditions";
+    private static final String VALUE                        = "value";
+    private static final String EQUALS                       = "==";
+    private static final String NEQ                          = "!=";
+    private static final String GEQ                          = ">=";
+    private static final String LEQ                          = "<=";
+    private static final String GT                           = ">";
+    private static final String LT                           = "<";
+    private static final String REGEX                        = "=~";
+    private static final String TYPE                         = "type";
+    private static final String BLACK_SQUARE                 = "█";
+    private static final String UNDEFINED_KEY_S              = "An action does not declare '%s'.";
+    private static final String VALUE_NOT_INTEGER_S          = "An action's '%s' is not an integer.";
+    private static final String VALUE_NOT_TEXTUAL_S          = "An action's '%s' is not textual.";
+    private static final String PATH_NOT_TEXTUAL             = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+    private static final String NO_REPLACEMENT_SPECIFIED     = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+    private static final String REPLACEMENT_NOT_TEXTUAL      = "'replacement' of 'blacken' action is not textual.";
+    private static final String LENGTH_NOT_NUMBER            = "'length' of 'blacken' action is not numeric.";
+    private static final String UNKNOWN_ACTION_S             = "Unknown action type: '%s'.";
+    private static final String ACTION_NOT_AN_OBJECT         = "An action in 'actions' is not an object.";
+    private static final String ACTIONS_NOT_AN_ARRAY         = "'actions' is not an array.";
+    private static final int    BLACKEN_LENGTH_INVALID_VALUE = -1;
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -163,7 +169,7 @@ public class ContentFilter {
 
     private static void assertConstraintIsAnObjectNode(JsonNode constraint) {
         if (constraint == null || !constraint.isObject())
-            throw new AccessConstraintViolationException("Not a valid constraint. Expected a JSON Object");
+            throw new AccessConstraintViolationException(ERROR_CONSTRAINT_INVALID);
 
     }
 
@@ -172,29 +178,27 @@ public class ContentFilter {
             try {
                 return predicate.test(x);
             } catch (PathNotFoundException e) {
-                throw new AccessConstraintViolationException(
-                        "Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.",
-                        e);
+                throw new AccessConstraintViolationException(ERROR_CONSTRAINT_PATH_NOT_PRESENT, e);
             }
         };
     }
 
     private static Predicate<Object> conditionToPredicate(JsonNode condition, ObjectMapper objectMapper) {
         if (!condition.isObject())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         if (!condition.has(PATH) || !condition.get(PATH).isTextual())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var path = condition.get(PATH).textValue();
 
         if (!condition.has(TYPE) || !condition.get(TYPE).isTextual())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var type = condition.get(TYPE).textValue();
 
         if (!condition.has(VALUE))
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var jsonPathConfiguration = Configuration.builder()
                 .jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper)).build();
@@ -220,14 +224,14 @@ public class ContentFilter {
         if (REGEX.equals(type))
             return regexCondition(condition, path, jsonPathConfiguration, objectMapper);
 
-        throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+        throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
     }
 
     private static Predicate<Object> regexCondition(JsonNode condition, String path,
             Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
 
         if (!condition.get(VALUE).isTextual())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var regex = Pattern.compile(condition.get(VALUE).textValue());
 
@@ -242,7 +246,7 @@ public class ContentFilter {
     private static Predicate<Object> leqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
             ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var value = condition.get(VALUE).asDouble();
 
@@ -257,7 +261,7 @@ public class ContentFilter {
     private static Predicate<Object> geqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
             ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var value = condition.get(VALUE).asDouble();
 
@@ -272,7 +276,7 @@ public class ContentFilter {
     private static Predicate<Object> ltCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
             ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var value = condition.get(VALUE).asDouble();
 
@@ -287,7 +291,7 @@ public class ContentFilter {
     private static Predicate<Object> gtCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
             ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var value = condition.get(VALUE).asDouble();
 
@@ -318,7 +322,7 @@ public class ContentFilter {
             return numberEqCondition(condition, path, jsonPathConfiguration, objectMapper);
 
         if (!valueNode.isTextual())
-            throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var value = valueNode.textValue();
 
@@ -344,7 +348,7 @@ public class ContentFilter {
     private static void assertConditionsIsAnArrayNode(JsonNode constraint) {
         final var conditions = constraint.get(CONDITIONS);
         if (!conditions.isArray())
-            throw new AccessConstraintViolationException("'conditions' not an array: " + conditions);
+            throw new AccessConstraintViolationException(ERROR_CONDITIONS_NOT_AN_ARRAY + conditions);
     }
 
     public static UnaryOperator<Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
@@ -370,8 +374,7 @@ public class ContentFilter {
             try {
                 return objectMapper.treeToValue(modifiedJsonNode, original.getClass());
             } catch (JsonProcessingException e) {
-                throw new AccessConstraintViolationException("Error converting modified object to original class type.",
-                        e);
+                throw new AccessConstraintViolationException(ERROR_CONVERTING_MODIFIED_OBJECT, e);
             }
         };
     }
@@ -386,9 +389,7 @@ public class ContentFilter {
         try {
             jsonContext.read(path);
         } catch (PathNotFoundException e) {
-            throw new AccessConstraintViolationException(
-                    "Constraint enforcement failed. Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.",
-                    e);
+            throw new AccessConstraintViolationException(ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT, e);
         }
 
         switch (actionType) {

@@ -17,7 +17,7 @@
  */
 package io.sapl.test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.api.attributes.AttributeBroker;
@@ -121,8 +121,28 @@ public class SaplTestFixture {
             TemporalFunctionLibrary.class, FilterFunctionLibrary.class, ArrayFunctionLibrary.class,
             StringFunctionLibrary.class, GraphFunctionLibrary.class);
 
-    private static final String ERROR_RESERVED_VARIABLE_NAME = "Variable name '%s' is reserved. "
-            + "Reserved identifiers (%s) refer to authorization subscription fields and cannot be used as variable names.";
+    private static final String ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST          = "withBundle not allowed in single test mode.";
+    private static final String ERROR_BUNDLE_RESOURCE_NOT_FOUND                  = "Bundle resource not found: %s";
+    private static final String ERROR_CANNOT_ADD_POLICY_CONFIG_ALREADY_LOADED    = "Cannot add policy when configuration is already loaded from bundle/directory.";
+    private static final String ERROR_CONFIG_FILE_FROM_RES_NOT_ALLOWED           = "withConfigFileFromResource not allowed in single test mode.";
+    private static final String ERROR_CONFIG_FILE_NOT_ALLOWED_IN_SINGLE_TEST     = "withConfigFile not allowed in single test mode.";
+    private static final String ERROR_CONFIG_FROM_DIR_NOT_ALLOWED_IN_SINGLE_TEST = "withConfigurationFromDirectory not allowed in single test mode.";
+    private static final String ERROR_CONFIG_FROM_RES_NOT_ALLOWED_IN_SINGLE_TEST = "withConfigurationFromResources not allowed in single test mode.";
+    private static final String ERROR_COMBINING_ALG_NOT_ALLOWED_IN_SINGLE_TEST   = "withCombiningAlgorithm not allowed in single test mode.";
+    private static final String ERROR_FAILED_READ_BUNDLE_RESOURCE                = "Failed to read bundle resource: %s";
+    private static final String ERROR_FAILED_READ_PDP_JSON_FROM                  = "Failed to read pdp.json from: %s";
+    private static final String ERROR_FAILED_READ_PDP_JSON_RESOURCE              = "Failed to read pdp.json resource: %s";
+    private static final String ERROR_FAILED_READ_POLICY_FILE                    = "Failed to read policy file: %s";
+    private static final String ERROR_FAILED_READ_POLICY_RESOURCE                = "Failed to read policy resource: %s";
+    private static final String ERROR_FAILED_READ_RESOURCE                       = "Failed to read resource: %s";
+    private static final String ERROR_INTEGRATION_TEST_REQUIRES_COMBINING_ALG    = "Integration test mode requires a combining algorithm. Use withCombiningAlgorithm(), withConfigFile(), or load from bundle/directory.";
+    private static final String ERROR_NO_COMBINING_ALGORITHM_SPECIFIED           = "No combining algorithm specified. Use withCombiningAlgorithm() or load configuration with a combining algorithm.";
+    private static final String ERROR_RESERVED_VARIABLE_NAME                     = "Variable name '%s' is reserved. Reserved identifiers (%s) refer to authorization subscription fields and cannot be used as variable names.";
+    private static final String ERROR_RESOURCE_NOT_FOUND                         = "Resource not found: %s";
+    private static final String ERROR_SINGLE_TEST_ONLY_ONE_POLICY                = "Single test mode only allows one policy document. Use createIntegrationTest() for multiple policies.";
+    private static final String ERROR_SINGLE_TEST_REQUIRES_EXACTLY_ONE_POLICY    = "Single test mode requires exactly one policy document.";
+    private static final String ERROR_VERIFIED_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST = "withVerifiedBundle not allowed in single test mode.";
+    private static final String ERROR_VERIFIED_BUNDLE_RES_NOT_ALLOWED            = "withVerifiedBundleFromResource not allowed in single test mode.";
 
     private final boolean singleTestMode;
 
@@ -135,7 +155,7 @@ public class SaplTestFixture {
 
     private FunctionBroker  customFunctionBroker;
     private AttributeBroker customAttributeBroker;
-    private ObjectMapper    objectMapper;
+    private JsonMapper      jsonMapper;
     private Clock           clock;
 
     private final List<Class<?>> staticFunctionLibraries       = new ArrayList<>();
@@ -265,7 +285,7 @@ public class SaplTestFixture {
             }
             return withPolicy(content);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read policy file: " + filePath, e);
+            throw new IllegalStateException(ERROR_FAILED_READ_POLICY_FILE.formatted(filePath), e);
         }
     }
 
@@ -282,7 +302,7 @@ public class SaplTestFixture {
         try (InputStream is = Thread.currentThread().getContextClassLoader()
                 .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
-                throw new IllegalStateException("Resource not found: " + resourcePath);
+                throw new IllegalStateException(ERROR_RESOURCE_NOT_FOUND.formatted(resourcePath));
             }
             var content    = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             var policyName = extractPolicyName(content);
@@ -293,7 +313,7 @@ public class SaplTestFixture {
             }
             return withPolicy(content);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read policy resource: " + resourcePath, e);
+            throw new IllegalStateException(ERROR_FAILED_READ_POLICY_RESOURCE.formatted(resourcePath), e);
         }
     }
 
@@ -310,7 +330,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withConfigurationFromDirectory(@NonNull String directoryPath) {
         if (singleTestMode) {
-            throw new IllegalStateException("withConfigurationFromDirectory not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_CONFIG_FROM_DIR_NOT_ALLOWED_IN_SINGLE_TEST);
         }
         loadedConfiguration = loadConfigurationFromDirectory(Path.of(directoryPath));
         return this;
@@ -328,7 +348,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withConfigurationFromResources(@NonNull String resourcePath) {
         if (singleTestMode) {
-            throw new IllegalStateException("withConfigurationFromResources not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_CONFIG_FROM_RES_NOT_ALLOWED_IN_SINGLE_TEST);
         }
         loadedConfiguration = loadConfigurationFromResources(resourcePath);
         return this;
@@ -348,7 +368,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withConfigFile(@NonNull String filePath) {
         if (singleTestMode) {
-            throw new IllegalStateException("withConfigFile not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_CONFIG_FILE_NOT_ALLOWED_IN_SINGLE_TEST);
         }
         loadedConfiguration = loadPdpJsonFromFile(Path.of(filePath));
         return this;
@@ -363,7 +383,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withConfigFileFromResource(@NonNull String resourcePath) {
         if (singleTestMode) {
-            throw new IllegalStateException("withConfigFileFromResource not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_CONFIG_FILE_FROM_RES_NOT_ALLOWED);
         }
         loadedConfiguration = loadPdpJsonFromResource(resourcePath);
         return this;
@@ -380,7 +400,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withBundle(@NonNull String filePath) {
         if (singleTestMode) {
-            throw new IllegalStateException("withBundle not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST);
         }
         loadedConfiguration = BundleParser.parse(Path.of(filePath), "test", noSignatureVerification());
         return this;
@@ -396,16 +416,16 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withBundleFromResource(@NonNull String resourcePath) {
         if (singleTestMode) {
-            throw new IllegalStateException("withBundleFromResource not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST);
         }
         try (InputStream is = Thread.currentThread().getContextClassLoader()
                 .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
-                throw new IllegalStateException("Bundle resource not found: " + resourcePath);
+                throw new IllegalStateException(ERROR_BUNDLE_RESOURCE_NOT_FOUND.formatted(resourcePath));
             }
             loadedConfiguration = BundleParser.parse(is, "test", noSignatureVerification());
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read bundle resource: " + resourcePath, e);
+            throw new IllegalStateException(ERROR_FAILED_READ_BUNDLE_RESOURCE.formatted(resourcePath), e);
         }
         return this;
     }
@@ -422,7 +442,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withVerifiedBundle(@NonNull String filePath, @NonNull BundleSecurityPolicy securityPolicy) {
         if (singleTestMode) {
-            throw new IllegalStateException("withVerifiedBundle not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_VERIFIED_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST);
         }
         loadedConfiguration = BundleParser.parse(Path.of(filePath), "test", securityPolicy);
         return this;
@@ -439,16 +459,16 @@ public class SaplTestFixture {
     public SaplTestFixture withVerifiedBundleFromResource(@NonNull String resourcePath,
             @NonNull BundleSecurityPolicy securityPolicy) {
         if (singleTestMode) {
-            throw new IllegalStateException("withVerifiedBundleFromResource not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_VERIFIED_BUNDLE_RES_NOT_ALLOWED);
         }
         try (InputStream is = Thread.currentThread().getContextClassLoader()
                 .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
-                throw new IllegalStateException("Bundle resource not found: " + resourcePath);
+                throw new IllegalStateException(ERROR_BUNDLE_RESOURCE_NOT_FOUND.formatted(resourcePath));
             }
             loadedConfiguration = BundleParser.parse(is, "test", securityPolicy);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read bundle resource: " + resourcePath, e);
+            throw new IllegalStateException(ERROR_FAILED_READ_BUNDLE_RESOURCE.formatted(resourcePath), e);
         }
         return this;
     }
@@ -464,7 +484,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withCombiningAlgorithm(@NonNull CombiningAlgorithm algorithm) {
         if (singleTestMode) {
-            throw new IllegalStateException("withCombiningAlgorithm not allowed in single test mode.");
+            throw new IllegalStateException(ERROR_COMBINING_ALG_NOT_ALLOWED_IN_SINGLE_TEST);
         }
         this.combiningAlgorithm = algorithm;
         return this;
@@ -499,16 +519,16 @@ public class SaplTestFixture {
     }
 
     /**
-     * Sets a custom ObjectMapper for JSON processing.
+     * Sets a custom JsonMapper for JSON processing.
      * <p>
-     * Use this when the policies under test require specific ObjectMapper
+     * Use this when the policies under test require specific JsonMapper
      * configuration, such as custom serializers or date formats.
      *
-     * @param objectMapper the ObjectMapper to use
+     * @param jsonMapper the JsonMapper to use
      * @return this fixture for chaining
      */
-    public SaplTestFixture withObjectMapper(@NonNull ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public SaplTestFixture withJsonMapper(@NonNull JsonMapper jsonMapper) {
+        this.jsonMapper = jsonMapper;
         return this;
     }
 
@@ -774,7 +794,7 @@ public class SaplTestFixture {
     public DecisionResult whenDecide(@NonNull AuthorizationSubscription subscription) {
         validateBeforeDecide();
 
-        var effectiveMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        var effectiveMapper = jsonMapper != null ? jsonMapper : JsonMapper.builder().build();
         var effectiveClock  = clock != null ? clock : Clock.systemUTC();
         var pdpBuilder      = PolicyDecisionPointBuilder.withoutDefaults(effectiveMapper, effectiveClock);
 
@@ -960,25 +980,22 @@ public class SaplTestFixture {
 
     private void validatePolicyAddition() {
         if (singleTestMode && !policyDocuments.isEmpty()) {
-            throw new IllegalStateException(
-                    "Single test mode only allows one policy document. Use createIntegrationTest() for multiple policies.");
+            throw new IllegalStateException(ERROR_SINGLE_TEST_ONLY_ONE_POLICY);
         }
         if (loadedConfiguration != null) {
-            throw new IllegalStateException(
-                    "Cannot add policy when configuration is already loaded from bundle/directory.");
+            throw new IllegalStateException(ERROR_CANNOT_ADD_POLICY_CONFIG_ALREADY_LOADED);
         }
     }
 
     private void validateBeforeDecide() {
         if (singleTestMode) {
             if (policyDocuments.isEmpty() && loadedConfiguration == null) {
-                throw new IllegalStateException("Single test mode requires exactly one policy document.");
+                throw new IllegalStateException(ERROR_SINGLE_TEST_REQUIRES_EXACTLY_ONE_POLICY);
             }
         } else {
             // Integration test mode
             if (combiningAlgorithm == null && loadedConfiguration == null) {
-                throw new IllegalStateException(
-                        "Integration test mode requires a combining algorithm. Use withCombiningAlgorithm(), withConfigFile(), or load from bundle/directory.");
+                throw new IllegalStateException(ERROR_INTEGRATION_TEST_REQUIRES_COMBINING_ALG);
             }
         }
     }
@@ -993,8 +1010,7 @@ public class SaplTestFixture {
         if (loadedConfiguration != null && loadedConfiguration.combiningAlgorithm() != null) {
             return loadedConfiguration.combiningAlgorithm();
         }
-        throw new IllegalStateException(
-                "No combining algorithm specified. Use withCombiningAlgorithm() or load configuration with a combining algorithm.");
+        throw new IllegalStateException(ERROR_NO_COMBINING_ALGORITHM_SPECIFIED);
     }
 
     private Map<String, Value> resolveVariables() {
@@ -1035,7 +1051,7 @@ public class SaplTestFixture {
             var content = Files.readString(filePath);
             return PDPConfigurationLoader.loadFromContent(content, Map.of(), "test", filePath.toString());
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read pdp.json from: " + filePath, e);
+            throw new IllegalStateException(ERROR_FAILED_READ_PDP_JSON_FROM.formatted(filePath), e);
         }
     }
 
@@ -1043,12 +1059,12 @@ public class SaplTestFixture {
         try (InputStream is = Thread.currentThread().getContextClassLoader()
                 .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
-                throw new IllegalStateException("Resource not found: " + resourcePath);
+                throw new IllegalStateException(ERROR_RESOURCE_NOT_FOUND.formatted(resourcePath));
             }
             var content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             return PDPConfigurationLoader.loadFromContent(content, Map.of(), "test", resourcePath);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read pdp.json resource: " + resourcePath, e);
+            throw new IllegalStateException(ERROR_FAILED_READ_PDP_JSON_RESOURCE.formatted(resourcePath), e);
         }
     }
 
@@ -1103,7 +1119,7 @@ public class SaplTestFixture {
         try {
             return new String(resource.load(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read resource: " + resource.getPath(), e);
+            throw new IllegalStateException(ERROR_FAILED_READ_RESOURCE.formatted(resource.getPath()), e);
         }
     }
 

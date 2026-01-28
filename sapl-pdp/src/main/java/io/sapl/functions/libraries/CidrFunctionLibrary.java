@@ -109,20 +109,19 @@ public class CidrFunctionLibrary {
     private static final String ADDRESS_FAMILY_IPV6 = "IPv6";
     private static final String ALGORITHM_SHA256    = "SHA-256";
 
-    private static final String ERROR_ADDRESSES_MAXIMUM       = " addresses, maximum is ";
-    private static final String ERROR_ALGORITHM_NOT_AVAILABLE = " not available: ";
-    private static final String ERROR_ARRAY_MUST_BE_STRINGS   = "Array must contain only strings.";
-    private static final String ERROR_CIDR_CONTAINS           = "CIDR contains ";
-    private static final String ERROR_CIDR_MISSING_PREFIX     = "CIDR missing prefix length: %s.";
-    private static final String ERROR_INVALID_ADDRESS         = "Invalid address: %s.";
-    private static final String ERROR_INVALID_CIDR            = "Invalid CIDR: %s.";
-    private static final String ERROR_INVALID_FIRST_CIDR      = "Invalid first CIDR: %s.";
-    private static final String ERROR_INVALID_FIRST_IP        = "Invalid first IP: %s.";
-    private static final String ERROR_INVALID_IP_ADDRESS      = "Invalid IP address: %s.";
-    private static final String ERROR_INVALID_SECOND_CIDR     = "Invalid second CIDR: %s.";
-    private static final String ERROR_INVALID_SECOND_IP       = "Invalid second IP: %s.";
-    private static final String ERROR_PREFIX                  = "Prefix ";
-    private static final String ERROR_PREFIX_OUT_OF_RANGE     = " out of range for ";
+    private static final String ERROR_ALGORITHM_NOT_AVAILABLE        = " not available: ";
+    private static final String ERROR_ARRAY_MUST_BE_STRINGS          = "Array must contain only strings.";
+    private static final String ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM = "CIDR contains %d addresses, maximum is %d.";
+    private static final String ERROR_CIDR_MISSING_PREFIX            = "CIDR missing prefix length: %s.";
+    private static final String ERROR_INVALID_ADDRESS                = "Invalid address: %s.";
+    private static final String ERROR_INVALID_CIDR                   = "Invalid CIDR: %s.";
+    private static final String ERROR_INVALID_FIRST_CIDR             = "Invalid first CIDR: %s.";
+    private static final String ERROR_INVALID_FIRST_IP               = "Invalid first IP: %s.";
+    private static final String ERROR_INVALID_IP_ADDRESS             = "Invalid IP address: %s.";
+    private static final String ERROR_INVALID_SECOND_CIDR            = "Invalid second CIDR: %s.";
+    private static final String ERROR_INVALID_SECOND_IP              = "Invalid second IP: %s.";
+    private static final String ERROR_PREFIX                         = "Prefix ";
+    private static final String ERROR_PREFIX_OUT_OF_RANGE            = " out of range for ";
 
     private static final String RANGE_IPV4 = " (0-32).";
     private static final String RANGE_IPV6 = " (0-128).";
@@ -278,7 +277,7 @@ public class CidrFunctionLibrary {
         val count       = prefixBlock.getCount();
 
         if (count.compareTo(BigInteger.valueOf(MAX_EXPANSION)) > 0) {
-            return Value.error(ERROR_CIDR_CONTAINS + count + ERROR_ADDRESSES_MAXIMUM + MAX_EXPANSION + ".");
+            return Value.error(ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM.formatted(count, MAX_EXPANSION));
         }
 
         val resultBuilder = ArrayValue.builder();

@@ -42,6 +42,7 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.stream.Stream;
 
@@ -404,7 +405,7 @@ class KeysFunctionLibraryRoundtripTests {
         val pemContent = pem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s", "");
         val encoded    = Base64.getDecoder().decode(pemContent);
-        val keySpec    = new java.security.spec.X509EncodedKeySpec(encoded);
+        val keySpec    = new X509EncodedKeySpec(encoded);
 
         // Try different algorithms
         for (String algorithm : new String[] { "RSA", "EC", "Ed25519" }) {

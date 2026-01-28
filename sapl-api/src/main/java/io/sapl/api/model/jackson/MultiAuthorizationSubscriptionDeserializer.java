@@ -17,15 +17,12 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
-
-import java.io.IOException;
-
 import lombok.val;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
  * Jackson deserializer for MultiAuthorizationSubscription.
@@ -33,15 +30,23 @@ import lombok.val;
  * Deserializes from a JSON object mapping subscription IDs to their
  * subscriptions.
  */
-public class MultiAuthorizationSubscriptionDeserializer extends JsonDeserializer<MultiAuthorizationSubscription> {
+public class MultiAuthorizationSubscriptionDeserializer extends StdDeserializer<MultiAuthorizationSubscription> {
+
+    /**
+     * Default constructor required by Jackson 3.
+     */
+    public MultiAuthorizationSubscriptionDeserializer() {
+        super(MultiAuthorizationSubscription.class);
+    }
+
+    private static final String ERROR_EXPECTED_START_OBJECT = "Expected START_OBJECT for MultiAuthorizationSubscription.";
 
     private final AuthorizationSubscriptionDeserializer subscriptionDeserializer = new AuthorizationSubscriptionDeserializer();
 
     @Override
-    public MultiAuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context)
-            throws IOException {
+    public MultiAuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            throw new IOException("Expected START_OBJECT for MultiAuthorizationSubscription.");
+            context.reportInputMismatch(MultiAuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         val multiSubscription = new MultiAuthorizationSubscription();

@@ -35,6 +35,9 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class ApiKeyService {
+
+    private static final String ERROR_API_KEY_NOT_AUTHORIZED = "ApiKey not authorized";
+
     private final SaplNodeProperties pdpProperties;
     private final PasswordEncoder    passwordEncoder;
     static final String              HEADER            = "Authorization";
@@ -68,7 +71,7 @@ public class ApiKeyService {
             }
         }
 
-        return Mono.error(() -> new ApiKeyAuthenticationException("ApiKey not authorized"));
+        return Mono.error(() -> new ApiKeyAuthenticationException(ERROR_API_KEY_NOT_AUTHORIZED));
     }
 
     public static Optional<String> getApiKeyToken(ServerWebExchange exchange) {

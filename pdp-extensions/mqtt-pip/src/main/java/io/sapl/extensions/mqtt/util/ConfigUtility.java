@@ -17,13 +17,14 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.datatypes.MqttClientIdentifier;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
 import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
@@ -53,6 +54,8 @@ public class ConfigUtility {
     private static final String ENVIRONMENT_PASSWORD                   = "password";
     private static final String DEFAULT_BROKER_CONFIG_NAME             = "default";
     private static final String DEFAULT_PASSWORD                       = "";
+
+    private static final String ERROR_NO_VALID_MQTT_PIP_CONFIG = "No valid configuration for mqtt pip client connection provided.";
 
     // Methods to get configurations from json
 
@@ -95,7 +98,7 @@ public class ConfigUtility {
         String   config;
         JsonNode configValue = getConfigValue(clientConfig, key);
         if (configValue != null) {
-            config = configValue.asText(defaultConfig);
+            config = configValue.asString(defaultConfig);
         } else {
             config = defaultConfig;
         }
@@ -211,7 +214,7 @@ public class ConfigUtility {
         }
 
         if (mqttPipBrokerConfig == null) {
-            throw new NoSuchElementException("No valid configuration for mqtt pip client connection provided.");
+            throw new NoSuchElementException(ERROR_NO_VALID_MQTT_PIP_CONFIG);
         }
         return mqttPipBrokerConfig;
     }
@@ -257,7 +260,7 @@ public class ConfigUtility {
             String configName, JsonNode brokerConfig) {
         JsonNode configDescription = brokerConfig.get(ENVIRONMENT_BROKER_CONFIG_NAME);
         if (configDescription != null) {
-            String configDescriptionValue = configDescription.asText();
+            val configDescriptionValue = configDescription.asString();
             if (configDescriptionValue.equals(configName)) {
                 mqttPipBrokerConfig = (ObjectNode) brokerConfig;
             }
@@ -281,7 +284,7 @@ public class ConfigUtility {
         for (JsonNode brokerConfigs : brokerConfig) {
             JsonNode configDescription = brokerConfigs.get(ENVIRONMENT_BROKER_CONFIG_NAME);
             if (configDescription != null) {
-                String configDescriptionValue = configDescription.asText();
+                val configDescriptionValue = configDescription.asString();
                 if (configDescriptionValue.equals(brokerConfigName)) {
                     mqttPipClientConfig = (ObjectNode) brokerConfigs;
                     break;

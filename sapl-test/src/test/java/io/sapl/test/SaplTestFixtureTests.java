@@ -17,7 +17,7 @@
  */
 package io.sapl.test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.Value;
 import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
 import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
@@ -234,10 +234,10 @@ class SaplTestFixtureTests {
     }
 
     @Test
-    void whenSettingObjectMapper_thenReturnsFixtureForChaining() {
-        var objectMapper = new ObjectMapper();
+    void whenSettingJsonMapper_thenReturnsFixtureForChaining() {
+        var jsonMapper = JsonMapper.builder().build();
 
-        var fixture = SaplTestFixture.createSingleTest().withObjectMapper(objectMapper).withPolicy(PERMIT_ALL_POLICY);
+        var fixture = SaplTestFixture.createSingleTest().withJsonMapper(jsonMapper).withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }
@@ -252,11 +252,11 @@ class SaplTestFixtureTests {
     }
 
     @Test
-    void whenSettingObjectMapperAndClock_thenBothCanBeChained() {
-        var objectMapper = new ObjectMapper();
-        var fixedClock   = Clock.fixed(Instant.parse("2025-01-06T10:00:00Z"), ZoneOffset.UTC);
+    void whenSettingJsonMapperAndClock_thenBothCanBeChained() {
+        var jsonMapper = JsonMapper.builder().build();
+        var fixedClock = Clock.fixed(Instant.parse("2025-01-06T10:00:00Z"), ZoneOffset.UTC);
 
-        var fixture = SaplTestFixture.createSingleTest().withObjectMapper(objectMapper).withClock(fixedClock)
+        var fixture = SaplTestFixture.createSingleTest().withJsonMapper(jsonMapper).withClock(fixedClock)
                 .withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
@@ -288,10 +288,10 @@ class SaplTestFixtureTests {
 
     @Test
     void whenChainingAllConfigurationOptions_thenSucceeds() {
-        var objectMapper = new ObjectMapper();
-        var fixedClock   = Clock.fixed(Instant.parse("2025-01-06T10:00:00Z"), ZoneOffset.UTC);
+        var jsonMapper = JsonMapper.builder().build();
+        var fixedClock = Clock.fixed(Instant.parse("2025-01-06T10:00:00Z"), ZoneOffset.UTC);
 
-        var fixture = SaplTestFixture.createSingleTest().withObjectMapper(objectMapper).withClock(fixedClock)
+        var fixture = SaplTestFixture.createSingleTest().withJsonMapper(jsonMapper).withClock(fixedClock)
                 .withFunctionLibrary(Object.class).withFunctionLibraryInstance(new Object())
                 .withPolicyInformationPoint(new Object()).withPolicy(PERMIT_ALL_POLICY);
 

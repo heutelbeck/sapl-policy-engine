@@ -25,9 +25,9 @@ import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
-import elemental.json.Json;
-import elemental.json.JsonArray;
-import elemental.json.JsonObject;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.coverage.LineCoverageStatus;
 import io.sapl.api.coverage.PolicyCoverageData;
@@ -61,6 +61,8 @@ public class SaplEditorLsp extends Component implements HasSize {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
     private static final String PROP_LANGUAGE             = "language";
     private static final String PROP_WS_URL               = "wsUrl";
@@ -434,20 +436,19 @@ public class SaplEditorLsp extends Component implements HasSize {
             clearCoverage();
             return;
         }
-        var jsonArray = Json.createArray();
-        var index     = 0;
+        var jsonArray = JSON_MAPPER.createArrayNode();
         for (var item : lineCoverage) {
             if (item.status() == LineCoverageStatus.IRRELEVANT) {
                 continue;
             }
-            var jsonItem = Json.createObject();
+            var jsonItem = JSON_MAPPER.createObjectNode();
             jsonItem.put("line", item.line());
             jsonItem.put("status", mapCoverageStatus(item.status()));
             var summary = item.getSummary();
             if (summary != null) {
                 jsonItem.put("summary", summary);
             }
-            jsonArray.set(index++, jsonItem);
+            jsonArray.add(jsonItem);
         }
         getElement().callJsFunction("setCoverageData", jsonArray);
     }
@@ -523,11 +524,14 @@ public class SaplEditorLsp extends Component implements HasSize {
      * @param jsonIssues array of diagnostic issues
      */
     @ClientCallable
-    protected void onValidation(JsonArray jsonIssues) {
+    protected void onValidation(ArrayNode jsonIssues) {
         var issues = new ArrayList<Issue>();
-        for (int i = 0; jsonIssues != null && i < jsonIssues.length(); i++) {
-            JsonObject obj = jsonIssues.getObject(i);
-            issues.add(new Issue(obj));
+        if (jsonIssues != null) {
+            for (var element : jsonIssues) {
+                if (element instanceof ObjectNode obj) {
+                    issues.add(new Issue(obj));
+                }
+            }
         }
 
         log.debug("LSP validation completed with {} issues", issues.size());

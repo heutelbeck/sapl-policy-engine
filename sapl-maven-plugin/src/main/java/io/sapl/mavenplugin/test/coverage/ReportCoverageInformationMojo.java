@@ -35,6 +35,7 @@ import org.apache.maven.project.MavenProject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 
 /**
  * Maven mojo for generating SAPL policy coverage reports.
@@ -45,6 +46,13 @@ import java.nio.file.Path;
  */
 @Mojo(name = "report-coverage-information", defaultPhase = LifecyclePhase.VERIFY)
 public class ReportCoverageInformationMojo extends AbstractMojo {
+
+    private static final String ERROR_CANNOT_REPORT_COVERAGE_DISABLED   = "Cannot report and validate SAPL code coverage requirements if coverage collection is disabled.";
+    private static final String ERROR_COVERAGE_FILE_NOT_FOUND           = "Coverage file not found: %s";
+    private static final String ERROR_COVERAGE_THRESHOLDS_NOT_MET       = "One or more SAPL coverage thresholds not met. See build log for details.";
+    private static final String ERROR_FAILED_READING_COVERAGE_DATA      = "Failed reading coverage data from SAPL tests.";
+    private static final String ERROR_GENERATING_SONARQUBE_REPORT       = "Error generating SonarQube coverage report.";
+    private static final String ERROR_SAPL_TEST_REQUIREMENTS_NOT_PASSED = "SAPL test requirements not passed. Tests must be enabled.";
 
     @Parameter(defaultValue = "${project}", required = true, readonly = true)
     private MavenProject project;
@@ -89,8 +97,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (!coverageEnabled) {
             logCoverageDisabledError();
-            throw new MojoFailureException(
-                    "Cannot report and validate SAPL code coverage requirements if coverage collection is disabled.");
+            throw new MojoFailureException(ERROR_CANNOT_REPORT_COVERAGE_DISABLED);
         }
 
         if (shouldSkipDueToDisabledTests()) {
@@ -105,7 +112,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             coverage = readCoverageData(baseDir);
         } catch (IOException e) {
             logCoverageReadError(e);
-            throw new MojoFailureException("Failed reading coverage data from SAPL tests.", e);
+            throw new MojoFailureException(ERROR_FAILED_READING_COVERAGE_DATA, e);
         }
 
         logCoverageInfo(coverage);
@@ -150,7 +157,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
                         "Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
                 getLog().error("Build used '-Dmaven.test.skip=true' or '-DskipTests'. "
                         + "Set 'failOnDisabledTests' to false to allow this.");
-                throw new MojoFailureException("SAPL test requirements not passed. Tests must be enabled.");
+                throw new MojoFailureException(ERROR_SAPL_TEST_REQUIREMENTS_NOT_PASSED);
             } else {
                 getLog().info("Tests disabled. Skipping coverage validation. "
                         + "Set 'failOnDisabledTests' to true to fail the build in this case.");
@@ -163,7 +170,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     private AggregatedCoverageData readCoverageData(Path baseDir) throws IOException {
         val reader = new CoverageReader(baseDir);
         if (!reader.coverageFileExists()) {
-            throw new IOException("Coverage file not found: " + reader.getCoverageFilePath());
+            throw new IOException(ERROR_COVERAGE_FILE_NOT_FOUND.formatted(reader.getCoverageFilePath()));
         }
         return reader.readAggregated();
     }
@@ -273,7 +280,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             generator.generateToFile(sonarOutputPath);
             getLog().info("SonarQube coverage report written to: " + sonarOutputPath);
         } catch (IOException e) {
-            throw new MojoExecutionException("Error generating SonarQube coverage report", e);
+            throw new MojoExecutionException(ERROR_GENERATING_SONARQUBE_REPORT, e);
         }
     }
 
@@ -296,7 +303,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
      * For HTML reports with syntax highlighting, we need to read the actual source
      * from the src/main/resources or target/classes directories.
      */
-    private void populatePolicySources(java.util.Collection<PolicyCoverageData> policies, Path projectBaseDir) {
+    private void populatePolicySources(Collection<PolicyCoverageData> policies, Path projectBaseDir) {
         for (val policy : policies) {
             populatePolicySource(policy, projectBaseDir);
         }
@@ -350,7 +357,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             getLog().info("All coverage criteria passed.");
             getLog().info("");
         } else {
-            throw new MojoFailureException("One or more SAPL coverage thresholds not met. See build log for details.");
+            throw new MojoFailureException(ERROR_COVERAGE_THRESHOLDS_NOT_MET);
         }
     }
 }

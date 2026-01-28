@@ -22,8 +22,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
@@ -50,7 +50,11 @@ import lombok.val;
  */
 public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuthorizationSubscription> {
 
-    private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final ObjectMapper DEFAULT_MAPPER = JsonMapper.builder().build();
+
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID   = "Cannot add two subscriptions with the same ID: %s.";
+    private static final String ERROR_FIELD_CANNOT_BE_ERROR_VALUE = "%s cannot be an error value.";
+    private static final String ERROR_FIELD_CANNOT_BE_UNDEFINED   = "%s cannot be undefined.";
 
     private final Map<String, AuthorizationSubscription> subscriptions = new HashMap<>();
 
@@ -66,7 +70,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     public MultiAuthorizationSubscription addSubscription(@NonNull String subscriptionId,
             @NonNull AuthorizationSubscription subscription) {
         if (subscriptions.containsKey(subscriptionId)) {
-            throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
+            throw new IllegalArgumentException(ERROR_DUPLICATE_SUBSCRIPTION_ID.formatted(subscriptionId));
         }
         subscriptions.put(subscriptionId, subscription);
         return this;
@@ -177,14 +181,14 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
     private static void validateValue(Value value, String fieldName) {
         if (value instanceof UndefinedValue) {
-            throw new IllegalArgumentException(fieldName + " cannot be undefined.");
+            throw new IllegalArgumentException(ERROR_FIELD_CANNOT_BE_UNDEFINED.formatted(fieldName));
         }
         validateNotError(value, fieldName);
     }
 
     private static void validateNotError(Value value, String fieldName) {
         if (value instanceof ErrorValue) {
-            throw new IllegalArgumentException(fieldName + " cannot be an error value.");
+            throw new IllegalArgumentException(ERROR_FIELD_CANNOT_BE_ERROR_VALUE.formatted(fieldName));
         }
     }
 

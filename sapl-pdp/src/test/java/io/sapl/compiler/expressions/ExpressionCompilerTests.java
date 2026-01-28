@@ -30,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.assertCompilesTo;
@@ -580,7 +581,7 @@ class ExpressionCompilerTests {
         void whenNestedConditionStepsThenOuterShadowsInner() {
             val compiled   = compileExpression("[[1, 2], [3, 4]][?(@[0] > 1)]");
             val innerArray = Value.ofArray(Value.of(3), Value.of(4));
-            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(java.util.List.of(innerArray)));
+            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(List.of(innerArray)));
         }
 
         @Test
@@ -588,7 +589,7 @@ class ExpressionCompilerTests {
         void whenNestedConditionWithInnerIterationThenCorrectlyScopes() {
             val compiled   = compileExpression("[[1, 2, 3], [4, 5, 6]][?(@[?(# == 0)][0] < 3)]");
             val innerArray = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
-            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(java.util.List.of(innerArray)));
+            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(List.of(innerArray)));
         }
 
         @Test
@@ -596,8 +597,8 @@ class ExpressionCompilerTests {
         void whenDeeplyNestedConditionsThenCorrectlyScopes() {
             val compiled  = compileExpression("[[[1, 2]], [[3, 4]]][?(@[0][?(# == 0)][0] == 1)]");
             val innermost = Value.ofArray(Value.of(1), Value.of(2));
-            val middle    = Value.ofArray(java.util.List.of(innermost));
-            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(java.util.List.of(middle)));
+            val middle    = Value.ofArray(List.of(innermost));
+            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(List.of(middle)));
         }
 
         @Test

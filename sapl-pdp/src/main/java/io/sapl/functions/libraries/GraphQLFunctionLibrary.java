@@ -266,10 +266,11 @@ public class GraphQLFunctionLibrary {
     private static final float   CACHE_LOAD_FACTOR     = 0.75f;
     private static final boolean CACHE_ACCESS_ORDER    = true;
 
-    private static final String ERROR_NO_OPERATION_FOUND  = "No operation definition found.";
-    private static final String ERROR_QUERY_PARSE_FAILED  = "Failed to parse GraphQL query";
-    private static final String ERROR_SCHEMA_PARSE_FAILED = "Schema parsing failed";
-    private static final String ERROR_SCHEMA_TOO_LARGE    = "Schema exceeds maximum size of %d bytes.";
+    private static final String ERROR_NO_OPERATION_FOUND   = "No operation definition found.";
+    private static final String ERROR_QUERY_PARSE_FAILED   = "Failed to parse GraphQL query";
+    private static final String ERROR_SCHEMA_PARSE_FAILED  = "Schema parsing failed";
+    private static final String ERROR_SCHEMA_TOO_LARGE     = "Schema exceeds maximum size of %d bytes.";
+    private static final String ERROR_SHA256_NOT_AVAILABLE = "SHA-256 algorithm not available.";
 
     // JSON field names - common fields
     private static final String FIELD_VALID       = "valid";
@@ -1119,7 +1120,7 @@ public class GraphQLFunctionLibrary {
             return HexFormat.of().formatHex(hashBytes);
         } catch (NoSuchAlgorithmException exception) {
             // SHA-256 is guaranteed to be available
-            throw new IllegalStateException("SHA-256 algorithm not available.", exception);
+            throw new IllegalStateException(ERROR_SHA256_NOT_AVAILABLE, exception);
         }
     }
 

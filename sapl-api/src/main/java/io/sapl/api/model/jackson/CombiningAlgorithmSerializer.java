@@ -17,12 +17,10 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import io.sapl.api.pdp.CombiningAlgorithm;
-
-import java.io.IOException;
 
 /**
  * Serializer for {@link CombiningAlgorithm} that outputs JSON object format.
@@ -37,15 +35,18 @@ import java.io.IOException;
  * }
  * </pre>
  */
-public class CombiningAlgorithmSerializer extends JsonSerializer<CombiningAlgorithm> {
+public class CombiningAlgorithmSerializer extends StdSerializer<CombiningAlgorithm> {
+
+    public CombiningAlgorithmSerializer() {
+        super(CombiningAlgorithm.class);
+    }
 
     @Override
-    public void serialize(CombiningAlgorithm algorithm, JsonGenerator generator, SerializerProvider serializers)
-            throws IOException {
+    public void serialize(CombiningAlgorithm algorithm, JsonGenerator generator, SerializationContext serializers) {
         generator.writeStartObject();
-        generator.writeStringField("votingMode", algorithm.votingMode().name());
-        generator.writeStringField("defaultDecision", algorithm.defaultDecision().name());
-        generator.writeStringField("errorHandling", algorithm.errorHandling().name());
+        generator.writeStringProperty("votingMode", algorithm.votingMode().name());
+        generator.writeStringProperty("defaultDecision", algorithm.defaultDecision().name());
+        generator.writeStringProperty("errorHandling", algorithm.errorHandling().name());
         generator.writeEndObject();
     }
 }

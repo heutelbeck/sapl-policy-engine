@@ -17,16 +17,14 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
-
-import java.io.IOException;
 
 import lombok.val;
 
@@ -44,12 +42,24 @@ import lombok.val;
  * }
  * </pre>
  */
-public class CombiningAlgorithmDeserializer extends JsonDeserializer<CombiningAlgorithm> {
+public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlgorithm> {
+
+    /**
+     * Default constructor required by Jackson 3.
+     */
+    public CombiningAlgorithmDeserializer() {
+        super(CombiningAlgorithm.class);
+    }
+
+    private static final String ERROR_DEFAULT_DECISION_REQUIRED = "CombiningAlgorithm requires defaultDecision field.";
+    private static final String ERROR_ERROR_HANDLING_REQUIRED   = "CombiningAlgorithm requires errorHandling field.";
+    private static final String ERROR_EXPECTED_START_OBJECT     = "Expected START_OBJECT for CombiningAlgorithm.";
+    private static final String ERROR_VOTING_MODE_REQUIRED      = "CombiningAlgorithm requires votingMode field.";
 
     @Override
-    public CombiningAlgorithm deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+    public CombiningAlgorithm deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            throw new IOException("Expected START_OBJECT for CombiningAlgorithm.");
+            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         VotingMode      votingMode      = null;
@@ -61,21 +71,21 @@ public class CombiningAlgorithmDeserializer extends JsonDeserializer<CombiningAl
             parser.nextToken();
 
             switch (fieldName) {
-            case "votingMode"      -> votingMode = VotingMode.valueOf(parser.getText());
-            case "defaultDecision" -> defaultDecision = DefaultDecision.valueOf(parser.getText());
-            case "errorHandling"   -> errorHandling = ErrorHandling.valueOf(parser.getText());
+            case "votingMode"      -> votingMode = VotingMode.valueOf(parser.getString());
+            case "defaultDecision" -> defaultDecision = DefaultDecision.valueOf(parser.getString());
+            case "errorHandling"   -> errorHandling = ErrorHandling.valueOf(parser.getString());
             default                -> { /* ignore unknown fields */ }
             }
         }
 
         if (votingMode == null) {
-            throw new IOException("CombiningAlgorithm requires votingMode field.");
+            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_VOTING_MODE_REQUIRED);
         }
         if (defaultDecision == null) {
-            throw new IOException("CombiningAlgorithm requires defaultDecision field.");
+            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_DEFAULT_DECISION_REQUIRED);
         }
         if (errorHandling == null) {
-            throw new IOException("CombiningAlgorithm requires errorHandling field.");
+            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_ERROR_HANDLING_REQUIRED);
         }
 
         return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);

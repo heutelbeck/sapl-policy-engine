@@ -17,8 +17,8 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.xml.XmlMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
@@ -54,7 +54,7 @@ public class XmlFunctionLibrary {
             }
             """;
 
-    private static final XmlMapper XML_MAPPER = new XmlMapper();
+    private static final XmlMapper XML_MAPPER = XmlMapper.builder().build();
 
     /**
      * Converts a well-formed XML document into a SAPL value.
@@ -81,7 +81,7 @@ public class XmlFunctionLibrary {
         try {
             val jsonNode = XML_MAPPER.readTree(xml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_PARSE, exception.getMessage());
         }
     }
@@ -112,7 +112,7 @@ public class XmlFunctionLibrary {
             val jsonNode  = ValueJsonMarshaller.toJsonNode(value);
             val xmlString = XML_MAPPER.writeValueAsString(jsonNode);
             return Value.of(xmlString);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

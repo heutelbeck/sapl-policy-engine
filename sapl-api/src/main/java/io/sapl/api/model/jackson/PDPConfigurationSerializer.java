@@ -17,14 +17,14 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 
-import java.io.IOException;
+import java.util.List;
 
 import lombok.val;
 
@@ -53,42 +53,45 @@ import lombok.val;
  * }
  * }</pre>
  */
-public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration> {
+public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> {
 
     private final ValueSerializer valueSerializer = new ValueSerializer();
 
+    public PDPConfigurationSerializer() {
+        super(PDPConfiguration.class);
+    }
+
     @Override
-    public void serialize(PDPConfiguration configuration, JsonGenerator generator, SerializerProvider serializers)
-            throws IOException {
+    public void serialize(PDPConfiguration configuration, JsonGenerator generator, SerializationContext serializers) {
         generator.writeStartObject();
 
-        generator.writeStringField("pdpId", configuration.pdpId());
-        generator.writeStringField("configurationId", configuration.configurationId());
+        generator.writeStringProperty("pdpId", configuration.pdpId());
+        generator.writeStringProperty("configurationId", configuration.configurationId());
 
-        generator.writeFieldName("combiningAlgorithm");
+        generator.writeName("combiningAlgorithm");
         serializeCombiningAlgorithm(configuration.combiningAlgorithm(), generator);
 
-        generator.writeFieldName("saplDocuments");
+        generator.writeName("saplDocuments");
         serializeStringList(configuration.saplDocuments(), generator);
 
-        generator.writeFieldName("variables");
+        generator.writeName("variables");
         serializeValueMap(configuration.data().variables(), generator, serializers);
 
-        generator.writeFieldName("secrets");
+        generator.writeName("secrets");
         serializeValueMap(configuration.data().secrets(), generator, serializers);
 
         generator.writeEndObject();
     }
 
-    private void serializeCombiningAlgorithm(CombiningAlgorithm algorithm, JsonGenerator generator) throws IOException {
+    private void serializeCombiningAlgorithm(CombiningAlgorithm algorithm, JsonGenerator generator) {
         generator.writeStartObject();
-        generator.writeStringField("votingMode", algorithm.votingMode().name());
-        generator.writeStringField("defaultDecision", algorithm.defaultDecision().name());
-        generator.writeStringField("errorHandling", algorithm.errorHandling().name());
+        generator.writeStringProperty("votingMode", algorithm.votingMode().name());
+        generator.writeStringProperty("defaultDecision", algorithm.defaultDecision().name());
+        generator.writeStringProperty("errorHandling", algorithm.errorHandling().name());
         generator.writeEndObject();
     }
 
-    private void serializeStringList(java.util.List<String> strings, JsonGenerator generator) throws IOException {
+    private void serializeStringList(List<String> strings, JsonGenerator generator) {
         generator.writeStartArray();
         for (String string : strings) {
             generator.writeString(string);
@@ -96,11 +99,10 @@ public class PDPConfigurationSerializer extends JsonSerializer<PDPConfiguration>
         generator.writeEndArray();
     }
 
-    private void serializeValueMap(ObjectValue map, JsonGenerator generator, SerializerProvider serializers)
-            throws IOException {
+    private void serializeValueMap(ObjectValue map, JsonGenerator generator, SerializationContext serializers) {
         generator.writeStartObject();
         for (val entry : map.entrySet()) {
-            generator.writeFieldName(entry.getKey());
+            generator.writeName(entry.getKey());
             valueSerializer.serialize(entry.getValue(), generator, serializers);
         }
         generator.writeEndObject();

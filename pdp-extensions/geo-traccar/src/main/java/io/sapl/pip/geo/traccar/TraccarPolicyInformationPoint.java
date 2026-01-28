@@ -17,9 +17,8 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.TextNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
@@ -53,10 +52,11 @@ public class TraccarPolicyInformationPoint {
     public static final String NAME           = "traccar";
     public static final String DESCRIPTION    = "This policy information point can fetch device positions and geofences from a traccar server.";
 
-    static final String        ERROR_REQUIRED_FIELD_MISSING    = "Required field '%s' missing from traccar configuration.";
-    static final String        ERROR_TRACCAR_CONFIG_NOT_OBJECT = "TRACCAR_CONFIG must be an object, but was: %s";
-    static final String        ERROR_TRACCAR_CONFIG_UNDEFINED  = "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.";
-    public static final String DOCUMENTATION                   = """
+    static final String        ERROR_BAD_RESPONSE_EXPECTED_ARRAY = "Bad response. Expected a non-empty array, but got: %s.";
+    static final String        ERROR_REQUIRED_FIELD_MISSING      = "Required field '%s' missing from traccar configuration.";
+    static final String        ERROR_TRACCAR_CONFIG_NOT_OBJECT   = "TRACCAR_CONFIG must be an object, but was: %s";
+    static final String        ERROR_TRACCAR_CONFIG_UNDEFINED    = "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.";
+    public static final String DOCUMENTATION                     = """
              This policy information point allows interaction with Traccar servers.
              [Traccar](https://www.traccar.org/) is a GPS tracking platform for monitoring the location of devices and
              managing geofences.
@@ -702,7 +702,7 @@ public class TraccarPolicyInformationPoint {
 
     private static Value takeFirstElementFromArray(Value maybeArray) {
         if (!(maybeArray instanceof ArrayValue array) || array.isEmpty()) {
-            return Value.error("Bad response. Expected a non-empty array. but got: %s".formatted(maybeArray));
+            return Value.error(ERROR_BAD_RESPONSE_EXPECTED_ARRAY.formatted(maybeArray));
         }
         return array.getFirst();
     }
@@ -783,8 +783,8 @@ public class TraccarPolicyInformationPoint {
 
         val requestSettings = JSON.objectNode();
         requestSettings.set(ReactiveWebClient.BASE_URL, toJsonNode(baseUrl));
-        requestSettings.set(ReactiveWebClient.PATH, JSON.textNode(path));
-        requestSettings.set(ReactiveWebClient.ACCEPT_MEDIATYPE, JSON.textNode(MediaType.APPLICATION_JSON_VALUE));
+        requestSettings.set(ReactiveWebClient.PATH, JSON.stringNode(path));
+        requestSettings.set(ReactiveWebClient.ACCEPT_MEDIATYPE, JSON.stringNode(MediaType.APPLICATION_JSON_VALUE));
 
         val headersWithBasicAuth = JSON.objectNode();
         headersWithBasicAuth.set(HttpHeaders.AUTHORIZATION, toJsonNode(authHeaderOrError));
@@ -841,7 +841,7 @@ public class TraccarPolicyInformationPoint {
 
     private static JsonNode toJsonNode(Value value) {
         if (value instanceof TextValue(String textValue)) {
-            return JSON.textNode(textValue);
+            return JSON.stringNode(textValue);
         } else if (value instanceof NumberValue(BigDecimal numberValue)) {
             return JSON.numberNode(numberValue);
         }

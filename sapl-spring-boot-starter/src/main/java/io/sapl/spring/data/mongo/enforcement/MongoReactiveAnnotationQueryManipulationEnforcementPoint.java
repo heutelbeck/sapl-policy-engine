@@ -38,6 +38,7 @@ import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 /**
@@ -50,7 +51,9 @@ import java.util.function.Function;
 @Slf4j
 @AllArgsConstructor
 public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
-    private static final String QUERY_LOG = "[SAPL QUERY: {} ]";
+
+    private static final String ERROR_ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
+    private static final String QUERY_LOG                  = "[SAPL QUERY: {} ]";
 
     private final ObjectProvider<PolicyDecisionPoint>               pdpProvider;
     private final ObjectProvider<BeanFactory>                       beanFactoryProvider;
@@ -89,7 +92,7 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
             var decisionIsPermit = Decision.PERMIT == decision.decision();
 
             if (!decisionIsPermit) {
-                resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+                resourceAccessPoint = Flux.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
             } else {
                 var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForMongoReactive(decision);
@@ -98,8 +101,8 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
                 var conditions      = queryManipulationHandler.getConditions();
                 var selections      = queryManipulationHandler.getSelections();
 
-                var obligations             = java.util.Arrays.stream(jsonObligations)
-                        .map(ValueJsonMarshaller::fromJsonNode).toArray(Value[]::new);
+                var obligations             = Arrays.stream(jsonObligations).map(ValueJsonMarshaller::fromJsonNode)
+                        .toArray(Value[]::new);
                 var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
                         obligations);
 
@@ -113,7 +116,7 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
                 return resourceAccessPoint;
             }
 
-            return Flux.error(new AccessDeniedException("Access Denied by PDP"));
+            return Flux.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
         };
     }
 

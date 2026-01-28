@@ -17,7 +17,7 @@
  */
 package io.sapl.playground.examples;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -50,7 +50,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  */
 class ExamplesCollectionTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     @ParameterizedTest(name = "{0}: {1}")
     @MethodSource("deterministicExamples")

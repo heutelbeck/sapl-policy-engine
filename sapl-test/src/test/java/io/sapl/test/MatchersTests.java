@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -276,7 +277,7 @@ class MatchersTests {
 
     @Test
     void whenArgumentMatchersCreatedWithList_thenContainsMatchers() {
-        var matcherList = java.util.List.of(any(), eq(Value.of("x")));
+        var matcherList = List.of(any(), eq(Value.of("x")));
         var matchers    = MockingFunctionBroker.ArgumentMatchers.of(matcherList);
 
         assertThat(matchers.matchers()).hasSize(2);

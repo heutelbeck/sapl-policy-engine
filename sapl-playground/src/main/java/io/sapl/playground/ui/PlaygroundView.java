@@ -17,9 +17,9 @@
  */
 package io.sapl.playground.ui;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.MissingNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.MissingNode;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -286,7 +286,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             permit false%n\
             """;
 
-    private final ObjectMapper                            mapper;
+    private final JsonMapper                              mapper;
     private final transient PlaygroundValidator           validator;
     private final transient DocumentationDrawer           documentationDrawer;
     private final transient PlaygroundPolicyDecisionPoint policyDecisionPoint;
@@ -361,7 +361,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    public PlaygroundView(ObjectMapper mapper,
+    public PlaygroundView(JsonMapper mapper,
             PlaygroundPolicyDecisionPoint policyDecisionPoint,
             PlaygroundValidator validator,
             DocumentationDrawer documentationDrawer,
@@ -702,7 +702,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             }
             val formattedJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
             editor.setDocument(formattedJson);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             showNotification(MESSAGE_CANNOT_FORMAT_JSON);
         }
     }
@@ -928,7 +928,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val subscriptionJson = subscriptionEditor.getDocument();
         try {
             return mapper.readValue(subscriptionJson, AuthorizationSubscription.class);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             log.debug("Failed to parse authorization subscription: {}", exception.getMessage());
             return null;
         }
@@ -1022,7 +1022,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             val prettyJson = mapper.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(timestampedVote.vote().authorizationDecision());
             decisionJsonEditor.setDocument(prettyJson);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             decisionJsonEditor.setDocument(MESSAGE_ERROR_READING_DECISION + timestampedVote);
         }
     }
@@ -1363,7 +1363,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             });
 
             return variables;
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             log.error("Unexpected invalid JSON in variables after validation", exception);
             return Map.of();
         }

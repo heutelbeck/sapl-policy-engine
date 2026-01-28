@@ -27,7 +27,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import io.sapl.grammar.antlr.SAPLParser.AttributeFinderDotStepContext;
 import io.sapl.grammar.antlr.SAPLParser.BasicContext;

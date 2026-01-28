@@ -17,8 +17,8 @@
  */
 package io.sapl.api.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -105,8 +105,8 @@ class ValueJsonMarshallerTests {
         var result   = ValueJsonMarshaller.fromJsonNode(node);
 
         assertThat(result).isEqualTo(original).isInstanceOf(TextValue.class);
-        assertThat(node.isTextual()).isTrue();
-        assertThat(node.asText()).isEqualTo(value);
+        assertThat(node.isString()).isTrue();
+        assertThat(node.asString()).isEqualTo(value);
     }
 
     static Stream<Arguments> textValues() {
@@ -748,7 +748,7 @@ class ValueJsonMarshallerTests {
 
         assertThat(result.isObject()).isTrue();
         assertThat(result).hasSize(1);
-        assertThat(result.get("_type").asText()).isEqualTo("undefined");
+        assertThat(result.get("_type").asString()).isEqualTo("undefined");
     }
 
     @Test
@@ -758,8 +758,8 @@ class ValueJsonMarshallerTests {
         var result = ValueJsonMarshaller.toJsonNodeLenient(error);
 
         assertThat(result.isObject()).isTrue();
-        assertThat(result.get("_type").asText()).isEqualTo("error");
-        assertThat(result.get("message").asText()).isEqualTo("Something went wrong");
+        assertThat(result.get("_type").asString()).isEqualTo("error");
+        assertThat(result.get("message").asString()).isEqualTo("Something went wrong");
     }
 
     @Test
@@ -770,9 +770,9 @@ class ValueJsonMarshallerTests {
 
         var result = ValueJsonMarshaller.toJsonNodeLenient(error);
 
-        assertThat(result.get("_type").asText()).isEqualTo("error");
-        assertThat(result.get("message").asText()).isEqualTo("Parse error");
-        assertThat(result.get("documentName").asText()).isEqualTo("policy.sapl");
+        assertThat(result.get("_type").asString()).isEqualTo("error");
+        assertThat(result.get("message").asString()).isEqualTo("Parse error");
+        assertThat(result.get("documentName").asString()).isEqualTo("policy.sapl");
         assertThat(result.get("line").asInt()).isEqualTo(5);
         assertThat(result.get("column").asInt()).isEqualTo(10);
         assertThat(result.get("endLine").asInt()).isEqualTo(5);
@@ -787,8 +787,8 @@ class ValueJsonMarshallerTests {
         var result = ValueJsonMarshaller.toJsonNodeLenient(array);
 
         assertThat(result.isArray()).isTrue();
-        assertThat(result.get(0).asText()).isEqualTo("visible");
-        assertThat(result.get(1).get("_type").asText()).isEqualTo("undefined");
+        assertThat(result.get(0).asString()).isEqualTo("visible");
+        assertThat(result.get(1).get("_type").asString()).isEqualTo("undefined");
         assertThat(result.get(2).asInt()).isEqualTo(42);
     }
 
@@ -799,9 +799,9 @@ class ValueJsonMarshallerTests {
         var result = ValueJsonMarshaller.toJsonNodeLenient(object);
 
         assertThat(result.isObject()).isTrue();
-        assertThat(result.get("status").asText()).isEqualTo("failed");
-        assertThat(result.get("error").get("_type").asText()).isEqualTo("error");
-        assertThat(result.get("error").get("message").asText()).isEqualTo("Database timeout");
+        assertThat(result.get("status").asString()).isEqualTo("failed");
+        assertThat(result.get("error").get("_type").asString()).isEqualTo("error");
+        assertThat(result.get("error").get("message").asString()).isEqualTo("Database timeout");
     }
 
     @Test

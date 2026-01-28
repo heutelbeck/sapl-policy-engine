@@ -17,7 +17,8 @@
  */
 package io.sapl.pdp.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -96,12 +97,20 @@ public class PDPConfigurationLoader {
     private static final long MAX_TOTAL_SIZE_BYTES     = 10L * 1024 * 1024;
     private static final long MAX_TOTAL_SIZE_MEGABYTES = MAX_TOTAL_SIZE_BYTES / (1024 * 1024);
 
-    private static final ObjectMapper MAPPER = createMapper();
+    private static final String ERROR_BUNDLE_MISSING_CONFIGURATION_ID = "Bundle '%s' pdp.json is missing required field 'configurationId'.";
+    private static final String ERROR_BUNDLE_MISSING_PDP_JSON         = "Bundle '%s' is missing pdp.json. Bundles require pdp.json with a configurationId.";
+    private static final String ERROR_FAILED_TO_LIST_SAPL_FILES       = "Failed to list SAPL files in directory.";
+    private static final String ERROR_FAILED_TO_PARSE_PDP_JSON        = "Failed to parse pdp.json content.";
+    private static final String ERROR_FAILED_TO_READ_PDP_JSON         = "Failed to read pdp.json from '%s'.";
+    private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT    = "Failed to read SAPL document '%s'.";
+    private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
+    private static final String ERROR_SHA256_NOT_AVAILABLE            = "SHA-256 algorithm not available.";
+    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM      = "Total size of SAPL documents exceeds maximum of %d MB.";
 
-    private static ObjectMapper createMapper() {
-        val mapper = new ObjectMapper();
-        mapper.registerModule(new SaplJacksonModule());
-        return mapper;
+    private static final JsonMapper MAPPER = createMapper();
+
+    private static JsonMapper createMapper() {
+        return JsonMapper.builder().addModule(new SaplJacksonModule()).build();
     }
 
     /**
@@ -190,16 +199,13 @@ public class PDPConfigurationLoader {
     public static PDPConfiguration loadFromBundle(String pdpJsonContent, Map<String, String> saplDocuments,
             String pdpId) {
         if (pdpJsonContent == null || pdpJsonContent.isBlank()) {
-            throw new PDPConfigurationException(
-                    "Bundle '%s' is missing pdp.json. Bundles require pdp.json with a configurationId."
-                            .formatted(pdpId));
+            throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_PDP_JSON.formatted(pdpId));
         }
 
         val pdpJson = parsePdpJson(pdpJsonContent);
 
         if (pdpJson.configurationId() == null || pdpJson.configurationId().isBlank()) {
-            throw new PDPConfigurationException(
-                    "Bundle '%s' pdp.json is missing required field 'configurationId'.".formatted(pdpId));
+            throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_CONFIGURATION_ID.formatted(pdpId));
         }
 
         val documents = new ArrayList<>(saplDocuments.values());
@@ -257,7 +263,7 @@ public class PDPConfigurationLoader {
             val hashBytes = digest.digest(builder.toString().getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hashBytes);
         } catch (NoSuchAlgorithmException e) {
-            throw new PDPConfigurationException("SHA-256 algorithm not available.", e);
+            throw new PDPConfigurationException(ERROR_SHA256_NOT_AVAILABLE, e);
         }
     }
 
@@ -269,7 +275,7 @@ public class PDPConfigurationLoader {
             val content = Files.readString(pdpJsonPath, StandardCharsets.UTF_8);
             return parsePdpJson(content);
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to read pdp.json from '%s'.".formatted(pdpJsonPath), e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_READ_PDP_JSON.formatted(pdpJsonPath), e);
         }
     }
 
@@ -288,8 +294,8 @@ public class PDPConfigurationLoader {
             String configurationId = null;
             if (node.has("configurationId")) {
                 val idNode = node.get("configurationId");
-                if (idNode.isTextual() && !idNode.asText().isBlank()) {
-                    configurationId = idNode.asText();
+                if (idNode.isString() && !idNode.asString().isBlank()) {
+                    configurationId = idNode.asString();
                 }
             }
 
@@ -311,8 +317,8 @@ public class PDPConfigurationLoader {
             }
 
             return new PdpJsonContent(algorithm, configurationId, variables.build(), secrets.build());
-        } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to parse pdp.json content.", e);
+        } catch (JacksonException e) {
+            throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
     }
 
@@ -322,11 +328,11 @@ public class PDPConfigurationLoader {
             saplPaths = paths.filter(p -> p.toString().endsWith(SAPL_EXTENSION))
                     .filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)).toList();
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to list SAPL files in directory.", e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_LIST_SAPL_FILES, e);
         }
 
         if (saplPaths.size() > MAX_FILE_COUNT) {
-            throw new PDPConfigurationException("File count exceeds maximum of %d files.".formatted(MAX_FILE_COUNT));
+            throw new PDPConfigurationException(ERROR_FILE_COUNT_EXCEEDS_MAXIMUM.formatted(MAX_FILE_COUNT));
         }
 
         // Read files and validate size atomically to prevent TOCTOU attacks.
@@ -339,7 +345,7 @@ public class PDPConfigurationLoader {
             totalSize += content.getBytes(StandardCharsets.UTF_8).length;
             if (totalSize > MAX_TOTAL_SIZE_BYTES) {
                 throw new PDPConfigurationException(
-                        "Total size of SAPL documents exceeds maximum of %d MB.".formatted(MAX_TOTAL_SIZE_MEGABYTES));
+                        ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM.formatted(MAX_TOTAL_SIZE_MEGABYTES));
             }
             val fileNamePath = path.getFileName();
             if (fileNamePath == null) {
@@ -355,7 +361,7 @@ public class PDPConfigurationLoader {
         try {
             return Files.readString(path, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to read SAPL document '%s'.".formatted(path.getFileName()), e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_READ_SAPL_DOCUMENT.formatted(path.getFileName()), e);
         }
     }
 

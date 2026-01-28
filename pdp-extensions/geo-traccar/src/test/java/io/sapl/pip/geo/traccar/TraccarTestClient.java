@@ -17,13 +17,13 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.Charsets;
+import tools.jackson.databind.JsonNode;
 import lombok.val;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
@@ -36,7 +36,7 @@ public class TraccarTestClient {
 
     public TraccarTestClient(String host, int apiPort, int positioningPort, String email, String password) {
         val basicAuthValue = "Basic "
-                + Base64.getEncoder().encodeToString((email + ":" + password).getBytes(Charsets.UTF_8));
+                + Base64.getEncoder().encodeToString((email + ":" + password).getBytes(StandardCharsets.UTF_8));
         apiClient         = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, apiPort))
                 .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuthValue).build();
         positioningClient = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, positioningPort))
@@ -64,7 +64,7 @@ public class TraccarTestClient {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).bodyValue(body).retrieve()
                 .bodyToMono(JsonNode.class).blockOptional();
         if (createdDevice.isPresent()) {
-            return createdDevice.get().get("id").asText();
+            return createdDevice.get().get("id").asString();
         }
         throw new IllegalStateException("Could not create device");
     }
@@ -72,7 +72,7 @@ public class TraccarTestClient {
     public String createGeofence(String geoFenceData) {
         return apiClient.post().uri("/api/geofences").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .bodyValue(geoFenceData).retrieve().bodyToMono(JsonNode.class).blockOptional()
-                .map(o -> o.get("id").asText()).orElse("");
+                .map(o -> o.get("id").asString()).orElse("");
     }
 
     public String addTraccarPosition(String deviceId, Double lat, Double lon, Double altitude) {

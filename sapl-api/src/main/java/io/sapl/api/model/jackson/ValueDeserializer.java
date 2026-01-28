@@ -17,17 +17,15 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-
-import java.io.IOException;
-import java.util.ArrayList;
-
 import lombok.val;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
+
+import java.util.ArrayList;
 
 /**
  * Jackson deserializer for the SAPL Value hierarchy.
@@ -45,11 +43,17 @@ import lombok.val;
  * Note: UndefinedValue and ErrorValue cannot be deserialized from JSON as they
  * have no JSON representation.
  */
-public class ValueDeserializer extends JsonDeserializer<Value> {
+public class ValueDeserializer extends StdDeserializer<Value> {
+
+    public ValueDeserializer() {
+        super(Value.class);
+    }
+
+    private static final String ERROR_UNEXPECTED_TOKEN = "Unexpected JSON token: %s";
 
     @Override
-    public Value deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-        return deserializeValue(parser);
+    public Value deserialize(JsonParser parser, DeserializationContext context) {
+        return deserializeValue(parser, context);
     }
 
     @Override
@@ -57,34 +61,35 @@ public class ValueDeserializer extends JsonDeserializer<Value> {
         return Value.NULL;
     }
 
-    private Value deserializeValue(JsonParser parser) throws IOException {
+    private Value deserializeValue(JsonParser parser, DeserializationContext context) {
         val token = parser.currentToken();
         return switch (token) {
         case VALUE_NULL                           -> Value.NULL;
         case VALUE_TRUE                           -> Value.TRUE;
         case VALUE_FALSE                          -> Value.FALSE;
         case VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT -> Value.of(parser.getDecimalValue());
-        case VALUE_STRING                         -> Value.of(parser.getText());
-        case START_ARRAY                          -> deserializeArray(parser);
-        case START_OBJECT                         -> deserializeObject(parser);
-        default                                   -> throw new IOException("Unexpected JSON token: " + token);
+        case VALUE_STRING                         -> Value.of(parser.getString());
+        case START_ARRAY                          -> deserializeArray(parser, context);
+        case START_OBJECT                         -> deserializeObject(parser, context);
+        default                                   ->
+            context.reportInputMismatch(Value.class, ERROR_UNEXPECTED_TOKEN.formatted(token));
         };
     }
 
-    private Value deserializeArray(JsonParser parser) throws IOException {
+    private Value deserializeArray(JsonParser parser, DeserializationContext context) {
         val elements = new ArrayList<Value>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
-            elements.add(deserializeValue(parser));
+            elements.add(deserializeValue(parser, context));
         }
         return Value.ofArray(elements);
     }
 
-    private Value deserializeObject(JsonParser parser) throws IOException {
+    private Value deserializeObject(JsonParser parser, DeserializationContext context) {
         val builder = ObjectValue.builder();
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val fieldName = parser.currentName();
             parser.nextToken();
-            builder.put(fieldName, deserializeValue(parser));
+            builder.put(fieldName, deserializeValue(parser, context));
         }
         return builder.build();
     }

@@ -17,8 +17,8 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.dataformat.toml.TomlMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.toml.TomlMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
@@ -55,7 +55,7 @@ public class TomlFunctionLibrary {
             }
             """;
 
-    private static final TomlMapper TOML_MAPPER = new TomlMapper();
+    private static final TomlMapper TOML_MAPPER = TomlMapper.builder().build();
 
     /**
      * Converts a well-formed TOML document into a SAPL value.
@@ -82,7 +82,7 @@ public class TomlFunctionLibrary {
         try {
             val jsonNode = TOML_MAPPER.readTree(toml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_PARSE, exception.getMessage());
         }
     }
@@ -113,7 +113,7 @@ public class TomlFunctionLibrary {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
             val tomlString = TOML_MAPPER.writeValueAsString(jsonNode);
             return Value.of(tomlString);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

@@ -17,29 +17,35 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-
-import java.io.IOException;
-
 import lombok.val;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
  * Jackson deserializer for IdentifiableAuthorizationDecision.
  */
-public class IdentifiableAuthorizationDecisionDeserializer extends JsonDeserializer<IdentifiableAuthorizationDecision> {
+public class IdentifiableAuthorizationDecisionDeserializer extends StdDeserializer<IdentifiableAuthorizationDecision> {
+
+    /**
+     * Default constructor required by Jackson 3.
+     */
+    public IdentifiableAuthorizationDecisionDeserializer() {
+        super(IdentifiableAuthorizationDecision.class);
+    }
+
+    private static final String ERROR_EXPECTED_START_OBJECT   = "Expected START_OBJECT for IdentifiableAuthorizationDecision.";
+    private static final String ERROR_MISSING_REQUIRED_FIELDS = "IdentifiableAuthorizationDecision requires subscriptionId and decision fields.";
 
     private final AuthorizationDecisionDeserializer decisionDeserializer = new AuthorizationDecisionDeserializer();
 
     @Override
-    public IdentifiableAuthorizationDecision deserialize(JsonParser parser, DeserializationContext context)
-            throws IOException {
+    public IdentifiableAuthorizationDecision deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            throw new IOException("Expected START_OBJECT for IdentifiableAuthorizationDecision.");
+            context.reportInputMismatch(IdentifiableAuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         String                subscriptionId = null;
@@ -50,14 +56,14 @@ public class IdentifiableAuthorizationDecisionDeserializer extends JsonDeseriali
             parser.nextToken();
 
             switch (fieldName) {
-            case "subscriptionId" -> subscriptionId = parser.getText();
+            case "subscriptionId" -> subscriptionId = parser.getString();
             case "decision"       -> decision = decisionDeserializer.deserialize(parser, context);
             default               -> parser.skipChildren();
             }
         }
 
         if (subscriptionId == null || decision == null) {
-            throw new IOException("IdentifiableAuthorizationDecision requires subscriptionId and decision fields.");
+            context.reportInputMismatch(IdentifiableAuthorizationDecision.class, ERROR_MISSING_REQUIRED_FIELDS);
         }
 
         return new IdentifiableAuthorizationDecision(subscriptionId, decision);

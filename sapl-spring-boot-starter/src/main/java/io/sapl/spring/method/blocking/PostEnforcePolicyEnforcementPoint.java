@@ -46,6 +46,13 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
+    private static final String ERROR_ACCESS_DENIED_ACTION_NOT_PERMITTED              = "Access Denied. Action not permitted.";
+    private static final String ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_FAILED        = "Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision.";
+    private static final String ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL = "Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null";
+    private static final String ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY         = "Access Denied by @PostEnforce PEP. PDP decision stream was empty. %s";
+    private static final String ERROR_ACCESS_DENIED_PDP_RETURNED_NULL                 = "Access Denied by @PostEnforce PEP. PDP returned null. %s";
+    private static final String ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT    = "An Authentication object was not found in the SecurityContext";
+
     private final Supplier<Authentication> authentication = getAuthentication(
             SecurityContextHolder.getContextHolderStrategy());
 
@@ -86,15 +93,13 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
         final var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
-            throw new AccessDeniedException(
-                    String.format("Access Denied by @PostEnforce PEP. PDP returned null. %s", attribute));
+            throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_RETURNED_NULL, attribute));
         }
 
         final var authzDecision = authzDecisions.blockFirst();
 
         if (authzDecision == null) {
-            throw new AccessDeniedException(
-                    String.format("Access Denied by @PostEnforce PEP. PDP decision stream was empty. %s", attribute));
+            throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY, attribute));
         }
 
         return enforceDecision(isOptional, returnedObjectForAuthzSubscription, returnType, authzDecision);
@@ -108,13 +113,11 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
                     .blockingPostEnforceBundleFor(authzDecision, returnType);
         } catch (Throwable e) {
             Exceptions.throwIfFatal(e);
-            throw new AccessDeniedException(
-                    "Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision.", e);
+            throw new AccessDeniedException(ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_FAILED, e);
         }
 
         if (blockingPostEnforceBundle == null) {
-            throw new AccessDeniedException(
-                    "Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
+            throw new AccessDeniedException(ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL);
         }
 
         try {
@@ -122,7 +125,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
             final var isNotPermit = authzDecision.decision() != Decision.PERMIT;
             if (isNotPermit)
-                throw new AccessDeniedException("Access Denied. Action not permitted.");
+                throw new AccessDeniedException(ERROR_ACCESS_DENIED_ACTION_NOT_PERMITTED);
 
             final var result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
 
@@ -141,7 +144,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
             final var authentication = strategy.getContext().getAuthentication();
             if (authentication == null) {
                 throw new AuthenticationCredentialsNotFoundException(
-                        "An Authentication object was not found in the SecurityContext");
+                        ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);
             }
             return authentication;
         };

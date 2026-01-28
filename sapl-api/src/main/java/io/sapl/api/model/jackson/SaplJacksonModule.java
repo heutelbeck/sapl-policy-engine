@@ -17,7 +17,7 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.module.SimpleModule;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;

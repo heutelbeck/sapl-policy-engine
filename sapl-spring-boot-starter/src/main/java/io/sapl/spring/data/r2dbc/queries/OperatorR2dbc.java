@@ -24,6 +24,7 @@ import java.util.List;
 
 @Getter
 public enum OperatorR2dbc {
+
     BETWEEN(true, List.of("BETWEEN")),
     LESS_THAN(false, List.of("<")),
     LESS_THAN_EQUAL(false, List.of("<=")),
@@ -40,6 +41,8 @@ public enum OperatorR2dbc {
     NEGATING_SIMPLE_PROPERTY(false, List.of("<>", "!=")),
     SIMPLE_PROPERTY(false, List.of("=")),
     CONTAINING(false, List.of("LIKE"));
+
+    private static final String ERROR_UNKNOWN_OPERATOR_KEYWORD = "Unknown operator keyword: %s";
 
     /**
      * Creates a new {@link Part.Type} using the given keyword, number of arguments
@@ -63,7 +66,7 @@ public enum OperatorR2dbc {
                 return operator;
             }
         }
-        throw new UnsupportedOperationException("Unknown operator keyword: " + keyword);
+        throw new UnsupportedOperationException(ERROR_UNKNOWN_OPERATOR_KEYWORD.formatted(keyword));
     }
 
     public final boolean       isArray;

@@ -22,14 +22,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import List;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
@@ -38,7 +39,7 @@ import lombok.val;
 @DisplayName("Fixture coverage integration tests")
 class FixtureCoverageIntegrationTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private static final String MISKATONIC_POLICY = """
             policy "miskatonic-library-access"
@@ -173,16 +174,16 @@ class FixtureCoverageIntegrationTests {
         assertThat(coverageFiles).isEmpty();
     }
 
-    private java.util.List<Path> listCoverageFiles(Path directory) {
+    private List<Path> listCoverageFiles(Path directory) {
         try {
             if (!Files.exists(directory)) {
-                return java.util.List.of();
+                return List.of();
             }
             try (val stream = Files.list(directory)) {
                 return stream.filter(p -> p.getFileName().toString().endsWith(".ndjson")).toList();
             }
         } catch (IOException e) {
-            return java.util.List.of();
+            return List.of();
         }
     }
 

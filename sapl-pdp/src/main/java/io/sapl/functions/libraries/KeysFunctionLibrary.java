@@ -17,8 +17,8 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
@@ -36,13 +36,18 @@ import lombok.val;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.EdECPublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
@@ -548,11 +553,11 @@ public class KeysFunctionLibrary {
     private static PublicKey convertJwkToPublicKey(JsonNode jwkNode)
             throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidAlgorithmParameterException {
         val keyTypeNode = jwkNode.get("kty");
-        if (keyTypeNode == null || !keyTypeNode.isTextual()) {
+        if (keyTypeNode == null || !keyTypeNode.isString()) {
             throw new CryptoException(ERROR_JWK_MISSING_KTY);
         }
 
-        val keyType = keyTypeNode.asText();
+        val keyType = keyTypeNode.asString();
 
         return switch (keyType) {
         case JWK_KEY_TYPE_RSA -> convertRsaJwkToPublicKey(jwkNode);
@@ -570,19 +575,19 @@ public class KeysFunctionLibrary {
         val modulusNode  = jwkNode.get("n");
         val exponentNode = jwkNode.get("e");
 
-        if (modulusNode == null || !modulusNode.isTextual()) {
+        if (modulusNode == null || !modulusNode.isString()) {
             throw new CryptoException(ERROR_RSA_JWK_MISSING_MODULUS);
         }
-        if (exponentNode == null || !exponentNode.isTextual()) {
+        if (exponentNode == null || !exponentNode.isString()) {
             throw new CryptoException(ERROR_RSA_JWK_MISSING_EXPONENT);
         }
 
-        val modulusBytes  = base64UrlDecode(modulusNode.asText());
-        val exponentBytes = base64UrlDecode(exponentNode.asText());
+        val modulusBytes  = base64UrlDecode(modulusNode.asString());
+        val exponentBytes = base64UrlDecode(exponentNode.asString());
         val modulus       = new BigInteger(1, modulusBytes);
         val exponent      = new BigInteger(1, exponentBytes);
 
-        val keySpec = new java.security.spec.RSAPublicKeySpec(modulus, exponent);
+        val keySpec = new RSAPublicKeySpec(modulus, exponent);
         return KeyFactory.getInstance(ALGORITHM_RSA).generatePublic(keySpec);
     }
 
@@ -595,19 +600,19 @@ public class KeysFunctionLibrary {
         val xNode     = jwkNode.get("x");
         val yNode     = jwkNode.get("y");
 
-        if (curveNode == null || !curveNode.isTextual()) {
+        if (curveNode == null || !curveNode.isString()) {
             throw new CryptoException(ERROR_EC_JWK_MISSING_CURVE);
         }
-        if (xNode == null || !xNode.isTextual()) {
+        if (xNode == null || !xNode.isString()) {
             throw new CryptoException(ERROR_EC_JWK_MISSING_X);
         }
-        if (yNode == null || !yNode.isTextual()) {
+        if (yNode == null || !yNode.isString()) {
             throw new CryptoException(ERROR_EC_JWK_MISSING_Y);
         }
 
-        val curveName = curveNode.asText();
-        val xBytes    = base64UrlDecode(xNode.asText());
-        val yBytes    = base64UrlDecode(yNode.asText());
+        val curveName = curveNode.asString();
+        val xBytes    = base64UrlDecode(xNode.asString());
+        val yBytes    = base64UrlDecode(yNode.asString());
 
         // Convert JWK curve name to Java curve name
         val javaCurveName = switch (curveName) {
@@ -620,17 +625,17 @@ public class KeysFunctionLibrary {
         // Build EC point and key spec
         val x     = new BigInteger(1, xBytes);
         val y     = new BigInteger(1, yBytes);
-        val point = new java.security.spec.ECPoint(x, y);
+        val point = new ECPoint(x, y);
 
         // Get the curve parameters by generating a temporary key
-        val parameterSpec = new java.security.spec.ECGenParameterSpec(javaCurveName);
-        val keyPairGen    = java.security.KeyPairGenerator.getInstance(ALGORITHM_EC);
+        val parameterSpec = new ECGenParameterSpec(javaCurveName);
+        val keyPairGen    = KeyPairGenerator.getInstance(ALGORITHM_EC);
         keyPairGen.initialize(parameterSpec);
         val tempKeyPair = keyPairGen.generateKeyPair();
         val tempEcKey   = (ECPublicKey) tempKeyPair.getPublic();
         val ecParams    = tempEcKey.getParams();
 
-        val keySpec    = new java.security.spec.ECPublicKeySpec(point, ecParams);
+        val keySpec    = new ECPublicKeySpec(point, ecParams);
         val keyFactory = KeyFactory.getInstance(ALGORITHM_EC);
         return keyFactory.generatePublic(keySpec);
     }
@@ -643,19 +648,19 @@ public class KeysFunctionLibrary {
         val curveNode = jwkNode.get("crv");
         val xNode     = jwkNode.get("x");
 
-        if (curveNode == null || !curveNode.isTextual()) {
+        if (curveNode == null || !curveNode.isString()) {
             throw new CryptoException(ERROR_OKP_JWK_MISSING_CURVE);
         }
-        if (xNode == null || !xNode.isTextual()) {
+        if (xNode == null || !xNode.isString()) {
             throw new CryptoException(ERROR_OKP_JWK_MISSING_X);
         }
 
-        val curveName = curveNode.asText();
+        val curveName = curveNode.asString();
         if (!CURVE_ED25519.equals(curveName)) {
             throw new CryptoException(ERROR_UNSUPPORTED_OKP_CURVE.formatted(curveName));
         }
 
-        val rawKeyBytes = base64UrlDecode(xNode.asText());
+        val rawKeyBytes = base64UrlDecode(xNode.asString());
 
         // Reconstruct X.509 structure for Ed25519: 30 2a 30 05 06 03 2b 65 70 03 21 00
         // [32 bytes]

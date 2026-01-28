@@ -30,12 +30,14 @@ import java.util.List;
  */
 public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector<EnableReactiveSaplMethodSecurity> {
 
+    private static final String ERROR_ADVICE_MODE_NOT_SUPPORTED = "AdviceMode %s is not supported";
+
     @Override
     protected String[] selectImports(@NonNull AdviceMode adviceMode) {
         if (adviceMode == AdviceMode.PROXY) {
             return getProxyImports();
         }
-        throw new IllegalStateException("AdviceMode " + adviceMode + " is not supported");
+        throw new IllegalStateException(ERROR_ADVICE_MODE_NOT_SUPPORTED.formatted(adviceMode));
     }
 
     /**

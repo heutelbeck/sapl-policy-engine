@@ -17,7 +17,7 @@
  */
 package io.sapl.node;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
@@ -27,7 +27,7 @@ import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
+import org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,7 +45,7 @@ import java.util.List;
 public class SaplExtensionsConfig {
 
     @Bean
-    ReactiveWebClient reactiveWebClient(ObjectMapper mapper) {
+    ReactiveWebClient reactiveWebClient(JsonMapper mapper) {
         return new ReactiveWebClient(mapper);
     }
 

@@ -17,8 +17,8 @@
  */
 package io.sapl.playground.domain;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import lombok.RequiredArgsConstructor;
@@ -76,7 +76,30 @@ public class PermalinkService {
      */
     private static final int MAX_POLICIES_COUNT = 20;
 
-    private final ObjectMapper        mapper;
+    private static final String ERROR_AT_LEAST_ONE_POLICY_REQUIRED     = "At least one policy is required";
+    private static final String ERROR_AUTHORIZATION_SUBSCRIPTION       = "Authorization subscription is required";
+    private static final String ERROR_COMBINING_ALGORITHM_REQUIRED     = "Combining algorithm is required";
+    private static final String ERROR_COMPRESSED_DATA_EXCEEDS_MAX_SIZE = "Compressed data exceeds maximum size";
+    private static final String ERROR_COMPRESSED_STATE_EXCEEDS_MAX     = "Compressed state exceeds maximum size of %d bytes. Current size: %d";
+    private static final String ERROR_CORRUPTED_PERMALINK_DATA         = "Corrupted permalink data";
+    private static final String ERROR_DECOMPRESSED_DATA_EXCEEDS_MAX    = "Decompressed data exceeds maximum size";
+    private static final String ERROR_ENCODED_PERMALINK_EMPTY          = "Encoded permalink is empty";
+    private static final String ERROR_ENCODED_PERMALINK_EXCEEDS_LENGTH = "Encoded permalink exceeds maximum length";
+    private static final String ERROR_FAILED_COMPRESSION               = "Failed to create permalink: compression error";
+    private static final String ERROR_FAILED_SERIALIZATION             = "Failed to create permalink: serialization error";
+    private static final String ERROR_INDIVIDUAL_POLICY_TOO_LARGE      = "Individual policy document too large";
+    private static final String ERROR_INVALID_AUTHORIZATION_SUBSCRIPT  = "Invalid authorization subscription: %s";
+    private static final String ERROR_INVALID_PERMALINK_DATA           = "Invalid permalink data";
+    private static final String ERROR_INVALID_PERMALINK_FORMAT         = "Invalid permalink format";
+    private static final String ERROR_INVALID_VARIABLES_DOCUMENT       = "Invalid variables document: %s";
+    private static final String ERROR_PLAYGROUND_STATE_NULL            = "Playground state is null";
+    private static final String ERROR_POLICIES_LIST_NULL               = "Policies list is null";
+    private static final String ERROR_POLICY_DOCUMENT_NULL             = "Policy document is null";
+    private static final String ERROR_SELECTED_POLICY_INDEX_OUT_BOUNDS = "Selected policy index out of bounds";
+    private static final String ERROR_TOO_MANY_POLICIES                = "Too many policies (max: %d)";
+    private static final String ERROR_VARIABLES_DOCUMENT_REQUIRED      = "Variables document is required";
+
+    private final JsonMapper          mapper;
     private final PlaygroundValidator validator;
 
     /**
@@ -99,18 +122,18 @@ public class PermalinkService {
             val compressedBytes = compress(jsonBytes);
 
             if (compressedBytes.length > MAX_COMPRESSED_SIZE_BYTES) {
-                throw new PermalinkException("Compressed state exceeds maximum size of " + MAX_COMPRESSED_SIZE_BYTES
-                        + " bytes. Current size: " + compressedBytes.length);
+                throw new PermalinkException(
+                        ERROR_COMPRESSED_STATE_EXCEEDS_MAX.formatted(MAX_COMPRESSED_SIZE_BYTES, compressedBytes.length));
             }
 
             return Base64.getUrlEncoder().withoutPadding().encodeToString(compressedBytes);
 
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             log.error("Failed to serialize playground state", exception);
-            throw new PermalinkException("Failed to create permalink: serialization error", exception);
+            throw new PermalinkException(ERROR_FAILED_SERIALIZATION, exception);
         } catch (IOException exception) {
             log.error("Failed to compress playground state", exception);
-            throw new PermalinkException("Failed to create permalink: compression error", exception);
+            throw new PermalinkException(ERROR_FAILED_COMPRESSION, exception);
         }
     }
 
@@ -144,13 +167,13 @@ public class PermalinkService {
 
         } catch (IllegalArgumentException exception) {
             log.debug("Invalid base64 encoding in permalink", exception);
-            throw new PermalinkException("Invalid permalink format", exception);
-        } catch (JsonProcessingException exception) {
+            throw new PermalinkException(ERROR_INVALID_PERMALINK_FORMAT, exception);
+        } catch (JacksonException exception) {
             log.debug("Failed to deserialize playground state", exception);
-            throw new PermalinkException("Invalid permalink data", exception);
+            throw new PermalinkException(ERROR_INVALID_PERMALINK_DATA, exception);
         } catch (IOException exception) {
             log.debug("Failed to decompress permalink data", exception);
-            throw new PermalinkException("Corrupted permalink data", exception);
+            throw new PermalinkException(ERROR_CORRUPTED_PERMALINK_DATA, exception);
         }
     }
 
@@ -159,11 +182,11 @@ public class PermalinkService {
      */
     private void validateEncodedString(String encoded) throws PermalinkException {
         if (encoded == null || encoded.isEmpty()) {
-            throw new PermalinkException("Encoded permalink is empty");
+            throw new PermalinkException(ERROR_ENCODED_PERMALINK_EMPTY);
         }
 
         if (encoded.length() > MAX_COMPRESSED_SIZE_BYTES * 2) {
-            throw new PermalinkException("Encoded permalink exceeds maximum length");
+            throw new PermalinkException(ERROR_ENCODED_PERMALINK_EXCEEDS_LENGTH);
         }
     }
 
@@ -172,7 +195,7 @@ public class PermalinkService {
      */
     private void validateCompressedSize(byte[] compressedBytes) throws PermalinkException {
         if (compressedBytes.length > MAX_COMPRESSED_SIZE_BYTES) {
-            throw new PermalinkException("Compressed data exceeds maximum size");
+            throw new PermalinkException(ERROR_COMPRESSED_DATA_EXCEEDS_MAX_SIZE);
         }
     }
 
@@ -181,7 +204,7 @@ public class PermalinkService {
      */
     private void validateDecompressedSize(byte[] decompressedBytes) throws PermalinkException {
         if (decompressedBytes.length > MAX_UNCOMPRESSED_SIZE_BYTES) {
-            throw new PermalinkException("Decompressed data exceeds maximum size");
+            throw new PermalinkException(ERROR_DECOMPRESSED_DATA_EXCEEDS_MAX);
         }
     }
 
@@ -217,7 +240,7 @@ public class PermalinkService {
      */
     private void validateStateNotNull(PlaygroundState state) throws PermalinkException {
         if (state == null) {
-            throw new PermalinkException("Playground state is null");
+            throw new PermalinkException(ERROR_PLAYGROUND_STATE_NULL);
         }
     }
 
@@ -226,15 +249,15 @@ public class PermalinkService {
      */
     private void validatePolicies(Collection<String> policies, boolean requireNonEmpty) throws PermalinkException {
         if (policies == null) {
-            throw new PermalinkException("Policies list is null");
+            throw new PermalinkException(ERROR_POLICIES_LIST_NULL);
         }
 
         if (requireNonEmpty && policies.isEmpty()) {
-            throw new PermalinkException("At least one policy is required");
+            throw new PermalinkException(ERROR_AT_LEAST_ONE_POLICY_REQUIRED);
         }
 
         if (policies.size() > MAX_POLICIES_COUNT) {
-            throw new PermalinkException("Too many policies (max: " + MAX_POLICIES_COUNT + ")");
+            throw new PermalinkException(ERROR_TOO_MANY_POLICIES.formatted(MAX_POLICIES_COUNT));
         }
     }
 
@@ -244,10 +267,10 @@ public class PermalinkService {
     private void validateEachPolicy(List<String> policies) throws PermalinkException {
         for (var policy : policies) {
             if (policy == null) {
-                throw new PermalinkException("Policy document is null");
+                throw new PermalinkException(ERROR_POLICY_DOCUMENT_NULL);
             }
             if (policy.length() > MAX_UNCOMPRESSED_SIZE_BYTES / MAX_POLICIES_COUNT) {
-                throw new PermalinkException("Individual policy document too large");
+                throw new PermalinkException(ERROR_INDIVIDUAL_POLICY_TOO_LARGE);
             }
         }
     }
@@ -257,7 +280,7 @@ public class PermalinkService {
      */
     private void validateSubscription(String subscription) throws PermalinkException {
         if (subscription == null || subscription.isEmpty()) {
-            throw new PermalinkException("Authorization subscription is required");
+            throw new PermalinkException(ERROR_AUTHORIZATION_SUBSCRIPTION);
         }
     }
 
@@ -266,7 +289,7 @@ public class PermalinkService {
      */
     private void validateVariables(String variables) throws PermalinkException {
         if (variables == null || variables.isEmpty()) {
-            throw new PermalinkException("Variables document is required");
+            throw new PermalinkException(ERROR_VARIABLES_DOCUMENT_REQUIRED);
         }
     }
 
@@ -275,7 +298,7 @@ public class PermalinkService {
      */
     private void validateCombiningAlgorithm(CombiningAlgorithm algorithm) throws PermalinkException {
         if (algorithm == null) {
-            throw new PermalinkException("Combining algorithm is required");
+            throw new PermalinkException(ERROR_COMBINING_ALGORITHM_REQUIRED);
         }
     }
 
@@ -284,7 +307,7 @@ public class PermalinkService {
      */
     private void validateSelectedPolicyIndex(Integer index, int policiesCount) throws PermalinkException {
         if (index != null && (index < 0 || index >= policiesCount)) {
-            throw new PermalinkException("Selected policy index out of bounds");
+            throw new PermalinkException(ERROR_SELECTED_POLICY_INDEX_OUT_BOUNDS);
         }
     }
 
@@ -294,12 +317,12 @@ public class PermalinkService {
     private void validateContentFormat(String subscription, String variables) throws PermalinkException {
         val subscriptionResult = validator.validateAuthorizationSubscription(subscription);
         if (!subscriptionResult.isValid()) {
-            throw new PermalinkException("Invalid authorization subscription: " + subscriptionResult.message());
+            throw new PermalinkException(ERROR_INVALID_AUTHORIZATION_SUBSCRIPT.formatted(subscriptionResult.message()));
         }
 
         val variablesResult = validator.validateVariablesJson(variables);
         if (!variablesResult.isValid()) {
-            throw new PermalinkException("Invalid variables document: " + variablesResult.message());
+            throw new PermalinkException(ERROR_INVALID_VARIABLES_DOCUMENT.formatted(variablesResult.message()));
         }
     }
 
@@ -329,7 +352,7 @@ public class PermalinkService {
             while ((bytesRead = gzipStream.read(buffer)) > 0) {
                 totalBytesRead += bytesRead;
                 if (totalBytesRead > MAX_UNCOMPRESSED_SIZE_BYTES) {
-                    throw new IOException("Decompressed data exceeds maximum size");
+                    throw new IOException(ERROR_DECOMPRESSED_DATA_EXCEEDS_MAX);
                 }
                 outputStream.write(buffer, 0, bytesRead);
             }

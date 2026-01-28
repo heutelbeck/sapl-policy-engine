@@ -22,9 +22,9 @@ import static io.sapl.api.model.ReservedIdentifiers.ENVIRONMENT;
 import static io.sapl.api.model.ReservedIdentifiers.RESOURCE;
 import static io.sapl.api.model.ReservedIdentifiers.SUBJECT;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.UndefinedValue;
@@ -59,7 +59,7 @@ public record AuthorizationSubscription(
         @NonNull Value environment,
         @NonNull ObjectValue secrets) {
 
-    private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final ObjectMapper DEFAULT_MAPPER = JsonMapper.builder().build();
     private static final Value SECRETS_REDACTED = Value.of("SECRETS REDACTED");
 
     /**

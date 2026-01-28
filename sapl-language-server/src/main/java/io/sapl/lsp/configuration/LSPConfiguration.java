@@ -20,8 +20,8 @@ package io.sapl.lsp.configuration;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
@@ -52,7 +52,7 @@ public record LSPConfiguration(
         FunctionBroker functionBroker,
         AttributeBroker attributeBroker) {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     /** Cached minimal configuration - loaded once on first access. */
     private static volatile LSPConfiguration minimalInstance;

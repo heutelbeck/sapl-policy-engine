@@ -22,6 +22,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -82,6 +83,12 @@ public class WebDependencyFactory {
     private static final String FILE_REQUIRE_JS       = "require.js";
     private static final String FILE_SAPL_MODE_JS     = "sapl-mode.js";
     private static final String FILE_SIMPLE_JS        = "simple.js";
+
+    // ==================== Error Messages ====================
+    private static final String ERROR_FAILED_DISCOVER_VERSION        = "Failed to discover version for WebJar: %s";
+    private static final String ERROR_NO_VERSION_DIRECTORY_FOUND     = "No version directory found";
+    private static final String ERROR_NO_VERSION_DIRECTORY_IN_WEBJAR = "No version directory found in WebJar";
+    private static final String ERROR_WEBJAR_NOT_FOUND               = "WebJar not found on classpath: %s";
 
     // ==================== Version Cache ====================
     private static final Map<String, String> WEBJAR_VERSIONS = new HashMap<>();
@@ -151,7 +158,7 @@ public class WebDependencyFactory {
         val resource = WebDependencyFactory.class.getClassLoader().getResource(basePath);
 
         if (resource == null) {
-            throw new IllegalStateException("WebJar not found on classpath: " + artifactName);
+            throw new IllegalStateException(ERROR_WEBJAR_NOT_FOUND.formatted(artifactName));
         }
 
         try {
@@ -161,18 +168,18 @@ public class WebDependencyFactory {
                 return discoverVersionFromFileSystem(Path.of(resource.toURI()));
             }
         } catch (URISyntaxException | IOException e) {
-            throw new IllegalStateException("Failed to discover version for WebJar: " + artifactName, e);
+            throw new IllegalStateException(ERROR_FAILED_DISCOVER_VERSION.formatted(artifactName), e);
         }
     }
 
     private String discoverVersionFromJar(String jarUri, String basePath) throws IOException {
         val parts   = jarUri.split("!");
         val jarPath = parts[0];
-        try (FileSystem fileSystem = FileSystems.newFileSystem(java.net.URI.create(jarPath), Collections.emptyMap())) {
+        try (FileSystem fileSystem = FileSystems.newFileSystem(URI.create(jarPath), Collections.emptyMap())) {
             val path = fileSystem.getPath(basePath);
             try (var entries = Files.list(path)) {
                 return entries.filter(Files::isDirectory).map(p -> p.getFileName().toString()).findFirst()
-                        .orElseThrow(() -> new IllegalStateException("No version directory found in WebJar"));
+                        .orElseThrow(() -> new IllegalStateException(ERROR_NO_VERSION_DIRECTORY_IN_WEBJAR));
             }
         }
     }
@@ -180,7 +187,7 @@ public class WebDependencyFactory {
     private String discoverVersionFromFileSystem(Path basePath) throws IOException {
         try (var entries = Files.list(basePath)) {
             return entries.filter(Files::isDirectory).map(p -> p.getFileName().toString()).findFirst()
-                    .orElseThrow(() -> new IllegalStateException("No version directory found"));
+                    .orElseThrow(() -> new IllegalStateException(ERROR_NO_VERSION_DIRECTORY_FOUND));
         }
     }
 

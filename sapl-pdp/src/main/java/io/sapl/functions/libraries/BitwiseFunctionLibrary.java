@@ -547,7 +547,7 @@ public class BitwiseFunctionLibrary {
         if (valueLong == null) {
             return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
         }
-        return Value.of(java.lang.Long.bitCount(valueLong));
+        return Value.of(Long.bitCount(valueLong));
     }
 
     /**
@@ -728,7 +728,7 @@ public class BitwiseFunctionLibrary {
             return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
         }
 
-        return Value.of(java.lang.Long.rotateLeft(valueLong, posLong.intValue()));
+        return Value.of(Long.rotateLeft(valueLong, posLong.intValue()));
     }
 
     /**
@@ -773,7 +773,7 @@ public class BitwiseFunctionLibrary {
             return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
         }
 
-        return Value.of(java.lang.Long.rotateRight(valueLong, posLong.intValue()));
+        return Value.of(Long.rotateRight(valueLong, posLong.intValue()));
     }
 
     /**
@@ -811,7 +811,7 @@ public class BitwiseFunctionLibrary {
         if (valueLong == null) {
             return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
         }
-        return Value.of(java.lang.Long.numberOfLeadingZeros(valueLong));
+        return Value.of(Long.numberOfLeadingZeros(valueLong));
     }
 
     /**
@@ -849,7 +849,7 @@ public class BitwiseFunctionLibrary {
         if (valueLong == null) {
             return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
         }
-        return Value.of(java.lang.Long.numberOfTrailingZeros(valueLong));
+        return Value.of(Long.numberOfTrailingZeros(valueLong));
     }
 
     /**
@@ -884,7 +884,7 @@ public class BitwiseFunctionLibrary {
         if (valueLong == null) {
             return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
         }
-        return Value.of(java.lang.Long.reverse(valueLong));
+        return Value.of(Long.reverse(valueLong));
     }
 
     /**

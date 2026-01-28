@@ -17,8 +17,8 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.exceptions.MqttClientStateException;
@@ -83,6 +83,8 @@ public class SaplMqttClient {
     private static final int    DEFAULT_BROKER_PORT         = 1883;
     private static final int    DEFAULT_QOS                 = 0;              // AT_MOST_ONCE
 
+    private static final String ERROR_FAILED_TO_BUILD_MESSAGE_STREAM = "Failed to build stream of messages.";
+
     static final ConcurrentHashMap<Integer, MqttClientValues>   MQTT_CLIENT_CACHE             = new ConcurrentHashMap<>();
     static final ConcurrentHashMap<UUID, DefaultResponseConfig> DEFAULT_RESPONSE_CONFIG_CACHE = new ConcurrentHashMap<>();
 
@@ -123,8 +125,8 @@ public class SaplMqttClient {
      * @param qos A {@link Flux} of the quality of service level of the
      * mqtt subscription to the broker. Possible values: 0, 1,
      * 2. This variable can be null.
-     * @param mqttPipConfig An {@link com.fasterxml.jackson.databind.node.ArrayNode}
-     * of {@link com.fasterxml.jackson.databind.node.ObjectNode}s
+     * @param mqttPipConfig An {@link tools.jackson.databind.node.ArrayNode}
+     * of {@link tools.jackson.databind.node.ObjectNode}s
      * or only a single {@link ObjectNode} containing
      * configurations for the pip as a mqtt client. Each
      * {@link ObjectNode} specifies the configuration of a
@@ -152,7 +154,7 @@ public class SaplMqttClient {
                     });
         } catch (Exception e) {
             log.debug("An exception occurred while building the mqtt message flux: {}", e.getMessage());
-            return Flux.just(Value.error("Failed to build stream of messages."));
+            return Flux.just(Value.error(ERROR_FAILED_TO_BUILD_MESSAGE_STREAM));
         }
     }
 

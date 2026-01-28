@@ -48,6 +48,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
@@ -444,7 +445,7 @@ class BundleBuilderTests {
         return entries;
     }
 
-    private java.util.Set<String> extractEntryNames(byte[] bundle) throws IOException {
+    private Set<String> extractEntryNames(byte[] bundle) throws IOException {
         return extractEntries(bundle).keySet();
     }
 

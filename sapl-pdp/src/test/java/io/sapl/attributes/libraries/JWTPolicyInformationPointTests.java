@@ -17,7 +17,7 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -68,7 +68,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("JWTPolicyInformationPoint")
 class JWTPolicyInformationPointTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private static KeyPair                  keyPair;
     private static KeyPair                  keyPair2;

@@ -56,7 +56,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
         executor.shutdownNow();
     }
 
-    private static void closeQuietly(java.io.Closeable closeable) {
+    private static void closeQuietly(Closeable closeable) {
         if (closeable != null) {
             try {
                 closeable.close();
@@ -194,7 +194,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
         private static final int    SEPARATOR_LENGTH = 4;
 
         private final WebSocketSession              session;
-        private final java.io.ByteArrayOutputStream buffer         = new java.io.ByteArrayOutputStream();
+        private final ByteArrayOutputStream buffer         = new ByteArrayOutputStream();
         private int                                 expectedLength = -1;
         private int                                 headerEndIndex = -1;
 

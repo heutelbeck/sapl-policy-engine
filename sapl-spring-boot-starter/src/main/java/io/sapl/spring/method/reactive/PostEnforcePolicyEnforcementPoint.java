@@ -32,6 +32,8 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class PostEnforcePolicyEnforcementPoint {
 
+    private static final String ERROR_ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
+
     private final PolicyDecisionPoint pdp;
 
     private final ConstraintEnforcementService constraintHandlerService;
@@ -46,7 +48,7 @@ public class PostEnforcePolicyEnforcementPoint {
             return dec.flatMap(decision -> {
                 var finalResourceAccessPoint = Flux.just(result);
                 if (Decision.PERMIT != decision.decision())
-                    finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+                    finalResourceAccessPoint = Flux.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
 
                 return constraintHandlerService.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                         (Flux) finalResourceAccessPoint, postEnforceAttribute.genericsType()).onErrorStop().next();

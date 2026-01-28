@@ -17,9 +17,9 @@
  */
 package io.sapl.playground.domain;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.vaadin.Issue;
@@ -73,7 +73,7 @@ public class PlaygroundValidator implements Serializable {
     /*
      * JSON object mapper for parsing and validating JSON content.
      */
-    private final ObjectMapper mapper;
+    private final JsonMapper mapper;
 
     /**
      * Validates variables JSON document structure and variable names. Ensures the
@@ -192,7 +192,7 @@ public class PlaygroundValidator implements Serializable {
 
             return new JsonNodeOrError(jsonNode);
 
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             return new JsonNodeOrError(ValidationResult.error(errorMessage));
         }
     }
@@ -203,7 +203,7 @@ public class PlaygroundValidator implements Serializable {
      * the pattern.
      */
     private int countInvalidVariableNames(JsonNode jsonNode) {
-        return (int) StreamSupport.stream(((Iterable<String>) jsonNode::fieldNames).spliterator(), false).filter(
+        return (int) StreamSupport.stream(jsonNode.propertyNames().spliterator(), false).filter(
                 name -> name.length() > MAX_VARIABLE_NAME_LENGTH || !VALID_VARIABLE_NAME.matcher(name).matches())
                 .count();
     }

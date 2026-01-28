@@ -17,7 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
@@ -395,7 +395,7 @@ class KeysFunctionLibraryTests {
 
     @ParameterizedTest(name = "Invalid JWK: {1}")
     @MethodSource("invalidJwkTestCases")
-    void whenJwkToPublicKeyWithInvalidJwkThenReturnsError(com.fasterxml.jackson.databind.node.ObjectNode invalidJwk,
+    void whenJwkToPublicKeyWithInvalidJwkThenReturnsError(tools.jackson.databind.node.ObjectNode invalidJwk,
             String description) {
         val result = KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(invalidJwk));
 

@@ -71,6 +71,8 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     private static final String VALUE_MODE_PROPERTY        = "valueMode";
     public static final String  JSON_DATA                  = "jsonData";
 
+    private static final String ERROR_JSON_DATA_NULL = "JSON data cannot be null";
+
     private Dialog                 maximizeDialog;
     private JsonGraphVisualization maximizedVisualization;
     private String                 currentJsonData = "{}";
@@ -105,7 +107,7 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
      */
     public void setJsonData(String jsonData) {
         if (jsonData == null) {
-            throw new IllegalArgumentException("JSON data cannot be null");
+            throw new IllegalArgumentException(ERROR_JSON_DATA_NULL);
         }
 
         this.currentJsonData = jsonData;
@@ -211,7 +213,7 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
         dialog.setHeight("100%");
         dialog.setDraggable(false);
         dialog.setResizable(false);
-        dialog.setModal(true);
+        dialog.setModality(ModalityMode.STRICT);
 
         maximizedVisualization = createMaximizedVisualization();
         dialog.add(maximizedVisualization);

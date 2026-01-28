@@ -220,8 +220,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_ATTRIBUTE_IN_FILTER_TARGET   = "Attribute finder steps not allowed in filter targets";
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
+    private static final String ERROR_UNKNOWN_DEFAULT_VOTE         = "Unknown default vote.";
     private static final String ERROR_UNKNOWN_ENTITLEMENT          = "Unknown entitlement.";
+    private static final String ERROR_UNKNOWN_ERROR_HANDLING       = "Unknown error handling.";
     private static final String ERROR_UNKNOWN_FILTER_TYPE          = "Unknown filter type: %s";
+    private static final String ERROR_UNKNOWN_VOTING_MODE          = "Unknown voting mode.";
     private static final String ERROR_UNKNOWN_PAIR_KEY_TYPE        = "Unknown pair key type.";
     private static final String ERROR_UNKNOWN_PATH_ELEMENT         = "Unknown step type in filter path: %s";
     private static final String ERROR_UNKNOWN_PATH_SUBSCRIPT       = "Unknown subscript type in filter path: %s";
@@ -987,7 +990,8 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
         case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
         case UniqueContext ignored          -> VotingMode.UNIQUE;
-        default                             -> throw new SaplCompilerException("Unknown voting mode", fromContext(ctx));
+        default                             ->
+            throw new SaplCompilerException(ERROR_UNKNOWN_VOTING_MODE, fromContext(ctx));
         };
     }
 
@@ -996,7 +1000,8 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case DenyDefaultContext ignored    -> DefaultDecision.DENY;
         case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
         case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
-        default                            -> throw new SaplCompilerException("Unknown default vote", fromContext(ctx));
+        default                            ->
+            throw new SaplCompilerException(ERROR_UNKNOWN_DEFAULT_VOTE, fromContext(ctx));
         };
     }
 
@@ -1005,7 +1010,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case AbstainErrorsContext ignored   -> ErrorHandling.ABSTAIN;
         case PropagateErrorsContext ignored -> ErrorHandling.PROPAGATE;
         default                             ->
-            throw new SaplCompilerException("Unknown error handling", fromContext(ctx));
+            throw new SaplCompilerException(ERROR_UNKNOWN_ERROR_HANDLING, fromContext(ctx));
         };
     }
 

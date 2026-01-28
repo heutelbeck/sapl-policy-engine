@@ -34,6 +34,9 @@ import java.util.List;
 @UtilityClass
 public class PartTreeToSqlQueryStringConverter {
 
+    private static final String ERROR_ARGUMENT_MISSING_FOR_PART = "The appropriate argument is missing for this part of the method. ";
+    private static final String ERROR_OPERATOR_REQUIRES_ARRAY   = "Operator requires array of arguments.";
+
     /**
      * Builds the corresponding Sql-Query with the information of a
      * {@link MethodInvocation} object.
@@ -123,7 +126,7 @@ public class PartTreeToSqlQueryStringConverter {
      */
     private String createSqlArgumentArray(Object arg) {
         if (!(arg instanceof List<?> arguments)) {
-            throw new IllegalStateException("Operator requires array of arguments.");
+            throw new IllegalStateException(ERROR_OPERATOR_REQUIRES_ARRAY);
         }
 
         final var arrayList = new ArrayList<String>();
@@ -159,7 +162,7 @@ public class PartTreeToSqlQueryStringConverter {
     @SneakyThrows // NoSuchFieldException, NullPointerException
     private <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
         if (argument == null) {
-            throw new NullPointerException("The appropriate argument is missing for this part of the method. ");
+            throw new NullPointerException(ERROR_ARGUMENT_MISSING_FOR_PART);
         }
 
         final var operator  = OperatorR2dbc.valueOf(part.getType().name());

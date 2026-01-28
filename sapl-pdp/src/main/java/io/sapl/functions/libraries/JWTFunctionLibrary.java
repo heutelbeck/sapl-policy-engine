@@ -17,10 +17,10 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import com.nimbusds.jwt.SignedJWT;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -65,7 +65,7 @@ import java.time.Instant;
 public class JWTFunctionLibrary {
 
     private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
-    private static final ObjectMapper    MAPPER = new ObjectMapper();
+    private static final JsonMapper      MAPPER = JsonMapper.builder().build();
 
     static final String NAME        = "jwt";
     static final String DESCRIPTION = "Functions for parsing JSON Web Tokens. Contents are returned without validation.";
@@ -191,7 +191,7 @@ public class JWTFunctionLibrary {
         val epochSeconds = payload.get(key).asLong();
         val isoString    = Instant.ofEpochSecond(epochSeconds).toString();
 
-        ((ObjectNode) payload).set(key, JSON.textNode(isoString));
+        ((ObjectNode) payload).set(key, JSON.stringNode(isoString));
     }
 
 }

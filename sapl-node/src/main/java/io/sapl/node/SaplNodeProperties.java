@@ -29,6 +29,8 @@ import java.util.List;
 @ConfigurationProperties(prefix = "io.sapl.node")
 public class SaplNodeProperties {
 
+    private static final String ERROR_SHORT_API_KEY = "Detected short API key in configuration. API key must be at least %d characters long.";
+
     // authentication methods
     private boolean allowNoAuth     = false;
     private boolean allowBasicAuth  = true;
@@ -55,8 +57,7 @@ public class SaplNodeProperties {
 
     private void assertIsValidApiKey(String key) {
         if (key.length() < SecretGenerator.MIN_API_KEY_LENGTH) {
-            throw new IllegalStateException("Detected short API key in configuration. API key must be at least "
-                    + SecretGenerator.MIN_API_KEY_LENGTH + " characters long.");
+            throw new IllegalStateException(ERROR_SHORT_API_KEY.formatted(SecretGenerator.MIN_API_KEY_LENGTH));
         }
     }
 }

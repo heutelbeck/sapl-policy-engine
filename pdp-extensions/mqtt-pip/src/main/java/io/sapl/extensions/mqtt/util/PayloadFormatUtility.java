@@ -17,8 +17,9 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import com.hivemq.client.mqtt.datatypes.MqttUtf8String;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import io.sapl.api.model.Value;
@@ -26,7 +27,6 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
@@ -39,6 +39,8 @@ import java.util.Optional;
  */
 @UtilityClass
 public class PayloadFormatUtility {
+
+    private static final String ERROR_MQTT_MESSAGE_JSON_CONVERSION_FAILED = "The mqtt message couldn't be converted to json.";
 
     /**
      * Looks up the payload format indicator from the mqtt publish message. By
@@ -97,13 +99,13 @@ public class PayloadFormatUtility {
     public static Value getValueOfJson(Mqtt5Publish publishMessage) {
         try {
             return ValueJsonMarshaller.fromJsonNode(convertBytesToJson(publishMessage.getPayloadAsBytes()));
-        } catch (IOException e) {
-            return Value.error("The mqtt message couldn't be converted to json.");
+        } catch (JacksonException e) {
+            return Value.error(ERROR_MQTT_MESSAGE_JSON_CONVERSION_FAILED);
         }
     }
 
-    private static JsonNode convertBytesToJson(byte[] bytes) throws IOException {
-        return new ObjectMapper().readTree(bytes);
+    private static JsonNode convertBytesToJson(byte[] bytes) {
+        return JsonMapper.builder().build().readTree(bytes);
     }
 
     /**

@@ -17,7 +17,7 @@
  */
 package io.sapl.vaadin;
 
-import elemental.json.JsonObject;
+import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.SaplVersion;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -58,36 +58,36 @@ public class Issue implements Serializable {
      *
      * @param jsonObject a JSON issue description.
      */
-    public Issue(JsonObject jsonObject) {
-        if (jsonObject.hasKey(DESCRIPTION_KEY)) {
-            description = jsonObject.getString(DESCRIPTION_KEY);
+    public Issue(ObjectNode jsonObject) {
+        if (jsonObject.has(DESCRIPTION_KEY)) {
+            description = jsonObject.get(DESCRIPTION_KEY).asString();
         }
 
-        if (jsonObject.hasKey(SEVERITY_KEY)) {
-            var severityString = jsonObject.getString(SEVERITY_KEY);
+        if (jsonObject.has(SEVERITY_KEY)) {
+            var severityString = jsonObject.get(SEVERITY_KEY).asString();
             severity = parseSeverity(severityString);
         }
 
         // Support both 'line' and 'startLine' keys
-        if (jsonObject.hasKey(LINE_KEY)) {
-            line = (int) jsonObject.getNumber(LINE_KEY);
-        } else if (jsonObject.hasKey(START_LINE_KEY)) {
-            line = (int) jsonObject.getNumber(START_LINE_KEY);
+        if (jsonObject.has(LINE_KEY)) {
+            line = jsonObject.get(LINE_KEY).asInt();
+        } else if (jsonObject.has(START_LINE_KEY)) {
+            line = jsonObject.get(START_LINE_KEY).asInt();
         }
 
         // Support both 'column' and 'startColumn' keys
-        if (jsonObject.hasKey(COLUMN_KEY)) {
-            column = (int) jsonObject.getNumber(COLUMN_KEY);
-        } else if (jsonObject.hasKey(START_COLUMN_KEY)) {
-            column = (int) jsonObject.getNumber(START_COLUMN_KEY);
+        if (jsonObject.has(COLUMN_KEY)) {
+            column = jsonObject.get(COLUMN_KEY).asInt();
+        } else if (jsonObject.has(START_COLUMN_KEY)) {
+            column = jsonObject.get(START_COLUMN_KEY).asInt();
         }
 
-        if (jsonObject.hasKey(OFFSET_KEY)) {
-            offset = (int) jsonObject.getNumber(OFFSET_KEY);
+        if (jsonObject.has(OFFSET_KEY)) {
+            offset = jsonObject.get(OFFSET_KEY).asInt();
         }
 
-        if (jsonObject.hasKey(LENGTH_KEY)) {
-            length = (int) jsonObject.getNumber(LENGTH_KEY);
+        if (jsonObject.has(LENGTH_KEY)) {
+            length = jsonObject.get(LENGTH_KEY).asInt();
         }
     }
 

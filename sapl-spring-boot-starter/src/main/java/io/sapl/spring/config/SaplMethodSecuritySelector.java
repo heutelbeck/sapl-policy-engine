@@ -35,6 +35,8 @@ import java.util.Arrays;
 @Slf4j
 final class SaplMethodSecuritySelector implements ImportSelector {
 
+    private static final String ERROR_ASPECTJ_UNSUPPORTED = "SAPL does only support AdviceMode.PROXY. AspectJ is unsupported.";
+
     private final ImportSelector autoProxy = new AutoProxyRegistrarSelector();
 
     @Override
@@ -55,7 +57,7 @@ final class SaplMethodSecuritySelector implements ImportSelector {
         @Override
         protected String[] selectImports(@NonNull AdviceMode adviceMode) {
             if (adviceMode != AdviceMode.PROXY)
-                throw new IllegalStateException("SAPL does only support AdviceMode.PROXY. AspectJ is unsupported.");
+                throw new IllegalStateException(ERROR_ASPECTJ_UNSUPPORTED);
             return IMPORTS;
         }
 

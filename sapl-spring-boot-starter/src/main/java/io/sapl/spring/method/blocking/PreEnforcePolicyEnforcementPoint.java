@@ -51,6 +51,12 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
+    private static final String ERROR_ACCESS_DENIED_ACTION_NOT_PERMITTED              = "Access Denied. Action not permitted.";
+    private static final String ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL = "Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null";
+    private static final String ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY         = "Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s";
+    private static final String ERROR_ACCESS_DENIED_PDP_RETURNED_NULL                 = "Access Denied by @PreEnforce PEP. PDP returned null. %s";
+    private static final String ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT    = "An Authentication object was not found in the SecurityContext";
+
     private final Supplier<Authentication> authenticationSupplier = getAuthentication(
             SecurityContextHolder.getContextHolderStrategy());
 
@@ -81,8 +87,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         final var blockingPreEnforceBundle = constraintEnforcementServiceProvider.getObject()
                 .blockingPreEnforceBundleFor(authzDecision, bundleReturnType);
         if (blockingPreEnforceBundle == null) {
-            throw new AccessDeniedException(
-                    "Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
+            throw new AccessDeniedException(ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL);
         }
 
         try {
@@ -90,7 +95,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
             final var notGranted = authzDecision.decision() != Decision.PERMIT;
             if (notGranted)
-                throw new AccessDeniedException("Access Denied. Action not permitted.");
+                throw new AccessDeniedException(ERROR_ACCESS_DENIED_ACTION_NOT_PERMITTED);
 
             blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);
 
@@ -121,14 +126,12 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
         final var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
-            throw new AccessDeniedException(
-                    String.format("Access Denied by @PreEnforce PEP. PDP returned null. %s", attribute));
+            throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_RETURNED_NULL, attribute));
         }
 
         final var authzDecision = authzDecisions.blockFirst();
         if (authzDecision == null) {
-            throw new AccessDeniedException(
-                    String.format("Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s", attribute));
+            throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY, attribute));
         }
 
         return authzDecision;
@@ -139,7 +142,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             final var authentication = strategy.getContext().getAuthentication();
             if (authentication == null) {
                 throw new AuthenticationCredentialsNotFoundException(
-                        "An Authentication object was not found in the SecurityContext");
+                        ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);
             }
             return authentication;
         };

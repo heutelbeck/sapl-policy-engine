@@ -17,8 +17,8 @@
  */
 package io.sapl.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
@@ -102,7 +102,8 @@ public class SaplTesting {
     public static final AttributeBroker       ATTRIBUTE_BROKER;
     public static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
 
-    private static final ObjectMapper          MAPPER      = new ObjectMapper().registerModule(new SaplJacksonModule());
+    private static final JsonMapper            MAPPER      = JsonMapper.builder().addModule(new SaplJacksonModule())
+            .build();
     private static final StandaloneTransformer TRANSFORMER = new StandaloneTransformer();
 
     public static final AuthorizationSubscription DEFAULT_SUBSCRIPTION = AuthorizationSubscription
@@ -160,7 +161,7 @@ public class SaplTesting {
         return parsed.saplDocument();
     }
 
-    @SneakyThrows(JsonProcessingException.class)
+    @SneakyThrows(JacksonException.class)
     public static AuthorizationSubscription parseSubscription(String json) {
         return MAPPER.readValue(json, AuthorizationSubscription.class);
     }

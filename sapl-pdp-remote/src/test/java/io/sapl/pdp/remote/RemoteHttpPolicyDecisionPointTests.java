@@ -17,10 +17,9 @@
  */
 package io.sapl.pdp.remote;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -61,8 +60,7 @@ class RemoteHttpPolicyDecisionPointTests {
 
     private static final String SUBJECT = "subject";
 
-    private static final ObjectMapper    MAPPER = new ObjectMapper().registerModule(new Jdk8Module())
-            .registerModule(new SaplJacksonModule());
+    private static final JsonMapper      MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
     private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
 
     private MockWebServer server;
@@ -93,8 +91,7 @@ class RemoteHttpPolicyDecisionPointTests {
     }
 
     @Test
-    void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection()
-            throws JsonProcessingException {
+    void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection() throws JacksonException {
         // The first is propagated. The second results in an error. The third is dropped
         // due to the error
         prepareDecisions(
@@ -116,7 +113,7 @@ class RemoteHttpPolicyDecisionPointTests {
     }
 
     @Test
-    void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
+    void whenSubscribingMultiDecideAll_thenGetResults() throws JacksonException {
         val decision1 = new MultiAuthorizationDecision();
         decision1.setDecision(ID, AuthorizationDecision.PERMIT);
         val decision2 = new MultiAuthorizationDecision();
@@ -126,15 +123,15 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
-                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
     }
 
     @Test
-    void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
+    void whenSubscribingMultiDecide_thenGetResults() throws JacksonException {
         val decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
         val decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
         val indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
@@ -142,14 +139,14 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
-                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
     }
 
-    private void prepareDecisions(Object[] decisions) throws JsonProcessingException {
+    private void prepareDecisions(Object[] decisions) throws JacksonException {
         StringBuilder body = new StringBuilder();
         for (var decision : decisions) {
             if (decision == null)

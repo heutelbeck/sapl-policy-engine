@@ -17,14 +17,14 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 
-import java.io.IOException;
+import java.util.List;
 
 /**
  * Jackson serializer for AuthorizationDecision.
@@ -53,37 +53,39 @@ import java.io.IOException;
  * }
  * }</pre>
  */
-public class AuthorizationDecisionSerializer extends JsonSerializer<AuthorizationDecision> {
+public class AuthorizationDecisionSerializer extends StdSerializer<AuthorizationDecision> {
 
     private final ValueSerializer valueSerializer = new ValueSerializer();
 
+    public AuthorizationDecisionSerializer() {
+        super(AuthorizationDecision.class);
+    }
+
     @Override
-    public void serialize(AuthorizationDecision decision, JsonGenerator generator, SerializerProvider serializers)
-            throws IOException {
+    public void serialize(AuthorizationDecision decision, JsonGenerator generator, SerializationContext serializers) {
         generator.writeStartObject();
 
-        generator.writeStringField("decision", decision.decision().name());
+        generator.writeStringProperty("decision", decision.decision().name());
 
         if (!decision.obligations().isEmpty()) {
-            generator.writeFieldName("obligations");
+            generator.writeName("obligations");
             serializeValueList(decision.obligations(), generator, serializers);
         }
 
         if (!decision.advice().isEmpty()) {
-            generator.writeFieldName("advice");
+            generator.writeName("advice");
             serializeValueList(decision.advice(), generator, serializers);
         }
 
         if (!(decision.resource() instanceof UndefinedValue)) {
-            generator.writeFieldName("resource");
+            generator.writeName("resource");
             valueSerializer.serialize(decision.resource(), generator, serializers);
         }
 
         generator.writeEndObject();
     }
 
-    private void serializeValueList(java.util.List<Value> values, JsonGenerator generator,
-            SerializerProvider serializers) throws IOException {
+    private void serializeValueList(List<Value> values, JsonGenerator generator, SerializationContext serializers) {
         generator.writeStartArray();
         for (Value value : values) {
             valueSerializer.serialize(value, generator, serializers);

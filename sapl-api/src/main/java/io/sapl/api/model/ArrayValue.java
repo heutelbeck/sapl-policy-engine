@@ -63,6 +63,11 @@ public final class ArrayValue implements Value, List<Value> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    private static final String ERROR_ARRAY_INDEX_OUT_OF_BOUNDS       = "Array index out of bounds: %d (size: %d).";
+    private static final String ERROR_BUILDER_ALREADY_USED            = "Builder has already been used.";
+    private static final String ERROR_CANNOT_GET_FIRST_OF_EMPTY_ARRAY = "Cannot get first element of empty array.";
+    private static final String ERROR_CANNOT_GET_LAST_OF_EMPTY_ARRAY  = "Cannot get last element of empty array.";
+
     @Delegate(excludes = ExcludedMethods.class)
     private final List<Value> value;
 
@@ -106,7 +111,7 @@ public final class ArrayValue implements Value, List<Value> {
          */
         public Builder add(Value value) {
             if (elements == null) {
-                throw new IllegalStateException("Builder has already been used.");
+                throw new IllegalStateException(ERROR_BUILDER_ALREADY_USED);
             }
             elements.add(value);
             return this;
@@ -125,7 +130,7 @@ public final class ArrayValue implements Value, List<Value> {
          */
         public Builder addAll(Value... values) {
             if (elements == null) {
-                throw new IllegalStateException("Builder has already been used.");
+                throw new IllegalStateException(ERROR_BUILDER_ALREADY_USED);
             }
             for (val value : values) {
                 add(value);
@@ -146,7 +151,7 @@ public final class ArrayValue implements Value, List<Value> {
          */
         public Builder addAll(Collection<? extends Value> values) {
             if (elements == null) {
-                throw new IllegalStateException("Builder has already been used.");
+                throw new IllegalStateException(ERROR_BUILDER_ALREADY_USED);
             }
             for (val value : values) {
                 add(value);
@@ -169,7 +174,7 @@ public final class ArrayValue implements Value, List<Value> {
          */
         public ArrayValue build() {
             if (elements == null) {
-                throw new IllegalStateException("Builder has already been used.");
+                throw new IllegalStateException(ERROR_BUILDER_ALREADY_USED);
             }
             if (elements.isEmpty()) {
                 elements = null;
@@ -215,7 +220,7 @@ public final class ArrayValue implements Value, List<Value> {
     @Override
     public @NotNull Value get(int index) {
         if (index < 0 || index >= value.size()) {
-            return new ErrorValue("Array index out of bounds: %d (size: %d).".formatted(index, value.size()));
+            return new ErrorValue(ERROR_ARRAY_INDEX_OUT_OF_BOUNDS.formatted(index, value.size()));
         }
         return value.get(index);
     }
@@ -232,7 +237,7 @@ public final class ArrayValue implements Value, List<Value> {
     @Override
     public @NotNull Value getFirst() {
         if (value.isEmpty()) {
-            return new ErrorValue("Cannot get first element of empty array.");
+            return new ErrorValue(ERROR_CANNOT_GET_FIRST_OF_EMPTY_ARRAY);
         }
         return value.getFirst();
     }
@@ -249,7 +254,7 @@ public final class ArrayValue implements Value, List<Value> {
     @Override
     public @NotNull Value getLast() {
         if (value.isEmpty()) {
-            return new ErrorValue("Cannot get last element of empty array.");
+            return new ErrorValue(ERROR_CANNOT_GET_LAST_OF_EMPTY_ARRAY);
         }
         return value.getLast();
     }

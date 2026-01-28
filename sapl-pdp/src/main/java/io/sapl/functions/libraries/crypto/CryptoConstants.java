@@ -68,7 +68,7 @@ public class CryptoConstants {
     public static final String CERTIFICATE_TYPE_X509 = "X.509";
 
     public static final String ERROR_ALGORITHM_NOT_AVAILABLE = "Algorithm not available";
-    public static final String ERROR_INVALID_BASE64          = "Invalid Base64 encoding";
+    public static final String ERROR_INVALID_BASE64          = "Invalid Base64 encoding in %s: %s.";
     public static final String ERROR_INVALID_CERTIFICATE     = "Invalid certificate format";
     public static final String ERROR_INVALID_KEY_FORMAT      = "Invalid key format";
     public static final String ERROR_UNSUPPORTED_KEY_TYPE    = "Unsupported key type";

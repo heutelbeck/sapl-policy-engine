@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
@@ -42,10 +42,10 @@ import static io.sapl.api.model.ValueJsonMarshaller.json;
 @UtilityClass
 class MqttTestUtility {
 
-    static final String       CLIENT_ID   = "SAPL_MQTT_CLIENT";
-    static final String       BROKER_HOST = "localhost";
-    static final int          BROKER_PORT = 1883;
-    static final ObjectMapper MAPPER      = new ObjectMapper();
+    static final String     CLIENT_ID   = "SAPL_MQTT_CLIENT";
+    static final String     BROKER_HOST = "localhost";
+    static final int        BROKER_PORT = 1883;
+    static final JsonMapper MAPPER      = JsonMapper.builder().build();
 
     public static EmbeddedHiveMQ buildBroker(Path configDir, Path dataDir, Path extensionsDir) {
         InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);

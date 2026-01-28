@@ -34,6 +34,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Compiler for lazy (short-circuit) boolean operators: AND ({@code &&}) and OR
@@ -235,14 +236,13 @@ public class LazyBooleanOperationCompiler {
                 val pv = p.evaluate(ctx.get(EvaluationContext.class));
                 if (pv instanceof BooleanValue(var b)) {
                     if (!b) {
-                        return Flux.just(new TracedValue(Value.FALSE, java.util.List.of()));
+                        return Flux.just(new TracedValue(Value.FALSE, List.of()));
                     }
                     return s.stream()
                             .map(tv -> new TracedValue(asBoolean(tv.value(), location), tv.contributingAttributes()));
                 }
-                return Flux.just(
-                        new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
-                                java.util.List.of()));
+                return Flux.just(new TracedValue(
+                        Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()), List.of()));
             });
         }
     }
@@ -255,14 +255,13 @@ public class LazyBooleanOperationCompiler {
                 val pv = p.evaluate(ctx.get(EvaluationContext.class));
                 if (pv instanceof BooleanValue(var b)) {
                     if (b) {
-                        return Flux.just(new TracedValue(Value.TRUE, java.util.List.of()));
+                        return Flux.just(new TracedValue(Value.TRUE, List.of()));
                     }
                     return s.stream()
                             .map(tv -> new TracedValue(asBoolean(tv.value(), location), tv.contributingAttributes()));
                 }
-                return Flux.just(
-                        new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
-                                java.util.List.of()));
+                return Flux.just(new TracedValue(
+                        Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()), List.of()));
             });
         }
     }

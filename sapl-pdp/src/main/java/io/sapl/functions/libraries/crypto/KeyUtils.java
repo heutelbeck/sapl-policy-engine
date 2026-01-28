@@ -53,6 +53,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.EDDSA_KEY_SIZE_
 @UtilityClass
 public class KeyUtils {
 
+    private static final String ERROR_UNSUPPORTED_KEY_TYPE = "Unsupported key type or invalid key format. Tried algorithms: %s.";
+
     /**
      * Parses a PEM-encoded public key using the specified algorithm.
      *
@@ -116,8 +118,7 @@ public class KeyUtils {
             }
         }
 
-        throw new CryptoException(
-                "Unsupported key type or invalid key format. Tried algorithms: " + String.join(", ", algorithms) + ".");
+        throw new CryptoException(ERROR_UNSUPPORTED_KEY_TYPE.formatted(String.join(", ", algorithms)));
     }
 
     /**

@@ -17,8 +17,8 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
 @DisplayName("HttpPolicyInformationPoint")
 class HttpPolicyInformationPointTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private static final String DEFAULT_REQUEST = """
             {
@@ -62,7 +62,7 @@ class HttpPolicyInformationPointTests {
     private static final TextValue URL = (TextValue) Value.of("https://localhost:1234");
 
     @Test
-    void get() throws JsonProcessingException {
+    void get() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val expectedRequest  = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(ALTERED_REQUEST));
@@ -72,7 +72,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void post() throws JsonProcessingException {
+    void post() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val expectedRequest  = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(ALTERED_REQUEST));
@@ -82,7 +82,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void put() throws JsonProcessingException {
+    void put() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val expectedRequest  = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(ALTERED_REQUEST));
@@ -92,7 +92,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void patch() throws JsonProcessingException {
+    void patch() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val expectedRequest  = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(ALTERED_REQUEST));
@@ -102,7 +102,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void delete() throws JsonProcessingException {
+    void delete() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val expectedRequest  = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(ALTERED_REQUEST));
@@ -112,7 +112,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void whenWebSocketCalledWithUrlThenConsumesWebSocketWithModifiedRequest() throws JsonProcessingException {
+    void whenWebSocketCalledWithUrlThenConsumesWebSocketWithModifiedRequest() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val expectedRequest  = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(ALTERED_REQUEST));
@@ -122,7 +122,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void whenEnvironmentGetCalledThenExecutesGetRequest() throws JsonProcessingException {
+    void whenEnvironmentGetCalledThenExecutesGetRequest() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -131,7 +131,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void whenEnvironmentPostCalledThenExecutesPostRequest() throws JsonProcessingException {
+    void whenEnvironmentPostCalledThenExecutesPostRequest() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -140,7 +140,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void whenEnvironmentPutCalledThenExecutesPutRequest() throws JsonProcessingException {
+    void whenEnvironmentPutCalledThenExecutesPutRequest() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -149,7 +149,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void whenEnvironmentPatchCalledThenExecutesPatchRequest() throws JsonProcessingException {
+    void whenEnvironmentPatchCalledThenExecutesPatchRequest() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -158,7 +158,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void whenEnvironmentDeleteCalledThenExecutesDeleteRequest() throws JsonProcessingException {
+    void whenEnvironmentDeleteCalledThenExecutesDeleteRequest() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -167,7 +167,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void whenEnvironmentWebSocketCalledThenConsumesWebSocket() throws JsonProcessingException {
+    void whenEnvironmentWebSocketCalledThenConsumesWebSocket() throws JacksonException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);

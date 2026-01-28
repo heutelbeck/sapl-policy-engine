@@ -68,6 +68,27 @@ public class BundleSigner {
 
     private static final Set<String> ED25519_ALGORITHM_NAMES = Set.of(BundleManifest.SIGNATURE_ALGORITHM, "EdDSA");
 
+    private static final String ERROR_ED25519_NOT_AVAILABLE           = "Ed25519 algorithm not available.";
+    private static final String ERROR_FILE_INTEGRITY_CHECK_FAILED     = "File integrity check failed for: %s. Expected hash: %s, actual: %s.";
+    private static final String ERROR_INVALID_PRIVATE_KEY             = "Invalid private key: %s";
+    private static final String ERROR_INVALID_PUBLIC_KEY              = "Invalid public key: %s";
+    private static final String ERROR_INVALID_SIGNATURE_ENCODING      = "Invalid signature encoding: %s";
+    private static final String ERROR_MANIFEST_EXPIRED                = "Manifest has expired. Expiration: %s, current time: %s.";
+    private static final String ERROR_MANIFEST_IS_NOT_SIGNED          = "Manifest is not signed.";
+    private static final String ERROR_MANIFEST_IS_NULL                = "Manifest is null.";
+    private static final String ERROR_MANIFEST_NO_FILE_ENTRIES        = "Manifest contains no file entries.";
+    private static final String ERROR_MANIFEST_SIGNATURE_VALUE_EMPTY  = "Manifest signature value is empty.";
+    private static final String ERROR_MISSING_FILE_IN_BUNDLE          = "Missing file in bundle: %s.";
+    private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519     = "Private key must be Ed25519, got: %s.";
+    private static final String ERROR_PRIVATE_KEY_NULL                = "Private key must not be null.";
+    private static final String ERROR_PUBLIC_KEY_MUST_BE_ED25519      = "Public key must be Ed25519, got: %s.";
+    private static final String ERROR_PUBLIC_KEY_NULL                 = "Public key must not be null.";
+    private static final String ERROR_SIGNATURE_DOES_NOT_MATCH        = "Signature verification failed: signature does not match manifest.";
+    private static final String ERROR_SIGNATURE_VERIFICATION_ERROR    = "Signature verification error: %s";
+    private static final String ERROR_SIGNING_FAILED                  = "Signing failed: %s";
+    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE       = "Unexpected file in bundle not covered by signature: %s.";
+    private static final String ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM = "Unsupported signature algorithm: %s.";
+
     /**
      * Signs bundle contents and creates a manifest with embedded signature.
      *
@@ -195,38 +216,38 @@ public class BundleSigner {
 
     private void validatePrivateKey(PrivateKey privateKey) {
         if (privateKey == null) {
-            throw new BundleSignatureException("Private key must not be null.");
+            throw new BundleSignatureException(ERROR_PRIVATE_KEY_NULL);
         }
         if (!ED25519_ALGORITHM_NAMES.contains(privateKey.getAlgorithm())) {
-            throw new BundleSignatureException("Private key must be Ed25519, got: " + privateKey.getAlgorithm() + ".");
+            throw new BundleSignatureException(ERROR_PRIVATE_KEY_MUST_BE_ED25519.formatted(privateKey.getAlgorithm()));
         }
     }
 
     private void validatePublicKey(PublicKey publicKey) {
         if (publicKey == null) {
-            throw new BundleSignatureException("Public key must not be null.");
+            throw new BundleSignatureException(ERROR_PUBLIC_KEY_NULL);
         }
         if (!ED25519_ALGORITHM_NAMES.contains(publicKey.getAlgorithm())) {
-            throw new BundleSignatureException("Public key must be Ed25519, got: " + publicKey.getAlgorithm() + ".");
+            throw new BundleSignatureException(ERROR_PUBLIC_KEY_MUST_BE_ED25519.formatted(publicKey.getAlgorithm()));
         }
     }
 
     private void verifyManifestStructure(BundleManifest manifest) {
         if (manifest == null) {
-            throw new BundleSignatureException("Manifest is null.");
+            throw new BundleSignatureException(ERROR_MANIFEST_IS_NULL);
         }
         if (manifest.signature() == null) {
-            throw new BundleSignatureException("Manifest is not signed.");
+            throw new BundleSignatureException(ERROR_MANIFEST_IS_NOT_SIGNED);
         }
         if (manifest.signature().value() == null || manifest.signature().value().isBlank()) {
-            throw new BundleSignatureException("Manifest signature value is empty.");
+            throw new BundleSignatureException(ERROR_MANIFEST_SIGNATURE_VALUE_EMPTY);
         }
         if (!BundleManifest.SIGNATURE_ALGORITHM.equals(manifest.signature().algorithm())) {
             throw new BundleSignatureException(
-                    "Unsupported signature algorithm: " + manifest.signature().algorithm() + ".");
+                    ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM.formatted(manifest.signature().algorithm()));
         }
         if (manifest.files() == null || manifest.files().isEmpty()) {
-            throw new BundleSignatureException("Manifest contains no file entries.");
+            throw new BundleSignatureException(ERROR_MANIFEST_NO_FILE_ENTRIES);
         }
     }
 
@@ -238,12 +259,12 @@ public class BundleSigner {
         try {
             signatureBytes = Base64.getDecoder().decode(manifest.signature().value());
         } catch (IllegalArgumentException e) {
-            throw new BundleSignatureException("Invalid signature encoding: " + e.getMessage(), e);
+            throw new BundleSignatureException(ERROR_INVALID_SIGNATURE_ENCODING.formatted(e.getMessage()), e);
         }
 
         val isValid = verifySignatureBytes(bytesToVerify, signatureBytes, publicKey);
         if (!isValid) {
-            throw new BundleSignatureException("Signature verification failed: signature does not match manifest.");
+            throw new BundleSignatureException(ERROR_SIGNATURE_DOES_NOT_MATCH);
         }
     }
 
@@ -252,8 +273,7 @@ public class BundleSigner {
             return;
         }
         if (currentTime.isAfter(manifest.expires())) {
-            throw new BundleSignatureException(
-                    "Manifest has expired. Expiration: " + manifest.expires() + ", current time: " + currentTime + ".");
+            throw new BundleSignatureException(ERROR_MANIFEST_EXPIRED.formatted(manifest.expires(), currentTime));
         }
     }
 
@@ -265,15 +285,14 @@ public class BundleSigner {
         // Check for missing files (in manifest but not in bundle)
         for (val expectedFile : expectedKeys) {
             if (!actualKeys.contains(expectedFile)) {
-                throw new BundleSignatureException("Missing file in bundle: " + expectedFile + ".");
+                throw new BundleSignatureException(ERROR_MISSING_FILE_IN_BUNDLE.formatted(expectedFile));
             }
         }
 
         // Check for extra files (in bundle but not in manifest)
         for (val actualFile : actualKeys) {
             if (!expectedKeys.contains(actualFile)) {
-                throw new BundleSignatureException(
-                        "Unexpected file in bundle not covered by signature: " + actualFile + ".");
+                throw new BundleSignatureException(ERROR_UNEXPECTED_FILE_IN_BUNDLE.formatted(actualFile));
             }
         }
 
@@ -284,8 +303,8 @@ public class BundleSigner {
             val actualHash   = BundleManifest.computeHash(actualFiles.get(filename));
 
             if (!expectedHash.equals(actualHash)) {
-                throw new BundleSignatureException("File integrity check failed for: " + filename + ". Expected hash: "
-                        + expectedHash + ", actual: " + actualHash + ".");
+                throw new BundleSignatureException(
+                        ERROR_FILE_INTEGRITY_CHECK_FAILED.formatted(filename, expectedHash, actualHash));
             }
         }
     }
@@ -297,11 +316,11 @@ public class BundleSigner {
             signature.update(data);
             return signature.sign();
         } catch (NoSuchAlgorithmException e) {
-            throw new BundleSignatureException("Ed25519 algorithm not available.", e);
+            throw new BundleSignatureException(ERROR_ED25519_NOT_AVAILABLE, e);
         } catch (InvalidKeyException e) {
-            throw new BundleSignatureException("Invalid private key: " + e.getMessage(), e);
+            throw new BundleSignatureException(ERROR_INVALID_PRIVATE_KEY.formatted(e.getMessage()), e);
         } catch (SignatureException e) {
-            throw new BundleSignatureException("Signing failed: " + e.getMessage(), e);
+            throw new BundleSignatureException(ERROR_SIGNING_FAILED.formatted(e.getMessage()), e);
         }
     }
 
@@ -312,11 +331,11 @@ public class BundleSigner {
             signature.update(data);
             return signature.verify(signatureBytes);
         } catch (NoSuchAlgorithmException e) {
-            throw new BundleSignatureException("Ed25519 algorithm not available.", e);
+            throw new BundleSignatureException(ERROR_ED25519_NOT_AVAILABLE, e);
         } catch (InvalidKeyException e) {
-            throw new BundleSignatureException("Invalid public key: " + e.getMessage(), e);
+            throw new BundleSignatureException(ERROR_INVALID_PUBLIC_KEY.formatted(e.getMessage()), e);
         } catch (SignatureException e) {
-            throw new BundleSignatureException("Signature verification error: " + e.getMessage(), e);
+            throw new BundleSignatureException(ERROR_SIGNATURE_VERIFICATION_ERROR.formatted(e.getMessage()), e);
         }
     }
 }

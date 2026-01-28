@@ -63,16 +63,19 @@ public class ScenarioInterpreter {
     private static final String DEFAULT_MOCK_FUNCTION_ERROR  = "Mock function error";
 
     private static final String ERROR_DOCUMENT_NOT_FOUND       = "Document not found: '%s'. Available documents: %s.";
+    private static final String ERROR_UNKNOWN_AMOUNT_TYPE      = "Unknown amount type: %s.";
+    private static final String ERROR_UNKNOWN_DECISION_MATCHER = "Unknown decision matcher type: %s.";
+    private static final String ERROR_UNKNOWN_DECISION_TYPE    = "Unknown decision type: %s.";
+    private static final String ERROR_UNKNOWN_DEFAULT_DECISION = "Unknown default decision: %s";
+    private static final String ERROR_UNKNOWN_ERROR_HANDLING   = "Unknown error handling: %s";
+    private static final String ERROR_UNKNOWN_MATCHER_TYPE     = "Unknown matcher type: %s.";
+    private static final String ERROR_UNKNOWN_VOTING_MODE      = "Unknown voting mode: %s";
     private static final String ERROR_UNIT_TEST_COMBINING_ALG  = "Unit tests (using 'document' singular) cannot specify a combining algorithm. "
             + "Unit tests automatically use ONLY_ONE_APPLICABLE. "
             + "Use 'documents' (plural) for integration tests that need a specific algorithm.";
     private static final String ERROR_UNIT_TEST_DOC_SPEC       = "Document specification ('document') for unit tests must be in the requirement-level given block, "
             + "not in the scenario-level given block. All scenarios in a requirement test the same document. "
             + "For integration tests with different document combinations per scenario, use 'documents' instead.";
-    private static final String ERROR_UNKNOWN_AMOUNT_TYPE      = "Unknown amount type: %s.";
-    private static final String ERROR_UNKNOWN_DECISION_MATCHER = "Unknown decision matcher type: %s.";
-    private static final String ERROR_UNKNOWN_DECISION_TYPE    = "Unknown decision type: %s.";
-    private static final String ERROR_UNKNOWN_MATCHER_TYPE     = "Unknown matcher type: %s.";
 
     private final TestConfiguration config;
 
@@ -303,7 +306,7 @@ public class ScenarioInterpreter {
         case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
         case UniqueContext ignored          -> VotingMode.UNIQUE;
         default                             ->
-            throw new IllegalArgumentException("Unknown voting mode: " + ctx.getText());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_VOTING_MODE.formatted(ctx.getText()));
         };
     }
 
@@ -313,7 +316,7 @@ public class ScenarioInterpreter {
         case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
         case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
         default                            ->
-            throw new IllegalArgumentException("Unknown default decision: " + ctx.getText());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_DEFAULT_DECISION.formatted(ctx.getText()));
         };
     }
 
@@ -322,7 +325,7 @@ public class ScenarioInterpreter {
         case AbstainErrorsContext ignored   -> ErrorHandling.ABSTAIN;
         case PropagateErrorsContext ignored -> ErrorHandling.PROPAGATE;
         default                             ->
-            throw new IllegalArgumentException("Unknown error handling: " + ctx.getText());
+            throw new IllegalArgumentException(ERROR_UNKNOWN_ERROR_HANDLING.formatted(ctx.getText()));
         };
     }
 
@@ -668,7 +671,7 @@ public class ScenarioInterpreter {
      * for BOTH conditions, rather than expecting two separate decisions.
      */
     private void applyCombinedMatchers(SaplTestFixture.DecisionResult decisionResult,
-            java.util.List<AuthorizationDecisionMatcherContext> matchers) {
+            List<AuthorizationDecisionMatcherContext> matchers) {
         if (matchers.isEmpty()) {
             return;
         }

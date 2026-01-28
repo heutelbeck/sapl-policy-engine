@@ -62,6 +62,8 @@ import static io.sapl.spring.data.utils.Utilities.convertReturnTypeIfNecessary;
 @RequiredArgsConstructor
 public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
 
+    private static final String ERROR_QUERY_ENFORCE_ON_CUSTOM_METHOD = "The QueryEnforce annotation cannot be applied to custom repository methods.";
+
     private final ObjectProvider<R2dbcAnnotationQueryManipulationEnforcementPoint<T>> r2dbcAnnotationQueryManipulationEnforcementPointProvider;
     private final ObjectProvider<R2dbcMethodNameQueryManipulationEnforcementPoint<T>> r2dbcMethodNameQueryManipulationEnforcementPointProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService>             subscriptionBuilderProvider;
@@ -86,8 +88,7 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
                 .getRepositoryByName(repository.getName());
 
         if (repositoryInformation.isCustomMethod(repositoryMethod)) {
-            throw new IllegalStateException(
-                    "The QueryEnforce annotation cannot be applied to custom repository methods. ");
+            throw new IllegalStateException(ERROR_QUERY_ENFORCE_ON_CUSTOM_METHOD);
         }
 
         final var domainType          = (Class<T>) repositoryInformation.getDomainType();

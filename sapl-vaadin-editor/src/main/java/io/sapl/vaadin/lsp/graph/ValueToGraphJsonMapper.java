@@ -17,11 +17,11 @@
  */
 package io.sapl.vaadin.lsp.graph;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Maps SAPL Value types to JSON for graph visualization. Unlike
@@ -44,7 +44,7 @@ import lombok.val;
 @UtilityClass
 public class ValueToGraphJsonMapper {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
     /**
      * Converts a Value to a JSON string suitable for graph visualization. All Value

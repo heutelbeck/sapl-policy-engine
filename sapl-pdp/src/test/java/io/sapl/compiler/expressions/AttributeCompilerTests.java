@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static io.sapl.util.SaplTesting.ATTRIBUTE_BROKER;
@@ -87,7 +88,7 @@ class AttributeCompilerTests {
         StepVerifier.create(stream).expectNextCount(1).verifyComplete();
 
         assertThat(capturedInvocation[0]).isNotNull().extracting(AttributeFinderInvocation::arguments)
-                .isEqualTo(java.util.List.of(Value.of(1), Value.of("arg")));
+                .isEqualTo(List.of(Value.of(1), Value.of("arg")));
     }
 
     @Test
@@ -153,7 +154,7 @@ class AttributeCompilerTests {
 
     @Test
     void whenEnvironmentAttributeWithMixedArgumentsThenCombinesCorrectly() {
-        var capturedInvocations = new java.util.ArrayList<AttributeFinderInvocation>();
+        var capturedInvocations = new ArrayList<AttributeFinderInvocation>();
         var broker              = new AttributeBroker() {
                                     @Override
                                     public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {

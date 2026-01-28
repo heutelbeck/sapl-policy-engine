@@ -63,6 +63,12 @@ public final class ObjectValue implements Value, Map<String, Value> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    private static final String ERROR_BUILDER_ALREADY_USED      = "Builder has already been used.";
+    private static final String ERROR_INVALID_KEY_TYPE          = "Invalid key type: expected String, got %s.";
+    private static final String ERROR_KEYS_MUST_BE_TEXT_VALUE   = "Keys must be TextValue.";
+    private static final String ERROR_KEYS_VALUES_MUST_BE_PAIRS = "Keys and values must be provided in pairs.";
+    private static final String ERROR_OBJECT_KEY_CANNOT_BE_NULL = "Object key cannot be null.";
+
     @Delegate(excludes = ExcludedMethods.class)
     private final Map<String, Value> value;
 
@@ -72,12 +78,12 @@ public final class ObjectValue implements Value, Map<String, Value> {
 
     public ObjectValue(@NonNull Value[] keysAndValues) {
         if (keysAndValues.length % 2 != 0) {
-            throw new IllegalArgumentException("Keys and values must be provided in pairs.");
+            throw new IllegalArgumentException(ERROR_KEYS_VALUES_MUST_BE_PAIRS);
         }
         val properties = new LinkedHashMap<String, Value>();
         for (int i = 0; i < keysAndValues.length; i += 2) {
             if (!(keysAndValues[i] instanceof TextValue(String val))) {
-                throw new IllegalArgumentException("Keys must be TextValue.");
+                throw new IllegalArgumentException(ERROR_KEYS_MUST_BE_TEXT_VALUE);
             }
             properties.put(val, keysAndValues[i + 1]);
         }
@@ -118,7 +124,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
          */
         public Builder put(String key, Value value) {
             if (properties == null) {
-                throw new IllegalStateException("Builder has already been used.");
+                throw new IllegalStateException(ERROR_BUILDER_ALREADY_USED);
             }
             properties.put(key, value);
             return this;
@@ -137,7 +143,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
          */
         public Builder putAll(Map<String, Value> entries) {
             if (properties == null) {
-                throw new IllegalStateException("Builder has already been used.");
+                throw new IllegalStateException(ERROR_BUILDER_ALREADY_USED);
             }
             for (val entry : entries.entrySet()) {
                 put(entry.getKey(), entry.getValue());
@@ -172,7 +178,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
          */
         public ObjectValue build() {
             if (properties == null) {
-                throw new IllegalStateException("Builder has already been used.");
+                throw new IllegalStateException(ERROR_BUILDER_ALREADY_USED);
             }
             if (properties.isEmpty()) {
                 properties = null;
@@ -222,11 +228,10 @@ public final class ObjectValue implements Value, Map<String, Value> {
     @Override
     public @Nullable Value get(Object key) {
         if (key == null) {
-            return new ErrorValue("Object key cannot be null.");
+            return new ErrorValue(ERROR_OBJECT_KEY_CANNOT_BE_NULL);
         }
         if (!(key instanceof String)) {
-            return new ErrorValue(
-                    "Invalid key type: expected String, got %s.".formatted(key.getClass().getSimpleName()));
+            return new ErrorValue(ERROR_INVALID_KEY_TYPE.formatted(key.getClass().getSimpleName()));
         }
         return value.get(key);
     }
@@ -248,11 +253,10 @@ public final class ObjectValue implements Value, Map<String, Value> {
     @Override
     public @NotNull Value getOrDefault(Object key, Value defaultValue) {
         if (key == null) {
-            return new ErrorValue("Object key cannot be null.");
+            return new ErrorValue(ERROR_OBJECT_KEY_CANNOT_BE_NULL);
         }
         if (!(key instanceof String)) {
-            return new ErrorValue(
-                    "Invalid key type: expected String, got %s.".formatted(key.getClass().getSimpleName()));
+            return new ErrorValue(ERROR_INVALID_KEY_TYPE.formatted(key.getClass().getSimpleName()));
         }
         val valueForKey = value.get(key);
         if (valueForKey == null) {

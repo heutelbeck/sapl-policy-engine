@@ -122,8 +122,7 @@ public class PemUtils {
         try {
             return Base64.getDecoder().decode(content);
         } catch (IllegalArgumentException exception) {
-            throw new CryptoException(ERROR_INVALID_BASE64 + " in " + context + ": " + exception.getMessage() + ".",
-                    exception);
+            throw new CryptoException(ERROR_INVALID_BASE64.formatted(context, exception.getMessage()), exception);
         }
     }
 }

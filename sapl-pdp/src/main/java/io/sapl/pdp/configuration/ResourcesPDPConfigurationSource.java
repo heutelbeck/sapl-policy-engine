@@ -122,6 +122,8 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
 
     private static final String DEFAULT_RESOURCE_PATH = "/policies";
 
+    private static final String ERROR_FAILED_TO_READ_RESOURCE = "Failed to read resource: %s.";
+
     private final AtomicBoolean disposed = new AtomicBoolean(false);
 
     /**
@@ -293,7 +295,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
         try {
             return new String(resource.load(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to read resource: %s.".formatted(resource.getPath()), e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_READ_RESOURCE.formatted(resource.getPath()), e);
         }
     }
 

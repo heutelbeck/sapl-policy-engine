@@ -70,8 +70,9 @@ import reactor.util.context.ContextView;
 @Slf4j
 public class AuthorizationSubscriptionBuilderService {
 
-    private static final String ERROR_EXPRESSION_EVALUATION_FAILED = "Failed to evaluate expression '";
-    private static final String ERROR_SECRETS_MUST_BE_OBJECT       = "Secrets expression must evaluate to an object, but got: ";
+    private static final String ERROR_EXPRESSION_EVALUATION_FAILED  = "Failed to evaluate expression '";
+    private static final String ERROR_QUERY_ENFORCE_ANNOTATION_NULL = "QueryEnforce annotation must not be null";
+    private static final String ERROR_SECRETS_MUST_BE_OBJECT        = "Secrets expression must evaluate to an object, but got: ";
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -201,7 +202,7 @@ public class AuthorizationSubscriptionBuilderService {
     public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
             QueryEnforce queryEnforce, Class<?> domainType) {
         if (queryEnforce == null) {
-            return Mono.error(new IllegalArgumentException("QueryEnforce annotation must not be null"));
+            return Mono.error(new IllegalArgumentException(ERROR_QUERY_ENFORCE_ANNOTATION_NULL));
         }
 
         return ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication)

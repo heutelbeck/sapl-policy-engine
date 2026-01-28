@@ -17,10 +17,11 @@
  */
 package io.sapl.compiler.policy;
 
-import com.networknt.schema.JsonMetaSchema;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaException;
-import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaException;
+import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -79,8 +80,8 @@ public class SchemaValidatorCompiler {
 
     private static final String REF_FIELD = "$ref";
 
-    private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory.builder()
-            .metaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri()).build();
+    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
+            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
 
     public static CompiledExpression compileValidator(@Nullable SchemaCondition match, CompilationContext ctx) {
         if (match == null || match.schemas().isEmpty()) {
@@ -150,16 +151,16 @@ public class SchemaValidatorCompiler {
             ObjectValue constantSchema, SourceLocation location) {
         try {
             val schemaNode        = ValueJsonMarshaller.toJsonNode(constantSchema);
-            val precompiledSchema = SCHEMA_FACTORY.getSchema(schemaNode);
+            val precompiledSchema = SCHEMA_REGISTRY.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             // Force initialization to catch schema errors at compile time
             precompiledSchema.initializeValidators();
             return new PrecompiledSchemaValidator(element, precompiledSchema, location);
-        } catch (JsonSchemaException e) {
+        } catch (SchemaException e) {
             throw new SaplCompilerException(ERROR_SCHEMA_INVALID_JSON_SCHEMA.formatted(e.getMessage()), location);
         }
     }
 
-    record PrecompiledSchemaValidator(SubscriptionElement element, JsonSchema schema, SourceLocation location)
+    record PrecompiledSchemaValidator(SubscriptionElement element, Schema schema, SourceLocation location)
             implements PureOperator {
 
         @Override

@@ -17,9 +17,9 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -35,6 +35,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -155,7 +156,7 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("valid").asBoolean()).isEqualTo(expectedValid);
 
         if (expectedValid) {
-            assertThat(parsed.get("operation").asText()).isEqualTo(expectedOperation);
+            assertThat(parsed.get("operation").asString()).isEqualTo(expectedOperation);
             assertThat(parsed.get("fields").size()).isGreaterThanOrEqualTo(minFieldCount);
         } else {
             assertThat(parsed.get("errors").size()).isGreaterThan(0);
@@ -193,7 +194,7 @@ class GraphQLFunctionLibraryTests {
         val parsed = ValueJsonMarshaller.toJsonNode(result);
 
         assertThat(result).isNotNull();
-        assertThat(parsed.get("ast").get("operationName").asText()).isEqualTo(expectedName);
+        assertThat(parsed.get("ast").get("operationName").asString()).isEqualTo(expectedName);
     }
 
     /* Field Analysis Tests */
@@ -221,8 +222,8 @@ class GraphQLFunctionLibraryTests {
         val fields = parsed.get("fields");
         assertThat(fields).hasSize(7);
 
-        val fieldNames = new java.util.ArrayList<String>();
-        fields.forEach(node -> fieldNames.add(node.asText()));
+        val fieldNames = new ArrayList<String>();
+        fields.forEach(node -> fieldNames.add(node.asString()));
 
         assertThat(fieldNames).containsExactlyInAnyOrder("investigator", "name", "sanity", "tomes", "title", "rituals",
                 "name");
@@ -342,9 +343,10 @@ class GraphQLFunctionLibraryTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideComplexityTestCases")
     void whenCalculateWeightedComplexityThenAppliesWeightsCorrectly(String query, String weightsJson,
-            int minExpectedComplexity, String scenario) throws JsonProcessingException {
+            int minExpectedComplexity, String scenario) throws JacksonException {
         val parsed     = (ObjectValue) GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
-        val weights    = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree(weightsJson));
+        val weights    = (ObjectValue) ValueJsonMarshaller
+                .fromJsonNode(JsonMapper.builder().build().readTree(weightsJson));
         val complexity = GraphQLFunctionLibrary.complexity(parsed, weights);
 
         assertThat(complexity).isNotNull();
@@ -381,9 +383,11 @@ class GraphQLFunctionLibraryTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideComplexityEdgeCases")
     void whenCalculateComplexityWithEdgeCasesThenHandlesGracefully(String parsedJson, String weightsJson,
-            int expectedComplexity) throws JsonProcessingException {
-        val parsed     = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree(parsedJson));
-        val weights    = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree(weightsJson));
+            int expectedComplexity) throws JacksonException {
+        val parsed     = (ObjectValue) ValueJsonMarshaller
+                .fromJsonNode(JsonMapper.builder().build().readTree(parsedJson));
+        val weights    = (ObjectValue) ValueJsonMarshaller
+                .fromJsonNode(JsonMapper.builder().build().readTree(weightsJson));
         val complexity = GraphQLFunctionLibrary.complexity(parsed, weights);
 
         assertThat(complexity).isNotNull().isEqualTo(Value.of(expectedComplexity));
@@ -445,7 +449,7 @@ class GraphQLFunctionLibraryTests {
         assertThat(result).isNotNull();
         val args = parsed.get("ast").get("arguments");
         assertThat(args.has("investigator")).isTrue();
-        assertThat(args.get("investigator").get("id").asText()).contains("cthulhu-cultist-42");
+        assertThat(args.get("investigator").get("id").asString()).contains("cthulhu-cultist-42");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -514,7 +518,7 @@ class GraphQLFunctionLibraryTests {
         assertThat(filters.get("hasKnowledge").asBoolean()).isTrue();
         assertThat(filters.get("names").isArray()).isTrue();
         assertThat(filters.get("names")).hasSize(3);
-        assertThat(filters.get("names").get(0).asText()).isEqualTo("Carter");
+        assertThat(filters.get("names").get(0).asString()).isEqualTo("Carter");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -618,7 +622,7 @@ class GraphQLFunctionLibraryTests {
         assertThat(result).isNotNull();
         val fragments = parsed.get("ast").get("fragments");
         assertThat(fragments.has("InvestigatorDetails")).isTrue();
-        assertThat(fragments.get("InvestigatorDetails").get("typeName").asText()).isEqualTo("Investigator");
+        assertThat(fragments.get("InvestigatorDetails").get("typeName").asString()).isEqualTo("Investigator");
         assertThat(fragments.get("InvestigatorDetails").get("fields")).hasSize(2);
     }
 
@@ -685,7 +689,7 @@ class GraphQLFunctionLibraryTests {
             assertThat(variables.has(name)).isTrue();
             switch (value) {
             case Integer intVal   -> assertThat(variables.get(name).asInt()).isEqualTo(intVal);
-            case String strVal    -> assertThat(variables.get(name).asText()).isEqualTo(strVal);
+            case String strVal    -> assertThat(variables.get(name).asString()).isEqualTo(strVal);
             case Boolean boolVal  -> assertThat(variables.get(name).asBoolean()).isEqualTo(boolVal);
             case Double doubleVal -> assertThat(variables.get(name).asDouble()).isEqualTo(doubleVal);
             default               -> {
@@ -768,7 +772,7 @@ class GraphQLFunctionLibraryTests {
 
         assertThat(result).isNotNull();
         assertThat(parsed.get("valid").asBoolean()).isTrue();
-        assertThat(parsed.get("operation").asText()).isEqualTo("query");
+        assertThat(parsed.get("operation").asString()).isEqualTo("query");
         assertThat(parsed.get("depth").asInt()).isLessThanOrEqualTo(5);
         assertThat(parsed.get("security").get("maxPaginationLimit").asInt()).isEqualTo(10);
         assertThat(parsed.get("security").get("isIntrospection").asBoolean()).isFalse();
@@ -790,11 +794,11 @@ class GraphQLFunctionLibraryTests {
 
         assertThat(result).isNotNull();
         val fields = parsed.get("fields");
-        assertThat(fields).extracting(JsonNode::asText).contains("forbiddenKnowledge");
+        assertThat(fields).extracting(JsonNode::asString).contains("forbiddenKnowledge");
     }
 
     @Test
-    void whenEnforceComplexityLimitThenDetectsViolation() throws JsonProcessingException {
+    void whenEnforceComplexityLimitThenDetectsViolation() throws JacksonException {
         val query   = """
                 query {
                   investigator(id: "1") {
@@ -808,7 +812,7 @@ class GraphQLFunctionLibraryTests {
                 }
                 """;
         val parsed  = (ObjectValue) GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
-        val weights = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree("""
+        val weights = (ObjectValue) ValueJsonMarshaller.fromJsonNode(JsonMapper.builder().build().readTree("""
                 {
                   "tomes": 50,
                   "rituals": 30

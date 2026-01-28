@@ -20,9 +20,9 @@ package io.sapl.pdp.configuration.bundle;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.val;
 
 import java.nio.charset.StandardCharsets;
@@ -105,7 +105,10 @@ public record BundleManifest(
     /** Filename for the manifest within the bundle. */
     public static final String MANIFEST_FILENAME = ".sapl-manifest.json";
 
-    private static final ObjectMapper CANONICAL_MAPPER = createCanonicalMapper();
+    private static final String ERROR_FAILED_TO_PARSE_MANIFEST = "Failed to parse manifest: %s.";
+    private static final String ERROR_FAILED_TO_SERIALIZE_MANIFEST = "Failed to serialize manifest.";
+
+    private static final JsonMapper CANONICAL_MAPPER = createCanonicalMapper();
 
     /**
      * Signature block containing the cryptographic signature and metadata.
@@ -187,8 +190,8 @@ public record BundleManifest(
     public static byte[] toCanonicalBytes(BundleManifest manifest) {
         try {
             return CANONICAL_MAPPER.writeValueAsBytes(manifest);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize manifest.", e);
+        } catch (JacksonException e) {
+            throw new IllegalStateException(ERROR_FAILED_TO_SERIALIZE_MANIFEST, e);
         }
     }
 
@@ -210,8 +213,8 @@ public record BundleManifest(
     public String toJson() {
         try {
             return CANONICAL_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize manifest.", e);
+        } catch (JacksonException e) {
+            throw new IllegalStateException(ERROR_FAILED_TO_SERIALIZE_MANIFEST, e);
         }
     }
 
@@ -229,16 +232,14 @@ public record BundleManifest(
     public static BundleManifest fromJson(String json) {
         try {
             return CANONICAL_MAPPER.readValue(json, BundleManifest.class);
-        } catch (JsonProcessingException e) {
-            throw new BundleSignatureException("Failed to parse manifest: " + e.getMessage(), e);
+        } catch (JacksonException e) {
+            throw new BundleSignatureException(ERROR_FAILED_TO_PARSE_MANIFEST.formatted(e.getMessage()), e);
         }
     }
 
-    private static ObjectMapper createCanonicalMapper() {
-        val mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-        mapper.findAndRegisterModules();
-        return mapper;
+    private static JsonMapper createCanonicalMapper() {
+        return JsonMapper.builder().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true).findAndAddModules()
+                .build();
     }
 
     /**

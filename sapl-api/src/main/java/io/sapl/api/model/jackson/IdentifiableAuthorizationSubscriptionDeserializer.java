@@ -17,30 +17,36 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
-
-import java.io.IOException;
-
 import lombok.val;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
  * Jackson deserializer for IdentifiableAuthorizationSubscription.
  */
 public class IdentifiableAuthorizationSubscriptionDeserializer
-        extends JsonDeserializer<IdentifiableAuthorizationSubscription> {
+        extends StdDeserializer<IdentifiableAuthorizationSubscription> {
+
+    /**
+     * Default constructor required by Jackson 3.
+     */
+    public IdentifiableAuthorizationSubscriptionDeserializer() {
+        super(IdentifiableAuthorizationSubscription.class);
+    }
+
+    private static final String ERROR_EXPECTED_START_OBJECT   = "Expected START_OBJECT for IdentifiableAuthorizationSubscription.";
+    private static final String ERROR_MISSING_REQUIRED_FIELDS = "IdentifiableAuthorizationSubscription requires subscriptionId and subscription fields.";
 
     private final AuthorizationSubscriptionDeserializer subscriptionDeserializer = new AuthorizationSubscriptionDeserializer();
 
     @Override
-    public IdentifiableAuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context)
-            throws IOException {
+    public IdentifiableAuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            throw new IOException("Expected START_OBJECT for IdentifiableAuthorizationSubscription.");
+            context.reportInputMismatch(IdentifiableAuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         String                    subscriptionId = null;
@@ -51,15 +57,14 @@ public class IdentifiableAuthorizationSubscriptionDeserializer
             parser.nextToken();
 
             switch (fieldName) {
-            case "subscriptionId" -> subscriptionId = parser.getText();
+            case "subscriptionId" -> subscriptionId = parser.getString();
             case "subscription"   -> subscription = subscriptionDeserializer.deserialize(parser, context);
             default               -> parser.skipChildren();
             }
         }
 
         if (subscriptionId == null || subscription == null) {
-            throw new IOException(
-                    "IdentifiableAuthorizationSubscription requires subscriptionId and subscription fields.");
+            context.reportInputMismatch(IdentifiableAuthorizationSubscription.class, ERROR_MISSING_REQUIRED_FIELDS);
         }
 
         return new IdentifiableAuthorizationSubscription(subscriptionId, subscription);

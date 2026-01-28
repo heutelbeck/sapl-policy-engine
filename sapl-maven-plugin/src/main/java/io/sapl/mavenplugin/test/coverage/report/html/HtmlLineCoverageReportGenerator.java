@@ -46,6 +46,9 @@ import java.util.List;
  */
 public class HtmlLineCoverageReportGenerator {
 
+    private static final String ERROR_ASSET_FILE_NOT_FOUND   = "Cannot find asset file: %s";
+    private static final String ERROR_GENERATING_HTML_REPORT = "Error generating HTML coverage report.";
+
     /**
      * Generates complete HTML coverage report.
      *
@@ -68,7 +71,7 @@ public class HtmlLineCoverageReportGenerator {
             copyAssets(baseDir, WebDependencyFactory.getWebDependencies());
             return mainReportPath;
         } catch (IOException e) {
-            throw new MojoExecutionException("Error generating HTML coverage report", e);
+            throw new MojoExecutionException(ERROR_GENERATING_HTML_REPORT, e);
         }
     }
 
@@ -142,7 +145,7 @@ public class HtmlLineCoverageReportGenerator {
             val sourceRelPathStr = webDependency.sourcePath() + webDependency.fileName();
             val source           = getClass().getClassLoader().getResourceAsStream(sourceRelPathStr);
             if (source == null) {
-                throw new IOException("Cannot find asset file: " + sourceRelPathStr);
+                throw new IOException(ERROR_ASSET_FILE_NOT_FOUND.formatted(sourceRelPathStr));
             }
             val target = baseDir.resolve(webDependency.targetPath()).resolve(webDependency.fileName());
             copyFile(source, target);

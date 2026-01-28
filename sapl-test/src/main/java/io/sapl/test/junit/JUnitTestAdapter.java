@@ -61,6 +61,8 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
  */
 public class JUnitTestAdapter {
 
+    private static final String ERROR_FAILED_TO_READ_TEST_FILE = "Failed to read test file: %s";
+
     private List<SaplDocument> policies;
     private TestConfiguration  config;
 
@@ -183,7 +185,8 @@ public class JUnitTestAdapter {
         } catch (IOException exception) {
             return DynamicContainer.dynamicContainer(relativePath, uri,
                     Stream.of(DynamicTest.dynamicTest("Parse Error", () -> {
-                        throw new UncheckedIOException("Failed to read test file: " + relativePath, exception);
+                        throw new UncheckedIOException(ERROR_FAILED_TO_READ_TEST_FILE.formatted(relativePath),
+                                exception);
                     })));
         } catch (Exception exception) {
             return DynamicContainer.dynamicContainer(relativePath, uri,

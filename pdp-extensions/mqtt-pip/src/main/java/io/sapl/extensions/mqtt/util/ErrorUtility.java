@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.hivemq.client.internal.mqtt.exceptions.MqttClientStateExceptions;
 import com.hivemq.client.mqtt.exceptions.ConnectionClosedException;
 import com.hivemq.client.mqtt.exceptions.ConnectionFailedException;

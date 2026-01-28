@@ -32,6 +32,9 @@ import java.util.NoSuchElementException;
  */
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 class ProtectedPayload<P> {
+
+    private static final String ERROR_PAYLOAD_DOES_NOT_WRAP_EXCEPTION = "Protected payload does not wrap an exception.";
+
     private final P         payload;
     private final Throwable error;
 
@@ -92,7 +95,7 @@ class ProtectedPayload<P> {
     @NonNull
     public Throwable getError() {
         if (error == null)
-            throw new NoSuchElementException("Protected payload does not wrap an exception.");
+            throw new NoSuchElementException(ERROR_PAYLOAD_DOES_NOT_WRAP_EXCEPTION);
         return error;
     }
 

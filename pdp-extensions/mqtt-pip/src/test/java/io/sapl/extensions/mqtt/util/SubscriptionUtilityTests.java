@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.JsonNodeFactory;
 import com.hivemq.client.internal.mqtt.message.subscribe.MqttSubscription;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;

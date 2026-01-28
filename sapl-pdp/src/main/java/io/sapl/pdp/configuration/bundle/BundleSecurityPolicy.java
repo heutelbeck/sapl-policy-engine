@@ -108,7 +108,14 @@ import java.util.Set;
 @Slf4j
 public final class BundleSecurityPolicy {
 
-    private static final Set<String> ED25519_ALGORITHM_NAMES = Set.of("Ed25519", "EdDSA");
+    private static final Set<String> ED25519_ALGORITHM_NAMES                          = Set.of("Ed25519", "EdDSA");
+    private static final String      ERROR_BUNDLE_NOT_SIGNED_REQUIRED                 = "Bundle '%s' is not signed but signature verification is required.";
+    private static final String      ERROR_BUNDLE_NOT_SIGNED_RISK_NOT_ACCEPTED        = "Bundle '%s' is not signed and unsigned bundle risks have not been accepted.";
+    private static final String      ERROR_NO_PUBLIC_KEY_FOR_VERIFICATION             = "Bundle signature verification is required but no public key was provided.";
+    private static final String      ERROR_PUBLIC_KEY_MUST_BE_ED25519                 = "Public key must be Ed25519, got: %s.";
+    private static final String      ERROR_PUBLIC_KEY_MUST_NOT_BE_NULL                = "Public key must not be null.";
+    private static final String      ERROR_SIGNATURE_DISABLED_WITHOUT_RISK_ACCEPTANCE = "Bundle signature verification disabled without risk acceptance. Set the appropriate configuration to accept unsigned bundle risks.";
+    private static final String      ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY              = "Signature verification requires a public key. Use builder(publicKey) or disable signature verification.";
 
     private final PublicKey publicKey;
     private final boolean   signatureRequired;
@@ -234,8 +241,7 @@ public final class BundleSecurityPolicy {
     public void validate() {
         if (signatureRequired) {
             if (publicKey == null) {
-                throw new BundleSignatureException(
-                        "Bundle signature verification is required but no public key was provided.");
+                throw new BundleSignatureException(ERROR_NO_PUBLIC_KEY_FOR_VERIFICATION);
             }
             log.info(
                     "Bundle security policy: Signature verification ENABLED. "
@@ -253,8 +259,7 @@ public final class BundleSecurityPolicy {
                     To accept risks, ensure both conditions are met in configuration: \
                     (1) signature verification disabled, AND \
                     (2) unsigned bundle risks accepted.""");
-            throw new BundleSignatureException("Bundle signature verification disabled without risk acceptance. "
-                    + "Set the appropriate configuration to accept unsigned bundle risks.");
+            throw new BundleSignatureException(ERROR_SIGNATURE_DISABLED_WITHOUT_RISK_ACCEPTANCE);
         }
 
         // Risk accepted - log warning for audit trail
@@ -283,14 +288,11 @@ public final class BundleSecurityPolicy {
      */
     public void checkUnsignedBundleAllowed(String bundleIdentifier) {
         if (signatureRequired) {
-            throw new BundleSignatureException(
-                    "Bundle '%s' is not signed but signature verification is required.".formatted(bundleIdentifier));
+            throw new BundleSignatureException(ERROR_BUNDLE_NOT_SIGNED_REQUIRED.formatted(bundleIdentifier));
         }
 
         if (!unsignedBundleRiskAccepted) {
-            throw new BundleSignatureException(
-                    "Bundle '%s' is not signed and unsigned bundle risks have not been accepted."
-                            .formatted(bundleIdentifier));
+            throw new BundleSignatureException(ERROR_BUNDLE_NOT_SIGNED_RISK_NOT_ACCEPTED.formatted(bundleIdentifier));
         }
 
         log.warn("SECURITY: Loading unsigned bundle '{}'. Policy integrity and authenticity are NOT verified.",
@@ -299,10 +301,10 @@ public final class BundleSecurityPolicy {
 
     private static void validatePublicKey(PublicKey publicKey) {
         if (publicKey == null) {
-            throw new IllegalArgumentException("Public key must not be null.");
+            throw new IllegalArgumentException(ERROR_PUBLIC_KEY_MUST_NOT_BE_NULL);
         }
         if (!ED25519_ALGORITHM_NAMES.contains(publicKey.getAlgorithm())) {
-            throw new IllegalArgumentException("Public key must be Ed25519, got: " + publicKey.getAlgorithm() + ".");
+            throw new IllegalArgumentException(ERROR_PUBLIC_KEY_MUST_BE_ED25519.formatted(publicKey.getAlgorithm()));
         }
     }
 
@@ -420,8 +422,7 @@ public final class BundleSecurityPolicy {
          */
         public BundleSecurityPolicy build() {
             if (signatureRequired && publicKey == null) {
-                throw new IllegalStateException("Signature verification requires a public key. "
-                        + "Use builder(publicKey) or disable signature verification.");
+                throw new IllegalStateException(ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY);
             }
 
             return new BundleSecurityPolicy(publicKey, signatureRequired, checkExpiration, unsignedBundleRiskAccepted);

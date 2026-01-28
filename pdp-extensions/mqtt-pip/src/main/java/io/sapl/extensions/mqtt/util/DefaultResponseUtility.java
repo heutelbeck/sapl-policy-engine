@@ -17,8 +17,8 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +46,8 @@ public class DefaultResponseUtility {
                                                                                           // published after timeout
     private static final String DEFAULT_RESPONSE_TYPE                = "undefined";
     private static final long   DEFAULT_RESPONSE_TIMEOUT             = 2000;              // in milliseconds
+
+    private static final String ERROR_NO_MQTT_MESSAGE_RECEIVED_YET = "The sapl mqtt pip has not received any mqtt message yet.";
 
     /**
      * Build the {@link DefaultResponseConfig} of the provided configuration.
@@ -80,14 +82,14 @@ public class DefaultResponseUtility {
         if (DEFAULT_RESPONSE_TYPE.equals(defaultResponseType)) {
             return Value.UNDEFINED;
         } else {
-            return Value.error("The sapl mqtt pip has not received any mqtt message yet.");
+            return Value.error(ERROR_NO_MQTT_MESSAGE_RECEIVED_YET);
         }
     }
 
     private static String getDefaultResponseType(JsonNode pipMqttClientConfig, ObjectNode mqttBrokerConfig) {
         String defaultResponseType;
         if (mqttBrokerConfig.has(ENVIRONMENT_DEFAULT_RESPONSE)) {
-            defaultResponseType = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE).asText();
+            defaultResponseType = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE).asString();
         } else {
             defaultResponseType = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_RESPONSE,
                     DEFAULT_RESPONSE_TYPE);

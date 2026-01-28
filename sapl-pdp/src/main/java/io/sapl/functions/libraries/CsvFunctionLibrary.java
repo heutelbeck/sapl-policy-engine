@@ -17,10 +17,10 @@
  */
 package io.sapl.functions.libraries;
 
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import tools.jackson.databind.MappingIterator;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.dataformat.csv.CsvMapper;
+import tools.jackson.dataformat.csv.CsvSchema;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
@@ -30,8 +30,8 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -155,7 +155,7 @@ public class CsvFunctionLibrary {
             ```
             """;
 
-    private static final CsvMapper CSV_MAPPER = new CsvMapper();
+    private static final CsvMapper CSV_MAPPER = CsvMapper.builder().build();
 
     private static final String ERROR_ARRAY_ELEMENT_NOT_OBJECT   = "CSV array element at index %d is not an object.";
     private static final String ERROR_ARRAY_MUST_CONTAIN_OBJECTS = "CSV array must contain objects.";
@@ -210,7 +210,7 @@ public class CsvFunctionLibrary {
                 resultBuilder.add(objectBuilder.build());
             }
             return resultBuilder.build();
-        } catch (IOException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_PARSE_CSV, exception.getMessage());
         }
     }
@@ -278,7 +278,7 @@ public class CsvFunctionLibrary {
         try {
             val arrayNode = convertToJacksonArrayNode(array);
             return Value.of(CSV_MAPPER.writer(schema).writeValueAsString(arrayNode));
-        } catch (IOException exception) {
+        } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
         }
     }

@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
 import lombok.AccessLevel;

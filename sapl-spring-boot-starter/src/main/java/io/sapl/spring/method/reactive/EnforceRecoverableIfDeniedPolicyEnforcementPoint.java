@@ -54,6 +54,16 @@ import static java.util.function.Predicate.not;
  */
 public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<ProtectedPayload<T>> {
 
+    private static final String ERROR_CONSTRAINT_BASED_TRANSFORMATION         = "Error in PEP during constraint-based transformation of exceptions.";
+    private static final String ERROR_FAILED_TO_COMPLY_WITH_ONDECISION        = "The PEP failed to comply with the onDecision obligations. Will be handled like an INDETERMINATE decision";
+    private static final String ERROR_FAILED_TO_CONSTRUCT_CONSTRAINT_HANDLERS = "The PEP failed to construct constraint handlers. Will be handled like an INDETERMINATE decision";
+    private static final String ERROR_FAILED_TO_HANDLE_ONNEXT_OBLIGATION      = "Failed to handle onNext obligation.";
+    private static final String ERROR_FAILED_TO_REPLACE_STREAM_WITH_RESOURCE  = "The PEP failed to replace stream with decision's resource object. Will be handled like an INDETERMINATE decision";
+    private static final String ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE    = "Operator may only be subscribed once.";
+    private static final String ERROR_PDP_DECIDED_TO_DENY_ACCESS              = "PDP decided to deny access.";
+    private static final String ERROR_PDP_RETURNED_INDETERMINATE              = "The PDP encountered an error during decision making and returned INDETERMINATE.";
+    private static final String ERROR_PDP_RETURNED_NOT_APPLICABLE             = "The PDP has no applicable rules answering the authorization subscription and returned NOT_APPLICABLE.";
+
     private final Flux<AuthorizationDecision> decisions;
 
     private Flux<T> resourceAccessPoint;
@@ -96,7 +106,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     @Override
     public void subscribe(@NonNull CoreSubscriber<? super ProtectedPayload<T>> actual) {
         if (sink != null)
-            throw new IllegalStateException("Operator may only be subscribed once.");
+            throw new IllegalStateException(ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE);
         final var context = actual.currentContext();
         sink                = new RecoverableEnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
@@ -106,16 +116,14 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private void handleNextDecision(AuthorizationDecision decision) {
         if (decision.decision() == Decision.INDETERMINATE) {
-            sink.error(new AccessDeniedException(
-                    "The PDP encountered an error during decision making and returned INDETERMINATE."));
+            sink.error(new AccessDeniedException(ERROR_PDP_RETURNED_INDETERMINATE));
             latestDecision.set(decision);
             constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
             return;
         }
 
         if (decision.decision() == Decision.NOT_APPLICABLE) {
-            sink.error(new AccessDeniedException(
-                    "The PDP has no applicable rules answering the authorization subscription and returned NOT_APPLICABLE."));
+            sink.error(new AccessDeniedException(ERROR_PDP_RETURNED_NOT_APPLICABLE));
             latestDecision.set(decision);
             constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
             return;
@@ -126,9 +134,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             newConstraintHandlerBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
             constraintHandlerBundle.set(newConstraintHandlerBundle);
         } catch (AccessDeniedException e) {
-            sink.error(new AccessDeniedException(
-                    "The PEP failed to construct constraint handlers. Will be handled like an INDETERMINATE decision",
-                    e));
+            sink.error(new AccessDeniedException(ERROR_FAILED_TO_CONSTRUCT_CONSTRAINT_HANDLERS, e));
             latestDecision.set(AuthorizationDecision.INDETERMINATE);
             constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
             return;
@@ -137,16 +143,14 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         try {
             newConstraintHandlerBundle.handleOnDecisionConstraints();
         } catch (AccessDeniedException e) {
-            sink.error(new AccessDeniedException(
-                    "The PEP failed to comply with the onDecision obligations. Will be handled like an INDETERMINATE decision",
-                    e));
+            sink.error(new AccessDeniedException(ERROR_FAILED_TO_COMPLY_WITH_ONDECISION, e));
             latestDecision.set(AuthorizationDecision.INDETERMINATE);
             constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
             return;
         }
 
         if (decision.decision() == Decision.DENY) {
-            sink.error(new AccessDeniedException("PDP decided to deny access."));
+            sink.error(new AccessDeniedException(ERROR_PDP_DECIDED_TO_DENY_ACCESS));
             latestDecision.set(decision);
             return;
         }
@@ -159,9 +163,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
             } catch (JsonProcessingException | IllegalArgumentException e) {
-                sink.error(new AccessDeniedException(
-                        "The PEP failed to replace stream with decision's resource object. Will be handled like an INDETERMINATE decision",
-                        e));
+                sink.error(new AccessDeniedException(ERROR_FAILED_TO_REPLACE_STREAM_WITH_RESOURCE, e));
                 latestDecision.set(AuthorizationDecision.INDETERMINATE);
                 constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
                 return;
@@ -218,7 +220,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             // doing handleNextDecision(AuthorizationDecision.DENY); would drop all
             // subsequent messages, even if the constraint handler would succeed on then.
             // Do not signal original error, as this may leak information in message.
-            sink.error(new AccessDeniedException("Failed to handle onNext obligation.", t));
+            sink.error(new AccessDeniedException(ERROR_FAILED_TO_HANDLE_ONNEXT_OBLIGATION, t));
         }
     }
 
@@ -277,8 +279,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             return ProtectedPayload
                     .withError(constraintHandlerBundle.get().handleAllOnErrorConstraints(payload.getError()));
         } catch (Exception e) {
-            return ProtectedPayload.withError(
-                    new AccessDeniedException("Error in PEP during constraint-based transformation of exceptions.", e));
+            return ProtectedPayload.withError(new AccessDeniedException(ERROR_CONSTRAINT_BASED_TRANSFORMATION, e));
         }
     }
 

@@ -17,8 +17,8 @@
  */
 package io.sapl.api.model.jackson;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
@@ -28,11 +28,16 @@ import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -43,18 +48,16 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SaplJacksonModuleTests {
 
-    private static ObjectMapper mapper;
+    private static JsonMapper mapper;
 
     @BeforeAll
     static void setup() {
-        mapper = new ObjectMapper();
-        mapper.registerModule(new SaplJacksonModule());
+        mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
     }
 
     @ParameterizedTest
     @MethodSource("valueSerializationCases")
-    void when_serializingValue_then_producesExpectedJson(Value value, String expectedJson)
-            throws JsonProcessingException {
+    void when_serializingValue_then_producesExpectedJson(Value value, String expectedJson) throws JacksonException {
         val json = mapper.writeValueAsString(value);
         assertThat(json).isEqualTo(expectedJson);
     }
@@ -70,8 +73,7 @@ class SaplJacksonModuleTests {
 
     @ParameterizedTest
     @MethodSource("valueDeserializationCases")
-    void when_deserializingJson_then_producesExpectedValue(String json, Value expectedValue)
-            throws JsonProcessingException {
+    void when_deserializingJson_then_producesExpectedValue(String json, Value expectedValue) throws JacksonException {
         val value = mapper.readValue(json, Value.class);
         assertThat(value).isEqualTo(expectedValue);
     }
@@ -88,7 +90,7 @@ class SaplJacksonModuleTests {
     @ParameterizedTest
     @MethodSource("nonSerializableValueCases")
     void when_serializingNonSerializableValue_then_throwsException(Value value, String expectedMessage) {
-        assertThatThrownBy(() -> mapper.writeValueAsString(value)).hasCauseInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> mapper.writeValueAsString(value)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(expectedMessage);
     }
 
@@ -98,14 +100,14 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingArrayWithUndefined_then_undefinedIsSkipped() throws JsonProcessingException {
+    void when_serializingArrayWithUndefined_then_undefinedIsSkipped() throws JacksonException {
         val array = Value.ofArray(Value.of("visible"), Value.UNDEFINED, Value.of("also visible"));
         val json  = mapper.writeValueAsString(array);
         assertThat(json).isEqualTo("[\"visible\",\"also visible\"]");
     }
 
     @Test
-    void when_serializingObjectWithUndefined_then_undefinedIsSkipped() throws JsonProcessingException {
+    void when_serializingObjectWithUndefined_then_undefinedIsSkipped() throws JacksonException {
         val object = Value.ofObject(
                 Map.of("name", Value.of("Cthulhu"), "location", Value.UNDEFINED, "status", Value.of("dreaming")));
         val json   = mapper.writeValueAsString(object);
@@ -113,7 +115,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingComplexValue_then_valueIsPreserved() throws JsonProcessingException {
+    void when_roundTrippingComplexValue_then_valueIsPreserved() throws JacksonException {
         val original = Value.ofObject(Map.of("investigator", Value.of("Herbert West"), "experiments",
                 Value.ofArray(Value.of("reanimation"), Value.of("serum")), "success", Value.FALSE, "attempts",
                 Value.of(17)));
@@ -125,7 +127,7 @@ class SaplJacksonModuleTests {
     @ParameterizedTest
     @MethodSource("simpleDecisionSerializationCases")
     void when_serializingSimpleDecision_then_onlyDecisionFieldIncluded(AuthorizationDecision decision,
-            String expectedJson) throws JsonProcessingException {
+            String expectedJson) throws JacksonException {
         val json = mapper.writeValueAsString(decision);
         assertThat(json).isEqualTo(expectedJson);
     }
@@ -140,7 +142,7 @@ class SaplJacksonModuleTests {
     @ParameterizedTest
     @MethodSource("decisionWithOptionalFieldsCases")
     void when_serializingDecisionWithOptionalFields_then_onlyPresentFieldsIncluded(AuthorizationDecision decision,
-            List<String> expectedPresent, List<String> expectedAbsent) throws JsonProcessingException {
+            List<String> expectedPresent, List<String> expectedAbsent) throws JacksonException {
         val json = mapper.writeValueAsString(decision);
 
         assertThat(json).contains("\"decision\":\"PERMIT\"");
@@ -167,7 +169,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingAuthorizationSubscription_then_allFieldsSerialized() throws JsonProcessingException {
+    void when_serializingAuthorizationSubscription_then_allFieldsSerialized() throws JacksonException {
         val subscription = new AuthorizationSubscription(Value.of("investigator"), Value.of("read"),
                 Value.of("necronomicon"), Value.ofObject(Map.of("location", Value.of("Miskatonic University"))),
                 Value.EMPTY_OBJECT);
@@ -178,7 +180,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_deserializingAuthorizationSubscription_then_allFieldsRestored() throws JsonProcessingException {
+    void when_deserializingAuthorizationSubscription_then_allFieldsRestored() throws JacksonException {
         val json         = """
                 {"subject":"cultist","action":"summon","resource":"shoggoth","environment":{"ritual":"complete"}}""";
         val subscription = mapper.readValue(json, AuthorizationSubscription.class);
@@ -190,7 +192,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingAuthorizationSubscription_then_subscriptionPreserved() throws JsonProcessingException {
+    void when_roundTrippingAuthorizationSubscription_then_subscriptionPreserved() throws JacksonException {
         val original = new AuthorizationSubscription(
                 Value.ofObject(Map.of("name", Value.of("Randolph Carter"), "role", Value.of("dreamer"))),
                 Value.of("enter"), Value.of("dreamlands"), Value.UNDEFINED, Value.EMPTY_OBJECT);
@@ -205,7 +207,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingAuthorizationDecision_then_decisionPreserved() throws JsonProcessingException {
+    void when_roundTrippingAuthorizationDecision_then_decisionPreserved() throws JacksonException {
         val obligation = Value.ofObject(Map.of("type", Value.of("notify"), "target", Value.of("security")));
         val advice     = Value.ofObject(Map.of("suggestion", Value.of("Review access logs")));
         val resource   = Value.ofObject(Map.of("sanitized", Value.TRUE));
@@ -219,7 +221,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingIdentifiableSubscription_then_containsIdAndSubscription() throws JsonProcessingException {
+    void when_serializingIdentifiableSubscription_then_containsIdAndSubscription() throws JacksonException {
         val subscription = new AuthorizationSubscription(Value.of("keeper"), Value.of("access"), Value.of("silver_key"),
                 Value.UNDEFINED, Value.EMPTY_OBJECT);
         val identifiable = new IdentifiableAuthorizationSubscription("open-gate", subscription);
@@ -230,7 +232,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingIdentifiableSubscription_then_preserved() throws JsonProcessingException {
+    void when_roundTrippingIdentifiableSubscription_then_preserved() throws JacksonException {
         val subscription = new AuthorizationSubscription(Value.of("deep_one"), Value.of("emerge"),
                 Value.of("innsmouth_harbor"), Value.UNDEFINED, Value.EMPTY_OBJECT);
         val original     = new IdentifiableAuthorizationSubscription("emergence-request", subscription);
@@ -245,7 +247,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingIdentifiableDecision_then_containsIdAndDecision() throws JsonProcessingException {
+    void when_serializingIdentifiableDecision_then_containsIdAndDecision() throws JacksonException {
         val identifiable = new IdentifiableAuthorizationDecision("read-tome", AuthorizationDecision.PERMIT);
         val json         = mapper.writeValueAsString(identifiable);
 
@@ -254,7 +256,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingIdentifiableDecision_then_preserved() throws JsonProcessingException {
+    void when_roundTrippingIdentifiableDecision_then_preserved() throws JacksonException {
         val decision = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED);
         val original = new IdentifiableAuthorizationDecision("forbidden-ritual", decision);
 
@@ -266,7 +268,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingMultiSubscription_then_serializesAsMap() throws JsonProcessingException {
+    void when_serializingMultiSubscription_then_serializesAsMap() throws JacksonException {
         val multiSubscription = new MultiAuthorizationSubscription()
                 .addSubscription("read-necronomicon",
                         new AuthorizationSubscription(Value.of("scholar"), Value.of("read"), Value.of("necronomicon"),
@@ -281,7 +283,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingMultiSubscription_then_preserved() throws JsonProcessingException {
+    void when_roundTrippingMultiSubscription_then_preserved() throws JacksonException {
         val original = new MultiAuthorizationSubscription()
                 .addSubscription("enter-dunwich",
                         new AuthorizationSubscription(Value.of("traveler"), Value.of("enter"), Value.of("dunwich"),
@@ -298,7 +300,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingMultiDecision_then_serializesAsMap() throws JsonProcessingException {
+    void when_serializingMultiDecision_then_serializesAsMap() throws JacksonException {
         val multiDecision = new MultiAuthorizationDecision();
         multiDecision.setDecision("read-tome", AuthorizationDecision.PERMIT);
         multiDecision.setDecision("burn-tome", AuthorizationDecision.DENY);
@@ -310,7 +312,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingMultiDecision_then_preserved() throws JsonProcessingException {
+    void when_roundTrippingMultiDecision_then_preserved() throws JacksonException {
         val original = new MultiAuthorizationDecision();
         original.setDecision("summon-byakhee", AuthorizationDecision.DENY);
         original.setDecision("dismiss-byakhee", AuthorizationDecision.PERMIT);
@@ -324,7 +326,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingMultiDecisionWithObligations_then_obligationsPreserved() throws JsonProcessingException {
+    void when_roundTrippingMultiDecisionWithObligations_then_obligationsPreserved() throws JacksonException {
         val obligation = Value.ofObject(Map.of("type", Value.of("log_access")));
         val decision   = new AuthorizationDecision(Decision.PERMIT, new ArrayValue(List.of(obligation)),
                 Value.EMPTY_ARRAY, Value.UNDEFINED);
@@ -342,7 +344,7 @@ class SaplJacksonModuleTests {
     @ParameterizedTest
     @MethodSource("combiningAlgorithmSerializationCases")
     void when_serializingCombiningAlgorithm_then_producesObjectFormat(CombiningAlgorithm algorithm, String expectedJson)
-            throws JsonProcessingException {
+            throws JacksonException {
         val json = mapper.writeValueAsString(algorithm);
         assertThat(json).isEqualTo(expectedJson);
     }
@@ -365,7 +367,7 @@ class SaplJacksonModuleTests {
     @ParameterizedTest
     @MethodSource("combiningAlgorithmDeserializationCases")
     void when_deserializingCombiningAlgorithm_then_parsesObjectFormat(String json, CombiningAlgorithm expected)
-            throws JsonProcessingException {
+            throws JacksonException {
         val algorithm = mapper.readValue(json, CombiningAlgorithm.class);
         assertThat(algorithm).isEqualTo(expected);
     }
@@ -396,7 +398,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingPDPConfiguration_then_allFieldsSerialized() throws JsonProcessingException {
+    void when_serializingPDPConfiguration_then_allFieldsSerialized() throws JacksonException {
         val algorithm     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
                 ErrorHandling.ABSTAIN);
         val configuration = new PDPConfiguration("arkham-pdp", "v1.0", algorithm,
@@ -415,7 +417,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_deserializingPDPConfiguration_then_allFieldsRestored() throws JsonProcessingException {
+    void when_deserializingPDPConfiguration_then_allFieldsRestored() throws JacksonException {
         val json          = """
                 {
                     "pdpId": "innsmouth-pdp",
@@ -437,7 +439,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingPDPConfiguration_then_configurationPreserved() throws JsonProcessingException {
+    void when_roundTrippingPDPConfiguration_then_configurationPreserved() throws JacksonException {
         val algorithm = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
         val original  = new PDPConfiguration("dunwich-pdp", "elder-security", algorithm,
                 List.of("policy whateley-access permit where action == \"read\"",
@@ -452,7 +454,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_deserializingPDPConfigurationWithObjectAlgorithm_then_parsesCorrectly() throws JsonProcessingException {
+    void when_deserializingPDPConfigurationWithObjectAlgorithm_then_parsesCorrectly() throws JacksonException {
         val json          = """
                 {
                     "pdpId": "test-pdp",
@@ -468,8 +470,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_deserializingPDPConfigurationWithComplexVariables_then_variablesPreserved()
-            throws JsonProcessingException {
+    void when_deserializingPDPConfigurationWithComplexVariables_then_variablesPreserved() throws JacksonException {
         val json          = """
                 {
                     "pdpId": "complex-pdp",
@@ -532,7 +533,7 @@ class SaplJacksonModuleTests {
 
     @Test
     void when_deserializingPDPConfigurationWithEmptyDocumentsAndVariables_then_defaultsToEmptyCollections()
-            throws JsonProcessingException {
+            throws JacksonException {
         val json          = """
                 {
                     "pdpId": "empty-pdp",
@@ -546,8 +547,7 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_roundTrippingPDPConfigurationWithMultilineDocuments_then_newlinesPreserved()
-            throws JsonProcessingException {
+    void when_roundTrippingPDPConfigurationWithMultilineDocuments_then_newlinesPreserved() throws JacksonException {
         val multilinePolicy = """
                 policy "elder-sign-access"
                 permit
@@ -567,5 +567,61 @@ class SaplJacksonModuleTests {
         assertThat(restored.saplDocuments()).hasSize(1);
         assertThat(restored.saplDocuments().getFirst()).isEqualTo(multilinePolicy);
         assertThat(restored.saplDocuments().getFirst()).contains("\n");
+    }
+
+    @Nested
+    class DateTimeSerializationTests {
+
+        @Test
+        void when_serializingInstant_then_producesIso8601String() throws JacksonException {
+            val instant = Instant.parse("2025-01-06T10:30:00Z");
+            val json    = mapper.writeValueAsString(instant);
+            assertThat(json).isEqualTo("\"2025-01-06T10:30:00Z\"");
+        }
+
+        @Test
+        void when_deserializingInstant_then_parsesIso8601String() throws JacksonException {
+            val json    = "\"2025-01-06T10:30:00Z\"";
+            val instant = mapper.readValue(json, Instant.class);
+            assertThat(instant).isEqualTo(Instant.parse("2025-01-06T10:30:00Z"));
+        }
+
+        @Test
+        void when_roundTrippingInstant_then_valuePreserved() throws JacksonException {
+            val original = Instant.parse("2025-01-06T10:30:00.123456789Z");
+            val json     = mapper.writeValueAsString(original);
+            val restored = mapper.readValue(json, Instant.class);
+            assertThat(restored).isEqualTo(original);
+        }
+
+        @Test
+        void when_serializingLocalDateTime_then_producesIso8601String() throws JacksonException {
+            val dateTime = LocalDateTime.of(2025, 1, 6, 10, 30, 0);
+            val json     = mapper.writeValueAsString(dateTime);
+            assertThat(json).isEqualTo("\"2025-01-06T10:30:00\"");
+        }
+
+        @Test
+        void when_roundTrippingLocalDateTime_then_valuePreserved() throws JacksonException {
+            val original = LocalDateTime.of(2025, 1, 6, 10, 30, 45, 123456789);
+            val json     = mapper.writeValueAsString(original);
+            val restored = mapper.readValue(json, LocalDateTime.class);
+            assertThat(restored).isEqualTo(original);
+        }
+
+        @Test
+        void when_serializingZonedDateTime_then_includesOffset() throws JacksonException {
+            val dateTime = ZonedDateTime.of(2025, 1, 6, 10, 30, 0, 0, ZoneId.of("Europe/Berlin"));
+            val json     = mapper.writeValueAsString(dateTime);
+            assertThat(json).contains("2025-01-06T10:30:00").contains("+01:00");
+        }
+
+        @Test
+        void when_roundTrippingZonedDateTime_then_instantPreserved() throws JacksonException {
+            val original = ZonedDateTime.of(2025, 1, 6, 10, 30, 0, 0, ZoneId.of("America/New_York"));
+            val json     = mapper.writeValueAsString(original);
+            val restored = mapper.readValue(json, ZonedDateTime.class);
+            assertThat(restored.toInstant()).isEqualTo(original.toInstant());
+        }
     }
 }

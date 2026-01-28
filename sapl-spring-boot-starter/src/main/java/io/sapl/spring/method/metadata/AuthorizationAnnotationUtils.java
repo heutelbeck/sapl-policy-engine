@@ -45,6 +45,9 @@ import java.lang.reflect.Method;
 @UtilityClass
 final class AuthorizationAnnotationUtils {
 
+    private static final String ERROR_DUPLICATE_ANNOTATION_ON_METHOD = "Found more than one annotation of type %s attributed to %s Please remove the duplicate annotations and publish a bean to handle your authorization logic.";
+    private static final String ERROR_DUPLICATE_ANNOTATION_ON_TYPE   = "Found more than one annotation of type %s attributed to %s Please remove the duplicate annotations and publish a bean to handle your authorization logic.";
+
     /**
      * First lookup the annotation on the method, then on the class.
      *
@@ -77,9 +80,8 @@ final class AuthorizationAnnotationUtils {
         MergedAnnotations mergedAnnotations = MergedAnnotations.from(method,
                 MergedAnnotations.SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.none());
         if (hasDuplicate(mergedAnnotations, annotationType)) {
-            throw new AnnotationConfigurationException("Found more than one annotation of type " + annotationType
-                    + " attributed to " + method
-                    + " Please remove the duplicate annotations and publish a bean to handle your authorization logic.");
+            throw new AnnotationConfigurationException(
+                    ERROR_DUPLICATE_ANNOTATION_ON_METHOD.formatted(annotationType, method));
         }
         return AnnotationUtils.findAnnotation(method, annotationType);
     }
@@ -102,9 +104,8 @@ final class AuthorizationAnnotationUtils {
         MergedAnnotations mergedAnnotations = MergedAnnotations.from(type,
                 MergedAnnotations.SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.none());
         if (hasDuplicate(mergedAnnotations, annotationType)) {
-            throw new AnnotationConfigurationException("Found more than one annotation of type " + annotationType
-                    + " attributed to " + type
-                    + " Please remove the duplicate annotations and publish a bean to handle your authorization logic.");
+            throw new AnnotationConfigurationException(
+                    ERROR_DUPLICATE_ANNOTATION_ON_TYPE.formatted(annotationType, type));
         }
         return AnnotationUtils.findAnnotation(type, annotationType);
     }
