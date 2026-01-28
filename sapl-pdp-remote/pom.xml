@@ -35,21 +35,8 @@
 	<description>Client for remote Policy Decision Points</description>
 
 	<properties>
-		<version.testcontainers>1.20.4</version.testcontainers>
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
-	
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.testcontainers</groupId>
-				<artifactId>testcontainers-bom</artifactId>
-				<version>${version.testcontainers}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 
 	<dependencies>
 		<!-- APIs to be implemented by this module -->
@@ -63,10 +50,10 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webflux</artifactId>
 		</dependency>
-		<!-- Dependency for the Repeat and Back-Off -->
+		<!-- JSpecify nullness annotations -->
 		<dependency>
-			<groupId>io.projectreactor.addons</groupId>
-			<artifactId>reactor-extra</artifactId>
+			<groupId>org.jspecify</groupId>
+			<artifactId>jspecify</artifactId>
 		</dependency>
 		<!-- Dependency for SSL Handling -->
 		<dependency>
@@ -120,7 +107,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>junit-jupiter</artifactId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

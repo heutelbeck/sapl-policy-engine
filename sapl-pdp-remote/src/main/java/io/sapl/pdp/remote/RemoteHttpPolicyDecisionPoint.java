@@ -40,12 +40,11 @@ import org.springframework.security.oauth2.client.registration.ReactiveClientReg
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.jspecify.annotations.Nullable;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.retry.Backoff;
-import reactor.retry.Repeat;
-import reactor.util.annotation.Nullable;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
@@ -100,18 +99,21 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         this.client = client;
     }
 
-    private Repeat<?> repeat() {
-        return Repeat.onlyIf(repeatContext -> true)
-                .backoff(Backoff.exponential(Duration.ofMillis(firstBackoffMillis), Duration.ofMillis(maxBackOffMillis),
-                        backoffFactor, false))
-                .doOnRepeat(o -> log.debug("No connection to remote PDP. Reconnect: {}", o));
+    private Function<Flux<Long>, Publisher<Long>> repeatWithBackoff() {
+        return companion -> companion.index().flatMap(tuple -> {
+            long iteration = tuple.getT1();
+            long delay     = Math.min(firstBackoffMillis * (long) Math.pow(backoffFactor, Math.min(iteration, 20)),
+                    maxBackOffMillis);
+            log.debug("No connection to remote PDP. Reconnect attempt {} after {}ms", iteration + 1, delay);
+            return Mono.delay(Duration.ofMillis(delay));
+        });
     }
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
         val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return decide(DECIDE, type, authzSubscription)
-                .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+                .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeatWithBackoff())
                 .distinctUntilChanged();
     }
 
@@ -127,16 +129,16 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
         val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE, type, multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
-                .distinctUntilChanged();
+                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE))
+                .repeatWhen(repeatWithBackoff()).distinctUntilChanged();
     }
 
     @Override
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
         val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
-                .distinctUntilChanged();
+                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()))
+                .repeatWhen(repeatWithBackoff()).distinctUntilChanged();
     }
 
     private <T> Flux<T> decide(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
