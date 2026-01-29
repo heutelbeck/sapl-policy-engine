@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
@@ -38,8 +38,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
+import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.authorization.DefaultAuthorizationManagerFactory;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 
 /**
@@ -118,7 +120,9 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
         final var handler = new DefaultMethodSecurityExpressionHandler();
         if (this.grantedAuthorityDefaults != null) {
-            handler.setDefaultRolePrefix(this.grantedAuthorityDefaults.getRolePrefix());
+            var authFactory = new DefaultAuthorizationManagerFactory<MethodInvocation>();
+            authFactory.setRolePrefix(this.grantedAuthorityDefaults.getRolePrefix());
+            handler.setAuthorizationManagerFactory(authFactory);
         }
         return handler;
     }
@@ -135,7 +139,11 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     private static MethodSecurityExpressionHandler defaultExpressionHandler(
             ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
         DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
-        defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
+        defaultsProvider.ifAvailable(d -> {
+            var authFactory = new DefaultAuthorizationManagerFactory<MethodInvocation>();
+            authFactory.setRolePrefix(d.getRolePrefix());
+            handler.setAuthorizationManagerFactory(authFactory);
+        });
         handler.setApplicationContext(context);
         return handler;
     }

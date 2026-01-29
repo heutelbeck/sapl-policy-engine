@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 public record RecordConstraintData(ConstraintHandlerType type, JsonNode obligation) {
 

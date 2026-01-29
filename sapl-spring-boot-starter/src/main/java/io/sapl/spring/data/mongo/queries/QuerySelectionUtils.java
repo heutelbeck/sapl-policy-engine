@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import org.springframework.data.mongodb.core.query.Query;
 
@@ -40,15 +40,15 @@ public class QuerySelectionUtils {
      * @return the new query with extended fields.
      */
     public static <T extends Query> T addSelectionPartToQuery(JsonNode selection, T query) {
-        final var elements  = selection.get("columns").elements();
+        final var elements  = selection.get("columns").values().iterator();
         final var fieldList = new ArrayList<String>();
 
         while (elements.hasNext()) {
             final var element = elements.next();
-            fieldList.add(element.asString());
+            fieldList.add(element.asText());
         }
 
-        if ("whitelist".equals(selection.get("type").asString())) {
+        if ("whitelist".equals(selection.get("type").asText())) {
             for (String field : fieldList) {
                 query.fields().include(field);
             }

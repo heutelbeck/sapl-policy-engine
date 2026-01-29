@@ -17,11 +17,11 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import com.jayway.jsonpath.*;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import lombok.experimental.UtilityClass;
@@ -373,7 +373,7 @@ public class ContentFilter {
 
             try {
                 return objectMapper.treeToValue(modifiedJsonNode, original.getClass());
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 throw new AccessConstraintViolationException(ERROR_CONVERTING_MODIFIED_OBJECT, e);
             }
         };

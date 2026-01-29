@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.manager;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -27,6 +27,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.authorization.ReactiveAuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -51,7 +52,7 @@ import reactor.core.publisher.Mono;
  * }
  * </pre>
  *
- * The {@link #check check} method is then called by the Spring Security
+ * The {@link #authorize authorize} method is then called by the Spring Security
  * framework whenever a request needs to be authorized.
  */
 @RequiredArgsConstructor
@@ -79,12 +80,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
      * @return a decision
      */
     @Override
-    // Must implement as interface still refers to deprecated method from authorize.
-    // Cannot remove deprecation warning suppression, as it would break CI build
-    // with -Werror.
-    @SuppressWarnings("deprecation")
-    public Mono<org.springframework.security.authorization.AuthorizationDecision> check(
-            Mono<Authentication> authentication, AuthorizationContext context) {
+    public Mono<AuthorizationResult> authorize(Mono<Authentication> authentication, AuthorizationContext context) {
         return reactiveConstructAuthorizationSubscription(authentication, context).flatMap(this::isPermitted)
                 .map(org.springframework.security.authorization.AuthorizationDecision::new);
     }

@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;

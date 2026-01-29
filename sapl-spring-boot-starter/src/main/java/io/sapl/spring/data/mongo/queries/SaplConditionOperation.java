@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.query.BasicQuery;
@@ -99,7 +99,7 @@ public class SaplConditionOperation {
 
             final var value = iterator.next();
 
-            final var baseQuery = new BasicQuery(value.asString());
+            final var baseQuery = new BasicQuery(value.asText());
 
             convertBasicQueryToSaplConditions(baseQuery, saplConditions);
         }

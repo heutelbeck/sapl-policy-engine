@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;

@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.providers.ContentFilterPredicateProvider;
 import io.sapl.spring.constraints.providers.ContentFilteringProvider;

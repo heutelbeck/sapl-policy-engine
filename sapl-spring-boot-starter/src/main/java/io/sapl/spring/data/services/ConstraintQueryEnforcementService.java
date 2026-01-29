@@ -17,8 +17,9 @@
  */
 package io.sapl.spring.data.services;
 
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
+import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -31,8 +32,8 @@ import java.util.List;
 
 public class ConstraintQueryEnforcementService {
 
-    private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory
-            .getInstance(SpecVersion.VersionFlag.V201909);
+    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
+            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
 
     public QueryManipulationConstraintHandlerService queryManipulationForMongoReactive(AuthorizationDecision decision) {
 
@@ -76,7 +77,8 @@ public class ConstraintQueryEnforcementService {
 
             if (ConstraintResponsibility.isResponsible(obligation, type.getType())) {
                 var jsonObligation = ValueJsonMarshaller.toJsonNode(obligation);
-                var schema         = SCHEMA_FACTORY.getSchema(type.getTemplate());
+                var schema         = SCHEMA_REGISTRY.getSchema(SchemaLocation.of("mem://constraint"),
+                        type.getTemplate());
                 var errors         = schema.validate(jsonObligation);
 
                 if (errors.isEmpty()) {

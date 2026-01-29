@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.manager;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
@@ -43,11 +44,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
     private final ObjectMapper                 mapper;
 
     @Override
-    // Must implement as interface still refers to deprecated method from authorize.
-    // Cannot remove deprecation warning suppression, as it would break CI build
-    // with -Werror.
-    @SuppressWarnings("deprecation")
-    public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
+    public AuthorizationResult authorize(Supplier<? extends Authentication> authenticationSupplier,
             RequestAuthorizationContext requestAuthorizationContext) {
         final var request        = requestAuthorizationContext.getRequest();
         final var authentication = authenticationSupplier.get();

@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
@@ -81,7 +81,7 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyDecisionPoint policyDecisionPoint(ObjectMapper mapper, Clock clock,
+    PolicyDecisionPoint policyDecisionPoint(JsonMapper mapper, Clock clock,
             ObjectProvider<VoteInterceptor> interceptorProvider,
             ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
             ApplicationContext applicationContext, EmbeddedPDPProperties properties) {

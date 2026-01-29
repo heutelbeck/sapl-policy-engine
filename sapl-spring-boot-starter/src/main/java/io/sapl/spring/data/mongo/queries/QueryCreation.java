@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
 import org.aopalliance.intercept.MethodInvocation;
@@ -70,7 +70,7 @@ public class QueryCreation {
         final var sorting = ConvertToMQL.createPageable(invocation, annotationQuery);
 
         for (JsonNode condition : conditions) {
-            final var conditionAsBasicQuery = new BasicQuery(condition.asString());
+            final var conditionAsBasicQuery = new BasicQuery(condition.asText());
             conditionAsBasicQuery.getQueryObject()
                     .forEach((key, value) -> annotationQuery.getQueryObject().append(key, value));
         }

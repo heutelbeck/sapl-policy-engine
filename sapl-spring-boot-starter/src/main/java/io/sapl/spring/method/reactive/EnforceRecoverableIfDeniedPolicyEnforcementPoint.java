@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.method.reactive;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.core.JacksonException;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -162,7 +162,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         if (!(resource instanceof UndefinedValue)) {
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
-            } catch (JsonProcessingException | IllegalArgumentException e) {
+            } catch (JacksonException | IllegalArgumentException e) {
                 sink.error(new AccessDeniedException(ERROR_FAILED_TO_REPLACE_STREAM_WITH_RESOURCE, e));
                 latestDecision.set(AuthorizationDecision.INDETERMINATE);
                 constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());

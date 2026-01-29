@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.data.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -44,7 +44,7 @@ public class Utilities {
     public static final String ALIAS                    = "alias";
     public static final String TYPE                     = "type";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private static final Pattern PREFIX_TEMPLATE = Pattern
             .compile("^(find|read|get|query|search|stream)(All)?By[A-Z].*");

@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.data.r2dbc.queries;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -115,14 +115,14 @@ public class QuerySelectionUtils {
         final var selection = selections.get(0);
 
         final var selectionList = new ArrayList<String>();
-        final var elements      = selection.get(COLUMNS).elements();
+        final var elements      = selection.get(COLUMNS).values().iterator();
 
         while (elements.hasNext()) {
             final var element = elements.next();
-            selectionList.add(element.asString().trim());
+            selectionList.add(element.asText().trim());
         }
 
-        if (WHITELIST.equals(selection.get(TYPE).asString())) {
+        if (WHITELIST.equals(selection.get(TYPE).asText())) {
             return selectionList;
         } else {
 
@@ -158,8 +158,8 @@ public class QuerySelectionUtils {
 
         for (JsonNode jsonNode : transformations) {
             final var objectNode = (ObjectNode) jsonNode;
-            final var key        = objectNode.fieldNames().next();
-            final var value      = objectNode.get(key).asString();
+            final var key        = objectNode.propertyNames().iterator().next();
+            final var value      = objectNode.get(key).asText();
 
             transformationsAsPairs.add(Map.entry(key, value));
         }

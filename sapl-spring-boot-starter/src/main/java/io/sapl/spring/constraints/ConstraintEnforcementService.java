@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.constraints;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -692,7 +692,7 @@ public class ConstraintEnforcementService {
         try {
             final var replacement = unmarshallResource(resource, clazz);
             return originalResult -> replacement;
-        } catch (JsonProcessingException | IllegalArgumentException e) {
+        } catch (JacksonException | IllegalArgumentException e) {
             final var message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
             log.warn(message);
             throw new AccessDeniedException(message, e);
@@ -715,7 +715,7 @@ public class ConstraintEnforcementService {
             return resourceAccessPoint;
         try {
             return Flux.just(unmarshallResource(resource, clazz));
-        } catch (JsonProcessingException | IllegalArgumentException e) {
+        } catch (JacksonException | IllegalArgumentException e) {
             final var message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
             log.warn(message);
             return Flux.error(new AccessDeniedException(message, e));
@@ -730,10 +730,10 @@ public class ConstraintEnforcementService {
      * @param resource a Value
      * @param clazz class of the expected output
      * @return the Value converted into the provided class
-     * @throws JsonProcessingException on JSON marshaling error
+     * @throws JacksonException on JSON marshaling error
      * @throws IllegalArgumentException on JSON marshaling error
      */
-    public <T> T unmarshallResource(Value resource, Class<T> clazz) throws JsonProcessingException {
+    public <T> T unmarshallResource(Value resource, Class<T> clazz) throws JacksonException {
         var jsonString = ValueJsonMarshaller.toJsonString(resource);
         return mapper.readValue(jsonString, clazz);
     }

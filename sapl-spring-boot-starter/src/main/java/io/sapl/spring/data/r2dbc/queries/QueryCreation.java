@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.data.r2dbc.queries;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
 import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
 import org.aopalliance.intercept.MethodInvocation;
@@ -60,8 +60,8 @@ public class QueryCreation {
         final var queryBuilder = new StringBuilder();
 
         for (JsonNode condition : conditions) {
-            queryBuilder.append(getConditionWithoutPropositionalConnectives(condition.asString()))
-                    .append(getPropositionalConnectives(condition.asString()));
+            queryBuilder.append(getConditionWithoutPropositionalConnectives(condition.asText()))
+                    .append(getPropositionalConnectives(condition.asText()));
         }
 
         return queryBeforeConditions + queryBuilder.toString() + originalConditions;
@@ -133,9 +133,9 @@ public class QueryCreation {
         for (int i = 0; i < conditions.size(); i++) {
             if (i == conditions.size() - 1 && "".equals(baseQuery)) {
                 // baseQuery is empty, when repository method is like findAll(), streamAll()
-                queryBuilder.append(conditions.get(i).asString());
+                queryBuilder.append(conditions.get(i).asText());
             } else {
-                queryBuilder.append(addMissingConjunction(conditions.get(i).asString()));
+                queryBuilder.append(addMissingConjunction(conditions.get(i).asText()));
             }
         }
 

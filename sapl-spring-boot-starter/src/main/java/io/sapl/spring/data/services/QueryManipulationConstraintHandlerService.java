@@ -17,20 +17,19 @@
  */
 package io.sapl.spring.data.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static io.sapl.spring.data.utils.Utilities.*;
 
@@ -40,7 +39,7 @@ public class QueryManipulationConstraintHandlerService {
 
     private static final String ERROR_UNHANDABLE_OBLIGATION = "Unhandable Obligation: %s";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private List<RecordConstraintData> queryManipulationRecords;
 
@@ -127,7 +126,7 @@ public class QueryManipulationConstraintHandlerService {
 
                 constraintDataRecord.obligation().get(TRANSFORMATIONS).properties().forEach(entry -> {
                     final var keyValuePair = JsonNodeFactory.instance.objectNode();
-                    keyValuePair.put(entry.getKey(), entry.getValue().asString());
+                    keyValuePair.put(entry.getKey(), entry.getValue().asText());
                     transformations.add(keyValuePair);
                 });
             }
@@ -142,7 +141,7 @@ public class QueryManipulationConstraintHandlerService {
         queryManipulationRecords.forEach(constraintDataRecord -> {
             if (constraintDataRecord.obligation().has(ALIAS)
                     && constraintDataRecord.obligation().get(ALIAS).isTextual()) {
-                alias.add(constraintDataRecord.obligation().get(ALIAS).asString());
+                alias.add(constraintDataRecord.obligation().get(ALIAS).asText());
             }
         });
 
@@ -162,9 +161,9 @@ public class QueryManipulationConstraintHandlerService {
      */
     private JsonNode getSelection(JsonNode obligation, JsonNode template) {
 
-        final var              schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V201909);
-        final var              schema        = schemaFactory.getSchema(template);
-        Set<ValidationMessage> errors        = schema.validate(obligation);
+        final var schemaRegistry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+        final var schema         = schemaRegistry.getSchema(SchemaLocation.of("mem://selection"), template);
+        final var errors         = schema.validate(obligation);
 
         if (errors.isEmpty()) {
             return obligation.get(SELECTION);

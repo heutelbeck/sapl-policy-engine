@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.sapl.spring.data.utils.Utilities;
 import lombok.Getter;
 

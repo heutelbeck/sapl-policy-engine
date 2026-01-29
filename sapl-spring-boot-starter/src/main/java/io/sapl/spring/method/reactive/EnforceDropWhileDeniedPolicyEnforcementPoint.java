@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.method.reactive;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.core.JacksonException;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -134,7 +134,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         if (!(resource instanceof UndefinedValue)) {
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
-            } catch (JsonProcessingException | IllegalArgumentException e) {
+            } catch (JacksonException | IllegalArgumentException e) {
                 log.warn("Cannot unmarshall resource from decision: {}", resource, e);
             }
         }
