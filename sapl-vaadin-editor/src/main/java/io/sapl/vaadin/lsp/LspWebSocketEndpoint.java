@@ -193,10 +193,10 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
         private static final byte[] HEADER_SEPARATOR = LSP_HEADER_SEPARATOR.getBytes(StandardCharsets.UTF_8);
         private static final int    SEPARATOR_LENGTH = 4;
 
-        private final WebSocketSession              session;
+        private final WebSocketSession      session;
         private final ByteArrayOutputStream buffer         = new ByteArrayOutputStream();
-        private int                                 expectedLength = -1;
-        private int                                 headerEndIndex = -1;
+        private int                         expectedLength = -1;
+        private int                         headerEndIndex = -1;
 
         WebSocketOutputStream(WebSocketSession session) {
             this.session = session;

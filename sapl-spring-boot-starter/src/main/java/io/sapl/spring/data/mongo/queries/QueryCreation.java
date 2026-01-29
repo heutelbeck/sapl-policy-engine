@@ -70,7 +70,7 @@ public class QueryCreation {
         final var sorting = ConvertToMQL.createPageable(invocation, annotationQuery);
 
         for (JsonNode condition : conditions) {
-            final var conditionAsBasicQuery = new BasicQuery(condition.asText());
+            final var conditionAsBasicQuery = new BasicQuery(condition.asString());
             conditionAsBasicQuery.getQueryObject()
                     .forEach((key, value) -> annotationQuery.getQueryObject().append(key, value));
         }

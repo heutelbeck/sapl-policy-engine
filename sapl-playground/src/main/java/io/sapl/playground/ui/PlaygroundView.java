@@ -52,7 +52,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -162,15 +161,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_AUTO                = "auto";
     private static final String CSS_VALUE_BREAK_WORD          = "break-word";
     private static final String CSS_VALUE_CENTER              = "center";
-    private static final String CSS_VALUE_CONTRAST_5PCT       = "var(--lumo-contrast-5pct)";
-    private static final String CSS_VALUE_CONTRAST_10PCT_LINE = "1px solid var(--lumo-contrast-10pct)";
+    private static final String CSS_VALUE_CONTRAST_5PCT       = "rgba(255, 255, 255, 0.05)";
+    private static final String CSS_VALUE_CONTRAST_10PCT_LINE = "1px solid rgba(255, 255, 255, 0.10)";
     private static final String CSS_VALUE_ERROR_BG            = "#282a36";
     private static final String CSS_VALUE_ERROR_FG            = "#f8f8f2";
-    private static final String CSS_VALUE_FONT_SIZE_XL        = "var(--lumo-font-size-xl)";
+    private static final String CSS_VALUE_FONT_SIZE_XL        = "1.375rem";
     private static final String CSS_VALUE_MONOSPACE           = "monospace";
     private static final String CSS_VALUE_ONE                 = "1";
     private static final String CSS_VALUE_ONE_EM              = "1em";
-    private static final String CSS_VALUE_PADDING_BOTTOM_XS   = "0 0 var(--lumo-space-xs) 0";
+    private static final String CSS_VALUE_PADDING_BOTTOM_XS   = "0 0 0.25rem 0";
     private static final String CSS_VALUE_PRE_WRAP            = "pre-wrap";
     private static final String CSS_VALUE_SIZE_0_25EM         = "0.25em";
     private static final String CSS_VALUE_SIZE_0_875EM        = "0.875em";
@@ -181,10 +180,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_SIZE_25PX           = "25px";
     private static final String CSS_VALUE_SIZE_2_5EM          = "2.5em";
     private static final String CSS_VALUE_SIZE_600PX          = "600px";
-    private static final String CSS_VALUE_SPACE_M             = "var(--lumo-space-m)";
-    private static final String CSS_VALUE_SPACE_S             = "var(--lumo-space-s)";
-    private static final String CSS_VALUE_SPACE_XS            = "var(--lumo-space-xs)";
-    private static final String CSS_VALUE_TAB_PADDING         = "0.5em 0.75em";
+    private static final String CSS_VALUE_SPACE_M             = "1rem";
+    private static final String CSS_VALUE_SPACE_S             = "0.5rem";
+    private static final String CSS_VALUE_SPACE_XS            = "0.25rem";
     private static final String CSS_VALUE_WEIGHT_600          = "600";
     private static final String CSS_VALUE_ZERO                = "0";
 
@@ -529,7 +527,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         container.setSizeFull();
         container.setPadding(false);
         container.setSpacing(false);
-        container.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_M);
+        container.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_M).set(CSS_OVERFLOW, CSS_VALUE_AUTO);
 
         subscriptionValidationDisplay = new ValidationStatusDisplay();
         subscriptionValidationDisplay.setWidthFull();
@@ -1258,6 +1256,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val label      = new Span(truncateTitle(LABEL_VARIABLES));
         val tabContent = new HorizontalLayout(variablesValidationIcon, label);
         tabContent.setSpacing(false);
+        tabContent.setPadding(false);
         tabContent.setAlignItems(FlexComponent.Alignment.CENTER);
 
         return new Tab(tabContent);
@@ -1447,8 +1446,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         tabContent.getStyle().set(CSS_GAP, CSS_VALUE_SIZE_0_25EM);
         tabContent.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        val tab = new Tab(tabContent);
-        tab.getStyle().set(CSS_PADDING, CSS_VALUE_TAB_PADDING);
+        val tab     = new Tab(tabContent);
         val context = new PolicyTabContext(editor, validationDisplay, statusIcon, titleLabel);
 
         policyTabContexts.put(tab, context);
@@ -1848,8 +1846,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 errorsLabel, errorHandlingComboBox);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
         layout.setSpacing(true);
-        layout.addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Padding.SMALL);
+        layout.getStyle().set("background", CSS_VALUE_CONTRAST_5PCT).set("border-radius", CSS_VALUE_SPACE_S)
+                .set(CSS_PADDING, CSS_VALUE_SPACE_S);
 
         return layout;
     }

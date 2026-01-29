@@ -21,6 +21,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.ModalityMode;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -125,7 +126,7 @@ public class DocumentationDrawer implements Serializable {
         val dialog = new Dialog();
         dialog.setWidth(CSS_VALUE_SIZE_50PCT);
         dialog.setHeight(CSS_VALUE_SIZE_100PCT);
-        dialog.setModal(false);
+        dialog.setModality(ModalityMode.MODELESS);
         dialog.setDraggable(false);
         dialog.setResizable(false);
 

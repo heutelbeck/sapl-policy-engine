@@ -66,7 +66,7 @@ class CoverageWriterTests {
         assertThat(content.trim().split(System.lineSeparator())).hasSize(1);
 
         val json = MAPPER.readTree(content.trim());
-        assertThat(json.get("testIdentifier").asText()).isEqualTo("arkham-ritual-test");
+        assertThat(json.get("testIdentifier").asString()).isEqualTo("arkham-ritual-test");
     }
 
     @Test
@@ -82,9 +82,9 @@ class CoverageWriterTests {
         val lines   = content.trim().split(System.lineSeparator());
 
         assertThat(lines).hasSize(3);
-        assertThat(MAPPER.readTree(lines[0]).get("testIdentifier").asText()).isEqualTo("test-1");
-        assertThat(MAPPER.readTree(lines[1]).get("testIdentifier").asText()).isEqualTo("test-2");
-        assertThat(MAPPER.readTree(lines[2]).get("testIdentifier").asText()).isEqualTo("test-3");
+        assertThat(MAPPER.readTree(lines[0]).get("testIdentifier").asString()).isEqualTo("test-1");
+        assertThat(MAPPER.readTree(lines[1]).get("testIdentifier").asString()).isEqualTo("test-2");
+        assertThat(MAPPER.readTree(lines[2]).get("testIdentifier").asString()).isEqualTo("test-3");
     }
 
     @Test
@@ -174,8 +174,8 @@ class CoverageWriterTests {
 
         assertThat(policies).hasSize(1);
         val policy = policies.get(0);
-        assertThat(policy.get("documentName").asText()).isEqualTo("necronomicon-policy");
-        assertThat(policy.get("documentType").asText()).isEqualTo("policy");
+        assertThat(policy.get("documentName").asString()).isEqualTo("necronomicon-policy");
+        assertThat(policy.get("documentType").asString()).isEqualTo("policy");
         assertThat(policy.get("targetTrueHits").asInt()).isOne();
         assertThat(policy.get("targetFalseHits").asInt()).isOne();
         assertThat(policy.get("conditionCount").asInt()).isOne();
@@ -301,7 +301,7 @@ class CoverageWriterTests {
         writer.write(coverageRecord);
 
         val json      = MAPPER.readTree(Files.readString(writer.getCoverageFilePath()).trim());
-        val timestamp = json.get("timestamp").asText();
+        val timestamp = json.get("timestamp").asString();
 
         assertThat(timestamp).matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*");
     }
@@ -320,7 +320,7 @@ class CoverageWriterTests {
         val json   = MAPPER.readTree(Files.readString(writer.getCoverageFilePath()).trim());
         val policy = json.get("policies").get(0);
 
-        assertThat(policy.get("filePath").asText()).isEqualTo("policies/elder/access.sapl");
+        assertThat(policy.get("filePath").asString()).isEqualTo("policies/elder/access.sapl");
     }
 
     @Test

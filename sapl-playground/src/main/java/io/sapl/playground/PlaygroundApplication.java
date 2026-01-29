@@ -17,13 +17,13 @@
  */
 package io.sapl.playground;
 
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.component.page.ColorScheme;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.AppShellSettings;
-import com.vaadin.flow.theme.Theme;
-
+import com.vaadin.flow.theme.aura.Aura;
 import io.sapl.api.SaplVersion;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -31,7 +31,10 @@ import java.io.Serial;
 
 @Push
 @SpringBootApplication
-@Theme("sapl")
+@StyleSheet(Aura.STYLESHEET)
+@StyleSheet("themes/sapl/styles-aura.css")
+@StyleSheet("styles/playground.css")
+@ColorScheme(ColorScheme.Value.DARK)
 public class PlaygroundApplication implements AppShellConfigurator {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
@@ -39,7 +42,6 @@ public class PlaygroundApplication implements AppShellConfigurator {
     @Override
     public void configurePage(AppShellSettings settings) {
         settings.addFavIcon("icon", "icon.png", "image/png");
-        settings.addMetaTag("color-scheme", "dark light");
     }
 
     public static void main(String[] args) {

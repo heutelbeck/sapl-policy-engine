@@ -45,10 +45,10 @@ public class QuerySelectionUtils {
 
         while (elements.hasNext()) {
             final var element = elements.next();
-            fieldList.add(element.asText());
+            fieldList.add(element.asString());
         }
 
-        if ("whitelist".equals(selection.get("type").asText())) {
+        if ("whitelist".equals(selection.get("type").asString())) {
             for (String field : fieldList) {
                 query.fields().include(field);
             }

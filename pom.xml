@@ -90,8 +90,8 @@
 
 		<!-- Dependencies -->
 		<jacoco.version>0.8.14</jacoco.version>
-		<vaadin.version>25.0.3</vaadin.version>
-		<okhttp.version>4.12.0</okhttp.version>
+		<vaadin.version>25.0.4</vaadin.version>
+		<okhttp.version>5.3.2</okhttp.version>
 		<lombok.version>1.18.42</lombok.version>
 		<jupiter.version>6.0.2</jupiter.version>
 		<assertj.version>3.27.7</assertj.version>
@@ -121,7 +121,7 @@
 		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
 		<maven-install-plugin.version>3.1.4</maven-install-plugin.version>
 		<license-maven-plugin.version>5.0.0</license-maven-plugin.version>
-		<sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
+		<sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
 		<maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
 		<maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>

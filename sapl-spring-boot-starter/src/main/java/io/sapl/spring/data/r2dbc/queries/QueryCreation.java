@@ -60,8 +60,8 @@ public class QueryCreation {
         final var queryBuilder = new StringBuilder();
 
         for (JsonNode condition : conditions) {
-            queryBuilder.append(getConditionWithoutPropositionalConnectives(condition.asText()))
-                    .append(getPropositionalConnectives(condition.asText()));
+            queryBuilder.append(getConditionWithoutPropositionalConnectives(condition.asString()))
+                    .append(getPropositionalConnectives(condition.asString()));
         }
 
         return queryBeforeConditions + queryBuilder.toString() + originalConditions;
@@ -133,9 +133,9 @@ public class QueryCreation {
         for (int i = 0; i < conditions.size(); i++) {
             if (i == conditions.size() - 1 && "".equals(baseQuery)) {
                 // baseQuery is empty, when repository method is like findAll(), streamAll()
-                queryBuilder.append(conditions.get(i).asText());
+                queryBuilder.append(conditions.get(i).asString());
             } else {
-                queryBuilder.append(addMissingConjunction(conditions.get(i).asText()));
+                queryBuilder.append(addMissingConjunction(conditions.get(i).asString()));
             }
         }
 

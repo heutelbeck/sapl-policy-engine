@@ -65,7 +65,7 @@ class FixtureCoverageIntegrationTests {
         assertThat(coverageFiles).hasSize(1);
 
         val json = readFirstCoverageRecord(coverageFiles.getFirst());
-        assertThat(json.get("testIdentifier").asText()).isEqualTo("arkham-library-test");
+        assertThat(json.get("testIdentifier").asString()).isEqualTo("arkham-library-test");
         assertThat(json.get("evaluationCount").asInt()).isPositive();
     }
 
@@ -91,7 +91,7 @@ class FixtureCoverageIntegrationTests {
         val coverageFiles = listCoverageFiles(tempDir);
         val json          = readFirstCoverageRecord(coverageFiles.getFirst());
 
-        assertThat(json.get("testIdentifier").asText()).isNotEmpty();
+        assertThat(json.get("testIdentifier").asString()).isNotEmpty();
     }
 
     @Test
@@ -110,8 +110,8 @@ class FixtureCoverageIntegrationTests {
         assertThat(policies).isNotEmpty();
 
         val firstPolicy = policies.get(0);
-        assertThat(firstPolicy.get("documentName").asText()).isEqualTo("miskatonic-library-access");
-        assertThat(firstPolicy.get("documentType").asText()).isEqualTo("policy");
+        assertThat(firstPolicy.get("documentName").asString()).isEqualTo("miskatonic-library-access");
+        assertThat(firstPolicy.get("documentType").asString()).isEqualTo("policy");
     }
 
     @Test

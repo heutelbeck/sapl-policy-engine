@@ -30,7 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import tools.jackson.databind.JsonMapper;
+import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.JsonNode;
 
 import io.sapl.api.model.ArrayValue;

@@ -122,8 +122,8 @@ public class PermalinkService {
             val compressedBytes = compress(jsonBytes);
 
             if (compressedBytes.length > MAX_COMPRESSED_SIZE_BYTES) {
-                throw new PermalinkException(
-                        ERROR_COMPRESSED_STATE_EXCEEDS_MAX.formatted(MAX_COMPRESSED_SIZE_BYTES, compressedBytes.length));
+                throw new PermalinkException(ERROR_COMPRESSED_STATE_EXCEEDS_MAX.formatted(MAX_COMPRESSED_SIZE_BYTES,
+                        compressedBytes.length));
             }
 
             return Base64.getUrlEncoder().withoutPadding().encodeToString(compressedBytes);
