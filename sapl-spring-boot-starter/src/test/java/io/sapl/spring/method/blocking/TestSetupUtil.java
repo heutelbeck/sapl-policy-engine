@@ -17,18 +17,16 @@
  */
 package io.sapl.spring.method.blocking;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import lombok.experimental.UtilityClass;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
-
 import tools.jackson.databind.ObjectMapper;
 
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import lombok.experimental.UtilityClass;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @UtilityClass
 public class TestSetupUtil {

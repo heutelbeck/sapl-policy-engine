@@ -17,14 +17,13 @@
  */
 package io.sapl.spring.method.reactive;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import org.springframework.security.access.AccessDeniedException;
-
 import lombok.experimental.UtilityClass;
+import org.springframework.security.access.AccessDeniedException;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Utility class for handling recoverable access denied errors in reactive

@@ -72,7 +72,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     @Override
     public PDPConfiguration deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(PDPConfiguration.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(PDPConfiguration.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         String             pdpId              = null;
@@ -99,13 +99,13 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         }
 
         if (pdpId == null) {
-            context.reportInputMismatch(PDPConfiguration.class, ERROR_PDP_ID_REQUIRED);
+            return context.reportInputMismatch(PDPConfiguration.class, ERROR_PDP_ID_REQUIRED);
         }
         if (configurationId == null) {
-            context.reportInputMismatch(PDPConfiguration.class, ERROR_CONFIGURATION_ID_REQUIRED);
+            return context.reportInputMismatch(PDPConfiguration.class, ERROR_CONFIGURATION_ID_REQUIRED);
         }
         if (combiningAlgorithm == null) {
-            context.reportInputMismatch(PDPConfiguration.class, ERROR_COMBINING_ALGORITHM_REQUIRED);
+            return context.reportInputMismatch(PDPConfiguration.class, ERROR_COMBINING_ALGORITHM_REQUIRED);
         }
 
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, saplDocuments,
@@ -114,7 +114,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_ARRAY) {
-            context.reportInputMismatch(List.class, ERROR_EXPECTED_START_ARRAY);
+            return context.reportInputMismatch(List.class, ERROR_EXPECTED_START_ARRAY);
         }
 
         val strings = new ArrayList<String>();
@@ -126,7 +126,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
 
     private ObjectValue deserializeObjectValue(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(ObjectValue.class, ERROR_EXPECTED_START_OBJECT_MAP);
+            return context.reportInputMismatch(ObjectValue.class, ERROR_EXPECTED_START_OBJECT_MAP);
         }
 
         val map = new HashMap<String, Value>();

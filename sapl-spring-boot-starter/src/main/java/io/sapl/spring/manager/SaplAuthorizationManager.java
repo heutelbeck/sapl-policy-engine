@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.manager;
 
-import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -31,6 +30,7 @@ import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.function.Supplier;
 

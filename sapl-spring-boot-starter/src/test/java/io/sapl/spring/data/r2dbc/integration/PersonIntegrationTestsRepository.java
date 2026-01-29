@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.data.r2dbc.integration;
 
-import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.data.r2dbc.database.Person;
+import io.sapl.spring.method.metadata.QueryEnforce;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.r2dbc.repository.Query;

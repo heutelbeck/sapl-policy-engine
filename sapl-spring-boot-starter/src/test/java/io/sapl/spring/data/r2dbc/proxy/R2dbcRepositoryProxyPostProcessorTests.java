@@ -17,16 +17,23 @@
  */
 package io.sapl.spring.data.r2dbc.proxy;
 
-import io.sapl.spring.data.r2dbc.database.*;
-import io.sapl.spring.data.services.RepositoryInformationCollectorService;
+import io.sapl.spring.data.r2dbc.database.MethodInvocationForTesting;
+import io.sapl.spring.data.r2dbc.database.Person;
+import io.sapl.spring.data.r2dbc.database.PersonR2dbcRepository;
+import io.sapl.spring.data.r2dbc.database.PersonReactiveCrudRepository;
+import io.sapl.spring.data.r2dbc.database.PersonReactiveSortingRepository;
 import io.sapl.spring.data.r2dbc.enforcement.R2dbcPolicyEnforcementPoint;
+import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.data.repository.core.RepositoryInformation;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class R2dbcRepositoryProxyPostProcessorTests {
 

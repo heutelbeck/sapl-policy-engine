@@ -18,6 +18,7 @@
 package io.sapl.spring.data.r2dbc.queries;
 
 import lombok.Getter;
+import org.springframework.data.repository.query.parser.Part;
 
 import java.util.Collections;
 import java.util.List;

@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.method.metadata;
 
+import org.springframework.stereotype.Component;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import org.springframework.stereotype.Component;
 
 /**
  * The @QueryEnforce annotation establishes a policy enforcement point (PEP)

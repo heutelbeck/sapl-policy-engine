@@ -19,14 +19,14 @@ package io.sapl.spring.data.mongo.config;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.mongo.enforcement.MongoReactiveAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.spring.data.mongo.enforcement.MongoReactiveMethodNameQueryManipulationEnforcementPoint;
 import io.sapl.spring.data.mongo.enforcement.MongoReactivePolicyEnforcementPoint;
 import io.sapl.spring.data.mongo.proxy.MongoReactiveBeanPostProcessor;
 import io.sapl.spring.data.mongo.proxy.MongoReactiveRepositoryFactoryCustomizer;
 import io.sapl.spring.data.mongo.proxy.MongoReactiveRepositoryProxyPostProcessor;
+import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
+import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;

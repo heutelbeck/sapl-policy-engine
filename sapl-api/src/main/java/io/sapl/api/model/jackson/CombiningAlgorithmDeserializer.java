@@ -59,7 +59,7 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
     @Override
     public CombiningAlgorithm deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         VotingMode      votingMode      = null;
@@ -79,13 +79,13 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
         }
 
         if (votingMode == null) {
-            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_VOTING_MODE_REQUIRED);
+            return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_VOTING_MODE_REQUIRED);
         }
         if (defaultDecision == null) {
-            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_DEFAULT_DECISION_REQUIRED);
+            return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_DEFAULT_DECISION_REQUIRED);
         }
         if (errorHandling == null) {
-            context.reportInputMismatch(CombiningAlgorithm.class, ERROR_ERROR_HANDLING_REQUIRED);
+            return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_ERROR_HANDLING_REQUIRED);
         }
 
         return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);

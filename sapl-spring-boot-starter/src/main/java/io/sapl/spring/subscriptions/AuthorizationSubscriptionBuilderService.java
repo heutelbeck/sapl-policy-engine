@@ -38,9 +38,9 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
-import org.springframework.security.authorization.DefaultAuthorizationManagerFactory;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authorization.DefaultAuthorizationManagerFactory;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -444,66 +444,31 @@ public class AuthorizationSubscriptionBuilderService {
     public static ObjectValue toValue(HttpServletRequest request) {
         val builder = ObjectValue.builder();
 
-        if (request.getProtocol() != null) {
-            builder.put("protocol", Value.of(request.getProtocol()));
-        }
-        if (request.getScheme() != null) {
-            builder.put("scheme", Value.of(request.getScheme()));
-        }
-        if (request.getServerName() != null) {
-            builder.put("serverName", Value.of(request.getServerName()));
-        }
+        putIfNotNull(builder, "protocol", request.getProtocol());
+        putIfNotNull(builder, "scheme", request.getScheme());
+        putIfNotNull(builder, "serverName", request.getServerName());
         builder.put("serverPort", Value.of(request.getServerPort()));
-        if (request.getRemoteAddr() != null) {
-            builder.put("remoteAddress", Value.of(request.getRemoteAddr()));
-        }
-        if (request.getRemoteHost() != null) {
-            builder.put("remoteHost", Value.of(request.getRemoteHost()));
-        }
+        putIfNotNull(builder, "remoteAddress", request.getRemoteAddr());
+        putIfNotNull(builder, "remoteHost", request.getRemoteHost());
         builder.put("remotePort", Value.of(request.getRemotePort()));
         builder.put("isSecure", Value.of(request.isSecure()));
-        if (request.getLocalName() != null) {
-            builder.put("localName", Value.of(request.getLocalName()));
-        }
-        if (request.getLocalAddr() != null) {
-            builder.put("localAddress", Value.of(request.getLocalAddr()));
-        }
+        putIfNotNull(builder, "localName", request.getLocalName());
+        putIfNotNull(builder, "localAddress", request.getLocalAddr());
         builder.put("localPort", Value.of(request.getLocalPort()));
-        if (request.getMethod() != null) {
-            builder.put("method", Value.of(request.getMethod()));
-        }
-        if (request.getContextPath() != null) {
-            builder.put("contextPath", Value.of(request.getContextPath()));
-        }
-        if (request.getRequestURI() != null) {
-            builder.put("requestedURI", Value.of(request.getRequestURI()));
-        }
-        val requestURL = request.getRequestURL();
-        if (requestURL != null) {
-            builder.put("requestURL", Value.of(requestURL.toString()));
-        }
-        if (request.getServletPath() != null) {
-            builder.put("servletPath", Value.of(request.getServletPath()));
-        }
-        val locale = request.getLocale();
-        if (locale != null) {
-            builder.put("locale", Value.of(locale.toString()));
-        }
-        if (request.getCharacterEncoding() != null) {
-            builder.put("characterEncoding", Value.of(request.getCharacterEncoding()));
-        }
-        if (request.getContentType() != null) {
-            builder.put("contentType", Value.of(request.getContentType()));
-        }
-        if (request.getAuthType() != null) {
-            builder.put("authType", Value.of(request.getAuthType()));
-        }
-        if (request.getQueryString() != null) {
-            builder.put("queryString", Value.of(request.getQueryString()));
-        }
+        putIfNotNull(builder, "method", request.getMethod());
+        putIfNotNull(builder, "contextPath", request.getContextPath());
+        putIfNotNull(builder, "requestedURI", request.getRequestURI());
+        putIfNotNull(builder, "requestURL", request.getRequestURL());
+        putIfNotNull(builder, "servletPath", request.getServletPath());
+        putIfNotNull(builder, "locale", request.getLocale());
+        putIfNotNull(builder, "characterEncoding", request.getCharacterEncoding());
+        putIfNotNull(builder, "contentType", request.getContentType());
+        putIfNotNull(builder, "authType", request.getAuthType());
+        putIfNotNull(builder, "queryString", request.getQueryString());
+
         val session = request.getSession(false);
-        if (session != null && session.getId() != null) {
-            builder.put("requestedSessionId", Value.of(session.getId()));
+        if (session != null) {
+            putIfNotNull(builder, "requestedSessionId", session.getId());
         }
 
         builder.put("headers", servletRequestHeadersToValue(request));
@@ -512,6 +477,12 @@ public class AuthorizationSubscriptionBuilderService {
         builder.put("parameters", servletRequestParametersToValue(request));
 
         return builder.build();
+    }
+
+    private static void putIfNotNull(ObjectValue.Builder builder, String key, Object value) {
+        if (value != null) {
+            builder.put(key, Value.of(value.toString()));
+        }
     }
 
     private static ObjectValue servletRequestHeadersToValue(HttpServletRequest request) {

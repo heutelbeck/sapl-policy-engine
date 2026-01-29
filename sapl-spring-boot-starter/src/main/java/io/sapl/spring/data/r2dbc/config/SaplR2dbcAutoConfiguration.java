@@ -19,8 +19,6 @@ package io.sapl.spring.data.r2dbc.config;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.r2dbc.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.spring.data.r2dbc.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 import io.sapl.spring.data.r2dbc.enforcement.R2dbcPolicyEnforcementPoint;
@@ -29,6 +27,8 @@ import io.sapl.spring.data.r2dbc.proxy.R2dbcRepositoryFactoryCustomizer;
 import io.sapl.spring.data.r2dbc.proxy.R2dbcRepositoryProxyPostProcessor;
 import io.sapl.spring.data.r2dbc.queries.QueryManipulationExecutor;
 import io.sapl.spring.data.r2dbc.queries.SqlQueryExecutor;
+import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
+import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;

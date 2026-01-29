@@ -17,6 +17,17 @@
  */
 package io.sapl.lsp.sapl.completion;
 
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
+import io.sapl.lsp.configuration.LSPConfiguration;
+import io.sapl.lsp.sapl.evaluation.ExpressionEvaluator;
+import lombok.experimental.UtilityClass;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -25,18 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
-
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
-import io.sapl.lsp.configuration.LSPConfiguration;
-import io.sapl.lsp.sapl.evaluation.ExpressionEvaluator;
-import lombok.experimental.UtilityClass;
 
 /**
  * Generates code completion proposals from JSON Schema definitions.
@@ -260,7 +259,7 @@ public class SchemaProposalsGenerator {
 
         for (var multiTypeKeyword : KEYWORDS_INDICATING_TYPE_ARRAY) {
             if (hasArrayFieldNamed(schema, multiTypeKeyword)) {
-                addMultipleProposals(baseSchema, prefix, (ArrayNode) schema.get(multiTypeKeyword), definitions,
+                addMultipleProposals(baseSchema, prefix, schema.get(multiTypeKeyword), definitions,
                         proposals, recursionDepth);
                 return;
             }
@@ -310,7 +309,7 @@ public class SchemaProposalsGenerator {
     private static void addArrayProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
         if (hasArrayFieldNamed(schema, PREFIX_ITEMS)) {
-            addMultipleProposals(baseSchema, prefix, (ArrayNode) schema.get(PREFIX_ITEMS), definitions, proposals,
+            addMultipleProposals(baseSchema, prefix, schema.get(PREFIX_ITEMS), definitions, proposals,
                     recursionDepth);
         }
         if (!schema.has(ITEMS)) {

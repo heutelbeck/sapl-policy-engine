@@ -47,7 +47,7 @@ public class AuthorizationSubscriptionDeserializer extends StdDeserializer<Autho
     @Override
     public AuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(AuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(AuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         Value       subject     = null;
@@ -71,7 +71,7 @@ public class AuthorizationSubscriptionDeserializer extends StdDeserializer<Autho
         }
 
         if (subject == null || action == null || resource == null) {
-            context.reportInputMismatch(AuthorizationSubscription.class, ERROR_MISSING_REQUIRED_FIELD);
+            return context.reportInputMismatch(AuthorizationSubscription.class, ERROR_MISSING_REQUIRED_FIELD);
         }
 
         return new AuthorizationSubscription(subject, action, resource, environment, secrets);

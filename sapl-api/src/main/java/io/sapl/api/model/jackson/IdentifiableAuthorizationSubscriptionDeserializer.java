@@ -46,7 +46,8 @@ public class IdentifiableAuthorizationSubscriptionDeserializer
     @Override
     public IdentifiableAuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(IdentifiableAuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(IdentifiableAuthorizationSubscription.class,
+                    ERROR_EXPECTED_START_OBJECT);
         }
 
         String                    subscriptionId = null;
@@ -64,7 +65,8 @@ public class IdentifiableAuthorizationSubscriptionDeserializer
         }
 
         if (subscriptionId == null || subscription == null) {
-            context.reportInputMismatch(IdentifiableAuthorizationSubscription.class, ERROR_MISSING_REQUIRED_FIELDS);
+            return context.reportInputMismatch(IdentifiableAuthorizationSubscription.class,
+                    ERROR_MISSING_REQUIRED_FIELDS);
         }
 
         return new IdentifiableAuthorizationSubscription(subscriptionId, subscription);

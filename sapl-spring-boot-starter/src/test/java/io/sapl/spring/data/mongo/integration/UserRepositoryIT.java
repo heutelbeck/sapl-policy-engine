@@ -17,8 +17,7 @@
  */
 package io.sapl.spring.data.mongo.integration;
 
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.type.CollectionType;
+import io.sapl.spring.data.mongo.integration.config.TestConfig;
 import io.sapl.spring.data.mongo.sapl.database.TestUser;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,12 +27,12 @@ import org.springframework.boot.data.mongodb.test.autoconfigure.AutoConfigureDat
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
-
-import io.sapl.spring.data.mongo.integration.config.TestConfig;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.CollectionType;
 
 import java.io.IOException;
 import java.util.List;

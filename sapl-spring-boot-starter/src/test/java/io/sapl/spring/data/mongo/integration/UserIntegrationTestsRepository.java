@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.data.mongo.integration;
 
-import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.data.mongo.sapl.database.TestUser;
+import io.sapl.spring.method.metadata.QueryEnforce;
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.Query;

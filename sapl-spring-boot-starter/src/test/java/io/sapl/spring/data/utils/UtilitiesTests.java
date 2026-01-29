@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.data.utils;
 
-import tools.jackson.core.exc.StreamReadException;
 import io.sapl.spring.data.database.Person;
 import io.sapl.spring.data.database.Role;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,6 +27,7 @@ import org.junit.platform.commons.util.ReflectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import tools.jackson.core.exc.StreamReadException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -37,7 +37,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UtilitiesTests {
 

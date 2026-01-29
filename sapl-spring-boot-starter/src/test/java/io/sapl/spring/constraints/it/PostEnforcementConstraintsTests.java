@@ -25,7 +25,12 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableSaplMethodSecurity;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
-import io.sapl.spring.constraints.it.PostEnforcementConstraintsTests.*;
+import io.sapl.spring.constraints.it.PostEnforcementConstraintsTests.Application;
+import io.sapl.spring.constraints.it.PostEnforcementConstraintsTests.ConstraintHandlerOne;
+import io.sapl.spring.constraints.it.PostEnforcementConstraintsTests.ConstraintHandlerTwo;
+import io.sapl.spring.constraints.it.PostEnforcementConstraintsTests.FailingConstraintHandler;
+import io.sapl.spring.constraints.it.PostEnforcementConstraintsTests.MethodSecurityConfiguration;
+import io.sapl.spring.constraints.it.PostEnforcementConstraintsTests.TestService;
 import io.sapl.spring.method.metadata.PostEnforce;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
@@ -47,7 +52,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
         ConstraintHandlerOne.class, ConstraintHandlerTwo.class,

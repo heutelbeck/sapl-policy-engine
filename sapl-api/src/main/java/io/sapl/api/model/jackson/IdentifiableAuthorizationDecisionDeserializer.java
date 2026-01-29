@@ -45,7 +45,7 @@ public class IdentifiableAuthorizationDecisionDeserializer extends StdDeserializ
     @Override
     public IdentifiableAuthorizationDecision deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(IdentifiableAuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(IdentifiableAuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         String                subscriptionId = null;
@@ -63,7 +63,7 @@ public class IdentifiableAuthorizationDecisionDeserializer extends StdDeserializ
         }
 
         if (subscriptionId == null || decision == null) {
-            context.reportInputMismatch(IdentifiableAuthorizationDecision.class, ERROR_MISSING_REQUIRED_FIELDS);
+            return context.reportInputMismatch(IdentifiableAuthorizationDecision.class, ERROR_MISSING_REQUIRED_FIELDS);
         }
 
         return new IdentifiableAuthorizationDecision(subscriptionId, decision);

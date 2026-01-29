@@ -17,14 +17,13 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-
-import io.sapl.api.model.jackson.SaplJacksonModule;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This configuration provides a Jackson ObjectMapper bean, if missing.

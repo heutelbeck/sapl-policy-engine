@@ -17,21 +17,19 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-import java.util.stream.Stream;
-
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
+import java.util.stream.Stream;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class ContentFilterPredicateProviderTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();

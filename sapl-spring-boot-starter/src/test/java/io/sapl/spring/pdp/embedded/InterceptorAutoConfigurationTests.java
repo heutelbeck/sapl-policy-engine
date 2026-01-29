@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import tools.jackson.databind.ObjectMapper;
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

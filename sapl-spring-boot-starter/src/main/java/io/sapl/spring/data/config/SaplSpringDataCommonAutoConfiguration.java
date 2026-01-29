@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.data.config;
 
-import tools.jackson.databind.ObjectMapper;
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
@@ -31,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.repository.Repository;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Common autoconfiguration for SAPL Spring Data policy enforcement.

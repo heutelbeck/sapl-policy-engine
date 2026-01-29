@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.data.services;
 
-import tools.jackson.databind.JsonNode;
 import io.sapl.spring.data.utils.Utilities;
 import lombok.Getter;
+import tools.jackson.databind.JsonNode;
 
 @Getter
 public enum ConstraintHandlerType {

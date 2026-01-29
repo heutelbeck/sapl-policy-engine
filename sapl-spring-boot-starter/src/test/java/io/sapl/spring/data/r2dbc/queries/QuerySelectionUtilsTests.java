@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.data.r2dbc.queries;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
 import io.sapl.spring.data.r2dbc.database.Person;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

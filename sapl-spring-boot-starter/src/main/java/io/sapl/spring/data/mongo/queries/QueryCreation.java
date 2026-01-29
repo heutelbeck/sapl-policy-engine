@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import tools.jackson.databind.JsonNode;
+import io.sapl.api.pdp.Decision;
 import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
 import org.aopalliance.intercept.MethodInvocation;
@@ -28,6 +28,7 @@ import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
+import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -17,9 +17,6 @@
  */
 package io.sapl.spring.data.mongo.enforcement;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -27,10 +24,10 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
-import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.QueryManipulationConstraintHandlerService;
 import io.sapl.spring.data.mongo.queries.QueryCreation;
 import io.sapl.spring.data.mongo.sapl.database.TestUser;
+import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
+import io.sapl.spring.data.services.QueryManipulationConstraintHandlerService;
 import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.types.ObjectId;
@@ -48,6 +45,9 @@ import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -55,7 +55,13 @@ import java.util.Objects;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MongoReactiveAnnotationQueryManipulationEnforcementPointTests {

@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import org.springframework.data.mongodb.core.query.Query;
+import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 

@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.config;
 
-import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
@@ -26,6 +25,7 @@ import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
+import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -33,11 +33,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
-import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authorization.DefaultAuthorizationManagerFactory;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Configuration(proxyBeanMethods = false)

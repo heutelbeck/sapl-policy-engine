@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.data.r2dbc.queries;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ArrayNode;
 import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.domain.Sort;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
 
 @UtilityClass
 public class QueryCreation {

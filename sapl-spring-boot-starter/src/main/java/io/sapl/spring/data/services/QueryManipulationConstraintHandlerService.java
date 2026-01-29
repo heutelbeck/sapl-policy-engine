@@ -17,21 +17,24 @@
  */
 package io.sapl.spring.data.services;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.JsonNodeFactory;
 import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.access.AccessDeniedException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.spring.data.utils.Utilities.*;
+import static io.sapl.spring.data.utils.Utilities.ALIAS;
+import static io.sapl.spring.data.utils.Utilities.CONDITIONS;
+import static io.sapl.spring.data.utils.Utilities.SELECTION;
+import static io.sapl.spring.data.utils.Utilities.TRANSFORMATIONS;
 
 @Getter
 @AllArgsConstructor

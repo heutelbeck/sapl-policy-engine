@@ -17,11 +17,11 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import lombok.RequiredArgsConstructor;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.function.Predicate;
 

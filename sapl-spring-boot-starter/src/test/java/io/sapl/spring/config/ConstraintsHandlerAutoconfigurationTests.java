@@ -17,16 +17,14 @@
  */
 package io.sapl.spring.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
 import tools.jackson.databind.ObjectMapper;
 
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.providers.ContentFilteringProvider;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstraintsHandlerAutoconfigurationTests {
 

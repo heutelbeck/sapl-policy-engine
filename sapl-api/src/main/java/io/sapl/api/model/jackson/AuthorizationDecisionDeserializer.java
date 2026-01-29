@@ -51,7 +51,7 @@ public class AuthorizationDecisionDeserializer extends StdDeserializer<Authoriza
     @Override
     public AuthorizationDecision deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(AuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(AuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         Decision   decision    = null;
@@ -73,7 +73,7 @@ public class AuthorizationDecisionDeserializer extends StdDeserializer<Authoriza
         }
 
         if (decision == null) {
-            context.reportInputMismatch(AuthorizationDecision.class, ERROR_MISSING_DECISION);
+            return context.reportInputMismatch(AuthorizationDecision.class, ERROR_MISSING_DECISION);
         }
 
         return new AuthorizationDecision(decision, obligations, advice, resource);
@@ -81,7 +81,7 @@ public class AuthorizationDecisionDeserializer extends StdDeserializer<Authoriza
 
     private ArrayValue deserializeArrayValue(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_ARRAY) {
-            context.reportInputMismatch(ArrayValue.class, ERROR_EXPECTED_START_ARRAY);
+            return context.reportInputMismatch(ArrayValue.class, ERROR_EXPECTED_START_ARRAY);
         }
 
         val values = new ArrayList<Value>();

@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.data.mongo.enforcement;
 
-import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.utils.Utilities;
+import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

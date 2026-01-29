@@ -21,11 +21,11 @@ import io.sapl.spring.data.database.Person;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.core.ResolvableType;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.data.repository.core.CrudMethods;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.RepositoryComposition;
 import org.springframework.data.repository.core.support.RepositoryFragment;
-import org.springframework.data.core.TypeInformation;
 
 import java.lang.reflect.Method;
 import java.util.List;

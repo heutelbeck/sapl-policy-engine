@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.method.reactive;
 
-import tools.jackson.core.JacksonException;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -31,6 +30,7 @@ import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
+import tools.jackson.core.JacksonException;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;

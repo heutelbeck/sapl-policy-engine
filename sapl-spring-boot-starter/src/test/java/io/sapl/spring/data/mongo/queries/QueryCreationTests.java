@@ -17,12 +17,9 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import io.sapl.spring.data.mongo.sapl.database.MethodInvocationForTesting;
 import io.sapl.spring.data.mongo.sapl.database.TestUser;
+import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,6 +31,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.repository.query.parser.PartTree;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;

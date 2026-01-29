@@ -18,12 +18,12 @@
 package io.sapl.spring.data.mongo.enforcement;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.metadata.QueryEnforce;
+import io.sapl.spring.data.mongo.sapl.database.MethodInvocationForTesting;
+import io.sapl.spring.data.mongo.sapl.database.TestUser;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.utils.AnnotationUtilities;
 import io.sapl.spring.data.utils.Utilities;
-import io.sapl.spring.data.mongo.sapl.database.MethodInvocationForTesting;
-import io.sapl.spring.data.mongo.sapl.database.TestUser;
+import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.types.ObjectId;
@@ -46,8 +46,17 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
 @ExtendWith(MockitoExtension.class)

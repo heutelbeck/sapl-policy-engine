@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.data.r2dbc.enforcement;
 
-import tools.jackson.databind.node.ArrayNode;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -25,16 +24,17 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
 import io.sapl.spring.data.r2dbc.queries.PartTreeToSqlQueryStringConverter;
 import io.sapl.spring.data.r2dbc.queries.QueryCreation;
 import io.sapl.spring.data.r2dbc.queries.QueryManipulationExecutor;
+import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
 import lombok.AllArgsConstructor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.node.ArrayNode;
 
 import java.util.Arrays;
 import java.util.function.Function;

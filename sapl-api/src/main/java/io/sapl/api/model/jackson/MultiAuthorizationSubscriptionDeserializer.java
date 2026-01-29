@@ -46,7 +46,7 @@ public class MultiAuthorizationSubscriptionDeserializer extends StdDeserializer<
     @Override
     public MultiAuthorizationSubscription deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(MultiAuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(MultiAuthorizationSubscription.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         val multiSubscription = new MultiAuthorizationSubscription();

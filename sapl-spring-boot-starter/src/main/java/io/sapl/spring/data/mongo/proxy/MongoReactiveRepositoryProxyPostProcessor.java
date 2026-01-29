@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.data.mongo.proxy;
 
-import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.mongo.enforcement.MongoReactivePolicyEnforcementPoint;
+import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.ProxyFactory;

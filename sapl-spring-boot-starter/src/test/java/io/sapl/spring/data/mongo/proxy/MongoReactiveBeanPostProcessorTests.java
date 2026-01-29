@@ -26,7 +26,10 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactoryBean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MongoReactiveBeanPostProcessorTests {

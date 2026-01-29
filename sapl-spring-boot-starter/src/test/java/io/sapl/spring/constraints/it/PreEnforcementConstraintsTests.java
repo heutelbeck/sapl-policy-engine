@@ -26,7 +26,13 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableSaplMethodSecurity;
 import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
-import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.*;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.Application;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.ConstraintHandlerOne;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.ConstraintHandlerTwo;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.FailingConstraintHandler;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.MethodSecurityConfiguration;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.SuccessfulMethodInvocationConstraintHandler;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.TestService;
 import io.sapl.spring.method.metadata.PreEnforce;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -51,7 +57,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
         ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class,

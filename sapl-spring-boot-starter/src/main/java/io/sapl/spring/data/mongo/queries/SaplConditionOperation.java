@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
+import tools.jackson.databind.JsonNode;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;

@@ -45,7 +45,7 @@ public class MultiAuthorizationDecisionDeserializer extends StdDeserializer<Mult
     @Override
     public MultiAuthorizationDecision deserialize(JsonParser parser, DeserializationContext context) {
         if (parser.currentToken() != JsonToken.START_OBJECT) {
-            context.reportInputMismatch(MultiAuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
+            return context.reportInputMismatch(MultiAuthorizationDecision.class, ERROR_EXPECTED_START_OBJECT);
         }
 
         val multiDecision = new MultiAuthorizationDecision();

@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import tools.jackson.databind.json.JsonMapper;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
 
