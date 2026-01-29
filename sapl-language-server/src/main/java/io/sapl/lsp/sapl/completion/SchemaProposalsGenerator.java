@@ -259,8 +259,8 @@ public class SchemaProposalsGenerator {
 
         for (var multiTypeKeyword : KEYWORDS_INDICATING_TYPE_ARRAY) {
             if (hasArrayFieldNamed(schema, multiTypeKeyword)) {
-                addMultipleProposals(baseSchema, prefix, schema.get(multiTypeKeyword), definitions,
-                        proposals, recursionDepth);
+                addMultipleProposals(baseSchema, prefix, schema.get(multiTypeKeyword), definitions, proposals,
+                        recursionDepth);
                 return;
             }
         }
@@ -309,8 +309,7 @@ public class SchemaProposalsGenerator {
     private static void addArrayProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
         if (hasArrayFieldNamed(schema, PREFIX_ITEMS)) {
-            addMultipleProposals(baseSchema, prefix, schema.get(PREFIX_ITEMS), definitions, proposals,
-                    recursionDepth);
+            addMultipleProposals(baseSchema, prefix, schema.get(PREFIX_ITEMS), definitions, proposals, recursionDepth);
         }
         if (!schema.has(ITEMS)) {
             return;

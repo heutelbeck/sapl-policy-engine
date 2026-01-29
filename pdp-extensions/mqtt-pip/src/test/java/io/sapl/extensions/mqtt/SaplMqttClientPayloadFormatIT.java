@@ -71,6 +71,7 @@ class SaplMqttClientPayloadFormatIT {
     @AfterEach
     void afterEach() {
         mqttClient.disconnect();
+        saplMqttClient.close();
         stopBroker(mqttBroker);
     }
 

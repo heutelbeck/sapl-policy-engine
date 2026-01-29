@@ -40,6 +40,7 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple4;
 import reactor.util.function.Tuples;
 
+import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -60,7 +61,7 @@ import static io.sapl.extensions.mqtt.util.SubscriptionUtility.buildTopicSubscri
  * topics from a mqtt broker.
  */
 @Slf4j
-public class SaplMqttClient {
+public class SaplMqttClient implements Closeable {
 
     /**
      * The reference for the client id in configurations.
@@ -359,5 +360,20 @@ public class SaplMqttClient {
     private void unsubscribeWithMessage(MqttClientValues clientRecord, Mqtt5Unsubscribe unsubscribeMessage) {
         clientRecord.getMqttReactorClient().unsubscribe(unsubscribeMessage)
                 .timeout(Duration.ofMillis(10000), Mono.empty()).subscribe();
+    }
+
+    @Override
+    public void close() {
+        MQTT_CLIENT_CACHE.forEach((hash, clientValues) -> {
+            try {
+                clientValues.getMqttReactorClient().disconnect().timeout(Duration.ofSeconds(5))
+                        .onErrorResume(throwable -> Mono.empty()).block();
+                log.debug("Client '{}' disconnected during close.", clientValues.getClientId());
+            } catch (Exception e) {
+                log.debug("Error disconnecting client '{}': {}", clientValues.getClientId(), e.getMessage());
+            }
+        });
+        MQTT_CLIENT_CACHE.clear();
+        DEFAULT_RESPONSE_CONFIG_CACHE.clear();
     }
 }

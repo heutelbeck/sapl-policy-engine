@@ -67,6 +67,7 @@ class SaplMqttDefaultResponseIT {
     @AfterEach
     void afterEach() {
         this.mqttClient.disconnect();
+        this.saplMqttClient.close();
         stopBroker(this.mqttBroker);
     }
 

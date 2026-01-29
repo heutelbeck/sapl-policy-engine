@@ -23,16 +23,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Role;
-import org.springframework.security.authentication.ReactiveAuthenticationManager;
-import org.springframework.security.authorization.ReactiveAuthorizationManager;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -46,7 +40,6 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.WebFilterChainProxy;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -162,26 +155,4 @@ public class SecurityConfiguration {
         }
     }
 
-    // Fixes issue present in spring boot 3.4.0:
-    // https://github.com/spring-projects/spring-security/issues/16161#issuecomment-2498390492
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @Primary
-    static ObjectPostProcessor<ReactiveAuthorizationManager<ServerWebExchange>> primaryAuthorizationManagerPostProcessor() {
-        return ObjectPostProcessor.identity();
-    }
-
-    @Bean
-    @Role(2)
-    @Primary
-    static ObjectPostProcessor<ReactiveAuthenticationManager> primaryAuthenticationManagerPostProcessor() {
-        return ObjectPostProcessor.identity();
-    }
-
-    @Bean
-    @Role(2)
-    @Primary
-    static ObjectPostProcessor<WebFilterChainProxy.WebFilterChainDecorator> primaryFilterChainDecoratorPostProcessor() {
-        return ObjectPostProcessor.identity();
-    }
 }

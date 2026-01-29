@@ -77,6 +77,7 @@ class SaplMqttClientConnectionIT {
 
     @AfterEach
     void afterEach() {
+        saplMqttClient.close();
         stopBroker(mqttBroker);
     }
 

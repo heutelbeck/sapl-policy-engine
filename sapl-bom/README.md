@@ -6,8 +6,6 @@ Including the POM in the `dependencyManagement` section of a POM, the `version` 
 
 ## Latest Release 
 
-We recommend using the SNAPSHOT version as the latest stable version is outdated.
-
 ```xml
 	<dependencyManagement>
 		<dependencies>

@@ -64,17 +64,20 @@ class MqttPolicyInformationPointIT {
     private EmbeddedHiveMQ      mqttBroker;
     private Mqtt5BlockingClient mqttClient;
     private PolicyDecisionPoint pdp;
+    private SaplMqttClient      saplMqttClient;
 
     @BeforeEach
     void beforeEach() {
-        this.mqttBroker = buildAndStartBroker(configDir, dataDir, extensionsDir);
-        mqttClient      = startClient();
-        this.pdp        = buildPdp();
+        this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
+        this.mqttClient     = startClient();
+        this.saplMqttClient = new SaplMqttClient();
+        this.pdp            = buildPdp(saplMqttClient);
     }
 
     @AfterEach
     void tearDown() {
         mqttClient.disconnect();
+        saplMqttClient.close();
         stopBroker(mqttBroker);
     }
 
@@ -94,9 +97,9 @@ class MqttPolicyInformationPointIT {
                 .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
     }
 
-    private static PolicyDecisionPoint buildPdp() {
+    private static PolicyDecisionPoint buildPdp(SaplMqttClient mqttClient) {
         return PolicyDecisionPointBuilder.withoutDefaults()
-                .withPolicyInformationPoint(new MqttPolicyInformationPoint(new SaplMqttClient()))
+                .withPolicyInformationPoint(new MqttPolicyInformationPoint(mqttClient))
                 .withResourcesSource("/pipPolicies").build().pdp();
     }
 

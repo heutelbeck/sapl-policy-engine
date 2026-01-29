@@ -61,8 +61,7 @@ class SaplMqttClientExceptionIT {
 
     @AfterEach
     void afterEach() {
-        SaplMqttClient.MQTT_CLIENT_CACHE.clear();
-        SaplMqttClient.DEFAULT_RESPONSE_CONFIG_CACHE.clear();
+        saplMqttClient.close();
         stopBroker(mqttBroker);
     }
 
