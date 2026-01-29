@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.mongo.integration;
 
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.type.CollectionType;
 import io.sapl.spring.data.mongo.sapl.database.TestUser;
 import org.bson.types.ObjectId;
@@ -42,7 +42,7 @@ import java.util.List;
 @SpringBootTest(classes = { TestApplication.class }, properties = { "de.flapdoodle.mongodb.embedded.version=8.0.5",
         "io.sapl.pdp.embedded.enabled=true", "io.sapl.pdp.embedded.pdp-config-type=RESOURCES",
         "io.sapl.pdp.embedded.policies-path=policies-mongo",
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration" })
+        "spring.autoconfigure.exclude=org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration" })
 @Import(TestConfig.class)
 @DirtiesContext
 class UserRepositoryIT {
@@ -50,7 +50,7 @@ class UserRepositoryIT {
     @Autowired
     private UserIntegrationTestsRepository repository;
 
-    private static final ObjectMapper   MAPPER               = new ObjectMapper();
+    private static final JsonMapper     MAPPER               = JsonMapper.builder().build();
     private static final CollectionType LIST_TYPE            = MAPPER.getTypeFactory()
             .constructCollectionType(List.class, TestUser.class);
     private static final String         USERS_AS_JSON_STRING = """
