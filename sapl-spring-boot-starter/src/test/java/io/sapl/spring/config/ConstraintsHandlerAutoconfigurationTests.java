@@ -19,21 +19,14 @@ package io.sapl.spring.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
 
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.providers.ContentFilteringProvider;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import jakarta.servlet.http.HttpServletRequest;
 
 class ConstraintsHandlerAutoconfigurationTests {
 
@@ -41,15 +34,7 @@ class ConstraintsHandlerAutoconfigurationTests {
     void whenRan_thenMapperIsAvailableAndModulesAreRegistered() {
         final var contextRunner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(ConstraintsHandlerAutoconfiguration.class))
-                .withBean(ObjectMapper.class, () -> {
-                    final var mapper = new ObjectMapper();
-                    final var module = new SimpleModule();
-                    module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-                    module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-                    module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-                    mapper.registerModule(module);
-                    return mapper;
-                });
+                .withBean(ObjectMapper.class, ObjectMapper::new);
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(ConstraintEnforcementService.class);

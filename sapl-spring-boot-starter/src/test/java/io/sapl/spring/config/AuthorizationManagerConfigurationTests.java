@@ -21,11 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.web.reactive.context.AnnotationConfigReactiveWebApplicationContext;
-import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebApplicationContext;
-import org.springframework.mock.web.MockServletContext;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
@@ -36,26 +36,20 @@ class AuthorizationManagerConfigurationTests {
 
     @Test
     void testWebApplicationWithServletContext() {
-        final var ctx = new AnnotationConfigServletWebApplicationContext();
-        ctx.registerBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class));
-        ctx.registerBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class));
-        ctx.registerBean(ObjectMapper.class, () -> mock(ObjectMapper.class));
-        ctx.register(AuthorizationManagerConfiguration.class);
-        ctx.setServletContext(new MockServletContext());
-        ctx.refresh();
-        assertThat(ctx.getBeansOfType(SaplAuthorizationManager.class)).hasSize(1);
-        ctx.close();
+        new WebApplicationContextRunner().withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+                .withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+                .withBean(ObjectMapper.class, () -> mock(ObjectMapper.class))
+                .withUserConfiguration(AuthorizationManagerConfiguration.class)
+                .run(ctx -> assertThat(ctx.getBeansOfType(SaplAuthorizationManager.class)).hasSize(1));
     }
 
     @Test
     void testWebApplicationWithReactiveWebContext() {
-        final var ctx = new AnnotationConfigReactiveWebApplicationContext();
-        ctx.registerBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class));
-        ctx.registerBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class));
-        ctx.registerBean(ObjectMapper.class, () -> mock(ObjectMapper.class));
-        ctx.register(AuthorizationManagerConfiguration.class);
-        ctx.refresh();
-        assertThat(ctx.getBeansOfType(ReactiveSaplAuthorizationManager.class)).hasSize(1);
-        ctx.close();
+        new ReactiveWebApplicationContextRunner()
+                .withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+                .withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+                .withBean(ObjectMapper.class, () -> mock(ObjectMapper.class))
+                .withUserConfiguration(AuthorizationManagerConfiguration.class)
+                .run(ctx -> assertThat(ctx.getBeansOfType(ReactiveSaplAuthorizationManager.class)).hasSize(1));
     }
 }

@@ -17,10 +17,10 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.spring.data.mongo.sapl.database.MethodInvocationForTesting;
 import io.sapl.spring.data.mongo.sapl.database.TestUser;
 import org.junit.jupiter.api.BeforeAll;
@@ -48,7 +48,7 @@ class SaplConditionOperationTests {
     private static JsonNode conditionsWithOrPart;
 
     @BeforeAll
-    static void setUp() throws JsonProcessingException {
+    static void setUp() throws JacksonException {
         mongoQueryManipulation       = MAPPER.readTree("""
                 {
                   "type": "mongoQueryManipulation",

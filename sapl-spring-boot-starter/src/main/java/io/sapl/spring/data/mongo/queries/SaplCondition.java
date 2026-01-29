@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import reactor.util.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public record SaplCondition(String field, Object value, OperatorMongoDB operator, @Nullable String conjunction) {
     public SaplCondition(String field, Object value, OperatorMongoDB operator, @Nullable String conjunction) {

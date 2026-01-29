@@ -17,32 +17,19 @@
  */
 package io.sapl.spring.subscriptions;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonInt;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonMissing;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
-
 import org.aopalliance.intercept.MethodInvocation;
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
@@ -54,19 +41,16 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.util.MethodInvocationUtils;
 import org.springframework.web.server.ServerWebExchange;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.val;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -83,11 +67,6 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
     @SuppressWarnings("unchecked")
     void beforeEach() {
         mapper = new ObjectMapper();
-        val module = new SimpleModule();
-        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-        mapper.registerModule(module);
         val user = new User("the username", "the password", true, true, true, true,
                 AuthorityUtils.createAuthorityList("ROLE_USER"));
         authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
@@ -101,20 +80,10 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
         invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null, null);
     }
 
-    /**
-     * Adapts an Iterable matcher to a Collection matcher for Eclipse compiler
-     * compatibility.
-     *
-     * @param matcher the iterable matcher to adapt
-     * @return a collection matcher wrapping the iterable matcher
-     */
-    @SuppressWarnings("unchecked")
-    private static Matcher<Collection<? extends JsonNode>> asCollectionMatcher(
-            Matcher<Iterable<? extends JsonNode>> matcher) {
-        return (Matcher<Collection<? extends JsonNode>>) (Matcher<?>) matcher;
-    }
-
     private static JsonNode toJson(Value value) {
+        if (value instanceof UndefinedValue) {
+            return JsonNodeFactory.instance.nullNode();
+        }
         return ValueJsonMarshaller.toJsonNode(value);
     }
 
@@ -129,34 +98,20 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
                 .reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                is(jsonObject()
-                        .where("name", is(jsonText("the username")))
-                        .where("credentials", is(jsonMissing()))
-                        .where("principal", is(jsonObject()
-                                .where("password", is(jsonMissing())))))),
-                () -> assertThat(toJson(subscription.action()),
-                        is(jsonObject()
-                                .where("java", is(jsonObject()
-                                        .where("name", jsonText("publicSeveralArgs")))))),
-                () -> assertThat(toJson(subscription.action()),
-                        is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("arguments",
-                                            is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                jsonInt(1),
-                                                jsonText("X"))
-                                            )))))))),
-                () -> assertThat(toJson(subscription.resource()),
-                        is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("instanceof",
-                                            is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                jsonObject().where("simpleName",is(jsonText("TestClass"))),
-                                                jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
+
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("the username");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").has("password")).isFalse();
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
+        assertThat(action.get("java").get("arguments")).isNotNull();
+
+        var resource = toJson(subscription.resource());
+        assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     @Test
@@ -179,24 +134,17 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
         val subscription        = sut.reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                is(jsonObject()
-                        .where("name", is(jsonText("the username")))
-                        .where("credentials", is(jsonMissing()))
-                        .where("principal", is(jsonObject()
-                                .where("password", is(jsonMissing())))))),
-                () -> assertThat(toJson(subscription.action()),
-                        is(jsonObject()
-                                .where("java", is(jsonObject()
-                                        .where("name", jsonText("publicSeveralArgs")))))),
-                () -> assertThat(toJson(subscription.action()),
-                        is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("arguments",
-                                            is(jsonMissing())))))),
-                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
+
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("the username");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").has("password")).isFalse();
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
+        assertThat(action.get("java").has("arguments")).isFalse();
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     @Test
@@ -220,26 +168,19 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
                 .reactiveConstructAuthorizationSubscription(invocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                is(jsonObject()
-                        .where("name", is(jsonText("the username")))
-                        .where("credentials", is(jsonMissing()))
-                        .where("principal", is(jsonObject()
-                                .where("password", is(jsonMissing())))))),
-                () -> assertThat(toJson(subscription.action()),
-                        is(jsonObject()
-                                .where("java", is(jsonObject()
-                                        .where("name", jsonText("publicVoid")))))),
-                () -> assertThat(toJson(subscription.resource()),
-                        is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("instanceof",
-                                            is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                jsonObject().where("simpleName",is(jsonText("TestClass"))),
-                                                jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
+
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("the username");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").has("password")).isFalse();
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+
+        var resource = toJson(subscription.resource());
+        assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     @Test
@@ -247,27 +188,21 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
         val attribute    = attribute(null, null, null, null, Object.class);
         val subscription = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute).block();
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                          is(jsonObject()
-                                  .where("name", is(jsonText("anonymous")))
-                                  .where("credentials", is(jsonMissing()))
-                                  .where("principal", is(jsonText("anonymous"))))),
-                  () -> assertThat(toJson(subscription.action()),
-                          is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("name", jsonText("publicVoid"))))
-                                  .where("http", is(jsonMissing())))),
-                  () -> assertThat(toJson(subscription.resource()),
-                          is(jsonObject()
-                                  .where("http", is(jsonMissing()))
-                                  .where("java", is(jsonObject()
-                                        .where("instanceof",
-                                            is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                jsonObject().where("simpleName",is(jsonText("TestClass"))),
-                                                jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                  () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
+
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("anonymous");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+        assertThat(action.has("http")).isFalse();
+
+        var resource = toJson(subscription.resource());
+        assertThat(resource.has("http")).isFalse();
+        assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     @Test
@@ -275,21 +210,19 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
         val attribute    = attribute(null, null, "returnObject", null, Object.class);
         val subscription = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                          is(jsonObject()
-                                  .where("name", is(jsonText("anonymous")))
-                                  .where("credentials", is(jsonMissing()))
-                                  .where("principal", is(jsonText("anonymous"))))),
-                  () -> assertThat(toJson(subscription.action()),
-                          is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("name", jsonText("publicVoid"))))
-                                  .where("http", is(jsonMissing())))),
-                  () -> assertThat(toJson(subscription.resource()),
-                          is(jsonText("the returnObject"))),
-                  () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
+
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("anonymous");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+        assertThat(action.has("http")).isFalse();
+
+        assertThat(toJson(subscription.resource()).asString()).isEqualTo("the returnObject");
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {

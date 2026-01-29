@@ -17,8 +17,7 @@
  */
 package io.sapl.spring.method.reactive;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -29,9 +28,6 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.api.*;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
@@ -92,12 +88,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @BeforeEach
     void beforeEach() {
-        mapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-        mapper.registerModule(module);
+        mapper                     = new ObjectMapper();
         subscriptionBuilderService = new AuthorizationSubscriptionBuilderService(
                 new DefaultMethodSecurityExpressionHandler(), mapper);
         final var testClass = new TestClass();

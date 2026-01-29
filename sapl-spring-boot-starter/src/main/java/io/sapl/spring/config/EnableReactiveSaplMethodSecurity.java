@@ -64,7 +64,7 @@ public @interface EnableReactiveSaplMethodSecurity {
     AdviceMode mode() default AdviceMode.PROXY;
 
     /**
-     * Indicate the ordering of the execution of the security advisor when multiple
+     * Indicate the ordering of the execution of the security advisor when
      * advice is applied at a specific join point. The default is
      * {@link Ordered#LOWEST_PRECEDENCE}.
      *

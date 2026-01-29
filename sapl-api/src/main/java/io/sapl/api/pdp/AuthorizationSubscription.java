@@ -17,21 +17,20 @@
  */
 package io.sapl.api.pdp;
 
-import static io.sapl.api.model.ReservedIdentifiers.ACTION;
-import static io.sapl.api.model.ReservedIdentifiers.ENVIRONMENT;
-import static io.sapl.api.model.ReservedIdentifiers.RESOURCE;
-import static io.sapl.api.model.ReservedIdentifiers.SUBJECT;
-
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
 import lombok.val;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
+import static io.sapl.api.model.ReservedIdentifiers.ACTION;
+import static io.sapl.api.model.ReservedIdentifiers.ENVIRONMENT;
+import static io.sapl.api.model.ReservedIdentifiers.RESOURCE;
+import static io.sapl.api.model.ReservedIdentifiers.SUBJECT;
 
 /**
  * Represents an authorization subscription containing subject, action,

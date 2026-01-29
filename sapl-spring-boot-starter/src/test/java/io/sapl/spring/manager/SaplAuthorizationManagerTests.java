@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.manager;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -28,11 +28,12 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import reactor.core.publisher.Flux;
@@ -48,15 +49,13 @@ class SaplAuthorizationManagerTests {
     private ConstraintEnforcementService       constraintHandlers;
     private BlockingConstraintHandlerBundle<?> bundle;
     private Authentication                     authentication;
+    private HttpServletRequest                 request;
 
     @BeforeEach
     void setUpMocks() {
-        mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-        mapper.registerModule(module);
-        authentication     = mock(Authentication.class);
+        mapper             = JsonMapper.builder().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS).build();
+        authentication     = new TestingAuthenticationToken("user", "password", "ROLE_USER");
+        request            = new MockHttpServletRequest("GET", "/test");
         pdp                = mock(PolicyDecisionPoint.class);
         constraintHandlers = mock(ConstraintEnforcementService.class);
         bundle             = mock(BlockingConstraintHandlerBundle.class);
@@ -67,9 +66,9 @@ class SaplAuthorizationManagerTests {
     void whenPermit_thenGranted() {
         final var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        final var ctx = mock(RequestAuthorizationContext.class);
-        assertThat(sut.check(() -> authentication, ctx))
-                .matches(org.springframework.security.authorization.AuthorizationDecision::isGranted);
+        final var ctx = new RequestAuthorizationContext(request);
+        assertThat(sut.authorize(() -> authentication, ctx))
+                .matches(org.springframework.security.authorization.AuthorizationResult::isGranted);
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }
 
@@ -77,8 +76,8 @@ class SaplAuthorizationManagerTests {
     void whenIndeterminate_thenDenied() {
         final var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-        final var ctx = mock(RequestAuthorizationContext.class);
-        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+        final var ctx = new RequestAuthorizationContext(request);
+        assertThat(sut.authorize(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }
 
@@ -86,8 +85,8 @@ class SaplAuthorizationManagerTests {
     void whenNullDecision_thenDenied() {
         final var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
-        final var ctx = mock(RequestAuthorizationContext.class);
-        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+        final var ctx = new RequestAuthorizationContext(request);
+        assertThat(sut.authorize(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
     }
 
     @Test
@@ -97,8 +96,8 @@ class SaplAuthorizationManagerTests {
         final var decision   = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                 ValueJsonMarshaller.fromJsonNode(objectNode));
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
-        final var ctx = mock(RequestAuthorizationContext.class);
-        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+        final var ctx = new RequestAuthorizationContext(request);
+        assertThat(sut.authorize(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
     }
 
     @Test
@@ -107,8 +106,8 @@ class SaplAuthorizationManagerTests {
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
 
-        final var ctx = mock(RequestAuthorizationContext.class);
-        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+        final var ctx = new RequestAuthorizationContext(request);
+        assertThat(sut.authorize(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }
 

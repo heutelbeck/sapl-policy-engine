@@ -99,7 +99,7 @@ public class SaplConditionOperation {
 
             final var value = iterator.next();
 
-            final var baseQuery = new BasicQuery(value.asText());
+            final var baseQuery = new BasicQuery(value.asString());
 
             convertBasicQueryToSaplConditions(baseQuery, saplConditions);
         }

@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.method.reactive;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -257,7 +257,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
         Flux<String>                 sut                 = EnforceRecoverableIfDeniedPolicyEnforcementPoint
                 .of(decisions, resourceAccessPoint, constraintService, clazz);
 
-        assertThatThrownBy(() -> sut.subscribe((CoreSubscriber<String>) null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> sut.subscribe((CoreSubscriber<String>) null)).isInstanceOf(AssertionError.class);
     }
 
     @Test

@@ -67,7 +67,7 @@ class PreEnforcePolicyEnforcementPointTests {
     @Autowired
     TestService testService;
 
-    @SpringBootApplication
+    @SpringBootApplication(exclude = org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration.class)
     static class Application {
         public static void main(String... args) {
             SpringApplication.run(Application.class, args);

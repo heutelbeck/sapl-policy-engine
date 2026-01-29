@@ -34,9 +34,9 @@ public class ConstraintResponsibility {
 
         var type = objectConstraint.get(TYPE);
 
-        if (!(type instanceof TextValue textType))
+        if (!(type instanceof TextValue(String value)))
             return false;
 
-        return Objects.equals(textType.value(), requiredType);
+        return Objects.equals(value, requiredType);
     }
 }

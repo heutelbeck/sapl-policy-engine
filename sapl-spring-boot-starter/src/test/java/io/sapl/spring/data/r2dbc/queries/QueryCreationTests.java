@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.data.r2dbc.queries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import io.sapl.spring.data.r2dbc.database.MethodInvocationForTesting;
 import io.sapl.spring.data.r2dbc.database.Person;
@@ -56,7 +56,7 @@ class QueryCreationTests {
     MockedStatic<QueryAnnotationParameterResolver> queryAnnotationParameterResolverMock;
 
     @BeforeAll
-    static void initJsonNodes() throws JsonProcessingException {
+    static void initJsonNodes() throws JacksonException {
 
         selections = MAPPER.readValue("""
                 [

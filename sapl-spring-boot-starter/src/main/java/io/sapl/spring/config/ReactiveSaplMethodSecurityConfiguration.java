@@ -141,7 +141,8 @@ public final class ReactiveSaplMethodSecurityConfiguration {
         DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
         defaultsProvider.ifAvailable(d -> {
             var authFactory = new DefaultAuthorizationManagerFactory<MethodInvocation>();
-            authFactory.setRolePrefix(d.getRolePrefix());
+            var rolePrefix  = d.getRolePrefix();
+            authFactory.setRolePrefix(rolePrefix != null ? rolePrefix : "");
             handler.setAuthorizationManagerFactory(authFactory);
         });
         handler.setApplicationContext(context);

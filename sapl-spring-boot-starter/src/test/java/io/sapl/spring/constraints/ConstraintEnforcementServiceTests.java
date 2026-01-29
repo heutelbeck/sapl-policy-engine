@@ -44,7 +44,7 @@ import org.reactivestreams.Subscription;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;

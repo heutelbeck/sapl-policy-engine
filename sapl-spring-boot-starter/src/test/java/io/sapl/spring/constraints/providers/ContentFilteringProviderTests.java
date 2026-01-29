@@ -17,11 +17,7 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import static com.spotify.hamcrest.jackson.IsJsonMissing.jsonMissing;
-import static com.spotify.hamcrest.jackson.IsJsonObject.jsonObject;
-import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -38,9 +34,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.reactivestreams.Publisher;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -54,17 +50,17 @@ import reactor.test.StepVerifier;
 class ContentFilteringProviderTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static Value toValue(String json) throws JsonProcessingException {
+    private static Value toValue(String json) throws JacksonException {
         return ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(json));
     }
 
     @Test
     void when_getSupportedType_then_isObject() {
         final var sut = new ContentFilteringProvider(MAPPER);
-        assertThat(sut.getSupportedType(), is(Object.class));
+        assertThat(sut.getSupportedType()).isEqualTo(Object.class);
     }
 
-    static Stream<Arguments> isResponsibleCases() throws JsonProcessingException {
+    static Stream<Arguments> isResponsibleCases() throws JacksonException {
         return Stream.of(arguments("null constraint", null, false),
                 arguments("non-object constraint", toValue("123"), false),
                 arguments("no type field", toValue("{ }"), false),
@@ -78,11 +74,11 @@ class ContentFilteringProviderTests {
     void whenCheckingResponsibility_thenReturnsExpectedResult(String description, Value constraint,
             boolean expectedResult) {
         final var sut = new ContentFilteringProvider(MAPPER);
-        assertThat(sut.isResponsible(constraint), is(expectedResult));
+        assertThat(sut.isResponsible(constraint)).isEqualTo(expectedResult);
     }
 
     @Test
-    void when_noActionsSpecified_then_isIdentity() throws JsonProcessingException {
+    void when_noActionsSpecified_then_isIdentity() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -95,7 +91,7 @@ class ContentFilteringProviderTests {
                 	"key1" : "value1"
                 }
                 """);
-        assertThat(handler.apply(original), is(original));
+        assertThat(handler.apply(original)).isEqualTo(original);
     }
 
     static Stream<Arguments> actionValidationErrorCases() {
@@ -114,7 +110,7 @@ class ContentFilteringProviderTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("actionValidationErrorCases")
-    void whenMalformedAction_thenThrowsError(String description, String constraintJson) throws JsonProcessingException {
+    void whenMalformedAction_thenThrowsError(String description, String constraintJson) throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
@@ -140,7 +136,7 @@ class ContentFilteringProviderTests {
     @ParameterizedTest(name = "blacken error: {0}")
     @MethodSource("blackenValidationErrorCases")
     void whenBlackenMalformed_thenThrowsError(String description, String constraintJson, String originalJson)
-            throws JsonProcessingException {
+            throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
@@ -149,7 +145,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_blacken_then_textIsBlackened() throws JsonProcessingException {
+    void when_blacken_then_textIsBlackened() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -172,11 +168,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat((JsonNode) handler.apply(original), is(jsonObject().where("key1", is(jsonText("vXXXX1")))));
+        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("vXXXX1");
     }
 
     @Test
-    void when_blackenWithDefinedLengthAndNegativeInteger_then_Error() throws JsonProcessingException {
+    void when_blackenWithDefinedLengthAndNegativeInteger_then_Error() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -205,7 +201,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_blackenWithDefinedLengthAndStringValue_then_Error() throws JsonProcessingException {
+    void when_blackenWithDefinedLengthAndStringValue_then_Error() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -234,7 +230,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_blackenWithDefinedLength_then_textIsBlackened() throws JsonProcessingException {
+    void when_blackenWithDefinedLength_then_textIsBlackened() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -258,11 +254,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat((JsonNode) handler.apply(original), is(jsonObject().where("key1", is(jsonText("vXXX1")))));
+        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("vXXX1");
     }
 
     @Test
-    void when_multipleActions_then_allAreExecuted() throws JsonProcessingException {
+    void when_multipleActions_then_allAreExecuted() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -289,12 +285,13 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat((JsonNode) handler.apply(original),
-                is(jsonObject().where("key1", is(jsonText("vXXXX1"))).where("key2", is(jsonMissing()))));
+        var       result     = (JsonNode) handler.apply(original);
+        assertThat(result.get("key1").asString()).isEqualTo("vXXXX1");
+        assertThat(result.has("key2")).isFalse();
     }
 
     @Test
-    void when_blackenWithDefaultReplacement_then_textIsBlackened() throws JsonProcessingException {
+    void when_blackenWithDefaultReplacement_then_textIsBlackened() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -316,11 +313,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat((JsonNode) handler.apply(original), is(jsonObject().where("key1", is(jsonText("v████1")))));
+        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("v████1");
     }
 
     @Test
-    void when_stringToBlackenIsShorterThanDisclosedRange_then_textDoesNotChange() throws JsonProcessingException {
+    void when_stringToBlackenIsShorterThanDisclosedRange_then_textDoesNotChange() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -342,11 +339,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat((JsonNode) handler.apply(original), is(jsonObject().where("key1", is(jsonText("value1")))));
+        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("value1");
     }
 
     @Test
-    void when_blackenWithNoParameters_then_textIsBlackenedNoCharsDisclosed() throws JsonProcessingException {
+    void when_blackenWithNoParameters_then_textIsBlackenedNoCharsDisclosed() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -366,11 +363,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat((JsonNode) handler.apply(original), is(jsonObject().where("key1", is(jsonText("██████")))));
+        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("██████");
     }
 
     @Test
-    void when_deleteActionSpecified_then_dataIsRemovedFromJson() throws JsonProcessingException {
+    void when_deleteActionSpecified_then_dataIsRemovedFromJson() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -396,11 +393,11 @@ class ContentFilteringProviderTests {
                 }
                 """);
 
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_pathNotExisting_then_AccessDeniedException() throws JsonProcessingException {
+    void when_pathNotExisting_then_AccessDeniedException() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -520,7 +517,7 @@ class ContentFilteringProviderTests {
     @ParameterizedTest(name = "malformed constraint: {0}")
     @MethodSource("malformedConstraintCases")
     void whenMalformedConstraint_thenGetHandlerThrowsException(String description, String constraintJson)
-            throws JsonProcessingException {
+            throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue(constraintJson);
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
@@ -533,8 +530,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConstraintConditionsEmpty_then_actionAppliedAndConditionAlwaysTrue()
-            throws JsonProcessingException {
+    void when_malformedConstraintConditionsEmpty_then_actionAppliedAndConditionAlwaysTrue() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -561,11 +557,11 @@ class ContentFilteringProviderTests {
                 }
                 """);
 
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_predicatePathNotExisting_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_predicatePathNotExisting_then_AccessConstraintViolationException() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -596,7 +592,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_predicateNotMatching_then_noModification() throws JsonProcessingException {
+    void when_predicateNotMatching_then_noModification() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -623,11 +619,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat(handler.apply(original), is(original));
+        assertThat(handler.apply(original)).isEqualTo(original);
     }
 
     @Test
-    void when_handlerHandlesNull_handlerReturnsNull() throws JsonProcessingException {
+    void when_handlerHandlesNull_handlerReturnsNull() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -643,11 +639,11 @@ class ContentFilteringProviderTests {
         final var handler    = sut.getHandler(constraint);
         Object    original   = null;
         Object    expected   = null;
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesOptional_handlerReturnsModifiedOptional() throws JsonProcessingException {
+    void when_handlerHandlesOptional_handlerReturnsModifiedOptional() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -672,11 +668,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesList_handlerReturnsModifiedListContents() throws JsonProcessingException {
+    void when_handlerHandlesList_handlerReturnsModifiedListContents() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -701,11 +697,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesListMultipleConditions_handlerReturnsModifiedListContents() throws JsonProcessingException {
+    void when_handlerHandlesListMultipleConditions_handlerReturnsModifiedListContents() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -754,11 +750,11 @@ class ContentFilteringProviderTests {
                 	"key3" : "value3"
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesListEqNumberDataNotNumber_handlerNoModification() throws JsonProcessingException {
+    void when_handlerHandlesListEqNumberDataNotNumber_handlerNoModification() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -792,11 +788,11 @@ class ContentFilteringProviderTests {
                 	"key3" : "value3"
                 }
                 """));
-        assertThat(handler.apply(original), is(original));
+        assertThat(handler.apply(original)).isEqualTo(original);
     }
 
     @Test
-    void when_handlerNumEq_handlerModifiedMatching() throws JsonProcessingException {
+    void when_handlerNumEq_handlerModifiedMatching() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -842,12 +838,11 @@ class ContentFilteringProviderTests {
                 	"key3" : "value3"
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesListMultipleConditionsAndOnlyOneHoldsInverted_noModifications()
-            throws JsonProcessingException {
+    void when_handlerHandlesListMultipleConditionsAndOnlyOneHoldsInverted_noModifications() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -885,11 +880,11 @@ class ContentFilteringProviderTests {
                 	"key3" : "value3"
                 }
                 """));
-        assertThat(handler.apply(original), is(original));
+        assertThat(handler.apply(original)).isEqualTo(original);
     }
 
     @Test
-    void when_handlerHandlesListMultipleConditionsAndOnlyOneHolds_noModifications() throws JsonProcessingException {
+    void when_handlerHandlesListMultipleConditionsAndOnlyOneHolds_noModifications() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -927,11 +922,11 @@ class ContentFilteringProviderTests {
                 	"key3" : "value3"
                 }
                 """));
-        assertThat(handler.apply(original), is(original));
+        assertThat(handler.apply(original)).isEqualTo(original);
     }
 
     @Test
-    void when_handlerHandlesListNumberAndTextComparisons_makeModifications() throws JsonProcessingException {
+    void when_handlerHandlesListNumberAndTextComparisons_makeModifications() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -980,11 +975,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesListNumberAndNeqCondition_makeModificationsAtMatch() throws JsonProcessingException {
+    void when_handlerHandlesListNumberAndNeqCondition_makeModificationsAtMatch() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1030,11 +1025,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesListNumberAndEqCondition_makeModificationsAtMatch() throws JsonProcessingException {
+    void when_handlerHandlesListNumberAndEqCondition_makeModificationsAtMatch() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1080,11 +1075,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesListNumberAndRegexCondition_makeModificationsAtMatch() throws JsonProcessingException {
+    void when_handlerHandlesListNumberAndRegexCondition_makeModificationsAtMatch() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1131,11 +1126,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesGeqCondition_makeModificationsAtMatch() throws JsonProcessingException {
+    void when_handlerHandlesGeqCondition_makeModificationsAtMatch() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1204,11 +1199,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesLeqCondition_makeModificationsAtMatch() throws JsonProcessingException {
+    void when_handlerHandlesLeqCondition_makeModificationsAtMatch() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1277,11 +1272,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesLtCondition_makeModificationsAtMatch() throws JsonProcessingException {
+    void when_handlerHandlesLtCondition_makeModificationsAtMatch() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1351,11 +1346,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesGtCondition_makeModificationsAtMatch() throws JsonProcessingException {
+    void when_handlerHandlesGtCondition_makeModificationsAtMatch() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1425,11 +1420,11 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesSet_handlerReturnsModifiedSetContents() throws JsonProcessingException {
+    void when_handlerHandlesSet_handlerReturnsModifiedSetContents() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1454,11 +1449,11 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """));
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_handlerHandlesArray_handlerReturnsModifiedArrayContents() throws JsonProcessingException {
+    void when_handlerHandlesArray_handlerReturnsModifiedArrayContents() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1483,12 +1478,12 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """) };
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void when_handlerHandlesMono_handlerModifiesMonoEvent() throws JsonProcessingException {
+    void when_handlerHandlesMono_handlerModifiesMonoEvent() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1518,7 +1513,7 @@ class ContentFilteringProviderTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void when_handlerHandlesFlux_handlerModifiesFluxEvents() throws JsonProcessingException {
+    void when_handlerHandlesFlux_handlerModifiesFluxEvents() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1547,7 +1542,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_replaceActionHasNoReplacement_then_Error() throws JsonProcessingException {
+    void when_replaceActionHasNoReplacement_then_Error() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1571,7 +1566,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_replaceActionSpecified_then_dataIsReplaced() throws JsonProcessingException {
+    void when_replaceActionSpecified_then_dataIsReplaced() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1604,11 +1599,11 @@ class ContentFilteringProviderTests {
                 	"key2"  : "value2"
                 }
                 """);
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Test
-    void when_replaceInMap_then_dataIsReplaced() throws JsonProcessingException {
+    void when_replaceInMap_then_dataIsReplaced() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1625,7 +1620,7 @@ class ContentFilteringProviderTests {
         final var handler    = sut.getHandler(constraint);
         final var original   = Map.of("key1", "value1", "key2", "value2");
         final var expected   = Map.of("key1", "replaced", "key2", "value2");
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
     @Data
@@ -1637,7 +1632,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_replaceInPoJo_then_dataIsReplaced() throws JsonProcessingException {
+    void when_replaceInPoJo_then_dataIsReplaced() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -1655,11 +1650,11 @@ class ContentFilteringProviderTests {
         final var original   = new Person("Bob", 32);
         final var expected   = new Person("Alice", 32);
         final var actual     = handler.apply(original);
-        assertThat(actual, is(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void when_replaceInPoJoAndMarshallingFails_then_Error() throws JsonProcessingException {
+    void when_replaceInPoJoAndMarshallingFails_then_Error() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {

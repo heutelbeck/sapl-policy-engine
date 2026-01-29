@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.mock;
 class PDPAutoConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withBean(ObjectMapper.class, ObjectMapper::new)
+            .withBean(JsonMapper.class, JsonMapper::new)
             .withConfiguration(AutoConfigurations.of(PDPAutoConfiguration.class));
 
     @Test

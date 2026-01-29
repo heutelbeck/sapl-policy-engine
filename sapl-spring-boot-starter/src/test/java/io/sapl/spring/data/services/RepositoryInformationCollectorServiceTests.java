@@ -23,11 +23,12 @@ import org.mockito.Mock;
 import org.springframework.core.ResolvableType;
 import org.springframework.data.repository.core.CrudMethods;
 import org.springframework.data.repository.core.RepositoryInformation;
+import org.springframework.data.repository.core.support.RepositoryComposition;
 import org.springframework.data.repository.core.support.RepositoryFragment;
-import org.springframework.data.util.Streamable;
-import org.springframework.data.util.TypeInformation;
+import org.springframework.data.core.TypeInformation;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -131,8 +132,8 @@ class RepositoryInformationCollectorServiceTests {
         }
 
         @Override
-        public Streamable<Method> getQueryMethods() {
-            return Streamable.of();
+        public List<Method> getQueryMethods() {
+            return List.of();
         }
 
         @Override
@@ -143,6 +144,11 @@ class RepositoryInformationCollectorServiceTests {
         @Override
         public Method getTargetClassMethod(Method method) {
             return method;
+        }
+
+        @Override
+        public RepositoryComposition getRepositoryComposition() {
+            return RepositoryComposition.empty();
         }
 
     }

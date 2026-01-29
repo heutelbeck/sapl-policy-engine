@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.manager;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -28,10 +28,8 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.access.AccessDeniedException;
@@ -58,11 +56,7 @@ class ReactiveSaplAuthorizationManagerTests {
 
     @BeforeEach
     void setUpMocks() {
-        mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-        mapper.registerModule(module);
+        mapper = JsonMapper.builder().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS).build();
 
         pdp = mock(PolicyDecisionPoint.class);
         final var constraintHandlers = mock(ConstraintEnforcementService.class);
@@ -81,8 +75,8 @@ class ReactiveSaplAuthorizationManagerTests {
     @Test
     void when_PdpPermit_then_IsGranted() {
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        StepVerifier.create(sut.check(AUTHENTICATION, ctx))
-                .expectNextMatches(org.springframework.security.authorization.AuthorizationDecision::isGranted)
+        StepVerifier.create(sut.authorize(AUTHENTICATION, ctx))
+                .expectNextMatches(org.springframework.security.authorization.AuthorizationResult::isGranted)
                 .verifyComplete();
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }
@@ -91,14 +85,16 @@ class ReactiveSaplAuthorizationManagerTests {
     void when_ObligationsFail_then_IsNotGranted() {
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
-        StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
+        StepVerifier.create(sut.authorize(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted())
+                .verifyComplete();
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }
 
     @Test
     void when_PdpDeny_then_NotGranted() {
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.DENY));
-        StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
+        StepVerifier.create(sut.authorize(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted())
+                .verifyComplete();
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }
 
@@ -108,7 +104,8 @@ class ReactiveSaplAuthorizationManagerTests {
         final var decision   = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                 ValueJsonMarshaller.fromJsonNode(objectNode));
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
-        StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
+        StepVerifier.create(sut.authorize(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted())
+                .verifyComplete();
         verify(bundle, times(0)).handleOnDecisionConstraints();
     }
 

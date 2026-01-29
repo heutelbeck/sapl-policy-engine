@@ -238,7 +238,8 @@ public class AuthorizationSubscriptionBuilderService {
         if (defaultsProvider != null) {
             defaultsProvider.ifAvailable(d -> {
                 val authFactory = new DefaultAuthorizationManagerFactory<MethodInvocation>();
-                authFactory.setRolePrefix(d.getRolePrefix());
+                val rolePrefix  = d.getRolePrefix();
+                authFactory.setRolePrefix(rolePrefix != null ? rolePrefix : "");
                 handler.setAuthorizationManagerFactory(authFactory);
             });
         }
@@ -433,22 +434,61 @@ public class AuthorizationSubscriptionBuilderService {
         return PARSER.parseExpression(expressionString);
     }
 
-    private ObjectValue toValue(HttpServletRequest request) {
-        val builder = ObjectValue.builder().put("protocol", Value.of(request.getProtocol()))
-                .put("scheme", Value.of(request.getScheme())).put("serverName", Value.of(request.getServerName()))
-                .put("serverPort", Value.of(request.getServerPort()))
-                .put("remoteAddress", Value.of(request.getRemoteAddr()))
-                .put("remoteHost", Value.of(request.getRemoteHost()))
-                .put("remotePort", Value.of(request.getRemotePort())).put("isSecure", Value.of(request.isSecure()))
-                .put("localName", Value.of(request.getLocalName()))
-                .put("localAddress", Value.of(request.getLocalAddr()))
-                .put("localPort", Value.of(request.getLocalPort())).put("method", Value.of(request.getMethod()))
-                .put("contextPath", Value.of(request.getContextPath()))
-                .put("requestedURI", Value.of(request.getRequestURI()))
-                .put("requestURL", Value.of(request.getRequestURL().toString()))
-                .put("servletPath", Value.of(request.getServletPath()))
-                .put("locale", Value.of(request.getLocale().toString()));
+    /**
+     * Converts an HttpServletRequest to an ObjectValue for use in authorization
+     * subscriptions.
+     *
+     * @param request the servlet HTTP request
+     * @return an ObjectValue containing the request details
+     */
+    public static ObjectValue toValue(HttpServletRequest request) {
+        val builder = ObjectValue.builder();
 
+        if (request.getProtocol() != null) {
+            builder.put("protocol", Value.of(request.getProtocol()));
+        }
+        if (request.getScheme() != null) {
+            builder.put("scheme", Value.of(request.getScheme()));
+        }
+        if (request.getServerName() != null) {
+            builder.put("serverName", Value.of(request.getServerName()));
+        }
+        builder.put("serverPort", Value.of(request.getServerPort()));
+        if (request.getRemoteAddr() != null) {
+            builder.put("remoteAddress", Value.of(request.getRemoteAddr()));
+        }
+        if (request.getRemoteHost() != null) {
+            builder.put("remoteHost", Value.of(request.getRemoteHost()));
+        }
+        builder.put("remotePort", Value.of(request.getRemotePort()));
+        builder.put("isSecure", Value.of(request.isSecure()));
+        if (request.getLocalName() != null) {
+            builder.put("localName", Value.of(request.getLocalName()));
+        }
+        if (request.getLocalAddr() != null) {
+            builder.put("localAddress", Value.of(request.getLocalAddr()));
+        }
+        builder.put("localPort", Value.of(request.getLocalPort()));
+        if (request.getMethod() != null) {
+            builder.put("method", Value.of(request.getMethod()));
+        }
+        if (request.getContextPath() != null) {
+            builder.put("contextPath", Value.of(request.getContextPath()));
+        }
+        if (request.getRequestURI() != null) {
+            builder.put("requestedURI", Value.of(request.getRequestURI()));
+        }
+        val requestURL = request.getRequestURL();
+        if (requestURL != null) {
+            builder.put("requestURL", Value.of(requestURL.toString()));
+        }
+        if (request.getServletPath() != null) {
+            builder.put("servletPath", Value.of(request.getServletPath()));
+        }
+        val locale = request.getLocale();
+        if (locale != null) {
+            builder.put("locale", Value.of(locale.toString()));
+        }
         if (request.getCharacterEncoding() != null) {
             builder.put("characterEncoding", Value.of(request.getCharacterEncoding()));
         }
@@ -466,15 +506,15 @@ public class AuthorizationSubscriptionBuilderService {
             builder.put("requestedSessionId", Value.of(session.getId()));
         }
 
-        builder.put("headers", headersToValue(request));
-        builder.put("cookies", cookiesToValue(request));
-        builder.put("locales", localesToValue(request));
-        builder.put("parameters", parametersToValue(request));
+        builder.put("headers", servletRequestHeadersToValue(request));
+        builder.put("cookies", servletRequestCookiesToValue(request));
+        builder.put("locales", servletRequestLocalesToValue(request));
+        builder.put("parameters", servletRequestParametersToValue(request));
 
         return builder.build();
     }
 
-    private ObjectValue headersToValue(HttpServletRequest request) {
+    private static ObjectValue servletRequestHeadersToValue(HttpServletRequest request) {
         val builder     = ObjectValue.builder();
         val headerNames = request.getHeaderNames();
         while (headerNames.hasMoreElements()) {
@@ -489,7 +529,7 @@ public class AuthorizationSubscriptionBuilderService {
         return builder.build();
     }
 
-    private ArrayValue cookiesToValue(HttpServletRequest request) {
+    private static ArrayValue servletRequestCookiesToValue(HttpServletRequest request) {
         val builder = ArrayValue.builder();
         val cookies = request.getCookies();
         if (cookies != null) {
@@ -501,7 +541,7 @@ public class AuthorizationSubscriptionBuilderService {
         return builder.build();
     }
 
-    private ArrayValue localesToValue(HttpServletRequest request) {
+    private static ArrayValue servletRequestLocalesToValue(HttpServletRequest request) {
         val builder = ArrayValue.builder();
         val locales = request.getLocales();
         while (locales.hasMoreElements()) {
@@ -510,7 +550,7 @@ public class AuthorizationSubscriptionBuilderService {
         return builder.build();
     }
 
-    private ObjectValue parametersToValue(HttpServletRequest request) {
+    private static ObjectValue servletRequestParametersToValue(HttpServletRequest request) {
         val builder = ObjectValue.builder();
         for (val entry : request.getParameterMap().entrySet()) {
             val values = ArrayValue.builder();
@@ -522,13 +562,29 @@ public class AuthorizationSubscriptionBuilderService {
         return builder.build();
     }
 
-    private ObjectValue toValue(ServerHttpRequest request) {
-        val builder = ObjectValue.builder().put("scheme", Value.of(request.getURI().getScheme()))
-                .put("serverName", Value.of(request.getURI().getHost()))
-                .put("serverPort", Value.of(request.getURI().getPort()))
-                .put("method", Value.of(request.getMethod().name()))
-                .put("contextPath", Value.of(String.valueOf(request.getPath())))
-                .put("requestedURI", Value.of(String.valueOf(request.getURI())));
+    /**
+     * Converts a ServerHttpRequest to an ObjectValue for use in authorization
+     * subscriptions.
+     *
+     * @param request the reactive server HTTP request
+     * @return an ObjectValue containing the request details
+     */
+    public static ObjectValue toValue(ServerHttpRequest request) {
+        val builder = ObjectValue.builder();
+        val uri     = request.getURI();
+
+        if (uri.getScheme() != null) {
+            builder.put("scheme", Value.of(uri.getScheme()));
+        }
+        if (uri.getHost() != null) {
+            builder.put("serverName", Value.of(uri.getHost()));
+        }
+        builder.put("serverPort", Value.of(uri.getPort()));
+        if (request.getMethod() != null) {
+            builder.put("method", Value.of(request.getMethod().name()));
+        }
+        builder.put("contextPath", Value.of(String.valueOf(request.getPath())));
+        builder.put("requestedURI", Value.of(String.valueOf(uri)));
 
         val remoteAddress = request.getRemoteAddress();
         if (remoteAddress != null) {
@@ -544,14 +600,14 @@ public class AuthorizationSubscriptionBuilderService {
                     .put("localPort", Value.of(localAddress.getPort()));
         }
 
-        builder.put("headers", headersToValue(request));
-        builder.put("cookies", cookiesToValue(request));
-        builder.put("parameters", parametersToValue(request));
+        builder.put("headers", serverRequestHeadersToValue(request));
+        builder.put("cookies", serverRequestCookiesToValue(request));
+        builder.put("parameters", serverRequestParametersToValue(request));
 
         return builder.build();
     }
 
-    private ObjectValue headersToValue(ServerHttpRequest request) {
+    private static ObjectValue serverRequestHeadersToValue(ServerHttpRequest request) {
         val builder = ObjectValue.builder();
         for (val entry : request.getHeaders().headerSet()) {
             val values = ArrayValue.builder();
@@ -563,7 +619,7 @@ public class AuthorizationSubscriptionBuilderService {
         return builder.build();
     }
 
-    private ArrayValue cookiesToValue(ServerHttpRequest request) {
+    private static ArrayValue serverRequestCookiesToValue(ServerHttpRequest request) {
         val builder = ArrayValue.builder();
         for (val entry : request.getCookies().entrySet()) {
             for (val cookie : entry.getValue()) {
@@ -574,7 +630,7 @@ public class AuthorizationSubscriptionBuilderService {
         return builder.build();
     }
 
-    private ObjectValue parametersToValue(ServerHttpRequest request) {
+    private static ObjectValue serverRequestParametersToValue(ServerHttpRequest request) {
         val builder = ObjectValue.builder();
         for (val entry : request.getQueryParams().entrySet()) {
             val values = ArrayValue.builder();

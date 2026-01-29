@@ -119,10 +119,10 @@ public class QuerySelectionUtils {
 
         while (elements.hasNext()) {
             final var element = elements.next();
-            selectionList.add(element.asText().trim());
+            selectionList.add(element.asString().trim());
         }
 
-        if (WHITELIST.equals(selection.get(TYPE).asText())) {
+        if (WHITELIST.equals(selection.get(TYPE).asString())) {
             return selectionList;
         } else {
 
@@ -159,7 +159,7 @@ public class QuerySelectionUtils {
         for (JsonNode jsonNode : transformations) {
             final var objectNode = (ObjectNode) jsonNode;
             final var key        = objectNode.propertyNames().iterator().next();
-            final var value      = objectNode.get(key).asText();
+            final var value      = objectNode.get(key).asString();
 
             transformationsAsPairs.add(Map.entry(key, value));
         }

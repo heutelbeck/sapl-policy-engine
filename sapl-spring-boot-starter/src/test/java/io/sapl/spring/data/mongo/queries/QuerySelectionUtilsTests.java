@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 
@@ -29,7 +29,7 @@ class QuerySelectionUtilsTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
-    void when_addSelectionPartToQuery_then_returnQueryWithSelection() throws JsonProcessingException {
+    void when_addSelectionPartToQuery_then_returnQueryWithSelection() throws JacksonException {
         // GIVEN
         final var selection  = MAPPER.readTree("""
                 {

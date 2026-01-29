@@ -27,8 +27,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -36,7 +36,7 @@ import io.sapl.api.model.ValueJsonMarshaller;
 class ContentFilterPredicateProviderTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static Value toValue(String json) throws JsonProcessingException {
+    private static Value toValue(String json) throws JacksonException {
         return ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(json));
     }
 
@@ -47,14 +47,14 @@ class ContentFilterPredicateProviderTests {
     }
 
     @Test
-    void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
+    void when_constraintNonObject_then_notResponsible() throws JacksonException {
         final var sut        = new ContentFilterPredicateProvider(MAPPER);
         final var constraint = toValue("123");
         assertThat(sut.isResponsible(constraint), is(false));
     }
 
     @Test
-    void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
+    void when_constraintNoType_then_notResponsible() throws JacksonException {
         final var sut        = new ContentFilterPredicateProvider(MAPPER);
         final var constraint = toValue("{ }");
         assertThat(sut.isResponsible(constraint), is(false));
@@ -87,14 +87,14 @@ class ContentFilterPredicateProviderTests {
 
     @ParameterizedTest
     @MethodSource("provideTestCases")
-    void validateResponsibility(String constraint, boolean expectedResponsibility) throws JsonProcessingException {
+    void validateResponsibility(String constraint, boolean expectedResponsibility) throws JacksonException {
         final var sut             = new ContentFilterPredicateProvider(MAPPER);
         final var valueConstraint = toValue(constraint);
         assertThat(sut.isResponsible(valueConstraint), is(expectedResponsibility));
     }
 
     @Test
-    void when_predicateNotMatching_then_False() throws JsonProcessingException {
+    void when_predicateNotMatching_then_False() throws JacksonException {
         final var sut        = new ContentFilterPredicateProvider(MAPPER);
         final var constraint = toValue("""
                 {
@@ -125,7 +125,7 @@ class ContentFilterPredicateProviderTests {
     }
 
     @Test
-    void when_handlerHandlesNull_handlerReturnsNull() throws JsonProcessingException {
+    void when_handlerHandlesNull_handlerReturnsNull() throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {

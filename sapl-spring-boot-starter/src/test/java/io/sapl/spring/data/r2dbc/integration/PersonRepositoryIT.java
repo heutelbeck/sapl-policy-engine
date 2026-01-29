@@ -34,8 +34,8 @@ import java.util.List;
 @SpringBootTest(classes = { TestApplication.class }, properties = { "io.sapl.pdp.embedded.enabled=true",
         "io.sapl.pdp.embedded.pdp-config-type=RESOURCES", "io.sapl.pdp.embedded.policies-path=policies-r2dbc",
         "spring.autoconfigure.exclude=de.flapdoodle.embed.mongo.spring.autoconfigure.EmbeddedMongoAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.data.mongo.MongoReactiveDataAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.mongo.MongoReactiveAutoConfiguration" })
+                + "org.springframework.boot.data.mongodb.autoconfigure.MongoReactiveDataAutoConfiguration,"
+                + "org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration" })
 class PersonRepositoryIT extends TestContainerBase {
 
     @Autowired

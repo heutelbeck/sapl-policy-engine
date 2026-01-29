@@ -41,8 +41,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.prepost.PreFilter;
 import org.springframework.security.util.MethodInvocationUtils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -54,9 +53,6 @@ import io.sapl.spring.method.metadata.EnforceTillDenied;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
@@ -79,14 +75,9 @@ class ReactiveSaplMethodInterceptorTests {
         MethodSecurityExpressionHandler handler = mock(MethodSecurityExpressionHandler.class);
         PolicyDecisionPoint             pdp     = mock(PolicyDecisionPoint.class);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        ConstraintEnforcementService constraintHandlerService = mock(ConstraintEnforcementService.class);
-        ObjectMapper                 mapper                   = new ObjectMapper();
-        SimpleModule                 module                   = new SimpleModule();
-        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-        mapper.registerModule(module);
-        AuthorizationSubscriptionBuilderService subscriptionBuilder = mock(
+        ConstraintEnforcementService            constraintHandlerService = mock(ConstraintEnforcementService.class);
+        ObjectMapper                            mapper                   = new ObjectMapper();
+        AuthorizationSubscriptionBuilderService subscriptionBuilder      = mock(
                 AuthorizationSubscriptionBuilderService.class);
         when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
                 .thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));

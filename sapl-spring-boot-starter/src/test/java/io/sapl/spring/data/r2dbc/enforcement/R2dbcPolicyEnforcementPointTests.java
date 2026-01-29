@@ -333,7 +333,7 @@ class R2dbcPolicyEnforcementPointTests {
         when(repositoryInformationMock.isCustomMethod(any(Method.class))).thenReturn(true);
 
         // THEN
-        final var errorMessage = "The QueryEnforce annotation cannot be applied to custom repository methods. ";
+        final var errorMessage = "The QueryEnforce annotation cannot be applied to custom repository methods.";
 
         final var illegalStateException = assertThrows(IllegalStateException.class, () -> {
             enforcementPoint.invoke(methodInvocation);

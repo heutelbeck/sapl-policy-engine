@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,7 +39,7 @@ class AllAutoConfigurationsIntegrationTests {
 
     @Test
     void whenFilesystemPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAPDPIsCreated() {
-        contextRunner.withBean(ObjectMapper.class, new ObjectMapper())
+        contextRunner.withBean(JsonMapper.class, JsonMapper::new)
                 .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
                         "io.sapl.pdp.embedded.enabled=true", "io.sapl.pdp.embedded.policiesPath=" + tempDir)
                 .run(context -> {
@@ -49,7 +49,7 @@ class AllAutoConfigurationsIntegrationTests {
 
     @Test
     void whenResourcesPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAPDPIsCreated() {
-        contextRunner.withBean(ObjectMapper.class, new ObjectMapper())
+        contextRunner.withBean(JsonMapper.class, JsonMapper::new)
                 .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.enabled=true",
                         "io.sapl.pdp.embedded.policiesPath=/policies")
                 .run(context -> {

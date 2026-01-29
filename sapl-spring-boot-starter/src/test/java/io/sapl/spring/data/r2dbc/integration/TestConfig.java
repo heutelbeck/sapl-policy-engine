@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.r2dbc.integration;
 
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 

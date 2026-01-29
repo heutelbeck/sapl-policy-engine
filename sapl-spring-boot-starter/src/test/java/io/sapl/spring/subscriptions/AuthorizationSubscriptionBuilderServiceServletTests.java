@@ -17,29 +17,18 @@
  */
 package io.sapl.spring.subscriptions;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonMissing;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
-
 import org.aopalliance.intercept.MethodInvocation;
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,13 +36,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.MockedStatic;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
@@ -68,20 +57,17 @@ import org.springframework.security.util.MethodInvocationUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.val;
 
 class AuthorizationSubscriptionBuilderServiceServletTests {
@@ -95,11 +81,6 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     @SuppressWarnings("unchecked")
     void beforeEach() {
         mapper = new ObjectMapper();
-        val module = new SimpleModule();
-        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-        mapper.registerModule(module);
         val user = new User("the username", "the password", true, true, true, true,
                 AuthorityUtils.createAuthorityList("ROLE_USER"));
         authentication = new UsernamePasswordAuthenticationToken(user, "the credentials");
@@ -116,20 +97,10 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
                 "publicVoid", null, null);
     }
 
-    /**
-     * Adapts an Iterable matcher to a Collection matcher for Eclipse compiler
-     * compatibility.
-     *
-     * @param matcher the iterable matcher to adapt
-     * @return a collection matcher wrapping the iterable matcher
-     */
-    @SuppressWarnings("unchecked")
-    private static Matcher<Collection<? extends JsonNode>> asCollectionMatcher(
-            Matcher<Iterable<? extends JsonNode>> matcher) {
-        return (Matcher<Collection<? extends JsonNode>>) (Matcher<?>) matcher;
-    }
-
     private static JsonNode toJson(Value value) {
+        if (value instanceof UndefinedValue) {
+            return JsonNodeFactory.instance.nullNode();
+        }
         return ValueJsonMarshaller.toJsonNode(value);
     }
 
@@ -188,10 +159,10 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         val attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
         val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
                 attribute);
-        assertAll(() -> assertThat(toJson(subscription.subject()), is(jsonText("a subject"))),
-                () -> assertThat(toJson(subscription.action()), is(jsonText("an action"))),
-                () -> assertThat(toJson(subscription.resource()), is(jsonText("a resource"))),
-                () -> assertThat(toJson(subscription.environment()), is(jsonText("an environment"))));
+        assertThat(toJson(subscription.subject()).asString()).isEqualTo("a subject");
+        assertThat(toJson(subscription.action()).asString()).isEqualTo("an action");
+        assertThat(toJson(subscription.resource()).asString()).isEqualTo("a resource");
+        assertThat(toJson(subscription.environment()).asString()).isEqualTo("an environment");
     }
 
     @Test
@@ -221,27 +192,21 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
                 AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
         val attribute    = attribute(null, null, null, null, Object.class);
         val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(user, invocation, attribute);
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                          is(jsonObject()
-                                  .where("name", is(jsonText("anonymous")))
-                                  .where("credentials", is(jsonMissing()))
-                                  .where("principal", is(jsonText("anonymous"))))),
-                  () -> assertThat(toJson(subscription.action()),
-                          is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("name", jsonText("publicVoid"))))
-                                  .where("http", is(jsonMissing())))),
-                  () -> assertThat(toJson(subscription.resource()),
-                          is(jsonObject()
-                                  .where("http", is(jsonMissing()))
-                                  .where("java", is(jsonObject()
-                                        .where("instanceof",
-                                            is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                jsonObject().where("simpleName",is(jsonText("TestClass"))),
-                                                jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                  () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
+
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("anonymous");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+        assertThat(action.has("http")).isFalse();
+
+        var resource = toJson(subscription.resource());
+        assertThat(resource.has("http")).isFalse();
+        assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     @Test
@@ -255,27 +220,20 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
             val attribute    = attribute(null, null, null, null, Object.class);
             val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
                     attribute);
-            // @formatter:off
-            assertAll(() -> assertThat(toJson(subscription.subject()),
-                    is(jsonObject()
-                            .where("name", is(jsonText("the username")))
-                            .where("credentials", is(jsonMissing()))
-                            .where("principal", is(jsonObject()
-                                    .where("password", is(jsonMissing())))))),
-                    () -> assertThat(toJson(subscription.action()),
-                            is(jsonObject()
-                                    .where("http", is(jsonObject())
-                                            ))),
-                    () -> assertThat(toJson(subscription.resource()),
-                            is(jsonObject()
-                                    .where("http", is(jsonObject()))
-                                      .where("java", is(jsonObject()
-                                                .where("instanceof",
-                                                    is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                        jsonObject().where("simpleName",is(jsonText("TestClass"))),
-                                                        jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                    () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-            // @formatter:on
+
+            var subject = toJson(subscription.subject());
+            assertThat(subject.get("name").asString()).isEqualTo("the username");
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(subject.get("principal").has("password")).isFalse();
+
+            var action = toJson(subscription.action());
+            assertThat(action.get("http")).isNotNull();
+
+            var resource = toJson(subscription.resource());
+            assertThat(resource.get("http")).isNotNull();
+            assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+            assertThat(toJson(subscription.environment()).isNull()).isTrue();
         }
     }
 
@@ -285,58 +243,63 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         val invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
         val subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                 invocationWithArgs, attribute);
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                is(jsonObject()
-                        .where("name", is(jsonText("the username")))
-                        .where("credentials", is(jsonMissing()))
-                        .where("principal", is(jsonObject()
-                                .where("password", is(jsonMissing())))))),
-                () -> assertThat(toJson(subscription.action()),
-                        is(jsonObject()
-                                .where("java", is(jsonObject()
-                                        .where("arguments", is(jsonArray()))
-                                        .where("name", jsonText("publicVoidArgs")))))),
-                () -> assertThat(toJson(subscription.resource()),
-                        is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("instanceof",
-                                            is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                jsonObject().where("simpleName",is(jsonText("TestClass"))),
-                                                jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
 
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("the username");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").has("password")).isFalse();
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").get("arguments")).isNotNull();
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoidArgs");
+
+        var resource = toJson(subscription.resource());
+        assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_nullParametersInvocationHasArgumentsThatCannotBeMappedToJson_then_FactoryConstructsFromContextExcludingProblematicArguments() {
+        val failMapper = spy(ObjectMapper.class);
+        when(failMapper.valueToTree(any())).thenAnswer((Answer<JsonNode>) anInvocation -> {
+            Object arg = anInvocation.getArguments()[0];
+            if (arg instanceof BadForJackson) {
+                throw new IllegalArgumentException("testfail");
+            }
+            return mapper.valueToTree(arg);
+        });
+
+        val mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        when(mockExpressionHandlerProvider.getIfAvailable(any()))
+                .thenReturn(new DefaultMethodSecurityExpressionHandler());
+        val mockMapperProvider = mock(ObjectProvider.class);
+        when(mockMapperProvider.getIfAvailable(any())).thenReturn(failMapper);
+        val mockDefaultsProvider = mock(ObjectProvider.class);
+        val mockContext          = mock(ApplicationContext.class);
+        val sut                  = new AuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
+                mockMapperProvider, mockDefaultsProvider, mockContext);
+
         val attribute             = attribute(null, null, null, null, Object.class);
         val invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                 "publicVoidProblemArg", new Class<?>[] { BadForJackson.class }, new Object[] { new BadForJackson() });
-        val subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
-                invocationWithBadArgs, attribute);
-        // @formatter:off
-        assertAll(() -> assertThat(toJson(subscription.subject()),
-                is(jsonObject()
-                        .where("name", is(jsonText("the username")))
-                        .where("credentials", is(jsonMissing()))
-                        .where("principal", is(jsonObject()
-                                .where("password", is(jsonMissing())))))),
-                () -> assertThat(toJson(subscription.action()),
-                        is(jsonObject()
-                                .where("java", is(jsonObject()
-                                        .where("arguments", is(jsonMissing()))
-                                        .where("name", jsonText("publicVoidProblemArg")))))),
-                () -> assertThat(toJson(subscription.resource()),
-                        is(jsonObject()
-                                  .where("java", is(jsonObject()
-                                        .where("instanceof",
-                                            is(jsonArray(asCollectionMatcher(containsInAnyOrder(
-                                                jsonObject().where("simpleName",is(jsonText("TestClass"))),
-                                                jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
-        // @formatter:on
+        val subscription          = sut.constructAuthorizationSubscription(authentication, invocationWithBadArgs,
+                attribute);
+
+        var subject = toJson(subscription.subject());
+        assertThat(subject.get("name").asString()).isEqualTo("the username");
+        assertThat(subject.has("credentials")).isFalse();
+        assertThat(subject.get("principal").has("password")).isFalse();
+
+        var action = toJson(subscription.action());
+        assertThat(action.get("java").has("arguments")).isFalse();
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoidProblemArg");
+
+        var resource = toJson(subscription.resource());
+        assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {

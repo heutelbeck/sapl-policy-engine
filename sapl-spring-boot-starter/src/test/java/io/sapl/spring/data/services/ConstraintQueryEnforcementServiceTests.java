@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.data.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -216,7 +216,7 @@ class ConstraintQueryEnforcementServiceTests {
     }
 
     @BeforeAll
-    static void initTestData() throws JsonProcessingException {
+    static void initTestData() throws JacksonException {
         obligationMongoQuery = ValueJsonMarshaller.fromJsonNode(MAPPER.readTree("""
                 			{
                 			  "type": "mongoQueryManipulation",

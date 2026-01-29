@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -40,7 +40,7 @@ class ContentFilterTests {
     }
 
     @Test
-    void test() throws JsonProcessingException {
+    void test() throws JacksonException {
         final var constraint = MAPPER.readTree("""
                 {
                 	"conditions" : [

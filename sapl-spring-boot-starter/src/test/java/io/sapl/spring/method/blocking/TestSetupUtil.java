@@ -21,38 +21,25 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
 
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class TestSetupUtil {
 
-    public static ObjectMapper objectMapperWithSerializers() {
-        final var module = new SimpleModule();
-        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-        final var mapper = new ObjectMapper();
-        mapper.registerModule(module);
-        return mapper;
+    public static ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @SuppressWarnings("unchecked")
     public static AuthorizationSubscriptionBuilderService subscriptionBuilderService() {
-        final var mapper                        = objectMapperWithSerializers();
+        final var mapper                        = objectMapper();
         final var mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))
                 .thenReturn(new DefaultMethodSecurityExpressionHandler());

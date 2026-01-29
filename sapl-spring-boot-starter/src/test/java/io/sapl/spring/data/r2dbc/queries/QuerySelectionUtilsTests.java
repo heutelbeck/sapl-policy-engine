@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.data.r2dbc.queries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 import io.sapl.spring.data.r2dbc.database.Person;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ class QuerySelectionUtilsTests {
     private static ArrayNode transformations;
 
     @BeforeAll
-    static void initJsonNodes() throws JsonProcessingException {
+    static void initJsonNodes() throws JacksonException {
 
         selectionsBlacklist = MAPPER.readValue("""
                 [

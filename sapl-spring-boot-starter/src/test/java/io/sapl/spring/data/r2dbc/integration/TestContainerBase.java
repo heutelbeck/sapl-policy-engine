@@ -19,15 +19,15 @@ package io.sapl.spring.data.r2dbc.integration;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 
 public class TestContainerBase {
 
     @SuppressWarnings("resource") // Fine for tests which are short-lived
-    static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:12")
-            .withCopyFileToContainer(MountableFile.forClasspathResource("testing_init_scripts/testing_schema.sql"),
-                    "/docker-entrypoint-initdb.d/testing_schema.sql");
+    static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer("postgres:12").withCopyFileToContainer(
+            MountableFile.forClasspathResource("testing_init_scripts/testing_schema.sql"),
+            "/docker-entrypoint-initdb.d/testing_schema.sql");
 
     static {
         postgreSQLContainer.start();

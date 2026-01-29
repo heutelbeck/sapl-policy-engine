@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.data.utils;
 
-import com.fasterxml.jackson.core.JsonParseException;
+import tools.jackson.core.exc.StreamReadException;
 import io.sapl.spring.data.database.Person;
 import io.sapl.spring.data.database.Role;
 import org.junit.jupiter.api.BeforeAll;
@@ -219,7 +219,7 @@ class UtilitiesTests {
         // WHEN
 
         // THEN
-        assertThrows(JsonParseException.class, () -> Utilities.readTree("{asd:a}"));
+        assertThrows(StreamReadException.class, () -> Utilities.readTree("{asd:a}"));
     }
 
     @Test

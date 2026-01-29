@@ -17,13 +17,10 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.JsonNodeFactory;
 import com.jayway.jsonpath.*;
-import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import lombok.experimental.UtilityClass;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -77,8 +74,6 @@ public class ContentFilter {
     private static final String ACTION_NOT_AN_OBJECT         = "An action in 'actions' is not an object.";
     private static final String ACTIONS_NOT_AN_ARRAY         = "'actions' is not an array.";
     private static final int    BLACKEN_LENGTH_INVALID_VALUE = -1;
-
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     public static UnaryOperator<Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
         final var predicate      = predicateFromConditions(constraint, objectMapper);
@@ -187,157 +182,146 @@ public class ContentFilter {
         if (!condition.isObject())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        if (!condition.has(PATH) || !condition.get(PATH).isTextual())
+        if (!condition.has(PATH) || !condition.get(PATH).isString())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var path = condition.get(PATH).textValue();
+        final var path = condition.get(PATH).stringValue();
 
-        if (!condition.has(TYPE) || !condition.get(TYPE).isTextual())
+        if (!condition.has(TYPE) || !condition.get(TYPE).isString())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var type = condition.get(TYPE).textValue();
+        final var type = condition.get(TYPE).stringValue();
 
         if (!condition.has(VALUE))
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var jsonPathConfiguration = Configuration.builder()
-                .jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper)).build();
-
         if (EQUALS.equals(type))
-            return equalsCondition(condition, path, jsonPathConfiguration, objectMapper);
+            return equalsCondition(condition, path, objectMapper);
 
         if (NEQ.equals(type))
-            return Predicate.not(equalsCondition(condition, path, jsonPathConfiguration, objectMapper));
+            return Predicate.not(equalsCondition(condition, path, objectMapper));
 
         if (GEQ.equals(type))
-            return geqCondition(condition, path, jsonPathConfiguration, objectMapper);
+            return geqCondition(condition, path, objectMapper);
 
         if (LEQ.equals(type))
-            return leqCondition(condition, path, jsonPathConfiguration, objectMapper);
+            return leqCondition(condition, path, objectMapper);
 
         if (LT.equals(type))
-            return ltCondition(condition, path, jsonPathConfiguration, objectMapper);
+            return ltCondition(condition, path, objectMapper);
 
         if (GT.equals(type))
-            return gtCondition(condition, path, jsonPathConfiguration, objectMapper);
+            return gtCondition(condition, path, objectMapper);
 
         if (REGEX.equals(type))
-            return regexCondition(condition, path, jsonPathConfiguration, objectMapper);
+            return regexCondition(condition, path, objectMapper);
 
         throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
     }
 
-    private static Predicate<Object> regexCondition(JsonNode condition, String path,
-            Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
-
-        if (!condition.get(VALUE).isTextual())
+    private static Predicate<Object> regexCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
+        if (!condition.get(VALUE).isString())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var regex = Pattern.compile(condition.get(VALUE).textValue());
+        final var regex = Pattern.compile(condition.get(VALUE).stringValue());
 
         return original -> {
-            final var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
-            if (!node.isTextual())
+            final var value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof String stringValue))
                 return false;
-            return regex.asMatchPredicate().test(node.textValue());
+            return regex.asMatchPredicate().test(stringValue);
         };
     }
 
-    private static Predicate<Object> leqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
-            ObjectMapper objectMapper) {
+    private static Predicate<Object> leqCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var value = condition.get(VALUE).asDouble();
+        final var conditionValue = condition.get(VALUE).asDouble();
 
         return original -> {
-            final var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
-            if (!node.isNumber())
+            final var value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof Number numberValue))
                 return false;
-            return node.asDouble() <= value;
+            return numberValue.doubleValue() <= conditionValue;
         };
     }
 
-    private static Predicate<Object> geqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
-            ObjectMapper objectMapper) {
+    private static Predicate<Object> geqCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var value = condition.get(VALUE).asDouble();
+        final var conditionValue = condition.get(VALUE).asDouble();
 
         return original -> {
-            final var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
-            if (!node.isNumber())
+            final var value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof Number numberValue))
                 return false;
-            return node.asDouble() >= value;
+            return numberValue.doubleValue() >= conditionValue;
         };
     }
 
-    private static Predicate<Object> ltCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
-            ObjectMapper objectMapper) {
+    private static Predicate<Object> ltCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var value = condition.get(VALUE).asDouble();
+        final var conditionValue = condition.get(VALUE).asDouble();
 
         return original -> {
-            final var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
-            if (!node.isNumber())
+            final var value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof Number numberValue))
                 return false;
-            return node.asDouble() < value;
+            return numberValue.doubleValue() < conditionValue;
         };
     }
 
-    private static Predicate<Object> gtCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
-            ObjectMapper objectMapper) {
+    private static Predicate<Object> gtCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var value = condition.get(VALUE).asDouble();
+        final var conditionValue = condition.get(VALUE).asDouble();
 
         return original -> {
-            final var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
-            if (!node.isNumber())
+            final var value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof Number numberValue))
                 return false;
-            return node.asDouble() > value;
+            return numberValue.doubleValue() > conditionValue;
         };
     }
 
-    private static Predicate<Object> numberEqCondition(JsonNode condition, String path,
-            Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
-        final var value = condition.get(VALUE).asDouble();
+    private static Predicate<Object> numberEqCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
+        final var conditionValue = condition.get(VALUE).asDouble();
 
         return original -> {
-            final var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
-            if (!node.isNumber())
+            final var value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof Number numberValue))
                 return false;
-            return value == node.asDouble();
+            return conditionValue == numberValue.doubleValue();
         };
     }
 
-    private static Predicate<Object> equalsCondition(JsonNode condition, String path,
-            Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
+    private static Predicate<Object> equalsCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         final var valueNode = condition.get(VALUE);
         if (valueNode.isNumber())
-            return numberEqCondition(condition, path, jsonPathConfiguration, objectMapper);
+            return numberEqCondition(condition, path, objectMapper);
 
-        if (!valueNode.isTextual())
+        if (!valueNode.isString())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var value = valueNode.textValue();
+        final var conditionValue = valueNode.stringValue();
 
         return original -> {
-            final var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
-            if (!node.isTextual())
+            final var value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof String stringValue))
                 return false;
-            return value.equals(node.textValue());
+            return conditionValue.equals(stringValue);
         };
     }
 
-    private static JsonNode getNodeAtPath(Object original, String path, Configuration jsonPathConfiguration,
-            ObjectMapper objectMapper) {
-        final var originalJsonNode = objectMapper.valueToTree(original);
-        final var jsonContext      = JsonPath.using(jsonPathConfiguration).parse(originalJsonNode);
+    private static Object getValueAtPath(Object original, String path, ObjectMapper objectMapper) {
+        // Convert to native Java types for jsonpath compatibility
+        final var originalAsNative = objectMapper.convertValue(original, Object.class);
+        final var jsonContext      = JsonPath.parse(originalAsNative);
         return jsonContext.read(path);
     }
 
@@ -353,33 +337,32 @@ public class ContentFilter {
 
     public static UnaryOperator<Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
         return original -> {
-            final var actions               = constraint.get(ACTIONS);
-            final var jsonPathConfiguration = Configuration.builder()
-                    .jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper)).build();
+            final var actions = constraint.get(ACTIONS);
             if (actions == null)
                 return original;
 
             if (!actions.isArray())
                 throw new AccessConstraintViolationException(ACTIONS_NOT_AN_ARRAY);
 
-            final var originalJsonNode = objectMapper.valueToTree(original);
-
-            final var jsonContext = JsonPath.using(jsonPathConfiguration).parse(originalJsonNode);
+            // Convert to native Java types (Map/List) for jsonpath compatibility
+            final var originalAsNative = objectMapper.convertValue(original, Object.class);
+            final var jsonContext      = JsonPath.parse(originalAsNative);
 
             for (var action : actions)
-                applyAction(jsonContext, action);
+                applyAction(jsonContext, action, objectMapper);
 
-            JsonNode modifiedJsonNode = jsonContext.json();
+            Object modifiedNative = jsonContext.json();
 
             try {
-                return objectMapper.treeToValue(modifiedJsonNode, original.getClass());
-            } catch (JacksonException e) {
+                // Convert back to original type
+                return objectMapper.convertValue(modifiedNative, original.getClass());
+            } catch (IllegalArgumentException e) {
                 throw new AccessConstraintViolationException(ERROR_CONVERTING_MODIFIED_OBJECT, e);
             }
         };
     }
 
-    private static void applyAction(DocumentContext jsonContext, JsonNode action) {
+    private static void applyAction(DocumentContext jsonContext, JsonNode action, ObjectMapper objectMapper) {
         if (!action.isObject())
             throw new AccessConstraintViolationException(ACTION_NOT_AN_OBJECT);
 
@@ -402,7 +385,7 @@ public class ContentFilter {
             return;
         }
         case REPLACE -> {
-            replace(jsonContext, path, action);
+            replace(jsonContext, path, action, objectMapper);
             return;
         }
         default      -> { /* no-op */ }
@@ -412,16 +395,17 @@ public class ContentFilter {
 
     }
 
-    private static void replace(DocumentContext jsonContext, String path, JsonNode action) {
-        jsonContext.map(path, replaceNode(action));
+    private static void replace(DocumentContext jsonContext, String path, JsonNode action, ObjectMapper objectMapper) {
+        jsonContext.map(path, replaceNode(action, objectMapper));
     }
 
-    private static MapFunction replaceNode(JsonNode action) {
+    private static MapFunction replaceNode(JsonNode action, ObjectMapper objectMapper) {
         return (original, configuration) -> {
             if (!action.has(REPLACEMENT))
                 throw new AccessConstraintViolationException(NO_REPLACEMENT_SPECIFIED);
 
-            return action.get(REPLACEMENT);
+            // Convert JsonNode replacement to native Java type
+            return objectMapper.convertValue(action.get(REPLACEMENT), Object.class);
         };
     }
 
@@ -431,22 +415,16 @@ public class ContentFilter {
 
     private static MapFunction blackenNode(JsonNode action) {
         return (original, configuration) -> {
-
-            String originalString;
-
-            switch (original) {
-            case String stringValue                  -> originalString = stringValue;
-            case JsonNode json when json.isTextual() -> originalString = json.textValue();
-            default                                  -> throw new AccessConstraintViolationException(PATH_NOT_TEXTUAL);
-            }
+            // With native Java types, original is now a String (not JsonNode)
+            if (!(original instanceof String originalString))
+                throw new AccessConstraintViolationException(PATH_NOT_TEXTUAL);
 
             final var replacementString = determineReplacementString(action);
             final var discloseRight     = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_RIGHT);
             final var discloseLeft      = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_LEFT);
             final var blackenLength     = determineBlackenLength(action);
 
-            return JSON.textNode(
-                    blackenUtil(originalString, replacementString, discloseRight, discloseLeft, blackenLength));
+            return blackenUtil(originalString, replacementString, discloseRight, discloseLeft, blackenLength);
         };
     }
 
@@ -489,8 +467,8 @@ public class ContentFilter {
         if (replacementNode == null)
             return BLACK_SQUARE;
 
-        if (replacementNode.isTextual())
-            return replacementNode.textValue();
+        if (replacementNode.isString())
+            return replacementNode.stringValue();
 
         throw new AccessConstraintViolationException(REPLACEMENT_NOT_TEXTUAL);
     }
@@ -498,10 +476,10 @@ public class ContentFilter {
     private static String getTextualValueOfActionKey(JsonNode action, String key) {
         final var value = getValueOfActionKey(action, key);
 
-        if (!value.isTextual())
+        if (!value.isString())
             throw new AccessConstraintViolationException(String.format(VALUE_NOT_TEXTUAL_S, key));
 
-        return value.textValue();
+        return value.stringValue();
     }
 
     private static int getIntegerValueOfActionKeyOrDefaultToZero(JsonNode action, String key) {

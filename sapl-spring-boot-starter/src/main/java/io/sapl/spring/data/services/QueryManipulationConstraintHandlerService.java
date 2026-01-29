@@ -126,7 +126,7 @@ public class QueryManipulationConstraintHandlerService {
 
                 constraintDataRecord.obligation().get(TRANSFORMATIONS).properties().forEach(entry -> {
                     final var keyValuePair = JsonNodeFactory.instance.objectNode();
-                    keyValuePair.put(entry.getKey(), entry.getValue().asText());
+                    keyValuePair.put(entry.getKey(), entry.getValue().asString());
                     transformations.add(keyValuePair);
                 });
             }
@@ -140,8 +140,8 @@ public class QueryManipulationConstraintHandlerService {
 
         queryManipulationRecords.forEach(constraintDataRecord -> {
             if (constraintDataRecord.obligation().has(ALIAS)
-                    && constraintDataRecord.obligation().get(ALIAS).isTextual()) {
-                alias.add(constraintDataRecord.obligation().get(ALIAS).asText());
+                    && constraintDataRecord.obligation().get(ALIAS).isString()) {
+                alias.add(constraintDataRecord.obligation().get(ALIAS).asString());
             }
         });
 
