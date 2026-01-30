@@ -17,10 +17,8 @@
  */
 package io.sapl.api.model;
 
-import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
@@ -86,9 +84,6 @@ import java.util.Map;
  */
 public sealed interface Value extends Serializable, CompiledExpression
         permits UndefinedValue, ErrorValue, NullValue, BooleanValue, NumberValue, TextValue, ArrayValue, ObjectValue {
-
-    @Serial
-    long serialVersionUID = SaplVersion.VERSION_UID;
 
     String ERROR_CANNOT_CREATE_VALUE_FROM_INFINITE_DOUBLE = "Cannot create Value from infinite double: %s. Use Value.error() for computation errors.";
     String ERROR_CANNOT_CREATE_VALUE_FROM_NAN             = "Cannot create Value from NaN. Use Value.error() for computation errors.";

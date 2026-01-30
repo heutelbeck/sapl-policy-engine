@@ -17,29 +17,33 @@
  */
 package io.sapl.spring.config;
 
-import io.sapl.api.model.jackson.SaplJacksonModule;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.spring.serialization.SaplSpringJacksonModule;
 
 /**
- * This configuration provides a Jackson ObjectMapper bean, if missing.
+ * Auto-configuration that registers Jackson modules for SAPL type
+ * serialization.
  * <p>
- * In addition, the SaplJacksonModule is registered for SAPL type serialization.
- * Jackson 3 defaults to ISO-8601 string format for java.time types.
+ * Spring Boot automatically discovers JacksonModule beans and registers them
+ * with all ObjectMapper instances, including user-provided ones.
  */
-@Slf4j
 @AutoConfiguration
 public class ObjectMapperAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    ObjectMapper objectMapper() {
-        log.debug("Creating ObjectMapper with SAPL module");
-        return JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+    SaplJacksonModule saplJacksonModule() {
+        return new SaplJacksonModule();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    SaplSpringJacksonModule saplSpringJacksonModule() {
+        return new SaplSpringJacksonModule();
     }
 
 }
