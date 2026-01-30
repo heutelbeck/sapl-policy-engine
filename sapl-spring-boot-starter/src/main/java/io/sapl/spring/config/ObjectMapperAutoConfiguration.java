@@ -18,11 +18,13 @@
 package io.sapl.spring.config;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.spring.serialization.SaplSpringJacksonModule;
+import io.sapl.spring.serialization.SaplReactiveJacksonModule;
+import io.sapl.spring.serialization.SaplServletJacksonModule;
 
 /**
  * Auto-configuration that registers Jackson modules for SAPL type
@@ -42,8 +44,16 @@ public class ObjectMapperAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    SaplSpringJacksonModule saplSpringJacksonModule() {
-        return new SaplSpringJacksonModule();
+    @ConditionalOnClass(name = "jakarta.servlet.http.HttpServletRequest")
+    SaplServletJacksonModule saplServletJacksonModule() {
+        return new SaplServletJacksonModule();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(name = "org.springframework.http.server.reactive.ServerHttpRequest")
+    SaplReactiveJacksonModule saplReactiveJacksonModule() {
+        return new SaplReactiveJacksonModule();
     }
 
 }

@@ -23,7 +23,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
@@ -36,7 +35,6 @@ import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -262,7 +260,7 @@ public class AuthorizationSubscriptionBuilderService {
                 attribute.secretsExpression(), methodInvocation, httpRequest, Object.class);
     }
 
-    private static @Nullable HttpServletRequest retrieveServletRequest() {
+    private static @Nullable Object retrieveServletRequest() {
         val requestAttributes = RequestContextHolder.getRequestAttributes();
         return requestAttributes != null ? ((ServletRequestAttributes) requestAttributes).getRequest() : null;
     }
@@ -273,7 +271,8 @@ public class AuthorizationSubscriptionBuilderService {
         Optional<ServerWebExchange> serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
         log.debug("Building authorization subscription for method {}: ServerWebExchange present = {}",
                 methodInvocation.getMethod().getName(), serverWebExchange.isPresent());
-        Optional<ServerHttpRequest>     serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
+        Object                          serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest)
+                .orElse(null);
         Optional<Mono<SecurityContext>> securityContext   = contextView.getOrEmpty(SecurityContext.class);
         Mono<Authentication>            authentication    = securityContext
                 .map(ctx -> ctx.flatMap(sc -> Mono.justOrEmpty(sc.getAuthentication())).defaultIfEmpty(ANONYMOUS))
@@ -288,7 +287,7 @@ public class AuthorizationSubscriptionBuilderService {
             }
             return constructAuthorizationSubscription(auth, evaluationCtx, attribute.subjectExpression(),
                     attribute.actionExpression(), attribute.resourceExpression(), attribute.environmentExpression(),
-                    attribute.secretsExpression(), methodInvocation, serverHttpRequest.orElse(null), Object.class);
+                    attribute.secretsExpression(), methodInvocation, serverHttpRequest, Object.class);
         });
     }
 
@@ -348,10 +347,8 @@ public class AuthorizationSubscriptionBuilderService {
 
         val actionBuilder = ObjectValue.builder();
 
-        if (requestObject instanceof HttpServletRequest httpRequest) {
-            actionBuilder.put("http", toValue(httpRequest));
-        } else if (requestObject instanceof ServerHttpRequest serverRequest) {
-            actionBuilder.put("http", toValue(serverRequest));
+        if (requestObject != null) {
+            actionBuilder.put("http", fromJsonNode(mapper().valueToTree(requestObject)));
         }
 
         val javaBuilder = ObjectValue.builder().putAll(toValue(mi));
@@ -384,10 +381,8 @@ public class AuthorizationSubscriptionBuilderService {
 
         val resourceBuilder = ObjectValue.builder();
 
-        if (httpRequest instanceof HttpServletRequest servletRequest) {
-            resourceBuilder.put("http", toValue(servletRequest));
-        } else if (httpRequest instanceof ServerHttpRequest serverRequest) {
-            resourceBuilder.put("http", toValue(serverRequest));
+        if (httpRequest != null) {
+            resourceBuilder.put("http", fromJsonNode(mapper().valueToTree(httpRequest)));
         }
 
         resourceBuilder.put("java", toValue(mi));
@@ -432,185 +427,6 @@ public class AuthorizationSubscriptionBuilderService {
             return null;
         }
         return PARSER.parseExpression(expressionString);
-    }
-
-    /**
-     * Converts an HttpServletRequest to an ObjectValue for use in authorization
-     * subscriptions.
-     *
-     * @param request the servlet HTTP request
-     * @return an ObjectValue containing the request details
-     */
-    public static ObjectValue toValue(HttpServletRequest request) {
-        val builder = ObjectValue.builder();
-
-        putIfNotNull(builder, "protocol", request.getProtocol());
-        putIfNotNull(builder, "scheme", request.getScheme());
-        putIfNotNull(builder, "serverName", request.getServerName());
-        builder.put("serverPort", Value.of(request.getServerPort()));
-        putIfNotNull(builder, "remoteAddress", request.getRemoteAddr());
-        putIfNotNull(builder, "remoteHost", request.getRemoteHost());
-        builder.put("remotePort", Value.of(request.getRemotePort()));
-        builder.put("isSecure", Value.of(request.isSecure()));
-        putIfNotNull(builder, "localName", request.getLocalName());
-        putIfNotNull(builder, "localAddress", request.getLocalAddr());
-        builder.put("localPort", Value.of(request.getLocalPort()));
-        putIfNotNull(builder, "method", request.getMethod());
-        putIfNotNull(builder, "contextPath", request.getContextPath());
-        putIfNotNull(builder, "requestedURI", request.getRequestURI());
-        putIfNotNull(builder, "requestURL", request.getRequestURL());
-        putIfNotNull(builder, "servletPath", request.getServletPath());
-        putIfNotNull(builder, "locale", request.getLocale());
-        putIfNotNull(builder, "characterEncoding", request.getCharacterEncoding());
-        putIfNotNull(builder, "contentType", request.getContentType());
-        putIfNotNull(builder, "authType", request.getAuthType());
-        putIfNotNull(builder, "queryString", request.getQueryString());
-
-        val session = request.getSession(false);
-        if (session != null) {
-            putIfNotNull(builder, "requestedSessionId", session.getId());
-        }
-
-        builder.put("headers", servletRequestHeadersToValue(request));
-        builder.put("cookies", servletRequestCookiesToValue(request));
-        builder.put("locales", servletRequestLocalesToValue(request));
-        builder.put("parameters", servletRequestParametersToValue(request));
-
-        return builder.build();
-    }
-
-    private static void putIfNotNull(ObjectValue.Builder builder, String key, Object value) {
-        if (value != null) {
-            builder.put(key, Value.of(value.toString()));
-        }
-    }
-
-    private static ObjectValue servletRequestHeadersToValue(HttpServletRequest request) {
-        val builder     = ObjectValue.builder();
-        val headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            val name         = headerNames.nextElement();
-            val headerValues = ArrayValue.builder();
-            val headers      = request.getHeaders(name);
-            while (headers.hasMoreElements()) {
-                headerValues.add(Value.of(headers.nextElement()));
-            }
-            builder.put(name, headerValues.build());
-        }
-        return builder.build();
-    }
-
-    private static ArrayValue servletRequestCookiesToValue(HttpServletRequest request) {
-        val builder = ArrayValue.builder();
-        val cookies = request.getCookies();
-        if (cookies != null) {
-            for (val cookie : cookies) {
-                builder.add(ObjectValue.builder().put("name", Value.of(cookie.getName()))
-                        .put("value", Value.of(cookie.getValue())).build());
-            }
-        }
-        return builder.build();
-    }
-
-    private static ArrayValue servletRequestLocalesToValue(HttpServletRequest request) {
-        val builder = ArrayValue.builder();
-        val locales = request.getLocales();
-        while (locales.hasMoreElements()) {
-            builder.add(Value.of(locales.nextElement().toString()));
-        }
-        return builder.build();
-    }
-
-    private static ObjectValue servletRequestParametersToValue(HttpServletRequest request) {
-        val builder = ObjectValue.builder();
-        for (val entry : request.getParameterMap().entrySet()) {
-            val values = ArrayValue.builder();
-            for (val value : entry.getValue()) {
-                values.add(Value.of(value));
-            }
-            builder.put(entry.getKey(), values.build());
-        }
-        return builder.build();
-    }
-
-    /**
-     * Converts a ServerHttpRequest to an ObjectValue for use in authorization
-     * subscriptions.
-     *
-     * @param request the reactive server HTTP request
-     * @return an ObjectValue containing the request details
-     */
-    public static ObjectValue toValue(ServerHttpRequest request) {
-        val builder = ObjectValue.builder();
-        val uri     = request.getURI();
-
-        if (uri.getScheme() != null) {
-            builder.put("scheme", Value.of(uri.getScheme()));
-        }
-        if (uri.getHost() != null) {
-            builder.put("serverName", Value.of(uri.getHost()));
-        }
-        builder.put("serverPort", Value.of(uri.getPort()));
-        if (request.getMethod() != null) {
-            builder.put("method", Value.of(request.getMethod().name()));
-        }
-        builder.put("contextPath", Value.of(String.valueOf(request.getPath())));
-        builder.put("requestedURI", Value.of(String.valueOf(uri)));
-
-        val remoteAddress = request.getRemoteAddress();
-        if (remoteAddress != null) {
-            builder.put("remoteAddress", Value.of(remoteAddress.toString()))
-                    .put("remoteHost", Value.of(remoteAddress.getHostString()))
-                    .put("remotePort", Value.of(remoteAddress.getPort()));
-        }
-
-        val localAddress = request.getLocalAddress();
-        if (localAddress != null) {
-            builder.put("localName", Value.of(localAddress.getHostString()))
-                    .put("localAddress", Value.of(localAddress.toString()))
-                    .put("localPort", Value.of(localAddress.getPort()));
-        }
-
-        builder.put("headers", serverRequestHeadersToValue(request));
-        builder.put("cookies", serverRequestCookiesToValue(request));
-        builder.put("parameters", serverRequestParametersToValue(request));
-
-        return builder.build();
-    }
-
-    private static ObjectValue serverRequestHeadersToValue(ServerHttpRequest request) {
-        val builder = ObjectValue.builder();
-        for (val entry : request.getHeaders().headerSet()) {
-            val values = ArrayValue.builder();
-            for (val value : entry.getValue()) {
-                values.add(Value.of(value));
-            }
-            builder.put(entry.getKey(), values.build());
-        }
-        return builder.build();
-    }
-
-    private static ArrayValue serverRequestCookiesToValue(ServerHttpRequest request) {
-        val builder = ArrayValue.builder();
-        for (val entry : request.getCookies().entrySet()) {
-            for (val cookie : entry.getValue()) {
-                builder.add(ObjectValue.builder().put("name", Value.of(cookie.getName()))
-                        .put("value", Value.of(cookie.getValue())).build());
-            }
-        }
-        return builder.build();
-    }
-
-    private static ObjectValue serverRequestParametersToValue(ServerHttpRequest request) {
-        val builder = ObjectValue.builder();
-        for (val entry : request.getQueryParams().entrySet()) {
-            val values = ArrayValue.builder();
-            for (val value : entry.getValue()) {
-                values.add(Value.of(value));
-            }
-            builder.put(entry.getKey(), values.build());
-        }
-        return builder.build();
     }
 
     private ObjectValue toValue(MethodInvocation invocation) {

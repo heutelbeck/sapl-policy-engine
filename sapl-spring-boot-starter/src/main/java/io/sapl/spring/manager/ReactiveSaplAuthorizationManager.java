@@ -23,8 +23,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
+
+import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationResult;
@@ -107,7 +108,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
     private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
             Mono<Authentication> authentication, AuthorizationContext context) {
         final var request      = context.getExchange().getRequest();
-        final var requestValue = AuthorizationSubscriptionBuilderService.toValue(request);
+        final var requestValue = fromJsonNode(mapper.valueToTree(request));
         return authentication.defaultIfEmpty(ANONYMOUS)
                 .map(authn -> AuthorizationSubscription.of(authn, requestValue, requestValue, mapper));
     }

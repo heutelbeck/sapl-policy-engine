@@ -22,8 +22,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
+
+import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
@@ -49,7 +50,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
             RequestAuthorizationContext requestAuthorizationContext) {
         final var request        = requestAuthorizationContext.getRequest();
         final var authentication = authenticationSupplier.get();
-        final var requestValue   = AuthorizationSubscriptionBuilderService.toValue(request);
+        final var requestValue   = fromJsonNode(mapper.valueToTree(request));
         final var subscription   = AuthorizationSubscription.of(authentication, requestValue, requestValue, mapper);
         final var authzDecision  = pdp.decide(subscription).blockFirst();
 

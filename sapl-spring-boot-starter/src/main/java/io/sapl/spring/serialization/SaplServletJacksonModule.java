@@ -20,32 +20,27 @@ package io.sapl.spring.serialization;
 import java.io.Serial;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 
 import io.sapl.api.SaplVersion;
 import jakarta.servlet.http.HttpServletRequest;
 import tools.jackson.databind.module.SimpleModule;
 
 /**
- * Jackson module that registers serializers for Spring-specific types used in
- * authorization subscriptions.
- * <p>
- * This module is automatically registered by Spring Boot's Jackson
- * auto-configuration when exposed as a bean.
+ * Jackson module that registers serializers for servlet-based Spring
+ * applications.
  */
-public class SaplSpringJacksonModule extends SimpleModule {
+public class SaplServletJacksonModule extends SimpleModule {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Creates a new Spring Jackson module with serializers for Spring request
-     * types and method invocations.
+     * Creates a new servlet Jackson module with serializers for HttpServletRequest
+     * and MethodInvocation.
      */
-    public SaplSpringJacksonModule() {
-        super("SaplSpringJacksonModule");
+    public SaplServletJacksonModule() {
+        super("SaplServletJacksonModule");
         addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-        addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
         addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
     }
 
