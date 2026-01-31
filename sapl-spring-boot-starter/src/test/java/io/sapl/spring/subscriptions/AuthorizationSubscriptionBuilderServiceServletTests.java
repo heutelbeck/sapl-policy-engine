@@ -22,6 +22,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.spring.config.ObjectMapperAutoConfiguration;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import lombok.val;
@@ -36,6 +37,9 @@ import org.mockito.MockedStatic;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
@@ -55,6 +59,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,6 +74,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthorizationSubscriptionBuilderServiceServletTests {
+
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner().withConfiguration(
+            AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
 
     private Authentication                          authentication;
     private AuthorizationSubscriptionBuilderService defaultWebBuilderUnderTest;
@@ -209,30 +217,39 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
 
     @Test
     void when_nullParametersAndHttpRequestInContext_then_FactoryConstructsFromContextIncludingRequest() {
+        contextRunner.run(context -> {
+            val configuredMapper = context.getBean(JsonMapper.class);
+            val user             = new User("the username", "the password", true, true, true, true,
+                    AuthorityUtils.createAuthorityList("ROLE_USER"));
+            val auth             = new UsernamePasswordAuthenticationToken(user, "the credentials");
+            val sut              = new AuthorizationSubscriptionBuilderService(
+                    new DefaultMethodSecurityExpressionHandler(), configuredMapper);
+            val inv              = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+                    null, null);
 
-        try (MockedStatic<RequestContextHolder> theMock = mockStatic(RequestContextHolder.class)) {
-            val request           = new MockHttpServletRequest();
-            val requestAttributes = mock(ServletRequestAttributes.class);
-            when(requestAttributes.getRequest()).thenReturn(request);
-            theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
-            val attribute    = attribute(null, null, null, null, Object.class);
-            val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
-                    attribute);
+            try (MockedStatic<RequestContextHolder> theMock = mockStatic(RequestContextHolder.class)) {
+                val request           = new MockHttpServletRequest();
+                val requestAttributes = mock(ServletRequestAttributes.class);
+                when(requestAttributes.getRequest()).thenReturn(request);
+                theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
+                val attribute    = attribute(null, null, null, null, Object.class);
+                val subscription = sut.constructAuthorizationSubscription(auth, inv, attribute);
 
-            var subject = toJson(subscription.subject());
-            assertThat(subject.get("name").asString()).isEqualTo("the username");
-            assertThat(subject.has("credentials")).isFalse();
-            assertThat(subject.get("principal").has("password")).isFalse();
+                var subject = toJson(subscription.subject());
+                assertThat(subject.get("name").asString()).isEqualTo("the username");
+                assertThat(subject.has("credentials")).isFalse();
+                assertThat(subject.get("principal").has("password")).isFalse();
 
-            var action = toJson(subscription.action());
-            assertThat(action.get("http")).isNotNull();
+                var action = toJson(subscription.action());
+                assertThat(action.get("http")).isNotNull();
 
-            var resource = toJson(subscription.resource());
-            assertThat(resource.get("http")).isNotNull();
-            assertThat(resource.get("java").get("instanceof")).isNotNull();
+                var resource = toJson(subscription.resource());
+                assertThat(resource.get("http")).isNotNull();
+                assertThat(resource.get("java").get("instanceof")).isNotNull();
 
-            assertThat(toJson(subscription.environment()).isNull()).isTrue();
-        }
+                assertThat(toJson(subscription.environment()).isNull()).isTrue();
+            }
+        });
     }
 
     @Test

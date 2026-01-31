@@ -17,22 +17,54 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.spring.serialization.SaplReactiveJacksonModule;
+import io.sapl.spring.serialization.SaplServletJacksonModule;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.MockHttpServletRequest;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class ObjectMapperAutoConfigurationTests {
 
     @Test
-    void whenRan_thenMapperIsAvailableAndModulesAreRegistered() {
-        final var contextRunner = new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(ObjectMapperAutoConfiguration.class));
+    void whenRan_thenModulesAreRegistered() {
+        final var contextRunner = new ApplicationContextRunner().withConfiguration(
+                AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(ObjectMapper.class);
+            assertThat(context).hasSingleBean(JsonMapper.class);
+            assertThat(context).hasSingleBean(SaplJacksonModule.class);
+            assertThat(context).hasSingleBean(SaplServletJacksonModule.class);
+            assertThat(context).hasSingleBean(SaplReactiveJacksonModule.class);
+        });
+    }
+
+    @Test
+    void whenRan_thenJsonMapperCanSerializeServletRequest() {
+        final var contextRunner = new ApplicationContextRunner().withConfiguration(
+                AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
+        contextRunner.run(context -> {
+            final var mapper  = context.getBean(JsonMapper.class);
+            final var request = new MockHttpServletRequest("GET", "/test");
+            assertThatCode(() -> mapper.writeValueAsString(request)).doesNotThrowAnyException();
+        });
+    }
+
+    @Test
+    void whenRan_thenJsonMapperCanSerializeReactiveRequest() {
+        final var contextRunner = new ApplicationContextRunner().withConfiguration(
+                AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
+        contextRunner.run(context -> {
+            final var mapper  = context.getBean(JsonMapper.class);
+            final var request = MockServerHttpRequest.get("/test").build();
+            assertThatCode(() -> mapper.writeValueAsString(request)).doesNotThrowAnyException();
         });
     }
 

@@ -21,14 +21,16 @@ import io.sapl.api.SaplVersion;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.spring.config.ObjectMapperAutoConfiguration;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
@@ -46,37 +48,18 @@ import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
-    private Authentication                          authentication;
-    private AuthorizationSubscriptionBuilderService defaultWebfluxBuilderUnderTest;
-    private MethodInvocation                        invocation;
-    private ObjectMapper                            mapper;
-
-    @BeforeEach
-    @SuppressWarnings("unchecked")
-    void beforeEach() {
-        mapper = new ObjectMapper();
-        val user = new User("the username", "the password", true, true, true, true,
-                AuthorityUtils.createAuthorityList("ROLE_USER"));
-        authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
-        defaultWebfluxBuilderUnderTest = new AuthorizationSubscriptionBuilderService(
-                new DefaultMethodSecurityExpressionHandler(), mapper);
-        val mockExpressionHandlerProvider = mock(ObjectProvider.class);
-        when(mockExpressionHandlerProvider.getIfAvailable(any()))
-                .thenReturn(new DefaultMethodSecurityExpressionHandler());
-        val mockMapperProvider = mock(ObjectProvider.class);
-        when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
-        invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null, null);
-    }
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner().withConfiguration(
+            AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
 
     private static JsonNode toJson(Value value) {
         if (value instanceof UndefinedValue) {
@@ -85,142 +68,191 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
         return ValueJsonMarshaller.toJsonNode(value);
     }
 
+    private static Authentication createAuthentication() {
+        val user = new User("the username", "the password", true, true, true, true,
+                AuthorityUtils.createAuthorityList("ROLE_USER"));
+        return new UsernamePasswordAuthenticationToken(user, "the credentials");
+    }
+
     @Test
     void when_multiArguments_then_methodIsInAction() {
-        val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
-        val securityContext     = new MockSecurityContext(authentication);
-        val attribute           = attribute(null, null, null, null, Object.class);
-        val multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
-                "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { 1, "X" });
-        val subscription        = defaultWebfluxBuilderUnderTest
-                .reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
-                .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
-                .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
+        contextRunner.run(context -> {
+            val mapper         = context.getBean(JsonMapper.class);
+            val authentication = createAuthentication();
+            val sut            = new AuthorizationSubscriptionBuilderService(
+                    new DefaultMethodSecurityExpressionHandler(), mapper);
 
-        var subject = toJson(subscription.subject());
-        assertThat(subject.get("name").asString()).isEqualTo("the username");
-        assertThat(subject.has("credentials")).isFalse();
-        assertThat(subject.get("principal").has("password")).isFalse();
+            val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
+            val securityContext     = new MockSecurityContext(authentication);
+            val attribute           = attribute(null, null, null, null, Object.class);
+            val multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                    "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { 1, "X" });
+            val subscription        = sut.reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
+                    .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
+                    .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
 
-        var action = toJson(subscription.action());
-        assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
-        assertThat(action.get("java").get("arguments")).isNotNull();
+            var subject = toJson(subscription.subject());
+            assertThat(subject.get("name").asString()).isEqualTo("the username");
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(subject.get("principal").has("password")).isFalse();
 
-        var resource = toJson(subscription.resource());
-        assertThat(resource.get("java").get("instanceof")).isNotNull();
+            var action = toJson(subscription.action());
+            assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
+            assertThat(action.get("java").get("arguments")).isNotNull();
 
-        assertThat(toJson(subscription.environment()).isNull()).isTrue();
+            var resource = toJson(subscription.resource());
+            assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+        });
     }
 
     @Test
     void when_multiArgumentsWithJsonProblem_then_DropsArguments() {
-        val failMapper = spy(ObjectMapper.class);
-        when(failMapper.valueToTree(any())).thenAnswer((Answer<JsonNode>) anInvocation -> {
-            Object x = anInvocation.getArguments()[0];
-            if ("X".equals(x)) {
-                throw new IllegalArgumentException("testfail");
-            }
-            return mapper.valueToTree(x);
+        contextRunner.run(context -> {
+            val mapper         = context.getBean(JsonMapper.class);
+            val authentication = createAuthentication();
+
+            val failMapper = spy(ObjectMapper.class);
+            when(failMapper.valueToTree(any())).thenAnswer((Answer<JsonNode>) anInvocation -> {
+                Object x = anInvocation.getArguments()[0];
+                if ("X".equals(x)) {
+                    throw new IllegalArgumentException("testfail");
+                }
+                return mapper.valueToTree(x);
+            });
+            val sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+                    failMapper);
+
+            val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
+            val securityContext     = new MockSecurityContext(authentication);
+            val attribute           = attribute(null, null, null, null, Object.class);
+            val multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                    "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { "X", "X" });
+            val subscription        = sut.reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
+                    .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
+                    .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
+
+            var subject = toJson(subscription.subject());
+            assertThat(subject.get("name").asString()).isEqualTo("the username");
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(subject.get("principal").has("password")).isFalse();
+
+            var action = toJson(subscription.action());
+            assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
+            assertThat(action.get("java").has("arguments")).isFalse();
+
+            assertThat(toJson(subscription.environment()).isNull()).isTrue();
         });
-        val sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), failMapper);
-
-        val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
-        val securityContext     = new MockSecurityContext(authentication);
-        val attribute           = attribute(null, null, null, null, Object.class);
-        val multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
-                "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { "X", "X" });
-        val subscription        = sut.reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
-                .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
-                .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
-
-        var subject = toJson(subscription.subject());
-        assertThat(subject.get("name").asString()).isEqualTo("the username");
-        assertThat(subject.has("credentials")).isFalse();
-        assertThat(subject.get("principal").has("password")).isFalse();
-
-        var action = toJson(subscription.action());
-        assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
-        assertThat(action.get("java").has("arguments")).isFalse();
-
-        assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
     @Test
     void when_expressionEvaluationFails_then_throws() {
-        val serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
-        val securityContext   = new MockSecurityContext(authentication);
-        val attribute         = attribute("(#gewrq/0)", null, null, null, Object.class);
-        val subscription      = defaultWebfluxBuilderUnderTest
-                .reactiveConstructAuthorizationSubscription(invocation, attribute)
-                .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
-                .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext)));
-        StepVerifier.create(subscription).expectErrorMatches(IllegalArgumentException.class::isInstance).verify();
+        contextRunner.run(context -> {
+            val mapper         = context.getBean(JsonMapper.class);
+            val authentication = createAuthentication();
+            val sut            = new AuthorizationSubscriptionBuilderService(
+                    new DefaultMethodSecurityExpressionHandler(), mapper);
+            val invocation     = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+                    null, null);
+
+            val serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
+            val securityContext   = new MockSecurityContext(authentication);
+            val attribute         = attribute("(#gewrq/0)", null, null, null, Object.class);
+            val subscription      = sut.reactiveConstructAuthorizationSubscription(invocation, attribute)
+                    .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
+                    .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext)));
+            StepVerifier.create(subscription).expectErrorMatches(IllegalArgumentException.class::isInstance).verify();
+        });
     }
 
     @Test
     void when_reactive_nullParameters_then_FactoryConstructsFromContext() {
-        val serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
-        val securityContext   = new MockSecurityContext(authentication);
-        val attribute         = attribute(null, null, null, null, Object.class);
-        val subscription      = defaultWebfluxBuilderUnderTest
-                .reactiveConstructAuthorizationSubscription(invocation, attribute)
-                .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
-                .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
+        contextRunner.run(context -> {
+            val mapper         = context.getBean(JsonMapper.class);
+            val authentication = createAuthentication();
+            val sut            = new AuthorizationSubscriptionBuilderService(
+                    new DefaultMethodSecurityExpressionHandler(), mapper);
+            val invocation     = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+                    null, null);
 
-        var subject = toJson(subscription.subject());
-        assertThat(subject.get("name").asString()).isEqualTo("the username");
-        assertThat(subject.has("credentials")).isFalse();
-        assertThat(subject.get("principal").has("password")).isFalse();
+            val serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
+            val securityContext   = new MockSecurityContext(authentication);
+            val attribute         = attribute(null, null, null, null, Object.class);
+            val subscription      = sut.reactiveConstructAuthorizationSubscription(invocation, attribute)
+                    .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
+                    .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
 
-        var action = toJson(subscription.action());
-        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+            var subject = toJson(subscription.subject());
+            assertThat(subject.get("name").asString()).isEqualTo("the username");
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(subject.get("principal").has("password")).isFalse();
 
-        var resource = toJson(subscription.resource());
-        assertThat(resource.get("java").get("instanceof")).isNotNull();
+            var action = toJson(subscription.action());
+            assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
 
-        assertThat(toJson(subscription.environment()).isNull()).isTrue();
+            var resource = toJson(subscription.resource());
+            assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+        });
     }
 
     @Test
     void when_reactive_nullParametersAndNoAuthn_then_FactoryConstructsFromContextAndAnonymous() {
-        val attribute    = attribute(null, null, null, null, Object.class);
-        val subscription = defaultWebfluxBuilderUnderTest
-                .reactiveConstructAuthorizationSubscription(invocation, attribute).block();
+        contextRunner.run(context -> {
+            val mapper     = context.getBean(JsonMapper.class);
+            val sut        = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+                    mapper);
+            val invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
+                    null);
 
-        var subject = toJson(subscription.subject());
-        assertThat(subject.get("name").asString()).isEqualTo("anonymous");
-        assertThat(subject.has("credentials")).isFalse();
-        assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
+            val attribute    = attribute(null, null, null, null, Object.class);
+            val subscription = sut.reactiveConstructAuthorizationSubscription(invocation, attribute).block();
 
-        var action = toJson(subscription.action());
-        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
-        assertThat(action.has("http")).isFalse();
+            var subject = toJson(subscription.subject());
+            assertThat(subject.get("name").asString()).isEqualTo("anonymous");
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
 
-        var resource = toJson(subscription.resource());
-        assertThat(resource.has("http")).isFalse();
-        assertThat(resource.get("java").get("instanceof")).isNotNull();
+            var action = toJson(subscription.action());
+            assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+            assertThat(action.has("http")).isFalse();
 
-        assertThat(toJson(subscription.environment()).isNull()).isTrue();
+            var resource = toJson(subscription.resource());
+            assertThat(resource.has("http")).isFalse();
+            assertThat(resource.get("java").get("instanceof")).isNotNull();
+
+            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+        });
     }
 
     @Test
     void when_reactive_returnObjectInExpression_then_FactoryConstructsReturnObjectInSubscription() {
-        val attribute    = attribute(null, null, "returnObject", null, Object.class);
-        val subscription = defaultWebfluxBuilderUnderTest
-                .reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
+        contextRunner.run(context -> {
+            val mapper     = context.getBean(JsonMapper.class);
+            val sut        = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+                    mapper);
+            val invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
+                    null);
 
-        var subject = toJson(subscription.subject());
-        assertThat(subject.get("name").asString()).isEqualTo("anonymous");
-        assertThat(subject.has("credentials")).isFalse();
-        assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
+            val attribute    = attribute(null, null, "returnObject", null, Object.class);
+            val subscription = sut.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject")
+                    .block();
 
-        var action = toJson(subscription.action());
-        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
-        assertThat(action.has("http")).isFalse();
+            var subject = toJson(subscription.subject());
+            assertThat(subject.get("name").asString()).isEqualTo("anonymous");
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
 
-        assertThat(toJson(subscription.resource()).asString()).isEqualTo("the returnObject");
+            var action = toJson(subscription.action());
+            assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+            assertThat(action.has("http")).isFalse();
 
-        assertThat(toJson(subscription.environment()).isNull()).isTrue();
+            assertThat(toJson(subscription.resource()).asString()).isEqualTo("the returnObject");
+
+            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+        });
     }
 
     private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
