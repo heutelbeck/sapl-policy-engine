@@ -25,8 +25,8 @@ import lombok.Data;
 import lombok.Getter;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * These data objects are used to store client specific data.
@@ -57,7 +57,7 @@ public final class MqttClientValues {
         this.mqttReactorClient          = mqttReactorClient;
         this.mqttBrokerConfig           = mqttBrokerConfig.deepCopy();
         this.clientConnection           = clientConnection;
-        this.topicSubscriptionsCountMap = new HashMap<>();
+        this.topicSubscriptionsCountMap = new ConcurrentHashMap<>();
     }
 
     /**
@@ -88,7 +88,10 @@ public final class MqttClientValues {
      * otherwise returns false
      */
     public boolean countTopicSubscriptionsCountMapDown(String topic) {
-        int count = topicSubscriptionsCountMap.remove(topic);
+        Integer count = topicSubscriptionsCountMap.remove(topic);
+        if (count == null) {
+            return false;
+        }
         if (count > 1) {
             topicSubscriptionsCountMap.put(topic, count - 1);
             return true;
