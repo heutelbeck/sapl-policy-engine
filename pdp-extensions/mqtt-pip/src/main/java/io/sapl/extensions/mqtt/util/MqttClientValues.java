@@ -88,15 +88,16 @@ public final class MqttClientValues {
      * otherwise returns false
      */
     public boolean countTopicSubscriptionsCountMapDown(String topic) {
-        Integer count = topicSubscriptionsCountMap.remove(topic);
-        if (count == null) {
-            return false;
-        }
-        if (count > 1) {
-            topicSubscriptionsCountMap.put(topic, count - 1);
-            return true;
-        }
-        return false;
+        int[] newCount = { 0 };
+        topicSubscriptionsCountMap.compute(topic, (k, count) -> {
+            if (count == null || count <= 1) {
+                newCount[0] = 0;
+                return null;
+            }
+            newCount[0] = count - 1;
+            return newCount[0];
+        });
+        return newCount[0] > 0;
     }
 
     /**
