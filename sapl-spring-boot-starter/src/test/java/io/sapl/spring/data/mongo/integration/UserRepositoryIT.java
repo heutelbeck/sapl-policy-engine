@@ -74,7 +74,7 @@ class UserRepositoryIT {
             """;
 
     @BeforeEach
-    void setup() throws IOException {
+    void setup() {
         List<TestUser> testUsers = MAPPER.readValue(USERS_AS_JSON_STRING, LIST_TYPE);
         repository.deleteAll().thenMany(Flux.fromIterable(testUsers)).flatMap(repository::save).blockLast();
     }

@@ -18,13 +18,18 @@
 package io.sapl.spring.serialization;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.stream.Stream;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.security.util.MethodInvocationUtils;
 
 import io.sapl.api.SaplVersion;
@@ -70,53 +75,24 @@ class MethodInvocationSerializerTests {
         assertThat(result.get(MethodInvocationSerializer.MODIFIERS).toString()).contains("public");
     }
 
-    @Test
-    void whenStaticVoid_thenMethodAndModifiersAreDescribedInJson() throws JacksonException {
-        val invocation = MethodInvocationUtils.createFromClass(TestClass.class, "staticVoid");
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("modifierTestCases")
+    void whenMethodWithModifiers_thenModifiersAreDescribedInJson(String methodName, String... expectedModifiers)
+            throws JacksonException {
+        val invocation = MethodInvocationUtils.createFromClass(TestClass.class, methodName);
         val result     = serialize(invocation);
-        assertThat(result.get(MethodInvocationSerializer.NAME).asString()).isEqualTo("staticVoid");
-        assertThat(result.get(MethodInvocationSerializer.MODIFIERS).toString()).contains("static");
+        assertThat(result.get(MethodInvocationSerializer.NAME).asString()).isEqualTo(methodName);
+        assertThat(result.get(MethodInvocationSerializer.MODIFIERS).toString()).contains(expectedModifiers);
     }
 
-    @Test
-    void whenProtectedVoid_thenMethodAndModifiersAreDescribedInJson() throws JacksonException {
-        val invocation = MethodInvocationUtils.createFromClass(TestClass.class, "protectedVoid");
-        val result     = serialize(invocation);
-        assertThat(result.get(MethodInvocationSerializer.NAME).asString()).isEqualTo("protectedVoid");
-        assertThat(result.get(MethodInvocationSerializer.MODIFIERS).toString()).contains("protected");
-    }
-
-    @Test
-    void whenProtectedStaticVoid_thenMethodAndModifiersAreDescribedInJson() throws JacksonException {
-        val invocation = MethodInvocationUtils.createFromClass(TestClass.class, "protectedStaticVoid");
-        val result     = serialize(invocation);
-        assertThat(result.get(MethodInvocationSerializer.NAME).asString()).isEqualTo("protectedStaticVoid");
-        val modifiers = result.get(MethodInvocationSerializer.MODIFIERS).toString();
-        assertThat(modifiers).contains("protected").contains("static");
-    }
-
-    @Test
-    void whenPrivateVoid_thenMethodAndModifiersAreDescribedInJson() throws JacksonException {
-        val invocation = MethodInvocationUtils.createFromClass(TestClass.class, "privateVoid");
-        val result     = serialize(invocation);
-        assertThat(result.get(MethodInvocationSerializer.NAME).asString()).isEqualTo("privateVoid");
-        assertThat(result.get(MethodInvocationSerializer.MODIFIERS).toString()).contains("private");
-    }
-
-    @Test
-    void whenSynchronizedVoid_thenMethodAndModifiersAreDescribedInJson() throws JacksonException {
-        val invocation = MethodInvocationUtils.createFromClass(TestClass.class, "synchronizedVoid");
-        val result     = serialize(invocation);
-        assertThat(result.get(MethodInvocationSerializer.NAME).asString()).isEqualTo("synchronizedVoid");
-        assertThat(result.get(MethodInvocationSerializer.MODIFIERS).toString()).contains("synchronized");
-    }
-
-    @Test
-    void whenFinalVoid_thenMethodAndModifiersAreDescribedInJson() throws JacksonException {
-        val invocation = MethodInvocationUtils.createFromClass(TestClass.class, "finalVoid");
-        val result     = serialize(invocation);
-        assertThat(result.get(MethodInvocationSerializer.NAME).asString()).isEqualTo("finalVoid");
-        assertThat(result.get(MethodInvocationSerializer.MODIFIERS).toString()).contains("final");
+    static Stream<Arguments> modifierTestCases() {
+        return Stream.of(
+                arguments("staticVoid", "static"),
+                arguments("protectedVoid", "protected"),
+                arguments("protectedStaticVoid", "protected", "static"),
+                arguments("privateVoid", "private"),
+                arguments("synchronizedVoid", "synchronized"),
+                arguments("finalVoid", "final"));
     }
 
     @Test

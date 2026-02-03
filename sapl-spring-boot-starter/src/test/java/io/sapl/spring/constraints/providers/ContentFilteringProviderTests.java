@@ -127,6 +127,12 @@ class ContentFilteringProviderTests {
                         "{\"key1\": \"value1\", \"key2\": \"value2\"}"),
                 arguments("discloseLeft non-integer",
                         "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"blacken\", \"path\": \"$.key1\", \"replacement\": \"X\", \"discloseRight\": 1, \"discloseLeft\": \"wrongType\"}]}",
+                        "{\"key1\": \"value1\", \"key2\": \"value2\"}"),
+                arguments("length negative integer",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"blacken\", \"path\": \"$.key1\", \"replacement\": \"X\", \"discloseRight\": 1, \"discloseLeft\": 1, \"length\": -1}]}",
+                        "{\"key1\": \"value1\", \"key2\": \"value2\"}"),
+                arguments("length non-integer string",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"blacken\", \"path\": \"$.key1\", \"replacement\": \"X\", \"discloseRight\": 1, \"discloseLeft\": 1, \"length\": \"LENGTH\"}]}",
                         "{\"key1\": \"value1\", \"key2\": \"value2\"}"));
     }
 
@@ -141,10 +147,8 @@ class ContentFilteringProviderTests {
         assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
     }
 
-    @Test
-    void when_blacken_then_textIsBlackened() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+    static Stream<Arguments> blackenSuccessCases() {
+        return Stream.of(arguments("with replacement and disclose params", """
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -157,79 +161,7 @@ class ContentFilteringProviderTests {
                 		}
                 	]
                 }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("vXXXX1");
-    }
-
-    @Test
-    void when_blackenWithDefinedLengthAndNegativeInteger_then_Error() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"          : "blacken",
-                			"path"          : "$.key1",
-                			"replacement"   : "X",
-                			"discloseRight" : 1,
-                			"discloseLeft"  : 1,
-                			"length"        : -1
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_blackenWithDefinedLengthAndStringValue_then_Error() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"          : "blacken",
-                			"path"          : "$.key1",
-                			"replacement"   : "X",
-                			"discloseRight" : 1,
-                			"discloseLeft"  : 1,
-                			"length"        : "LENGTH"
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_blackenWithDefinedLength_then_textIsBlackened() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+                """, "vXXXX1"), arguments("with defined length", """
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -243,7 +175,49 @@ class ContentFilteringProviderTests {
                 		}
                 	]
                 }
-                """);
+                """, "vXXX1"), arguments("with default replacement", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type"          : "blacken",
+                			"path"          : "$.key1",
+                			"discloseRight" : 1,
+                			"discloseLeft"  : 1
+                		}
+                	]
+                }
+                """, "v████1"), arguments("string shorter than disclosed range unchanged", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type"          : "blacken",
+                			"path"          : "$.key1",
+                			"discloseRight" : 2,
+                			"discloseLeft"  : 5
+                		}
+                	]
+                }
+                """, "value1"), arguments("no parameters fully blackened", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type"          : "blacken",
+                			"path"          : "$.key1"
+                		}
+                	]
+                }
+                """, "██████"));
+    }
+
+    @ParameterizedTest(name = "blacken: {0}")
+    @MethodSource("blackenSuccessCases")
+    void whenBlackening_thenTextIsBlackenedAsExpected(String description, String constraintJson, String expectedKey1)
+            throws JacksonException {
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
         final var original   = MAPPER.readTree("""
                 {
@@ -251,7 +225,7 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("vXXX1");
+        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo(expectedKey1);
     }
 
     @Test
@@ -285,82 +259,6 @@ class ContentFilteringProviderTests {
         var       result     = (JsonNode) handler.apply(original);
         assertThat(result.get("key1").asString()).isEqualTo("vXXXX1");
         assertThat(result.has("key2")).isFalse();
-    }
-
-    @Test
-    void when_blackenWithDefaultReplacement_then_textIsBlackened() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"          : "blacken",
-                			"path"          : "$.key1",
-                			"discloseRight" : 1,
-                			"discloseLeft"  : 1
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("v████1");
-    }
-
-    @Test
-    void when_stringToBlackenIsShorterThanDisclosedRange_then_textDoesNotChange() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"          : "blacken",
-                			"path"          : "$.key1",
-                			"discloseRight" : 2,
-                			"discloseLeft"  : 5
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("value1");
-    }
-
-    @Test
-    void when_blackenWithNoParameters_then_textIsBlackenedNoCharsDisclosed() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"          : "blacken",
-                			"path"          : "$.key1"
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThat(((JsonNode) handler.apply(original)).get("key1").asString()).isEqualTo("██████");
     }
 
     @Test

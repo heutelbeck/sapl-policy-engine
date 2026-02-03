@@ -20,11 +20,11 @@ package io.sapl.test.plain;
 import io.sapl.api.model.Value;
 import io.sapl.test.grammar.antlr.SAPLTestParser.*;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
@@ -66,8 +66,8 @@ class ValueConverter {
         if (ctx instanceof RegularValueContext regular) {
             return new ValueOrError(convert(regular.value()), false, null);
         } else if (ctx instanceof ErrorValContext error) {
-            var errorValue = error.errorValue();
-            var message    = errorValue.message != null ? unquoteString(errorValue.message.getText()) : null;
+            val errorValue = error.errorValue();
+            val message    = errorValue.message != null ? unquoteString(errorValue.message.getText()) : null;
             return new ValueOrError(null, true, message);
         }
         throw new IllegalArgumentException(ERROR_UNKNOWN_VALUE_OR_ERROR_TYPE.formatted(ctx.getClass().getSimpleName()));
@@ -77,25 +77,18 @@ class ValueConverter {
      * Converts an object value context to a SAPL Value.
      */
     static Value convertObject(ObjectValueContext ctx) {
-        var                pairs = ctx.pair();
-        Map<String, Value> map   = new LinkedHashMap<>(pairs.size());
-        for (var pair : pairs) {
-            var key   = unquoteString(pair.key.getText());
-            var value = convert(pair.pairValue);
-            map.put(key, value);
-        }
-        return Value.ofObject(map);
+        return Value.ofObject(convertObjectToMap(ctx));
     }
 
     /**
      * Converts an object value context to a Map.
      */
     static Map<String, Value> convertObjectToMap(ObjectValueContext ctx) {
-        var                pairs = ctx.pair();
-        Map<String, Value> map   = new LinkedHashMap<>(pairs.size());
-        for (var pair : pairs) {
-            var key   = unquoteString(pair.key.getText());
-            var value = convert(pair.pairValue);
+        val pairs = ctx.pair();
+        val map   = LinkedHashMap.<String, Value>newLinkedHashMap(pairs.size());
+        for (val pair : pairs) {
+            val key   = unquoteString(pair.key.getText());
+            val value = convert(pair.pairValue);
             map.put(key, value);
         }
         return map;
@@ -105,8 +98,8 @@ class ValueConverter {
      * Converts an array value context to a SAPL Value.
      */
     static Value convertArray(ArrayValueContext ctx) {
-        List<Value> items = new ArrayList<>(ctx.items.size());
-        for (var item : ctx.items) {
+        val items = new ArrayList<Value>(ctx.items.size());
+        for (val item : ctx.items) {
             items.add(convert(item));
         }
         return Value.ofArray(items);
@@ -116,7 +109,7 @@ class ValueConverter {
      * Converts a number literal to a SAPL Value.
      */
     static Value convertNumber(NumberLiteralContext ctx) {
-        var text = ctx.NUMBER().getText();
+        val text = ctx.NUMBER().getText();
         return Value.of(new BigDecimal(text));
     }
 

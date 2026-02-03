@@ -91,15 +91,6 @@ public final class SAPLTestParsedDocument implements ParsedDocument {
         return saplTestParseTree;
     }
 
-    /**
-     * Gets the SAPLTest-specific parse tree.
-     *
-     * @return the SAPLTest parse tree
-     */
-    public SaplTestContext getSaplTestParseTree() {
-        return saplTestParseTree;
-    }
-
     @Override
     public boolean hasErrors() {
         return !parseErrors.isEmpty() || !validationErrors.isEmpty();

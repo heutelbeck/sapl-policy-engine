@@ -156,7 +156,7 @@ public class SchemaValidatorCompiler {
             precompiledSchema.initializeValidators();
             return new PrecompiledSchemaValidator(element, precompiledSchema, location);
         } catch (SchemaException e) {
-            throw new SaplCompilerException(ERROR_SCHEMA_INVALID_JSON_SCHEMA.formatted(e.getMessage()), location);
+            throw new SaplCompilerException(ERROR_SCHEMA_INVALID_JSON_SCHEMA.formatted(e.getMessage()), e, location);
         }
     }
 

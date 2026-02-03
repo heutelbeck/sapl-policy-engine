@@ -200,7 +200,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             return true;
         }
 
-        val ratio = coverage.getPolicySetHitRatio();
+        float ratio = coverage.getPolicySetHitRatio();
         getLog().info("Policy Set Hit Ratio: %.2f%% (%d of %d matched)".formatted(ratio,
                 coverage.getMatchedPolicySetCount(), setCount));
 
@@ -219,7 +219,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             return true;
         }
 
-        val ratio = coverage.getPolicyHitRatio();
+        float ratio = coverage.getPolicyHitRatio();
         getLog().info("Policy Hit Ratio: %.2f%% (%d of %d matched)".formatted(ratio,
                 coverage.getMatchedStandalonePolicyCount(), policyCount));
 
