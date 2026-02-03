@@ -1,0 +1,4 @@
+policy "location-policy"
+permit
+    action == "read";
+    <geo.location>.country == "DE";

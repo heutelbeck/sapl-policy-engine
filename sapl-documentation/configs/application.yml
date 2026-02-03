@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -17,9 +17,9 @@
 #
 
 #
-# This configuration file is loaded by the SAPL Server LT, if run from source using 
-# the 'mvn spring-boot:run' command in your terminal from the sapl-server-lt folder.
-# In this situation, the server looks for configuration in the sub folder 'config'
+# This configuration file is loaded by the SAPL Node, if run from source using 
+# the 'mvn spring-boot:run' command in your terminal from the sapl-node folder.
+# In this situation, the server looks for configuration in the sub folder 'security'
 # relative to the folder from where it has been startet.
 #
 # This is a demo configuration. As it contains some specific credentials, it must 
@@ -30,7 +30,7 @@
 #
 
 #
-# The SAPL Server LT does not have a dedicated administration interface. 
+# The SAPL Node does not have a dedicated administration interface. 
 # Administration of the service is done by editing configuration files.
 #
 
@@ -58,11 +58,11 @@
 #            (depending on your policies) leading to unaothorized 
 #            access to your organization's data.
 #  
-# This option is controlled by the property io.sapl.server-lt.allowNoAuth
+# This option is controlled by the property io.sapl.node.allowNoAuth
 # which can be set to True or False.
 #
 io.sapl:
-  server-lt:
+  node:
     # true|false If true, allow access to the PDP API without authentication.
     allowNoAuth: false 
 
@@ -78,15 +78,15 @@ io.sapl:
 # Disadvantage: Authentication per request/subscription is costly and introduces 
 #               significant latency.  
 #
-# This option is controlled by the property io.sapl.server-lt.allowBasicAuth
+# This option is controlled by the property io.sapl.node.allowBasicAuth
 # which can be set to true or false.
 #  
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
     # Basic Authentication with the credentials configured in the following properties.
     allowBasicAuth: true 
-    # the io.sapl.server-lt.key property is the 'username' to be used in Basic Authentication
+    # the io.sapl.node.key property is the 'username' to be used in Basic Authentication
     key: xwuUaRD65G
-    # the io.sapl.server-lt.secret property is the 'password' to be used in Basic Authentication
+    # the io.sapl.node.secret property is the 'password' to be used in Basic Authentication
     # SAPL Server expects the secret to be encoded with Argon2
     # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
     secret: $argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY
@@ -97,7 +97,7 @@ io.sapl:
     # There are various command line tools to hash a password with Argon2. 
     # The server also comes with utilities to create credentials for Basic Authentication
     #
-    # Run: java -jar sapl-server-lt-3.0.0.jar -basicCredentials
+    # Run: java -jar sapl-node-3.0.0.jar -basicCredentials
     #
     # This will generate a reasonably secure key and secret, encode the secret using Argon2 and print it to the console.
     # Doing so will not start up an instance of the server.
@@ -178,9 +178,9 @@ io.sapl.pdp.embedded:
 #
 # Side loading of SAPL extensions
 #
-# It is possible to add libraries and PIPs to the SAPL Server LT
+# It is possible to add libraries and PIPs to the SAPL Node
 #
-# SAPL Server LT uses the Spring Boot Properties Launcher.
+# SAPL Node uses the Spring Boot Properties Launcher.
 #
 # Please refer to: 
 # https://docs.spring.io/spring-boot/docs/current/reference/html/executable-jar.html#appendix.executable-jar.launching
@@ -196,7 +196,7 @@ io.sapl.pdp.embedded:
 # 
 # General server settings
 #
-# SAPL Server LT uses the Spring Boot mechanisms to set up the server name, address, TLS etc.
+# SAPL Node uses the Spring Boot mechanisms to set up the server name, address, TLS etc.
 # 
 # Please refer to: 
 # https://docs.spring.io/spring-boot/docs/current/reference/html/howto.html#howto.properties-and-configuration
@@ -218,16 +218,7 @@ server:
 
 # Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
 # is dropped by a firewall or other network components. The default vlaue 0 disables keep-alive messages.
-# io.sapl.server-lt.keep-alive: 15
+# io.sapl.node.keep-alive: 15
 
-# Rsocket configuration
-spring.rsocket.server:
-   address: localhost
-   ssl:
-      key-store-type: PKCS12
-      key-store: file:/pdp/data/keystore.p12
-      key-store-password: changeme
-      key-password: changeme
-      key-alias: netty
 logging.level:
   "[io.sapl]": DEBUG   

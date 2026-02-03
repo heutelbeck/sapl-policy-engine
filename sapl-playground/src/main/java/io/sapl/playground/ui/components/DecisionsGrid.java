@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -23,21 +23,28 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.pdp.TracedDecision;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.compiler.document.TimestampedVote;
+import lombok.val;
+
+import java.io.Serial;
 
 /**
  * Grid component for displaying authorization decisions in the playground.
- * Shows decision results with columns for the decision itself, obligations,
- * advice, and resource transformations. Uses badges to visually indicate
- * presence of optional fields.
+ * Shows decision results with columns for the
+ * decision itself, obligations, advice, and resource transformations. Uses
+ * badges to visually indicate presence of
+ * optional fields.
  */
-public class DecisionsGrid extends Grid<TracedDecision> {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+public class DecisionsGrid extends Grid<TimestampedVote> {
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Creates a new decisions grid with configured columns.
-     * Sets up columns for decision, obligations, advice, and resource,
-     * with automatic width adjustment and borderless theme.
+     * Creates a new decisions grid with configured columns. Sets up columns for
+     * decision, obligations, advice, and
+     * resource, with automatic width adjustment and borderless theme.
      */
     public DecisionsGrid() {
         super();
@@ -50,38 +57,41 @@ public class DecisionsGrid extends Grid<TracedDecision> {
     }
 
     /*
-     * Extracts the decision string from a traced decision.
-     * Converts the decision enum to its string representation.
+     * Extracts the decision string from a timestamped vote. Converts the decision
+     * enum to its string representation.
      */
-    private String extractDecisionString(TracedDecision decision) {
-        return decision.getAuthorizationDecision().getDecision().toString();
+    private String extractDecisionString(TimestampedVote timestampedVote) {
+        return timestampedVote.vote().authorizationDecision().decision().toString();
     }
 
     /*
-     * Creates renderer for obligations badge column.
-     * Shows "Obligations" badge if obligations are present, otherwise shows "-/-".
+     * Creates renderer for obligations badge column. Shows "Obligations" badge if
+     * obligations are present, otherwise
+     * shows "-/-".
      */
-    private ComponentRenderer<Span, TracedDecision> renderObligationsBadge() {
-        return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getObligations().isPresent(),
-                Badger.PRIMARY, Badger.SUCCESS, "Obligations", "-/-");
+    private ComponentRenderer<Span, TimestampedVote> renderObligationsBadge() {
+        return Badger.badgeRenderer(tv -> !tv.vote().authorizationDecision().obligations().isEmpty(), Badger.PRIMARY,
+                Badger.SUCCESS, "Obligations", "-/-");
     }
 
     /*
-     * Creates renderer for advice badge column.
-     * Shows "Advice" badge if advice is present, otherwise shows "-/-".
+     * Creates renderer for advice badge column. Shows "Advice" badge if advice is
+     * present, otherwise shows "-/-".
      */
-    private ComponentRenderer<Span, TracedDecision> renderAdviceBadge() {
-        return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getAdvice().isPresent(),
-                Badger.PRIMARY, Badger.SUCCESS, "Advice", "-/-");
+    private ComponentRenderer<Span, TimestampedVote> renderAdviceBadge() {
+        return Badger.badgeRenderer(tv -> !tv.vote().authorizationDecision().advice().isEmpty(), Badger.PRIMARY,
+                Badger.SUCCESS, "Advice", "-/-");
     }
 
     /*
-     * Creates renderer for resource badge column.
-     * Shows "Resource" badge if resource transformation is present, otherwise shows
-     * "-/-".
+     * Creates renderer for resource badge column. Shows "Resource" badge if
+     * resource transformation is present,
+     * otherwise shows "-/-".
      */
-    private ComponentRenderer<Span, TracedDecision> renderResourceBadge() {
-        return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getResource().isPresent(),
-                Badger.PRIMARY, Badger.SUCCESS, "Resource", "-/-");
+    private ComponentRenderer<Span, TimestampedVote> renderResourceBadge() {
+        return Badger.badgeRenderer(tv -> {
+            val resource = tv.vote().authorizationDecision().resource();
+            return !(resource instanceof UndefinedValue) && !(resource instanceof ErrorValue);
+        }, Badger.PRIMARY, Badger.SUCCESS, "Resource", "-/-");
     }
 }

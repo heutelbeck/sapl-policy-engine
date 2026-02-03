@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,13 +17,18 @@
  */
 package io.sapl.pdp.remote;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.sapl.api.pdp.*;
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -55,7 +60,7 @@ class RemoteHttpPolicyDecisionPointTests {
 
     private static final String SUBJECT = "subject";
 
-    private static final ObjectMapper    MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final JsonMapper      MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
     private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
 
     private MockWebServer server;
@@ -86,8 +91,7 @@ class RemoteHttpPolicyDecisionPointTests {
     }
 
     @Test
-    void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection()
-            throws JsonProcessingException {
+    void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection() throws JacksonException {
         // The first is propagated. The second results in an error. The third is dropped
         // due to the error
         prepareDecisions(
@@ -99,7 +103,7 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
                 AuthorizationDecision.PERMIT });
 
-        final var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
@@ -109,40 +113,40 @@ class RemoteHttpPolicyDecisionPointTests {
     }
 
     @Test
-    void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
-        final var decision1 = new MultiAuthorizationDecision();
-        decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
-        final var decision2 = new MultiAuthorizationDecision();
-        decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
-        final var indeterminate = MultiAuthorizationDecision.indeterminate();
+    void whenSubscribingMultiDecideAll_thenGetResults() throws JacksonException {
+        val decision1 = new MultiAuthorizationDecision();
+        decision1.setDecision(ID, AuthorizationDecision.PERMIT);
+        val decision2 = new MultiAuthorizationDecision();
+        decision2.setDecision(ID, AuthorizationDecision.DENY);
+        val indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
-                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
     }
 
     @Test
-    void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
-        final var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-        final var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-        final var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+    void whenSubscribingMultiDecide_thenGetResults() throws JacksonException {
+        val decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        val decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        val indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
-                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
     }
 
-    private void prepareDecisions(Object[] decisions) throws JsonProcessingException {
+    private void prepareDecisions(Object[] decisions) throws JacksonException {
         StringBuilder body = new StringBuilder();
         for (var decision : decisions) {
             if (decision == null)
@@ -152,7 +156,7 @@ class RemoteHttpPolicyDecisionPointTests {
                 body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
             }
         }
-        final var response = new MockResponse()
+        val response = new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
                 .setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
         server.enqueue(response);
@@ -160,23 +164,22 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        final var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build();
-        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").secure(sslContext).build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);

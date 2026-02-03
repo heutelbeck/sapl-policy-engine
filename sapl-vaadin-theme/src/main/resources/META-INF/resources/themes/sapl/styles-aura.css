@@ -1,0 +1,21 @@
+html {
+  --aura-font-family: "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Trebuchet MS", Verdana, sans-serif;
+  --aura-base-radius: 2;
+
+  /* Background */
+  --aura-background-color-dark: hsl(210, 10%, 12%);
+
+  /* Primary/Accent - teal */
+  --aura-accent-color-dark: hsl(179, 43%, 44%);
+  --aura-accent-text-color-dark: rgb(64, 160, 159);
+
+  /* Semantic colors */
+  --aura-red: hsl(3, 68%, 60%);
+  --aura-green: hsl(145, 49%, 42%);
+
+  /* Bridge variables for JS editor components using Lumo contrast variables */
+  --lumo-contrast-5pct: rgba(255, 255, 255, 0.05);
+  --lumo-contrast-10pct: rgba(255, 255, 255, 0.10);
+  --lumo-contrast-20pct: rgba(255, 255, 255, 0.20);
+  --lumo-contrast-50pct: rgba(255, 255, 255, 0.50);
+}

@@ -1,0 +1,10 @@
+set "general_db_protection"
+first or abstain errors propagate
+
+policy "permit_test"
+permit
+    action == "permitTest";
+
+policy "deny_test"
+deny
+    action == "denyTest";

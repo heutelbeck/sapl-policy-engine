@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,9 +17,16 @@
  */
 package io.sapl.documentation;
 
-import io.sapl.attributes.documentation.api.LibraryDocumentation;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.api.documentation.LibraryDocumentation;
+import io.sapl.api.documentation.LibraryType;
+import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
+import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
+import io.sapl.attributes.libraries.TimePolicyInformationPoint;
+import io.sapl.extensions.mqtt.MqttFunctionLibrary;
+import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
+import io.sapl.functions.DefaultLibraries;
+import io.sapl.functions.geo.GeographicFunctionLibrary;
+import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -34,7 +41,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Component responsible for generating markdown documentation for SAPL
@@ -52,18 +62,6 @@ public class DocumentationGenerator {
     private static final String MARKDOWN_LINE_BREAK      = "\n\n";
 
     private final ConfigurableApplicationContext applicationContext;
-
-    /**
-     * Provider for policy information point documentation.
-     * Supplies documentation about available PIPs and their attributes.
-     */
-    private final PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider;
-
-    /**
-     * Context providing function library documentation.
-     * Supplies documentation about available functions and their usage.
-     */
-    private final FunctionContext functionContext;
 
     @Value("${application.version}")
     private String version;
@@ -86,21 +84,33 @@ public class DocumentationGenerator {
         log.info("Starting DocumentationGenerator\n");
         log.info("SAPL Version: {}", version);
 
-        createTargetDirectoryIfNotExists();
+        createTargetDirectoryIfNotExisting();
+        // LibraryDocumentationExtractor
+        val libraries = new ArrayList<Class<?>>(DefaultLibraries.STATIC_LIBRARIES);
+        libraries.add(GeographicFunctionLibrary.class);
+        libraries.add(MqttFunctionLibrary.class);
+        val libDocs = sortDocs(libraries.stream().map(LibraryDocumentationExtractor::extractFunctionLibrary).toList());
 
-        val policyInformationPoints = sortPips(policyInformationPointDocumentationProvider.getDocumentation());
-        val libraries               = sortLibs(functionContext.getDocumentation());
-        var navOrder                = 101;
-        for (val lib : libraries) {
-            log.info("Library: {}", lib.getName());
+        val pips = new ArrayList<Class<?>>();
+        pips.add(MqttPolicyInformationPoint.class);
+        pips.add(TraccarPolicyInformationPoint.class);
+        pips.add(HttpPolicyInformationPoint.class);
+        pips.add(JWTPolicyInformationPoint.class);
+        pips.add(TimePolicyInformationPoint.class);
+        val pipDocs = sortDocs(
+                pips.stream().map(LibraryDocumentationExtractor::extractPolicyInformationPoint).toList());
+
+        var navOrder = 101;
+        for (val lib : libDocs) {
+            log.info("Library: {}", lib.name());
             val documentationMD = generateMarkdownForLibrary(lib, navOrder++);
-            writeToFile("lib_" + lib.getName() + ".md", documentationMD);
+            writeToFile("lib_" + lib.name() + ".md", documentationMD);
         }
         navOrder = 201;
-        for (val pip : policyInformationPoints) {
-            log.info("Policy Information Point: {}", pip.namespace());
-            val documentationMD = generateMarkdownForPolicyInformationPoint(pip, navOrder++);
-            writeToFile("pip_" + pip.namespace() + ".md", documentationMD);
+        for (val pip : pipDocs) {
+            log.info("Policy Information Point: {}", pip.name());
+            val documentationMD = generateMarkdownForLibrary(pip, navOrder++);
+            writeToFile("pip_" + pip.name() + ".md", documentationMD);
         }
 
         SpringApplication.exit(applicationContext, () -> 0);
@@ -112,7 +122,7 @@ public class DocumentationGenerator {
      *
      * @throws IOException if directory creation fails
      */
-    private void createTargetDirectoryIfNotExists() throws IOException {
+    private void createTargetDirectoryIfNotExisting() throws IOException {
         val targetDirectory = Path.of(targetPath);
         if (!Files.exists(targetDirectory)) {
             Files.createDirectories(targetDirectory);
@@ -134,87 +144,27 @@ public class DocumentationGenerator {
         log.debug("Written documentation to: {}", filePath);
     }
 
-    /**
-     * Sorts policy information point documentation by namespace in alphabetical
-     * order.
-     *
-     * @param pips collection of policy information point documentation
-     * @return sorted list of policy information point documentation
-     */
-    List<LibraryDocumentation> sortPips(Collection<LibraryDocumentation> pips) {
+    List<LibraryDocumentation> sortDocs(Collection<LibraryDocumentation> pips) {
         val sortedPips = new ArrayList<LibraryDocumentation>(pips.size());
         sortedPips.addAll(pips);
-        sortedPips.sort(Comparator.comparing(LibraryDocumentation::namespace));
+        sortedPips.sort(Comparator.comparing(LibraryDocumentation::name));
         return sortedPips;
     }
 
-    /**
-     * Sorts function library documentation by name in alphabetical order.
-     *
-     * @param libs collection of function library documentation
-     * @return sorted list of function library documentation
-     */
-    List<io.sapl.interpreter.functions.LibraryDocumentation> sortLibs(
-            Collection<io.sapl.interpreter.functions.LibraryDocumentation> libs) {
-        val sortedLibs = new ArrayList<io.sapl.interpreter.functions.LibraryDocumentation>(libs.size());
-        sortedLibs.addAll(libs);
-        sortedLibs.sort(Comparator.comparing(io.sapl.interpreter.functions.LibraryDocumentation::getName));
-        return sortedLibs;
-    }
-
-    /**
-     * Generates markdown documentation for a function library.
-     * Creates a structured Markdown document with library name, description,
-     * library-level documentation, and individual function documentation.
-     * Each function is separated by horizontal rules.
-     *
-     * @param documentation the function library documentation object
-     * @param navOrder the navigation order for the documentation page
-     * @return markdown-formatted documentation string
-     */
-    public String generateMarkdownForLibrary(io.sapl.interpreter.functions.LibraryDocumentation documentation,
-            int navOrder) {
+    public String generateMarkdownForLibrary(LibraryDocumentation documentation, int navOrder) {
         val stringBuilder = new StringBuilder();
-        appendFrontmatter(stringBuilder, navOrder, documentation.getName(), "Functions");
-        appendHeader(stringBuilder, documentation.getName());
-        stringBuilder.append(documentation.getDescription()).append(MARKDOWN_LINE_BREAK);
-        stringBuilder.append(documentation.getLibraryDocumentation()).append(MARKDOWN_LINE_BREAK);
+        appendFrontmatter(stringBuilder, navOrder, documentation.name(),
+                documentation.type() == LibraryType.FUNCTION_LIBRARY ? "Functions" : "Attribute Finders");
+        appendHeader(stringBuilder, documentation.name());
+        stringBuilder.append(documentation.description()).append(MARKDOWN_LINE_BREAK);
+        stringBuilder.append(documentation.documentation()).append(MARKDOWN_LINE_BREAK);
         stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
 
-        for (var entry : documentation.getDocumentation().entrySet()) {
-            val functionName          = entry.getKey();
-            val functionDocumentation = entry.getValue();
+        for (var entry : documentation.entries()) {
+            val functionName          = entry.name();
+            val functionDocumentation = entry.documentation();
             appendSubHeader(stringBuilder, functionName);
             stringBuilder.append(functionDocumentation).append(MARKDOWN_LINE_BREAK);
-            stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
-        }
-
-        return stringBuilder.toString();
-    }
-
-    /**
-     * Generates markdown documentation for a policy information point.
-     * Creates a structured Markdown document with PIP namespace, description,
-     * general documentation, and individual attribute documentation.
-     * Each attribute is separated by horizontal rules.
-     *
-     * @param documentation the policy information point documentation object
-     * @param navOrder the navigation order for the documentation page
-     * @return markdown-formatted documentation string
-     */
-    public String generateMarkdownForPolicyInformationPoint(LibraryDocumentation documentation, int navOrder) {
-        val stringBuilder = new StringBuilder();
-        appendFrontmatter(stringBuilder, navOrder, documentation.namespace(), "Attribute Finders");
-        appendHeader(stringBuilder, documentation.namespace());
-        stringBuilder.append(documentation.descriptionMarkdown()).append(MARKDOWN_LINE_BREAK);
-        stringBuilder.append(documentation.documentationMarkdown()).append(MARKDOWN_LINE_BREAK);
-        stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
-
-        for (var entry : documentation.attributesMap().entrySet()) {
-            val attributeName          = entry.getKey();
-            val attributeDocumentation = entry.getValue();
-            appendSubHeader(stringBuilder, attributeName);
-            stringBuilder.append(attributeDocumentation).append(MARKDOWN_LINE_BREAK);
             stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
         }
 

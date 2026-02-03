@@ -1,0 +1,20 @@
+/*
+ * Sample SAPLTest file for language server testing
+ *
+ * This minimal file demonstrates the basic structure:
+ * - requirement blocks with unique names
+ * - scenario blocks within requirements
+ * - when clause for authorization subscription
+ * - expect clause for expected decision
+ */
+requirement "access control tests" {
+
+    // Without a given block, uses all documents with default algorithm
+    scenario "user can read"
+        when "user" attempts "read" on "document"
+        expect permit;
+
+    scenario "guest denied write"
+        when "guest" attempts "write" on "document"
+        expect deny;
+}

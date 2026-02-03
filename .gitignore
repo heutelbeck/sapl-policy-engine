@@ -10,14 +10,13 @@ target/
 .sonarlint/
 events/
 .factorypath
-**/xtend-gen/
-**/xtext-gen/
+**/gen/
 **/dev-bundle/
-**/emf-gen/
 **/node_modules/
 **/VAADIN/widgetsets/
 **/VAADIN/themes/**/addons.scss
 **/VAADIN/themes/**/styles.css
+sapl-benchmark/results/**
 generated/
 WebContent/
 .vaadin-designer2
@@ -39,7 +38,5 @@ sapl-lang/.project
 sapl-server-ce/tsconfig.json
 sapl-server-ce/types.d.ts
 sapl-server-ce/vite.config.ts
-sapl-eclipse-plugin/sapl-test-eclipse-ui/.tycho-consumer-pom.xml
-sapl-eclipse-plugin/sapl-eclipse-ui/.tycho-consumer-pom.xml
-sapl-eclipse-plugin/sapl-eclipse-feature/.tycho-consumer-pom.xml
 sapl-server-ce/.vaadin-node-tasks.lock
+nul

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -25,7 +25,8 @@ import java.io.Serializable;
 @FunctionalInterface
 public interface DocumentChangedListener extends Serializable {
     /**
-     * @param event the change event.
+     * @param event
+     * the change event.
      */
     void onDocumentChanged(DocumentChangedEvent event);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,13 +17,14 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.datatypes.MqttClientIdentifier;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
@@ -53,6 +54,8 @@ public class ConfigUtility {
     private static final String ENVIRONMENT_PASSWORD                   = "password";
     private static final String DEFAULT_BROKER_CONFIG_NAME             = "default";
     private static final String DEFAULT_PASSWORD                       = "";
+
+    private static final String ERROR_NO_VALID_MQTT_PIP_CONFIG = "No valid configuration for mqtt pip client connection provided.";
 
     // Methods to get configurations from json
 
@@ -95,7 +98,7 @@ public class ConfigUtility {
         String   config;
         JsonNode configValue = getConfigValue(clientConfig, key);
         if (configValue != null) {
-            config = configValue.asText(defaultConfig);
+            config = configValue.asString(defaultConfig);
         } else {
             config = defaultConfig;
         }
@@ -193,39 +196,37 @@ public class ConfigUtility {
      * Evaluates the provided configuration for the mqtt broker configuration.
      *
      * @param pipMqttClientConfig the pdp configuration
-     * @param pipMqttClientConfigVal {@link Val} of the configuration in the
+     * @param pipMqttClientConfigVal {@link Value} of the configuration in the
      * attribute finder
-     * @return Returns a json object containing the mqtt broker config. If no valid
+     * @return Returns a json object containing the mqtt broker security. If no
+     * valid
      * configuration was provided in the configurations than a
      * {@link NoSuchElementException} will be thrown.
      */
-    public static ObjectNode getMqttBrokerConfig(JsonNode pipMqttClientConfig, Val pipMqttClientConfigVal) {
-        // return the broker config from attribute finder param or from pdp.json
+    public static ObjectNode getMqttBrokerConfig(JsonNode pipMqttClientConfig, Value pipMqttClientConfigVal) {
         ObjectNode mqttPipBrokerConfig = null;
 
-        // handling broker config for pip
-        if (pipMqttClientConfigVal.isObject()) { // if config is specified in policy
-            mqttPipBrokerConfig = pipMqttClientConfigVal.getObjectNode();
-        } else { // config in pdp.json
+        if (pipMqttClientConfigVal instanceof ObjectValue objectConfig) {
+            mqttPipBrokerConfig = (ObjectNode) ValueJsonMarshaller.toJsonNode(objectConfig);
+        } else {
             mqttPipBrokerConfig = getBrokerConfigFromPdpConfig(pipMqttClientConfig, mqttPipBrokerConfig,
                     pipMqttClientConfigVal);
         }
 
         if (mqttPipBrokerConfig == null) {
-            throw new NoSuchElementException("No valid configuration for mqtt pip client connection provided.");
+            throw new NoSuchElementException(ERROR_NO_VALID_MQTT_PIP_CONFIG);
         }
         return mqttPipBrokerConfig;
     }
 
     private static ObjectNode getBrokerConfigFromPdpConfig(JsonNode pipMqttClientConfig, ObjectNode mqttPipBrokerConfig,
-            Val pipMqttClientConfigVal) {
+            Value pipMqttClientConfigVal) {
         JsonNode brokerConfig = getConfigValue(pipMqttClientConfig, ENVIRONMENT_BROKER_CONFIG);
-        if (brokerConfig != null) { // broker config is specified in pdp.json
-            if (pipMqttClientConfigVal.isUndefined()) { // no broker config in attribute finder
+        if (brokerConfig != null) {
+            if (pipMqttClientConfigVal instanceof UndefinedValue) {
                 mqttPipBrokerConfig = getBrokerConfigIfNoConfigInAttributeFinder(mqttPipBrokerConfig,
                         pipMqttClientConfig, brokerConfig);
-            } else if (pipMqttClientConfigVal.isTextual()) { // if attribute finder contains reference to
-                                                             // configDescription in pdp.json
+            } else if (pipMqttClientConfigVal instanceof TextValue) {
                 mqttPipBrokerConfig = getBrokerConfigViaReference(mqttPipBrokerConfig, pipMqttClientConfigVal,
                         brokerConfig);
             }
@@ -243,23 +244,24 @@ public class ConfigUtility {
         return mqttPipBrokerConfig;
     }
 
-    private static ObjectNode getBrokerConfigViaReference(ObjectNode mqttPipBrokerConfig, Val pipMqttClientConfigVal,
+    private static ObjectNode getBrokerConfigViaReference(ObjectNode mqttPipBrokerConfig, Value pipMqttClientConfigVal,
             JsonNode brokerConfig) {
+        var configName = ((TextValue) pipMqttClientConfigVal).value();
         if (brokerConfig.isArray()) {
-            mqttPipBrokerConfig = getBrokerConfig(mqttPipBrokerConfig, brokerConfig, pipMqttClientConfigVal.getText());
+            mqttPipBrokerConfig = getBrokerConfig(mqttPipBrokerConfig, brokerConfig, configName);
         } else if (brokerConfig.isObject()) {
-            mqttPipBrokerConfig = getBrokerConfigIfAttributeFinderReferenceMatches(mqttPipBrokerConfig,
-                    pipMqttClientConfigVal, brokerConfig);
+            mqttPipBrokerConfig = getBrokerConfigIfAttributeFinderReferenceMatches(mqttPipBrokerConfig, configName,
+                    brokerConfig);
         }
         return mqttPipBrokerConfig;
     }
 
     private static ObjectNode getBrokerConfigIfAttributeFinderReferenceMatches(ObjectNode mqttPipBrokerConfig,
-            Val pipMqttClientConfigVal, JsonNode brokerConfig) {
+            String configName, JsonNode brokerConfig) {
         JsonNode configDescription = brokerConfig.get(ENVIRONMENT_BROKER_CONFIG_NAME);
         if (configDescription != null) {
-            String configDescriptionValue = configDescription.asText();
-            if (configDescriptionValue.equals(pipMqttClientConfigVal.getText())) {
+            val configDescriptionValue = configDescription.asString();
+            if (configDescriptionValue.equals(configName)) {
                 mqttPipBrokerConfig = (ObjectNode) brokerConfig;
             }
         }
@@ -268,11 +270,11 @@ public class ConfigUtility {
 
     private static ObjectNode getDefaultBroker(ObjectNode mqttPipBrokerConfig, JsonNode pipMqttClientConfig,
             JsonNode brokerConfig) {
-        // get default broker config name
+        // get default broker security name
         String brokerConfigName = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME,
                 DEFAULT_BROKER_CONFIG_NAME);
 
-        // get default broker config
+        // get default broker security
         mqttPipBrokerConfig = getBrokerConfig(mqttPipBrokerConfig, brokerConfig, brokerConfigName);
         return mqttPipBrokerConfig;
     }
@@ -282,7 +284,7 @@ public class ConfigUtility {
         for (JsonNode brokerConfigs : brokerConfig) {
             JsonNode configDescription = brokerConfigs.get(ENVIRONMENT_BROKER_CONFIG_NAME);
             if (configDescription != null) {
-                String configDescriptionValue = configDescription.asText();
+                val configDescriptionValue = configDescription.asString();
                 if (configDescriptionValue.equals(brokerConfigName)) {
                     mqttPipClientConfig = (ObjectNode) brokerConfigs;
                     break;
@@ -308,11 +310,11 @@ public class ConfigUtility {
     /**
      * Convert the provided parameter to the mqtt quality of service level.
      *
-     * @param qosVal the provided qos level as a {@link Val}
+     * @param qosVal the provided qos level as a {@link Value}
      * @return returns the mqtt quality of service level
      */
-    public static MqttQos getQos(Val qosVal) {
-        final var qos = qosVal.get().asInt();
+    public static MqttQos getQos(Value qosVal) {
+        var qos = ((NumberValue) qosVal).value().intValue();
         return MqttQos.fromCode(qos);
     }
 

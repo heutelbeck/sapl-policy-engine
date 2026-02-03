@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.hivemq.client.internal.mqtt.exceptions.MqttClientStateExceptions;
 import com.hivemq.client.mqtt.exceptions.ConnectionClosedException;
 import com.hivemq.client.mqtt.exceptions.ConnectionFailedException;
@@ -25,7 +25,7 @@ import com.hivemq.client.mqtt.exceptions.MqttClientStateException;
 import com.hivemq.client.mqtt.exceptions.MqttSessionExpiredException;
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5DisconnectException;
 import com.hivemq.client.mqtt.mqtt5.message.Mqtt5MessageType;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Sinks;
@@ -88,23 +88,22 @@ public class ErrorUtility {
      * @param emitterUndefined the emitter necessary to emit downstream
      * @param retrySignal containing specifics about the retry
      */
-    public static void emitValueOnRetry(JsonNode pipMqttClientConfig, Sinks.Many<Val> emitterUndefined,
+    public static void emitValueOnRetry(JsonNode pipMqttClientConfig, Sinks.Many<Value> emitterUndefined,
             Retry.RetrySignal retrySignal) {
         boolean isUndefinedAtRetryEnabled = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_EMIT_AT_RETRY,
                 DEFAULT_EMIT_AT_RETRY);
         long    retryNumber               = retrySignal.totalRetriesInARow() + 1;
-        // emit Val.UNDEFINED when the first error in a row occurred
         if (isUndefinedAtRetryEnabled && retryNumber == 1) {
-            emitterUndefined.tryEmitNext(Val.UNDEFINED);
+            emitterUndefined.tryEmitNext(Value.UNDEFINED);
         }
     }
 
     /**
-     * Evaluates the {@link Throwable} whether the broker config hash has to be
+     * Evaluates the {@link Throwable} whether the broker security hash has to be
      * removed from the client cache or not.
      *
      * @param throwable the {@link Throwable} to evaluate
-     * @return returns true if the broker config hash has to be removed from the
+     * @return returns true if the broker security hash has to be removed from the
      * client cache
      */
     public static boolean isErrorRelevantToRemoveClientCache(Throwable throwable) {

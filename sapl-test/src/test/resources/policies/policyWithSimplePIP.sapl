@@ -1,5 +1,0 @@
-policy "policyWithSimplePIP"
-permit
-    action == "read"
-where
-    subject.<test.upper> == "WILLI";

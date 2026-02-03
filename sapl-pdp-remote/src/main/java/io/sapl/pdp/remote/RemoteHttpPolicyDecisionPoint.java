@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,30 +17,40 @@
  */
 package io.sapl.pdp.remote;
 
+import tools.jackson.databind.json.JsonMapper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.sapl.api.pdp.*;
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.InMemoryReactiveOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.jspecify.annotations.Nullable;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.retry.Backoff;
-import reactor.retry.Repeat;
-import reactor.util.annotation.Nullable;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
@@ -89,24 +99,27 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         this.client = client;
     }
 
-    private Repeat<?> repeat() {
-        return Repeat.onlyIf(repeatContext -> true)
-                .backoff(Backoff.exponential(Duration.ofMillis(firstBackoffMillis), Duration.ofMillis(maxBackOffMillis),
-                        backoffFactor, false))
-                .doOnRepeat(o -> log.debug("No connection to remote PDP. Reconnect: {}", o));
+    private Function<Flux<Long>, Publisher<Long>> repeatWithBackoff() {
+        return companion -> companion.index().flatMap(tuple -> {
+            long iteration = tuple.getT1();
+            long delay     = Math.min(firstBackoffMillis * (long) Math.pow(backoffFactor, Math.min(iteration, 20)),
+                    maxBackOffMillis);
+            log.debug("No connection to remote PDP. Reconnect attempt {} after {}ms", iteration + 1, delay);
+            return Mono.delay(Duration.ofMillis(delay));
+        });
     }
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        final var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
+        val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return decide(DECIDE, type, authzSubscription)
-                .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+                .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeatWithBackoff())
                 .distinctUntilChanged();
     }
 
     @Override
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
-        final var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+        val type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return client.post().uri(DECIDE_ONCE).accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(authzSubscription).retrieve().bodyToMono(type)
                 .doOnError(error -> log.error("Error : {}", error.getMessage()));
@@ -114,18 +127,18 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-        final var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
+        val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE, type, multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
-                .distinctUntilChanged();
+                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE))
+                .repeatWhen(repeatWithBackoff()).distinctUntilChanged();
     }
 
     @Override
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-        final var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
+        val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
-                .distinctUntilChanged();
+                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()))
+                .repeatWhen(repeatWithBackoff()).distinctUntilChanged();
     }
 
     private <T> Flux<T> decide(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
@@ -149,8 +162,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
             log.warn("------------------------------------------------------------------");
             log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
             log.warn("------------------------------------------------------------------");
-            final var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .build();
+            val sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
         }
 
@@ -201,11 +213,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
         public RemoteHttpPolicyDecisionPointBuilder oauth2(
                 ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
-            InMemoryReactiveOAuth2AuthorizedClientService                clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
+            val clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
                     clientRegistrationRepository);
-            AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+            val authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
                     clientRegistrationRepository, clientService);
-            final var                                                    oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
+            val oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
                     authorizedClientManager);
             oauth2FilterFunction.setDefaultClientRegistrationId(registrationId);
             setApplyAuthenticationFunction(builder -> builder.filter(oauth2FilterFunction));
@@ -213,7 +225,12 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteHttpPolicyDecisionPoint build() {
-            WebClient.Builder builder = WebClient.builder()
+            val mapper     = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+            val strategies = ExchangeStrategies.builder().codecs(configurer -> {
+                               configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
+                               configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
+                           }).build();
+            var builder    = WebClient.builder().exchangeStrategies(strategies)
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
             if (this.authenticationCustomizer != null) {

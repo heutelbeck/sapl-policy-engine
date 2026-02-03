@@ -1,0 +1,5 @@
+policy "resource-text-policy"
+permit
+    action == "text-transform";
+transform
+    "filtered-content"

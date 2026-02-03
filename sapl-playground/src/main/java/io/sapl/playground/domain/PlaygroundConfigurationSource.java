@@ -1,0 +1,187 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.playground.domain;
+
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
+import io.sapl.compiler.document.DocumentCompiler;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.pdp.CompiledPdpVoter;
+import io.sapl.compiler.pdp.PdpCompiler;
+import io.sapl.pdp.CompiledPDPConfigurationSource;
+import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
+/**
+ * UI-scoped configuration source for the playground PDP. Combines shared
+ * brokers with UI-scoped policies, variables,
+ * and combining algorithm. Emits new configurations whenever any component
+ * changes.
+ */
+@Slf4j
+public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSource {
+
+    private static final String PDP_ID = "playground";
+
+    private final FunctionBroker  functionBroker;
+    private final AttributeBroker attributeBroker;
+
+    private final Sinks.Many<Optional<CompiledPdpVoter>> configurationSink;
+    private final Flux<Optional<CompiledPdpVoter>>       configurationFlux;
+
+    private final AtomicReference<List<String>>               currentPolicySources = new AtomicReference<>(List.of());
+    private final AtomicReference<Map<String, Value>>         currentVariables     = new AtomicReference<>(Map.of());
+    private final AtomicReference<CombiningAlgorithm>         currentAlgorithm     = new AtomicReference<>(
+            new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
+    private final AtomicLong                                  configurationVersion = new AtomicLong(0);
+    private final AtomicReference<Optional<CompiledPdpVoter>> currentConfiguration = new AtomicReference<>(
+            Optional.empty());
+
+    public PlaygroundConfigurationSource(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+        this.functionBroker  = functionBroker;
+        this.attributeBroker = attributeBroker;
+
+        this.configurationSink = Sinks.many().replay().latest();
+        this.configurationFlux = configurationSink.asFlux();
+
+        emitConfiguration();
+    }
+
+    /**
+     * Updates the policy documents and emits a new configuration.
+     *
+     * @param policySources
+     * list of SAPL policy source strings
+     */
+    public void setPolicies(List<String> policySources) {
+        currentPolicySources.set(List.copyOf(policySources));
+        emitConfiguration();
+    }
+
+    /**
+     * Updates the variables and emits a new configuration.
+     *
+     * @param variables
+     * map of variable names to values
+     */
+    public void setVariables(Map<String, Value> variables) {
+        currentVariables.set(Map.copyOf(variables));
+        emitConfiguration();
+    }
+
+    /**
+     * Updates the combining algorithm and emits a new configuration.
+     *
+     * @param algorithm
+     * the combining algorithm
+     */
+    public void setCombiningAlgorithm(CombiningAlgorithm algorithm) {
+        currentAlgorithm.set(algorithm);
+        emitConfiguration();
+    }
+
+    private void emitConfiguration() {
+        val configuration = buildConfiguration();
+        currentConfiguration.set(configuration);
+        configurationSink.tryEmitNext(configuration);
+    }
+
+    private Optional<CompiledPdpVoter> buildConfiguration() {
+        val configId           = String.valueOf(configurationVersion.incrementAndGet());
+        val pdpConfiguration   = new PDPConfiguration(PDP_ID, configId, currentAlgorithm.get(),
+                currentPolicySources.get(), buildPdpData());
+        val compilationContext = new CompilationContext(PDP_ID, configId, buildPdpData(), functionBroker,
+                attributeBroker);
+
+        try {
+            return Optional.of(PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext));
+        } catch (SaplCompilerException e) {
+            log.debug("Failed to compile PDP configuration: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Flux<Optional<CompiledPdpVoter>> getPDPConfigurations(String pdpId) {
+        return configurationFlux;
+    }
+
+    @Override
+    public Optional<CompiledPdpVoter> getCurrentConfiguration(String pdpId) {
+        return currentConfiguration.get();
+    }
+
+    /**
+     * Attempts to compile a policy source and returns any compile errors.
+     *
+     * @param source
+     * the SAPL policy source to compile
+     *
+     * @return optional containing the exception if compilation failed, empty if
+     * successful
+     */
+    public Optional<SaplCompilerException> tryCompile(String source) {
+        val compilationContext = new CompilationContext(new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT),
+                functionBroker, attributeBroker);
+        try {
+            compilationContext.resetForNextDocument();
+            DocumentCompiler.compileDocument(source, compilationContext);
+            return Optional.empty();
+        } catch (SaplCompilerException exception) {
+            return Optional.of(exception);
+        } catch (Exception exception) {
+            return Optional.of(new SaplCompilerException(exception.getMessage(), exception));
+        }
+    }
+
+    private PdpData buildPdpData() {
+        return new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT);
+    }
+
+    private ObjectValue varablesAsObjectValue() {
+        val variables = ObjectValue.builder();
+        for (val entry : currentVariables.get().entrySet()) {
+            variables.put(entry.getKey(), entry.getValue());
+        }
+        return variables.build();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        configurationSink.tryEmitComplete();
+    }
+}

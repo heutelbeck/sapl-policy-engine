@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -25,185 +25,91 @@
     <parent>
         <groupId>io.sapl</groupId>
         <artifactId>sapl-policy-engine</artifactId>
-        <version>3.1.0-SNAPSHOT</version>
+        <version>4.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>sapl-vaadin-editor</artifactId>
 
     <name>SAPL Vaadin Code Editors</name>
 
-    <description>SAPL and JSON Editor Components for Vaadin</description>
+    <description>SAPL Editor Components for Vaadin using CodeMirror 6 and Language Server Protocol</description>
 
-	<properties>
-		<main.basedir>${project.basedir}/../</main.basedir>
-	</properties>
-	
+    <properties>
+        <main.basedir>${project.basedir}/../</main.basedir>
+        <lsp4j.version>0.24.0</lsp4j.version>
+    </properties>
+
     <dependencies>
+        <!-- Vaadin -->
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-core</artifactId>
         </dependency>
-        <!-- Shouldn't be needed, probably a bug the flow-client is not brought in via flow-server-->
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>flow-client</artifactId>
         </dependency>
 
+        <!-- SAPL API for version constants -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>sapl-web</artifactId>
+            <artifactId>sapl-api</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- SAPL Language Server for LSP integration -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>sapl-test-web</artifactId>
+            <artifactId>sapl-language-server</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <!-- Exclude slf4j-simple to avoid conflict with logback in consuming apps -->
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
+        <!-- LSP4J - Language Server Protocol implementation -->
+        <dependency>
+            <groupId>org.eclipse.lsp4j</groupId>
+            <artifactId>org.eclipse.lsp4j</artifactId>
+            <version>${lsp4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.lsp4j</groupId>
+            <artifactId>org.eclipse.lsp4j.jsonrpc</artifactId>
+            <version>${lsp4j.version}</version>
+        </dependency>
+
+        <!-- Spring WebSocket for LSP transport -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-websocket</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+
+
+        <!-- Marked - Markdown parser for documentation rendering -->
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>marked</artifactId>
+            <version>17.0.1</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- The CSS and JS resources of the xtext web dependency have to copied
-				to the matching frontend folder CSS and images are hard coded into the HTML
-				template of the webcomponent JS file -->
-
-            <!-- First unpack the files from the JAR -->
-            <plugin>
-				<?m2e ignore?>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>unpack-xtext</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>unpack</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.eclipse.xtext</groupId>
-                                    <artifactId>org.eclipse.xtext.web</artifactId>
-                                    <version>${xtext.version}</version>
-                                    <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/xtext</outputDirectory>
-                                    <includes>META-INF/resources/xtext/${xtext.version}/**/*</includes>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>unpack-sapl</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>unpack</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>io.sapl</groupId>
-                                    <artifactId>sapl-web</artifactId>
-                                    <version>3.1.0-SNAPSHOT</version>
-                                    <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/sapl</outputDirectory>
-                                    <includes>static/**/*</includes>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>io.sapl</groupId>
-                                    <artifactId>sapl-test-web</artifactId>
-                                    <version>3.1.0-SNAPSHOT</version>
-                                    <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/sapl-test</outputDirectory>
-                                    <includes>static/**/*</includes>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Second, copy the files into the frontend folder to be accessible
-                via vaadin tooling -->
-            <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-resources-js</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/classes/META-INF/frontend</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtext.version}</directory>
-                                    <includes>
-                                        <include>xtext-codemirror.js</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-resources-sapl</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/classes/META-INF/frontend/</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${project.build.directory}/sapl/static</directory>
-                                    <includes>
-                                        <include>sapl-mode.js</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                                <resource>
-                                    <directory>${project.build.directory}/sapl-test/static</directory>
-                                    <includes>
-                                        <include>sapl-test-mode.js</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-           <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <configuration>
-                            <mainClass>io.sapl.converter.TransformFiles</mainClass>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <exclude>io/sapl/converter/**</exclude>
-                    </excludes>
                     <archive>
                         <index>true</index>
                         <manifest>
@@ -215,7 +121,7 @@
                         </manifestEntries>
                     </archive>
                 </configuration>
-            </plugin>     
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,29 +17,33 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.TextNode;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.EnvironmentAttribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Text;
-import io.sapl.attributes.pips.http.ReactiveWebClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.model.*;
+import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.functions.geo.GeoJSONSchemata;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import reactor.core.publisher.Flux;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
+/**
+ * Policy Information Point for integrating with Traccar GPS tracking servers.
+ * Provides attribute finders for fetching device positions, geofences, and
+ * server metadata from Traccar servers.
+ */
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = TraccarPolicyInformationPoint.NAME, description = TraccarPolicyInformationPoint.DESCRIPTION, pipDocumentation = TraccarPolicyInformationPoint.DOCUMENTATION)
 public class TraccarPolicyInformationPoint {
@@ -47,7 +51,12 @@ public class TraccarPolicyInformationPoint {
     public static final String TRACCAR_CONFIG = "TRACCAR_CONFIG";
     public static final String NAME           = "traccar";
     public static final String DESCRIPTION    = "This policy information point can fetch device positions and geofences from a traccar server.";
-    public static final String DOCUMENTATION  = """
+
+    static final String        ERROR_BAD_RESPONSE_EXPECTED_ARRAY = "Bad response. Expected a non-empty array, but got: %s.";
+    static final String        ERROR_REQUIRED_FIELD_MISSING      = "Required field '%s' missing from traccar configuration.";
+    static final String        ERROR_TRACCAR_CONFIG_NOT_OBJECT   = "TRACCAR_CONFIG must be an object, but was: %s";
+    static final String        ERROR_TRACCAR_CONFIG_UNDEFINED    = "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.";
+    public static final String DOCUMENTATION                     = """
              This policy information point allows interaction with Traccar servers.
              [Traccar](https://www.traccar.org/) is a GPS tracking platform for monitoring the location of devices and
              managing geofences.
@@ -144,9 +153,12 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> server(Map<String, Val> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return server(variables.get(TRACCAR_CONFIG));
+    public Flux<Value> server(AttributeAccessContext ctx) {
+        val errorFlux = getErrorFluxIfTraccarConfigInvalid(ctx.variables());
+        if (errorFlux != null) {
+            return errorFlux;
+        }
+        return server(getTraccarConfig(ctx.variables()));
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.SERVER_SCHEMA, docs = """
@@ -193,9 +205,12 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> server(@JsonObject Val traccarConfig) {
-        return webClient.httpRequest(HttpMethod.GET, requestSettingsFromTraccarConfig("/api/server", traccarConfig))
-                .distinct();
+    public Flux<Value> server(ObjectValue traccarConfig) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/server", traccarConfig);
+        if (settingsOrError instanceof ErrorValue) {
+            return Flux.just(settingsOrError);
+        }
+        return webClient.httpRequest(HttpMethod.GET, (ObjectValue) settingsOrError).distinct();
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.DEVICES_SCHEMA, docs = """
@@ -230,9 +245,12 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Flux<Val> devices(Map<String, Val> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return devices(variables.get(TRACCAR_CONFIG));
+    public Flux<Value> devices(AttributeAccessContext ctx) {
+        val errorFlux = getErrorFluxIfTraccarConfigInvalid(ctx.variables());
+        if (errorFlux != null) {
+            return errorFlux;
+        }
+        return devices(getTraccarConfig(ctx.variables()));
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.DEVICES_SCHEMA, docs = """
@@ -275,9 +293,12 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Flux<Val> devices(@JsonObject Val traccarConfig) {
-        return webClient.httpRequest(HttpMethod.GET, requestSettingsFromTraccarConfig("/api/devices", traccarConfig))
-                .distinct();
+    public Flux<Value> devices(ObjectValue traccarConfig) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/devices", traccarConfig);
+        if (settingsOrError instanceof ErrorValue) {
+            return Flux.just(settingsOrError);
+        }
+        return webClient.httpRequest(HttpMethod.GET, (ObjectValue) settingsOrError).distinct();
     }
 
     @Attribute(schema = TraccarSchemata.DEVICE_SCHEMA, docs = """
@@ -315,9 +336,12 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> device(@Text Val deviceEntityId, Map<String, Val> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return device(deviceEntityId, variables.get(TRACCAR_CONFIG));
+    public Flux<Value> device(TextValue deviceEntityId, AttributeAccessContext ctx) {
+        val errorFlux = getErrorFluxIfTraccarConfigInvalid(ctx.variables());
+        if (errorFlux != null) {
+            return errorFlux;
+        }
+        return device(deviceEntityId, getTraccarConfig(ctx.variables()));
     }
 
     @Attribute(schema = TraccarSchemata.DEVICE_SCHEMA, docs = """
@@ -360,12 +384,13 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> device(Val deviceEntityId, Val traccarConfig) {
-        return webClient
-                .httpRequest(HttpMethod.GET,
-                        requestSettingsFromTraccarConfig(
-                                String.format("/api/devices/%s", deviceEntityId.get().asText()), traccarConfig))
-                .distinct();
+    public Flux<Value> device(TextValue deviceEntityId, ObjectValue traccarConfig) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/devices/%s".formatted(deviceEntityId.value()),
+                traccarConfig);
+        if (settingsOrError instanceof ErrorValue) {
+            return Flux.just(settingsOrError);
+        }
+        return webClient.httpRequest(HttpMethod.GET, (ObjectValue) settingsOrError).distinct();
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.GEOFENCES_SCHEMA, docs = """
@@ -391,9 +416,12 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Flux<Val> geofences(Map<String, Val> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return geofences(variables.get(TRACCAR_CONFIG));
+    public Flux<Value> geofences(AttributeAccessContext ctx) {
+        val errorFlux = getErrorFluxIfTraccarConfigInvalid(ctx.variables());
+        if (errorFlux != null) {
+            return errorFlux;
+        }
+        return geofences(getTraccarConfig(ctx.variables()));
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.GEOFENCES_SCHEMA, docs = """
@@ -427,9 +455,12 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Flux<Val> geofences(@JsonObject Val traccarConfig) {
-        return webClient.httpRequest(HttpMethod.GET, requestSettingsFromTraccarConfig("/api/geofences", traccarConfig))
-                .distinct();
+    public Flux<Value> geofences(ObjectValue traccarConfig) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/geofences", traccarConfig);
+        if (settingsOrError instanceof ErrorValue) {
+            return Flux.just(settingsOrError);
+        }
+        return webClient.httpRequest(HttpMethod.GET, (ObjectValue) settingsOrError).distinct();
     }
 
     @Attribute(schema = TraccarSchemata.GEOFENCE_SCHEMA, docs = """
@@ -456,9 +487,12 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> traccarGeofence(@Text Val geofenceEntityId, Map<String, Val> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return traccarGeofence(geofenceEntityId, variables.get(TRACCAR_CONFIG));
+    public Flux<Value> traccarGeofence(TextValue geofenceEntityId, AttributeAccessContext ctx) {
+        val errorFlux = getErrorFluxIfTraccarConfigInvalid(ctx.variables());
+        if (errorFlux != null) {
+            return errorFlux;
+        }
+        return traccarGeofence(geofenceEntityId, getTraccarConfig(ctx.variables()));
     }
 
     @Attribute(schema = TraccarSchemata.GEOFENCE_SCHEMA, docs = """
@@ -489,10 +523,13 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> traccarGeofence(@Text Val geofenceEntityId, @JsonObject Val traccarConfig) {
-        final var config = requestSettingsFromTraccarConfig(
-                String.format("/api/geofences/%s", geofenceEntityId.get().asText()), traccarConfig);
-        return webClient.httpRequest(HttpMethod.GET, config).distinct();
+    public Flux<Value> traccarGeofence(TextValue geofenceEntityId, ObjectValue traccarConfig) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/geofences/%s".formatted(geofenceEntityId.value()),
+                traccarConfig);
+        if (settingsOrError instanceof ErrorValue) {
+            return Flux.just(settingsOrError);
+        }
+        return webClient.httpRequest(HttpMethod.GET, (ObjectValue) settingsOrError).distinct();
     }
 
     @Attribute(schema = GeoJSONSchemata.POLYGON, docs = """
@@ -525,9 +562,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> geofenceGeometry(@Text Val geofenceEntityId, Map<String, Val> variables) {
-        return traccarGeofence(geofenceEntityId, variables).map(TraccarFunctionLibrary::traccarGeofenceToGeoJson)
-                .distinct();
+    public Flux<Value> geofenceGeometry(TextValue geofenceEntityId, AttributeAccessContext ctx) {
+        return traccarGeofence(geofenceEntityId, ctx).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
     }
 
     @Attribute(schema = GeoJSONSchemata.POLYGON, docs = """
@@ -566,9 +603,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> geofenceGeometry(@Text Val geofenceEntityId, @JsonObject Val traccarConfig) {
-        return traccarGeofence(geofenceEntityId, traccarConfig).map(TraccarFunctionLibrary::traccarGeofenceToGeoJson)
-                .distinct();
+    public Flux<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig) {
+        return traccarGeofence(geofenceEntityId, traccarConfig).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -605,9 +642,12 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> traccarPosition(@Text Val deviceEntityId, Map<String, Val> variables) {
-        assertThatTraccarConfigurationIsPresentInEnvironmentVariables(variables);
-        return traccarPosition(deviceEntityId, variables.get(TRACCAR_CONFIG));
+    public Flux<Value> traccarPosition(TextValue deviceEntityId, AttributeAccessContext ctx) {
+        val errorFlux = getErrorFluxIfTraccarConfigInvalid(ctx.variables());
+        if (errorFlux != null) {
+            return errorFlux;
+        }
+        return traccarPosition(deviceEntityId, getTraccarConfig(ctx.variables()));
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -649,18 +689,22 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> traccarPosition(@Text Val deviceEntityId, @JsonObject Val traccarConfig) {
-        final var config = requestSettingsFromTraccarConfig("/api/positions", traccarConfig,
-                Map.of("deviceId", deviceEntityId.get()));
-        return webClient.httpRequest(HttpMethod.GET, config)
+    public Flux<Value> traccarPosition(TextValue deviceEntityId, ObjectValue traccarConfig) {
+        val deviceId        = ValueJsonMarshaller.toJsonNode(deviceEntityId);
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/positions", traccarConfig,
+                Map.of("deviceId", deviceId));
+        if (settingsOrError instanceof ErrorValue) {
+            return Flux.just(settingsOrError);
+        }
+        return webClient.httpRequest(HttpMethod.GET, (ObjectValue) settingsOrError)
                 .map(TraccarPolicyInformationPoint::takeFirstElementFromArray).distinct();
     }
 
-    private static Val takeFirstElementFromArray(Val maybeArray) {
-        if (!maybeArray.isArray() || maybeArray.getArrayNode().isEmpty()) {
-            return Val.error(String.format("Bad response. Expected a non-empty array. but got: %s", maybeArray));
+    private static Value takeFirstElementFromArray(Value maybeArray) {
+        if (!(maybeArray instanceof ArrayValue array) || array.isEmpty()) {
+            return Value.error(ERROR_BAD_RESPONSE_EXPECTED_ARRAY.formatted(maybeArray));
         }
-        return Val.of(maybeArray.getArrayNode().get(0));
+        return array.getFirst();
     }
 
     @Attribute(schema = GeoJSONSchemata.POINT, docs = """
@@ -685,9 +729,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> position(@Text Val deviceEntityId, Map<String, Val> variables) {
-        return traccarPosition(deviceEntityId, variables).map(TraccarFunctionLibrary::traccarPositionToGeoJSON)
-                .distinct();
+    public Flux<Value> position(TextValue deviceEntityId, AttributeAccessContext ctx) {
+        return traccarPosition(deviceEntityId, ctx).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
     }
 
     @Attribute(schema = GeoJSONSchemata.POINT, docs = """
@@ -716,28 +760,37 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Flux<Val> position(@Text Val deviceEntityId, @JsonObject Val traccarConfig) {
-        return traccarPosition(deviceEntityId, traccarConfig).map(TraccarFunctionLibrary::traccarPositionToGeoJSON)
-                .distinct();
+    public Flux<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig) {
+        return traccarPosition(deviceEntityId, traccarConfig).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
     }
 
-    private Val requestSettingsFromTraccarConfig(String path, Val traccarConfig) {
+    private Value requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig) {
         return requestSettingsFromTraccarConfig(path, traccarConfig, Map.of());
     }
 
-    private Val requestSettingsFromTraccarConfig(String path, Val traccarConfig,
+    private Value requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig,
             Map<String, JsonNode> queryParameters) {
-        final var requestSettings = JSON.objectNode();
-        requestSettings.set(ReactiveWebClient.BASE_URL, getRequiredProperty(ReactiveWebClient.BASE_URL, traccarConfig));
-        requestSettings.set(ReactiveWebClient.PATH, JSON.textNode(path));
-        requestSettings.set(ReactiveWebClient.ACCEPT_MEDIATYPE, JSON.textNode(MediaType.APPLICATION_JSON_VALUE));
+        val baseUrl = getRequiredProperty(ReactiveWebClient.BASE_URL, traccarConfig);
+        if (baseUrl instanceof ErrorValue) {
+            return baseUrl;
+        }
 
-        final var headersWithBasicAuth = JSON.objectNode();
-        headersWithBasicAuth.set(HttpHeaders.AUTHORIZATION, createBasicAuthHeader(traccarConfig));
+        val authHeaderOrError = createBasicAuthHeader(traccarConfig);
+        if (authHeaderOrError instanceof ErrorValue) {
+            return authHeaderOrError;
+        }
 
+        val requestSettings = JSON.objectNode();
+        requestSettings.set(ReactiveWebClient.BASE_URL, toJsonNode(baseUrl));
+        requestSettings.set(ReactiveWebClient.PATH, JSON.stringNode(path));
+        requestSettings.set(ReactiveWebClient.ACCEPT_MEDIATYPE, JSON.stringNode(MediaType.APPLICATION_JSON_VALUE));
+
+        val headersWithBasicAuth = JSON.objectNode();
+        headersWithBasicAuth.set(HttpHeaders.AUTHORIZATION, toJsonNode(authHeaderOrError));
         requestSettings.set(ReactiveWebClient.HEADERS, headersWithBasicAuth);
 
-        final var config = traccarConfig.get();
+        val config = ValueJsonMarshaller.toJsonNode(traccarConfig);
         if (config.has(ReactiveWebClient.POLLING_INTERVAL)) {
             requestSettings.set(ReactiveWebClient.POLLING_INTERVAL, config.get(ReactiveWebClient.POLLING_INTERVAL));
         }
@@ -747,38 +800,67 @@ public class TraccarPolicyInformationPoint {
         }
 
         if (!queryParameters.isEmpty()) {
-            final var queryParams = JSON.objectNode();
-            for (final var parameter : queryParameters.entrySet()) {
+            val queryParams = JSON.objectNode();
+            for (val parameter : queryParameters.entrySet()) {
                 queryParams.set(parameter.getKey(), parameter.getValue());
             }
             requestSettings.set(ReactiveWebClient.URL_PARAMS, queryParams);
         }
 
-        return Val.of(requestSettings);
+        return ValueJsonMarshaller.fromJsonNode(requestSettings);
     }
 
-    public static TextNode createBasicAuthHeader(Val traccarConfig) {
-        final var userName           = getRequiredProperty("userName", traccarConfig).asText();
-        final var password           = getRequiredProperty("password", traccarConfig).asText();
-        final var credentials        = userName + ':' + password;
-        final var encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-        return JSON.textNode("Basic " + encodedCredentials);
-    }
-
-    private static JsonNode getRequiredProperty(String fieldName, Val traccarConfig) {
-        final var jsonNode = traccarConfig.get();
-        if (!jsonNode.has(fieldName)) {
-            throw new PolicyEvaluationException(
-                    String.format("Required field '%s' missing from traccar configuration.", fieldName));
+    /**
+     * Creates a Basic Authentication header value from the traccar configuration.
+     *
+     * @param traccarConfig the traccar configuration containing userName and
+     * password
+     * @return the Base64-encoded Basic Auth header as TextValue, or ErrorValue if
+     * required fields are missing
+     */
+    public static Value createBasicAuthHeader(ObjectValue traccarConfig) {
+        val userName = getRequiredProperty("userName", traccarConfig);
+        if (userName instanceof ErrorValue) {
+            return userName;
         }
-        return jsonNode.get(fieldName);
+        val password = getRequiredProperty("password", traccarConfig);
+        if (password instanceof ErrorValue) {
+            return password;
+        }
+        val credentials        = ((TextValue) userName).value() + ':' + ((TextValue) password).value();
+        val encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+        return Value.of("Basic " + encodedCredentials);
     }
 
-    private void assertThatTraccarConfigurationIsPresentInEnvironmentVariables(Map<String, Val> variables) {
-        if (!variables.containsKey(TRACCAR_CONFIG)) {
-            throw new PolicyEvaluationException(
-                    "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.");
+    private static Value getRequiredProperty(String fieldName, ObjectValue traccarConfig) {
+        if (!traccarConfig.containsKey(fieldName)) {
+            return Value.error(ERROR_REQUIRED_FIELD_MISSING.formatted(fieldName));
         }
+        return traccarConfig.get(fieldName);
+    }
+
+    private static JsonNode toJsonNode(Value value) {
+        if (value instanceof TextValue(String textValue)) {
+            return JSON.stringNode(textValue);
+        } else if (value instanceof NumberValue(BigDecimal numberValue)) {
+            return JSON.numberNode(numberValue);
+        }
+        return ValueJsonMarshaller.toJsonNode(value);
+    }
+
+    private static Flux<Value> getErrorFluxIfTraccarConfigInvalid(ObjectValue variables) {
+        val config = variables.get(TRACCAR_CONFIG);
+        if (config == null || config instanceof UndefinedValue) {
+            return Flux.just(Value.error(ERROR_TRACCAR_CONFIG_UNDEFINED));
+        }
+        if (!(config instanceof ObjectValue)) {
+            return Flux.just(Value.error(ERROR_TRACCAR_CONFIG_NOT_OBJECT.formatted(config.getClass().getSimpleName())));
+        }
+        return null;
+    }
+
+    private static ObjectValue getTraccarConfig(ObjectValue variables) {
+        return (ObjectValue) variables.get(TRACCAR_CONFIG);
     }
 
 }

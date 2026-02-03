@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -25,10 +25,6 @@ public class RemotePolicyDecisionPoint {
 
     public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
         return RemoteHttpPolicyDecisionPoint.builder();
-    }
-
-    public RemoteRsocketPolicyDecisionPoint.RemoteRsocketPolicyDecisionPointBuilder rsocket() {
-        return RemoteRsocketPolicyDecisionPoint.builder();
     }
 
 }

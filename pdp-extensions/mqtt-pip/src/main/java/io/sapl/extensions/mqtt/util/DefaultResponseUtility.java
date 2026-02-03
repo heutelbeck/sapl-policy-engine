@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,11 +17,12 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.sapl.api.interpreter.Val;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getConfigValueOrDefault;
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
@@ -46,6 +47,8 @@ public class DefaultResponseUtility {
     private static final String DEFAULT_RESPONSE_TYPE                = "undefined";
     private static final long   DEFAULT_RESPONSE_TIMEOUT             = 2000;              // in milliseconds
 
+    private static final String ERROR_NO_MQTT_MESSAGE_RECEIVED_YET = "The sapl mqtt pip has not received any mqtt message yet.";
+
     /**
      * Build the {@link DefaultResponseConfig} of the provided configuration.
      *
@@ -53,22 +56,21 @@ public class DefaultResponseUtility {
      * @param pipConfigParams the configuration provided in the attribute finder
      * @return returns the build {@link DefaultResponseConfig}
      */
-    public static DefaultResponseConfig getDefaultResponseConfig(JsonNode pipMqttClientConfig, Val pipConfigParams) {
-        // broker config from attribute finder or broker config in pdp.json
-        final var mqttBrokerConfig       = getMqttBrokerConfig(pipMqttClientConfig, pipConfigParams);
-        final var defaultResponseType    = getDefaultResponseType(pipMqttClientConfig, mqttBrokerConfig);
-        final var defaultResponseTimeout = getDefaultResponseTimeout(pipMqttClientConfig, mqttBrokerConfig);
+    public static DefaultResponseConfig getDefaultResponseConfig(JsonNode pipMqttClientConfig, Value pipConfigParams) {
+        val mqttBrokerConfig       = getMqttBrokerConfig(pipMqttClientConfig, pipConfigParams);
+        val defaultResponseType    = getDefaultResponseType(pipMqttClientConfig, mqttBrokerConfig);
+        val defaultResponseTimeout = getDefaultResponseTimeout(pipMqttClientConfig, mqttBrokerConfig);
 
         return new DefaultResponseConfig(defaultResponseTimeout, defaultResponseType);
     }
 
     /**
-     * Build the {@link Val} for the default response.
+     * Build the {@link Value} for the default response.
      *
      * @param defaultResponseConfig the provided configuration
-     * @return returns the {@link Val} for the default response
+     * @return returns the {@link Value} for the default response
      */
-    public static Val getDefaultVal(DefaultResponseConfig defaultResponseConfig) {
+    public static Value getDefaultValue(DefaultResponseConfig defaultResponseConfig) {
         String defaultResponseType = defaultResponseConfig.getDefaultResponseType();
 
         if (!(DEFAULT_RESPONSE_TYPE.equals(defaultResponseType) || "error".equals(defaultResponseType))) {
@@ -78,16 +80,16 @@ public class DefaultResponseUtility {
         }
 
         if (DEFAULT_RESPONSE_TYPE.equals(defaultResponseType)) {
-            return Val.UNDEFINED;
+            return Value.UNDEFINED;
         } else {
-            return Val.error("The sapl mqtt pip has not received any mqtt message yet.");
+            return Value.error(ERROR_NO_MQTT_MESSAGE_RECEIVED_YET);
         }
     }
 
     private static String getDefaultResponseType(JsonNode pipMqttClientConfig, ObjectNode mqttBrokerConfig) {
         String defaultResponseType;
         if (mqttBrokerConfig.has(ENVIRONMENT_DEFAULT_RESPONSE)) {
-            defaultResponseType = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE).asText();
+            defaultResponseType = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE).asString();
         } else {
             defaultResponseType = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_RESPONSE,
                     DEFAULT_RESPONSE_TYPE);

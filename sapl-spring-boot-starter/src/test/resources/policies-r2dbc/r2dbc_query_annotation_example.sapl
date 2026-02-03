@@ -1,0 +1,15 @@
+set "query annotations, age > 18"
+first or abstain errors propagate
+
+policy "permit query method (1)"
+permit
+    action == "fetchingByQueryMethod";
+    subject.age > 18;
+obligation {
+               "type": "r2dbcQueryManipulation",
+               "conditions": [ "active = true" ],
+			   "selection": {
+						"type": "whitelist",
+						"columns": ["firstname"]
+				}
+             }

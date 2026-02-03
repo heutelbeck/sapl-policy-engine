@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
@@ -27,30 +27,32 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.configuration.service.InternalConfigurations;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import com.hivemq.migration.meta.PersistenceType;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import static io.sapl.api.model.ValueJsonMarshaller.json;
+
 @UtilityClass
 class MqttTestUtility {
 
-    static final String       CLIENT_ID   = "SAPL_MQTT_CLIENT";
-    static final String       BROKER_HOST = "localhost";
-    static final int          BROKER_PORT = 1883;
-    static final ObjectMapper MAPPER      = new ObjectMapper();
+    static final String     CLIENT_ID   = "SAPL_MQTT_CLIENT";
+    static final String     BROKER_HOST = "localhost";
+    static final int        BROKER_PORT = 1883;
+    static final JsonMapper MAPPER      = JsonMapper.builder().build();
 
     public static EmbeddedHiveMQ buildBroker(Path configDir, Path dataDir, Path extensionsDir) {
         InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
         InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-        InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD_MSEC.set(100);
-        InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD_MSEC.set(1000);
-        InternalConfigurations.PERSISTENCE_CLOSE_RETRIES.set(1);
-        InternalConfigurations.PERSISTENCE_CLOSE_RETRY_INTERVAL_MSEC.set(1000);
+        InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD_MSEC.set(500);
+        InternalConfigurations.PERSISTENCE_CLOSE_RETRIES.set(3);
+        InternalConfigurations.PERSISTENCE_CLOSE_RETRY_INTERVAL_MSEC.set(500);
 
         return EmbeddedHiveMQ.builder().withConfigurationFolder(configDir).withDataFolder(dataDir)
                 .withExtensionsFolder(extensionsDir).build();
@@ -76,9 +78,9 @@ class MqttTestUtility {
     }
 
     public static Mqtt5BlockingClient startClient() {
-        final var mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(BROKER_HOST)
-                .serverPort(BROKER_PORT).buildBlocking();
-        final var connAckMessage = mqttClient.connect();
+        val mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(BROKER_HOST).serverPort(BROKER_PORT)
+                .buildBlocking();
+        val connAckMessage = mqttClient.connect();
         if (connAckMessage.getReasonCode() != Mqtt5ConnAckReasonCode.SUCCESS) {
             throw new IllegalStateException(
                     "Connection to the mqtt broker couldn't be established:" + connAckMessage.getReasonCode());
@@ -86,9 +88,8 @@ class MqttTestUtility {
         return mqttClient;
     }
 
-    @SneakyThrows
-    public static Val defaultMqttPipConfig() {
-        return Val.ofJson("""
+    public static Value defaultMqttPipConfig() {
+        return json("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "emitAtRetry" : "false",
@@ -102,9 +103,9 @@ class MqttTestUtility {
                 """);
     }
 
-    public static Map<String, Val> buildVariables() {
-        return Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig", defaultMqttPipConfig(), "resource",
-                Val.NULL, "subject", Val.NULL);
+    public static Map<String, Value> buildVariables() {
+        return Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig", defaultMqttPipConfig(),
+                "resource", Value.NULL, "subject", Value.NULL);
     }
 
     public static Mqtt5Publish buildMqttPublishMessage(String topic, String payload, boolean retain) {

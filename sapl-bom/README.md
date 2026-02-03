@@ -6,8 +6,6 @@ Including the POM in the `dependencyManagement` section of a POM, the `version` 
 
 ## Latest Release 
 
-We recommend using the SNAPSHOT version as the latest stable version is outdated.
-
 ```xml
 	<dependencyManagement>
 		<dependencies>
@@ -30,7 +28,7 @@ We recommend using the SNAPSHOT version as the latest stable version is outdated
 			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
-				<version>3.1.0-SNAPSHOT</version>
+				<version>4.0.0-SNAPSHOT</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>

@@ -1,8 +1,0 @@
-policy "policy eat icecream"
-permit
-    action == "eat" & resource == "icecream"
-where
-    subject.<test.upper> == "WILLI";
-    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
-
-

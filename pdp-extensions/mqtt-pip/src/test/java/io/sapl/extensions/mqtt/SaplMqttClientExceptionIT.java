@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -18,11 +18,11 @@
 package io.sapl.extensions.mqtt;
 
 import com.hivemq.embedded.EmbeddedHiveMQ;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.extensions.mqtt.util.DefaultResponseUtility;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
@@ -31,13 +31,12 @@ import reactor.test.StepVerifier;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Map;
 
 import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
+import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
 import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
 import static org.mockito.ArgumentMatchers.any;
 
-//@Disabled // This one ?
 class SaplMqttClientExceptionIT {
 
     private static final long DELAY_MS = 500L;
@@ -62,38 +61,39 @@ class SaplMqttClientExceptionIT {
 
     @AfterEach
     void afterEach() {
+        saplMqttClient.close();
         stopBroker(mqttBroker);
     }
 
     @Test
-    void when_exceptionOccursWhileBuildingMessageFlux_then_returnFluxWithValOfError() {
+    void when_exceptionOccursWhileBuildingMessageFlux_then_returnFluxWithValueOfError() {
         // GIVEN
-        final var topics = "topic";
+        val topics = "topic";
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), null);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                .expectNext(Val.error("Failed to build stream of messages.")).thenCancel().verify();
+                .expectNext(Value.error("Failed to build stream of messages.")).thenCancel().verify();
     }
 
     @Test
-    @Disabled("This test causes side effects and makes SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics fail by timeout")
-    void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
+    void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValueOfError() {
         // GIVEN
-        final var topics = "topic";
+        val topics = "topic";
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), Map.of());
-
         try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
                 .mockStatic(DefaultResponseUtility.class)) {
             defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
                     .thenThrow(new RuntimeException("Error in stream"));
+
+            val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), buildVariables());
+
             // THEN
             StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                    .expectNext(Val.error("Error in stream")).thenCancel().verify();
+                    .expectNext(Value.error("Error in stream")).thenCancel().verify();
         }
     }
 }

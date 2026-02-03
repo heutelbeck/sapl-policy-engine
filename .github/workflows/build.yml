@@ -60,7 +60,7 @@ jobs:
 
     env:
       # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 21. All other platforms, just do quick unit tests.
-      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '21') }}
+      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '25') }}
       # PRs from Dependabot are treated the same as those from forks since secrets are not accessible
       # for both (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
       IS_FORK: ${{ github.event.pull_request.head.repo.fork || (github.actor == 'dependabot[bot]') }}
@@ -100,17 +100,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Add auth-host to /etc/hosts for OAuth Integration Tests
+      - name: Build Dependencies of SAPL Node
         if: env.RUN_ANALYSIS == 'true'
-        run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
+        run: mvn -U -B install -pl sapl-node -am -DskipTests
 
-      - name: Build Dependencies of SAPL Server LT
+      - name: Build SAPL Node Image
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -U -B install -pl sapl-server-lt -am -DskipTests
-
-      - name: Build SAPL Server LT Image
-        if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+        run: mvn -B spring-boot:build-image -pl sapl-node -DskipTests
 
       - name: Run Unit Tests Only
         if: env.RUN_ANALYSIS == 'false'
@@ -122,7 +118,7 @@ jobs:
         # fork and workflows triggered by other events.
       - name: Run Unit Tests, Analysis, and Integration Tests
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
+        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T 1.5C
 
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -171,8 +167,6 @@ jobs:
         # respective reports are needed.
         # To limit its analysis to the pull request that triggered this workflow, the pull
         # request's number is needed.
-        # To run the analysis on the module sapl-eclipse-plugin, information from the
-        # remaining files below is needed.
       - name: Upload Artifact
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
@@ -185,6 +179,9 @@ jobs:
             **/target/classes
             **/target/test-classes
             .git
+            !.git/config
+            !.git/credentials
+            !.git/**/config
             **/target/site/jacoco/jacoco.xml
             **/target/spotbugsXml.xml
             pr_data.txt
@@ -212,9 +209,9 @@ jobs:
     name: Publish Project Assets
     runs-on: ubuntu-latest
     outputs:
-      sapl-server-lt-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
+      sapl-node-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
       artifact-version: ${{ steps.get-version.outputs.VERSION }}
-      sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
+      sapl-node-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
       sapl-playground-docker-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
     permissions:
       contents: read    # for checkout
@@ -271,21 +268,21 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Deploy Maven Artifacts
-        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
+        run: mvn -B --no-transfer-progress -pl !:sapl-node,!:sapl-server-ce,!:sapl-playground,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Build All for Server and Eclipse Plugin
-        run: mvn -U -B clean install -DskipTests -Psign -Pproduction -T 1.5C
+      - name: Build All for Server
+        run: mvn -U -B clean install -DskipTests -Psign,production -T 1.5C
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Build SAPL Server LT Image
-        run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+      - name: Build SAPL Node Image
+        run: mvn -B spring-boot:build-image -pl sapl-node -DskipTests
 
       - name: Build SAPL Server CE Image
         run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Pproduction
@@ -311,13 +308,13 @@ jobs:
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Push Server LT Image to ghcr.io
+      - name: Push SAPL Node Image to ghcr.io
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: error
-          command: docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+          command: docker push ghcr.io/heutelbeck/sapl-node:${{ steps.get-version.outputs.VERSION }}
 
       - name: Push Server CE Image to ghcr.io
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
@@ -378,15 +375,15 @@ jobs:
             docker logs sapl-playground --tail 50
             exit 1
 
-      - name: Get hashes of Server LT
+      - name: Get hashes of SAPL Node
         id: get-server-lt-hash
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
           REGISTRY: ghcr.io
-          IMAGE: heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+          IMAGE: heutelbeck/sapl-node:${{ steps.get-version.outputs.VERSION }}
         run: |
           # Save the location of the maven output files for easier reference
-          ARTIFACT_PATTERN=sapl-server-lt/target/sapl-server-lt-*.jar
+          ARTIFACT_PATTERN=sapl-node/target/sapl-node-*.jar
           
           echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
           
@@ -406,28 +403,17 @@ jobs:
           echo "Digest of container: $IMAGE_DIGEST"
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
-      - name: Push Eclipse Plugin to Website
-        uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
-          SRC_FOLDER: sapl-eclipse-plugin/sapl-eclipse-repository/target/repository
-          DEST_OWNER: heutelbeck
-          DEST_REPO: sapl-pages
-          DEST_BRANCH: master
-          DEST_FOLDER: sapl-eclipse-plugin
-          DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
-
-      # Upload the sapl-server-lt artifact and additional files
+      # Upload the sapl-node artifact and additional files
       - name: Upload artifact and signature
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
           if-no-files-found: error
           path: |
-            sapl-server-lt/target/sapl-server-lt-*.jar
-            sapl-server-lt/target/sapl-server-lt-*.jar.asc
-            sapl-server-lt/target/sapl-server-lt-*.jar.sha1
-            sapl-server-lt/target/sapl-server-lt-*.jar.md5
-            sapl-server-lt/target/site/io.*.spdx.json    
+            sapl-node/target/sapl-node-*.jar
+            sapl-node/target/sapl-node-*.jar.asc
+            sapl-node/target/sapl-node-*.jar.sha1
+            sapl-node/target/sapl-node-*.jar.md5
+            sapl-node/target/site/io.*.spdx.json    
 
       - name: Trigger CI Build of sapl-demos
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2

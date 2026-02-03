@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -29,6 +29,8 @@ import java.io.IOException;
 @Mojo(name = "enable-coverage-collection", defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class EnableCoverageCollectionMojo extends AbstractMojo {
 
+    private static final String ERROR_FAILED_TO_DELETE_DIRECTORY = "Failed to delete directory.";
+
     @Parameter(defaultValue = "true")
     private boolean coverageEnabled;
 
@@ -44,7 +46,7 @@ public class EnableCoverageCollectionMojo extends AbstractMojo {
             try {
                 FileUtils.deleteDirectory(PathHelper.resolveBaseDir(outputDir, projectBuildDir, getLog()).toFile());
             } catch (IOException e) {
-                throw new MojoExecutionException("Failed to delete directory", e);
+                throw new MojoExecutionException(ERROR_FAILED_TO_DELETE_DIRECTORY, e);
             }
         }
     }

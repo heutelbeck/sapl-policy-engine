@@ -1,0 +1,4 @@
+policy "role-policy"
+permit
+    action == "admin";
+    subject.<user.role> == "admin";

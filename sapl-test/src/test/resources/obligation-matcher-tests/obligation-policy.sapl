@@ -1,0 +1,14 @@
+policy "obligation-policy"
+permit
+    action == "read";
+obligation
+    {
+        "type": "audit",
+        "action": "log",
+        "level": 1
+    }
+advice
+    {
+        "notify": "admin",
+        "channel": "email"
+    }

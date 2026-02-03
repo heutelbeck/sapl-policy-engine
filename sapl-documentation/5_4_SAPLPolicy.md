@@ -32,10 +32,11 @@ If the target expression evaluates to `true` for a certain authorization subscri
 
 A matching policy whose conditions in the body evaluate to `true` is called *applicable* to an authorization subscription and returns its entitlement. Both target expression and body define conditions that must be satisfied for the policy to be applicable. Although they seem to serve a similar purpose, there is an important difference: For an authorization subscription, the target expression of each top-level document is checked to select policies matching the subscription from a possibly large set of policy documents. Indexing mechanisms may be used to fulfill this task efficiently.
 
-Accordingly, there are two limitations regarding the elements allowed in the target:
+Accordingly, there is one limitation regarding the elements allowed in the target:
 
-- As lazy evaluation deviates from Boolean logic and prevents effective indexing, the logical operators `&&` and `||` may not be used. Instead, the target needs to use the operators `&` and `|`, for which eager evaluation is applied.
 - [Attribute finder steps](#attribute-finders) that have access to environment variables and may contact external PIPs are not allowed in the target. Functions may be used because their output only depends on the arguments passed.
+
+Note: Both `&`/`|` and `&&`/`||` operators work identically in target expressions.
 
 ### Body
 

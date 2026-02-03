@@ -1,4 +1,10 @@
-// D3.js-based JSON visualization with hierarchical tree layout
+/*
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * D3.js-based JSON visualization with hierarchical tree layout
+ */
 
 import {css, html, LitElement} from 'lit';
 import {customElement, property, query} from 'lit/decorators.js';
@@ -48,7 +54,9 @@ const COLORS = {
         string: { fill: 'hsl(145, 30%, 20%)', border: 'rgba(69, 140, 99, 0.7)', text: 'rgb(85, 170, 119)' },
         number: { fill: 'hsl(179, 30%, 25%)', border: 'rgba(64, 160, 159, 0.8)', text: 'rgb(100, 200, 200)' },
         boolean: { fill: 'hsl(280, 30%, 25%)', border: 'rgba(180, 120, 200, 0.6)', text: 'rgb(200, 140, 220)' },
-        null: { fill: 'hsl(210, 8%, 16%)', border: 'rgba(255, 255, 255, 0.2)', text: 'rgba(255, 255, 255, 0.4)' }
+        null: { fill: 'hsl(210, 8%, 16%)', border: 'rgba(255, 255, 255, 0.2)', text: 'rgba(255, 255, 255, 0.4)' },
+        undefined: { fill: 'hsl(210, 8%, 16%)', border: 'rgba(255, 255, 255, 0.15)', text: 'rgba(255, 255, 255, 0.35)' },
+        error: { fill: 'hsl(0, 50%, 20%)', border: 'rgba(255, 100, 100, 0.7)', text: 'rgb(255, 120, 120)' }
     }
 };
 
@@ -70,6 +78,9 @@ export class JsonGraphComponent extends LitElement {
 
     @property({ type: String })
     initialTransform: string = '';
+
+    @property({ type: Boolean })
+    valueMode: boolean = false;
 
     @query('#graph-container')
     private container!: HTMLDivElement;
@@ -112,7 +123,7 @@ export class JsonGraphComponent extends LitElement {
             transition: all 0.2s;
             pointer-events: auto;
         }
-        
+
         :host([dialog-open]) .maximize-button {
             display: none;
         }
@@ -559,6 +570,31 @@ export class JsonGraphComponent extends LitElement {
     }
 
     private jsonToHierarchy(obj: any, key: string = 'root'): any {
+        // In valueMode, detect special markers for undefined and error values
+        if (this.valueMode && typeof obj === 'object' && obj !== null) {
+            if (obj['$undefined'] === true) {
+                return {
+                    name: key,
+                    type: 'undefined',
+                    fullLabel: key === 'root' ? 'undefined' : `${key}: undefined`,
+                    value: undefined
+                };
+            }
+            if (obj['$error'] === true) {
+                const message = obj['message'] || 'Unknown error';
+                const location = obj['location'] || '';
+                const errorLabel = location
+                    ? `${key}: ERROR(${message}) at ${location}`
+                    : `${key}: ERROR(${message})`;
+                return {
+                    name: key,
+                    type: 'error',
+                    fullLabel: key === 'root' ? `ERROR: ${message}` : errorLabel,
+                    value: obj
+                };
+            }
+        }
+
         const type = this.getValueType(obj);
         const label = this.formatLabel(key, obj, type);
 

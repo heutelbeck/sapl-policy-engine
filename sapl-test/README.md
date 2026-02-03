@@ -18,17 +18,6 @@ If an application uses an embedded PDP, SAPL policy tests are treated like tradi
 Developers can deploy policy tests alongside these tests and execute them identically via the Maven lifecycle on a local
 workstation or in a CI pipeline.
 
-### SAPL-Server
-
-The following repository GitOps Demo showcases a deployment pipeline with SAPL policy tests in a GitOps-Style for the
-headless SAPL-Server-LT. Here every change to the policies is introduced via a pull request on the main branch. The CI
-pipeline executes the policy tests for every pull request and breaks the pipeline run if policy tests are failing.
-Merging a pull request on the main branch triggers automatic synchronization of the policies to a SAPL-Server-LT
-instance.
-
-SAPL tests use Java. Therefore, it is impossible to use the SAPL test framework when deploying
-SAPL-Server-Implementations with GUI-based PAP (i.e., SAPL-Server-CE or SAPL-Server-EE).
-
 ### Unit-Tests
 
 SAPL tests use JUnit for executing SAPL unit test cases. Each test is prepared by creating SaplUnitTestFixture. This can

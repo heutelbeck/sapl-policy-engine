@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -25,7 +25,8 @@ import java.io.Serializable;
 @FunctionalInterface
 public interface ValidationFinishedListener extends Serializable {
     /**
-     * @param event the validation event.
+     * @param event
+     * the validation event.
      */
     void onValidationFinished(ValidationFinishedEvent event);
 }

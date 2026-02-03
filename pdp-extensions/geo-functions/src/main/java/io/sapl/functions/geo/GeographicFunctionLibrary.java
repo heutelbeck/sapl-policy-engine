@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,12 +17,9 @@
  */
 package io.sapl.functions.geo;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.*;
-import io.sapl.api.validation.Number;
+import io.sapl.api.model.*;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import org.geotools.api.feature.Feature;
@@ -90,7 +87,6 @@ public class GeographicFunctionLibrary {
 
             ## Notes
             - The library assumes all geometries are in GeoJSON format.
-            - All functions are schema-validated for correctness.
             - Methods operate seamlessly with input data using JSON processing.
 
             For more details, refer to individual function documentation.
@@ -105,6 +101,7 @@ public class GeographicFunctionLibrary {
     static final String NO_GEOMETRIES_IN_KML_ERROR           = "No geometries in KML.";
     static final String IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR = "Operation isClosed is not applicable for the type %s.";
     static final String NOT_A_GEOMETRY_COLLECTION_ERROR      = "The second parameter of the geometryIsIn was not a geometry collection.";
+    static final String INVALID_GEOJSON_ERROR                = "Invalid GeoJSON geometry.";
 
     private static final String WGS84 = "EPSG:4326";
 
@@ -140,7 +137,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point1 = { "type": "Point", "coordinates": [10.0, 20.0] };
                 var point2 = { "type": "Point", "coordinates": [10.0, 20.0] };
                 geo.equalsExact(point1, point2) == true;
@@ -151,8 +147,7 @@ public class GeographicFunctionLibrary {
             - Only exact matches are considered equal; differences in precision or coordinate order will result in `false`.
             - Suitable for testing identical geometries in scenarios requiring strict equality.
             """)
-    public Val equalsExact(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
+    public static Value equalsExact(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::equalsExact);
     }
 
@@ -175,7 +170,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var point = { "type": "Point", "coordinates": [20.0, 20.0] };
                 geo.disjoint(polygon, point) == true;
@@ -186,8 +180,7 @@ public class GeographicFunctionLibrary {
             - Disjoint geometries have no spatial overlap.
             - Use this function to confirm spatial separation between geometries.
             """)
-    public Val disjoint(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
+    public static Value disjoint(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::disjoint);
     }
 
@@ -210,7 +203,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[10,0], [10,10], [20,10], [20,0], [10,0]]] };
                 geo.touches(polygon1, polygon2) == true;
@@ -220,8 +212,7 @@ public class GeographicFunctionLibrary {
 
             - Use this function to determine adjacency without overlap.
             """)
-    public Val touches(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
+    public static Value touches(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::touches);
     }
 
@@ -244,7 +235,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var line1 = { "type": "LineString", "coordinates": [[0,0], [10,10]] };
                 var line2 = { "type": "LineString", "coordinates": [[0,10], [10,0]] };
                 geo.crosses(line1, line2) == true;
@@ -254,8 +244,7 @@ public class GeographicFunctionLibrary {
             - Suitable for checking intersections between lines or other geometries that share some interior points.
             - Does not apply if one geometry fully contains the other.
             """)
-    public Val crosses(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
+    public static Value crosses(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::crosses);
     }
 
@@ -278,7 +267,6 @@ public class GeographicFunctionLibrary {
             ```
             policy "example"
             permit
-            where
                 var point = { "type": "Point", "coordinates": [5, 5] };
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 geo.within(point, polygon) == true;
@@ -288,8 +276,7 @@ public class GeographicFunctionLibrary {
 
             - Useful for containment checks where the geometry must be fully enclosed.
             """)
-    public Val within(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
+    public static Value within(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
                 (thiz, that) -> (that instanceof GeometryCollection) ? thiz.within(that.union()) : thiz.within(that));
     }
@@ -313,7 +300,6 @@ public class GeographicFunctionLibrary {
             ```
             policy "example"
             permit
-            where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var point = { "type": "Point", "coordinates": [5, 5] };
                 geo.contains(polygon, point) == true;
@@ -323,8 +309,7 @@ public class GeographicFunctionLibrary {
 
             - Suitable for verifying if a geometry encompasses another geometry entirely.
             """)
-    public Val contains(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
+    public static Value contains(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, (thiz,
                 that) -> (thiz instanceof GeometryCollection) ? thiz.union().contains(that) : thiz.contains(that));
     }
@@ -348,7 +333,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
                 geo.overlaps(polygon1, polygon2) == true;
@@ -358,8 +342,7 @@ public class GeographicFunctionLibrary {
 
             - Use this function to check partial overlap without full containment.
             """)
-    public Val overlaps(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
+    public static Value overlaps(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::overlaps);
     }
 
@@ -382,7 +365,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var line1 = { "type": "LineString", "coordinates": [[0,0], [10,10]] };
                 var line2 = { "type": "LineString", "coordinates": [[0,10], [10,0]] };
                 geo.intersects(line1, line2) == true;
@@ -392,8 +374,7 @@ public class GeographicFunctionLibrary {
 
             - Use this function to verify if geometries have any spatial overlap.
             """)
-    public Val intersects(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
+    public static Value intersects(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::intersects);
     }
 
@@ -417,7 +398,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [3, 4] };
                 geo.isWithinDistance(point1, point2, 5.0) == true;
@@ -427,10 +407,9 @@ public class GeographicFunctionLibrary {
 
             - Use this function for proximity checks between geometries.
             """)
-    public Val isWithinDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry, @Number Val distance) {
+    public static Value isWithinDistance(ObjectValue thisGeometry, ObjectValue thatGeometry, NumberValue distance) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
-                (thiz, that) -> thiz.isWithinDistance(that, distance.get().asDouble()));
+                (thiz, that) -> thiz.isWithinDistance(that, distance.value().doubleValue()));
     }
 
     @Function(docs = """
@@ -453,7 +432,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
                 geo.isWithinGeoDistance(point1, point2, 150) == true;
@@ -463,14 +441,19 @@ public class GeographicFunctionLibrary {
 
             - Suitable for geodesic distance checks, especially for large-scale geographic data.
             """)
-    public Val isWithinGeodesicDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry, @Number Val distance) {
+    public static Value isWithinGeodesicDistance(ObjectValue thisGeometry, ObjectValue thatGeometry,
+            NumberValue distance) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
-                (thiz, that) -> geodesicDistance(thiz, that) <= distance.get().asDouble());
+                (thiz, that) -> geodesicDistance(thiz, that) <= distance.value().doubleValue());
     }
 
-    private Val testGeometryBiPredicate(Val thisGeometry, Val thatGeometry, BiPredicate<Geometry, Geometry> predicate) {
-        return Val.of(predicate.test(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry)));
+    private static Value testGeometryBiPredicate(ObjectValue thisGeometry, ObjectValue thatGeometry,
+            BiPredicate<Geometry, Geometry> predicate) {
+        try {
+            return Value.of(predicate.test(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry)));
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     /*
@@ -495,7 +478,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var line = { "type": "LineString", "coordinates": [[0,0], [1,1], [1,0], [0,0]] };
                 geo.isSimple(line) == false;
             ```
@@ -504,8 +486,12 @@ public class GeographicFunctionLibrary {
 
             - Use this function to validate geometry simplicity, especially for topological checks.
             """)
-    public Val isSimple(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
-        return Val.of(geoJsonToGeometry(geometry).isSimple());
+    public static Value isSimple(ObjectValue geometry) {
+        try {
+            return Value.of(geoJsonToGeometry(geometry).isSimple());
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     @Function(docs = """
@@ -525,7 +511,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 geo.isValid(polygon) == true;
             ```
@@ -534,8 +519,12 @@ public class GeographicFunctionLibrary {
 
             - A valid geometry adheres to topological constraints such as no self-intersections.
             """)
-    public Val isValid(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometry) {
-        return Val.of(geoJsonToGeometry(jsonGeometry).isValid());
+    public static Value isValid(ObjectValue jsonGeometry) {
+        try {
+            return Value.of(geoJsonToGeometry(jsonGeometry).isValid());
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     @Function(docs = """
@@ -556,7 +545,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var ring = { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
                 geo.isClosed(ring) == true;
             ```
@@ -566,18 +554,22 @@ public class GeographicFunctionLibrary {
             - Only applicable to LineStrings and other linear geometries.
             - Use to ensure rings or loops are adequately closed.
             """)
-    public Val isClosed(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val geometry) {
-        final var jtsGeometry = geoJsonToGeometry(geometry);
-        if (Geometry.TYPENAME_POINT.equals(jtsGeometry.getGeometryType())
-                || Geometry.TYPENAME_MULTIPOINT.equals(jtsGeometry.getGeometryType())) {
-            return Val.TRUE;
+    public static Value isClosed(ObjectValue geometry) {
+        try {
+            var jtsGeometry = geoJsonToGeometry(geometry);
+            if (Geometry.TYPENAME_POINT.equals(jtsGeometry.getGeometryType())
+                    || Geometry.TYPENAME_MULTIPOINT.equals(jtsGeometry.getGeometryType())) {
+                return Value.TRUE;
+            }
+            return switch (jtsGeometry.getGeometryType()) {
+            case Geometry.TYPENAME_LINESTRING      -> Value.of(((LineString) jtsGeometry).isClosed());
+            case Geometry.TYPENAME_MULTILINESTRING -> Value.of(((MultiLineString) jtsGeometry).isClosed());
+            default                                ->
+                Value.error(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR.formatted(jtsGeometry.getGeometryType()));
+            };
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
         }
-        return switch (jtsGeometry.getGeometryType()) {
-        case Geometry.TYPENAME_LINESTRING      -> Val.of(((LineString) jtsGeometry).isClosed());
-        case Geometry.TYPENAME_MULTILINESTRING -> Val.of(((MultiLineString) jtsGeometry).isClosed());
-        default                                ->
-            Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, jtsGeometry.getGeometryType()));
-        };
     }
 
     /*
@@ -602,7 +594,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point = { "type": "Point", "coordinates": [0, 0] };
                 geo.buffer(point, 10.0) == { "type": "Polygon", "coordinates": [[[10,0], [0,10], [-10,0], [0,-10], [10,0]]] };
             ```
@@ -610,9 +601,9 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Useful for creating buffer zones around points, lines, or polygons.
-            """, schema = GeoJSONSchemata.POLYGON)
-    public Val buffer(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry, @Number Val bufferWidth) {
-        return applyUnaryTransformation(geometry, g -> g.buffer(bufferWidth.get().asDouble()));
+            """)
+    public static Value buffer(ObjectValue geometry, NumberValue bufferWidth) {
+        return applyUnaryTransformation(geometry, g -> g.buffer(bufferWidth.value().doubleValue()));
     }
 
     @Function(docs = """
@@ -631,7 +622,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 geo.boundary(polygon) == { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
             ```
@@ -640,8 +630,8 @@ public class GeographicFunctionLibrary {
 
             - Returns the outer boundary for polygonal geometries.
             - Returns line segments or points depending on input geometry type.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public Val boundary(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val geometry) {
+            """)
+    public static Value boundary(ObjectValue geometry) {
         return applyUnaryTransformation(geometry, Geometry::getBoundary);
     }
 
@@ -661,7 +651,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 geo.centroid(polygon) == { "type": "Point", "coordinates": [5, 5] };
             ```
@@ -670,8 +659,8 @@ public class GeographicFunctionLibrary {
 
             - The centroid is the center of mass for the geometry.
             - For multi-part geometries, the result considers all components.
-            """, schema = GeoJSONSchemata.POINT)
-    public Val centroid(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
+            """)
+    public static Value centroid(ObjectValue geometry) {
         return applyUnaryTransformation(geometry, Geometry::getCentroid);
     }
 
@@ -691,7 +680,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var points = { "type": "MultiPoint", "coordinates": [[0,0], [0,10], [10,10], [10,0]] };
                 geo.convexHull(points) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
             ```
@@ -700,13 +688,17 @@ public class GeographicFunctionLibrary {
 
             - Computes the smallest convex polygon containing all points.
             - Useful for simplifying geometries or bounding datasets.
-            """, schema = GeoJSONSchemata.CONVEX_HULL)
-    public Val convexHull(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
+            """)
+    public static Value convexHull(ObjectValue geometry) {
         return applyUnaryTransformation(geometry, Geometry::convexHull);
     }
 
-    private Val applyUnaryTransformation(Val thisGeometry, UnaryOperator<Geometry> transformation) {
-        return geometryToGeoJSON(transformation.apply(geoJsonToGeometry(thisGeometry)));
+    private static Value applyUnaryTransformation(ObjectValue thisGeometry, UnaryOperator<Geometry> transformation) {
+        try {
+            return geometryToGeoJSON(transformation.apply(geoJsonToGeometry(thisGeometry)));
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     @Function(docs = """
@@ -725,7 +717,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
                 geo.union(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [5,10], [5,15], [15,15], [15,5], [10,5], [10,0], [0,0]]] };
@@ -735,17 +726,21 @@ public class GeographicFunctionLibrary {
 
             - Merges overlapping areas of geometries.
             - Accepts geometry collections as input.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public Val union(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val... geometries) {
-        if (geometries.length == 0) {
-            return geometryToGeoJSON(WGS84_FACTORY.createEmpty(-1));
-        }
+            """)
+    public static Value union(ObjectValue... geometries) {
+        try {
+            if (geometries.length == 0) {
+                return geometryToGeoJSON(WGS84_FACTORY.createEmpty(-1));
+            }
 
-        var geomUnion = geoJsonToGeometry(geometries[0]);
-        for (int i = 1; i < geometries.length; i++) {
-            geomUnion = geomUnion.union(geoJsonToGeometry(geometries[i]));
+            var geomUnion = geoJsonToGeometry(geometries[0]);
+            for (int i = 1; i < geometries.length; i++) {
+                geomUnion = geomUnion.union(geoJsonToGeometry(geometries[i]));
+            }
+            return geometryToGeoJSON(geomUnion);
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
         }
-        return geometryToGeoJSON(geomUnion);
     }
 
     @Function(docs = """
@@ -765,7 +760,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
                 geo.intersection(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[5,5], [5,10], [10,10], [10,5], [5,5]]] };
@@ -775,9 +769,8 @@ public class GeographicFunctionLibrary {
 
             - Computes the overlap between geometries.
             - Useful for finding shared areas.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public Val intersection(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
+            """)
+    public static Value intersection(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::intersection);
     }
 
@@ -798,7 +791,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
                 geo.difference(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
@@ -808,9 +800,8 @@ public class GeographicFunctionLibrary {
 
             - Computes the geometric difference by subtracting overlapping areas.
             - Useful for isolating non-intersecting regions.
-            """, schema = GeoJSONSchemata.GEOMETRIES)
-    public Val difference(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
+            """)
+    public static Value difference(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::difference);
     }
 
@@ -831,7 +822,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
                 geo.symDifference(polygon1, polygon2) == { "type": "MultiPolygon", "coordinates": [[[[0,0], [0,10], [10,10], [10,0], [0,0]]], [[[5,5], [5,15], [15,15], [15,5], [5,5]]]] };
@@ -841,15 +831,19 @@ public class GeographicFunctionLibrary {
 
             - Computes areas that are exclusive to each input geometry.
             - Useful for highlighting non-overlapping regions.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public Val symDifference(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
+            """)
+    public static Value symDifference(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::symDifference);
     }
 
-    private Val applyBinaryTransformation(Val thisGeometry, Val thatGeometry, BinaryOperator<Geometry> transformation) {
-        return geometryToGeoJSON(
-                transformation.apply(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry)));
+    private static Value applyBinaryTransformation(ObjectValue thisGeometry, ObjectValue thatGeometry,
+            BinaryOperator<Geometry> transformation) {
+        try {
+            return geometryToGeoJSON(
+                    transformation.apply(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry)));
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     /*
@@ -874,7 +868,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [3, 4] };
                 geo.distance(point1, point2) == 5.0;
@@ -885,9 +878,12 @@ public class GeographicFunctionLibrary {
             - The distance is calculated based on the coordinate units.
             - Suitable for planar (non-geodesic) distance calculations.
             """)
-    public Val distance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
-        return Val.of(geoJsonToGeometry(thisGeometry).distance(geoJsonToGeometry(thatGeometry)));
+    public static Value distance(ObjectValue thisGeometry, ObjectValue thatGeometry) {
+        try {
+            return Value.of(geoJsonToGeometry(thisGeometry).distance(geoJsonToGeometry(thatGeometry)));
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     @Function(docs = """
@@ -907,7 +903,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
                 geo.geoDistance(point1, point2) <= 157.25;
@@ -918,9 +913,12 @@ public class GeographicFunctionLibrary {
             - Uses geodesic calculations suitable for geographic coordinates.
             - Ideal for large-scale or global distance computations.
             """)
-    public Val geodesicDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
-        return Val.of(geodesicDistanceOfVals(thisGeometry, thatGeometry));
+    public static Value geodesicDistance(ObjectValue thisGeometry, ObjectValue thatGeometry) {
+        try {
+            return Value.of(geodesicDistanceOfValues(thisGeometry, thatGeometry));
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     @Function(docs = """
@@ -943,7 +941,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
                 geo.geoDistance(point1, point2, "EPSG:4326") <= 157.25;
@@ -954,33 +951,38 @@ public class GeographicFunctionLibrary {
             - Uses geodesic calculations suitable for geographic coordinates.
             - Ideal for large-scale or global distance computations.
             """)
-    public Val geoDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometryThis,
-            @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometryThat,
-            Val coordinateReferenceSystem) {
-        return Val.of(geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem.getText()));
+    public static Value geoDistance(ObjectValue jsonGeometryThis, ObjectValue jsonGeometryThat,
+            TextValue coordinateReferenceSystem) {
+        try {
+            return Value.of(geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem.value()));
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
-    private double geodesicDistanceOfVals(Val thisGeometry, Val thatGeometry) {
+    private static double geodesicDistanceOfValues(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return geodesicDistance(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry));
     }
 
-    private double geodesicDistance(Val thisGeometry, Val thatGeometry, String coordinateReferenceSystem) {
+    private static double geodesicDistance(ObjectValue thisGeometry, ObjectValue thatGeometry,
+            String coordinateReferenceSystem) {
         return geodesicDistance(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry),
                 coordinateReferenceSystem);
     }
 
-    private double geodesicDistance(Geometry thisGeometry, Geometry thatGeometry) {
+    private static double geodesicDistance(Geometry thisGeometry, Geometry thatGeometry) {
         return geodesicDistance(thisGeometry, thatGeometry, WGS84);
     }
 
     @SneakyThrows
-    private double geodesicDistance(Geometry thisGeometry, Geometry thatGeometry, String coordinateReferenceSystem) {
-        final var crs              = CRS.decode(coordinateReferenceSystem);
-        final var distOp           = new DistanceOp(thisGeometry, thatGeometry);
-        final var nearestPoints    = distOp.nearestPoints();
-        final var nearestPointThis = nearestPoints[0];
-        final var nearestPointThat = nearestPoints[1];
-        final var gc               = new GeodeticCalculator(crs);
+    private static double geodesicDistance(Geometry thisGeometry, Geometry thatGeometry,
+            String coordinateReferenceSystem) {
+        var crs              = CRS.decode(coordinateReferenceSystem);
+        var distOp           = new DistanceOp(thisGeometry, thatGeometry);
+        var nearestPoints    = distOp.nearestPoints();
+        var nearestPointThis = nearestPoints[0];
+        var nearestPointThat = nearestPoints[1];
+        var gc               = new GeodeticCalculator(crs);
         gc.setStartingPosition(JTS.toDirectPosition(nearestPointThis, crs));
         gc.setDestinationPosition(JTS.toDirectPosition(nearestPointThat, crs));
         return gc.getOrthodromicDistance();
@@ -1002,7 +1004,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var line = { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
                 geo.length(line) == 40.0;
             ```
@@ -1011,8 +1012,12 @@ public class GeographicFunctionLibrary {
 
             - Measures the total length or perimeter based on input geometry.
             """)
-    public Val length(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
-        return Val.of(geoJsonToGeometry(geometry).getLength());
+    public static Value length(ObjectValue geometry) {
+        try {
+            return Value.of(geoJsonToGeometry(geometry).getLength());
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     @Function(docs = """
@@ -1031,7 +1036,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 geo.area(polygon) == 100.0;
             ```
@@ -1041,8 +1045,12 @@ public class GeographicFunctionLibrary {
             - Computes the area for polygonal geometries.
             - Units depend on coordinate system or projection used.
             """)
-    public Val area(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
-        return Val.of(geoJsonToGeometry(geometry).getArea());
+    public static Value area(ObjectValue geometry) {
+        try {
+            return Value.of(geoJsonToGeometry(geometry).getArea());
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     /*
@@ -1068,7 +1076,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var collection1 = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] }
                 ] };
@@ -1083,8 +1090,7 @@ public class GeographicFunctionLibrary {
 
             - Suitable for verifying hierarchical relationships between geometry collections.
             """)
-    public Val subset(@Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val thisGeometryCollection,
-            @Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val thatGeometryCollection) {
+    public static Value subset(ObjectValue thisGeometryCollection, ObjectValue thatGeometryCollection) {
         return testGeometryBiPredicate(thisGeometryCollection, thatGeometryCollection,
                 GeographicFunctionLibrary::subset);
     }
@@ -1093,8 +1099,7 @@ public class GeographicFunctionLibrary {
         if (geometryCollectionThis.getNumGeometries() > geometryCollectionThat.getNumGeometries()) {
             return false;
         }
-        // Use BitSet as more efficient replacement for boolean array
-        final var resultSet = new BitSet(geometryCollectionThis.getNumGeometries());
+        var resultSet = new BitSet(geometryCollectionThis.getNumGeometries());
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
             for (int j = 0; j < geometryCollectionThat.getNumGeometries(); j++) {
                 if (geometryCollectionThis.getGeometryN(i).equals(geometryCollectionThat.getGeometryN(j))) {
@@ -1123,7 +1128,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var collection1 = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] }
                 ] };
@@ -1138,8 +1142,7 @@ public class GeographicFunctionLibrary {
 
             - Checks for partial membership between geometry collections.
             """)
-    public Val atLeastOneMemberOf(@Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val thisGeometryCollection,
-            @JsonObject Val thatGeometryCollection) {
+    public static Value atLeastOneMemberOf(ObjectValue thisGeometryCollection, ObjectValue thatGeometryCollection) {
         return testGeometryBiPredicate(thisGeometryCollection, thatGeometryCollection,
                 GeographicFunctionLibrary::atLeastOneMemberOf);
     }
@@ -1171,7 +1174,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var collection = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] },
                     { "type": "Point", "coordinates": [1, 1] }
@@ -1183,8 +1185,12 @@ public class GeographicFunctionLibrary {
 
             - Useful for evaluating collection size.
             """)
-    public Val bagSize(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val jsonGeometry) {
-        return Val.of(geoJsonToGeometry(jsonGeometry).getNumGeometries());
+    public static Value bagSize(ObjectValue jsonGeometry) {
+        try {
+            return Value.of(geoJsonToGeometry(jsonGeometry).getNumGeometries());
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
+        }
     }
 
     @Function(docs = """
@@ -1204,7 +1210,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var collection = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] }
                 ] };
@@ -1215,13 +1220,17 @@ public class GeographicFunctionLibrary {
 
             - Ensures uniqueness of geometry within a collection.
             - Returns an error if more than one geometry is present.
-            """, schema = GeoJSONSchemata.GEOMETRIES)
-    public Val oneAndOnly(@Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val jsonGeometryCollection) {
-        if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection
-                && geometryCollection.getNumGeometries() == 1) {
-            return geometryToGeoJSON(geometryCollection.getGeometryN(0));
-        } else {
-            return Val.error(INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
+            """)
+    public static Value oneAndOnly(ObjectValue jsonGeometryCollection) {
+        try {
+            if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection
+                    && geometryCollection.getNumGeometries() == 1) {
+                return geometryToGeoJSON(geometryCollection.getGeometryN(0));
+            } else {
+                return Value.error(INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
+            }
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
         }
     }
 
@@ -1243,7 +1252,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point = { "type": "Point", "coordinates": [0, 0] };
                 var collection = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] }
@@ -1255,18 +1263,21 @@ public class GeographicFunctionLibrary {
 
             - Checks for the existence of a specific geometry within a collection.
             """)
-    public Val geometryIsIn(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val jsonGeometry,
-            @Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val jsonGeometryCollection) {
-        if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection) {
-            final var geometry = geoJsonToGeometry(jsonGeometry);
-            for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
-                if (geometry.equals(geometryCollection.getGeometryN(i))) {
-                    return Val.TRUE;
+    public static Value geometryIsIn(ObjectValue jsonGeometry, ObjectValue jsonGeometryCollection) {
+        try {
+            if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection) {
+                var geometry = geoJsonToGeometry(jsonGeometry);
+                for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
+                    if (geometry.equals(geometryCollection.getGeometryN(i))) {
+                        return Value.TRUE;
+                    }
                 }
+                return Value.FALSE;
             }
-            return Val.FALSE;
+            return Value.error(NOT_A_GEOMETRY_COLLECTION_ERROR);
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
         }
-        return Val.error(NOT_A_GEOMETRY_COLLECTION_ERROR);
     }
 
     @Function(docs = """
@@ -1285,7 +1296,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [1, 1] };
                 geo.geometryBag(point1, point2) == { "type": "GeometryCollection", "geometries": [
@@ -1297,13 +1307,17 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Useful for grouping geometries into collections.
-            """, schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
-    public Val geometryBag(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val... geometryValues) {
-        final var geometries = new Geometry[geometryValues.length];
-        for (int i = 0; i < geometryValues.length; i++) {
-            geometries[i] = geoJsonToGeometry(geometryValues[i]);
+            """)
+    public static Value geometryBag(ObjectValue... geometryValues) {
+        try {
+            var geometries = new Geometry[geometryValues.length];
+            for (int i = 0; i < geometryValues.length; i++) {
+                geometries[i] = geoJsonToGeometry(geometryValues[i]);
+            }
+            return geometryToGeoJSON(GEOMETRY_FACTORY.createGeometryCollection(geometries));
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
         }
-        return geometryToGeoJSON(GEOMETRY_FACTORY.createGeometryCollection(geometries));
     }
 
     @Function(docs = """
@@ -1322,7 +1336,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var geometries = [
                     { "type": "Point", "coordinates": [0, 0] },
                     { "type": "Point", "coordinates": [1, 1] }
@@ -1336,14 +1349,17 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Useful for combining geometries from arrays into collections.
-            """, schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
-    public Val flattenGeometryBag(@Array Val arrayOfGeometries) {
-        final var nodes = arrayOfGeometries.getArrayNode();
-        final var vals  = new Val[nodes.size()];
-        for (int i = 0; i < nodes.size(); i++) {
-            vals[i] = Val.of(nodes.get(i).deepCopy());
+            """)
+    public static Value flattenGeometryBag(ArrayValue arrayOfGeometries) {
+        try {
+            var objectValues = new ObjectValue[arrayOfGeometries.size()];
+            for (int i = 0; i < arrayOfGeometries.size(); i++) {
+                objectValues[i] = (ObjectValue) arrayOfGeometries.get(i);
+            }
+            return geometryBag(objectValues);
+        } catch (Exception e) {
+            return Value.error(INVALID_GEOJSON_ERROR);
         }
-        return geometryBag(vals);
     }
 
     /*
@@ -1366,7 +1382,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 geo.milesToMeter(1.0) == 1609.34;
             ```
 
@@ -1374,11 +1389,11 @@ public class GeographicFunctionLibrary {
 
             - Useful for converting mile-based measurements to meters for calculations.
             """)
-    public Val milesToMeter(@Number Val value) {
-        return Val.of(milesToMeter(value.get().asDouble()));
+    public static Value milesToMeter(NumberValue value) {
+        return Value.of(milesToMeterDouble(value.value().doubleValue()));
     }
 
-    private double milesToMeter(@Number double value) {
+    private static double milesToMeterDouble(double value) {
         return value * DistanceUtils.MILES_TO_KM * 1000.0D;
     }
 
@@ -1398,7 +1413,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 geo.yardToMeter(1.0) == 0.9144;
             ```
 
@@ -1406,12 +1420,12 @@ public class GeographicFunctionLibrary {
 
             - Converts yard-based measurements to meters for compatibility in geospatial calculations.
             """)
-    public Val yardToMeter(@Number Val value) {
-        return Val.of(yardToMeter(value.get().asDouble()));
+    public static Value yardToMeter(NumberValue value) {
+        return Value.of(yardToMeterDouble(value.value().doubleValue()));
     }
 
-    private double yardToMeter(double yards) {
-        return milesToMeter(yards / 1760.0D);
+    private static double yardToMeterDouble(double yards) {
+        return milesToMeterDouble(yards / 1760.0D);
     }
 
     @Function(docs = """
@@ -1430,7 +1444,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 geo.degreeToMeter(1.0) == 111319.9;
             ```
 
@@ -1438,8 +1451,8 @@ public class GeographicFunctionLibrary {
 
             - Converts degree-based distances to meters, useful for geographic coordinate transformations.
             """)
-    public Val degreeToMeter(@Number Val value) {
-        return Val.of(value.get().asDouble() * DistanceUtils.DEG_TO_KM * 1000);
+    public static Value degreeToMeter(NumberValue value) {
+        return Value.of(value.value().doubleValue() * DistanceUtils.DEG_TO_KM * 1000);
     }
 
     /*
@@ -1462,7 +1475,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var kmlData = "<kml><Placemark><Point><coordinates>10,20</coordinates></Point></Placemark></kml>";
                 geo.kmlToGeoJSON(kmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
@@ -1470,23 +1482,23 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Use this function to transform KML data into a GeoJSON format for compatibility.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public Val kmlToGeoJSON(@Text Val kml) {
+            """)
+    public static Value kmlToGeoJSON(TextValue kml) {
         return parseKmlToGeoJSON(kml);
     }
 
-    private static Val parseKmlToGeoJSON(Val kml) {
+    private static Value parseKmlToGeoJSON(TextValue kml) {
         Object parsed;
         try {
-            parsed = KML_READER.parse(new StringReader(kml.getText()));
+            parsed = KML_READER.parse(new StringReader(kml.value()));
         } catch (Exception e) {
-            return Val.error(FAILED_TO_PARSE_KML_ERROR);
+            return Value.error(FAILED_TO_PARSE_KML_ERROR);
         }
-        final var geometries = collect(parsed);
+        var geometries = collect(parsed);
         if (geometries.isEmpty()) {
-            return Val.error(NO_GEOMETRIES_IN_KML_ERROR);
+            return Value.error(NO_GEOMETRIES_IN_KML_ERROR);
         } else if (geometries.size() == 1) {
-            return geometryToGeoJSON(geometries.get(0));
+            return geometryToGeoJSON(geometries.getFirst());
         }
         var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
         return geometryToGeoJSON(geometryCollection);
@@ -1508,7 +1520,7 @@ public class GeographicFunctionLibrary {
     }
 
     private static List<Geometry> collectGeometries(List<?> featureList) {
-        final var geometries = new ArrayList<Geometry>();
+        var geometries = new ArrayList<Geometry>();
         for (var feature : featureList) {
             geometries.addAll(collect(feature));
         }
@@ -1516,7 +1528,7 @@ public class GeographicFunctionLibrary {
     }
 
     private static List<Geometry> collectGeometries(FeatureCollection<?, ?> featureCollection) {
-        final var geometries = new ArrayList<Geometry>();
+        var geometries = new ArrayList<Geometry>();
         try (var features = featureCollection.features()) {
             while (features.hasNext()) {
                 geometries.addAll(collect(features.next()));
@@ -1526,7 +1538,7 @@ public class GeographicFunctionLibrary {
     }
 
     private static List<Geometry> collectGeometries(Feature feature) {
-        final var geometries = new ArrayList<Geometry>();
+        var geometries = new ArrayList<Geometry>();
         for (Property property : feature.getProperties()) {
             geometries.addAll(collect(property.getValue()));
         }
@@ -1549,7 +1561,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var wktData = "POINT(10 20)";
                 geo.wktToGeoJSON(wktData) == { "type": "Point", "coordinates": [10, 20] };
             ```
@@ -1557,12 +1568,12 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Useful for converting WKT geometries into GeoJSON for processing.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public static Val wktToGeoJSON(@Text Val wkt) {
+            """)
+    public static Value wktToGeoJSON(TextValue wkt) {
         try {
-            return geometryToGeoJSON(WKT_READER.read(wkt.getText()));
+            return geometryToGeoJSON(WKT_READER.read(wkt.value()));
         } catch (ParseException e) {
-            return Val.error(INVALID_WKT_ERROR);
+            return Value.error(INVALID_WKT_ERROR);
         }
     }
 
@@ -1580,7 +1591,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
                 geo.gml3ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
@@ -1588,8 +1598,8 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Designed for compatibility with GML 3 formatted data.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public static Val gml3ToGeoJSON(@Text Val gml) {
+            """)
+    public static Value gml3ToGeoJSON(TextValue gml) {
         return gmlToGeoJSON(gml, GML3_READER);
     }
 
@@ -1609,7 +1619,6 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-            where
                 var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
                 geo.gml2ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
@@ -1617,42 +1626,42 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Designed for compatibility with GML 2 formatted data.
-            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public static Val gml2ToGeoJSON(@Text Val gml) {
+            """)
+    public static Value gml2ToGeoJSON(TextValue gml) {
         return gmlToGeoJSON(gml, GML2_READER);
     }
 
-    private static Val gmlToGeoJSON(@Text Val gml, Parser parser) {
+    private static Value gmlToGeoJSON(TextValue gml, Parser parser) {
         Object parsed;
         try {
-            parsed = parser.parse(new StringReader(gml.getText()));
+            parsed = parser.parse(new StringReader(gml.value()));
         } catch (Exception e) {
-            return Val.error(FAILED_TO_PARSE_GML_ERROR);
+            return Value.error(FAILED_TO_PARSE_GML_ERROR);
         }
-        final var geometries = collect(parsed);
+        var geometries = collect(parsed);
         if (geometries.isEmpty()) {
-            return Val.error(NO_GEOMETRIES_IN_GML_ERROR);
+            return Value.error(NO_GEOMETRIES_IN_GML_ERROR);
         } else if (geometries.size() == 1) {
-            return geometryToGeoJSON(geometries.get(0));
+            return geometryToGeoJSON(geometries.getFirst());
         }
         var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
         return geometryToGeoJSON(geometryCollection);
     }
 
     /*
-     * Convert Val to Geometry and back
+     * Convert Value to Geometry and back
      */
 
     @SneakyThrows
-    static Geometry geoJsonToGeometry(Val geoJson) {
-        return GEOJSON_READER.read(geoJson.toString());
+    static Geometry geoJsonToGeometry(ObjectValue geoJson) {
+        return GEOJSON_READER.read(ValueJsonMarshaller.toJsonString(geoJson));
     }
 
-    Val geometryToGeoJSON(Geometry geo) {
+    static Value geometryToGeoJSON(Geometry geo) {
         try {
-            return Val.ofJson(GEOJSON_WRITER.write(geo));
-        } catch (JsonProcessingException e) {
-            return Val.error(String.format(GEOMETRY_TO_GEO_JSON_ERROR_S, e.getMessage()));
+            return ValueJsonMarshaller.json(GEOJSON_WRITER.write(geo));
+        } catch (Exception e) {
+            return Value.error(GEOMETRY_TO_GEO_JSON_ERROR_S.formatted(e.getMessage()));
         }
     }
 

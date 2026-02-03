@@ -1,0 +1,224 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.functions.libraries;
+
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
+import lombok.val;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
+@DisplayName("TomlFunctionLibrary")
+class TomlFunctionLibraryTests {
+
+    @Test
+    void whenLoadedIntoBrokerThenNoError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(TomlFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void whenSimpleKeyValuePairsThenParsesCorrectly() {
+        val toml   = """
+                cultist = "Wilbur Whateley"
+                role = "ACOLYTE"
+                securityLevel = 3
+                """;
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(toml));
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val obj = (ObjectValue) result;
+        assertThat(obj).containsEntry("cultist", Value.of("Wilbur Whateley")).containsEntry("role", Value.of("ACOLYTE"))
+                .containsEntry("securityLevel", Value.of(3));
+    }
+
+    @Test
+    void whenTableThenParsesCorrectly() {
+        val toml   = """
+                [entity]
+                name = "Azathoth"
+                title = "Daemon Sultan"
+                threatLevel = 9
+                """;
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(toml));
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val entity = (ObjectValue) ((ObjectValue) result).get("entity");
+        assertThat(entity).containsEntry("name", Value.of("Azathoth")).containsEntry("title", Value.of("Daemon Sultan"))
+                .containsEntry("threatLevel", Value.of(9));
+    }
+
+    @Test
+    void whenNestedTablesThenParsesCorrectly() {
+        val toml   = """
+                [ritual]
+                name = "Summoning"
+
+                [ritual.location]
+                site = "Miskatonic University"
+                dangerLevel = 5
+                """;
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(toml));
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val ritual   = (ObjectValue) ((ObjectValue) result).get("ritual");
+        val location = (ObjectValue) ritual.get("location");
+        assertThat(ritual).containsEntry("name", Value.of("Summoning"));
+        assertThat(location).containsEntry("site", Value.of("Miskatonic University")).containsEntry("dangerLevel",
+                Value.of(5));
+    }
+
+    @Test
+    void whenArraysThenParsesCorrectly() {
+        val toml   = """
+                artifacts = ["Necronomicon", "Silver Key", "Shining Trapezohedron"]
+                threatLevels = [1, 2, 3, 4, 5]
+                """;
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(toml));
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val obj       = (ObjectValue) result;
+        val artifacts = (ArrayValue) obj.get("artifacts");
+        assertThat(artifacts).hasSize(3);
+        assertThat(artifacts.getFirst()).isEqualTo(Value.of("Necronomicon"));
+
+        val threatLevels = (ArrayValue) obj.get("threatLevels");
+        assertThat(threatLevels).hasSize(5);
+        assertThat(threatLevels.getFirst()).isEqualTo(Value.of(1));
+    }
+
+    @Test
+    void whenArrayOfTablesThenParsesCorrectly() {
+        val toml   = """
+                [[investigators]]
+                name = "Carter"
+                sanity = 85
+
+                [[investigators]]
+                name = "Pickman"
+                sanity = 42
+                """;
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(toml));
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val investigators = (ArrayValue) ((ObjectValue) result).get("investigators");
+        assertThat(investigators).hasSize(2);
+        assertThat((ObjectValue) investigators.getFirst()).containsEntry("name", Value.of("Carter"));
+        assertThat((ObjectValue) investigators.get(1)).containsEntry("name", Value.of("Pickman"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "true", "false" })
+    void whenBooleansThenParsesCorrectly(String boolValue) {
+        val toml   = "sealed = " + boolValue;
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(toml));
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val expected = "true".equals(boolValue) ? Value.TRUE : Value.FALSE;
+        assertThat((ObjectValue) result).containsEntry("sealed", expected);
+    }
+
+    @Test
+    void whenEmptyDocumentThenReturnsEmptyObject() {
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(""));
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        assertThat((ObjectValue) result).isEmpty();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "invalid = ", "[unclosed", "= value", "[table\nkey = value" })
+    void whenInvalidTomlThenReturnsError(String invalidToml) {
+        val result = TomlFunctionLibrary.tomlToVal(Value.of(invalidToml));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).startsWith("Failed to parse TOML:");
+    }
+
+    @Test
+    void whenObjectToTomlThenConvertsCorrectly() {
+        val object = ObjectValue.builder().put("name", Value.of("Nyarlathotep"))
+                .put("title", Value.of("Crawling Chaos")).put("threatLevel", Value.of(8)).build();
+
+        val result = TomlFunctionLibrary.valToToml(object);
+
+        assertThat(result).isInstanceOf(TextValue.class);
+        val tomlText = ((TextValue) result).value();
+        assertThat(tomlText).contains("name").contains("Nyarlathotep").contains("title").contains("Crawling Chaos")
+                .contains("threatLevel");
+    }
+
+    @Test
+    void whenNestedObjectToTomlThenConvertsCorrectly() {
+        val location = ObjectValue.builder().put("site", Value.of("R'lyeh")).build();
+        val ritual   = ObjectValue.builder().put("location", location).build();
+
+        val result = TomlFunctionLibrary.valToToml(ritual);
+
+        assertThat(result).isInstanceOf(TextValue.class);
+        val tomlText = ((TextValue) result).value();
+        assertThat(tomlText).contains("location").contains("site").contains("R'lyeh");
+    }
+
+    @Test
+    void whenArrayToTomlThenConvertsCorrectly() {
+        val deities = ArrayValue.builder().add(Value.of("Dagon")).add(Value.of("Hydra")).build();
+        val object  = ObjectValue.builder().put("deities", deities).build();
+
+        val result = TomlFunctionLibrary.valToToml(object);
+
+        assertThat(result).isInstanceOf(TextValue.class);
+        val tomlText = ((TextValue) result).value();
+        assertThat(tomlText).contains("deities").contains("Dagon").contains("Hydra");
+    }
+
+    @Test
+    void whenEmptyObjectThenConvertsToEmptyToml() {
+        val result = TomlFunctionLibrary.valToToml(Value.EMPTY_OBJECT);
+
+        assertThat(result).isInstanceOf(TextValue.class);
+    }
+
+    @Test
+    void whenRoundTripThenPreservesData() {
+        val original   = """
+                [investigator]
+                name = "Carter"
+                sanity = 77
+                artifacts = ["Silver Key", "Lamp"]
+                """;
+        val parsed     = TomlFunctionLibrary.tomlToVal(Value.of(original));
+        val serialized = TomlFunctionLibrary.valToToml(parsed);
+        val reparsed   = TomlFunctionLibrary.tomlToVal((TextValue) serialized);
+
+        assertThat(reparsed).isInstanceOf(ObjectValue.class);
+        val investigator = (ObjectValue) ((ObjectValue) reparsed).get("investigator");
+        assertThat(investigator).containsEntry("name", Value.of("Carter")).containsEntry("sanity", Value.of(77));
+        assertThat((ArrayValue) investigator.get("artifacts")).hasSize(2);
+    }
+}

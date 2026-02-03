@@ -55,7 +55,7 @@ The authorization subscription above uses **business domain language**: `action:
 In practice, a PEP in a REST API would translate infrastructure operations into domain concepts before requesting authorization:
 
 ```
-GET /api/patients/123  →  {action: "read", resource: {type: "patient_record", patientId: 123}}
+GET /api/patients/123  ->  {action: "read", resource: {type: "patient_record", patientId: 123}}
 ```
 
 This keeps policies independent of technology choices - the same policies work whether you use REST, GraphQL, gRPC, or direct database access.
@@ -76,12 +76,12 @@ While you can use **technical subscriptions** (`action: "HTTP:GET"`, `resource: 
 
 **Example: Policy Evolution**
 
-Technical subscription → Technical policy:
+Technical subscription -> Technical policy:
 ```sapl
 permit action =~ "^GET" & resource =~ "^https://medical\.org/api/patients/.*"
 ```
 
-Domain subscription → Domain policy:
+Domain subscription -> Domain policy:
 ```sapl
 permit action == "read" & resource.type == "patient_record"
 ```

@@ -1,0 +1,392 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.lsp.sapl.completion;
+
+import java.util.List;
+
+import org.antlr.v4.runtime.Token;
+import org.eclipse.lsp4j.Position;
+
+import io.sapl.grammar.antlr.SAPLLexer;
+import lombok.experimental.UtilityClass;
+
+/**
+ * Analyzes cursor context to determine what type of completions should be
+ * offered. Used primarily to detect when the cursor is after a function call
+ * or attribute access, enabling schema-based property completions.
+ * <p/>
+ * For example, when the cursor is at:
+ * <ul>
+ * <li>{@code time.now().} - detects FUNCTION context with
+ * functionName="time.now"</li>
+ * <li>{@code subject.<pip.attr>.} - detects ATTRIBUTE context with
+ * functionName="pip.attr"</li>
+ * <li>{@code |<pip.attr>.} - detects ENVIRONMENT_ATTRIBUTE context</li>
+ * </ul>
+ */
+@UtilityClass
+public class ContextAnalyzer {
+
+    /**
+     * Types of proposals based on cursor context.
+     */
+    public enum ProposalType {
+        /** After a regular attribute access: `expr.<attr>` */
+        ATTRIBUTE,
+        /** After an environment attribute: `|<attr>` */
+        ENVIRONMENT_ATTRIBUTE,
+        /** After a function call: `func()` */
+        FUNCTION,
+        /** General expression context - variables or function names */
+        VARIABLE_OR_FUNCTION_NAME,
+        /** Cannot determine context */
+        INDETERMINATE
+    }
+
+    /**
+     * Result of context analysis.
+     *
+     * @param prefix the full expression prefix collected from cursor position
+     * @param ctxPrefix the immediate prefix (what user typed after last separator)
+     * @param functionName the function or attribute name if type is
+     * FUNCTION/ATTRIBUTE
+     * @param type the detected proposal type
+     */
+    public record ContextAnalysisResult(String prefix, String ctxPrefix, String functionName, ProposalType type) {
+
+        /** Creates an indeterminate result for when analysis fails. */
+        public static ContextAnalysisResult indeterminate(String prefix) {
+            return new ContextAnalysisResult(prefix, prefix, "", ProposalType.INDETERMINATE);
+        }
+
+        /** Creates a result for general variable/function name context. */
+        public static ContextAnalysisResult variableOrFunction(String prefix, String ctxPrefix) {
+            return new ContextAnalysisResult(prefix, ctxPrefix, "", ProposalType.VARIABLE_OR_FUNCTION_NAME);
+        }
+    }
+
+    private record TokenContext(Token current, Token previous, Token twoBack) {}
+
+    /**
+     * Analyzes the cursor context to determine what type of completions to offer.
+     *
+     * @param tokens the token stream from the document
+     * @param position the cursor position (0-indexed line and column)
+     * @return analysis result containing proposal type and function/attribute name
+     */
+    public static ContextAnalysisResult analyze(List<Token> tokens, Position position) {
+        var line   = position.getLine() + 1; // Tokens use 1-based lines
+        var column = position.getCharacter();
+
+        var tokenContext = findTokensAtCursor(tokens, line, column);
+        if (tokenContext.current == null) {
+            return ContextAnalysisResult.indeterminate("");
+        }
+
+        var tokenAtCursor = tokenContext.current;
+        var previousToken = tokenContext.previous;
+        var twoTokensBack = tokenContext.twoBack;
+        var ctxPrefix     = buildCtxPrefix(tokenAtCursor, line, column);
+
+        var result = tryMatchDotAfterCallOrAttribute(tokens, tokenAtCursor, previousToken, ctxPrefix);
+        if (result != null) {
+            return result;
+        }
+
+        if (tokenAtCursor.getType() == SAPLLexer.DOT) {
+            return ContextAnalysisResult.variableOrFunction("", "");
+        }
+
+        result = tryMatchTypingAfterDot(tokens, previousToken, twoTokensBack, ctxPrefix);
+        if (result != null) {
+            return result;
+        }
+
+        var prefix = buildFullPrefix(tokenAtCursor, previousToken, twoTokensBack);
+        return ContextAnalysisResult.variableOrFunction(prefix, ctxPrefix);
+    }
+
+    private static ContextAnalysisResult tryMatchDotAfterCallOrAttribute(List<Token> tokens, Token current,
+            Token previous, String ctxPrefix) {
+        if (current.getType() != SAPLLexer.DOT || previous == null) {
+            return null;
+        }
+        if (previous.getType() == SAPLLexer.RPAREN) {
+            var functionName = extractFunctionNameBeforeParen(tokens, previous);
+            if (!functionName.isEmpty()) {
+                return new ContextAnalysisResult("", ctxPrefix, functionName, ProposalType.FUNCTION);
+            }
+        }
+        if (previous.getType() == SAPLLexer.GT) {
+            var attrResult = extractAttributeNameBeforeGT(tokens, previous);
+            if (!attrResult.name().isEmpty()) {
+                return new ContextAnalysisResult("", ctxPrefix, attrResult.name(), attrResult.type());
+            }
+        }
+        return null;
+    }
+
+    private static ContextAnalysisResult tryMatchTypingAfterDot(List<Token> tokens, Token previous, Token twoBack,
+            String ctxPrefix) {
+        if (previous == null || previous.getType() != SAPLLexer.DOT || twoBack == null) {
+            return null;
+        }
+        if (twoBack.getType() == SAPLLexer.RPAREN) {
+            var functionName = extractFunctionNameBeforeParen(tokens, twoBack);
+            if (!functionName.isEmpty()) {
+                return new ContextAnalysisResult("", ctxPrefix, functionName, ProposalType.FUNCTION);
+            }
+        }
+        if (twoBack.getType() == SAPLLexer.GT) {
+            var attrResult = extractAttributeNameBeforeGT(tokens, twoBack);
+            if (!attrResult.name().isEmpty()) {
+                return new ContextAnalysisResult("", ctxPrefix, attrResult.name(), attrResult.type());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Builds the immediate prefix from cursor position.
+     */
+    private static String buildCtxPrefix(Token token, int line, int column) {
+        if (token.getType() == SAPLLexer.ID) {
+            var tokenStart = token.getCharPositionInLine();
+            if (token.getLine() == line && column > tokenStart) {
+                var endIdx = column - tokenStart;
+                var text   = token.getText();
+                return text.substring(0, Math.min(endIdx, text.length()));
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Extracts the function name before a closing paren.
+     * Walks backward through tokens to find: ID ( DOT ID )* LPAREN
+     */
+    private static String extractFunctionNameBeforeParen(List<Token> tokens, Token rparenToken) {
+        var rparenIndex = findTokenIndex(tokens, rparenToken);
+        if (rparenIndex < 0) {
+            return "";
+        }
+
+        // Find matching LPAREN
+        var lparenIndex = findMatchingLparen(tokens, rparenIndex);
+
+        if (lparenIndex < 0) {
+            return "";
+        }
+
+        // Collect function name before LPAREN: ID ( DOT ID )*
+        return collectIdentifierChain(tokens, lparenIndex - 1);
+    }
+
+    private record AttributeResult(String name, ProposalType type) {}
+
+    /**
+     * Extracts the attribute name before a closing angle bracket.
+     * Handles both regular attributes `.<attr>` and environment attributes
+     * `|<attr>`.
+     */
+    private static AttributeResult extractAttributeNameBeforeGT(List<Token> tokens, Token gtToken) {
+        var gtIndex = findTokenIndex(tokens, gtToken);
+        if (gtIndex < 0) {
+            return new AttributeResult("", ProposalType.INDETERMINATE);
+        }
+
+        var bracketInfo = findOpeningBracket(tokens, gtIndex);
+        if (bracketInfo.index < 0) {
+            return new AttributeResult("", ProposalType.INDETERMINATE);
+        }
+
+        var attributeName = collectAttributeName(tokens, bracketInfo.index, gtIndex);
+        return new AttributeResult(attributeName, bracketInfo.type);
+    }
+
+    private record BracketInfo(int index, ProposalType type) {}
+
+    private static BracketInfo findOpeningBracket(List<Token> tokens, int gtIndex) {
+        for (var i = gtIndex - 1; i >= 0; i--) {
+            var token = tokens.get(i);
+            if (token.getChannel() == Token.HIDDEN_CHANNEL) {
+                continue;
+            }
+            var isLt     = token.getType() == SAPLLexer.LT;
+            var isPipeLt = token.getType() == SAPLLexer.PIPE_LT;
+            if (isLt || isPipeLt) {
+                var type = isPipeLt ? ProposalType.ENVIRONMENT_ATTRIBUTE : ProposalType.ATTRIBUTE;
+                return new BracketInfo(i, type);
+            }
+        }
+        return new BracketInfo(-1, ProposalType.INDETERMINATE);
+    }
+
+    private static String collectAttributeName(List<Token> tokens, int ltIndex, int gtIndex) {
+        var nameBuilder = new StringBuilder();
+        for (var i = ltIndex + 1; i < gtIndex; i++) {
+            var token      = tokens.get(i);
+            var isHidden   = token.getChannel() == Token.HIDDEN_CHANNEL;
+            var tokenType  = token.getType();
+            var isNamePart = tokenType == SAPLLexer.ID || tokenType == SAPLLexer.DOT;
+            var isArgStart = tokenType == SAPLLexer.LPAREN;
+
+            if (isHidden) {
+                continue;
+            }
+            if (isArgStart) {
+                break;
+            }
+            if (isNamePart) {
+                nameBuilder.append(token.getText());
+            }
+        }
+        return nameBuilder.toString();
+    }
+
+    /**
+     * Collects an identifier chain (ID.ID.ID) walking backward from given index.
+     * Stops at any non-identifier/dot token (e.g., RPAREN from previous call).
+     */
+    private static String collectIdentifierChain(List<Token> tokens, int startIndex) {
+        var chain    = new StringBuilder();
+        var expectId = true;
+
+        for (var i = startIndex; i >= 0; i--) {
+            var token = tokens.get(i);
+            if (token.getChannel() == Token.HIDDEN_CHANNEL) {
+                continue;
+            }
+            var tokenType = token.getType();
+            if (expectId && tokenType == SAPLLexer.ID) {
+                chain.insert(0, token.getText());
+                expectId = false;
+            } else if (!expectId && tokenType == SAPLLexer.DOT) {
+                // Only add the dot if there's more identifier chain before it
+                var nextNonHidden = findNextNonHiddenToken(tokens, i - 1);
+                if (nextNonHidden != null && nextNonHidden.getType() == SAPLLexer.ID) {
+                    chain.insert(0, ".");
+                    expectId = true;
+                } else {
+                    // Stop here - the dot leads to a non-identifier (like RPAREN)
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        return chain.toString();
+    }
+
+    /**
+     * Finds the next non-hidden token at or before the given index.
+     */
+    private static Token findNextNonHiddenToken(List<Token> tokens, int startIndex) {
+        for (var i = startIndex; i >= 0; i--) {
+            var token = tokens.get(i);
+            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
+                return token;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds the index of a token in the token list.
+     */
+    private static int findTokenIndex(List<Token> tokens, Token target) {
+        for (var i = 0; i < tokens.size(); i++) {
+            if (tokens.get(i) == target) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Finds the matching LPAREN for an RPAREN, handling nesting.
+     */
+    private static int findMatchingLparen(List<Token> tokens, int rparenIndex) {
+        var parenDepth = 1;
+        for (var i = rparenIndex - 1; i >= 0; i--) {
+            var token = tokens.get(i);
+            if (token.getChannel() == Token.HIDDEN_CHANNEL) {
+                continue;
+            }
+            if (token.getType() == SAPLLexer.RPAREN) {
+                parenDepth++;
+            } else if (token.getType() == SAPLLexer.LPAREN) {
+                parenDepth--;
+                if (parenDepth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Finds up to three tokens at or before the cursor position.
+     */
+    private static TokenContext findTokensAtCursor(List<Token> tokens, int line, int column) {
+        Token tokenAtCursor = null;
+        Token previousToken = null;
+        Token twoTokensBack = null;
+
+        for (var token : tokens) {
+            if (token.getType() == Token.EOF || !isTokenBeforeOrAtCursor(token, line, column)) {
+                break;
+            }
+            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
+                twoTokensBack = previousToken;
+                previousToken = tokenAtCursor;
+                tokenAtCursor = token;
+            }
+        }
+        return new TokenContext(tokenAtCursor, previousToken, twoTokensBack);
+    }
+
+    private static boolean isTokenBeforeOrAtCursor(Token token, int line, int column) {
+        var tokenEndLine   = token.getLine();
+        var tokenEndColumn = token.getCharPositionInLine() + token.getText().length();
+        return tokenEndLine < line || (tokenEndLine == line && tokenEndColumn <= column);
+    }
+
+    /**
+     * Builds a full prefix from recent tokens for general completion filtering.
+     */
+    private static String buildFullPrefix(Token current, Token prev, Token twoPrev) {
+        var prefix = new StringBuilder();
+
+        if (current != null && current.getType() == SAPLLexer.ID) {
+            if (prev != null && prev.getType() == SAPLLexer.DOT) {
+                if (twoPrev != null && twoPrev.getType() == SAPLLexer.ID) {
+                    prefix.append(twoPrev.getText()).append('.').append(current.getText());
+                } else {
+                    prefix.append('.').append(current.getText());
+                }
+            } else {
+                prefix.append(current.getText());
+            }
+        }
+
+        return prefix.toString();
+    }
+
+}

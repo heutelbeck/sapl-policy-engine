@@ -1,0 +1,70 @@
+spring:
+  application.name: sapl-node
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.rsocket.RSocketSecurityAutoConfiguration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h
+    cache-names:
+      - ApiKeyCache
+      - buckets
+bucket4j:
+  enabled: false
+  filters:
+    - id: filter1
+      cache-name: buckets
+      filter-method: webflux
+      url: .*
+      http-content-type: application/json;charset=UTF-8
+      filter-order: 1
+      rate-limits:
+        - bandwidths:
+            - capacity: 10000
+              time: 1
+              unit: seconds
+  cache-to-use: caffeine
+
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    ciphers:
+      - TLS_AES_128_GCM_SHA256
+      - TLS_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+    enabled-protocols:
+      - TLSv1.3
+      - TLSv1.2
+    protocol: TLSv1.3
+management:
+  endpoint:
+    health:
+      show-details: always
+io.sapl:
+  pdp.embedded:
+    enabled: true
+    pdp-config-type: FILESYSTEM
+  node:
+    allowNoAuth: false
+    allowBasicAuth: false
+    allowApiKeyAuth: false
+    allowOauth2Auth: false
+logging.level:
+  "[io.sapl]": INFO
+  "[org.springframework]": INFO

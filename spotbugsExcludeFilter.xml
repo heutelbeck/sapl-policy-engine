@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!--
 
-    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -26,9 +26,15 @@
 	<!-- The following generated classes are excluded from the spotbugs analysis. -->
 	<Match>
 		<Or>
-			<Source name="~.*xtend-gen.*"/>
-			<Source name="~.*emf-gen.*"/>
-			<Source name="~.*xtext-gen.*"/>
+			<Source name="~.*gen.*"/>
+		</Or>
+	</Match>
+	<!-- ANTLR-generated parser and lexer classes -->
+	<Match>
+		<Or>
+			<Class name="~.*\.antlr\..*Lexer"/>
+			<Class name="~.*\.antlr\..*Parser"/>
+			<Class name="~.*\.antlr\..*Parser\$.*"/>
 		</Or>
 	</Match>
 	<!-- The following rules are excluded from the spotbugs analysis. -->
@@ -91,7 +97,17 @@
 			<Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
 			<Bug pattern="EI_EXPOSE_REP2" />
 			<Bug pattern="OBL_UNSATISFIED_OBLIGATION" />
-			<Bug pattern="NAB_NEEDLESS_BOOLEAN_CONSTANT_CONVERSION" />
+            <Bug pattern="NAB_NEEDLESS_BOOLEAN_CONSTANT_CONVERSION" />
+            <Bug pattern="CE_CLASS_ENVY" />
+            <Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
+            <Bug pattern="OCP_OVERLY_CONCRETE_COLLECTION_PARAMETER" />
+            <Bug pattern="OCP_OVERLY_CONCRETE_PARAMETER" />
+            <Bug pattern="EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS" />
+            <Bug pattern="PDP_POORLY_DEFINED_PARAMETER" />
+            <!-- Pattern matching with unused binding variables (e.g., case Foo(var x, var ignored)) -->
+            <Bug pattern="DLS_DEAD_LOCAL_STORE" />
+            <!-- Lombok @Delegate generates methods with arg0, arg1 parameter names -->
+            <Bug pattern="IMC_IMMATURE_CLASS_IDE_GENERATED_PARAMETER_NAMES" />
 		</Or>
 	</Match>
 </FindBugsFilter>

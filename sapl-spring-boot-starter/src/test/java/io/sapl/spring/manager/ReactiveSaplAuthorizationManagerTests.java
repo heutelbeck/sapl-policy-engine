@@ -1,0 +1,157 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.spring.manager;
+
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.config.ObjectMapperAutoConfiguration;
+import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.server.authorization.AuthorizationContext;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+import tools.jackson.databind.json.JsonMapper;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class ReactiveSaplAuthorizationManagerTests {
+
+    private static final Mono<Authentication> AUTHENTICATION = Mono
+            .just(new TestingAuthenticationToken("user", "password", "ROLE_1", "ROLE_2"));
+
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner().withConfiguration(
+            AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
+
+    @Test
+    void when_PdpPermit_then_IsGranted() {
+        contextRunner.run(context -> {
+            final var mapper             = context.getBean(JsonMapper.class);
+            final var pdp                = mock(PolicyDecisionPoint.class);
+            final var constraintHandlers = mock(ConstraintEnforcementService.class);
+            final var bundle             = mock(BlockingConstraintHandlerBundle.class);
+
+            doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
+            when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+
+            final var sut      = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);
+            final var ctx      = mock(AuthorizationContext.class);
+            final var request  = MockServerHttpRequest.get("http://localhost").build();
+            final var exchange = MockServerWebExchange.from(request);
+            doReturn(exchange).when(ctx).getExchange();
+
+            StepVerifier.create(sut.authorize(AUTHENTICATION, ctx))
+                    .expectNextMatches(org.springframework.security.authorization.AuthorizationResult::isGranted)
+                    .verifyComplete();
+            verify(bundle, times(1)).handleOnDecisionConstraints();
+        });
+    }
+
+    @Test
+    void when_ObligationsFail_then_IsNotGranted() {
+        contextRunner.run(context -> {
+            final var mapper             = context.getBean(JsonMapper.class);
+            final var pdp                = mock(PolicyDecisionPoint.class);
+            final var constraintHandlers = mock(ConstraintEnforcementService.class);
+            final var bundle             = mock(BlockingConstraintHandlerBundle.class);
+
+            doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
+            when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+            doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
+
+            final var sut      = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);
+            final var ctx      = mock(AuthorizationContext.class);
+            final var request  = MockServerHttpRequest.get("http://localhost").build();
+            final var exchange = MockServerWebExchange.from(request);
+            doReturn(exchange).when(ctx).getExchange();
+
+            StepVerifier.create(sut.authorize(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted())
+                    .verifyComplete();
+            verify(bundle, times(1)).handleOnDecisionConstraints();
+        });
+    }
+
+    @Test
+    void when_PdpDeny_then_NotGranted() {
+        contextRunner.run(context -> {
+            final var mapper             = context.getBean(JsonMapper.class);
+            final var pdp                = mock(PolicyDecisionPoint.class);
+            final var constraintHandlers = mock(ConstraintEnforcementService.class);
+            final var bundle             = mock(BlockingConstraintHandlerBundle.class);
+
+            doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
+            when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.DENY));
+
+            final var sut      = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);
+            final var ctx      = mock(AuthorizationContext.class);
+            final var request  = MockServerHttpRequest.get("http://localhost").build();
+            final var exchange = MockServerWebExchange.from(request);
+            doReturn(exchange).when(ctx).getExchange();
+
+            StepVerifier.create(sut.authorize(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted())
+                    .verifyComplete();
+            verify(bundle, times(1)).handleOnDecisionConstraints();
+        });
+    }
+
+    @Test
+    void when_PdpPermitWithResource_then_NotGranted() {
+        contextRunner.run(context -> {
+            final var mapper             = context.getBean(JsonMapper.class);
+            final var pdp                = mock(PolicyDecisionPoint.class);
+            final var constraintHandlers = mock(ConstraintEnforcementService.class);
+            final var bundle             = mock(BlockingConstraintHandlerBundle.class);
+
+            doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
+            final var objectNode = mapper.createObjectNode();
+            final var decision   = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    ValueJsonMarshaller.fromJsonNode(objectNode));
+            when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
+
+            final var sut      = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);
+            final var ctx      = mock(AuthorizationContext.class);
+            final var request  = MockServerHttpRequest.get("http://localhost").build();
+            final var exchange = MockServerWebExchange.from(request);
+            doReturn(exchange).when(ctx).getExchange();
+
+            StepVerifier.create(sut.authorize(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted())
+                    .verifyComplete();
+            verify(bundle, times(0)).handleOnDecisionConstraints();
+        });
+    }
+
+}

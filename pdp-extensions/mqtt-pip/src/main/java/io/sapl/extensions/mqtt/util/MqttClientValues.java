@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
 import lombok.AccessLevel;
@@ -25,8 +25,8 @@ import lombok.Data;
 import lombok.Getter;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * These data objects are used to store client specific data.
@@ -57,7 +57,7 @@ public final class MqttClientValues {
         this.mqttReactorClient          = mqttReactorClient;
         this.mqttBrokerConfig           = mqttBrokerConfig.deepCopy();
         this.clientConnection           = clientConnection;
-        this.topicSubscriptionsCountMap = new HashMap<>();
+        this.topicSubscriptionsCountMap = new ConcurrentHashMap<>();
     }
 
     /**
@@ -88,12 +88,16 @@ public final class MqttClientValues {
      * otherwise returns false
      */
     public boolean countTopicSubscriptionsCountMapDown(String topic) {
-        int count = topicSubscriptionsCountMap.remove(topic);
-        if (count > 1) {
-            topicSubscriptionsCountMap.put(topic, count - 1);
-            return true;
-        }
-        return false;
+        int[] newCount = { 0 };
+        topicSubscriptionsCountMap.compute(topic, (k, count) -> {
+            if (count == null || count <= 1) {
+                newCount[0] = 0;
+                return null;
+            }
+            newCount[0] = count - 1;
+            return newCount[0];
+        });
+        return newCount[0] > 0;
     }
 
     /**

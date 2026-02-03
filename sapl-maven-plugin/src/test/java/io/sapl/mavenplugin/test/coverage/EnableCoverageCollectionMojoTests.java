@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,69 +17,73 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugin.testing.AbstractMojoTestCase;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
-class EnableCoverageCollectionMojoTests extends AbstractMojoTestCase {
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-    private Log log;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+class EnableCoverageCollectionMojoTests {
+
+    private Log                          log;
+    private EnableCoverageCollectionMojo mojo;
+
+    @TempDir
+    Path tempDir;
 
     @BeforeEach
     void setup() throws Exception {
-        super.setUp();
+        log  = mock(Log.class);
+        mojo = new EnableCoverageCollectionMojo();
+        mojo.setLog(log);
 
-        log = Mockito.mock(Log.class);
+        setField(mojo, "coverageEnabled", true);
+        setField(mojo, "projectBuildDir", tempDir.toString());
     }
 
     @Test
-    void test_disableCoverage() throws Exception {
-
-        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
-        final var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
-        mojo.setLog(this.log);
+    void whenCoverageDisabled_thenSkipsExecution() throws Exception {
+        setField(mojo, "coverageEnabled", false);
 
         assertDoesNotThrow(mojo::execute);
     }
 
     @Test
-    void test() throws Exception {
-        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
-        final var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
-        mojo.setLog(this.log);
+    void whenCoverageEnabled_thenDeletesOutputDirectory() {
+        try (var pathHelperMock = mockStatic(PathHelper.class)) {
+            pathHelperMock.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(tempDir);
 
-        try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
-            pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
             assertDoesNotThrow(mojo::execute);
         }
     }
 
     @Test
-    void when_deleteFails_MojoException() throws Exception {
-        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
-        final var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
-        mojo.setLog(this.log);
+    void whenDeleteFails_thenThrowsMojoException() {
+        try (var pathHelperMock = mockStatic(PathHelper.class)) {
+            try (var fileUtilsMock = mockStatic(FileUtils.class)) {
+                pathHelperMock.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
+                fileUtilsMock.when(() -> FileUtils.deleteDirectory(any())).thenThrow(new IOException("Delete failed."));
 
-        try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
-            try (MockedStatic<FileUtils> fileUtil = Mockito.mockStatic(FileUtils.class)) {
-                pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
-                fileUtil.when(() -> FileUtils.deleteDirectory(any())).thenThrow(new IOException());
                 assertThrows(MojoExecutionException.class, mojo::execute);
             }
         }
     }
 
+    private static void setField(Object target, String fieldName, Object value) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
 }

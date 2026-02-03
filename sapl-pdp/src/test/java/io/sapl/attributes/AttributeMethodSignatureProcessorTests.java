@@ -1,0 +1,341 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.attributes;
+
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.List;
+
+import static io.sapl.compiler.util.DummyEvaluationContextFactory.DUMMY_SUBSCRIPTION;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@DisplayName("AttributeMethodSignatureProcessor")
+class AttributeMethodSignatureProcessorTests {
+
+    private static final String NAMESPACE = "test";
+
+    @Test
+    void whenMethodIsNotAnnotatedWithAttributeThenReturnsNull() throws Exception {
+        var method = TestPIP.class.getMethod("notAnAttribute");
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void whenStaticMethodWithNoParametersThenProcessSuccessfully() throws Exception {
+        var method = TestPIP.class.getMethod("staticNoParams");
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.namespace()).isEqualTo(NAMESPACE);
+        assertThat(result.attributeName()).isEqualTo("staticNoParams");
+        assertThat(result.isEnvironmentAttribute()).isFalse();
+        assertThat(result.parameterTypes()).isEmpty();
+        assertThat(result.varArgsParameterType()).isNull();
+    }
+
+    @Test
+    void whenInstanceMethodAndPipInstanceIsNullThenThrowsException() throws Exception {
+        var method = TestPIP.class.getMethod("instanceMethod");
+
+        assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("must be static");
+    }
+
+    @Test
+    void whenInstanceMethodWithPipInstanceThenProcessSuccessfully() throws Exception {
+        var pipInstance = new TestPIP();
+        var method      = TestPIP.class.getMethod("instanceMethod");
+        var result      = AttributeMethodSignatureProcessor.processAttributeMethod(pipInstance, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.attributeName()).isEqualTo("instanceMethod");
+    }
+
+    @Test
+    void whenMethodReturnsNonReactiveTypeThenThrowsException() throws Exception {
+        var method = TestPIP.class.getMethod("returnsString");
+
+        assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("must return Flux<Value>, Mono<Value>");
+    }
+
+    @Test
+    void whenMethodReturnsFluxOfNonValueThenThrowsException() throws Exception {
+        var method = TestPIP.class.getMethod("returnsFluxOfString");
+
+        assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("must return Flux<Value>, Mono<Value>");
+    }
+
+    @Test
+    void whenMethodReturnsMonoThenProcessSuccessfully() throws Exception {
+        var method = TestPIP.class.getMethod("returnsMono");
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.attributeName()).isEqualTo("returnsMono");
+    }
+
+    @Test
+    void whenMethodHasEntityParameterThenDetectsIt() throws Exception {
+        var method = TestPIP.class.getMethod("withEntity", Value.class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.isEnvironmentAttribute()).isFalse();
+    }
+
+    @Test
+    void whenMethodHasEnvironmentAttributeAnnotationThenMarkedAsEnvironment() throws Exception {
+        var method = TestPIP.class.getMethod("environmentAttribute");
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.isEnvironmentAttribute()).isTrue();
+    }
+
+    @Test
+    void whenMethodHasAttributeAccessContextParameterThenStrippedFromSignature() throws Exception {
+        var method = TestPIP.class.getMethod("withAttributeAccessContext", Value.class, AttributeAccessContext.class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.parameterTypes()).isEmpty();
+    }
+
+    @Test
+    void whenMethodHasValueParametersThenIncludedInSignature() throws Exception {
+        var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.parameterTypes()).hasSize(2);
+        assertThat(result.varArgsParameterType()).isNull();
+    }
+
+    @Test
+    void whenMethodHasVarArgsThenDetectedInSignature() throws Exception {
+        var method = TestPIP.class.getMethod("withVarArgs", Value.class, Value[].class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.parameterTypes()).isEmpty();
+        assertThat(result.varArgsParameterType()).isEqualTo(Value.class);
+    }
+
+    @Test
+    void whenMethodHasInvalidParameterTypeThenThrowsException() throws Exception {
+        var method = TestPIP.class.getMethod("invalidParameterType", Value.class, String.class);
+
+        assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("must only have Value");
+    }
+
+    @Test
+    void whenAttributeNameProvidedInAnnotationThenUsed() throws Exception {
+        var method = TestPIP.class.getMethod("customName");
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        assertThat(result).isNotNull();
+        assertThat(result.attributeName()).isEqualTo("custom.name");
+    }
+
+    @Test
+    void whenInvokingAttributeFinderWithCorrectArgsThenExecutesSuccessfully() throws Exception {
+        var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        var invocation = createInvocation("withArguments", Value.of(1), Value.of(2));
+        var context    = createEvaluationContext();
+
+        assertThat(result).isNotNull();
+        StepVerifier
+                .create(result.attributeFinder().invoke(invocation)
+                        .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
+                .expectNext(Value.of(3)).verifyComplete();
+    }
+
+    @Test
+    void whenInvokingAttributeFinderWithWrongArgCountThenReturnsError() throws Exception {
+        var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        var invocation = createInvocation("withArguments", Value.of(1));
+        var context    = createEvaluationContext();
+
+        assertThat(result).isNotNull();
+        StepVerifier
+                .create(result.attributeFinder().invoke(invocation)
+                        .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
+                .expectNextMatches(
+                        v -> v instanceof ErrorValue e && e.message().contains("requires exactly 2 arguments"))
+                .verifyComplete();
+    }
+
+    @Test
+    void whenInvokingAttributeFinderWithVarArgsThenExecutesSuccessfully() throws Exception {
+        var method = TestPIP.class.getMethod("withVarArgs", Value.class, Value[].class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        var invocation = createInvocation("withVarArgs", Value.of(1), Value.of(2), Value.of(3));
+        var context    = createEvaluationContext();
+
+        assertThat(result).isNotNull();
+        StepVerifier
+                .create(result.attributeFinder().invoke(invocation)
+                        .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
+                .expectNext(Value.of(6)).verifyComplete();
+    }
+
+    @Test
+    void whenAttributeThrowsExceptionThenReturnsError() throws Exception {
+        var method = TestPIP.class.getMethod("throwsException", Value.class);
+        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
+
+        var invocation = createInvocation("throwsException");
+        var context    = createEvaluationContext();
+
+        assertThat(result).isNotNull();
+        StepVerifier
+                .create(result.attributeFinder().invoke(invocation)
+                        .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
+                .expectNextMatches(v -> v instanceof ErrorValue e && e.message().contains("execution failed"))
+                .verifyComplete();
+    }
+
+    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
+
+    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
+    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
+    private AttributeFinderInvocation createInvocation(String attributeName, Value... args) {
+        return new AttributeFinderInvocation("test-security", NAMESPACE + "." + attributeName, Value.UNDEFINED,
+                List.of(args), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMillis(100), 3, false,
+                EMPTY_CTX);
+    }
+
+    private EvaluationContext createEvaluationContext() {
+        return EvaluationContext.of("id", "test-security", "test-subscription", DUMMY_SUBSCRIPTION,
+                DEFAULT_FUNCTION_BROKER, DEFAULT_ATTRIBUTE_BROKER);
+    }
+
+    static class TestPIP {
+        public void notAnAttribute() {
+        }
+
+        @Attribute
+        public static Flux<Value> staticNoParams() {
+            return Flux.just(Value.of("static"));
+        }
+
+        @Attribute
+        public Flux<Value> instanceMethod() {
+            return Flux.just(Value.of("instance"));
+        }
+
+        @Attribute
+        public static String returnsString() {
+            return "invalid";
+        }
+
+        @Attribute
+        public static Flux<String> returnsFluxOfString() {
+            return Flux.just("invalid");
+        }
+
+        @Attribute
+        public static Mono<Value> returnsMono() {
+            return Mono.just(Value.of("mono"));
+        }
+
+        @Attribute
+        public static Flux<Value> withEntity(Value entity) {
+            return Flux.just(entity);
+        }
+
+        @Attribute
+        @EnvironmentAttribute
+        public static Flux<Value> environmentAttribute() {
+            return Flux.just(Value.of("env"));
+        }
+
+        @Attribute
+        public static Flux<Value> withAttributeAccessContext(Value entity, AttributeAccessContext ctx) {
+            return Flux.just(ctx.variables().get("key"));
+        }
+
+        @Attribute
+        public static Flux<Value> withArguments(Value entity, Value arg1, Value arg2) {
+            return Flux
+                    .just(Value.of(((NumberValue) arg1).value().intValue() + ((NumberValue) arg2).value().intValue()));
+        }
+
+        @Attribute
+        public static Flux<Value> withVarArgs(Value entity, Value... args) {
+            int sum = 0;
+            for (Value arg : args) {
+                sum += ((NumberValue) arg).value().intValue();
+            }
+            return Flux.just(Value.of(sum));
+        }
+
+        @Attribute
+        public static Flux<Value> invalidParameterType(Value entity, String invalid) {
+            return Flux.just(Value.of("invalid"));
+        }
+
+        @Attribute(name = "custom.name")
+        public static Flux<Value> customName() {
+            return Flux.just(Value.of("custom"));
+        }
+
+        @Attribute
+        public static Flux<Value> throwsException(Value entity) {
+            throw new RuntimeException("test exception");
+        }
+    }
+}

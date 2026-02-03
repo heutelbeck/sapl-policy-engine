@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -695,7 +695,7 @@ public class GeoJSONSchemata {
                  }
                ]
              }
-             """;
+            """;
 
     public static final String GEOMETRIES = """
             {

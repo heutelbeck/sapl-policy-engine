@@ -39,7 +39,7 @@ A **basic expression** is either a
 - **Value Expression**: a value explicitly defined in the corresponding JSON notation (e.g., `"a value"`)
 - **Identifier Expression**: the name of a variable or of an authorization subscription attribute (`subject`, `resource`, `action`, or `environment`)
 - **Function Expression**: a function call (e.g., `simple.get_minimum(resource.array)`)
-- **Relative Expression**: `@`, which refers to a certain value depending on the context
+- **Relative Expression**: `@` or `#`, which refer to context-dependent values (current element and its position)
 - **Grouped Expression**: any expression enclosed in parentheses, e.g., `(1 + 1)`
 
 Each of these basic expressions can contain one or more **selection steps** (e.g., `subject.name`, which is the identifier expression `subject` followed by the selection step `.name` selecting the value of the `name` attribute). Additionally, a basic expression can contain a **filter component** (`|- Filter`) which will be applied to the evaluation result. If the expression evaluates to an array, instead of applying a filter, each item can be transformed using a **subtemplate component** (`:: Subtemplate`).
@@ -80,7 +80,7 @@ It evaluates to the variable or the attribute’s value.
 
 A basic function expression consists of a function name and any number of arguments between parentheses which are separated by commas. The arguments must be expressions, e.g.
 
-```java
+```sapl
 library.a_function(subject.name, (environment.day_of_week + 1))
 ```
 
@@ -94,14 +94,19 @@ When evaluating a function expression, the expressions representing the function
 
 ### Relative Expressions
 
-The basic relative expression is the `@` symbol.
+SAPL provides two relative expressions: `@` (relative value) and `#` (relative location).
 
-It can be used in various contexts. Those contexts are characterized by an implicit loop with `@` dynamically evaluating to the current element. Assuming the variable `array` contains an array with multiple numbers, the expression `array[?(@ > 10)]` can be used to return any element greater than 10. In this context, `@` evaluates to the array item for which the condition is currently checked.
+These can be used in contexts characterized by an implicit loop, where they dynamically evaluate based on the current iteration:
 
-The contexts in which `@` can be used are:
+- **`@` (relative value)**: References the current element's value
+- **`#` (relative location)**: References the current element's position - an index (number) for arrays, or a key (string) for objects
 
-- Expressions within a condition step (`@` evaluates to the array item or attribute value for which the condition expression is currently evaluated)
-- Subtemplate (`@` evaluates to the array item which is currently going to be replaced by the subtemplate)
+Assuming the variable `array` contains an array with multiple numbers, the expression `array[?(@ > 10)]` can be used to return any element greater than 10. In this context, `@` evaluates to the array item for which the condition is currently checked, and `#` evaluates to its index.
+
+The contexts in which `@` and `#` can be used are:
+
+- Expressions within a condition step (`@` evaluates to the array item or attribute value, `#` evaluates to the index or key)
+- Subtemplate (`@` evaluates to the current element, `#` evaluates to its index or key)
 - Arguments of a filter function if `each` is used (`@` evaluates to the array item to which the filter function is going to be applied)
 
 ## Operators
@@ -172,13 +177,86 @@ Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the 
 
 - `!exp1` (negation), precedence **4**
 - `exp1 && exp2` or `exp1 & exp2` (logical AND), precedence **2**
+- `exp1 ^ exp2` (logical XOR), precedence **2**
 - `exp1 || exp2` or `exp1 | exp2` (logical OR), precedence **1**
 
-The difference between `&&` and `&` (or `||` and `|`) is that for `&&` lazy evaluation is used while `&` causes eager evaluation. Using `&&`, if the left side evaluates to `false` and the right side would cause an error, the result of the operator is `false`. The right side is not evaluated. The same applies for `||` if the left side evaluates to `true`. In this case, the operator evaluates to `true`, even if the right side would cause an error - the right side is ignored if the result can already be determined. This is different for `&` and `|` which always evaluate both sides first (eager evaluation). Whenever there is an error, the expression does not return a result. In a target expression, only the eager evaluation expressions `&` and `|` can be used.
+The `&` operator is an alias for `&&`, and `|` is an alias for `||`. Both forms produce identical behavior. The XOR operator (`^`) always evaluates both operands since both are needed to determine the result.
 
-The operators are already listed in descending order of their **precedence**, i.e., `!` has the highest precedence followed by `&&`/`&` and `||`/`|`. The order of evaluation can be changed by using parentheses.
+The operators are already listed in descending order of their **precedence**, i.e., `!` has the highest precedence followed by `&&`/`&`/`^` and `||`/`|`. The order of evaluation can be changed by using parentheses.
 
-`&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true))`.
+`&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
+
+#### Cost-Stratified Short-Circuit Evaluation
+
+For the lazy operators `&&` and `||`, SAPL uses **cost-stratified short-circuit evaluation**. SAPL organizes operands into cost strata (layers) and evaluates cheaper strata first. This optimization can skip evaluating expensive parts of an expression entirely when the result is already determined by a cheaper operand.
+
+SAPL categorizes expressions into three strata based on their evaluation cost:
+
+1. **Constants** (e.g., `true`, `false`, `1 + 2`) - Evaluated at compile time
+2. **Pure expressions** (e.g., `subject.isActive`, `resource.type`) - Evaluated at runtime without external subscriptions. This includes the four authorization subscription fields (`subject`, `resource`, `action`, `environment`) and any environment variables configured at the PDP level.
+3. **Streaming expressions** (e.g., `<pip.sensor>`, `subject.<geo.location>`) - Require asynchronous subscription to external data sources
+
+**Evaluation Rules:**
+
+1. **Cross-strata ordering:** Lower (cheaper) strata are always evaluated before higher (more expensive) strata, regardless of operand position in the source.
+
+2. **Within-strata ordering:** Within the same stratum, operands are evaluated strictly left-to-right as they appear in the source.
+
+3. **Short-circuit behavior:** When a short-circuit value is found (`false` for `&&`, `true` for `||`), evaluation stops and remaining operands are not evaluated.
+
+4. **Error propagation:** When an error occurs during evaluation, it propagates immediately. Lower strata errors propagate even if higher strata operands appear earlier in the source.
+
+**Example: Constant short-circuits subscription access**
+
+```sapl
+subject.isActive && false
+```
+
+Since `false` is a constant (lower stratum) that determines the AND result, `subject.isActive` (higher stratum) is **never evaluated**. This is equivalent to just `false`.
+
+**Example: Subscription access short-circuits attribute finder**
+
+```sapl
+subject.isAdmin || <pip.externalAuthCheck>
+```
+
+If `subject.isAdmin` is `true`, the attribute finder `<pip.externalAuthCheck>` is **never subscribed to**. The external system is never contacted.
+
+**Example: Operand position does not matter for cross-strata**
+
+```sapl
+<pip.sensor> && false
+```
+
+Even though `<pip.sensor>` appears on the left, the constant `false` is evaluated first. The attribute stream is **never subscribed to**. This may be surprising if you expect strict left-to-right evaluation as in imperative programming languages.
+
+**Example: Left-to-right within same stratum**
+
+```sapl
+true || (1/0 > 0)
+```
+
+Both operands are constants (same stratum). Left-to-right order applies: `true` is evaluated first and short-circuits. The division by zero is **never evaluated**, so no error occurs.
+
+```sapl
+(1/0 > 0) || true
+```
+
+Again both are constants, but now the error-producing expression comes first. The division by zero **is evaluated** and produces an error, even though `true` would have short-circuited if reached.
+
+**Example: Lower strata errors propagate**
+
+```sapl
+subject.isActive || (1/0 > 0)
+```
+
+Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a constant (lower stratum). Constants are evaluated first, so the division by zero **produces an error** before `subject.isActive` is ever checked - even though `subject.isActive` appears first in the source. The pure expression cannot "rescue" the constant error.
+
+{: .info }
+**Why this matters for attribute finders:** Attribute finders subscribe to external data sources. Skipping their evaluation when unnecessary avoids unnecessary network calls, reduces latency, and prevents side effects from unused subscriptions. This is particularly valuable when combining quick checks with expensive external lookups.
+
+{: .warning }
+**Compile-time errors:** Constant expressions that produce errors (like `1/0`) are evaluated at compile time. These errors propagate regardless of whether a higher-stratum operand (appearing earlier in the source) might have short-circuited at runtime. To avoid this, ensure constant sub-expressions do not contain errors, or guard them with conditional logic.
 
 ### String Concatenation
 
@@ -221,7 +299,7 @@ Structure of `object`
 | `object..key`  <br>`object..['key']`  <br>`object..["key"]` | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
 | `object..[0]`                                               | `[ { "key" : "value2" }, 1 ]`                                                                                                          | **Recursive descent step** looking for an array index                                                                                           |
 | `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index) - can also evaluate to an attribute name                                                   |
-| `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` is a reference to the currently examined item - can also be applied to an object           |
+| `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` references the current item, `#` its index/key - can also be applied to an object           |
 | `object.array2[2,3]`                                        | `[ 3 , 4 ]`                                                                                                                            | **Union step** for more than one array index                                                                                                    |
 | `object["key","array2"]`                                    | `[ "value1", [ 1, 2, 3, 4, 5 ] ]`                                                                                                      | **Union step** for more than one attribute                                                                                                      |
 
@@ -232,7 +310,12 @@ Structure of `object`
 The basic access syntax is quite similar to accessing an object’s attributes in JavaScript or Java:
 
 - **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`,`resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource['another key']`).
-- **Indices of an array** may be accessed by putting the index between square brackets (**index step**, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`\-th element from the end of the array, starting with -1 as the last element’s index. `array[-2]` would return the second last element of the array `array`.
+- **Indices of an array** may be accessed by putting the index between square brackets (**index step**, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`\-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the array `array`.
+
+**Handling missing data:**
+
+- **Missing keys:** When a key step accesses an attribute that doesn't exist in an object, the result is `undefined`. This allows policies to gracefully handle optional attributes using conditional logic or the Elvis operator.
+- **Out-of-bounds indices:** When an index step accesses an array index that doesn't exist (either beyond the array length or more negative than the array allows), an error is returned. Unlike missing object keys, out-of-bounds array access is treated as a programming error since array lengths are typically known or should be checked beforehand.
 
 Multiple selection steps can be **chained**. The steps are evaluated from left to right. Each step is applied to the result returned from the previous step.
 
@@ -246,7 +329,7 @@ SAPL supports querying for specific parts of a JSON structure. Except for an **e
 
 #### Expression Step `[(Expression)]`
 
-An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array.
+An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array. When an expression evaluates to a non-integer number (e.g., `3.7`), the value is truncated toward zero to produce an integer index (e.g., `3`).
 
 
 > The expression step can be used to refer to custom variables (`object.array[(anIndex+2)]`) or apply custom functions (`object.array[(max_value(object.array))]`.
@@ -264,7 +347,7 @@ A wildcard step can be applied to an object or an array. When applied to an obje
 >   "key2":"value2"
 > }
 >```
-> the selection step `.*` or `[*]` returns the following array: `["value1", "value2"]` (possibly with a different sorting of the items). Applied to an array `[1, 2, 3]`, the selection step `.` **or** `[]` returns the original array `[1, 2, 3]`.
+> the selection step `.*` or `[*]` returns the following array: `["value1", "value2"]` (possibly with a different sorting of the items). Applied to an array `[1, 2, 3]`, the selection step `.*` **or** `[*]` returns the original array `[1, 2, 3]`.
 
 
 #### Recursive Descent Step `..key`, `..["key"]`, `..[1]`, `..*` or `..[*]`
@@ -272,6 +355,9 @@ A wildcard step can be applied to an object or an array. When applied to an obje
 Looks for the specified key or array index in the current object or array and, recursively, in its children (i.e., the values of its attributes or its items). The recursive descent step can be applied to both an object and an array. It returns an array containing all attribute values or array items found. If the specified key is an asterisk (`..` **or** `[]`, wildcard), all attribute values and array items in the whole structure are returned.
 
 As attributes of an object are not sorted, the order of items in the result array may vary.
+
+{: .info }
+**Depth limit:** To prevent runaway recursion on deeply nested structures, recursive descent is limited to a maximum depth of 500 levels. If this limit is exceeded, an error is returned.
 
 
 > Applied to an `object`
@@ -292,7 +378,7 @@ As attributes of an object are not sorted, the order of items in the result arra
 
 #### Condition `[?(Condition)]`
 
-Condition steps return an array containing all attribute values or array items for which `Condition` evaluates to `true`. It can be applied to both an object (then it checks each attribute value) and an array (then it checks each item). `Condition` must be an expression in which [relative expressions](#basic-relative) starting with `@` can be used. `@` evaluates to the current attribute value or array item for which the condition is evaluated and can be followed by further selection steps.
+Condition steps return an array containing all attribute values or array items for which `Condition` evaluates to `true`. It can be applied to both an object (then it checks each attribute value) and an array (then it checks each item). `Condition` must be an expression in which [relative expressions](#relative-expressions) `@` and `#` can be used. `@` evaluates to the current attribute value or array item, and `#` to its key or index. Both can be followed by further selection steps.
 
 As attributes have no order, the sorting of the result array of a condition step applied to an object is not specified.
 
@@ -302,16 +388,33 @@ As attributes have no order, the sorting of the result array of a condition step
 
 #### Array Slicing `[Start:Stop:Step]`
 
-The slice contains the items with indices between `Start` and `Stop`, with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element’s index). All parts except the first colon are optional. `Step` defaults to 1.
+The slice contains the items with indices between `Start` and `Stop`, with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element's index). All parts except the first colon are optional. `Step` defaults to 1.
 
-In case `Step` is positive, `Start` defaults to 0 and `Stop` defaults to the length of the array. If `Step` is negative, `Start` defaults to the length of the array minus 1 (i.e., the last element’s index) and `Stop` defaults to -1. A `Step` of 0 leads to an error.
+**Default values:** When `Step` is positive (or omitted), `Start` defaults to `0` and `Stop` defaults to the array length. When `Step` is negative, `Start` defaults to the last index and `Stop` defaults to before the first element—allowing the slice to traverse the array in reverse. A `Step` of `0` results in an error.
 
+**Negative indices:** Both `Start` and `Stop` support negative indices, which count from the end of the array. For example, `-1` refers to the last element, `-2` to the second-to-last, and so on. These indices are converted to their positive equivalents before slicing.
 
-> Applied to the Array `[1, 2, 3, 4, 5]`, the selection step `[-2:]` returns the Array `[4, 5]` (the last two elements).
+**How slicing works:** The `Step` value determines both the direction and stride of iteration:
 
+- **Positive step:** Iteration proceeds forward from `Start` toward `Stop`, selecting every `Step`-th element
+- **Negative step:** Iteration proceeds backward from `Start` toward `Stop`, selecting every `|Step|`-th element
 
+If the direction of `Step` is inconsistent with the range (e.g., trying to go forward when `Start > Stop`, or backward when `Start < Stop`), the result is an empty array.
 
-> If Start and Stop are to be left empty, the two colons must be separated by a whitespace to avoid confusion with the sub-template operator. So write `[: :-2]` instead of `[::-2]`.
+{: .warning }
+**Changed in SAPL 4.0:** In SAPL 3.x, negative step values did not reverse iteration direction. Starting with SAPL 4.0, a negative step now iterates backward through the array. For example, `[::-1]` previously returned elements in their original order, but now returns the array reversed. Review any policies using negative step values when upgrading.
+
+**Examples:**
+
+> Applied to `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`:
+> - `[1:4]` returns `[1, 2, 3]` (elements from index 1 up to, but not including, index 4)
+> - `[::3]` returns `[0, 3, 6, 9]` (every third element, starting from the beginning)
+> - `[::-1]` returns `[9, 8, 7, 6, 5, 4, 3, 2, 1, 0]` (all elements in reverse order)
+> - `[::-3]` returns `[9, 6, 3, 0]` (every third element, in reverse)
+> - `[5:2:-1]` returns `[5, 4, 3]` (from index 5 down to, but not including, index 2)
+> - `[1:5:-1]` returns `[]` (empty—cannot go backward from 1 to 5)
+> - `[-3:]` returns `[7, 8, 9]` (the last three elements)
+> - `[:-3]` returns `[0, 1, 2, 3, 4, 5, 6]` (all but the last three elements)
 
 
 #### Index Union `[index1, index2, …​]`
@@ -512,7 +615,7 @@ When used in a filter statement, the value to filter is passed to the function a
 
 ## Subtemplate
 
-It is possible to define a subtemplate for an array to replace each item of the array with this subtemplate. A subtemplate component is an optional part of a basic expression.
+A subtemplate applies a template expression to a value, enabling transformation of data structures. The subtemplate is denoted after a double colon using the `::` operator. A subtemplate component is an optional part of a basic expression.
 
 E.g., the basic expression:
 
@@ -522,16 +625,30 @@ resource.patients :: { "name" : @.name }
 
 This expression would return the `patients` array from the resource but with each item containing only one attribute `name`.
 
-The subtemplate is denoted after a double colon:
+The subtemplate syntax is:
 
 ```
-Array :: Expression
+Value :: Expression
 ```
 
-This `Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item, which is currently being replaced. `Array` must evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
+The `Expression` represents the replacement template. Within this expression, the relative expressions `@` and `#` can be used:
 
-Example
-Given the variable array contains the following array:
+- **`@` (relative value)**: References the current element being transformed
+- **`#` (relative location)**: References the current position - index for arrays, key for objects
+
+**Subtemplate behavior:**
+
+- **Arrays:** The template is mapped over each array element. For each item, `Expression` is evaluated with `@` referencing that item and `#` referencing its index (0, 1, 2, ...). The result is an array of the same length with transformed elements. Empty arrays remain empty.
+
+- **Objects:** The template is mapped over each object value. For each entry, `Expression` is evaluated with `@` referencing the value and `#` referencing the key (as a string). The result is an **array** containing the transformed values. Empty objects return an empty array.
+
+- **Scalar values:** The template is applied directly to the value, with `@` referencing that value and `#` set to `0`. The result is the evaluation of the template expression.
+
+- **Error and undefined values:** Error and undefined values are propagated without applying the template.
+
+**Example: Array transformation**
+
+Given the variable `array` contains the following array:
 
 ```json
 [
@@ -544,7 +661,7 @@ The basic expression
 
 ```sapl
 array :: {
-    "aKey" : "aValue"
+    "aKey" : "aValue",
     "identifier" : @.id
 }
 ```
@@ -557,3 +674,88 @@ would evaluate to:
     {"aKey" : "aValue", "identifier" : 2 }
 ]
 ```
+
+**Example: Using `#` for index access**
+
+The `#` symbol provides access to the current index (for arrays) or key (for objects):
+
+```sapl
+[10, 20, 30] :: #
+```
+
+evaluates to `[0, 1, 2]` (the indices).
+
+```sapl
+[10, 20, 30] :: (@ + #)
+```
+
+evaluates to `[10, 21, 32]` (each value plus its index).
+
+{: .warning }
+**Operator precedence:** The `::` operator binds tighter than arithmetic and comparison operators. This means `[1, 2, 3] :: @ * 2` parses as `([1, 2, 3] :: @) * 2`, not `[1, 2, 3] :: (@ * 2)`. Always use parentheses around complex template expressions: `[1, 2, 3] :: (@ * 2)`, `array :: (@ > 5)`, etc.
+
+**Example: Object transformation**
+
+When a subtemplate is applied to an object, it iterates over the object's values and returns an **array**:
+
+Given the variable `scores` contains:
+
+```json
+{
+    "alice" : 95,
+    "bob" : 87,
+    "carol" : 92
+}
+```
+
+The expression `scores :: @` returns `[95, 87, 92]` (an array of values).
+
+The expression `scores :: #` returns `["alice", "bob", "carol"]` (an array of keys).
+
+The expression:
+
+```sapl
+scores :: { "player" : #, "score" : @ }
+```
+
+returns an array of objects:
+
+```json
+[
+    { "player" : "alice", "score" : 95 },
+    { "player" : "bob", "score" : 87 },
+    { "player" : "carol", "score" : 92 }
+]
+```
+
+**Example: Scalar transformation**
+
+Given the variable `user` contains the following object:
+
+```json
+{
+    "id" : 123,
+    "name" : "Alice",
+    "email" : "alice@example.com"
+}
+```
+
+The basic expression
+
+```sapl
+user :: {
+    "userId" : @.id,
+    "displayName" : @.name
+}
+```
+
+would evaluate to:
+
+```json
+{
+    "userId" : 123,
+    "displayName" : "Alice"
+}
+```
+
+Note: In this case, the entire `user` object is treated as a scalar (not iterated), so `@` references the whole object and `#` equals `0`.

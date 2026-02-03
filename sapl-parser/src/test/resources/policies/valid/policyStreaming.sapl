@@ -1,0 +1,5 @@
+policy "policyStreaming"
+permit
+    resource == "heartBeatData";
+    subject == "ROLE_DOCTOR";
+    time.secondOf(<time.now>) > 4;

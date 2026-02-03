@@ -1,0 +1,28 @@
+set "query_name_user_repository"
+first or abstain errors propagate
+
+policy "permit method name query (1)"
+permit
+    action == "findAll";
+    subject.age > 18;
+obligation {
+               "type": "mongoQueryManipulation",
+               "conditions": [ "{'admin': {'$eq': false}}" ],
+			   "selection": {
+					"type": "blacklist",
+					"columns": ["firstname"]
+				}
+             }
+
+policy "permit method name query (2)"
+permit
+    action == "findAllByAgeAfter";
+    resource.age >= 18;
+obligation {
+               "type": "mongoQueryManipulation",
+               "conditions": [ "{'admin': {'$eq': false}}" ],
+			   "selection": {
+					"type": "whitelist",
+					"columns": ["firstname"]
+				}
+             }

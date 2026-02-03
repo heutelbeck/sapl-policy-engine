@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,11 +17,12 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.JsonNodeFactory;
 import com.hivemq.client.internal.mqtt.message.subscribe.MqttSubscription;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -35,16 +36,15 @@ class SubscriptionUtilityTests {
     @Test
     void when_addingSubscriptionsToSubscriptionListAndSubAckReasonCodeIsError_then_doNotAddSubscription() {
         // GIVEN
-        final var mqtt5SubscribeMock   = mock(Mqtt5Subscribe.class);
-        final var mqttSubscriptionMock = mock(MqttSubscription.class);
-        final var mqttSubscriptionList = List.of(mqttSubscriptionMock);
+        val mqtt5SubscribeMock   = mock(Mqtt5Subscribe.class);
+        val mqttSubscriptionMock = mock(MqttSubscription.class);
+        val mqttSubscriptionList = List.of(mqttSubscriptionMock);
         doReturn(mqttSubscriptionList).when(mqtt5SubscribeMock).getSubscriptions();
 
-        final var mqttClientValues = new MqttClientValues("clientId", null, JsonNodeFactory.instance.objectNode(),
-                null);
+        val mqttClientValues = new MqttClientValues("clientId", null, JsonNodeFactory.instance.objectNode(), null);
 
-        final var mqtt5SubAckMock           = mock(Mqtt5SubAck.class);
-        final var mqtt5SubAckReasonCodeList = List.of(Mqtt5SubAckReasonCode.NOT_AUTHORIZED);
+        val mqtt5SubAckMock           = mock(Mqtt5SubAck.class);
+        val mqtt5SubAckReasonCodeList = List.of(Mqtt5SubAckReasonCode.NOT_AUTHORIZED);
         doReturn(mqtt5SubAckReasonCodeList).when(mqtt5SubAckMock).getReasonCodes();
 
         // WHEN

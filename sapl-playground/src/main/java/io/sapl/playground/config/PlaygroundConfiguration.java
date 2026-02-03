@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,42 +17,28 @@
  */
 package io.sapl.playground.config;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
-import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
-import io.sapl.attributes.pips.http.ReactiveWebClient;
-import io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint;
-import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.documentation.DocumentationBundle;
+import io.sapl.api.documentation.LibraryDocumentation;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.attributes.CachingAttributeBroker;
+import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.attributes.libraries.*;
+import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
+import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
-import io.sapl.functions.JWTFunctionLibrary;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
-import io.sapl.functions.util.jwt.JWTKeyProvider;
-import io.sapl.grammar.web.SAPLServlet;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.pdp.config.PDPConfiguration;
-import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
-import io.sapl.validation.ValidatorFactory;
-import lombok.val;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
-import org.springframework.boot.web.servlet.filter.OrderedFormContentFilter;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -62,59 +48,61 @@ import reactor.core.publisher.Mono;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Configuration
-@ComponentScan("io.sapl.grammar.ide.contentassist")
 public class PlaygroundConfiguration {
-    private static final Val PIP_CALL_BLOCKED = Val
-            .error("The call to an external data source has been blocked by the playground application.");
+
+    private static final String ERROR_EXTERNAL_DATA_SOURCE_BLOCKED = "The call to an external data source has been blocked by the playground application.";
+
+    private static final Value PIP_CALL_BLOCKED = Value.error(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED);
 
     @Bean
-    ServletRegistrationBean<SAPLServlet> xTextRegistrationBean() {
-        ServletRegistrationBean<SAPLServlet> registration = new ServletRegistrationBean<>(new SAPLServlet(),
-                "/xtext-service/*");
-        registration.setName("XtextServices");
-        registration.setAsyncSupported(true);
-        return registration;
+    SaplJacksonModule saplJacksonModule() {
+        return new SaplJacksonModule();
     }
 
     @Bean
-    FilterRegistrationBean<OrderedFormContentFilter> registration1(OrderedFormContentFilter filter) {
-        FilterRegistrationBean<OrderedFormContentFilter> registration = new FilterRegistrationBean<>(filter);
-        registration.setEnabled(false);
-        return registration;
+    FunctionBroker functionBroker() {
+        var broker = new DefaultFunctionBroker();
+        for (var libraryClass : DefaultLibraries.STATIC_LIBRARIES) {
+            broker.loadStaticFunctionLibrary(libraryClass);
+        }
+        broker.loadStaticFunctionLibrary(GeographicFunctionLibrary.class);
+        broker.loadStaticFunctionLibrary(MqttFunctionLibrary.class);
+        broker.loadStaticFunctionLibrary(TraccarFunctionLibrary.class);
+        return broker;
     }
 
     @Bean
-    PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider() {
-        return new InMemoryPolicyInformationPointDocumentationProvider();
+    AttributeBroker attributeBroker(JsonMapper mapper) {
+        var repository = new InMemoryAttributeRepository(Clock.systemUTC());
+        var broker     = new CachingAttributeBroker(repository);
+        var webClient  = new DummyReactiveWebClient(mapper);
+
+        broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
+        broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(webClient));
+        broker.loadPolicyInformationPointLibrary(new TraccarPolicyInformationPoint(webClient));
+        broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
+        broker.loadPolicyInformationPointLibrary(new MqttPolicyInformationPoint(new DummySaplMqttClient()));
+        return broker;
     }
 
     @Bean
-    FunctionContext functionContext(ObjectMapper mapper) throws InitializationException {
-        val staticLibraries = new ArrayList<Class<?>>(DefaultLibraries.STATIC_LIBRARIES);
-        staticLibraries.addAll(
-                List.of(GeographicFunctionLibrary.class, MqttFunctionLibrary.class, TraccarFunctionLibrary.class));
-        return new AnnotationFunctionContext(() -> List.of(new JWTFunctionLibrary(mapper)), () -> staticLibraries);
-    }
-
-    @Bean
-    AttributeStreamBroker attributeStreamBroker(ObjectMapper mapper,
-            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
-        val validatorFactory      = new ValidatorFactory(mapper);
-        val attributeStreamBroker = new CachingAttributeStreamBroker(
-                new InMemoryAttributeRepository(Clock.systemUTC()));
-        val pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                policyInformationPointDocumentationProvider, validatorFactory);
-        val webClient             = new DummyReactiveWebClient(mapper);
-        pipLoader.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
-        pipLoader.loadPolicyInformationPoint(new HttpPolicyInformationPoint(webClient));
-        pipLoader.loadPolicyInformationPoint(new TraccarPolicyInformationPoint(webClient));
-        pipLoader.loadPolicyInformationPoint(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
-        pipLoader.loadPolicyInformationPoint(new MqttPolicyInformationPoint(new DummySaplMqttClient()));
-        return attributeStreamBroker;
+    DocumentationBundle documentationBundle() {
+        var libraries = new ArrayList<LibraryDocumentation>();
+        for (var libraryClass : DefaultLibraries.STATIC_LIBRARIES) {
+            libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(libraryClass));
+        }
+        libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(GeographicFunctionLibrary.class));
+        libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(MqttFunctionLibrary.class));
+        libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(TraccarFunctionLibrary.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(TimePolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(HttpPolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(TraccarPolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(JWTPolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(MqttPolicyInformationPoint.class));
+        return new DocumentationBundle(libraries);
     }
 
     public static class DummyJWTKeyProvider extends JWTKeyProvider {
@@ -123,40 +111,34 @@ public class PlaygroundConfiguration {
         }
 
         @Override
-        public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
-            return Mono.error(new UnsupportedOperationException(
-                    "The call to an external data source has been blocked by the playground application."));
+        public Mono<RSAPublicKey> provide(String kid, JsonNode publicKeyServer) throws CachingException {
+            return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
         }
     }
 
     public static class DummySaplMqttClient extends SaplMqttClient {
         @Override
-        public Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos, Val mqttPipConfig) {
+        public Flux<Value> buildSaplMqttMessageFlux(Value topic, Map<String, Value> variables, Value qos,
+                Value mqttPipConfig) {
             return Flux.just(PIP_CALL_BLOCKED);
         }
     }
 
     public static class DummyReactiveWebClient extends ReactiveWebClient {
 
-        public DummyReactiveWebClient(ObjectMapper mapper) {
+        public DummyReactiveWebClient(JsonMapper mapper) {
             super(mapper);
         }
 
         @Override
-        public Flux<Val> httpRequest(HttpMethod method, Val requestSettings) {
+        public Flux<Value> httpRequest(HttpMethod method, ObjectValue requestSettings) {
             return Flux.just(PIP_CALL_BLOCKED);
         }
 
         @Override
-        public Flux<Val> consumeWebSocket(Val requestSettings) {
+        public Flux<Value> consumeWebSocket(ObjectValue requestSettings) {
             return Flux.just(PIP_CALL_BLOCKED);
         }
     }
 
-    @Bean
-    PDPConfigurationProvider pdpConfigurationProvider(AttributeStreamBroker attributeStreamBroker,
-            FunctionContext functionContext) {
-        return () -> Flux.just(new PDPConfiguration("playground", attributeStreamBroker, functionContext, Map.of(),
-                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, td -> td, as -> as, null));
-    }
 }

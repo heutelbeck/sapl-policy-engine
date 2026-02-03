@@ -1,4 +1,0 @@
-spring.profiles.active: test
-spring.main.banner-mode: OFF
-logging.level:
-  root: OFF

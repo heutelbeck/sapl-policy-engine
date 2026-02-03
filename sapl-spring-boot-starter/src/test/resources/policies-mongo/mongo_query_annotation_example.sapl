@@ -1,0 +1,11 @@
+set "query_annotation_user_repository"
+first or abstain errors propagate
+
+policy "permit query method (1)"
+permit
+    action == "fetchingByQueryMethod";
+    subject.age > 18;
+obligation {
+               "type": "mongoQueryManipulation",
+               "conditions": [ "{'age': {'$gt': 18}}" ]
+             }

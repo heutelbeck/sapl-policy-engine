@@ -110,14 +110,14 @@ estimateRiskForCustomer(customerId)
 }
 ```
 
-Think of it this way: if your business function is like `function doSomething(input) → result`, then a PEP wraps it to create `function doSomethingWithAuth(input) → result or error`. The PEP checks authorization first, and only calls your original function if access is permitted.
+Think of it this way: if your business function is like `function doSomething(input) -> result`, then a PEP wraps it to create `function doSomethingWithAuth(input) -> result or error`. The PEP checks authorization first, and only calls your original function if access is permitted.
 
 More formally:
 - Let `A` be the domain of input parameters (e.g., resource identifiers)
 - Let `B` be the codomain of results (e.g., domain objects, computed values)
 - Let `Error` be the type representing access denial
 
-If the Resource Access Point is a function `RAP: A → B`, then the Policy Enforcement Point is a higher-order function that takes the RAP and returns a new function: `PEP: (A → B) → (A → (Error ∪ B))`
+If the Resource Access Point is a function `RAP: A -> B`, then the Policy Enforcement Point is a higher-order function that takes the RAP and returns a new function: `PEP: (A -> B) -> (A -> (Error ∪ B))`
 
 The PEP transforms the RAP by wrapping it with authorization logic, returning a new function that either yields an error (access denied) or the original result from the RAP.
 
@@ -149,7 +149,7 @@ The `@PreEnforce` annotation tells the framework to automatically wrap this meth
 Traditional access control systems follow a simple request-response pattern where the PEP
 asks for a decision, the PDP provides an answer, and the interaction ends.
 
-> Traditional access control: PEP asks → PDP answers once → done.
+> Traditional access control: PEP asks -> PDP answers once -> done.
 
 SAPL takes a fundamentally different approach through its publish/subscribe model. When a PEP subscribes
 to an authorization decision, the PDP sends an initial decision and then continues to monitor
@@ -157,7 +157,7 @@ policy-relevant conditions. Whenever conditions change that affect the authoriza
 PDP automatically pushes a new decision to the PEP, which can then update its enforcement
 accordingly.
 
-> SAPL's approach: PEP subscribes → PDP sends initial decision → PDP pushes new decisions when conditions change → PEP updates enforcement accordingly.
+> SAPL's approach: PEP subscribes -> PDP sends initial decision -> PDP pushes new decisions when conditions change -> PEP updates enforcement accordingly.
 
 Decisions can change for multiple reasons:
 

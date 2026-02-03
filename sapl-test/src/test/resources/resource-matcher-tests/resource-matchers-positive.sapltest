@@ -1,0 +1,56 @@
+requirement "Resource Matcher Positive Tests - Object" {
+
+    given
+        - document "resource-transform-policy"
+
+    scenario "with resource presence only"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource;
+
+    scenario "with resource equals exact match"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource equals { "status": "filtered", "level": 42, "approved": true, "tags": ["public", "safe"] };
+
+    scenario "with resource matching object type"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource matching object;
+
+    scenario "with resource matching object with key constraint"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource matching object where { "status" is text "filtered" };
+
+    scenario "with resource matching object with multiple constraints"
+        when "user" attempts "transform" on "document"
+        expect decision is permit, with resource matching object where { "level" is number 42 and "approved" is boolean true };
+
+}
+
+requirement "Resource Matcher Positive Tests - Text" {
+
+    given
+        - document "resource-text-policy"
+
+    scenario "with resource matching text"
+        when "user" attempts "text-transform" on "document"
+        expect decision is permit, with resource matching text "filtered-content";
+
+    scenario "with resource equals text"
+        when "user" attempts "text-transform" on "document"
+        expect decision is permit, with resource equals "filtered-content";
+
+}
+
+requirement "Resource Matcher Positive Tests - Number" {
+
+    given
+        - document "resource-number-policy"
+
+    scenario "with resource matching number"
+        when "user" attempts "number-transform" on "document"
+        expect decision is permit, with resource matching number 99;
+
+    scenario "with resource equals number"
+        when "user" attempts "number-transform" on "document"
+        expect decision is permit, with resource equals 99;
+
+}

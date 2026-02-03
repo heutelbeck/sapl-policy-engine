@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,13 +17,11 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.PolicyDecisionPointFactory;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -31,31 +29,24 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
-import java.util.List;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class MqttFunctionLibraryTests {
 
-    private static final String          ACTION = "actionName";
-    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
-
-    // Tests for matching all topics
+    private static final String ACTION = "actionName";
 
     @ParameterizedTest
     @ValueSource(strings = { "first/second/#", "first/+/third", "first/second/third" })
-    void when_allTopicsShouldMatchAndMatching_then_returnTrue() {
-        // GIVEN
-        Val wildcardTopic = Val.of("first/second/#");
-        Val matchingTopic = Val.of("first/second/third");
+    void when_allTopicsShouldMatchAndMatching_then_returnTrue(String wildcardTopicString) {
+        var wildcardTopic = Value.of(wildcardTopicString);
+        var matchingTopic = Value.of("first/second/third");
 
-        // WHEN
-        boolean isMatching = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopic).getBoolean();
+        var result = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopic);
 
-        // THEN
-        assertTrue(isMatching);
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     private static Stream<Arguments> paramsForTestAllTopicsShouldMatchAndTopicArrayMatchesWildcard() {
@@ -68,16 +59,12 @@ class MqttFunctionLibraryTests {
     @MethodSource("paramsForTestAllTopicsShouldMatchAndTopicArrayMatchesWildcard")
     void when_allTopicsShouldMatchAndTopicArrayMatchesWildcard_then_returnTrue(String wildCardTopicString,
             String secondMatchingTopic) {
-        // GIVEN
-        Val    wildcardTopic      = Val.of(wildCardTopicString);
-        String firstMatchingTopic = "first/second/third";
-        Val    matchingTopics     = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
+        var wildcardTopic  = Value.of(wildCardTopicString);
+        var matchingTopics = Value.ofArray(Value.of("first/second/third"), Value.of(secondMatchingTopic));
 
-        // WHEN
-        boolean isMatching = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics).getBoolean();
+        var result = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics);
 
-        // THEN
-        assertTrue(isMatching);
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     private static Stream<Arguments> paramsForTestAllTopicsShouldMatchAndSingleTopicDoesNotMatch() {
@@ -89,56 +76,43 @@ class MqttFunctionLibraryTests {
     @MethodSource("paramsForTestAllTopicsShouldMatchAndSingleTopicDoesNotMatch")
     void when_allTopicsShouldMatchAndSingleTopicDoesNotMatch_then_returnFalse(String wildcardTopicString,
             String secondMatchingTopic) {
-        // GIVEN
-        Val    wildcardTopic      = Val.of(wildcardTopicString);
-        String firstMatchingTopic = "first/second/third";
-        Val    matchingTopics     = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
+        var wildcardTopic  = Value.of(wildcardTopicString);
+        var matchingTopics = Value.ofArray(Value.of("first/second/third"), Value.of(secondMatchingTopic));
 
-        // WHEN
-        boolean isMatching = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics).getBoolean();
+        var result = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics);
 
-        // THEN
-        assertFalse(isMatching);
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 
     @Test
-    void when_allTopicsShouldMatchButSpecifiedAWildcardInTopicToMatch_then_returnValError() {
-        // GIVEN
-        Val wildcardTopic = Val.of("first/second/#");
-        Val matchingTopic = Val.of("first/second/third/#");
+    void when_allTopicsShouldMatchButSpecifiedAWildcardInTopicToMatch_then_returnError() {
+        var wildcardTopic = Value.of("first/second/#");
+        var matchingTopic = Value.of("first/second/third/#");
 
-        // WHEN / THEN
-        assertThrows(PolicyEvaluationException.class,
-                () -> MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic));
+        var result = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test
-    void when_allTopicsShouldMatchButSpecifiedAWildcardInTopicsToMatch_then_returnValError() {
-        // GIVEN
-        Val    wildcardTopic       = Val.of("first/second/#");
-        String firstMatchingTopic  = "first/second/third";
-        String secondMatchingTopic = "first/second/+/fourth";
-        Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
+    void when_allTopicsShouldMatchButSpecifiedAWildcardInTopicsToMatch_then_returnError() {
+        var wildcardTopic  = Value.of("first/second/#");
+        var matchingTopics = Value.ofArray(Value.of("first/second/third"), Value.of("first/second/+/fourth"));
 
-        // WHEN / THEN
-        assertThrows(PolicyEvaluationException.class,
-                () -> MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics));
+        var result = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
-
-    // Tests for matching at least one topic
 
     @ParameterizedTest
     @ValueSource(strings = { "first/second/#", "first/+/third", "first/second/third" })
     void when_atLeastOneTopicShouldMatchAndMatching_then_returnTrue(String wildcardTopicString) {
-        // GIVEN
-        Val wildcardTopic = Val.of(wildcardTopicString);
-        Val matchingTopic = Val.of("first/second/third");
+        var wildcardTopic = Value.of(wildcardTopicString);
+        var matchingTopic = Value.of("first/second/third");
 
-        // WHEN
-        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic).getBoolean();
+        var result = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic);
 
-        // THEN
-        assertTrue(isMatching);
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     private static Stream<Arguments> paramsForTestAtLeastOneTopicShouldMatch() {
@@ -150,16 +124,12 @@ class MqttFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("paramsForTestAtLeastOneTopicShouldMatch")
     void when_atLeastOneTopicShouldMatch_then_returnTrue(String wildcardTopicString, String secondMatchingTopic) {
-        // GIVEN
-        Val    wildcardTopic      = Val.of(wildcardTopicString);
-        String firstMatchingTopic = "first/second/third";
-        Val    matchingTopics     = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
+        var wildcardTopic  = Value.of(wildcardTopicString);
+        var matchingTopics = Value.ofArray(Value.of("first/second/third"), Value.of(secondMatchingTopic));
 
-        // WHEN
-        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
+        var result = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics);
 
-        // THEN
-        assertTrue(isMatching);
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     private static Stream<Arguments> paramsForTestAtLeastOneTopicShouldMatchNoTopicMatches() {
@@ -172,66 +142,47 @@ class MqttFunctionLibraryTests {
     @MethodSource("paramsForTestAtLeastOneTopicShouldMatchNoTopicMatches")
     void when_atLeastOneTopicShouldMatchNoTopicMatches_then_returnFalse(String wildcardTopicString,
             String firstMatchingTopic, String secondMatchingTopic) {
-        // GIVEN
-        Val wildcardTopic  = Val.of(wildcardTopicString);
-        Val matchingTopics = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
+        var wildcardTopic  = Value.of(wildcardTopicString);
+        var matchingTopics = Value.ofArray(Value.of(firstMatchingTopic), Value.of(secondMatchingTopic));
 
-        // WHEN
-        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
+        var result = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics);
 
-        // THEN
-        assertFalse(isMatching);
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 
     @Test
     void when_atLeastOneTopicShouldMatchWithSingleAndMultiLevelWildcardAndSingleTopicIsMatching_then_returnTrue() {
-        // GIVEN
-        Val    wildcardTopic       = Val.of("first/+/third/#");
-        String firstMatchingTopic  = "first/second/third";
-        String secondMatchingTopic = "first/third/fourth";
-        Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
+        var wildcardTopic  = Value.of("first/+/third/#");
+        var matchingTopics = Value.ofArray(Value.of("first/second/third"), Value.of("first/third/fourth"));
 
-        // WHEN
-        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
+        var result = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics);
 
-        // THEN
-        assertTrue(isMatching);
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @Test
-    void when_allTopicsShouldMatchWithMultiLevelWildcardAndSingleTopicMatchesWildcard_then_returnTrue()
-            throws InitializationException {
-        // GIVEN
-        final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                "src/test/resources/functionsPolicies", List::of, List::of, List::of,
-                () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
-        final var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
+    void when_allTopicsShouldMatchWithMultiLevelWildcardAndSingleTopicMatchesWildcard_then_returnTrue() {
+        var components        = PolicyDecisionPointBuilder.withoutDefaults()
+                .withFunctionLibrary(MqttFunctionLibrary.class).withResourcesSource("/functionsPolicies").build();
+        var pdp               = components.pdp();
+        var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
 
-        // WHEN
-        final var pdpDecisionFlux = pdp.decide(authzSubscription);
+        var pdpDecisionFlux = pdp.decide(authzSubscription);
 
-        // THEN
         StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
+                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
     }
 
     @Test
-    void when_atLeastOneTopicShouldMatchWithSingleLevelWildcardAndSingleTopicDoesNotMatchWildcard_then_returnTrue()
-            throws InitializationException {
-        // GIVEN
-        final var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/functionsPolicies",
-                List::of, List::of, List::of, () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
+    void when_atLeastOneTopicShouldMatchWithSingleLevelWildcardAndSingleTopicDoesNotMatchWildcard_then_returnTrue() {
+        var components        = PolicyDecisionPointBuilder.withoutDefaults()
+                .withFunctionLibrary(MqttFunctionLibrary.class).withResourcesSource("/functionsPolicies").build();
+        var pdp               = components.pdp();
+        var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
 
-        final var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
+        var pdpDecisionFlux = pdp.decide(authzSubscription);
 
-        // WHEN
-        final var pdpDecisionFlux = pdp.decide(authzSubscription);
-
-        // THEN
         StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
+                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
     }
-
 }

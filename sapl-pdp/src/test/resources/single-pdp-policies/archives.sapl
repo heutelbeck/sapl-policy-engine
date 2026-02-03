@@ -1,0 +1,4 @@
+policy "archive-access"
+permit
+    action == "read";
+    subject.department == "archives";

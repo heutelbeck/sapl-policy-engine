@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,15 +17,10 @@
  */
 package io.sapl.extensions.mqtt;
 
-import java.util.Map;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Text;
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.model.Value;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -134,8 +129,7 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "temperature_monitoring"
             permit
-                action == "monitor"
-            where
+                action == "monitor";
                 var sensors = ["sensors/room1/temp", "sensors/room2/temp"];
                 sensors.<mqtt.messages>.celsius < 30.0;
             ```
@@ -154,8 +148,7 @@ public class MqttPolicyInformationPoint {
      * Uses QoS level 0 (at most once) by default.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param variables SAPL environment variables containing the MQTT broker
-     * configuration in the `mqttPipConfig` variable.
+     * @param ctx the attribute access context containing MQTT broker configuration.
      * @return A reactive stream of messages from the subscribed topics.
      */
     @Attribute(name = "messages", docs = """
@@ -169,7 +162,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "single_temperature_sensor"
             permit
-            where
               "home/livingroom/temperature".<mqtt.messages>.celsius > 22.0;
             ```
 
@@ -177,7 +169,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "multiple_sensors"
             permit
-            where
               var topics = ["sensors/temperature", "sensors/humidity"];
               topics.<mqtt.messages> != undefined;
             ```
@@ -186,7 +177,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "all_room_temperatures"
             permit
-            where
               "building/+/temperature".<mqtt.messages>.value > 25.0;
             ```
 
@@ -194,12 +184,11 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "all_building_sensors"
             permit
-            where
               "building/#".<mqtt.messages>.alert == true;
             ```
             """)
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, variables);
+    public Flux<Value> messages(Value topic, AttributeAccessContext ctx) {
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx.variables());
     }
 
     /**
@@ -207,8 +196,7 @@ public class MqttPolicyInformationPoint {
      * received messages as a reactive stream.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param variables SAPL environment variables containing the MQTT broker
-     * configuration in the `mqttPipConfig` variable.
+     * @param ctx the attribute access context containing MQTT broker configuration.
      * @param qos The Quality of Service level (0, 1, or 2).
      * @return A reactive stream of messages from the subscribed topics.
      */
@@ -224,7 +212,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "critical_alarm_monitoring"
             permit
-            where
               "alarms/critical".<mqtt.messages(1)>.severity == "HIGH";
             ```
 
@@ -232,7 +219,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "device_command_processing"
             permit
-            where
               var commandTopics = ["device/shutdown", "device/restart"];
               commandTopics.<mqtt.messages(2)>.confirmed == true;
             ```
@@ -241,12 +227,11 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "sensor_stream"
             permit
-            where
               "sensors/motion/#".<mqtt.messages(0)> != undefined;
             ```
             """)
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables, @Int Val qos) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos);
+    public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx.variables(), qos);
     }
 
     /**
@@ -255,13 +240,10 @@ public class MqttPolicyInformationPoint {
      * simultaneously or overriding broker settings for specific subscriptions.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param variables SAPL environment variables containing the MQTT broker
-     * configuration in the `mqttPipConfig` variable.
+     * @param ctx the attribute access context containing MQTT broker configuration.
      * @param qos The Quality of Service level (0, 1, or 2).
      * @param mqttPipConfig Configuration object, array of configuration objects, or
-     * broker name reference. Can be a direct broker configuration object, an array
-     * of broker configurations for multi-broker scenarios, or a string referencing
-     * a broker by name from the variables' mqttPipConfig.
+     * broker name reference.
      * @return A reactive stream of messages from the subscribed topics.
      */
     @Attribute(name = "messages", docs = """
@@ -279,7 +261,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "staging_environment_monitoring"
             permit
-            where
               var topics = ["sensors/data", "actuators/status"];
               topics.<mqtt.messages(1, "staging")>.operational == true;
             ```
@@ -288,7 +269,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "custom_broker_connection"
             permit
-            where
               var brokerConfig = {
                   "brokerAddress": "mqtt.internal.example.com",
                   "brokerPort": 1883,
@@ -303,7 +283,6 @@ public class MqttPolicyInformationPoint {
             ```sapl
             policy "distributed_mqtt_network"
             permit
-            where
               var brokers = [
                   {
                       "name": "datacenter1",
@@ -321,8 +300,7 @@ public class MqttPolicyInformationPoint {
               "sensors/#".<mqtt.messages(2, brokers)>.status == "OK";
             ```
             """)
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables, @Int Val qos,
-            @Text @Array @JsonObject Val mqttPipConfig) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos, mqttPipConfig);
+    public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos, Value mqttPipConfig) {
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx.variables(), qos, mqttPipConfig);
     }
 }

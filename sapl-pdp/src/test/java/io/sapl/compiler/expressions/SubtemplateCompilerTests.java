@@ -1,0 +1,252 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.compiler.expressions;
+
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.Value;
+import lombok.val;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.TestPureOperator;
+import static io.sapl.util.SaplTesting.assertCompilesTo;
+import static io.sapl.util.SaplTesting.assertCompilesToError;
+import static io.sapl.util.SaplTesting.evaluateExpression;
+import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.obj;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import org.junit.jupiter.api.DisplayName;
+
+@DisplayName("SubtemplateCompiler")
+class SubtemplateCompilerTests {
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenSubtemplateExpressionThenReturnsExpected(String description, String expression, Value expected) {
+        val result = evaluateExpression(expression);
+        assertThat(result).isEqualTo(expected);
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> whenSubtemplateExpressionThenReturnsExpected() {
+        return Stream.of(
+            arguments("array with identity template", "[1, 2, 3] :: @", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            arguments("array with index only", "[10, 20, 30] :: #", Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
+            arguments("empty array with @", "[] :: @", Value.EMPTY_ARRAY),
+            arguments("empty array with #", "[] :: #", Value.EMPTY_ARRAY),
+            arguments("scalar with @", "5 :: @", Value.of(5)),
+            arguments("scalar with #", "5 :: #", Value.of(0)),
+            arguments("scalar string with @", "\"hello\" :: @", Value.of("hello")),
+            arguments("constant template on array", "[1, 2, 3] :: 99", Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
+            arguments("constant template on scalar", "5 :: 99", Value.of(99)),
+            arguments("string array identity", "[\"a\", \"b\"] :: @", Value.ofArray(Value.of("a"), Value.of("b"))),
+            arguments("null template", "[1, 2] :: null", Value.ofArray(Value.NULL, Value.NULL)),
+            arguments("nested array identity", "[[1, 2], [3, 4]] :: @", Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)))),
+            arguments("object with value identity", "{\"a\": 1, \"b\": 2} :: @", Value.ofArray(Value.of(1), Value.of(2))),
+            arguments("object with key only", "{\"foo\": 1, \"bar\": 2} :: #", Value.ofArray(Value.of("foo"), Value.of("bar"))),
+            arguments("empty object with @", "{} :: @", Value.EMPTY_ARRAY),
+            arguments("empty object with #", "{} :: #", Value.EMPTY_ARRAY),
+            arguments("array multiply each", "[1, 2, 3] :: (@ * 2)", Value.ofArray(Value.of(2), Value.of(4), Value.of(6))),
+            arguments("array add constant", "[1, 2, 3] :: (@ + 10)", Value.ofArray(Value.of(11), Value.of(12), Value.of(13))),
+            arguments("value plus index", "[10, 20, 30] :: (@ + #)", Value.ofArray(Value.of(10), Value.of(21), Value.of(32))),
+            arguments("index times ten", "[5, 5, 5] :: (# * 10)", Value.ofArray(Value.of(0), Value.of(10), Value.of(20))),
+            arguments("scalar multiply", "5 :: (@ * 3)", Value.of(15)),
+            arguments("scalar with index", "100 :: (@ + #)", Value.of(100)),
+            arguments("extract field from array of objects", "[{\"x\": 1}, {\"x\": 2}, {\"x\": 3}] :: @.x", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            arguments("nested field access", "[{\"a\": {\"b\": 1}}, {\"a\": {\"b\": 2}}] :: @.a.b", Value.ofArray(Value.of(1), Value.of(2))),
+            arguments("nested array transform", "[[1, 2], [3, 4]] :: (@ :: (@ * 2))", Value.ofArray(Value.ofArray(Value.of(2), Value.of(4)), Value.ofArray(Value.of(6), Value.of(8)))),
+            arguments("compare each to threshold", "[1, 5, 10] :: (@ > 3)", Value.ofArray(Value.FALSE, Value.TRUE, Value.TRUE)),
+            arguments("even index check", "[10, 20, 30, 40] :: (# == 0 || # == 2)", Value.ofArray(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)));
+    }
+    // @formatter:on
+
+    @Test
+    void whenUndefinedParentThenPropagatesUndefined() {
+        assertCompilesTo("undefined :: 1", Value.UNDEFINED);
+    }
+
+    @Test
+    void whenErrorParentThenPropagatesError() {
+        assertCompilesToError("(1/0) :: 1", "Division by zero");
+    }
+
+    @Test
+    void whenErrorTemplateThenPropagatesError() {
+        assertCompilesToError("5 :: (1/0)", "Division by zero");
+    }
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenApplyPureTemplateThenReturnsExpected(String description, Value parent, TestPureOperator template,
+            Value expected) {
+        val result = SubtemplateCompiler.applyPureTemplate(parent, template, evaluationContext());
+        if (expected instanceof ErrorValue) {
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        } else {
+            assertThat(result).isEqualTo(expected);
+        }
+    }
+
+    private static final TestPureOperator LOCATION_TEMPLATE = new TestPureOperator(EvaluationContext::relativeLocation);
+    private static final TestPureOperator VALUE_TEMPLATE    = new TestPureOperator(EvaluationContext::relativeValue);
+    private static final TestPureOperator ERROR_TEMPLATE    = new TestPureOperator(
+            ctx -> Value.error("template errors"));
+
+    private static Stream<Arguments> whenApplyPureTemplateThenReturnsExpected() {
+        val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
+        val scalar = Value.of(42);
+        val error  = Value.error("parent errors");
+
+        return Stream.of(
+                arguments("array with location template returns indices", array, LOCATION_TEMPLATE,
+                        Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
+                arguments("array with value template returns values", array, VALUE_TEMPLATE, array),
+                arguments("scalar with location template returns zero", scalar, LOCATION_TEMPLATE, Value.of(0)),
+                arguments("undefined parent returns undefined", Value.UNDEFINED, VALUE_TEMPLATE, Value.UNDEFINED),
+                arguments("errors parent returns errors", error, VALUE_TEMPLATE, error),
+                arguments("template returns errors propagates", Value.ofArray(Value.of(1), Value.of(2)), ERROR_TEMPLATE,
+                        Value.error("template errors")));
+    }
+
+    @Test
+    void whenApplyPureTemplateWithObjectThenSetsKeyCorrectly() {
+        val obj      = obj("alpha", Value.of(1), "beta", Value.of(2));
+        val template = new TestPureOperator(EvaluationContext::relativeLocation);
+
+        val result = SubtemplateCompiler.applyPureTemplate(obj, template, evaluationContext());
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, arr -> assertThat(arr).hasSize(2));
+    }
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenApplyConstantTemplateThenReturnsExpected(String description, Value parent, Value template,
+            Value expected) {
+        val result = SubtemplateCompiler.applyConstantTemplate(parent, template);
+        if (expected instanceof ErrorValue) {
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        } else {
+            assertThat(result).isEqualTo(expected);
+        }
+    }
+
+    private static Stream<Arguments> whenApplyConstantTemplateThenReturnsExpected() {
+        val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
+        val obj    = obj("a", Value.of(1), "b", Value.of(2));
+        val error  = Value.error("parent errors");
+        val tmpl99 = Value.of(99);
+
+        return Stream.of(
+                arguments("array replicates template", array, tmpl99,
+                        Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
+                arguments("object replicates template", obj, Value.of("constant"),
+                        Value.ofArray(Value.of("constant"), Value.of("constant"))),
+                arguments("scalar returns template", Value.of(42), Value.of("replaced"), Value.of("replaced")),
+                arguments("undefined parent returns undefined", Value.UNDEFINED, tmpl99, Value.UNDEFINED),
+                arguments("errors parent returns errors", error, tmpl99, error),
+                arguments("empty array returns empty", Value.EMPTY_ARRAY, tmpl99, Value.EMPTY_ARRAY),
+                arguments("empty object returns empty", Value.EMPTY_OBJECT, tmpl99, Value.EMPTY_ARRAY));
+    }
+
+    @Test
+    void whenSubtemplateValuePureIsDependingOnSubscriptionThenDelegatesToTemplate() {
+        val parent   = Value.of(5);
+        val template = new TestPureOperator(EvaluationContext::relativeValue, true);
+
+        val op = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOCATION);
+        assertThat(op.isDependingOnSubscription()).isTrue();
+    }
+
+    @Test
+    void whenSubtemplatePureValueIsDependingOnSubscriptionThenDelegatesToParent() {
+        val parent = new TestPureOperator(ctx -> Value.of(5), true);
+
+        val op = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(1), TEST_LOCATION);
+        assertThat(op.isDependingOnSubscription()).isTrue();
+    }
+
+    @MethodSource
+    @ParameterizedTest(name = "parent={0}, template={1} -> {2}")
+    void whenSubtemplatePurePureIsDependingOnSubscriptionThenCombinesParentAndTemplate(boolean parentDepends,
+            boolean templateDepends, boolean expected) {
+        val parent   = new TestPureOperator(ctx -> Value.of(5), parentDepends);
+        val template = new TestPureOperator(EvaluationContext::relativeValue, templateDepends);
+        val op       = new SubtemplateCompiler.SubtemplatePurePure(parent, template, TEST_LOCATION);
+
+        assertThat(op.isDependingOnSubscription()).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> whenSubtemplatePurePureIsDependingOnSubscriptionThenCombinesParentAndTemplate() {
+        return Stream.of(arguments(true, true, true),    // Both depend -> true
+                arguments(true, false, true),   // Only parent depends -> true
+                arguments(false, true, true),   // Only template depends -> true
+                arguments(false, false, false)); // Neither depends -> false
+    }
+
+    @Test
+    void whenSubtemplateValuePureEvaluateThenAppliesTemplateWithContext() {
+        val parent   = Value.ofArray(Value.of(10), Value.of(20));
+        val template = new TestPureOperator(ctx -> {
+                         val value = (NumberValue) ctx.relativeValue();
+                         val index = (NumberValue) ctx.relativeLocation();
+                         return Value.of(value.value().intValue() + index.value().intValue());
+                     });
+
+        val op     = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOCATION);
+        val result = op.evaluate(evaluationContext());
+
+        assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(21)));
+    }
+
+    @Test
+    void whenSubtemplatePureValueEvaluateThenAppliesConstantTemplate() {
+        val arrayValue = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
+        val parent     = new TestPureOperator(ctx -> arrayValue);
+
+        val op     = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(99), TEST_LOCATION);
+        val result = op.evaluate(evaluationContext());
+
+        assertThat(result).isEqualTo(Value.ofArray(Value.of(99), Value.of(99), Value.of(99)));
+    }
+
+    @Test
+    void whenSubtemplatePurePureEvaluateThenAppliesTemplateWithContext() {
+        val arrayValue = Value.ofArray(Value.of(5), Value.of(10));
+        val parent     = new TestPureOperator(ctx -> arrayValue);
+
+        val template = new TestPureOperator(ctx -> {
+            val value = (NumberValue) ctx.relativeValue();
+            return Value.of(value.value().intValue() * 2L);
+        });
+
+        val op     = new SubtemplateCompiler.SubtemplatePurePure(parent, template, TEST_LOCATION);
+        val result = op.evaluate(evaluationContext());
+
+        assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(20)));
+    }
+
+}

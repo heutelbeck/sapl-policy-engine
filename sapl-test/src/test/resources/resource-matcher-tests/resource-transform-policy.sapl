@@ -1,0 +1,10 @@
+policy "resource-transform-policy"
+permit
+    action == "transform";
+transform
+    {
+        "status": "filtered",
+        "level": 42,
+        "approved": true,
+        "tags": ["public", "safe"]
+    }

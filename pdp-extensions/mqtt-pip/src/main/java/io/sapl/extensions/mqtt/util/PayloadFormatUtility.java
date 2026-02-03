@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,16 +17,16 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import com.hivemq.client.mqtt.datatypes.MqttUtf8String;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
@@ -40,6 +40,8 @@ import java.util.Optional;
 @UtilityClass
 public class PayloadFormatUtility {
 
+    private static final String ERROR_MQTT_MESSAGE_JSON_CONVERSION_FAILED = "The mqtt message couldn't be converted to json.";
+
     /**
      * Looks up the payload format indicator from the mqtt publish message. By
      * default, it will be 0.
@@ -48,8 +50,8 @@ public class PayloadFormatUtility {
      * @return returns the payload format indicator as an ordinal number
      */
     public static int getPayloadFormatIndicator(Mqtt5Publish publishMessage) {
-        final var payloadFormatIndicatorOptional = publishMessage.getPayloadFormatIndicator();
-        var       payloadFormatIndicator         = 0;
+        val payloadFormatIndicatorOptional = publishMessage.getPayloadFormatIndicator();
+        var payloadFormatIndicator         = 0;
         if (payloadFormatIndicatorOptional.isPresent()) {
             // specified whether the payload is utf-8 encoded
             payloadFormatIndicator = payloadFormatIndicatorOptional.get().getCode();
@@ -88,36 +90,37 @@ public class PayloadFormatUtility {
     }
 
     /**
-     * Converts the payload into a json object and builds a {@link Val} of it.
+     * Converts the payload into a json object and builds a {@link Value} of it.
      *
      * @param publishMessage the published mqtt message
-     * @return returns the build {@link Val} of the json object or a {@link Val} of
-     * error in case the mqtt message could not be converted into a json object.
+     * @return returns the build {@link Value} of the json object or an error Value
+     * in case the mqtt message could not be converted into a json object.
      */
-    public static Val getValOfJson(Mqtt5Publish publishMessage) {
+    public static Value getValueOfJson(Mqtt5Publish publishMessage) {
         try {
-            return Val.of(convertBytesToJson(publishMessage.getPayloadAsBytes()));
-        } catch (IOException e) {
-            return Val.error("The mqtt message couldn't be converted to json.");
+            return ValueJsonMarshaller.fromJsonNode(convertBytesToJson(publishMessage.getPayloadAsBytes()));
+        } catch (JacksonException e) {
+            return Value.error(ERROR_MQTT_MESSAGE_JSON_CONVERSION_FAILED);
         }
     }
 
-    private static JsonNode convertBytesToJson(byte[] bytes) throws IOException {
-        return new ObjectMapper().readTree(bytes);
+    private static JsonNode convertBytesToJson(byte[] bytes) {
+        return JsonMapper.builder().build().readTree(bytes);
     }
 
     /**
-     * Converts the given array of bytes to a json array node containing the bytes
-     * as integers.
+     * Converts the given array of bytes to an ArrayValue containing the bytes as
+     * integers.
      *
      * @param bytes the given array of bytes to convert
-     * @return a json array node containing the bytes as integer values
+     * @return an ArrayValue containing the bytes as integer values
      */
-    public static ArrayNode convertBytesToArrayNode(byte[] bytes) {
-        ArrayNode jsonArray = JsonNodeFactory.instance.arrayNode(bytes.length);
-        for (byte byteValue : bytes) {
-            jsonArray.add(byteValue);
+    public static Value convertBytesToArrayValue(byte[] bytes) {
+        var values = new Value[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            values[i] = Value.of(bytes[i]);
         }
-        return jsonArray;
+        return Value.ofArray(values);
     }
+
 }

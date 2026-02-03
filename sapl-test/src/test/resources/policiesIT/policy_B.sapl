@@ -1,5 +1,0 @@
-policy "policy_B"
-permit
-    resource == "foo"
-where
-    "WILLI" == subject;

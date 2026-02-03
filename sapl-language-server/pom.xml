@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -25,59 +25,279 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>3.1.0-SNAPSHOT</version>
+		<version>4.0.0-SNAPSHOT</version>
 	</parent>
+
 	<artifactId>sapl-language-server</artifactId>
-	<name>SAPL Language server for policy files</name>
-	
+	<packaging>jar</packaging>
+
+	<name>SAPL Language Server</name>
+	<description>
+		Standalone SAPL Language Server based on ANTLR without Xtext or Spring Boot dependencies.
+		Provides LSP support for syntax highlighting, validation, and content assist.
+	</description>
+
+	<licenses>
+		<license>
+			<name>Apache 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
+		</license>
+	</licenses>
+
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
+		<lsp4j.version>0.24.0</lsp4j.version>
 	</properties>
-	
+
 	<dependencies>
-		<!-- SAPL -->
+		<!-- SAPL Parser and Validator -->
 		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-ide</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-spring-pdp-embedded</artifactId>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-parser</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
-		<!-- Spring -->
+		<!-- SAPLTest Parser and Validator -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-test-parser</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- SAPL API for documentation types -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- SAPL PDP ANTLR for expression compilation and evaluation -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-pdp</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- LSP4J - Language Server Protocol implementation -->
+		<dependency>
+			<groupId>org.eclipse.lsp4j</groupId>
+			<artifactId>org.eclipse.lsp4j</artifactId>
+			<version>${lsp4j.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-json</artifactId>
+			<groupId>org.eclipse.lsp4j</groupId>
+			<artifactId>org.eclipse.lsp4j.jsonrpc</artifactId>
+			<version>${lsp4j.version}</version>
+		</dependency>
+
+		<!-- Lombok -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- SLF4J for logging -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<!-- SLF4J Simple implementation for standalone mode (outputs to stderr) -->
+		<!-- Marked optional to avoid conflicts with Logback in consuming applications -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Jackson for JSON Schema processing -->
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
 		<!-- Testing -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
+			<!-- Create JAR with main class for library use -->
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+			<!-- Generate CycloneDX SBOM for security auditing -->
+			<plugin>
+				<groupId>org.cyclonedx</groupId>
+				<artifactId>cyclonedx-maven-plugin</artifactId>
 				<executions>
 					<execution>
+					 	<?m2e ignore?>
+						<phase>prepare-package</phase>
 						<goals>
-							<goal>repackage</goal>
+							<goal>makeBom</goal>
 						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<projectType>application</projectType>
+					<outputFormat>json</outputFormat>
+					<outputName>bom</outputName>
+					<!-- Output to classes so it's included in JAR -->
+					<outputDirectory>${project.build.outputDirectory}/META-INF/sbom</outputDirectory>
+					<includeLicenseText>false</includeLicenseText>
+					<!-- Generate SBOM even if deploy is skipped -->
+					<skipNotDeployed>false</skipNotDeployed>
+				</configuration>
+			</plugin>
+			<!-- Create standalone executable JAR with all dependencies -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+								</transformer>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+								<!-- Merge Spring namespace handlers -->
+								<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+									<resource>META-INF/spring.handlers</resource>
+								</transformer>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+									<resource>META-INF/spring.schemas</resource>
+								</transformer>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+									<resource>META-INF/spring/aot.factories</resource>
+								</transformer>
+							</transformers>
+							<!-- Produce separate artifact with -standalone classifier -->
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<shadedClassifierName>standalone</shadedClassifierName>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<!-- Signature files -->
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+										<!-- Duplicate manifests from dependencies -->
+										<exclude>META-INF/MANIFEST.MF</exclude>
+										<!-- JPMS module info (breaks shading anyway) -->
+										<exclude>module-info.class</exclude>
+										<exclude>META-INF/versions/*/module-info.class</exclude>
+										<!-- Duplicate license/notice files -->
+										<exclude>META-INF/LICENSE</exclude>
+										<exclude>META-INF/LICENSE.txt</exclude>
+										<exclude>META-INF/LICENSE.md</exclude>
+										<exclude>META-INF/NOTICE</exclude>
+										<exclude>META-INF/NOTICE.txt</exclude>
+										<exclude>META-INF/NOTICE.md</exclude>
+										<exclude>META-INF/license.txt</exclude>
+										<exclude>META-INF/notice.txt</exclude>
+										<exclude>about.html</exclude>
+										<!-- Netty version properties -->
+										<exclude>META-INF/io.netty.versions.properties</exclude>
+										<!-- Spring tooling metadata -->
+										<exclude>META-INF/spring.tooling</exclude>
+										<!-- Proguard configs -->
+										<exclude>META-INF/proguard/**</exclude>
+									</excludes>
+								</filter>
+								<!-- Exclude bundled ANTLR metadata from graphql-java -->
+								<filter>
+									<artifact>com.graphql-java:graphql-java</artifact>
+									<excludes>
+										<exclude>META-INF/maven/org.antlr/**</exclude>
+									</excludes>
+								</filter>
+								<!-- Exclude bundled gson metadata from nimbus-jose-jwt -->
+								<filter>
+									<artifact>com.nimbusds:nimbus-jose-jwt</artifact>
+									<excludes>
+										<exclude>META-INF/maven/com.google.code.gson/**</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Profile for building GraalVM native image -->
+		<profile>
+			<id>native</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
+						<version>0.10.6</version>
+						<extensions>true</extensions>
+						<executions>
+							<execution>
+								<id>build-native</id>
+								<goals>
+									<goal>compile-no-fork</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+						<configuration>
+							<mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+							<imageName>sapl-language-server</imageName>
+							<buildArgs>
+								<buildArg>--no-fallback</buildArg>
+								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
+								<buildArg>--enable-url-protocols=http,https</buildArg>
+								<buildArg>--install-exit-handlers</buildArg>
+								<!-- Unlock experimental options from json-schema-validator native security -->
+								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+								<!-- Prepare for next GraalVM release -->
+								<buildArg>--strict-image-heap</buildArg>
+								<!-- Embed CycloneDX SBOM and emit to file for verification -->
+								<buildArg>--enable-sbom=cyclonedx,export</buildArg>
+								<!-- Reduce image size -->
+								<buildArg>-march=compatibility</buildArg>
+							</buildArgs>
+							<quickBuild>false</quickBuild>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

@@ -116,7 +116,7 @@ Traditional access control systems make one-time decisions. SAPL maintains conti
 
 ### Built-in and Custom PIPs
 
-The examples above use built-in PIPs like `time.now` and `time.localTimeIsBetween`. SAPL includes a comprehensive library of built-in PIPs for common authorization needs: time and date functions, string manipulation, filtering, JSON processing, and more.
+The examples above use built-in PIPs like `time.now` and `time.localTimeIsBetween`. SAPL includes a library of built-in PIPs for common authorization needs: time and date functions, string manipulation, filtering, JSON processing, and more.
 
 **SAPL's plugin architecture enables domain-specific authorization.** Organizations can implement custom PIPs as plugins to integrate their domain-specific data sources and business logic into authorization policies:
 
@@ -138,13 +138,12 @@ Implementation details for custom PIPs are covered in [Attribute Finders](../8_1
 Attribute access using PIPs (expressions in angle brackets `<...>`) must be placed in the policy body (the `where` clause), not in the target expression. The reason is that the target expression is used for indexing policies efficiently and needs to be evaluated quickly. External attribute lookups may involve network calls or database queries, making them too slow for the target expression.
 
 **Target expression rules:**
-- Must use eager evaluation operators (`&`, `|`) instead of lazy operators (`&&`, `||`)
 - Cannot contain PIP attribute lookups (`<finder.name>`)
 - Should be fast to evaluate for efficient policy indexing
-- Typically, checks resource type and action
+- Typically checks resource type and action
+- Both `&`/`|` and `&&`/`||` operators work identically
 
 **Body rules:**
-- Can use lazy evaluation operators (`&&`, `||`) for efficiency
 - Can access external attributes through PIPs
 - Can contain complex conditional logic
 - Can use streaming attributes that update over time

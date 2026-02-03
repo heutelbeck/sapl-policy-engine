@@ -8,7 +8,7 @@ code changes.
 
 English is the mandated language for all communication and contributions.
 
-This project has adopted a [Code of Conduct,](CODE_OF_CONDUCT.md) and it will be enforced
+This project has adopted a [Code of Conduct](CODE_OF_CONDUCT.md), and it will be enforced
 in any communication.
 
 ## Create an issue
@@ -19,7 +19,7 @@ the [issue page][issue-link].
 Choose and adhere to the provided templates and be as precise as possible to enable an
 easy evaluation of the issue.
 If you're interested in resolving your issue yourself, take a look at the possibility of
-creating [code contributions](#propose-a-code-change)(#propose-a-code-change).
+creating [code contributions](#propose-a-code-change).
 
 **Before creating any issue, please look up already closed or open issues!**
 
@@ -30,8 +30,8 @@ SAPL (please verify to the best of your ability that this pertains specifically 
 dedicated issue with SAPL). Once the bug is reported, any project contributor can assess,
 engage in discussions, and contribute additional information to the corresponding issue.
 
-After a maintainer evaluates the bug, he or she will add a tag to categorize the bug and
-describe his examination result and the next steps that need to be taken.
+After a maintainer evaluates the bug, they will add a tag to categorize the bug and
+describe their examination result and the next steps that need to be taken.
 
 **Do not post bugs with security implications publicly and
 follow [this](#report-a-security-vulnerability).**
@@ -57,8 +57,8 @@ The decision to add and support a new feature is made by the BDFL.
 
 ### ❓ Question
 
-A question is an issue for requesting support on a specific topic, that the requestor can
-not answer on its own.
+A question is an issue for requesting support on a specific topic that the requester
+cannot answer on their own.
 Anyone is welcome to help resolve this issue, and the requestor or a maintainer will close
 this issue.
 
@@ -69,7 +69,7 @@ described [here](SECURITY.md).
 
 ## Propose a code change
 
-With a code change, you can actively improve the product itself. To ensure a high quality
+With a code change, you can actively improve the product itself. To ensure high quality,
 please follow the following guidelines and the enforced processes.
 
 Before writing code you might want to create an [issue](#create-an-issue) to get feedback
@@ -77,15 +77,20 @@ before implementing.
 
 ### Guidelines
 
-TODO - We need to provide and formalize more guidelines for styling and coding. No
-automatic tool will resolve all requirements.
+We value clean, maintainable, and well-tested code. Key principles:
+
+- **Modern Java (21+)**: Use records, sealed types, pattern matching, `var`
+- **Minimal visibility**: Package-private preferred; private fields always
+- **Immutability**: Records for data, final variables
+- **DRY**: No duplication; parameterized tests for similar cases
+- **Fail-fast**: Validate at boundaries, meaningful errors
 
 #### Pull requests
 
 All code contributions are expected to be reviewed and merged into the master branch via
 pull requests.
 
-To create a pull request for your code, you need to use a fork (except you are a
+To create a pull request for your code, you need to use a fork (unless you are a
 maintainer). \
 Look up [here][github-fork-guide] how to create a fork and [here][github-fork-pr-guide]
 how to create a pull request.
@@ -120,7 +125,7 @@ described as the following rules.
 4. Use the default scope for test classes and methods.
 5. End the names of test classes with `Tests`.
 6. Follow the pattern `whenSOMETHINGthenSOMETHING-ELSE` for naming test methods.
-7. Avoid using `@SuppressWarning`, except with explicit permission from maintainers.
+7. Avoid using `@SuppressWarnings`, except with explicit permission from maintainers.
 8. If a file happens to differ in style from the guidelines, the existing style in that
    file takes precedence.
 9. Use Lombok annotations.
@@ -131,7 +136,7 @@ described as the following rules.
 We use [SonarCloud][sonarcloud] with [SpotBugs][spotbugs] and [sb-contrib][sb-contrib]
 for static analysis of your code. 
 
-Once you created a pull request, test pipelines will run that include static code analysis.
+Once you create a pull request, test pipelines will run that include static code analysis.
 Results will be posted to your pull request and can be found on [our project site on
 SonarCloud][sonarcloud-project].
 

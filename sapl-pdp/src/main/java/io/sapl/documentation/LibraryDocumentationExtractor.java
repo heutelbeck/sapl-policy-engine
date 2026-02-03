@@ -1,0 +1,240 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.documentation;
+
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.documentation.EntryDocumentation;
+import io.sapl.api.documentation.EntryType;
+import io.sapl.api.documentation.LibraryDocumentation;
+import io.sapl.api.documentation.LibraryType;
+import io.sapl.api.documentation.ParameterDocumentation;
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import lombok.experimental.UtilityClass;
+import lombok.val;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Extracts documentation from annotated SAPL extension library classes.
+ * <p>
+ * This utility processes {@link FunctionLibrary} and
+ * {@link PolicyInformationPoint} annotated classes, extracting
+ * documentation metadata into serializable DTOs.
+ */
+@UtilityClass
+public class LibraryDocumentationExtractor {
+
+    public static final String VALUE = "Value";
+
+    private static final String                ERROR_NOT_ANNOTATED_WITH_FUNCTION_LIBRARY         = "Class %s is not annotated with @FunctionLibrary";
+    private static final String                ERROR_NOT_ANNOTATED_WITH_POLICY_INFORMATION_POINT = "Class %s is not annotated with @PolicyInformationPoint";
+    private static final Map<Class<?>, String> TYPE_NAMES                                        = Map.of(
+            TextValue.class, "Text", NumberValue.class, "Number", BooleanValue.class, "Bool", ArrayValue.class, "Array",
+            ObjectValue.class, "Object", Value.class, VALUE);
+
+    /**
+     * Extracts documentation from a function library class.
+     *
+     * @param libraryClass
+     * the class annotated with {@link FunctionLibrary}
+     *
+     * @return the extracted library documentation
+     *
+     * @throws IllegalArgumentException
+     * if the class is not annotated with {@link FunctionLibrary}
+     */
+    public static LibraryDocumentation extractFunctionLibrary(Class<?> libraryClass) {
+        val annotation = libraryClass.getAnnotation(FunctionLibrary.class);
+        if (annotation == null) {
+            throw new IllegalArgumentException(
+                    ERROR_NOT_ANNOTATED_WITH_FUNCTION_LIBRARY.formatted(libraryClass.getName()));
+        }
+
+        val name    = annotation.name().isEmpty() ? libraryClass.getSimpleName() : annotation.name();
+        val entries = new ArrayList<EntryDocumentation>();
+
+        for (Method method : libraryClass.getDeclaredMethods()) {
+            val functionAnnotation = method.getAnnotation(Function.class);
+            if (functionAnnotation != null) {
+                entries.add(extractFunctionEntry(method, functionAnnotation));
+            }
+        }
+
+        return new LibraryDocumentation(LibraryType.FUNCTION_LIBRARY, name, annotation.description(),
+                annotation.libraryDocumentation(), List.copyOf(entries));
+    }
+
+    /**
+     * Extracts documentation from a Policy Information Point class.
+     *
+     * @param pipClass
+     * the class annotated with {@link PolicyInformationPoint}
+     *
+     * @return the extracted library documentation
+     *
+     * @throws IllegalArgumentException
+     * if the class is not annotated with {@link PolicyInformationPoint}
+     */
+    public static LibraryDocumentation extractPolicyInformationPoint(Class<?> pipClass) {
+        val annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
+        if (annotation == null) {
+            throw new IllegalArgumentException(
+                    ERROR_NOT_ANNOTATED_WITH_POLICY_INFORMATION_POINT.formatted(pipClass.getName()));
+        }
+
+        val name    = annotation.name().isEmpty() ? pipClass.getSimpleName() : annotation.name();
+        val entries = new ArrayList<EntryDocumentation>();
+
+        for (Method method : pipClass.getDeclaredMethods()) {
+            val attributeAnnotation = method.getAnnotation(Attribute.class);
+            if (attributeAnnotation != null) {
+                entries.add(extractAttributeEntry(method, attributeAnnotation));
+                continue;
+            }
+
+            val envAttributeAnnotation = method.getAnnotation(EnvironmentAttribute.class);
+            if (envAttributeAnnotation != null) {
+                entries.add(extractEnvironmentAttributeEntry(method, envAttributeAnnotation));
+            }
+        }
+
+        return new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, name, annotation.description(),
+                annotation.pipDocumentation(), List.copyOf(entries));
+    }
+
+    private static EntryDocumentation extractFunctionEntry(Method method, Function annotation) {
+        val name       = annotation.name().isEmpty() ? method.getName() : annotation.name();
+        val schema     = loadSchema(method, annotation.schema(), annotation.pathToSchema());
+        val parameters = extractParameters(method.getParameters(), 0);
+
+        return new EntryDocumentation(EntryType.FUNCTION, name, annotation.docs(), schema, parameters);
+    }
+
+    private static EntryDocumentation extractAttributeEntry(Method method, Attribute annotation) {
+        val name       = annotation.name().isEmpty() ? method.getName() : annotation.name();
+        val schema     = loadSchema(method, annotation.schema(), annotation.pathToSchema());
+        val startIndex = determineParameterStartIndex(method, false);
+        val parameters = extractParameters(method.getParameters(), startIndex);
+
+        return new EntryDocumentation(EntryType.ATTRIBUTE, name, annotation.docs(), schema, parameters);
+    }
+
+    private static EntryDocumentation extractEnvironmentAttributeEntry(Method method, EnvironmentAttribute annotation) {
+        val name       = annotation.name().isEmpty() ? method.getName() : annotation.name();
+        val schema     = loadSchema(method, annotation.schema(), annotation.pathToSchema());
+        val startIndex = determineParameterStartIndex(method, true);
+        val parameters = extractParameters(method.getParameters(), startIndex);
+
+        return new EntryDocumentation(EntryType.ENVIRONMENT_ATTRIBUTE, name, annotation.docs(), schema, parameters);
+    }
+
+    private static int determineParameterStartIndex(Method method, boolean isEnvironmentAttribute) {
+        val parameters = method.getParameters();
+        if (parameters.length == 0) {
+            return 0;
+        }
+
+        int index = 0;
+
+        // Entity parameter for non-environment attributes
+        if (!isEnvironmentAttribute) {
+            val firstType = parameters[0].getType().getSimpleName();
+            if (VALUE.equals(firstType) || firstType.endsWith(VALUE)) {
+                index++;
+            }
+        }
+
+        // Variables map parameter
+        if (index < parameters.length && Map.class.equals(parameters[index].getType())) {
+            index++;
+        }
+
+        return index;
+    }
+
+    private static List<ParameterDocumentation> extractParameters(Parameter[] parameters, int startIndex) {
+        val result = new ArrayList<ParameterDocumentation>();
+
+        for (int i = startIndex; i < parameters.length; i++) {
+            val parameter = parameters[i];
+            val isLast    = i == parameters.length - 1;
+            val isVarArgs = isLast && parameter.getType().isArray();
+
+            val allowedTypes = extractAllowedTypes(parameter);
+            result.add(new ParameterDocumentation(parameter.getName(), allowedTypes, isVarArgs));
+        }
+
+        return List.copyOf(result);
+    }
+
+    private static List<String> extractAllowedTypes(Parameter parameter) {
+        var paramType = parameter.getType();
+
+        // Handle array types (varargs)
+        if (paramType.isArray()) {
+            paramType = paramType.getComponentType();
+        }
+
+        val typeName = TYPE_NAMES.get(paramType);
+        if (typeName != null) {
+            return List.of(typeName);
+        }
+
+        // Fallback for unknown types
+        return List.of();
+    }
+
+    private static String loadSchema(Method method, String schemaString, String pathToSchema) {
+        if (!schemaString.isEmpty()) {
+            return schemaString;
+        }
+
+        if (!pathToSchema.isEmpty()) {
+            return loadSchemaFromResource(method, pathToSchema);
+        }
+
+        return null;
+    }
+
+    private static String loadSchemaFromResource(Method method, String resourcePath) {
+        try (var inputStream = method.getDeclaringClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                return null;
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+}

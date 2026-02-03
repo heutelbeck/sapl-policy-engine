@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,11 +17,11 @@
  */
 package io.sapl.functions.geo;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import tools.jackson.databind.json.JsonMapper;
+import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.SneakyThrows;
+import lombok.val;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.referencing.CRS;
 import org.junit.jupiter.api.Test;
@@ -29,10 +29,11 @@ import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
-import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
+import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.within;
 
 class GeographicFunctionLibraryTests {
 
@@ -49,21 +50,21 @@ class GeographicFunctionLibraryTests {
     private static final Point POINT_150_150_GEOMETRY     = GEO_FACTORY.createPoint(new Coordinate(150  , 150  ));
     private static final Point POINT_89_99_89_99_GEOMETRY = GEO_FACTORY.createPoint(new Coordinate(89.99, 89.99));
 
-    private static final Val POINT_1_2         = geometryToGeoJSON(POINT_1_2_GEOMETRY);
-    private static final Val POINT_10_12       = geometryToGeoJSON(POINT_10_12_GEOMETRY);
-    private static final Val POINT_90_90       = geometryToGeoJSON(POINT_90_90_GEOMETRY);
-    private static final Val POINT_150_150     = geometryToGeoJSON(POINT_150_150_GEOMETRY);
-    private static final Val POINT_89_99_89_99 = geometryToGeoJSON(POINT_89_99_89_99_GEOMETRY);
+    private static final ObjectValue POINT_1_2         = geometryToGeoJSON(POINT_1_2_GEOMETRY);
+    private static final ObjectValue POINT_10_12       = geometryToGeoJSON(POINT_10_12_GEOMETRY);
+    private static final ObjectValue POINT_90_90       = geometryToGeoJSON(POINT_90_90_GEOMETRY);
+    private static final ObjectValue POINT_150_150     = geometryToGeoJSON(POINT_150_150_GEOMETRY);
+    private static final ObjectValue POINT_89_99_89_99 = geometryToGeoJSON(POINT_89_99_89_99_GEOMETRY);
 
-    private static final Val MULTIPOINT_1_2_150_150   = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
+    private static final ObjectValue MULTIPOINT_1_2_150_150   = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
                                                                                     POINT_1_2_GEOMETRY,
                                                                                     POINT_150_150_GEOMETRY }));
 
-    private static final Val MULTIPOINT_90_90_150_150 = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
+    private static final ObjectValue MULTIPOINT_90_90_150_150 = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
                                                                                     POINT_90_90_GEOMETRY,
                                                                                     POINT_150_150_GEOMETRY }));
 
-    private static final Val MULTIPOINT_1_2_90_90     = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
+    private static final ObjectValue MULTIPOINT_1_2_90_90     = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
                                                                                     POINT_1_2_GEOMETRY,
                                                                                     POINT_90_90_GEOMETRY }));
 
@@ -110,14 +111,14 @@ class GeographicFunctionLibraryTests {
                                                                                     new Coordinate(100, 100), });
 
 
-    private static final Val POLYGON_1 = geometryToGeoJSON(POLYGON_1_GEOMETRY);
-    private static final Val POLYGON_2 = geometryToGeoJSON(POLYGON_2_GEOMETRY);
-    private static final Val POLYGON_3 = geometryToGeoJSON(POLYGON_3_GEOMETRY);
-    private static final Val POLYGON_4 = geometryToGeoJSON(POLYGON_4_GEOMETRY);
-    private static final Val POLYGON_5 = geometryToGeoJSON(POLYGON_5_GEOMETRY);
-    private static final Val POLYGON_6 = geometryToGeoJSON(POLYGON_6_GEOMETRY);
+    private static final ObjectValue POLYGON_1 = geometryToGeoJSON(POLYGON_1_GEOMETRY);
+    private static final ObjectValue POLYGON_2 = geometryToGeoJSON(POLYGON_2_GEOMETRY);
+    private static final ObjectValue POLYGON_3 = geometryToGeoJSON(POLYGON_3_GEOMETRY);
+    private static final ObjectValue POLYGON_4 = geometryToGeoJSON(POLYGON_4_GEOMETRY);
+    private static final ObjectValue POLYGON_5 = geometryToGeoJSON(POLYGON_5_GEOMETRY);
+    private static final ObjectValue POLYGON_6 = geometryToGeoJSON(POLYGON_6_GEOMETRY);
 
-    private static final Val SELF_INTERSECTING_POLYGON = geometryToGeoJSON(GEO_FACTORY.createPolygon(
+    private static final ObjectValue SELF_INTERSECTING_POLYGON = geometryToGeoJSON(GEO_FACTORY.createPolygon(
                                                                            GEO_FACTORY.createLinearRing(new Coordinate[] {
                                                                                     new Coordinate(0, 0),
                                                                                     new Coordinate(4, 4),
@@ -125,205 +126,211 @@ class GeographicFunctionLibraryTests {
                                                                                     new Coordinate(0, 4),
                                                                                     new Coordinate(0, 0) }), null));
 
-    private static final Val LINE_1 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
+    private static final ObjectValue LINE_1 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
                                                                                     new Coordinate(80, 100),
                                                                                     new Coordinate(200, 250) }));
 
-    private static final Val LINE_2 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
+    private static final ObjectValue LINE_2 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
                                                                                     new Coordinate(200, 100),
                                                                                     new Coordinate(200, 200),
                                                                                     new Coordinate(300, 200),
                                                                                     new Coordinate(300, 100) }));
 
-    private static final Val LINE_3 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
+    private static final ObjectValue LINE_3 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
                                                                                     new Coordinate(100, 100),
                                                                                     new Coordinate(200, 200) }));
 
-    private static final Val LINE_4 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
+    private static final ObjectValue LINE_4 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
                                                                                     new Coordinate(0, 50),
                                                                                     new Coordinate(0, 150) }));
 
-    private static final Val COLLECTION_1 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
+    private static final ObjectValue COLLECTION_1 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
                                                                                     POLYGON_1_GEOMETRY,
                                                                                     POLYGON_3_GEOMETRY }));
 
-    private static final Val COLLECTION_2 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
+    private static final ObjectValue COLLECTION_2 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
                                                                                     POLYGON_1_GEOMETRY }));
 
-    private static final Val COLLECTION_3 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
+    private static final ObjectValue COLLECTION_3 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
                                                                                     POINT_1_2_GEOMETRY,
                                                                                     POINT_90_90_GEOMETRY }));
     // @formatter:on
 
     @Test
     void libraryLoadsWithoutErrors() {
-        final var functionCtx = new AnnotationFunctionContext();
-        assertThatCode(() -> functionCtx.loadLibrary(GeographicFunctionLibrary.class)).doesNotThrowAnyException();
+        var functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GeographicFunctionLibrary.class))
+                .doesNotThrowAnyException();
     }
 
     @Test
     void equalsTest() {
-        assertThatVal(equalsExact(POINT_10_12, POINT_10_12)).isTrue();
-        assertThatVal(equalsExact(POLYGON_4, POLYGON_4)).isTrue();
-        assertThatVal(equalsExact(POINT_10_12, POINT_1_2)).isFalse();
-        assertThatVal(equalsExact(POLYGON_4, POLYGON_1)).isFalse();
+        assertThat(equalsExact(POINT_10_12, POINT_10_12)).isEqualTo(Value.TRUE);
+        assertThat(equalsExact(POLYGON_4, POLYGON_4)).isEqualTo(Value.TRUE);
+        assertThat(equalsExact(POINT_10_12, POINT_1_2)).isEqualTo(Value.FALSE);
+        assertThat(equalsExact(POLYGON_4, POLYGON_1)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void disjointTest() {
-        assertThatVal(disjoint(POINT_1_2, POINT_10_12)).isTrue();
-        assertThatVal(disjoint(POLYGON_4, POLYGON_1)).isTrue();
-        assertThatVal(disjoint(POINT_10_12, POINT_10_12)).isFalse();
-        assertThatVal(disjoint(POLYGON_4, POLYGON_4)).isFalse();
+        assertThat(disjoint(POINT_1_2, POINT_10_12)).isEqualTo(Value.TRUE);
+        assertThat(disjoint(POLYGON_4, POLYGON_1)).isEqualTo(Value.TRUE);
+        assertThat(disjoint(POINT_10_12, POINT_10_12)).isEqualTo(Value.FALSE);
+        assertThat(disjoint(POLYGON_4, POLYGON_4)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void touchesTest() {
-        assertThatVal(touches(POINT_10_12, POLYGON_4)).isTrue();
-        assertThatVal(touches(POINT_10_12, POLYGON_1)).isFalse();
+        assertThat(touches(POINT_10_12, POLYGON_4)).isEqualTo(Value.TRUE);
+        assertThat(touches(POINT_10_12, POLYGON_1)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void crossesTest() {
-        assertThatVal(crosses(LINE_1, POLYGON_1)).isTrue();
-        assertThatVal(crosses(POLYGON_4, POLYGON_1)).isFalse();
+        assertThat(crosses(LINE_1, POLYGON_1)).isEqualTo(Value.TRUE);
+        assertThat(crosses(POLYGON_4, POLYGON_1)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void withinTest() {
-        assertThatVal(within(LINE_3, POLYGON_1)).isTrue();
-        assertThatVal(within(LINE_3, COLLECTION_1)).isTrue();
-        assertThatVal(within(POINT_90_90, POLYGON_1)).isFalse();
-        assertThatVal(within(POINT_90_90, COLLECTION_1)).isFalse();
+        assertThat(within(LINE_3, POLYGON_1)).isEqualTo(Value.TRUE);
+        assertThat(within(LINE_3, COLLECTION_1)).isEqualTo(Value.TRUE);
+        assertThat(within(POINT_90_90, POLYGON_1)).isEqualTo(Value.FALSE);
+        assertThat(within(POINT_90_90, COLLECTION_1)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void containsTest() {
-        assertThatVal(contains(POLYGON_1, LINE_3)).isTrue();
-        assertThatVal(contains(COLLECTION_1, LINE_3)).isTrue();
-        assertThatVal(contains(POLYGON_4, POINT_90_90)).isFalse();
-        assertThatVal(contains(COLLECTION_1, POINT_90_90)).isFalse();
+        assertThat(contains(POLYGON_1, LINE_3)).isEqualTo(Value.TRUE);
+        assertThat(contains(COLLECTION_1, LINE_3)).isEqualTo(Value.TRUE);
+        assertThat(contains(POLYGON_4, POINT_90_90)).isEqualTo(Value.FALSE);
+        assertThat(contains(COLLECTION_1, POINT_90_90)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void overlapsTest() {
-        assertThatVal(overlaps(POLYGON_6, POLYGON_5)).isTrue();
-        assertThatVal(overlaps(POLYGON_4, POLYGON_1)).isFalse();
+        assertThat(overlaps(POLYGON_6, POLYGON_5)).isEqualTo(Value.TRUE);
+        assertThat(overlaps(POLYGON_4, POLYGON_1)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void intersectsTest() {
-        assertThatVal(intersects(POLYGON_1, POLYGON_5)).isTrue();
-        assertThatVal(intersects(POLYGON_4, POLYGON_5)).isFalse();
+        assertThat(intersects(POLYGON_1, POLYGON_5)).isEqualTo(Value.TRUE);
+        assertThat(intersects(POLYGON_4, POLYGON_5)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void bufferTest() {
-        final var expectedGeometry = geometryToGeoJSON(POINT_1_2_GEOMETRY.buffer(10.0D));
-        final var actualGeometry   = buffer(POINT_1_2, Val.of(10.0D));
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = geometryToGeoJSON(POINT_1_2_GEOMETRY.buffer(10.0D));
+        val actualGeometry   = buffer(POINT_1_2, Value.of(10.0D));
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void boundaryTest() {
-        final var expectedGeometry = POLYGON_2;
-        final var actualGeometry   = boundary(POLYGON_5);
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = POLYGON_2;
+        val actualGeometry   = boundary(POLYGON_5);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void centroidTest() {
-        final var expectedGeometry = POINT_150_150;
-        final var actualGeometry   = centroid(POLYGON_1);
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = POINT_150_150;
+        val actualGeometry   = centroid(POLYGON_1);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void convexHullTest() {
-        final var expectedGeometry = POLYGON_3;
-        final var actualGeometry   = convexHull(LINE_2);
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = POLYGON_3;
+        val actualGeometry   = convexHull(LINE_2);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void unionTest() {
-        final var expectedGeometry = MULTIPOINT_1_2_150_150;
-        final var actualGeometry   = union(new Val[] { POINT_1_2, POINT_150_150 });
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = MULTIPOINT_1_2_150_150;
+        val actualGeometry   = union(POINT_1_2, POINT_150_150);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void unionSingleTest() {
-        final var expectedGeometry = POINT_10_12;
-        final var actualGeometry   = union(new Val[] { POINT_10_12 });
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = POINT_10_12;
+        val actualGeometry   = union(POINT_10_12);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void unionEmptyTest() {
-        final var expectedGeometry = geometryToGeoJSON(WGS84_FACTORY.createEmpty(-1));
-        final var actualGeometry   = union(new Val[] {});
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = geometryToGeoJSON(WGS84_FACTORY.createEmpty(-1));
+        val actualGeometry   = union();
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void intersectionTest() {
-        final var expectedGeometry = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(200, 200)));
-        final var actualGeometry   = intersection(LINE_2, LINE_3);
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(200, 200)));
+        val actualGeometry   = intersection(LINE_2, LINE_3);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void differenceTest() {
-        final var expectedGeometry = LINE_1;
-        final var actualGeometry   = difference(LINE_1, LINE_3);
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = LINE_1;
+        val actualGeometry   = difference(LINE_1, LINE_3);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void symDifferenceTest() {
-        final var expectedGeometry = MULTIPOINT_1_2_90_90;
-        final var actualGeometry   = symDifference(MULTIPOINT_1_2_150_150, MULTIPOINT_90_90_150_150);
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = MULTIPOINT_1_2_90_90;
+        val actualGeometry   = symDifference(MULTIPOINT_1_2_150_150, MULTIPOINT_90_90_150_150);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void distanceTest() {
-        final var actualGeometry = distance(LINE_3, LINE_4);
-        assertThatVal(actualGeometry).hasValue().withTolerance(0).isEqualTo(100.0D);
+        val actualGeometry = distance(LINE_3, LINE_4);
+        assertThat(actualGeometry).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) actualGeometry).value().doubleValue()).isCloseTo(100.0D, within(0.001));
     }
 
     @Test
     void isWithinDistanceTest() {
-        assertThatVal(isWithinDistance(LINE_3, LINE_4, Val.of(110))).isTrue();
-        assertThatVal(isWithinDistance(LINE_3, LINE_4, Val.of(10))).isFalse();
+        assertThat(isWithinDistance(LINE_3, LINE_4, Value.of(110))).isEqualTo(Value.TRUE);
+        assertThat(isWithinDistance(LINE_3, LINE_4, Value.of(10))).isEqualTo(Value.FALSE);
     }
 
     @Test
-    void lenghtTest() {
-        assertThatVal(length(LINE_4)).hasValue().withTolerance(0).isEqualTo(100.0D);
+    void lengthTest() {
+        var result = length(LINE_4);
+        assertThat(result).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) result).value().doubleValue()).isCloseTo(100.0D, within(0.001));
     }
 
     @Test
     void areaTest() {
-        assertThatVal(area(POLYGON_1)).hasValue().withTolerance(0).isEqualTo(10000.0D);
+        var result = area(POLYGON_1);
+        assertThat(result).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) result).value().doubleValue()).isCloseTo(10000.0D, within(0.001));
     }
 
     @Test
     void isSimpleTest() {
-        assertThatVal(isSimple(SELF_INTERSECTING_POLYGON)).isFalse();
-        assertThatVal(isSimple(POLYGON_1)).isTrue();
+        assertThat(isSimple(SELF_INTERSECTING_POLYGON)).isEqualTo(Value.FALSE);
+        assertThat(isSimple(POLYGON_1)).isEqualTo(Value.TRUE);
     }
 
     @Test
     void isValidTest() {
-        assertThatVal(isValid(SELF_INTERSECTING_POLYGON)).isFalse();
-        assertThatVal(isValid(POLYGON_1)).isTrue();
+        assertThat(isValid(SELF_INTERSECTING_POLYGON)).isEqualTo(Value.FALSE);
+        assertThat(isValid(POLYGON_1)).isEqualTo(Value.TRUE);
     }
 
     @Test
-    void isClosedTest() throws JsonProcessingException {
-        final var multiLineString    = """
+    void isClosedTest() {
+        val multiLineString    = """
                 {
                     "type": "MultiLineString",
                     "coordinates": [
@@ -342,137 +349,146 @@ class GeographicFunctionLibraryTests {
                     ]
                 }
                 """;
-        final var multiLineStringVal = Val.ofJson(multiLineString);
-        assertThatVal(isClosed(multiLineStringVal)).isTrue();
-        assertThatVal(isClosed(POINT_10_12)).isTrue();
-        assertThatVal(isClosed(MULTIPOINT_1_2_150_150)).isTrue();
-        assertThatVal(isClosed(LINE_1)).isFalse();
-        assertThatVal(isClosed(POLYGON_1)).isError();
+        val multiLineStringVal = (ObjectValue) json(multiLineString);
+        assertThat(isClosed(multiLineStringVal)).isEqualTo(Value.TRUE);
+        assertThat(isClosed(POINT_10_12)).isEqualTo(Value.TRUE);
+        assertThat(isClosed(MULTIPOINT_1_2_150_150)).isEqualTo(Value.TRUE);
+        assertThat(isClosed(LINE_1)).isEqualTo(Value.FALSE);
+        assertThat(isClosed(POLYGON_1)).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void bagSizeTest() {
-        assertThat(bagSize(LINE_1).get().asInt()).isEqualTo(1);
-        assertThat(bagSize(COLLECTION_1).get().asInt()).isEqualTo(2);
+        var bagSizeLine       = bagSize(LINE_1);
+        var bagSizeCollection = bagSize(COLLECTION_1);
+        assertThat(bagSizeLine).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) bagSizeLine).value().intValue()).isEqualTo(1);
+        assertThat(bagSizeCollection).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) bagSizeCollection).value().intValue()).isEqualTo(2);
     }
 
     @Test
     void oneAndOnlyTest() {
-        final var expected = POLYGON_1;
-        final var actual   = oneAndOnly(COLLECTION_2);
-        assertThatVal(actual).isEqualTo(expected);
-        assertThatVal(oneAndOnly(COLLECTION_1)).isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
-        assertThatVal(oneAndOnly(POLYGON_4)).isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
+        val expected = POLYGON_1;
+        val actual   = oneAndOnly(COLLECTION_2);
+        assertThat(actual).isEqualTo(expected);
+        assertThat(oneAndOnly(COLLECTION_1)).isInstanceOf(ErrorValue.class);
+        assertThat(oneAndOnly(POLYGON_4)).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void geometryIsInTest() {
-        assertThatVal(geometryIsIn(POLYGON_1, COLLECTION_1)).isTrue();
-        assertThatVal(geometryIsIn(POLYGON_6, COLLECTION_1)).isFalse();
-        assertThatVal(geometryIsIn(POLYGON_4, POLYGON_1)).isError(NOT_A_GEOMETRY_COLLECTION_ERROR);
+        assertThat(geometryIsIn(POLYGON_1, COLLECTION_1)).isEqualTo(Value.TRUE);
+        assertThat(geometryIsIn(POLYGON_6, COLLECTION_1)).isEqualTo(Value.FALSE);
+        assertThat(geometryIsIn(POLYGON_4, POLYGON_1)).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void geometryBagTest() {
-        final var expectedGeometry = COLLECTION_1;
-        final var actualGeometry   = geometryBag(POLYGON_1, POLYGON_3);
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val expectedGeometry = COLLECTION_1;
+        val actualGeometry   = geometryBag(POLYGON_1, POLYGON_3);
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @Test
     void atLeastOneMemberOfTest() {
-        assertThatVal(atLeastOneMemberOf(COLLECTION_1, COLLECTION_2)).isTrue();
-        assertThatVal(atLeastOneMemberOf(COLLECTION_1, COLLECTION_3)).isFalse();
+        assertThat(atLeastOneMemberOf(COLLECTION_1, COLLECTION_2)).isEqualTo(Value.TRUE);
+        assertThat(atLeastOneMemberOf(COLLECTION_1, COLLECTION_3)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void subsetTest() {
-        assertThatVal(subset(COLLECTION_2, COLLECTION_1)).isTrue();
-        assertThatVal(subset(COLLECTION_1, COLLECTION_3)).isFalse();
+        assertThat(subset(COLLECTION_2, COLLECTION_1)).isEqualTo(Value.TRUE);
+        assertThat(subset(COLLECTION_1, COLLECTION_3)).isEqualTo(Value.FALSE);
     }
 
     @Test
     void subsetTest_returnsFalseWhenThisIsLarger() {
-        final var geometryCollectionThis = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(
+        val geometryCollectionThis = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(
                 new Geometry[] { POLYGON_1_GEOMETRY, POLYGON_3_GEOMETRY, POINT_1_2_GEOMETRY }));
-        final var geometryCollectionThat = geometryToGeoJSON(
+        val geometryCollectionThat = geometryToGeoJSON(
                 GEO_FACTORY.createGeometryCollection(new Geometry[] { POLYGON_1_GEOMETRY, POLYGON_3_GEOMETRY }));
-        assertThatVal(subset(geometryCollectionThis, geometryCollectionThat)).isFalse();
+        assertThat(subset(geometryCollectionThis, geometryCollectionThat)).isEqualTo(Value.FALSE);
 
     }
 
     @Test
     void geoDistanceCrsTest() {
-        final var crs            = Val.of(WGS84);
-        final var st             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.0)));
-        final var de             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.000001)));
-        final var actualDistance = geoDistance(st, de, crs);
-        assertThatVal(actualDistance).matches(v -> v.getDouble() > 0.1);
+        val crs            = Value.of(WGS84);
+        val st             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.0)));
+        val de             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.000001)));
+        val actualDistance = geoDistance(st, de, (TextValue) crs);
+        assertThat(actualDistance).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) actualDistance).value().doubleValue()).isGreaterThan(0.1);
     }
 
     @Test
     void geoDistanceTest() {
-        final var st             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.0)));
-        final var de             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.000001)));
-        final var actualDistance = geodesicDistance(st, de);
-        assertThatVal(actualDistance).matches(v -> v.getDouble() > 0.1);
+        val st             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.0)));
+        val de             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.000001)));
+        val actualDistance = geodesicDistance(st, de);
+        assertThat(actualDistance).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) actualDistance).value().doubleValue()).isGreaterThan(0.1);
     }
 
     @Test
     void isWithingeoDistanceTest() {
-        assertThatVal(isWithinGeodesicDistance(POINT_90_90, POINT_89_99_89_99, Val.of(1200))).isTrue();
-        assertThatVal(isWithinGeodesicDistance(POINT_90_90, POINT_89_99_89_99, Val.of(2))).isFalse();
+        assertThat(isWithinGeodesicDistance(POINT_90_90, POINT_89_99_89_99, Value.of(1200))).isEqualTo(Value.TRUE);
+        assertThat(isWithinGeodesicDistance(POINT_90_90, POINT_89_99_89_99, Value.of(2))).isEqualTo(Value.FALSE);
     }
 
     @Test
     void testMilesToMeterJsonNode() {
-        final var miles    = 1.0;
-        final var milesVal = Val.of(miles);
-        final var expected = miles * DistanceUtils.MILES_TO_KM * 1000;
-        final var actual   = milesToMeter(milesVal);
-        assertThatVal(actual).hasValue().withTolerance(0).isEqualTo(expected);
+        val miles    = 1.0;
+        val milesVal = Value.of(miles);
+        val expected = miles * DistanceUtils.MILES_TO_KM * 1000;
+        val actual   = milesToMeter((NumberValue) milesVal);
+        assertThat(actual).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) actual).value().doubleValue()).isCloseTo(expected, within(0.001));
     }
 
     @Test
     void testYardToMeter() {
-        final var yards    = 1.0;
-        final var yardVal  = Val.of(yards);
-        final var actual   = yardToMeter(yardVal);
-        final var expected = (yards / 1760) * DistanceUtils.MILES_TO_KM * 1000;
-        assertThatVal(actual).hasValue().withTolerance(0).isEqualTo(expected);
+        val yards    = 1.0;
+        val yardVal  = Value.of(yards);
+        val actual   = yardToMeter((NumberValue) yardVal);
+        val expected = (yards / 1760) * DistanceUtils.MILES_TO_KM * 1000;
+        assertThat(actual).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) actual).value().doubleValue()).isCloseTo(expected, within(0.001));
     }
 
     @Test
     void testDegreeToMeter() {
-        final var inputVal = Val.of(1.0);
-        final var actual   = degreeToMeter(inputVal);
-        final var expected = 111195.07973436874;
-        assertThatVal(actual).hasValue().withTolerance(0.0001).isEqualTo(expected);
+        val inputVal = Value.of(1.0);
+        val actual   = degreeToMeter((NumberValue) inputVal);
+        val expected = 111195.07973436874;
+        assertThat(actual).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) actual).value().doubleValue()).isCloseTo(expected, within(0.0001));
     }
 
     @Test
-    void flattenGometryBagTest_nestedArray() {
-        final var mapper    = new ObjectMapper();
-        final var arrayNode = mapper.createArrayNode();
+    void flattenGeometryBagTest_nestedArray() {
+        val mapper    = JsonMapper.builder().build();
+        val arrayNode = mapper.createArrayNode();
 
-        arrayNode.add(mapper.valueToTree(POLYGON_1.get()));
-        arrayNode.add(mapper.valueToTree(POLYGON_3.get()));
-        arrayNode.add(mapper.valueToTree(POINT_1_2.get()));
+        arrayNode.add(ValueJsonMarshaller.toJsonNode(POLYGON_1));
+        arrayNode.add(ValueJsonMarshaller.toJsonNode(POLYGON_3));
+        arrayNode.add(ValueJsonMarshaller.toJsonNode(POINT_1_2));
 
-        final var expectedGeometry = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(
+        val expectedGeometry = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(
                 new Geometry[] { POLYGON_1_GEOMETRY, POLYGON_3_GEOMETRY, POINT_1_2_GEOMETRY }));
-        final var actualGeometry   = flattenGeometryBag(Val.of(arrayNode));
-        assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
+        val actualGeometry   = flattenGeometryBag((ArrayValue) ValueJsonMarshaller.fromJsonNode(arrayNode));
+        assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
     @SneakyThrows
-    private static Val geometryToGeoJSON(Geometry geo) {
-        return Val.ofJson(GEOJSON_WRITER.write(geo));
+    private static ObjectValue geometryToGeoJSON(Geometry geo) {
+        return (ObjectValue) json(GEOJSON_WRITER.write(geo));
     }
 
     @Test
     void kmlToGeoJSONTest() throws FactoryException {
-        final var kml              = """
+        val kml              = """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Placemark>
@@ -482,17 +498,16 @@ class GeographicFunctionLibraryTests {
                   </Placemark>
                 </kml>
                 """;
-        final var expectedGeometry = GEO_FACTORY
-                .createPoint(new Coordinate(-122.0822035425683, 37.42228990140251, 0.0));
+        val expectedGeometry = GEO_FACTORY.createPoint(new Coordinate(-122.0822035425683, 37.42228990140251, 0.0));
         expectedGeometry.setUserData(CRS.decode(WGS84));
-        final var expectedVal = geometryToGeoJSON(expectedGeometry);
-        final var result      = kmlToGeoJSON(Val.of(kml));
-        assertThatVal(result).isEqualTo(expectedVal);
+        val expectedVal = geometryToGeoJSON(expectedGeometry);
+        val result      = kmlToGeoJSON(Value.of(kml));
+        assertThat(result).isEqualTo(expectedVal);
     }
 
     @Test
     void kmlToGeoJSONMultiGeometryTest() throws FactoryException {
-        final var kml = """
+        val kml = """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Placemark>
@@ -540,18 +555,18 @@ class GeographicFunctionLibraryTests {
         multiGeometry.setUserData(CRS.decode(WGS84));
 
         // Convert the expected geometry to GeoJSON
-        final var expectedVal = geometryToGeoJSON(multiGeometry);
+        val expectedVal = geometryToGeoJSON(multiGeometry);
 
         // Run the code under test
-        final var result = kmlToGeoJSON(Val.of(kml));
+        val result = kmlToGeoJSON(Value.of(kml));
 
         // Assert
-        assertThatVal(result).isEqualTo(expectedVal);
+        assertThat(result).isEqualTo(expectedVal);
     }
 
     @Test
     void kmlToGeoJSONMultiplePlacemarksTest() {
-        final var kml = """
+        val kml = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Document>
                     <Placemark>
@@ -580,15 +595,15 @@ class GeographicFunctionLibraryTests {
 
         var multiGeometry = WGS84_FACTORY.createGeometryCollection(new Geometry[] { point, lineString });
 
-        final var expectedVal = geometryToGeoJSON(multiGeometry);
+        val expectedVal = geometryToGeoJSON(multiGeometry);
 
-        final var result = kmlToGeoJSON(Val.of(kml));
-        assertThatVal(result).isEqualTo(expectedVal);
+        val result = kmlToGeoJSON(Value.of(kml));
+        assertThat(result).isEqualTo(expectedVal);
     }
 
     @Test
     void kmlToGeoJSONPolygonWithHoleTest() throws FactoryException {
-        final var kml = """
+        val kml = """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Placemark>
@@ -631,18 +646,18 @@ class GeographicFunctionLibraryTests {
                         new Coordinate(18, 18, 0), new Coordinate(12, 18, 0), new Coordinate(12, 12, 0), });
 
         // Polygon with hole
-        var polygon = GEO_FACTORY.createPolygon(outer, new org.locationtech.jts.geom.LinearRing[] { inner });
-        polygon.setUserData(CRS.decode(WGS84));
+        var geoPolygon = GEO_FACTORY.createPolygon(outer, new org.locationtech.jts.geom.LinearRing[] { inner });
+        geoPolygon.setUserData(CRS.decode(WGS84));
 
-        final var expectedVal = geometryToGeoJSON(polygon);
+        val expectedVal = geometryToGeoJSON(geoPolygon);
 
-        final var result = kmlToGeoJSON(Val.of(kml));
-        assertThatVal(result).isEqualTo(expectedVal);
+        val result = kmlToGeoJSON(Value.of(kml));
+        assertThat(result).isEqualTo(expectedVal);
     }
 
     @Test
     void kmlToGeoJSONParseErrorTest() {
-        final var invalidKml = """
+        val invalidKml = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Placemark>
                     <Point>
@@ -650,13 +665,13 @@ class GeographicFunctionLibraryTests {
                   <!-- Tag not closed properly -->
                 """;
 
-        final var result = kmlToGeoJSON(Val.of(invalidKml));
-        assertThatVal(result).isError();
+        val result = kmlToGeoJSON(Value.of(invalidKml));
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void kmlToGeoJSONNoGeometriesTest() {
-        final var emptyKml = """
+        val emptyKml = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Placemark>
                     <name>No geometry here</name>
@@ -664,13 +679,14 @@ class GeographicFunctionLibraryTests {
                 </kml>
                 """;
 
-        final var result = kmlToGeoJSON(Val.of(emptyKml));
-        assertThatVal(result).isError(GeographicFunctionLibrary.NO_GEOMETRIES_IN_KML_ERROR);
+        val result = kmlToGeoJSON(Value.of(emptyKml));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.NO_GEOMETRIES_IN_KML_ERROR);
     }
 
     @Test
     void kmlToGeoJSONFeatureCollectionCaseTest() {
-        final var multiPlacemarksKml = """
+        val multiPlacemarksKml = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Document>
                     <Placemark>
@@ -692,50 +708,51 @@ class GeographicFunctionLibraryTests {
                 </kml>
                 """;
 
-        final var result = kmlToGeoJSON(Val.of(multiPlacemarksKml));
-        assertThatVal(result).hasValue();
+        val result = kmlToGeoJSON(Value.of(multiPlacemarksKml));
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
 
     @Test
     void wktToGeoJSONPointTest() {
-        final var wkt           = "POINT (10 20)";
-        final var result        = wktToGeoJSON(Val.of(wkt));
-        final var expectedPoint = GEO_FACTORY.createPoint(new Coordinate(10, 20));
-        final var expectedVal   = geometryToGeoJSON(expectedPoint);
-        assertThatVal(result).isEqualTo(expectedVal);
+        val wkt           = "POINT (10 20)";
+        val result        = wktToGeoJSON(Value.of(wkt));
+        val expectedPoint = GEO_FACTORY.createPoint(new Coordinate(10, 20));
+        val expectedVal   = geometryToGeoJSON(expectedPoint);
+        assertThat(result).isEqualTo(expectedVal);
     }
 
     @Test
     void wktToGeoJSONPolygonWithHoleTest() {
-        final var wkt         = "POLYGON ((10 10, 20 10, 20 20, 10 20, 10 10),"
+        val wkt         = "POLYGON ((10 10, 20 10, 20 20, 10 20, 10 10),"
                 + "         (12 12, 18 12, 18 18, 12 18, 12 12))";
-        final var result      = wktToGeoJSON(Val.of(wkt));
-        final var outer       = GEO_FACTORY.createLinearRing(new Coordinate[] { new Coordinate(10, 10),
+        val result      = wktToGeoJSON(Value.of(wkt));
+        val outer       = GEO_FACTORY.createLinearRing(new Coordinate[] { new Coordinate(10, 10),
                 new Coordinate(20, 10), new Coordinate(20, 20), new Coordinate(10, 20), new Coordinate(10, 10) });
-        final var inner       = GEO_FACTORY.createLinearRing(new Coordinate[] { new Coordinate(12, 12),
+        val inner       = GEO_FACTORY.createLinearRing(new Coordinate[] { new Coordinate(12, 12),
                 new Coordinate(18, 12), new Coordinate(18, 18), new Coordinate(12, 18), new Coordinate(12, 12) });
-        final var polygon     = GEO_FACTORY.createPolygon(outer, new org.locationtech.jts.geom.LinearRing[] { inner });
-        final var expectedVal = geometryToGeoJSON(polygon);
-        assertThatVal(result).isEqualTo(expectedVal);
+        val geoPolygon  = GEO_FACTORY.createPolygon(outer, new org.locationtech.jts.geom.LinearRing[] { inner });
+        val expectedVal = geometryToGeoJSON(geoPolygon);
+        assertThat(result).isEqualTo(expectedVal);
     }
 
     @Test
     void wktToGeoJSONParseErrorTest() {
-        final var invalidWkt = "POINT 10 20"; // missing parentheses => parse error
-        final var result     = wktToGeoJSON(Val.of(invalidWkt));
-        assertThatVal(result).isError().contains(GeographicFunctionLibrary.INVALID_WKT_ERROR);
+        val invalidWkt = "POINT 10 20"; // missing parentheses => parse error
+        val result     = wktToGeoJSON(Value.of(invalidWkt));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.INVALID_WKT_ERROR);
     }
 
     @Test
     void gmlToGeoJSONPointTest() {
-        final var singlePointGml = """
+        val singlePointGml = """
                 <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326">
                   <gml:coordinates>10,20</gml:coordinates>
                 </gml:Point>
                 """;
-        final var result         = gml3ToGeoJSON(Val.of(singlePointGml));
-        assertThatVal(result).hasValue();
-        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        val result         = gml3ToGeoJSON(Value.of(singlePointGml));
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
+        val geometry = GeographicFunctionLibrary.geoJsonToGeometry((ObjectValue) result);
         assertThat(geometry.getGeometryType()).isEqualTo("Point");
         assertThat(geometry.getCoordinate().x).isEqualTo(10.0);
         assertThat(geometry.getCoordinate().y).isEqualTo(20.0);
@@ -743,7 +760,7 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void gmlToGeoJSONFeatureCollectionTest() {
-        final var multiGeomGml = """
+        val multiGeomGml = """
                 <gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml" xmlns:myNS="http://example.com/myNS">
                   <gml:featureMember>
                     <myNS:someFeature>
@@ -765,9 +782,9 @@ class GeographicFunctionLibraryTests {
                   </gml:featureMember>
                 </gml:FeatureCollection>
                 """;
-        final var result       = gml3ToGeoJSON(Val.of(multiGeomGml));
-        assertThatVal(result).hasValue();
-        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        val result       = gml3ToGeoJSON(Value.of(multiGeomGml));
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
+        val geometry = GeographicFunctionLibrary.geoJsonToGeometry((ObjectValue) result);
         assertThat(geometry.getGeometryType()).isEqualTo("GeometryCollection");
         var gc = (GeometryCollection) geometry;
         assertThat(gc.getNumGeometries()).isEqualTo(2);
@@ -775,7 +792,7 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void gmlToGeoJSONNoGeometryTest() {
-        final var noGeomGml = """
+        val noGeomGml = """
                 <gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml">
                   <gml:featureMember>
                     <SomeFeatureWithoutGeometry>
@@ -784,43 +801,45 @@ class GeographicFunctionLibraryTests {
                   </gml:featureMember>
                 </gml:FeatureCollection>
                 """;
-        final var result    = gml3ToGeoJSON(Val.of(noGeomGml));
-        assertThatVal(result).isError().contains("No geometries in GML.");
+        val result    = gml3ToGeoJSON(Value.of(noGeomGml));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("No geometries in GML.");
     }
 
     @Test
     void gmlToGeoJSONInvalidTest() {
-        final var invalidGml = """
+        val invalidGml = """
                 <gml:Point xmlns:gml="http://www.opengis.net/gml">
                 """;
-        final var result     = gml3ToGeoJSON(Val.of(invalidGml));
-        assertThatVal(result).isError(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+        val result     = gml3ToGeoJSON(Value.of(invalidGml));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
     }
 
     @Test
     void gml2ToGeoJSONPointTest() {
-        final var gml2Point = """
+        val gml2Point = """
                 <gml:Point xmlns:gml="http://www.opengis.net/gml">
                   <gml:coordinates>10,20</gml:coordinates>
                 </gml:Point>
                 """;
-        final var result    = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Point));
-        assertThatVal(result).hasValue();
-        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        val result    = gml2ToGeoJSON(Value.of(gml2Point));
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
+        val geometry = GeographicFunctionLibrary.geoJsonToGeometry((ObjectValue) result);
         assertThat(geometry.getGeometryType()).isEqualTo("Point");
         assertThat(geometry.getCoordinate()).isEqualTo(new Coordinate(10.0, 20.0));
     }
 
     @Test
     void gml2ToGeoJSONLineStringTest() {
-        final var gml2LineString = """
+        val gml2LineString = """
                 <gml:LineString xmlns:gml="http://www.opengis.net/gml">
                   <gml:coordinates>10,10 20,20 30,10</gml:coordinates>
                 </gml:LineString>
                 """;
-        final var result         = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2LineString));
-        assertThatVal(result).hasValue();
-        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        val result         = gml2ToGeoJSON(Value.of(gml2LineString));
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
+        val geometry = GeographicFunctionLibrary.geoJsonToGeometry((ObjectValue) result);
         assertThat(geometry.getGeometryType()).isEqualTo("LineString");
         assertThat(geometry.getCoordinates()).containsExactly(new Coordinate(10, 10), new Coordinate(20, 20),
                 new Coordinate(30, 10));
@@ -828,7 +847,7 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void gml2ToGeoJSONPolygonTest() {
-        final var gml2Polygon = """
+        val gml2Polygon = """
                 <gml:Polygon xmlns:gml="http://www.opengis.net/gml">
                   <gml:outerBoundaryIs>
                     <gml:LinearRing>
@@ -837,9 +856,9 @@ class GeographicFunctionLibraryTests {
                   </gml:outerBoundaryIs>
                 </gml:Polygon>
                 """;
-        final var result      = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Polygon));
-        assertThatVal(result).hasValue();
-        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        val result      = gml2ToGeoJSON(Value.of(gml2Polygon));
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
+        val geometry = GeographicFunctionLibrary.geoJsonToGeometry((ObjectValue) result);
         assertThat(geometry.getGeometryType()).isEqualTo("Polygon");
         assertThat(geometry.getCoordinates()).containsExactly(new Coordinate(10, 10), new Coordinate(20, 10),
                 new Coordinate(20, 20), new Coordinate(10, 20), new Coordinate(10, 10));
@@ -847,7 +866,7 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void gml2ToGeoJSONMultiGeometryTest() {
-        final var gml2MultiGeom = """
+        val gml2MultiGeom = """
                 <gml:MultiGeometry xmlns:gml="http://www.opengis.net/gml">
                   <gml:geometryMember>
                     <gml:Point>
@@ -861,31 +880,33 @@ class GeographicFunctionLibraryTests {
                   </gml:geometryMember>
                 </gml:MultiGeometry>
                 """;
-        final var result        = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2MultiGeom));
-        assertThatVal(result).hasValue();
-        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        val result        = gml2ToGeoJSON(Value.of(gml2MultiGeom));
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
+        val geometry = GeographicFunctionLibrary.geoJsonToGeometry((ObjectValue) result);
         assertThat(geometry.getGeometryType()).isEqualTo("GeometryCollection");
-        final var gc = (GeometryCollection) geometry;
+        val gc = (GeometryCollection) geometry;
         assertThat(gc.getNumGeometries()).isEqualTo(2);
     }
 
     @Test
     void gml2ToGeoJSONEmptyTest() {
-        final var gml2Empty = """
+        val gml2Empty = """
                 <gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml">
                 </gml:FeatureCollection>
                 """;
-        final var result    = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Empty));
-        assertThatVal(result).isError(GeographicFunctionLibrary.NO_GEOMETRIES_IN_GML_ERROR);
+        val result    = gml2ToGeoJSON(Value.of(gml2Empty));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.NO_GEOMETRIES_IN_GML_ERROR);
     }
 
     @Test
     void gml2ToGeoJSONInvalidTest() {
-        final var gml2Invalid = """
+        val gml2Invalid = """
                 <gml:Point xmlns:gml="http://www.opengis.net/gml">
                 """;
-        final var result      = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Invalid));
-        assertThatVal(result).isError().contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+        val result      = gml2ToGeoJSON(Value.of(gml2Invalid));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
     }
 
 }

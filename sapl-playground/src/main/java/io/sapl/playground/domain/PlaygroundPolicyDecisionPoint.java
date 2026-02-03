@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -18,135 +18,131 @@
 package io.sapl.playground.domain;
 
 import com.vaadin.flow.spring.annotation.UIScope;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.TracedDecision;
-import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import jakarta.annotation.PreDestroy;
-import lombok.val;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
- * UI-scoped Policy Decision Point for the SAPL playground.
- * Manages the embedded PDP instance and provides methods to configure
- * policies, variables, and combining algorithms dynamically.
+ * UI-scoped Policy Decision Point for the SAPL playground. Manages the embedded
+ * PDP instance and provides methods to
+ * configure policies, variables, and combining algorithms dynamically.
  * <p>
- * This component is scoped to the UI session and maintains state for
- * the duration of the playground view lifecycle. Resources are cleaned
- * up automatically when the view is detached.
+ * This component is scoped to the UI session and maintains state for the
+ * duration of the playground view lifecycle.
+ * Resources are cleaned up automatically when the view is detached.
  */
 @UIScope
 @Component
 public class PlaygroundPolicyDecisionPoint {
 
-    /*
-     * SAPL interpreter for parsing policy documents.
-     * Shared across all instances as it is stateless.
-     */
-    private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-
-    /*
-     * Source for variables and combining algorithm configuration.
-     * Provides reactive streams of configuration changes to the PDP.
-     */
-    private final PlaygroundVariablesAndCombinatorSource variablesAndCombinatorSource = new PlaygroundVariablesAndCombinatorSource();
-
-    /*
-     * Source for policy documents.
-     * Provides reactive stream of policy retrieval point updates.
-     */
-    private final PlaygroundPolicyRetrievalPointSource policyRetrievalPointSource;
-
-    /*
-     * Embedded policy decision point instance.
-     * Evaluates authorization subscriptions against configured policies.
-     */
-    private final EmbeddedPolicyDecisionPoint policyDecisionPoint;
+    private final PlaygroundConfigurationSource configurationSource;
+    private final DynamicPolicyDecisionPoint    policyDecisionPoint;
 
     /**
-     * Creates a new playground policy decision point.
-     * Initializes the embedded PDP with the provided attribute broker and function
-     * context.
-     * Sets up reactive sources for policies, variables, and combining algorithms.
+     * Creates a new playground policy decision point. Initializes the embedded PDP
+     * with the provided attribute broker
+     * and function broker.
      *
-     * @param attributeStreamBroker broker for attribute streams and policy
-     * information points
-     * @param functionContext context providing function libraries for policy
-     * evaluation
+     * @param attributeBroker
+     * broker for attribute streams and policy information points
+     * @param functionBroker
+     * broker providing function libraries for policy evaluation
      */
-    public PlaygroundPolicyDecisionPoint(AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext) {
-        policyRetrievalPointSource = new PlaygroundPolicyRetrievalPointSource(INTERPRETER);
-        val policyDecisionPointConfigurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
-                attributeStreamBroker, functionContext, variablesAndCombinatorSource, List.of(), List.of(),
-                policyRetrievalPointSource);
-        policyDecisionPoint = new EmbeddedPolicyDecisionPoint(policyDecisionPointConfigurationProvider);
+    public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
+        this.configurationSource = new PlaygroundConfigurationSource(functionBroker, attributeBroker);
+        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(configurationSource,
+                () -> UUID.randomUUID().toString(), ctx -> Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));
     }
 
     /**
-     * Evaluates an authorization subscription and returns traced decisions.
-     * The returned flux emits a decision whenever the result changes based on
-     * policy updates, variable changes, or attribute stream updates.
+     * Evaluates an authorization subscription and returns timestamped votes. The
+     * returned flux emits a vote whenever
+     * the result changes based on policy updates, variable changes, or attribute
+     * stream updates.
      *
-     * @param authorizationSubscription the authorization subscription to evaluate
-     * @return flux of traced authorization decisions with evaluation details
+     * @param authorizationSubscription
+     * the authorization subscription to evaluate
+     *
+     * @return flux of timestamped votes with evaluation details
      */
-    public Flux<TracedDecision> decide(AuthorizationSubscription authorizationSubscription) {
-        return policyDecisionPoint.decideTraced(authorizationSubscription);
+    public Flux<TimestampedVote> decide(AuthorizationSubscription authorizationSubscription) {
+        return policyDecisionPoint.gatherVotes(authorizationSubscription);
     }
 
     /**
-     * Updates the variables available during policy evaluation.
-     * Variables can be referenced in policies using their names.
-     * Changes trigger re-evaluation of active subscriptions.
+     * Updates the variables available during policy evaluation. Variables can be
+     * referenced in policies using their
+     * names. Changes trigger re-evaluation of active subscriptions.
      *
-     * @param variablesMap map of variable names to their values
+     * @param variables
+     * map of variable names to their values
      */
-    public void setVariables(Map<String, Val> variablesMap) {
-        variablesAndCombinatorSource.setVariables(variablesMap);
+    public void setVariables(Map<String, Value> variables) {
+        configurationSource.setVariables(variables);
     }
 
     /**
-     * Updates the policy retrieval point with new policy documents.
-     * Replaces all existing policies with the provided documents.
-     * Changes trigger re-evaluation of active subscriptions.
+     * Updates the policy retrieval point with new policy documents. Replaces all
+     * existing policies with the provided
+     * documents. Changes trigger re-evaluation of active subscriptions.
      *
-     * @param documents list of SAPL policy document source strings
+     * @param documents
+     * list of SAPL policy document source strings
      */
     public void updatePolicyRetrievalPoint(List<String> documents) {
-        policyRetrievalPointSource.updatePolicyRetrievalPoint(documents);
+        configurationSource.setPolicies(documents);
     }
 
     /**
-     * Sets the combining algorithm for policy document combination.
-     * Determines how multiple applicable policy documents are combined
-     * into a single decision.
-     * Changes trigger re-evaluation of active subscriptions.
+     * Sets the combining algorithm for policy document combination. Determines how
+     * multiple applicable policy documents
+     * are combined into a single decision. Changes trigger re-evaluation of active
+     * subscriptions.
      *
-     * @param algorithm the combining algorithm to use
+     * @param algorithm
+     * the combining algorithm to use
      */
-    public void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
-        variablesAndCombinatorSource.setCombiningAlgorithm(algorithm);
+    public void setCombiningAlgorithm(CombiningAlgorithm algorithm) {
+        configurationSource.setCombiningAlgorithm(algorithm);
     }
 
     /**
-     * Cleans up resources when the component is destroyed.
-     * Disposes of active subscriptions and releases resources to prevent memory
-     * leaks.
-     * Called automatically by Spring when the UI scope is destroyed.
+     * Cleans up resources when the component is destroyed. Disposes of active
+     * subscriptions and releases resources to
+     * prevent memory leaks. Called automatically by Spring when the UI scope is
+     * destroyed.
      */
+    /**
+     * Attempts to compile a policy source and returns any compile errors. Useful
+     * for validating policies in editors
+     * before they are applied.
+     *
+     * @param source
+     * the SAPL policy source to compile
+     *
+     * @return optional containing the exception if compilation failed, empty if
+     * successful
+     */
+    public Optional<SaplCompilerException> tryCompile(String source) {
+        return configurationSource.tryCompile(source);
+    }
+
     @PreDestroy
     private void destroy() {
-        variablesAndCombinatorSource.destroy();
-        policyRetrievalPointSource.dispose();
+        configurationSource.destroy();
     }
 }

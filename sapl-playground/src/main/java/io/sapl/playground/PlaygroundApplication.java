@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,22 +17,27 @@
  */
 package io.sapl.playground;
 
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.component.page.ColorScheme;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.AppShellSettings;
-import com.vaadin.flow.theme.Theme;
-import com.vaadin.flow.theme.lumo.Lumo;
-
+import com.vaadin.flow.theme.aura.Aura;
 import io.sapl.api.SaplVersion;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.io.Serial;
+
 @Push
 @SpringBootApplication
-@Theme(value = "sapl", variant = Lumo.DARK)
+@StyleSheet(Aura.STYLESHEET)
+@StyleSheet("themes/sapl/styles-aura.css")
+@StyleSheet("styles/playground.css")
+@ColorScheme(ColorScheme.Value.DARK)
 public class PlaygroundApplication implements AppShellConfigurator {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @Override
     public void configurePage(AppShellSettings settings) {

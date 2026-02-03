@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,12 +17,12 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
+import io.sapl.api.coverage.LineCoverageStatus;
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.mavenplugin.test.coverage.PathHelper;
-import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
-import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
-import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 import lombok.Data;
+import lombok.val;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -33,115 +33,123 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Generates HTML coverage reports from policy coverage data.
+ * <p>
+ * Creates a main report page showing coverage ratios and links to individual
+ * policy pages. Each policy page displays the source code with line-by-line
+ * coverage highlighting using CodeMirror.
+ */
 public class HtmlLineCoverageReportGenerator {
 
-    public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Path baseDir,
-            float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
-            throws MojoExecutionException {
-        Path pathToReportsMainSite;
+    private static final String ERROR_ASSET_FILE_NOT_FOUND   = "Cannot find asset file: %s";
+    private static final String ERROR_GENERATING_HTML_REPORT = "Error generating HTML coverage report.";
+
+    /**
+     * Generates complete HTML coverage report.
+     *
+     * @param policies coverage data for all policies
+     * @param baseDir output directory for generated files
+     * @param policySetHitRatio policy set hit ratio percentage
+     * @param policyHitRatio policy hit ratio percentage
+     * @param policyConditionHitRatio condition hit ratio percentage
+     * @return path to the main report file
+     * @throws MojoExecutionException if report generation fails
+     */
+    public Path generateHtmlReport(Collection<PolicyCoverageData> policies, Path baseDir, float policySetHitRatio,
+            float policyHitRatio, float policyConditionHitRatio) throws MojoExecutionException {
         try {
-            pathToReportsMainSite = generateSAPLCoverageReport(policySetHitRatio, policyHitRatio,
-                    policyConditionHitRatio, documents, baseDir);
-            generateSAPLPolicyReports(documents, baseDir);
+            val policiesWithSource = policies.stream().filter(p -> p.getDocumentSource() != null).toList();
+
+            val mainReportPath = generateMainReport(policiesWithSource, baseDir, policySetHitRatio, policyHitRatio,
+                    policyConditionHitRatio);
+            generatePolicyReports(policiesWithSource, baseDir);
             copyAssets(baseDir, WebDependencyFactory.getWebDependencies());
+            return mainReportPath;
         } catch (IOException e) {
-            throw new MojoExecutionException("Error while using the filesystem", e);
+            throw new MojoExecutionException(ERROR_GENERATING_HTML_REPORT, e);
         }
-        return pathToReportsMainSite;
     }
 
-    private void generateSAPLPolicyReports(Collection<SaplDocumentCoverageInformation> documents, Path basedir)
-            throws IOException {
-        SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
+    private Path generateMainReport(List<PolicyCoverageData> policies, Path baseDir, float policySetHitRatio,
+            float policyHitRatio, float policyConditionHitRatio) throws IOException {
+        val engine = prepareTemplateEngine();
 
-        for (SaplDocumentCoverageInformation doc : documents) {
-            List<String>              lines  = readPolicyDocument(doc.getPathToDocument());
-            List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, doc);
+        val context = new Context();
+        context.setVariable("policySetHitRatio", String.format("%.2f", policySetHitRatio));
+        context.setVariable("policyHitRatio", String.format("%.2f", policyHitRatio));
+        context.setVariable("policyConditionHitRatio", String.format("%.2f", policyConditionHitRatio));
+        context.setVariable("documentFileNames", policies.stream().map(PolicyCoverageData::getDocumentName).toList());
 
-            // prepare context
-            Context context = new Context();
-            context.setVariable("policyTitle", doc.getPathToDocument().getFileName());
-            context.setVariable("policyText", String.join("\n", lines));
-            context.setVariable("lineModels", models);
-
-            // process the template and context
-            String htmlFileAsString = springTemplateEngine.process("policy.html", context);
-
-            // write the file
-            Path outputFile = basedir.resolve("html").resolve("policies")
-                    .resolve(doc.getPathToDocument().getFileName() + ".html");
-            createFile(outputFile, htmlFileAsString);
-        }
-
-    }
-
-    private Path generateSAPLCoverageReport(float policySetHitRatio, float policyHitRatio,
-            float policyConditionHitRatio, Collection<SaplDocumentCoverageInformation> documents, Path basedir)
-            throws IOException {
-        SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
-
-        // prepare context
-        Context context = new Context();
-        context.setVariable("policySetHitRatio", policySetHitRatio);
-        context.setVariable("policyHitRatio", policyHitRatio);
-        context.setVariable("policyConditionHitRatio", policyConditionHitRatio);
-        context.setVariable("documentFileNames",
-                documents.stream().map(doc -> doc.getPathToDocument().getFileName()).toList());
-
-        // process the template and context
-        String htmlFileAsString = springTemplateEngine.process("report.html", context);
-
-        // write the file
-        Path outputFile = basedir.resolve("html").resolve("report.html");
-        createFile(outputFile, htmlFileAsString);
-
+        val html       = engine.process("report.html", context);
+        val outputFile = baseDir.resolve("html").resolve("report.html");
+        createFile(outputFile, html);
         return outputFile;
     }
 
-    private List<HtmlPolicyLineModel> createHtmlPolicyLineModel(List<String> lines,
-            SaplDocumentCoverageInformation document) {
-        List<HtmlPolicyLineModel> models = new LinkedList<>();
+    private void generatePolicyReports(List<PolicyCoverageData> policies, Path baseDir) throws IOException {
+        val engine = prepareTemplateEngine();
+
+        for (val policy : policies) {
+            val lineModels = createLineModels(policy);
+
+            val context = new Context();
+            context.setVariable("policyTitle", policy.getDocumentName());
+            context.setVariable("policyText", policy.getDocumentSource());
+            context.setVariable("lineModels", lineModels);
+
+            val html       = engine.process("policy.html", context);
+            val outputFile = baseDir.resolve("html").resolve("policies").resolve(policy.getDocumentName() + ".html");
+            createFile(outputFile, html);
+        }
+    }
+
+    private List<HtmlPolicyLineModel> createLineModels(PolicyCoverageData policy) {
+        val lineCoverage = policy.getLineCoverage();
+        val lines        = policy.getDocumentSource().lines().toList();
+        val models       = new ArrayList<HtmlPolicyLineModel>(lines.size());
 
         for (int i = 0; i < lines.size(); i++) {
-            final var model = new HtmlPolicyLineModel();
+            val model = new HtmlPolicyLineModel();
             model.setLineContent(lines.get(i));
-            final var line         = document.getLine(i + 1);
-            final var coveredValue = line.getCoveredValue();
-            assertValidCoveredValue(coveredValue);
-            switch (coveredValue) {
-            case FULLY  -> model.setCssClass("coverage-green");
-            case NEVER  -> model.setCssClass("coverage-red");
-            case PARTLY -> {
-                model.setCssClass("coverage-yellow");
-                model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
-                        line.getBranchesToCover()));
-            }
-            default     -> model.setCssClass("");
+
+            if (i < lineCoverage.size()) {
+                val coverage = lineCoverage.get(i);
+                model.setCssClass(getCssClass(coverage.status()));
+                if (coverage.status() == LineCoverageStatus.PARTIALLY_COVERED) {
+                    model.setPopoverContent(coverage.getSummary());
+                }
+            } else {
+                model.setCssClass("");
             }
             models.add(model);
         }
         return models;
     }
 
-    private void copyAssets(Path basedir, List<WebDependency> webDependencies) throws IOException {
-        for (var webDependency : webDependencies) {
-            String            sourceRelPathStr = webDependency.sourcePath() + webDependency.fileName();
-            final InputStream source           = getClass().getClassLoader().getResourceAsStream(sourceRelPathStr);
-            if (source == null) {
-                final String msg = String.format("Cannot find file: %s while copying assets.", sourceRelPathStr);
-                throw new IOException(msg);
-            }
-            final Path target = basedir.resolve(webDependency.targetPath()).resolve(webDependency.fileName());
-            copyFile(source, target);
-        }
+    private String getCssClass(LineCoverageStatus status) {
+        return switch (status) {
+        case FULLY_COVERED     -> "coverage-green";
+        case PARTIALLY_COVERED -> "coverage-yellow";
+        case NOT_COVERED       -> "coverage-red";
+        case IRRELEVANT        -> "";
+        };
     }
 
-    private List<String> readPolicyDocument(Path filePath) throws IOException {
-        return Files.readAllLines(filePath);
+    private void copyAssets(Path baseDir, List<WebDependency> webDependencies) throws IOException {
+        for (val webDependency : webDependencies) {
+            val sourceRelPathStr = webDependency.sourcePath() + webDependency.fileName();
+            val source           = getClass().getClassLoader().getResourceAsStream(sourceRelPathStr);
+            if (source == null) {
+                throw new IOException(ERROR_ASSET_FILE_NOT_FOUND.formatted(sourceRelPathStr));
+            }
+            val target = baseDir.resolve(webDependency.targetPath()).resolve(webDependency.fileName());
+            copyFile(source, target);
+        }
     }
 
     private void createFile(Path filePath, String content) throws IOException {
@@ -154,27 +162,23 @@ public class HtmlLineCoverageReportGenerator {
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private void assertValidCoveredValue(LineCoveredValue coveredValue) {
-        if (coveredValue == LineCoveredValue.FULLY || coveredValue == LineCoveredValue.PARTLY
-                || coveredValue == LineCoveredValue.NEVER || coveredValue == LineCoveredValue.IRRELEVANT)
-            return;
-        throw new SaplTestException("Unexpected enum value: " + coveredValue);
-    }
-
     private SpringTemplateEngine prepareTemplateEngine() {
-        SpringTemplateEngine        springTemplateEngine        = new SpringTemplateEngine();
-        ClassLoaderTemplateResolver classLoaderTemplateResolver = new ClassLoaderTemplateResolver();
-        classLoaderTemplateResolver.setPrefix("/html/templates/");
-        classLoaderTemplateResolver.setSuffix(".html");
-        classLoaderTemplateResolver.setCharacterEncoding("UTF-8");
-        springTemplateEngine.setTemplateResolver(classLoaderTemplateResolver);
-        return springTemplateEngine;
+        val engine   = new SpringTemplateEngine();
+        val resolver = new ClassLoaderTemplateResolver();
+        resolver.setPrefix("/html/templates/");
+        resolver.setSuffix(".html");
+        resolver.setCharacterEncoding("UTF-8");
+        engine.setTemplateResolver(resolver);
+        return engine;
     }
 
+    /**
+     * Model for a single line in the HTML policy view.
+     */
     @Data
-    static class HtmlPolicyLineModel {
-        String lineContent;
-        String cssClass;
-        String popoverContent;
+    public static class HtmlPolicyLineModel {
+        private String lineContent;
+        private String cssClass;
+        private String popoverContent;
     }
 }

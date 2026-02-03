@@ -1,5 +1,9 @@
 {
-  "algorithm": "DENY_UNLESS_PERMIT",
+  "algorithm": {
+    "votingMode": "PRIORITY_PERMIT",
+    "defaultDecision": "DENY",
+    "errorHandling": "PROPAGATE"
+  },
   "variables": {
     "key1": "value1",
     "key2": "value2",

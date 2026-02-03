@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,31 +19,24 @@ package io.sapl.playground.domain;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-import io.sapl.attributes.documentation.api.LibraryDocumentation;
+import io.sapl.api.documentation.LibraryDocumentation;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
- * Utility class for generating and converting SAPL documentation.
- * Provides methods to generate markdown documentation from library
- * and policy information point documentation objects, and to convert
- * markdown content to HTML for display.
+ * Utility class for generating and converting SAPL documentation. Provides
+ * methods to generate markdown documentation
+ * from library documentation objects, and to convert markdown content to HTML
+ * for display.
  * <p>
- * Uses Flexmark for markdown parsing and HTML rendering.
- * All methods are static as this is a utility class.
+ * Uses Flexmark for markdown parsing and HTML rendering. All methods are static
+ * as this is a utility class.
  */
 @UtilityClass
 public class MarkdownGenerator {
 
-    /*
-     * Markdown parser for converting markdown strings to document nodes.
-     */
-    private static final Parser PARSER = Parser.builder().build();
-
-    /*
-     * HTML renderer for converting Markdown document nodes to HTML strings.
-     */
+    private static final Parser       PARSER   = Parser.builder().build();
     private static final HtmlRenderer RENDERER = HtmlRenderer.builder().build();
 
     private static final String MARKDOWN_HEADER_LEVEL_1  = "# ";
@@ -52,27 +45,34 @@ public class MarkdownGenerator {
     private static final String MARKDOWN_LINE_BREAK      = "\n\n";
 
     /**
-     * Generates markdown documentation for a function library.
-     * Creates a structured Markdown document with library name, description,
-     * library-level documentation, and individual function documentation.
-     * Each function is separated by horizontal rules.
+     * Generates markdown documentation for a library (function library or PIP).
+     * Creates a structured Markdown document
+     * with library name, description, library-level documentation, and individual
+     * entry documentation. Each entry is
+     * separated by horizontal rules.
      *
-     * @param documentation the function library documentation object
+     * @param documentation
+     * the library documentation object
+     *
      * @return markdown-formatted documentation string
      */
-    public String generateMarkdownForLibrary(io.sapl.interpreter.functions.LibraryDocumentation documentation) {
+    public String generateMarkdownForLibrary(LibraryDocumentation documentation) {
         val stringBuilder = new StringBuilder();
 
-        appendHeader(stringBuilder, documentation.getName());
-        stringBuilder.append(documentation.getDescription()).append(MARKDOWN_LINE_BREAK);
-        stringBuilder.append(documentation.getLibraryDocumentation()).append(MARKDOWN_LINE_BREAK);
+        appendHeader(stringBuilder, documentation.name());
+        if (documentation.description() != null && !documentation.description().isBlank()) {
+            stringBuilder.append(documentation.description()).append(MARKDOWN_LINE_BREAK);
+        }
+        if (documentation.documentation() != null && !documentation.documentation().isBlank()) {
+            stringBuilder.append(documentation.documentation()).append(MARKDOWN_LINE_BREAK);
+        }
         stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
 
-        for (var entry : documentation.getDocumentation().entrySet()) {
-            val functionName          = entry.getKey();
-            val functionDocumentation = entry.getValue();
-            appendSubHeader(stringBuilder, functionName);
-            stringBuilder.append(functionDocumentation).append(MARKDOWN_LINE_BREAK);
+        for (var entry : documentation.entries()) {
+            appendSubHeader(stringBuilder, entry.name());
+            if (entry.documentation() != null && !entry.documentation().isBlank()) {
+                stringBuilder.append(entry.documentation()).append(MARKDOWN_LINE_BREAK);
+            }
             stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
         }
 
@@ -80,38 +80,12 @@ public class MarkdownGenerator {
     }
 
     /**
-     * Generates markdown documentation for a policy information point.
-     * Creates a structured Markdown document with PIP namespace, description,
-     * general documentation, and individual attribute documentation.
-     * Each attribute is separated by horizontal rules.
+     * Converts markdown content to HTML. Parses the markdown string and renders it
+     * as HTML using Flexmark.
      *
-     * @param documentation the policy information point documentation object
-     * @return markdown-formatted documentation string
-     */
-    public String generateMarkdownForPolicyInformationPoint(LibraryDocumentation documentation) {
-        val stringBuilder = new StringBuilder();
-
-        appendHeader(stringBuilder, documentation.namespace());
-        stringBuilder.append(documentation.descriptionMarkdown()).append(MARKDOWN_LINE_BREAK);
-        stringBuilder.append(documentation.documentationMarkdown()).append(MARKDOWN_LINE_BREAK);
-        stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
-
-        for (var entry : documentation.attributesMap().entrySet()) {
-            val attributeName          = entry.getKey();
-            val attributeDocumentation = entry.getValue();
-            appendSubHeader(stringBuilder, attributeName);
-            stringBuilder.append(attributeDocumentation).append(MARKDOWN_LINE_BREAK);
-            stringBuilder.append(MARKDOWN_HORIZONTAL_RULE);
-        }
-
-        return stringBuilder.toString();
-    }
-
-    /**
-     * Converts markdown content to HTML.
-     * Parses the markdown string and renders it as HTML using Flexmark.
+     * @param markdown
+     * the markdown string to convert
      *
-     * @param markdown the markdown string to convert
      * @return HTML string representation of the markdown content
      */
     public String markdownToHtml(@NonNull String markdown) {
@@ -120,29 +94,23 @@ public class MarkdownGenerator {
     }
 
     /**
-     * Wraps HTML content in a div element.
-     * Adds a div container around the provided HTML content with
-     * proper line breaks for formatting.
+     * Wraps HTML content in a div element. Adds a div container around the provided
+     * HTML content with proper line
+     * breaks for formatting.
      *
-     * @param innerHtml the HTML content to wrap
+     * @param innerHtml
+     * the HTML content to wrap
+     *
      * @return the HTML content wrapped in a div element
      */
     public String wrapInDiv(String innerHtml) {
-        return String.format("<div>%n%s%n</div>", innerHtml);
+        return "<div>%n%s%n</div>".formatted(innerHtml);
     }
 
-    /*
-     * Appends a level 1 markdown header with the specified title.
-     * Adds two line breaks after the header.
-     */
     private void appendHeader(StringBuilder stringBuilder, String title) {
         stringBuilder.append(MARKDOWN_HEADER_LEVEL_1).append(title).append(MARKDOWN_LINE_BREAK);
     }
 
-    /*
-     * Appends a level 2 markdown header with the specified title.
-     * Adds two line breaks after the header.
-     */
     private void appendSubHeader(StringBuilder stringBuilder, String title) {
         stringBuilder.append(MARKDOWN_HEADER_LEVEL_2).append(title).append(MARKDOWN_LINE_BREAK);
     }

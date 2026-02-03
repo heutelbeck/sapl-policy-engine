@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -20,6 +20,7 @@ package io.sapl.server.pdpcontroller;
 import io.sapl.api.pdp.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -37,12 +38,13 @@ import java.time.Duration;
  * endpoints can be connected using the client in the module sapl-pdp-client.
  */
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/pdp")
 public class PDPController {
     private final PolicyDecisionPoint pdp;
-    @Value("#{'${io.sapl.server.keep-alive:${io.sapl.server-lt.keep-alive:0}}'}")
+    @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}")
     private long                      keepAliveSeconds = 0;
 
     /**
@@ -74,8 +76,11 @@ public class PDPController {
     @PostMapping(value = "/decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<AuthorizationDecision>> decide(
             @Valid @RequestBody AuthorizationSubscription authzSubscription) {
-        return wrapWithKeepAlive(
-                pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)));
+        return wrapWithKeepAlive(pdp.decide(authzSubscription).onErrorResume(error -> {
+            log.error("Error during authorization decision for subscription {}: {}", authzSubscription,
+                    error.getMessage(), error);
+            return Flux.just(AuthorizationDecision.INDETERMINATE);
+        }));
     }
 
     /**

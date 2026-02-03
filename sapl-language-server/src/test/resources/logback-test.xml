@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-	<!-- This quiets the logging of the Spring testing initialization, which ignores profiles etc. -->
-    <logger name="root" level="OFF"/>
-    <logger name="org.springframework" level="error" />
-    <logger name="org.hibernate" level="error" />
-    <logger name="io.sapl" level="off" />
-</configuration>

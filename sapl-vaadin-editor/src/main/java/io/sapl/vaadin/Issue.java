@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,64 +17,90 @@
  */
 package io.sapl.vaadin;
 
-import elemental.json.JsonObject;
+import tools.jackson.databind.node.ObjectNode;
+import io.sapl.api.SaplVersion;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.eclipse.xtext.diagnostics.Severity;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
- * Describes a code issue identified by the linting process in the editor.
+ * Describes a code issue identified by the validation process in the editor.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Issue {
-    private static final String DESCRIPTION_KEY = "description";
-    private static final String SEVERITY_KEY    = "severity";
-    private static final String LINE_KEY        = "line";
-    private static final String COLUMN_KEY      = "column";
-    private static final String OFFSET_KEY      = "offset";
-    private static final String LENGTH_KEY      = "length";
+public class Issue implements Serializable {
 
-    private String   description;
-    private Severity severity;
-    private Integer  line;
-    private Integer  column;
-    private Integer  offset;
-    private Integer  length;
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    private static final String DESCRIPTION_KEY  = "description";
+    private static final String SEVERITY_KEY     = "severity";
+    private static final String LINE_KEY         = "line";
+    private static final String COLUMN_KEY       = "column";
+    private static final String OFFSET_KEY       = "offset";
+    private static final String LENGTH_KEY       = "length";
+    private static final String START_LINE_KEY   = "startLine";
+    private static final String START_COLUMN_KEY = "startColumn";
+
+    private String        description;
+    private IssueSeverity severity;
+    private Integer       line;
+    private Integer       column;
+    private Integer       offset;
+    private Integer       length;
 
     /**
      * Creates an Issue object from a JSON representation.
      *
      * @param jsonObject a JSON issue description.
      */
-    public Issue(JsonObject jsonObject) {
-
-        if (jsonObject.hasKey(DESCRIPTION_KEY))
-            description = jsonObject.getString(DESCRIPTION_KEY);
-
-        if (jsonObject.hasKey(SEVERITY_KEY)) {
-            String severityString = jsonObject.getString(SEVERITY_KEY);
-            switch (severityString) {
-            case "error"   -> severity = Severity.ERROR;
-            case "warning" -> severity = Severity.WARNING;
-            case "ignore"  -> severity = Severity.IGNORE;
-            default        -> severity = Severity.INFO;
-            }
+    public Issue(ObjectNode jsonObject) {
+        if (jsonObject.has(DESCRIPTION_KEY)) {
+            description = jsonObject.get(DESCRIPTION_KEY).asString();
         }
 
-        if (jsonObject.hasKey(LINE_KEY))
-            line = (int) jsonObject.getNumber(LINE_KEY);
+        if (jsonObject.has(SEVERITY_KEY)) {
+            var severityString = jsonObject.get(SEVERITY_KEY).asString();
+            severity = parseSeverity(severityString);
+        }
 
-        if (jsonObject.hasKey(COLUMN_KEY))
-            column = (int) jsonObject.getNumber(COLUMN_KEY);
+        // Support both 'line' and 'startLine' keys
+        if (jsonObject.has(LINE_KEY)) {
+            line = jsonObject.get(LINE_KEY).asInt();
+        } else if (jsonObject.has(START_LINE_KEY)) {
+            line = jsonObject.get(START_LINE_KEY).asInt();
+        }
 
-        if (jsonObject.hasKey(OFFSET_KEY))
-            offset = (int) jsonObject.getNumber(OFFSET_KEY);
+        // Support both 'column' and 'startColumn' keys
+        if (jsonObject.has(COLUMN_KEY)) {
+            column = jsonObject.get(COLUMN_KEY).asInt();
+        } else if (jsonObject.has(START_COLUMN_KEY)) {
+            column = jsonObject.get(START_COLUMN_KEY).asInt();
+        }
 
-        if (jsonObject.hasKey(LENGTH_KEY))
-            length = (int) jsonObject.getNumber(LENGTH_KEY);
+        if (jsonObject.has(OFFSET_KEY)) {
+            offset = jsonObject.get(OFFSET_KEY).asInt();
+        }
+
+        if (jsonObject.has(LENGTH_KEY)) {
+            length = jsonObject.get(LENGTH_KEY).asInt();
+        }
     }
 
+    private IssueSeverity parseSeverity(String severityString) {
+        if (severityString == null) {
+            return IssueSeverity.INFO;
+        }
+        return switch (severityString.toUpperCase()) {
+        case "ERROR"   -> IssueSeverity.ERROR;
+        case "WARNING" -> IssueSeverity.WARNING;
+        case "HINT"    -> IssueSeverity.HINT;
+        case "IGNORE"  -> IssueSeverity.IGNORE;
+        default        -> IssueSeverity.INFO;
+        };
+    }
 }

@@ -1,0 +1,217 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.test.plain;
+
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.CombiningAlgorithm;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Complete configuration for test execution.
+ * <p>
+ * Use the builder to construct a configuration:
+ *
+ * <pre>{@code
+ * var security = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2)
+ *         .withSaplTestDocument(testDoc)
+ *         .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE))
+ *         .withFunctionLibrary(TemporalFunctionLibrary.class).build();
+ * }</pre>
+ */
+public record TestConfiguration(
+        List<SaplDocument> saplDocuments,
+        List<SaplTestDocument> saplTestDocuments,
+        CombiningAlgorithm defaultAlgorithm,
+        Map<String, Value> pdpVariables,
+        Map<String, Value> pdpSecrets,
+        List<Class<?>> functionLibraries,
+        List<Object> policyInformationPoints,
+        boolean failFast,
+        Duration verificationTimeout) {
+
+    /**
+     * Default timeout for verification (1 second for faster feedback during
+     * development).
+     */
+    public static final Duration DEFAULT_VERIFICATION_TIMEOUT = Duration.ofSeconds(1);
+
+    /**
+     * Creates a new builder.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builder for TestConfiguration.
+     */
+    public static class Builder {
+        private final List<SaplDocument>     saplDocuments           = new ArrayList<>();
+        private final List<SaplTestDocument> saplTestDocuments       = new ArrayList<>();
+        private CombiningAlgorithm           defaultAlgorithm        = new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN,
+                PROPAGATE);
+        private final Map<String, Value>     pdpVariables            = new HashMap<>();
+        private final Map<String, Value>     pdpSecrets              = new HashMap<>();
+        private final List<Class<?>>         functionLibraries       = new ArrayList<>();
+        private final List<Object>           policyInformationPoints = new ArrayList<>();
+        private boolean                      failFast                = false;
+        private Duration                     verificationTimeout     = DEFAULT_VERIFICATION_TIMEOUT;
+
+        /**
+         * Adds a SAPL document to test.
+         */
+        public Builder withSaplDocument(SaplDocument document) {
+            this.saplDocuments.add(document);
+            return this;
+        }
+
+        /**
+         * Adds multiple SAPL documents to test.
+         */
+        public Builder withSaplDocuments(List<SaplDocument> documents) {
+            this.saplDocuments.addAll(documents);
+            return this;
+        }
+
+        /**
+         * Adds a test document.
+         */
+        public Builder withSaplTestDocument(SaplTestDocument testDocument) {
+            this.saplTestDocuments.add(testDocument);
+            return this;
+        }
+
+        /**
+         * Adds multiple test documents.
+         */
+        public Builder withSaplTestDocuments(List<SaplTestDocument> testDocuments) {
+            this.saplTestDocuments.addAll(testDocuments);
+            return this;
+        }
+
+        /**
+         * Sets the default combining algorithm for integration tests.
+         */
+        public Builder withDefaultAlgorithm(CombiningAlgorithm algorithm) {
+            this.defaultAlgorithm = algorithm;
+            return this;
+        }
+
+        /**
+         * Adds a PDP variable.
+         */
+        public Builder withVariable(String name, Value value) {
+            this.pdpVariables.put(name, value);
+            return this;
+        }
+
+        /**
+         * Adds multiple PDP variables.
+         */
+        public Builder withVariables(Map<String, Value> variables) {
+            this.pdpVariables.putAll(variables);
+            return this;
+        }
+
+        /**
+         * Adds a PDP secret. Secrets are only accessible to PIPs, not policies.
+         */
+        public Builder withSecret(String name, Value value) {
+            this.pdpSecrets.put(name, value);
+            return this;
+        }
+
+        /**
+         * Adds multiple PDP secrets. Secrets are only accessible to PIPs, not policies.
+         */
+        public Builder withSecrets(Map<String, Value> secrets) {
+            this.pdpSecrets.putAll(secrets);
+            return this;
+        }
+
+        /**
+         * Adds a function library class.
+         */
+        public Builder withFunctionLibrary(Class<?> libraryClass) {
+            this.functionLibraries.add(libraryClass);
+            return this;
+        }
+
+        /**
+         * Adds multiple function library classes.
+         */
+        public Builder withFunctionLibraries(List<Class<?>> libraryClasses) {
+            this.functionLibraries.addAll(libraryClasses);
+            return this;
+        }
+
+        /**
+         * Adds a policy information point instance.
+         */
+        public Builder withPolicyInformationPoint(Object pip) {
+            this.policyInformationPoints.add(pip);
+            return this;
+        }
+
+        /**
+         * Adds multiple policy information point instances.
+         */
+        public Builder withPolicyInformationPoints(List<Object> pips) {
+            this.policyInformationPoints.addAll(pips);
+            return this;
+        }
+
+        /**
+         * Enables fail-fast mode (stop on first failure).
+         */
+        public Builder withFailFast(boolean failFast) {
+            this.failFast = failFast;
+            return this;
+        }
+
+        /**
+         * Sets the timeout for test verification.
+         * Default is 5 seconds for faster feedback.
+         *
+         * @param timeout the verification timeout
+         * @return this builder for chaining
+         */
+        public Builder withVerificationTimeout(Duration timeout) {
+            this.verificationTimeout = timeout;
+            return this;
+        }
+
+        /**
+         * Builds the configuration.
+         */
+        public TestConfiguration build() {
+            return new TestConfiguration(List.copyOf(saplDocuments), List.copyOf(saplTestDocuments), defaultAlgorithm,
+                    Map.copyOf(pdpVariables), Map.copyOf(pdpSecrets), List.copyOf(functionLibraries),
+                    List.copyOf(policyInformationPoints), failFast, verificationTimeout);
+        }
+    }
+}

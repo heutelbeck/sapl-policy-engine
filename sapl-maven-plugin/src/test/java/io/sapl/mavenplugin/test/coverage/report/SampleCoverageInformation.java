@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,43 +17,45 @@
  */
 package io.sapl.mavenplugin.test.coverage.report;
 
-import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
-import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.experimental.UtilityClass;
 
-import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * Provides sample PolicyCoverageData for tests.
+ */
 @UtilityClass
 public class SampleCoverageInformation {
 
-    private record LineMarking(int lineNumber, LineCoveredValue value, int coveredBranches, int branchesToCover) {}
+    private static final String POLICY_SOURCE = """
+            import test.upper as uppies
 
-    // @formatter:off
-    private static final List<LineMarking> LINE_MARKINGS = List.of(
-            new LineMarking( 1, LineCoveredValue.IRRELEVANT, 0, 0),
-            new LineMarking( 2, LineCoveredValue.IRRELEVANT, 0, 0),
-            new LineMarking( 3, LineCoveredValue.FULLY,      1, 1),
-            new LineMarking( 4, LineCoveredValue.FULLY,      1, 1),
-            new LineMarking( 5, LineCoveredValue.IRRELEVANT, 0, 0),
-            new LineMarking( 6, LineCoveredValue.FULLY,      1, 1),
-            new LineMarking( 7, LineCoveredValue.IRRELEVANT, 0, 0),
-            new LineMarking( 8, LineCoveredValue.FULLY,      1, 1),
-            new LineMarking( 9, LineCoveredValue.IRRELEVANT, 0, 0),
-            new LineMarking(10, LineCoveredValue.PARTLY,     1, 2),
-            new LineMarking(11, LineCoveredValue.NEVER,      0, 2),
-            new LineMarking(12, LineCoveredValue.NEVER,      0, 2)
-            );
-    // @formatter:on
+            set "testPolicies"
+            deny-unless-permit
 
-    public List<SaplDocumentCoverageInformation> documents() {
-        final var document = new SaplDocumentCoverageInformation(Paths.get("src/test/resources/policies/policy_1.sapl"),
-                12);
-        for (var marking : LINE_MARKINGS) {
-            document.markLine(marking.lineNumber(), marking.value(), marking.coveredBranches(),
-                    marking.branchesToCover());
-        }
-        return List.of(document);
+            policy "policy 1"
+            permit
+                action == "read"
+            where
+                subject.<test.upper> == "WILLI";
+                var test = 1;
+                time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+            """;
+
+    /**
+     * Returns sample coverage data for testing HTML report generation.
+     */
+    public static List<PolicyCoverageData> policies() {
+        var policy = new PolicyCoverageData("policy_1.sapl", POLICY_SOURCE, "set");
+
+        policy.recordTargetHit(true);
+
+        policy.recordConditionHit(0, 10, true);
+        policy.recordConditionHit(0, 10, false);
+
+        policy.recordConditionHit(1, 12, true);
+
+        return List.of(policy);
     }
-
 }

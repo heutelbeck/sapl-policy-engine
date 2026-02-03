@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -25,6 +25,7 @@ import com.hivemq.client.mqtt.exceptions.MqttSessionExpiredException;
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5DisconnectException;
 import com.hivemq.client.mqtt.mqtt5.message.Mqtt5MessageType;
 import com.hivemq.client.mqtt.mqtt5.message.disconnect.Mqtt5Disconnect;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -69,7 +70,7 @@ class ErrorUtilityTests {
     @Test
     void when_evaluatingIfDisconnectWasCausedByClientAndWasCausedByServer_then_returnFalse() {
         // GIVEN
-        final var mqtt5DisconnectExceptionMock = mock(Mqtt5DisconnectException.class);
+        val mqtt5DisconnectExceptionMock = mock(Mqtt5DisconnectException.class);
         when(mqtt5DisconnectExceptionMock.getMessage()).thenReturn("Server sent " + Mqtt5MessageType.DISCONNECT);
 
         // WHEN
@@ -82,9 +83,9 @@ class ErrorUtilityTests {
     @Test
     void when_clientSendDisconnect_then_clientCausedTheDisconnect() {
         // GIVEN
-        final var disconnectException        = new Mqtt5DisconnectException(Mqtt5Disconnect.builder().build(),
+        val disconnectException        = new Mqtt5DisconnectException(Mqtt5Disconnect.builder().build(),
                 "Client sent " + Mqtt5MessageType.DISCONNECT);
-        final var wrappedDisconnectException = new RuntimeException(disconnectException);
+        val wrappedDisconnectException = new RuntimeException(disconnectException);
 
         // WHEN
         boolean isCausedByClient = isClientCausedDisconnect(wrappedDisconnectException);
@@ -96,7 +97,7 @@ class ErrorUtilityTests {
     @Test
     void when_errorIsNoSuchElementException_then_doNotRetry() {
         // GIVEN
-        final var errorFlux = Flux.error(new NoSuchElementException("No element")).retryWhen(getRetrySpec(null));
+        val errorFlux = Flux.error(new NoSuchElementException("No element")).retryWhen(getRetrySpec(null));
 
         // THEN
         StepVerifier.create(errorFlux).expectError(NoSuchElementException.class).verify();

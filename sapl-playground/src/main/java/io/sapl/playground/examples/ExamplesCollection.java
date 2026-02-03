@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,38 +17,42 @@
  */
 package io.sapl.playground.examples;
 
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+
+import io.sapl.api.pdp.CombiningAlgorithm;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository of playground examples organized by category.
- * Provides access to predefined policy scenarios for learning and testing.
+ * Repository of playground examples organized by category. Provides access to
+ * predefined policy scenarios for learning
+ * and testing.
  */
 @UtilityClass
 public class ExamplesCollection {
 
-    private static final String DEFAULT_VARIABLES = """
+    static final String DEFAULT_VARIABLES = """
             {
             }
             """;
 
     /**
-     * Default settings loaded on application startup.
-     * Simple time-based policy demonstrating the time PIP.
+     * Default settings loaded on application startup. Simple time-based policy
+     * demonstrating the time PIP.
      */
     public static final Example DEFAULT_SETTINGS = new Example("default", "Default Time-Based Access",
             "Simple time-based access control using the time policy information point", List.of("""
                     policy "business_hours_access"
                     permit
-                        action == "access"
-                    where
+                        action == "access";
                         var now = <time.now>;
                         var hour = time.hourOf(now);
                         hour >= 9 && hour < 17;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "alice", "role": "employee" },
                        "action"      : "access",
@@ -59,7 +63,7 @@ public class ExamplesCollection {
 
     /* Documentation Examples */
 
-    private static final Example DOCUMENTATION_AT_A_GLANCE = new Example("at-a-glance", "Introduction Policy",
+    static final Example DOCUMENTATION_AT_A_GLANCE = new Example("at-a-glance", "Introduction Policy",
             "Compartmentalize read access by department", List.of("""
                     /* Example policy found in Section 1.1 of the SAPL Documentation.
                      *
@@ -67,17 +71,16 @@ public class ExamplesCollection {
                      */
                     policy "compartmentalize read access by department"
                     permit
-                        // This policy is evaluated if this expression evaluates to true.
+                        // This policy is evaluated if this expression and the following evaluate to true.
                         // I.e., the policy is applicable if the resource is of type "patient_record"
                         // and a user, i.e., subject, is attempting to read it.
-                        resource.type == "patient_record" & action == "read"
-                    where
+                        resource.type == "patient_record" & action == "read";
                         // In this case the subject must have the attribute role with value "doctor"
                         // Note, that "role" is just like any other attribute here.
                         subject.role == "doctor";
                         // And the patient record and the subject must both originate from the same department.
                         resource.department == subject.department;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "alice",
@@ -96,7 +99,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example DOCUMENTATION_BUSINESS_HOURS = new Example("business-hours",
+    static final Example DOCUMENTATION_BUSINESS_HOURS = new Example("business-hours",
             "Time-based policy to deny access", "A time-based denying policy.",
             List.of("""
                     // Time-based deny policy from Section 1.3 of the SAPL Documentation.
@@ -105,8 +108,7 @@ public class ExamplesCollection {
                     // dynamic attributes without polling data.
                     policy "deny access outside business hours"
                     deny // If this policy's expressions evaluate to true, it will emit a DENY
-                        resource.type == "patient_record" & action == "read"
-                    where
+                        resource.type == "patient_record" & action == "read";
                         // The <> operator denotes access to external attributes.
                         // The following is a Boolean attribute of the current time
                         // time.localTimeIsBetween emits a single event when the attribute
@@ -126,7 +128,7 @@ public class ExamplesCollection {
                         // and does not require any polling. This is an example for a temporal
                         // logic policy.
                     """),
-            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+            new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "role": "doctor", "department": "cardiology"},
                        "action"      : "read",
@@ -135,21 +137,20 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example DOCUMENTATION_DENY_OVERRIDES = new Example("deny-overrides-demo",
-            "Deny Overrides Algorithm",
+    static final Example DOCUMENTATION_DENY_OVERRIDES = new Example("deny-overrides-demo", "Deny Overrides Algorithm",
             "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.", List.of("""
                     policy "permit authenticated users"
                     permit
-                        subject.authenticated == true
+                        subject.authenticated == true;
                     """, """
                     policy "deny suspended users"
                     deny
-                        subject.status == "suspended"
+                        subject.status == "suspended";
                     """, """
                     policy "permit regular users"
                     permit
-                        subject.role == "user"
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                        subject.role == "user";
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "authenticated": true, "role": "user", "status": "suspended" },
                        "action"      : "access",
@@ -159,7 +160,7 @@ public class ExamplesCollection {
 
     /* Medical Examples */
 
-    private static final Example MEDICAL_EMERGENCY_OVERRIDE = new Example("emergency-override",
+    static final Example MEDICAL_EMERGENCY_OVERRIDE = new Example("emergency-override",
             "Emergency Access Override (Breaking the Glass)",
             "Emergency personnel can override normal access restrictions",
             List.of("""
@@ -174,8 +175,7 @@ public class ExamplesCollection {
                     // abused outside of its intended use.
                     policy "emergency override"
                     permit
-                        resource.type == "patient_record"
-                    where
+                        resource.type == "patient_record";
                         // ensures that this policy and obligation only triggers if the doctor would otherwise not have access.
                         resource.department != subject.department;
                         // check if access happens from the emergency room.
@@ -192,12 +192,11 @@ public class ExamplesCollection {
                     """
                             policy "compartmentalize read access by department"
                             permit
-                                resource.type == "patient_record" & action == "read"
-                            where
+                                resource.type == "patient_record" & action == "read";
                                 subject.role == "doctor";
                                 resource.department == subject.department;
                             """),
-            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+            new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "house", "position": "doctor", "department": "diagnostics" },
                        "action"      : "read",
@@ -208,7 +207,7 @@ public class ExamplesCollection {
 
     /* Geographic Examples */
 
-    private static final Example GEOGRAPHIC_INSIDE_PERIMETER = new Example("geo-permit-inside-perimeter",
+    static final Example GEOGRAPHIC_INSIDE_PERIMETER = new Example("geo-permit-inside-perimeter",
             "Geo-fence: inside perimeter", "Permit if a point is inside a polygon perimeter using GeoJSON.", List.of("""
                     // Grants access only when the subject location lies completely within the
                     // allowed perimeter supplied with the resource as a GeoJSON Polygon.
@@ -217,11 +216,10 @@ public class ExamplesCollection {
                     policy "permit-inside-perimeter"
                     permit
                         // Policy is applicable for the 'access' action
-                        action == "access"
-                    where
+                        action == "access";
                         // Containment check: subject.location âˆˆ resource.perimeter
                         geo.within(subject.location, resource.perimeter);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "alice",
                                         "location": { "type": "Point", "coordinates": [5, 5] } },
@@ -233,7 +231,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_NEAR_FACILITY = new Example("geo-permit-near-facility",
+    static final Example GEOGRAPHIC_NEAR_FACILITY = new Example("geo-permit-near-facility",
             "Proximity: geodesic distance â‰¤ 200 m",
             "Permit when the subject is within 200 meters (WGS84) of the facility.", List.of("""
                     // Grants access if the geodesic distance on WGS84 between the subject position and
@@ -241,11 +239,10 @@ public class ExamplesCollection {
 
                     policy "permit-near-facility"
                     permit
-                        action == "access"
-                    where
+                        action == "access";
                         // Geodesic proximity check in meters (WGS84)
                         geo.isWithinGeodesicDistance(subject.location, resource.facility.location, 200);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "bob",
                                         "location": { "type": "Point",
@@ -256,7 +253,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED = new Example("geo-deny-intersects-restricted",
+    static final Example GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED = new Example("geo-deny-intersects-restricted",
             "Deny when requested area intersects restricted zone",
             "Deny access if a requested area overlaps any restricted area.", List.of("""
                     // Denies access when the requested area overlaps a restricted zone. Intersections of any
@@ -264,11 +261,10 @@ public class ExamplesCollection {
 
                     policy "deny-over-restricted-area"
                     deny
-                        action.type == "export"
-                    where
+                        action.type == "export";
                         // Block if there is any spatial overlap with restricted zones
                         geo.intersects(action.requestedArea, environment.restrictedArea);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "carol" },
                       "action"      : { "type": "export",
@@ -282,7 +278,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_WAYPOINTS_SUBSET = new Example("geo-permit-waypoints-subset",
+    static final Example GEOGRAPHIC_WAYPOINTS_SUBSET = new Example("geo-permit-waypoints-subset",
             "Waypoints must be subset of authorized set",
             "Permit only if all requested waypoints are contained in the authorized set.", List.of("""
                     // Ensures every requested waypoint is in the pre-authorized set. Uses subset over
@@ -290,11 +286,10 @@ public class ExamplesCollection {
 
                     policy "permit-authorized-waypoints"
                     permit
-                        action.type == "navigate"
-                    where
+                        action.type == "navigate";
                         // All action.waypoints must be elements of subject.authorizedPoints
                         geo.subset(action.waypoints, subject.authorizedPoints);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "dave",
                                         "authorizedPoints": { "type": "GeometryCollection",
@@ -313,19 +308,17 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_BUFFER_TOUCH = new Example("geo-permit-buffer-touch",
-            "Adjacency via buffer-touch", "Permit when a buffered asset footprint just touches the inspection path.",
-            List.of("""
+    static final Example GEOGRAPHIC_BUFFER_TOUCH = new Example("geo-permit-buffer-touch", "Adjacency via buffer-touch",
+            "Permit when a buffered asset footprint just touches the inspection path.", List.of("""
                     // Creates a buffer around the asset footprint and checks whether the buffer boundary
                     // touches the inspection path. This models strict adjacency without overlap.
 
                     policy "permit-adjacent-buffer-touch"
                     permit
-                        action.type == "inspect"
-                    where
+                        action.type == "inspect";
                         // Buffer width is in same units as coordinates; for planar toy data this is fine
                         geo.touches(geo.buffer(resource.assetFootprint, 10), action.inspectionPath);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "erin" },
                       "action"      : { "type": "inspect",
@@ -336,7 +329,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_WKT_INSIDE_ZONE = new Example("geo-permit-wkt-inside-zone",
+    static final Example GEOGRAPHIC_WKT_INSIDE_ZONE = new Example("geo-permit-wkt-inside-zone",
             "Normalize WKT then check containment", "Convert WKT to GeoJSON and check within against an allowed zone.",
             List.of("""
                     // Converts a WKT point to GeoJSON using geo.wktToGeoJSON, then checks containment
@@ -344,11 +337,10 @@ public class ExamplesCollection {
 
                     policy "permit-wkt-inside-zone"
                     permit
-                        action.type == "ingest"
-                    where
+                        action.type == "ingest";
                         var geom = geo.wktToGeoJSON(action.geometryWkt);
                         geo.within(geom, resource.allowedZone);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject"     : { "username": "frank" },
                       "action"      : { "type": "ingest", "geometryWkt": "POINT (5 5)" },
@@ -362,7 +354,7 @@ public class ExamplesCollection {
 
     /* Access Control Examples */
 
-    private static final Example ACCESS_CONTROL_BELL_LAPADULA_BASIC = new Example("bell-lapadula-basic",
+    static final Example ACCESS_CONTROL_BELL_LAPADULA_BASIC = new Example("bell-lapadula-basic",
             "Bell-LaPadula: NATO Classification",
             "Confidentiality model with security clearances - no read up, no write down", List.of("""
                     // Bell-LaPadula Model: Basic Confidentiality Policy
@@ -382,21 +374,19 @@ public class ExamplesCollection {
 
                     policy "bell-lapadula read access"
                     permit
-                        action == "read"
-                    where
+                        action == "read";
                         // Simple Security Property: subject clearance >= object classification
                         // This implements "no read up" - cannot read above clearance level
                         subject.clearance_level >= resource.classification_level;
                     """, """
                     policy "bell-lapadula write access"
                     permit
-                        action == "write"
-                    where
+                        action == "write";
                         // *-Property (Star Property): subject clearance <= object classification
                         // This implements "no write down" - cannot write below clearance level
                         // Prevents information from flowing downward to less secure levels
                         subject.clearance_level <= resource.classification_level;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "alice",
@@ -422,7 +412,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS = new Example("bell-lapadula-compartments",
+    static final Example ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS = new Example("bell-lapadula-compartments",
             "Bell-LaPadula: Classification + Compartments",
             "Extended Bell-LaPadula with departmental compartmentalization", List.of("""
                     // Bell-LaPadula Model with Compartments (Departments)
@@ -438,8 +428,7 @@ public class ExamplesCollection {
 
                     policy "compartmentalized read access"
                     permit
-                        action == "read"
-                    where
+                        action == "read";
                         // Must satisfy clearance level (no read up)
                         subject.clearance_level >= resource.classification_level;
 
@@ -449,14 +438,13 @@ public class ExamplesCollection {
                     """, """
                     policy "compartmentalized write access"
                     permit
-                        action == "write"
-                    where
+                        action == "write";
                         // *-Property: no write down
                         subject.clearance_level <= resource.classification_level;
 
                         // Compartment check for write operations
                         array.containsAny(subject.departments, resource.required_departments);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "bob",
@@ -484,7 +472,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BREWER_NASH_FINANCIAL = new Example("brewer-nash-financial",
+    static final Example ACCESS_CONTROL_BREWER_NASH_FINANCIAL = new Example("brewer-nash-financial",
             "Brewer-Nash: Financial Conflict of Interest",
             "Chinese Wall model preventing insider trading and conflicts of interest", List.of("""
                     // Brewer-Nash Model (Chinese Wall Policy) - Financial Sector
@@ -514,8 +502,6 @@ public class ExamplesCollection {
 
                     policy "brewer-nash-guard"
                     deny
-                        // No target expression - applies to ALL requests
-                    where
                         // Determine which COI classes contain the requested entity
                         var requestedCoiClasses = array.flatten(
                             coiClasses[?(resource.entity in @.entities)].conflict_class
@@ -538,10 +524,9 @@ public class ExamplesCollection {
                     """, """
                     policy "financial-analysts-read-company-data"
                     permit
-                        action == "read" & resource.type == "financial_report"
-                    where
+                        action == "read" & resource.type == "financial_report";
                         subject.role == "financial_analyst";
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "analyst_sarah",
@@ -577,7 +562,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BREWER_NASH_CONSULTING = new Example("brewer-nash-consulting",
+    static final Example ACCESS_CONTROL_BREWER_NASH_CONSULTING = new Example("brewer-nash-consulting",
             "Brewer-Nash: Multi-Industry Consulting", "Chinese Wall with multiple conflict classes for consulting firm",
             List.of("""
                     // Brewer-Nash Model - Consulting Firm with Multiple COI Classes
@@ -606,8 +591,6 @@ public class ExamplesCollection {
 
                     policy "brewer-nash-guard"
                     deny
-                        // No target expression - applies to ALL requests
-                    where
                         // Determine which COI classes contain the requested entity
                         var requestedCoiClasses = array.flatten(
                             coiClasses[?(resource.entity in @.entities)].conflict_class
@@ -630,8 +613,7 @@ public class ExamplesCollection {
                     """, """
                     policy "consultants-access-client-data"
                     permit
-                        action == "access"
-                    where
+                        action == "access";
                         subject.role == "consultant";
                     obligation
                         {
@@ -639,7 +621,7 @@ public class ExamplesCollection {
                             "message": "Consultant " + subject.username + " accessed client " + resource.entity,
                             "audit": true
                         }
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "consultant_mike",
@@ -679,7 +661,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BIBA_INTEGRITY = new Example("biba-integrity", "Biba Integrity Model",
+    static final Example ACCESS_CONTROL_BIBA_INTEGRITY = new Example("biba-integrity", "Biba Integrity Model",
             "Integrity protection with no read down, no write up", List.of("""
                     // Biba Integrity Model
                     //
@@ -706,8 +688,7 @@ public class ExamplesCollection {
 
                     policy "biba read integrity"
                     permit
-                        action == "read"
-                    where
+                        action == "read";
                         // Simple Integrity Property: subject integrity >= object integrity
                         // "no read down" - prevents reading less trustworthy data
                         // High-integrity processes should not consume low-integrity data
@@ -715,13 +696,12 @@ public class ExamplesCollection {
                     """, """
                     policy "biba write integrity"
                     permit
-                        action == "write"
-                    where
+                        action == "write";
                         // *-Integrity Property: subject integrity <= object integrity
                         // "no write up" - prevents writing to more trustworthy data
                         // Low-integrity processes cannot corrupt high-integrity data
                         subject.integrity_level <= resource.integrity_level;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
                         "username": "build_service",
@@ -753,7 +733,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_RBAC = new Example("role-based-access-control",
+    static final Example ACCESS_CONTROL_RBAC = new Example("role-based-access-control",
             "A Role-based Access Control Model", "Demonstrates implementing RBAC in SAPL", List.of("""
                     // Implements RBAC in SAPL
 
@@ -769,17 +749,16 @@ public class ExamplesCollection {
                        // This RBAC expression can be combined with any other access control model to implement
                        // hybrid approaches.
 
-                       { "type" : resource.type, "action": action } in permissions[(subject.role)]
+                       { "type" : resource.type, "action": action } in permissions[(subject.role)];
 
                        // Note: if the permissions are only relevant for this one policy, they can also be
                        // embedded into the policy by defining a constant variable 'permissions':
                        //
                        // policy "RBAC"
                        // permit
-                       // where
                        //   var permissions = { ... };
                        //   { "type" : resource.type, "action": action } in permissions[(subject.role)];
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "alice", "role": "customer" },
                        "action"      : "read",
@@ -807,12 +786,10 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_HIERARCHICAL_RBAC = new Example(
-            "hierarchical-role-based-access-control", "Hierarchical RBAC",
-            "Hierarchical Demonstrates implementing RBAC in SAPL", List.of("""
+    static final Example ACCESS_CONTROL_HIERARCHICAL_RBAC = new Example("hierarchical-role-based-access-control",
+            "Hierarchical RBAC", "Hierarchical Demonstrates implementing RBAC in SAPL", List.of("""
                     policy "Hierarchical RBAC"
                     permit
-                    where
                       // take the role graph from the variables and calculate the reachable roles
                       var effectiveRoles = graph.reachable(rolesHierarchy, subject.roles);
 
@@ -824,7 +801,7 @@ public class ExamplesCollection {
                       // Finally check if the required permission action is contained in the
                       // effectivePermission of the subject.
                       { "action" : action, "type" : resource.type } in effectivePermissions;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                        "subject"     : { "username": "alice", "roles": [ "cso", "market-analyst" ] },
                        "action"      : "read",
@@ -926,23 +903,22 @@ public class ExamplesCollection {
 
     /* Category Definitions */
 
-    private static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", "BOOK", 1,
+    static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", "BOOK", 1,
             List.of(DOCUMENTATION_AT_A_GLANCE, DOCUMENTATION_BUSINESS_HOURS, DOCUMENTATION_DENY_OVERRIDES));
 
-    private static final ExampleCategory MEDICAL = new ExampleCategory("Medical", "HEART", 2,
+    static final ExampleCategory MEDICAL = new ExampleCategory("Medical", "HEART", 2,
             List.of(MEDICAL_EMERGENCY_OVERRIDE));
 
-    private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", "GLOBE", 4,
+    static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", "GLOBE", 4,
             List.of(GEOGRAPHIC_INSIDE_PERIMETER, GEOGRAPHIC_NEAR_FACILITY, GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED,
                     GEOGRAPHIC_WAYPOINTS_SUBSET, GEOGRAPHIC_BUFFER_TOUCH, GEOGRAPHIC_WKT_INSIDE_ZONE));
 
-    private static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", "LOCK", 5,
+    static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", "LOCK", 5,
             List.of(ACCESS_CONTROL_RBAC, ACCESS_CONTROL_HIERARCHICAL_RBAC, ACCESS_CONTROL_BELL_LAPADULA_BASIC,
                     ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS, ACCESS_CONTROL_BREWER_NASH_FINANCIAL,
                     ACCESS_CONTROL_BREWER_NASH_CONSULTING, ACCESS_CONTROL_BIBA_INTEGRITY));
 
-    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL,
-            GEOGRAPHIC);
+    static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL, GEOGRAPHIC);
 
     /**
      * Gets all example categories in display order.
@@ -956,7 +932,9 @@ public class ExamplesCollection {
     /**
      * Finds an example by its slug identifier.
      *
-     * @param slug the unique slug identifier
+     * @param slug
+     * the unique slug identifier
+     *
      * @return the example if found
      */
     public static Optional<Example> findBySlug(String slug) {

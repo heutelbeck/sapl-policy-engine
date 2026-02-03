@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,12 +17,13 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.Charsets;
+import tools.jackson.databind.JsonNode;
+import lombok.val;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
@@ -34,8 +35,8 @@ public class TraccarTestClient {
     private final WebClient positioningClient;
 
     public TraccarTestClient(String host, int apiPort, int positioningPort, String email, String password) {
-        final var basicAuthValue = "Basic "
-                + Base64.getEncoder().encodeToString((email + ":" + password).getBytes(Charsets.UTF_8));
+        val basicAuthValue = "Basic "
+                + Base64.getEncoder().encodeToString((email + ":" + password).getBytes(StandardCharsets.UTF_8));
         apiClient         = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, apiPort))
                 .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuthValue).build();
         positioningClient = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, positioningPort))
@@ -43,7 +44,7 @@ public class TraccarTestClient {
     }
 
     public String registerUser(String email, String password) {
-        final var userJson = String.format("""
+        val userJson = String.format("""
                 {\
                     "name": "testuser",\
                     "email": "%s",\
@@ -54,16 +55,16 @@ public class TraccarTestClient {
     }
 
     public String createDevice(String uniqueId) throws Exception {
-        final var body          = String.format("""
+        val body          = String.format("""
                 {\
                     "name": "Test Device",\
                     "uniqueId": "%s"\
                 }""", uniqueId);
-        final var createdDevice = apiClient.post().uri("/api/devices")
+        val createdDevice = apiClient.post().uri("/api/devices")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).bodyValue(body).retrieve()
                 .bodyToMono(JsonNode.class).blockOptional();
         if (createdDevice.isPresent()) {
-            return createdDevice.get().get("id").asText();
+            return createdDevice.get().get("id").asString();
         }
         throw new IllegalStateException("Could not create device");
     }
@@ -71,11 +72,11 @@ public class TraccarTestClient {
     public String createGeofence(String geoFenceData) {
         return apiClient.post().uri("/api/geofences").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .bodyValue(geoFenceData).retrieve().bodyToMono(JsonNode.class).blockOptional()
-                .map(o -> o.get("id").asText()).orElse("");
+                .map(o -> o.get("id").asString()).orElse("");
     }
 
     public String addTraccarPosition(String deviceId, Double lat, Double lon, Double altitude) {
-        final var queryParams = Map.of("id", deviceId, "lat", lat.toString(), "lon", lon.toString(), "altitude",
+        val queryParams = Map.of("id", deviceId, "lat", lat.toString(), "lon", lon.toString(), "altitude",
                 altitude.toString(), "speed", "0", "accuracy", "14.0", "timestamp", "2023-07-09 13:34:19");
         return positioningClient.get().uri(uriBuilder -> {
             queryParams.forEach(uriBuilder::queryParam);

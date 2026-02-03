@@ -1,0 +1,27 @@
+set "query methods, age > 18"
+first or abstain errors propagate
+
+policy "permit method name query (1)"
+permit
+    action == "findAll";
+    subject.age >= 18;
+obligation {
+               "type": "r2dbcQueryManipulation",
+               "conditions": [ "active = false" ],
+			   "selection": {
+						"type": "blacklist",
+						"columns": ["age"]
+						},
+				"transformations": {
+					"firstname": "UPPER"
+					}
+             }
+
+policy "permit method name query (2)"
+permit
+    action == "findAllByAgeAfter";
+    resource.age >= 18;
+obligation {
+               "type": "r2dbcQueryManipulation",
+               "conditions": [ "active = true" ]
+             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,7 +17,7 @@
  */
 package io.sapl.playground.examples;
 
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
 
 import java.util.List;
 
@@ -25,19 +25,26 @@ import java.util.List;
  * Represents a complete playground example with policies, subscription, and
  * variables.
  *
- * @param slug unique identifier for URL fragments
- * @param displayName human-readable name shown in UI
- * @param description explanation of what the example demonstrates
- * @param policies list of SAPL policy documents
- * @param combiningAlgorithm algorithm to use when multiple policies apply
- * @param subscription authorization subscription JSON
- * @param variables variables JSON
+ * @param slug
+ * unique identifier for URL fragments
+ * @param displayName
+ * human-readable name shown in UI
+ * @param description
+ * explanation of what the example demonstrates
+ * @param policies
+ * list of SAPL policy documents
+ * @param combiningAlgorithm
+ * algorithm to use when multiple policies apply
+ * @param subscription
+ * authorization subscription JSON
+ * @param variables
+ * variables JSON
  */
 public record Example(
         String slug,
         String displayName,
         String description,
         List<String> policies,
-        PolicyDocumentCombiningAlgorithm combiningAlgorithm,
+        CombiningAlgorithm combiningAlgorithm,
         String subscription,
         String variables) {}

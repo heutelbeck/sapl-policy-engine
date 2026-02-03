@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,8 +17,8 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
@@ -26,9 +26,9 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointFactory;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Timeout;
@@ -40,7 +40,6 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
 
 import static io.sapl.extensions.mqtt.MqttTestUtility.*;
 
@@ -62,21 +61,23 @@ class MqttPolicyInformationPointIT {
     @TempDir
     Path extensionsDir;
 
-    private EmbeddedHiveMQ              mqttBroker;
-    private Mqtt5BlockingClient         mqttClient;
-    private EmbeddedPolicyDecisionPoint pdp;
+    private EmbeddedHiveMQ      mqttBroker;
+    private Mqtt5BlockingClient mqttClient;
+    private PolicyDecisionPoint pdp;
+    private SaplMqttClient      saplMqttClient;
 
     @BeforeEach
-    void beforeEach() throws InitializationException {
-        this.mqttBroker = buildAndStartBroker(configDir, dataDir, extensionsDir);
-        mqttClient      = startClient();
-        this.pdp        = buildPdp();
+    void beforeEach() {
+        this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
+        this.mqttClient     = startClient();
+        this.saplMqttClient = new SaplMqttClient();
+        this.pdp            = buildPdp(saplMqttClient);
     }
 
     @AfterEach
     void tearDown() {
-        pdp.destroy();
         mqttClient.disconnect();
+        saplMqttClient.close();
         stopBroker(mqttBroker);
     }
 
@@ -88,18 +89,18 @@ class MqttPolicyInformationPointIT {
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(SUBJECT, action, RESOURCE);
 
         // WHEN
-        final var pdpDecisionFlux = pdp.decide(authzSubscription);
+        val pdpDecisionFlux = pdp.decide(authzSubscription);
 
         // THEN
         StepVerifier.create(pdpDecisionFlux).thenAwait(Duration.ofMillis(1000))
                 .then(() -> mqttClient.publish(publishMessage))
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
+                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
     }
 
-    private static EmbeddedPolicyDecisionPoint buildPdp() throws InitializationException {
-        return PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/pipPolicies",
-                () -> List.of(new MqttPolicyInformationPoint(new SaplMqttClient())), List::of, List::of, List::of);
+    private static PolicyDecisionPoint buildPdp(SaplMqttClient mqttClient) {
+        return PolicyDecisionPointBuilder.withoutDefaults()
+                .withPolicyInformationPoint(new MqttPolicyInformationPoint(mqttClient))
+                .withResourcesSource("/pipPolicies").build().pdp();
     }
 
     private static Mqtt5Publish buildMqttPublishMessage() {
