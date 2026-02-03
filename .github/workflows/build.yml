@@ -284,9 +284,6 @@ jobs:
       - name: Build SAPL Node Image
         run: mvn -B spring-boot:build-image -pl sapl-node -DskipTests
 
-      - name: Build SAPL Server CE Image
-        run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Pproduction
-
       - name: Build SAPL Playground Image
         run: mvn -B spring-boot:build-image -pl sapl-playground -DskipTests -Pproduction
 
@@ -315,14 +312,6 @@ jobs:
           max_attempts: 3
           retry_on: error
           command: docker push ghcr.io/heutelbeck/sapl-node:${{ steps.get-version.outputs.VERSION }}
-
-      - name: Push Server CE Image to ghcr.io
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_on: error
-          command: docker push ghcr.io/heutelbeck/sapl-server-ce:${{ steps.get-version.outputs.VERSION }}
 
       - name: Push Playground Image to ghcr.io
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
