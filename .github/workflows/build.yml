@@ -268,7 +268,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Deploy Maven Artifacts
-        run: mvn -B --no-transfer-progress -pl !:sapl-node,!:sapl-server-ce,!:sapl-playground,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
+        run: mvn -B --no-transfer-progress -pl !:sapl-node,!:sapl-playground,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
