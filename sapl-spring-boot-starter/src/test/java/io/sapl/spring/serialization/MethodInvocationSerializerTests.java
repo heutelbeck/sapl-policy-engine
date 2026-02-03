@@ -86,13 +86,12 @@ class MethodInvocationSerializerTests {
     }
 
     static Stream<Arguments> modifierTestCases() {
-        return Stream.of(
-                arguments("staticVoid", "static"),
-                arguments("protectedVoid", "protected"),
-                arguments("protectedStaticVoid", "protected", "static"),
-                arguments("privateVoid", "private"),
-                arguments("synchronizedVoid", "synchronized"),
-                arguments("finalVoid", "final"));
+        return Stream.of(arguments("staticVoid", new String[] { "static" }),
+                arguments("protectedVoid", new String[] { "protected" }),
+                arguments("protectedStaticVoid", new String[] { "protected", "static" }),
+                arguments("privateVoid", new String[] { "private" }),
+                arguments("synchronizedVoid", new String[] { "synchronized" }),
+                arguments("finalVoid", new String[] { "final" }));
     }
 
     @Test
