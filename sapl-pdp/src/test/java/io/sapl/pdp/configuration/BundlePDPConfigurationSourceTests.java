@@ -140,7 +140,7 @@ class BundlePDPConfigurationSourceTests {
         val nonExistentPath = tempDir.resolve("non-existent");
 
         assertThatThrownBy(() -> new BundlePDPConfigurationSource(nonExistentPath, developmentPolicy, config -> {}))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("does not exist");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
     @Test
@@ -295,9 +295,14 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkDirectoryProvidedThenThrowsException() throws IOException {
+    void whenSymlinkDirectoryProvidedThenItIsAccepted() throws IOException {
         val realDir = tempDir.resolve("real");
         Files.createDirectory(realDir);
+        createBundle(realDir.resolve("test.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "test-v1" }
+                        """,
+                "policy.sapl", "policy \"test\" permit true;");
 
         val linkDir = tempDir.resolve("link");
         try {
@@ -307,12 +312,16 @@ class BundlePDPConfigurationSourceTests {
             return;
         }
 
-        assertThatThrownBy(() -> new BundlePDPConfigurationSource(linkDir, developmentPolicy, config -> {}))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("symbolic link");
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        // Symlink directories are accepted for flexible deployment scenarios
+        source = new BundlePDPConfigurationSource(linkDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
     }
 
     @Test
-    void whenSymlinkBundleFilePresentThenItIsSkipped() throws IOException {
+    void whenSymlinkBundleFilePresentThenItIsLoaded() throws IOException {
         createBundle(tempDir.resolve("real.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "real-v1" }
@@ -332,9 +341,10 @@ class BundlePDPConfigurationSourceTests {
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
-        // Only the real bundle should be loaded, symlink should be skipped
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().pdpId()).isEqualTo("real");
+        // Symlinks are followed for flexible deployment scenarios
+        assertThat(configs).hasSize(2);
+        val pdpIds = configs.stream().map(PDPConfiguration::pdpId).toList();
+        assertThat(pdpIds).containsExactlyInAnyOrder("real", "link");
     }
 
     @Test
@@ -590,7 +600,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkBundleAddedAfterStartThenItIsIgnored(@TempDir Path externalDir) throws IOException {
+    void whenSymlinkBundleAddedAfterStartThenItIsLoaded(@TempDir Path externalDir) throws IOException {
         createBundle(tempDir.resolve("initial.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v2" }
@@ -612,7 +622,7 @@ class BundlePDPConfigurationSourceTests {
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("initial");
 
-        // Try to add a symlink bundle pointing to the external target
+        // Add a symlink bundle pointing to the external target
         val link = tempDir.resolve("link.saplbundle");
         try {
             Files.createSymbolicLink(link, targetBundle);
@@ -621,10 +631,10 @@ class BundlePDPConfigurationSourceTests {
             return;
         }
 
-        // Wait for file watcher - symlink should be detected but ignored
+        // Wait for file watcher - symlink should be detected and loaded
         await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600)).untilAsserted(() -> {
             val pdpIds = configs.stream().map(PDPConfiguration::pdpId).distinct().toList();
-            assertThat(pdpIds).doesNotContain("link");
+            assertThat(pdpIds).contains("link");
         });
     }
 

@@ -128,7 +128,7 @@ class DirectoryPDPConfigurationSourceTests {
         val nonExistentPath = tempDir.resolve("non-existent");
 
         assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(nonExistentPath, config -> {}))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("does not exist");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
     @Test
@@ -254,7 +254,7 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkFilePresentThenItIsSkipped() throws IOException {
+    void whenSymlinkFilePresentThenItIsLoaded() throws IOException {
         createFile(tempDir.resolve("real.sapl"), "policy \"real\" permit true;");
 
         val target = tempDir.resolve("target.sapl");
@@ -271,12 +271,12 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
 
-        // Real file + target file are loaded; symlink is skipped
-        assertThat(receivedConfig.get().saplDocuments()).hasSize(2);
+        // All files including symlink are loaded
+        assertThat(receivedConfig.get().saplDocuments()).hasSize(3);
     }
 
     @Test
-    void whenSymlinkDirectoryProvidedThenThrowsException() throws IOException {
+    void whenSymlinkDirectoryProvidedThenItIsAccepted() throws IOException {
         val realDir = tempDir.resolve("real");
         Files.createDirectory(realDir);
         createFile(realDir.resolve("policy.sapl"), "policy \"test\" permit true;");
@@ -288,8 +288,12 @@ class DirectoryPDPConfigurationSourceTests {
             return; // Skip test on systems that don't support symlinks
         }
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(linkDir, config -> {}))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("symbolic link");
+        val receivedConfig = new AtomicReference<PDPConfiguration>();
+
+        // Symlink directories are accepted for flexible deployment scenarios
+        source = new DirectoryPDPConfigurationSource(linkDir, receivedConfig::set);
+
+        assertThat(receivedConfig.get().saplDocuments()).hasSize(1);
     }
 
     @Test

@@ -23,12 +23,15 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.mongodb.test.autoconfigure.AutoConfigureDataMongo;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.json.JsonMapper;
@@ -37,14 +40,17 @@ import tools.jackson.databind.type.CollectionType;
 import java.io.IOException;
 import java.util.List;
 
-@AutoConfigureDataMongo
-@SpringBootTest(classes = { TestApplication.class }, properties = { "de.flapdoodle.mongodb.embedded.version=8.0.5",
-        "io.sapl.pdp.embedded.enabled=true", "io.sapl.pdp.embedded.pdp-config-type=RESOURCES",
-        "io.sapl.pdp.embedded.policies-path=policies-mongo",
-        "spring.autoconfigure.exclude=org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration" })
-@Import(TestConfig.class)
+@Testcontainers
 @DirtiesContext
+@Import(TestConfig.class)
+@SpringBootTest(classes = TestApplication.class, properties = { "io.sapl.pdp.embedded.enabled=true",
+        "io.sapl.pdp.embedded.pdp-config-type=RESOURCES", "io.sapl.pdp.embedded.policies-path=policies-mongo",
+        "spring.autoconfigure.exclude=org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration" })
 class UserRepositoryIT {
+
+    @Container
+    @ServiceConnection
+    static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:8.0");
 
     @Autowired
     private UserIntegrationTestsRepository repository;

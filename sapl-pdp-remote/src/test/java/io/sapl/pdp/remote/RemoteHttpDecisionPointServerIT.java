@@ -33,6 +33,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.ImagePullPolicy;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -72,7 +73,7 @@ class RemoteHttpDecisionPointServerIT {
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
         // @formatter:off
                 val container = baseContainer.withImagePullPolicy(NEVER_PULL)
-                        .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
+                        .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                         .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")
                         .withEnv("SERVER_SSL_ENABLED", "false")
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTRACE","true")
@@ -106,8 +107,7 @@ class RemoteHttpDecisionPointServerIT {
     private GenericContainer<?> saplServerWithTls(GenericContainer<?> baseContainer) {
         // @formatter:off
         return baseContainer.withImagePullPolicy(NEVER_PULL)
-                .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
-                .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
+                .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_PORT)
                 .waitingFor(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1).withStartupTimeout(Duration.ofMinutes(2)))
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
@@ -175,17 +175,23 @@ class RemoteHttpDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromHttpsPdpWithOauth2AuthThenDecisionIsProvided() throws SSLException {
-        try (var oauthBaseContainer = new GenericContainer<>(
-                DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
-                val oauth2Container = oauthBaseContainer.withExposedPorts(8080)
+        val issuerUrl = "http://auth-host:8080/default";
+        try (var network = Network.newNetwork();
+                var oauthBaseContainer = new GenericContainer<>(
+                        DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
+                val oauth2Container = oauthBaseContainer.withNetwork(network).withNetworkAliases("auth-host")
+                        .withExposedPorts(8080)
+                        .withEnv("JSON_CONFIG",
+                                "{\"interactiveLogin\":false,\"tokenCallbacks\":[{\"issuerId\":\"default\",\"requestMappings\":[{\"requestParam\":\"grant_type\",\"match\":\"client_credentials\",\"claims\":{\"iss\":\""
+                                        + issuerUrl + "\"}}]}]}")
                         .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(2)))) {
             oauth2Container.start();
 
             try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
-                    val container = saplServerWithTls(baseContainer).withEnv("IO_SAPL_NODE_ALLOWOAUTH2AUTH", "true")
-                            .withExtraHost("auth-host", "host-gateway")
+                    val container = saplServerWithTls(baseContainer).withNetwork(network)
+                            .withEnv("IO_SAPL_NODE_ALLOWOAUTH2AUTH", "true")
                             .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI",
-                                    "http://auth-host:" + oauth2Container.getMappedPort(8080) + "/default")) {
+                                    "http://auth-host:8080/default")) {
                 container.start();
 
                 val clientRegistrationRepository = new ReactiveClientRegistrationRepository() {
@@ -194,7 +200,7 @@ class RemoteHttpDecisionPointServerIT {
                                                              String registrationId) {
                                                          return Mono
                                                                  .just(ClientRegistration.withRegistrationId("saplPdp")
-                                                                         .tokenUri("http://auth-host:"
+                                                                         .tokenUri("http://localhost:"
                                                                                  + oauth2Container.getMappedPort(8080)
                                                                                  + "/default/token")
                                                                          .clientId("0oa62xybztegSdqtZ5d7")

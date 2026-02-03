@@ -30,7 +30,6 @@ import org.apache.commons.io.monitor.FileAlterationObserver;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -114,8 +113,6 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
-    private static final String ERROR_DIRECTORY_DOES_NOT_EXIST     = "Bundle directory does not exist.";
-    private static final String ERROR_DIRECTORY_IS_SYMBOLIC_LINK   = "Bundle directory must not be a symbolic link.";
     private static final String ERROR_FAILED_TO_LOAD_BUNDLES       = "Failed to load bundles from directory.";
     private static final String ERROR_FAILED_TO_START_FILE_MONITOR = "Failed to start file monitor for bundle directory.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Bundle path is not a directory.";
@@ -184,12 +181,6 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
     }
 
     private void validateDirectory() {
-        if (!Files.exists(directoryPath, LinkOption.NOFOLLOW_LINKS)) {
-            throw new PDPConfigurationException(ERROR_DIRECTORY_DOES_NOT_EXIST);
-        }
-        if (Files.isSymbolicLink(directoryPath)) {
-            throw new PDPConfigurationException(ERROR_DIRECTORY_IS_SYMBOLIC_LINK);
-        }
         if (!Files.isDirectory(directoryPath)) {
             throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY);
         }
@@ -197,8 +188,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
 
     private void loadInitialBundles() {
         try (var stream = Files.list(directoryPath)) {
-            val bundles = stream.filter(path -> !Files.isSymbolicLink(path))
-                    .filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+            val bundles = stream.filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().endsWith(BUNDLE_EXTENSION)).toList();
 
             for (val bundlePath : bundles) {
@@ -212,11 +202,6 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
     }
 
     private void loadBundle(Path bundlePath) {
-        if (Files.isSymbolicLink(bundlePath)) {
-            log.warn("Skipping symbolic link bundle: {}.", bundlePath.getFileName());
-            return;
-        }
-
         val pdpId = derivePdpIdFromBundleName(bundlePath);
         if (pdpId == null) {
             log.warn("Skipping bundle with no filename: {}.", bundlePath);

@@ -27,7 +27,6 @@ import org.apache.commons.io.monitor.FileAlterationObserver;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -73,7 +72,6 @@ import java.util.function.Consumer;
  * </p>
  * <h2>Security Measures</h2>
  * <ul>
- * <li><b>Symlink protection:</b> Symbolic links are rejected.</li>
  * <li><b>PDP ID validation:</b> Validated against strict pattern.</li>
  * </ul>
  * <h2>Spring Integration</h2>
@@ -101,8 +99,6 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
-    private static final String ERROR_DIRECTORY_DOES_NOT_EXIST     = "Configuration directory does not exist.";
-    private static final String ERROR_DIRECTORY_IS_SYMBOLIC_LINK   = "Configuration directory must not be a symbolic link.";
     private static final String ERROR_FAILED_TO_START_FILE_MONITOR = "Failed to start file monitor for configuration directory.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Configuration path is not a directory.";
 
@@ -164,12 +160,6 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     }
 
     private void validateDirectory() {
-        if (!Files.exists(directoryPath, LinkOption.NOFOLLOW_LINKS)) {
-            throw new PDPConfigurationException(ERROR_DIRECTORY_DOES_NOT_EXIST);
-        }
-        if (Files.isSymbolicLink(directoryPath)) {
-            throw new PDPConfigurationException(ERROR_DIRECTORY_IS_SYMBOLIC_LINK);
-        }
         if (!Files.isDirectory(directoryPath)) {
             throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY);
         }

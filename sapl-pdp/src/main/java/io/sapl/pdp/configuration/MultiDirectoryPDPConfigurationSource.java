@@ -27,7 +27,6 @@ import org.apache.commons.io.monitor.FileAlterationObserver;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -101,8 +100,6 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
-    private static final String ERROR_DIRECTORY_DOES_NOT_EXIST      = "Configuration directory does not exist.";
-    private static final String ERROR_DIRECTORY_IS_SYMBOLIC_LINK    = "Configuration directory must not be a symbolic link.";
     private static final String ERROR_FAILED_TO_LOAD_CONFIGURATIONS = "Failed to load configurations from directory.";
     private static final String ERROR_FAILED_TO_START_MONITOR       = "Failed to start directory monitor.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY         = "Configuration path is not a directory.";
@@ -177,12 +174,6 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     }
 
     private void validateDirectory() {
-        if (!Files.exists(directoryPath, LinkOption.NOFOLLOW_LINKS)) {
-            throw new PDPConfigurationException(ERROR_DIRECTORY_DOES_NOT_EXIST);
-        }
-        if (Files.isSymbolicLink(directoryPath)) {
-            throw new PDPConfigurationException(ERROR_DIRECTORY_IS_SYMBOLIC_LINK);
-        }
         if (!Files.isDirectory(directoryPath)) {
             throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY);
         }
@@ -193,12 +184,7 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
             val entries = stream.toList();
 
             for (val entry : entries) {
-                if (Files.isSymbolicLink(entry)) {
-                    log.warn("Skipping symbolic link: {}.", entry.getFileName());
-                    continue;
-                }
-
-                if (Files.isDirectory(entry, LinkOption.NOFOLLOW_LINKS)) {
+                if (Files.isDirectory(entry)) {
                     createChildSource(entry);
                 }
             }
@@ -304,10 +290,6 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
                 return;
             }
             val path = directory.toPath();
-            if (Files.isSymbolicLink(path)) {
-                log.warn("Ignoring symbolic link directory: {}.", directory.getName());
-                return;
-            }
             log.debug("Detected new subdirectory: {}.", directory.getName());
             createChildSource(path);
         }

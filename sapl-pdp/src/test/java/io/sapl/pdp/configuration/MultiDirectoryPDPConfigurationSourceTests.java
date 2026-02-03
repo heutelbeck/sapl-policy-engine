@@ -144,7 +144,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         val nonExistentPath = tempDir.resolve("non-existent");
 
         assertThatThrownBy(() -> new MultiDirectoryPDPConfigurationSource(nonExistentPath, config -> {}))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("does not exist");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
     @Test
@@ -312,7 +312,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkSubdirectoryPresentThenItIsSkipped(@TempDir Path externalDir) throws IOException {
+    void whenSymlinkSubdirectoryPresentThenItIsLoaded(@TempDir Path externalDir) throws IOException {
         createSubdirectoryWithPolicy("real", DENY_OVERRIDES, "policy.sapl", "policy \"real\" permit true;");
 
         // Create target directory OUTSIDE the watched directory
@@ -332,14 +332,23 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().pdpId()).isEqualTo("real");
+        // Symlinks are followed for flexible deployment scenarios
+        assertThat(configs).hasSize(2);
+        val pdpIds = configs.stream().map(PDPConfiguration::pdpId).toList();
+        assertThat(pdpIds).containsExactlyInAnyOrder("real", "link");
     }
 
     @Test
-    void whenSymlinkDirectoryProvidedThenThrowsException() throws IOException {
+    void whenSymlinkDirectoryProvidedThenItIsAccepted() throws IOException {
         val realDir = tempDir.resolve("real");
         Files.createDirectory(realDir);
+        val tenantDir = realDir.resolve("tenant");
+        Files.createDirectory(tenantDir);
+        createFile(tenantDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
+        createFile(tenantDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
         val linkDir = tempDir.resolve("link");
         try {
@@ -349,12 +358,16 @@ class MultiDirectoryPDPConfigurationSourceTests {
             return;
         }
 
-        assertThatThrownBy(() -> new MultiDirectoryPDPConfigurationSource(linkDir, config -> {}))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("symbolic link");
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        // Symlink directories are accepted for flexible deployment scenarios
+        source = new MultiDirectoryPDPConfigurationSource(linkDir, configs::add);
+
+        assertThat(configs).hasSize(1);
     }
 
     @Test
-    void whenSymlinkSubdirectoryAddedAfterStartThenItIsIgnored(@TempDir Path externalDir) throws IOException {
+    void whenSymlinkSubdirectoryAddedAfterStartThenItIsLoaded(@TempDir Path externalDir) throws IOException {
         createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
         // Create target directory OUTSIDE the watched directory
@@ -369,7 +382,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("initial");
 
-        // Try to add a symlink subdirectory pointing to the external target
+        // Add a symlink subdirectory pointing to the external target
         val link = tempDir.resolve("link");
         try {
             Files.createSymbolicLink(link, target);
@@ -378,12 +391,10 @@ class MultiDirectoryPDPConfigurationSourceTests {
             return;
         }
 
-        // Wait for file watcher to potentially pick up the symlink
-        // The symlink should be detected but ignored
+        // Wait for file watcher to pick up the symlink - it should be loaded
         await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600)).untilAsserted(() -> {
-            // Symlinks are filtered out - the "link" pdp should NOT appear
             val pdpIds = configs.stream().map(PDPConfiguration::pdpId).distinct().toList();
-            assertThat(pdpIds).doesNotContain("link");
+            assertThat(pdpIds).contains("link");
         });
     }
 
