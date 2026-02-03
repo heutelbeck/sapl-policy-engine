@@ -194,7 +194,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     }
 
     private boolean checkPolicySetRatio(AggregatedCoverageData coverage) {
-        val setCount = coverage.getPolicySetCount();
+        int setCount = coverage.getPolicySetCount();
         if (setCount == 0) {
             getLog().info("No policy sets to evaluate.");
             return true;
@@ -213,7 +213,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     }
 
     private boolean checkPolicyRatio(AggregatedCoverageData coverage) {
-        val policyCount = coverage.getStandalonePolicyCount();
+        int policyCount = coverage.getStandalonePolicyCount();
         if (policyCount == 0) {
             getLog().info("No standalone policies to evaluate.");
             return true;

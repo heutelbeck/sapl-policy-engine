@@ -1024,296 +1024,51 @@ class ContentFilteringProviderTests {
         assertThat(handler.apply(original)).isEqualTo(expected);
     }
 
-    @Test
-    void when_handlerHandlesGeqCondition_makeModificationsAtMatch() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key1"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key2",
-                			"type"  : ">=",
-                			"value" : 3
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = List.of(MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 2,
-                	"key3" : 1
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 3,
-                	"key3" : 3
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 6,
-                	"key3" : 4
-                }
-                """));
-        final var expected   = List.of(MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 2,
-                	"key3" : 1
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key2" : 3,
-                	"key3" : 3
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key2" : 6,
-                	"key3" : 4
-                }
-                """));
-        assertThat(handler.apply(original)).isEqualTo(expected);
+    static Stream<Arguments> comparisonOperatorCases() {
+        return Stream.of(arguments(">=", new boolean[] { false, false, true, true }),
+                arguments("<=", new boolean[] { true, false, true, false }),
+                arguments("<", new boolean[] { true, false, false, false }),
+                arguments(">", new boolean[] { false, false, false, true }));
     }
 
-    @Test
-    void when_handlerHandlesLeqCondition_makeModificationsAtMatch() throws JacksonException {
+    @ParameterizedTest(name = "operator {0}")
+    @MethodSource("comparisonOperatorCases")
+    void whenComparisonCondition_thenDeletesKey1AtMatchingIndices(String operator, boolean[] deleteKey1AtIndex)
+            throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue("""
                 {
                 	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key1"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key2",
-                			"type"  : "<=",
-                			"value" : 3
-                		}
-                	]
+                	"actions" : [{ "type" : "delete", "path" : "$.key1" }],
+                	"conditions" : [{ "path" : "$.key2", "type" : "%s", "value" : 3 }]
                 }
-                """);
+                """.formatted(operator));
         final var handler    = sut.getHandler(constraint);
         final var original   = List.of(MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 2,
-                	"key3" : 1
-                }
+                { "key1" : "value1", "key2" : 2, "key3" : 1 }
                 """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
+                { "key1" : "value1", "key2" : "not a number", "key3" : 2 }
                 """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 3,
-                	"key3" : 3
-                }
+                { "key1" : "value1", "key2" : 3, "key3" : 3 }
                 """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 6,
-                	"key3" : 4
-                }
+                { "key1" : "value1", "key2" : 6, "key3" : 4 }
                 """));
-        final var expected   = List.of(MAPPER.readTree("""
-                {
-                	"key2" : 2,
-                	"key3" : 1
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key2" : 3,
-                	"key3" : 3
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 6,
-                	"key3" : 4
-                }
-                """));
-        assertThat(handler.apply(original)).isEqualTo(expected);
-    }
-
-    @Test
-    void when_handlerHandlesLtCondition_makeModificationsAtMatch() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key1"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key2",
-                			"type"  : "<",
-                			"value" : 3
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = List.of(MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 2,
-                	"key3" : 1
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 3,
-                	"key3" : 3
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 6,
-                	"key3" : 4
-                }
-                """));
-        final var expected   = List.of(MAPPER.readTree("""
-                {
-                	"key2" : 2,
-                	"key3" : 1
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 3,
-                	"key3" : 3
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 6,
-                	"key3" : 4
-                }
-                """));
-        assertThat(handler.apply(original)).isEqualTo(expected);
-    }
-
-    @Test
-    void when_handlerHandlesGtCondition_makeModificationsAtMatch() throws JacksonException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key1"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key2",
-                			"type"  : ">",
-                			"value" : 3
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = List.of(MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 2,
-                	"key3" : 1
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 3,
-                	"key3" : 3
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 6,
-                	"key3" : 4
-                }
-                """));
-        final var expected   = List.of(MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 2,
-                	"key3" : 1
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "not a number",
-                	"key3" : 2
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : 3,
-                	"key3" : 3
-                }
-                """), MAPPER.readTree("""
-                {
-                	"key2" : 6,
-                	"key3" : 4
-                }
+        final var expected   = List.of(MAPPER.readTree(deleteKey1AtIndex[0] ? """
+                { "key2" : 2, "key3" : 1 }
+                """ : """
+                { "key1" : "value1", "key2" : 2, "key3" : 1 }
+                """), MAPPER.readTree(deleteKey1AtIndex[1] ? """
+                { "key2" : "not a number", "key3" : 2 }
+                """ : """
+                { "key1" : "value1", "key2" : "not a number", "key3" : 2 }
+                """), MAPPER.readTree(deleteKey1AtIndex[2] ? """
+                { "key2" : 3, "key3" : 3 }
+                """ : """
+                { "key1" : "value1", "key2" : 3, "key3" : 3 }
+                """), MAPPER.readTree(deleteKey1AtIndex[3] ? """
+                { "key2" : 6, "key3" : 4 }
+                """ : """
+                { "key1" : "value1", "key2" : 6, "key3" : 4 }
                 """));
         assertThat(handler.apply(original)).isEqualTo(expected);
     }

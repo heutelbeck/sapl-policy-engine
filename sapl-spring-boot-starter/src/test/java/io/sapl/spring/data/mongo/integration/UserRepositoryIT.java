@@ -37,7 +37,6 @@ import reactor.test.StepVerifier;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.type.CollectionType;
 
-import java.io.IOException;
 import java.util.List;
 
 @Testcontainers
