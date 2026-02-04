@@ -20,6 +20,7 @@ package io.sapl.spring.pdp.embedded;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
+import io.sapl.api.pdp.PdpIdExtractor;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
@@ -57,6 +58,8 @@ import java.util.List;
  * {@link PolicyInformationPoint})</li>
  * <li>Decision interceptors (beans implementing
  * {@link VoteInterceptor})</li>
+ * <li>PDP ID extractor for multi-tenant routing (beans implementing
+ * {@link PdpIdExtractor})</li>
  * </ul>
  * <p>
  * Configuration is controlled via {@link EmbeddedPDPProperties} with prefix
@@ -84,12 +87,19 @@ public class PDPAutoConfiguration {
     PolicyDecisionPoint policyDecisionPoint(JsonMapper mapper, Clock clock,
             ObjectProvider<VoteInterceptor> interceptorProvider,
             ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
-            ApplicationContext applicationContext, EmbeddedPDPProperties properties) {
+            ObjectProvider<PdpIdExtractor> pdpIdExtractorProvider, ApplicationContext applicationContext,
+            EmbeddedPDPProperties properties) {
 
         log.info("Deploying embedded Policy Decision Point. Source: {}, Path: {}", properties.getPdpConfigType(),
                 properties.getPoliciesPath());
 
         val builder = PolicyDecisionPointBuilder.withDefaults(mapper, clock);
+
+        // Configure PDP ID extractor for multi-tenant routing
+        pdpIdExtractorProvider.ifAvailable(extractor -> {
+            log.debug("Registering custom PDP ID extractor: {}", extractor.getClass().getSimpleName());
+            builder.withPdpIdExtractor(extractor.extract());
+        });
 
         // Collect static function library classes from providers
         val functionLibraryClasses = collectFunctionLibraryClasses(functionLibraryClassProviders);

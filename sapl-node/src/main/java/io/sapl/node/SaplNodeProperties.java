@@ -17,42 +17,86 @@
  */
 package io.sapl.node;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import lombok.Data;
+
+/**
+ * Configuration properties for SAPL Node authentication and user management.
+ */
 @Data
 @ConfigurationProperties(prefix = "io.sapl.node")
 public class SaplNodeProperties {
 
-    private static final String ERROR_SHORT_API_KEY = "Detected short API key in configuration. API key must be at least %d characters long.";
+    private static final String ERROR_MISSING_PDP_ID = "User '%s' has no pdpId configured and rejectOnMissingPdpId is enabled";
+    private static final String ERROR_SHORT_API_KEY  = "Detected short API key in configuration. API key must be at least %d characters long.";
 
-    // authentication methods
+    // Authentication methods
     private boolean allowNoAuth     = false;
     private boolean allowBasicAuth  = true;
     private boolean allowApiKeyAuth = false;
     private boolean allowOauth2Auth = false;
 
-    // Basic authentication
-    private String key    = "";
-    private String secret = "";
+    // Global PDP ID settings (applies to all auth methods)
+    private boolean rejectOnMissingPdpId = false;
+    private String  defaultPdpId         = "default";
 
-    // API Key authentication
-    private List<String> allowedApiKeys = List.of();
+    // User entries with unified credentials
+    private List<UserEntry> users = new ArrayList<>();
 
-    public List<String> getAllowedApiKeys() {
-        return Collections.unmodifiableList(allowedApiKeys);
+    // OAuth2 configuration
+    private OAuthConfig oauth = new OAuthConfig();
+
+    /**
+     * Returns an unmodifiable view of the user entries.
+     *
+     * @return unmodifiable list of user entries
+     */
+    public List<UserEntry> getUsers() {
+        return Collections.unmodifiableList(users);
     }
 
-    public void setAllowedApiKeys(Collection<String> allowedApiKeys) {
-        for (String apiKey : allowedApiKeys) {
-            assertIsValidApiKey(apiKey);
+    /**
+     * Sets the user entries, validating and normalizing pdpId.
+     * <p>
+     * If a user has no pdpId and rejectOnMissingPdpId is enabled, startup fails.
+     * Otherwise, missing pdpId is normalized to defaultPdpId.
+     *
+     * @param users the user entries to set
+     */
+    public void setUsers(List<UserEntry> users) {
+        for (UserEntry user : users) {
+            if (user.getApiKey() != null) {
+                assertIsValidApiKey(user.getApiKey());
+            }
+            normalizeOrRejectPdpId(user);
         }
-        this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
+        this.users = new ArrayList<>(users);
+    }
+
+    /**
+     * Sets the rejectOnMissingPdpId flag and re-validates existing users.
+     *
+     * @param rejectOnMissingPdpId true to reject users without pdpId at startup
+     */
+    public void setRejectOnMissingPdpId(boolean rejectOnMissingPdpId) {
+        this.rejectOnMissingPdpId = rejectOnMissingPdpId;
+        for (UserEntry user : users) {
+            normalizeOrRejectPdpId(user);
+        }
+    }
+
+    private void normalizeOrRejectPdpId(UserEntry user) {
+        if (user.getPdpId() == null || user.getPdpId().isBlank()) {
+            if (rejectOnMissingPdpId) {
+                throw new IllegalStateException(ERROR_MISSING_PDP_ID.formatted(user.getId()));
+            }
+            user.setPdpId(defaultPdpId);
+        }
     }
 
     private void assertIsValidApiKey(String key) {
@@ -60,4 +104,33 @@ public class SaplNodeProperties {
             throw new IllegalStateException(ERROR_SHORT_API_KEY.formatted(SecretGenerator.MIN_API_KEY_LENGTH));
         }
     }
+
+    /**
+     * Represents a user entry with credentials for Basic or API Key authentication.
+     */
+    @Data
+    public static class UserEntry {
+        private String           id;
+        private String           pdpId;
+        private BasicCredentials basic;
+        private String           apiKey;
+    }
+
+    /**
+     * Basic authentication credentials (username and encoded secret).
+     */
+    @Data
+    public static class BasicCredentials {
+        private String username;
+        private String secret;
+    }
+
+    /**
+     * OAuth2/JWT configuration for extracting PDP ID from tokens.
+     */
+    @Data
+    public static class OAuthConfig {
+        private String pdpIdClaim = "sapl_pdp_id";
+    }
+
 }

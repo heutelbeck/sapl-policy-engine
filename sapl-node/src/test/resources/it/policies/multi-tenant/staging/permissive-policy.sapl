@@ -1,0 +1,5 @@
+policy "staging-permissive"
+permit
+    true
+where
+    true;

@@ -1,13 +1,43 @@
 {"properties": [
   {
-    "name": "io.sapl.node.secret",
-    "type": "java.lang.String",
-    "description": "Argon2 encoded client secret (password)."
+    "name": "io.sapl.node.allowNoAuth",
+    "type": "java.lang.Boolean",
+    "description": "If set to true, access to all API end points is permitted without authentication."
   },
   {
-    "name": "io.sapl.node.key",
+    "name": "io.sapl.node.allowBasicAuth",
+    "type": "java.lang.Boolean",
+    "description": "Activates Basic authentication."
+  },
+  {
+    "name": "io.sapl.node.allowApiKeyAuth",
+    "type": "java.lang.Boolean",
+    "description": "Activates API key authentication."
+  },
+  {
+    "name": "io.sapl.node.allowOauth2Auth",
+    "type": "java.lang.Boolean",
+    "description": "Turns on OAuth2 authentication."
+  },
+  {
+    "name": "io.sapl.node.rejectOnMissingPdpId",
+    "type": "java.lang.Boolean",
+    "description": "If true, reject authentication when pdpId is missing. If false, use defaultPdpId."
+  },
+  {
+    "name": "io.sapl.node.defaultPdpId",
     "type": "java.lang.String",
-    "description": "Client key (user name)."
+    "description": "Default PDP ID used when pdpId is not configured or missing from JWT claim."
+  },
+  {
+    "name": "io.sapl.node.users",
+    "type": "java.util.List",
+    "description": "List of user entries with id, pdpId, and credentials (basic or apiKey)."
+  },
+  {
+    "name": "io.sapl.node.oauth.pdpIdClaim",
+    "type": "java.lang.String",
+    "description": "JWT claim name containing the PDP ID for OAuth2 authentication."
   },
   {
     "name": "io.sapl.pdp.embedded.policies-path",
@@ -25,19 +55,9 @@
     "description": "Path to folder containing pdp.json."
   },
   {
-    "name": "loader.path",
-    "type": "java.lang.String",
-    "description": "Comma separated list of paths to load additional JARs from."
-  },
-  {
     "name": "io.sapl.pdp.embedded.print-text-report",
     "type": "java.lang.Boolean",
     "description": "This flag turns on a textual report in the logs for each decision made."
-  },
-  {
-    "name": "io.sapl.node.allowOauth2Auth",
-    "type": "java.lang.Boolean",
-    "description": "Turns on OAuth2 authentication."
   },
   {
     "name": "io.sapl.pdp.embedded.print-trace",
@@ -55,23 +75,8 @@
     "description": "This flag turns on a JSON report in the logs for each decision made."
   },
   {
-    "name": "io.sapl.node.allowedApiKeys",
-    "type": "java.util.List",
-    "description": "A comma separated list of API keys for authorized clients."
-  },
-  {
-    "name": "io.sapl.node.allowApiKeyAuth",
-    "type": "java.lang.Boolean",
-    "description": "Activates API key authentication."
-  },
-  {
-    "name": "io.sapl.node.allowBasicAuth",
-    "type": "java.lang.Boolean",
-    "description": "Activates Basic authentication."
-  },
-  {
-    "name": "io.sapl.node.allowNoAuth",
-    "type": "java.lang.Boolean",
-    "description": "If set to true, access to all API end points is permitted without authentication."
+    "name": "loader.path",
+    "type": "java.lang.String",
+    "description": "Comma separated list of paths to load additional JARs from."
   }
 ]}

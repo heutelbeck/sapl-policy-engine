@@ -17,14 +17,16 @@
  */
 package io.sapl.node.apikey;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.core.Authentication;
+
 import reactor.core.publisher.Mono;
 
 public class ApiKeyReactiveAuthenticationManager implements ReactiveAuthenticationManager {
 
     @Override
-    public Mono<Authentication> authenticate(Authentication authentication) {
+    public @NonNull Mono<Authentication> authenticate(@NonNull Authentication authentication) {
         return Mono.fromSupplier(() -> {
             if (authentication != null && authentication.getCredentials() != null) {
                 authentication.setAuthenticated(true);

@@ -42,8 +42,8 @@ import static java.time.temporal.ChronoUnit.MILLIS;
 @PolicyInformationPoint(name = TimePolicyInformationPoint.NAME, description = TimePolicyInformationPoint.DESCRIPTION)
 public class TimePolicyInformationPoint {
 
-    public static final String NAME        = "time";
-    public static final String DESCRIPTION = """
+    public static final String  NAME                    = "time";
+    public static final String  DESCRIPTION             = """
             Policy Information Point and attributes for retrieving current date and time information and
             basic temporal logic.""";
     private static final String ERROR_INTERVAL_NEGATIVE = "Time update interval must not be negative.";

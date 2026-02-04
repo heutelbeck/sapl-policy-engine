@@ -1,0 +1,5 @@
+policy "permit-eat-apple"
+permit
+    action == "eat"
+where
+    resource == "apple";

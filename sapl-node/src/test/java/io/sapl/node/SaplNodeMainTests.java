@@ -19,18 +19,37 @@ package io.sapl.node;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SaplNodeMainTests {
 
-    @Test
-    void whenExecutingMain_withApiKeyParameter_thenSuccessful() {
-        assertThatCode(() -> SaplNodeApplication.main(new String[] { "-apiKey" })).doesNotThrowAnyException();
+    private PrintStream originalOut;
+
+    @BeforeEach
+    void suppressOutput() {
+        originalOut = System.out;
+        System.setOut(new PrintStream(new ByteArrayOutputStream()));
+    }
+
+    @AfterEach
+    void restoreOutput() {
+        System.setOut(originalOut);
     }
 
     @Test
-    void whenExecutingMain_withBasicCredentialsParameter_thenSuccessful() {
-        assertThatCode(() -> SaplNodeApplication.main(new String[] { "-basicCredentials" })).doesNotThrowAnyException();
+    void whenExecutingMain_withGenerateApiKeyCommand_thenSuccessful() {
+        assertThatCode(() -> SaplNodeApplication.main(new String[] { "generate", "apikey" }))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void whenExecutingMain_withGenerateBasicCommand_thenSuccessful() {
+        assertThatCode(() -> SaplNodeApplication.main(new String[] { "generate", "basic" })).doesNotThrowAnyException();
     }
 
 }

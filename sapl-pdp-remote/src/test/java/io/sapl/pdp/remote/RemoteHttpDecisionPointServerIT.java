@@ -121,17 +121,20 @@ class RemoteHttpDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromHttpsPdpWithBasicAuthThenDecisionIsProvided() throws SSLException {
-        val key           = "mpI3KjU7n1";
+        val username      = "mpI3KjU7n1";
         val secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
         val encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
                 val container = saplServerWithTls(baseContainer).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")
-                        .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true").withEnv("IO_SAPL_NODE_KEY", key)
-                        .withEnv("IO_SAPL_NODE_SECRET", encodedSecret)) {
+                        .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true")
+                        .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-basic-client")
+                        .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "default")
+                        .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", username)
+                        .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", encodedSecret)) {
             container.start();
             val pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
-                    .basicAuth(key, secret).withUnsecureSSL().build();
+                    .basicAuth(username, secret).withUnsecureSSL().build();
             requestDecision(pdp);
             container.stop();
         }
@@ -140,17 +143,20 @@ class RemoteHttpDecisionPointServerIT {
     @Test
     void whenRequestingDecisionFromHttpsPdpWithInvalidBasicAuthThenIndeterminateDecisionIsProvided()
             throws SSLException {
-        val key           = "mpI3KjU7n1";
-        val secret        = "incalidSecret";
+        val username      = "mpI3KjU7n1";
+        val secret        = "invalidSecret";
         val encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
                 val container = saplServerWithTls(baseContainer).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")
-                        .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true").withEnv("IO_SAPL_NODE_KEY", key)
-                        .withEnv("IO_SAPL_NODE_SECRET", encodedSecret)) {
+                        .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true")
+                        .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-basic-client")
+                        .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "default")
+                        .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", username)
+                        .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", encodedSecret)) {
             container.start();
             val pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
-                    .basicAuth(key, secret).withUnsecureSSL().build();
+                    .basicAuth(username, secret).withUnsecureSSL().build();
             StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.INDETERMINATE)
                     .thenCancel().verify();
             container.stop();
@@ -163,7 +169,9 @@ class RemoteHttpDecisionPointServerIT {
         val encodedApiKey = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
                 val container = saplServerWithTls(baseContainer).withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
-                        .withEnv("IO_SAPL_NODE_ALLOWEDAPIKEYS_0_", encodedApiKey)) {
+                        .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-apikey-client")
+                        .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "default")
+                        .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", encodedApiKey)) {
             container.start();
             val pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))

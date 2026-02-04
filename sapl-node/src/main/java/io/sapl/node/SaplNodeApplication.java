@@ -17,41 +17,32 @@
  */
 package io.sapl.node;
 
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.springframework.boot.SpringApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 
-@Slf4j
+import io.sapl.node.cli.SaplNodeCli;
+
 @EnableCaching
 @SpringBootApplication(excludeName = "org.springframework.boot.autoconfigure.security.rsocket.RSocketSecurityAutoConfiguration")
 @ComponentScan({ "io.sapl.node", "io.sapl.server" })
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
+    /**
+     * Main entry point - delegates to CLI handler.
+     */
     public static void main(String[] args) {
-        if (args.length == 0) {
-            SpringApplication.run(SaplNodeApplication.class, args);
-        } else {
-            if ("-basicCredentials".equals(args[0])) {
-                log.info("Generating new Argon2 encoded secret...");
-                log.info("Key             : {}", SecretGenerator.newKey());
-                val secret = SecretGenerator.newSecret();
-                log.info("Secret Plaintext: {}", secret);
-                val encodedSecret = SecretGenerator.encodeWithArgon2(secret);
-                log.info("Secret Encoded  : {}", encodedSecret);
-            } else if ("-apiKey".equals(args[0])) {
-                log.info("Generating new API Key...");
-                val key    = SecretGenerator.newKey();
-                val secret = SecretGenerator.newApiKey();
-                val apiKey = "sapl_" + key + "_" + secret;
-                log.info("ApiKey Plaintext: {}", apiKey);
-                log.info("ApiKey Encoded  : {}", SecretGenerator.encodeWithArgon2(apiKey));
-            }
-        }
+        SaplNodeCli.main(args);
+    }
+
+    /**
+     * Starts the Spring Boot server. Called by CLI when no command is specified.
+     */
+    public static void runServer(String[] args) {
+        new SpringApplicationBuilder(SaplNodeApplication.class).main(SaplNodeApplication.class).run(args);
     }
 
 }

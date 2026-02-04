@@ -63,82 +63,28 @@
 #
 io.sapl:
   node:
-    # true|false If true, allow access to the PDP API without authentication.
-    allowNoAuth: false 
-
-# - Basic Autentication (RFC 7617): This mode allows the registration of a 
-#                                   single client application.
-#
-# Use case: The developers of the clients prefer this authentication method. 
-#           For example most HTTP client libraries support basic authentication 
-#           out of the box
-#
-# Advantage:    The secret is not stored as plain text.
-#
-# Disadvantage: Authentication per request/subscription is costly and introduces 
-#               significant latency.  
-#
-# This option is controlled by the property io.sapl.node.allowBasicAuth
-# which can be set to true or false.
-#  
-    # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # Basic Authentication with the credentials configured in the following properties.
-    allowBasicAuth: true 
-    # the io.sapl.node.key property is the 'username' to be used in Basic Authentication
-    key: xwuUaRD65G
-    # the io.sapl.node.secret property is the 'password' to be used in Basic Authentication
-    # SAPL Server expects the secret to be encoded with Argon2
-    # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
-    secret: $argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY
-    # For the above example configuration the following HTTP Header would be a valid authentication:
-    #
-    # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
-    #
-    # There are various command line tools to hash a password with Argon2. 
-    # The server also comes with a utility to create credentials for Basic Authentication
-    #
-    # Run: java -jar sapl-node-3.0.0.jar -basicCredentials
-    #
-    # This will generate a reasonably secure key and secret, encode the secret using Argon2 and print it to the console.
-    # Doing so will not start up an instance of the server.
-    #
-
-# - Authentication with API keys:
-#
-# Use Case: Managing multiple clients with high traffic and low latency requirements.
-#
-# Clients will get an API key assigned and authenticate by providing the following HTTP header:
-#
-# API_KEY: <API KEY>
-#
-# Example:
-#
-# API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
-#
-# Advantage:    Low latency, no cryptography per request necessary.
-#
-# Disadvantage: Credentials are stored in plain text on the server.  
-#
-    # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am API_KEY header.
+    allowNoAuth: false
+    allowBasicAuth: true
     allowApiKeyAuth: false
-    # list of API keys
-    allowedApiKeys:
-      - phsNZdvQAFX9P2jgGzq9TrzUecQhsnHh
-      - uQKyuL3LkBY84hJXLFPgF6cATCsTYGgy
-
-# - Authentication with OAuth2 and JWT 
-#
-# Use Case: Your organization uses an OAuth2 authorization server for managing API access already.
-#
-# Advantage:    Low latency, light cryptography per request necessary.
-#
-# Disadvantage: Need for additional infrastructure, i.e., that OAuth2 authorization server. 
-#               More complex authentication process for client application.  
-#
-    # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am API_KEY header.
     allowOauth2Auth: false
+
+    # Global PDP ID settings
+    rejectOnMissingPdpId: false
+    defaultPdpId: "default"
+
+    # OAuth2 configuration
+    oauth:
+      pdpIdClaim: "sapl_pdp_id"
+
+    # User entries with their credentials and PDP routing
+    # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
+    users:
+      - id: "test-client"
+        pdpId: "default"
+        basic:
+          username: "xwuUaRD65G"
+          # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
+          secret: "$argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY"
 # Setup Spring OAuth2 Resource Server.
 # Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html 
 spring.security.oauth2:

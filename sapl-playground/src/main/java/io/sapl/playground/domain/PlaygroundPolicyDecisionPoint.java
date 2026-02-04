@@ -65,7 +65,7 @@ public class PlaygroundPolicyDecisionPoint {
     public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
         this.configurationSource = new PlaygroundConfigurationSource(functionBroker, attributeBroker);
         this.policyDecisionPoint = new DynamicPolicyDecisionPoint(configurationSource,
-                () -> UUID.randomUUID().toString(), ctx -> Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));
+                () -> UUID.randomUUID().toString(), Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));
     }
 
     /**

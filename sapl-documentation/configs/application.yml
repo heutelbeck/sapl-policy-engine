@@ -64,83 +64,66 @@
 io.sapl:
   node:
     # true|false If true, allow access to the PDP API without authentication.
-    allowNoAuth: false 
+    allowNoAuth: false
 
-# - Basic Autentication (RFC 7617): This mode allows the registration of a 
-#                                   single client application.
-#
-# Use case: The developers of the clients prefer this authentication method. 
-#           For example most HTTP client libraries support basic authentication 
-#           out of the box
-#
-# Advantage:    The secret is not stored as plain text.
-#
-# Disadvantage: Authentication per request/subscription is costly and introduces 
-#               significant latency.  
-#
-# This option is controlled by the property io.sapl.node.allowBasicAuth
-# which can be set to true or false.
-#  
-    # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # Basic Authentication with the credentials configured in the following properties.
-    allowBasicAuth: true 
-    # the io.sapl.node.key property is the 'username' to be used in Basic Authentication
-    key: xwuUaRD65G
-    # the io.sapl.node.secret property is the 'password' to be used in Basic Authentication
-    # SAPL Server expects the secret to be encoded with Argon2
-    # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
-    secret: $argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY
-    # For the above example configuration the following HTTP Header would be a valid authentication:
-    #
-    # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
-    #
-    # There are various command line tools to hash a password with Argon2. 
-    # The server also comes with utilities to create credentials for Basic Authentication
-    #
-    # Run: java -jar sapl-node-3.0.0.jar -basicCredentials
-    #
-    # This will generate a reasonably secure key and secret, encode the secret using Argon2 and print it to the console.
-    # Doing so will not start up an instance of the server.
-    #
+    # true|false If true, allow access to the PDP API via Basic Authentication.
+    allowBasicAuth: true
 
-# - Authentication with API keys:
-#
-# Use Case: Managing multiple clients with high traffic and low latency requirements.
-#
-# Clients will get an API key assigned and authenticate by providing the following HTTP header:
-#
-# Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
-#
-# Example:
-#
-# Authorization: Bearer phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
-#
-# Advantage:    Low latency, no cryptography per request necessary.
-#
-# Disadvantage: Credentials are stored in plain text on the server.  
-#
-    # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am Authorization Bearer header.
+    # true|false If true, allow access to the PDP API via API key Bearer tokens.
     allowApiKeyAuth: true
-    # list of API keys
-    allowedApiKeys:
-      # sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
-      - $argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM
-      # sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
-      - $argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k
 
-# - Authentication with OAuth2 and JWT 
-#
-# Use Case: Your organization uses an OAuth2 authorization server for managing API access already.
-#
-# Advantage:    Low latency, light cryptography per request necessary.
-#
-# Disadvantage: Need for additional infrastructure, i.e., that OAuth2 authorization server. 
-#               More complex authentication process for client application.  
-#
-    # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am Authorization Bearer header.
+    # true|false If true, allow access to the PDP API via OAuth2 JWT Bearer tokens.
     allowOauth2Auth: false
+
+    # Global PDP ID settings (applies to all auth methods)
+    rejectOnMissingPdpId: false
+    defaultPdpId: "default"
+
+    # OAuth2 configuration (only relevant if allowOauth2Auth is true)
+    oauth:
+      pdpIdClaim: "sapl_pdp_id"
+
+    #
+    # Unified User Management
+    #
+    # Each user entry defines a client that can authenticate to the PDP.
+    # Users can authenticate via Basic Auth OR API Key (not both).
+    # Each user is associated with a pdpId for multi-tenant PDP routing.
+    #
+    users:
+      #
+      # Basic Authentication User
+      #
+      # For this user, the following HTTP Header is valid:
+      # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
+      #
+      - id: "demo-basic-client"
+        pdpId: "default"
+        basic:
+          username: "xwuUaRD65G"
+          # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
+          secret: "$argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY"
+
+      #
+      # API Key Authentication Users
+      #
+      # Clients authenticate with: Authorization: Bearer <api-key>
+      #
+      # API key plaintext: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
+      - id: "demo-apikey-client-1"
+        pdpId: "default"
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM"
+
+      # API key plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+      - id: "demo-apikey-client-2"
+        pdpId: "default"
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k"
+
+    #
+    # To generate new credentials, run:
+    # java -jar sapl-node-4.0.0.jar generate --basic --id "my-client" --pdp-id "production"
+    # java -jar sapl-node-4.0.0.jar generate --api-key --id "my-client" --pdp-id "staging"
+    #
 # Setup Spring OAuth2 Resource Server.
 # Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html 
 spring.security.oauth2:

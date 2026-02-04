@@ -25,10 +25,8 @@ import io.sapl.compiler.document.VoteWithCoverage;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.ContextView;
 
 import java.util.List;
-import java.util.function.Function;
 
 public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
@@ -36,20 +34,20 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
     public static final String ERROR_NO_PDP_CONFIGURATION = "No PDP configuration found.";
 
-    private final CompiledPDPConfigurationSource      pdpConfigurationSource;
-    private final IdFactory                           idFactory;
-    private final Function<ContextView, Mono<String>> pdpIdExtractor;
-    private final List<VoteInterceptor>               interceptors;
+    private final CompiledPDPConfigurationSource pdpConfigurationSource;
+    private final IdFactory                      idFactory;
+    private final Mono<String>                   pdpIdExtractor;
+    private final List<VoteInterceptor>          interceptors;
 
     public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
             IdFactory idFactory,
-            Function<ContextView, Mono<String>> pdpIdExtractor) {
+            Mono<String> pdpIdExtractor) {
         this(pdpConfigurationSource, idFactory, pdpIdExtractor, List.of());
     }
 
     public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
             IdFactory idFactory,
-            Function<ContextView, Mono<String>> pdpIdExtractor,
+            Mono<String> pdpIdExtractor,
             List<VoteInterceptor> interceptors) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.idFactory              = idFactory;
@@ -60,7 +58,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
     public Flux<TimestampedVote> gatherVotes(AuthorizationSubscription authorizationSubscription) {
         val subscriptionId = idFactory.newRandom();
-        return pdpId().flatMapMany(pdpConfigurationSource::getPDPConfigurations)
+        return pdpIdExtractor.flatMapMany(pdpConfigurationSource::getPDPConfigurations)
                 .switchMap(optionalConfig -> optionalConfig
                         .map(config -> config.vote(authorizationSubscription, subscriptionId))
                         .orElseThrow(() -> new IllegalArgumentException(ERROR_NO_PDP_CONFIGURATION)))
@@ -92,10 +90,6 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
         val timestampedVote  = pdpConfiguration.voteOnce(authorizationSubscription, subscriptionId);
         invokeInterceptors(timestampedVote);
         return timestampedVote;
-    }
-
-    private Mono<String> pdpId() {
-        return Mono.deferContextual(pdpIdExtractor);
     }
 
     private void invokeInterceptors(TimestampedVote vote) {

@@ -201,6 +201,16 @@ If an existing policy is to be changed, the following procedure is recommended:
 
 SAPL Node supports several authentication schemes for client applications. By default, none is activated and the server will deny to start up until at least one scheme is active. Multiple authentication mechanisms can be enabled simultaneously.
 
+All authenticated clients are associated with a `pdpId` for multi-tenant PDP routing. The following global settings control how missing pdpId values are handled:
+
+```yaml
+io.sapl.node:
+  rejectOnMissingPdpId: false  # If true, reject auth when pdpId is missing
+  defaultPdpId: "default"      # Fallback pdpId when not configured
+```
+
+If `rejectOnMissingPdpId` is `true`, users without a configured `pdpId` will fail authentication at startup (for Basic/API Key) or at runtime (for OAuth2 JWT without the claim). If `false`, the `defaultPdpId` is used as fallback.
+
 #### No Authentication
 
 The server does not require authentication before responding to requests or subscriptions.
@@ -213,72 +223,75 @@ To activate this authentication scheme set the property `io.sapl.node.allowNoAut
 
 #### Basic Authentication
 
-SAPL Node allows for a single client to be authenticated using Basic Authentication [RFC 7617](https://datatracker.ietf.org/doc/html/rfc7617).
+SAPL Node supports multiple clients authenticated using Basic Authentication [RFC 7617](https://datatracker.ietf.org/doc/html/rfc7617).
 
 **Use case:** The developers of the clients prefer this authentication method. For example most HTTP client libraries support basic authentication out of the box.
 
-**Advantage:** The secret is not stored as plain text.
+**Advantage:** The secret is not stored as plain text (Argon2 encoded).
 
 **Disadvantage:** Authentication per request/subscription is costly and introduces significant latency.
 
 To activate this authentication scheme set the property `io.sapl.node.allowBasicAuth` to `true`.
 
-To add the client, set the property `io.sapl.node.key` to an arbitrary name for the client. And set the property `io.sapl.node.secret` to an Argon2 [RFC 9106](https://datatracker.ietf.org/doc/rfc9106/) encoded secret. SAPL Node does not allow for the assignment of different keys with associated secrets. Please follow best practices also applicable for strong passwords before hashing the secret.
+To add a client, add an entry to the `io.sapl.node.users` list with the following structure:
 
-If you do not have a tool at hand for Argon2 password hashing, the SAPL Node binary can be used to generate a new reasonably secure random key and secret pair:
-
-```
- java -jar sapl-node-4.0.0-SNAPSHOT.jar -basicCredentials
-```
-
-This will print the pair to the console. Doing so will not start up an instance of the server.
-
-Example Output:
-
-```
-17:14:34.571 [main] INFO io.sapl.node.SaplNodeApplication -- Generating new Argon2 encoded secret...
-17:14:34.636 [main] INFO io.sapl.node.SaplNodeApplication -- Key             : IV73cRiudj
-17:14:34.644 [main] INFO io.sapl.node.SaplNodeApplication -- Secret Plaintext: FZdvjLKSu*Q'7+4!'zXIC694,a3sY9Sm
-17:14:34.788 [main] INFO io.sapl.node.SaplNodeApplication -- Secret Encoded  : $argon2id$v=19$m=16384,t=2,p=1$0shkuN10K05DsOPQVgm/Sw$FrWeTPKCfqkUcJ6u0DNKkaKDqkIZC7NefwzW5XYkoRA
+```yaml
+io.sapl.node:
+  allowBasicAuth: true
+  users:
+    - id: "my-client"
+      pdpId: "default"
+      basic:
+        username: "myUsername"
+        secret: "$argon2id$v=19$m=16384,t=2,p=1$..."  # Argon2 encoded
 ```
 
-In this case you would set `io.sapl.node.key` to `IV73cRiudj` and `io.sapl.node.secret` to `$argon2id$v=19$m=16384,t=2,p=1$0shkuN10K05DsOPQVgm/Sw$FrWeTPKCfqkUcJ6u0DNKkaKDqkIZC7NefwzW5XYkoRA`.
+The `id` is a unique identifier for the client. The `pdpId` determines which PDP configuration to use for multi-tenant routing. The `basic.username` is used for the Basic Auth username, and `basic.secret` must be an Argon2 [RFC 9106](https://datatracker.ietf.org/doc/rfc9106/) encoded password.
+
+If you do not have a tool at hand for Argon2 password hashing, the SAPL Node binary can be used to generate credentials:
+
+```
+java -jar sapl-node-4.0.0.jar generate basic --id "my-client" --pdp-id "default"
+```
+
+This will print the credentials to the console. Doing so will not start up an instance of the server.
 
 Take note of the plain text of the secret as it will not be stored. Also make sure that the output of this tool is not visible in any logs, and you properly clear your screen.
 
 #### API Keys
 
-In SAPL Node, API keys are a way of managing more than one client application with individual secrets.
+In SAPL Node, API keys provide a way of managing multiple client applications with individual secrets and low-latency authentication.
 
-Each client is assigned to an individual API key and can authenticate by providing the following HTTP header: `Authorization: Bearer <API KEY>`. For example: `Authorization Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j`.
+Each client is assigned an individual API key and can authenticate by providing the following HTTP header: `Authorization: Bearer <API KEY>`. For example: `Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j`.
 
 **Use Case:** Managing multiple clients with high traffic and low latency requirements.
 
-**Advantage:** Low latency, no cryptography per request necessary.
+**Advantage:** Low latency after initial verification.
 
-**Disadvantage:** Credentials are stored in plain text on the server.
-
-By using this authentication scheme you **accept the risk** that anyone with read access to the configuration file will be able to access the authorization API and issue arbitrary authorization requests and subscriptions. Structured probing of the API may leak information depending on your PDP configuration and policies.
+**Disadvantage:** API keys must be securely distributed to clients.
 
 To activate this authentication scheme set the property `io.sapl.node.allowApiKeyAuth` to `true`.
 
-To add a client, create a random key with at least a length of 32 characters. And add it to the list under the property `io.sapl.node.allowedApiKeys`. In case of a `.properties` file the list is comma separated. For `.yml` files you can use a YAML list notation, such as separate lines starting with a dash.
+To add a client, add an entry to the `io.sapl.node.users` list with the following structure:
 
-If you do not have a tool at hand to create a good random key, the SAPL Node binary can be used to generate a new reasonably secure random key:
+```yaml
+io.sapl.node:
+  allowApiKeyAuth: true
+  users:
+    - id: "my-api-client"
+      pdpId: "default"
+      apiKey: "$argon2id$v=19$m=16384,t=2,p=1$..."  # Argon2 encoded
+```
+
+The `id` is a unique identifier for the client. The `pdpId` determines which PDP configuration to use for multi-tenant routing. The `apiKey` must be an Argon2 encoded version of the API key that the client will use.
+
+If you do not have a tool at hand to create a good random key, the SAPL Node binary can be used to generate a new API key:
 
 ```
- java -jar sapl-node-4.0.0-SNAPSHOT.jar -apiKey
+java -jar sapl-node-4.0.0.jar generate apikey --id "my-api-client" --pdp-id "default"
 ```
 
-This will print the pair to the console. Doing so will not start up an instance of the server.
-
-Example Output:
-
-```
-23:58:04.892 [main] INFO io.sapl.node.SaplNodeApplication -- Generating new API Key...
-23:58:05.017 [main] INFO io.sapl.node.SaplNodeApplication -- ApiKey Plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
-23:58:05.253 [main] INFO io.sapl.node.SaplNodeApplication -- ApiKey Encoded  : $argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k
-```
+This will print the API key to the console. Doing so will not start up an instance of the server.
 
 The new API key can now be added in the configuration. If you want to test whether access via the API key works, you can use the following command:
 
@@ -320,9 +333,18 @@ data:{"decision":"PERMIT"}
 
 #### JWT Token Authentication
 
-To use JSON Web Tokens (JWT), you must activate the following properties `allowOauth2Auth: true`. In addition, a valid URI to an identity provider (IDP) must be specified under `spring.security.oauth2.resourceserver.jwt.issuer-uri: <URI>`
+To use JSON Web Tokens (JWT), you must activate the following property `io.sapl.node.allowOauth2Auth: true`. In addition, a valid URI to an identity provider (IDP) must be specified under `spring.security.oauth2.resourceserver.jwt.issuer-uri: <URI>`
 
 For example, the URI for a local Keycloak instance with the realm 'SAPL' must look like this: `http://localhost:9000/realms/SAPL`
+
+The pdpId for multi-tenant routing can be extracted from a JWT claim. Configure the claim name with:
+
+```yaml
+io.sapl.node:
+  allowOauth2Auth: true
+  oauth:
+    pdpIdClaim: "sapl_pdp_id"  # The JWT claim containing the pdpId
+```
 
 You can check whether authentication with JWT works by including the bearer token from the oauth2 server in the HTTP header. To do this, you must first receive a token from your oauth2 server and then execute the following command:
 
