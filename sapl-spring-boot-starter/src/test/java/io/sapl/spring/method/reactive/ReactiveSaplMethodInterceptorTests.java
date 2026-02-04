@@ -45,10 +45,8 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -96,7 +94,7 @@ class ReactiveSaplMethodInterceptorTests {
 
         }
         final var invocation = MethodInvocationUtils.create(new TestClass(), "monoInteger");
-        assertThat(defaultSut.invoke(invocation), is(nullValue()));
+        assertThat(defaultSut.invoke(invocation)).isNull();
         verify(springSecurityMethodInterceptor, times(0)).invoke(any());
     }
 
@@ -133,7 +131,7 @@ class ReactiveSaplMethodInterceptorTests {
         final var testInstance = new TestClass();
         final var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "integer",
                 testInstance::integer, null, null);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -150,7 +148,7 @@ class ReactiveSaplMethodInterceptorTests {
         final var testInstance = new TestClass();
         final var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
                 testInstance::fluxInteger, null, null);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -172,7 +170,7 @@ class ReactiveSaplMethodInterceptorTests {
 
         Flux<Object> expected = Flux.just(2);
         when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -195,7 +193,7 @@ class ReactiveSaplMethodInterceptorTests {
 
         Flux<Object> expected = Flux.just(2);
         when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -219,7 +217,7 @@ class ReactiveSaplMethodInterceptorTests {
 
         Flux<Object> expected = Flux.just(2);
         when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -238,7 +236,7 @@ class ReactiveSaplMethodInterceptorTests {
         final var testInstance = new TestClass();
         final var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
                 testInstance::fluxInteger, null, null);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -257,7 +255,7 @@ class ReactiveSaplMethodInterceptorTests {
         final var testInstance = new TestClass();
         final var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
                 testInstance::fluxInteger, null, null);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -276,7 +274,7 @@ class ReactiveSaplMethodInterceptorTests {
         final var testInstance = new TestClass();
         final var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
                 testInstance::fluxInteger, null, null);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -295,7 +293,7 @@ class ReactiveSaplMethodInterceptorTests {
         final var testInstance = new TestClass();
         final var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
                 testInstance::fluxInteger, null, null);
-        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        assertThatThrownBy(() -> defaultSut.invoke(invocation)).isInstanceOf(IllegalStateException.class);
         verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
     }
 
@@ -317,7 +315,7 @@ class ReactiveSaplMethodInterceptorTests {
         when(postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(any(), any(), any()))
                 .thenAnswer(x -> expected);
         final var actual = defaultSut.invoke(invocation);
-        assertThat(actual, is(expected));
+        assertThat(actual).isSameAs(expected);
         StepVerifier.create((Mono<Integer>) actual).expectNext(4).verifyComplete();
         verify(postEnforcePolicyEnforcementPoint, times(1)).postEnforceOneDecisionOnResourceAccessPoint(any(), any(),
                 any());
@@ -325,7 +323,7 @@ class ReactiveSaplMethodInterceptorTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void xxxxxxxxwhen_sonlyPostEnforce_then_postEnforcePepIsCalled() {
+    void when_onlyPreEnforceOnFlux_then_preEnforcePEPIsCalled() {
         class TestClass {
             @PreEnforce
             public Flux<Integer> fluxInteger() {
@@ -338,7 +336,7 @@ class ReactiveSaplMethodInterceptorTests {
         Flux<?>   expected     = Flux.just(1, 2, 3);
         when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn((Flux<Object>) expected);
         final var actual = defaultSut.invoke(invocation);
-        assertThat(actual, is(expected));
+        assertThat(actual).isSameAs(expected);
         StepVerifier.create((Flux<Integer>) actual).expectNext(1, 2, 3).verifyComplete();
         verify(preEnforcePolicyEnforcementPoint, times(1)).enforce(any(), any(), any());
     }
@@ -364,7 +362,7 @@ class ReactiveSaplMethodInterceptorTests {
             mockPEP.when(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
                     .thenReturn(expected);
             final var actual = defaultSut.invoke(invocation);
-            assertThat(actual, is(expected));
+            assertThat(actual).isSameAs(expected);
             StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
             mockPEP.verify(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
         }
@@ -391,7 +389,7 @@ class ReactiveSaplMethodInterceptorTests {
             mockPEP.when(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
                     .thenReturn(expected);
             final var actual = defaultSut.invoke(invocation);
-            assertThat(actual, is(expected));
+            assertThat(actual).isSameAs(expected);
             StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
             mockPEP.verify(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
         }
@@ -418,7 +416,7 @@ class ReactiveSaplMethodInterceptorTests {
             mockPEP.when(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
                     .thenReturn(expected);
             final var actual = defaultSut.invoke(invocation);
-            assertThat(actual, is(expected));
+            assertThat(actual).isSameAs(expected);
             StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
             mockPEP.verify(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()),
                     times(1));

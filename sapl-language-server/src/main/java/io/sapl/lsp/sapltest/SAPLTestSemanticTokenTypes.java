@@ -25,7 +25,7 @@ import java.util.Set;
  * highlighting.
  * Maps to standard LSP semantic token types.
  */
-public final class SAPLTestSemanticTokenTypes {
+final class SAPLTestSemanticTokenTypes {
 
     private SAPLTestSemanticTokenTypes() {
     }

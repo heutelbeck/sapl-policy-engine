@@ -43,8 +43,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -344,10 +344,8 @@ class R2dbcPolicyEnforcementPointTests {
         // THEN
         final var errorMessage = "The QueryEnforce annotation cannot be applied to custom repository methods.";
 
-        final var illegalStateException = assertThrows(IllegalStateException.class, () -> {
-            enforcementPoint.invoke(methodInvocation);
-        });
-        assertEquals(errorMessage, illegalStateException.getMessage());
+        assertThatThrownBy(() -> enforcementPoint.invoke(methodInvocation)).isInstanceOf(IllegalStateException.class)
+                .hasMessage(errorMessage);
 
         annotationUtilitiesMock.verify(() -> AnnotationUtilities.hasAnnotationQueryEnforce(any(Method.class)),
                 times(1));

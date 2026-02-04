@@ -35,8 +35,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -79,7 +79,7 @@ class ConstraintQueryEnforcementServiceTests {
         final var handler = CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
 
         // THEN
-        assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
+        assertThat(handler.getQueryManipulationRecords()).isEqualTo(result.getQueryManipulationRecords());
     }
 
     @Test
@@ -98,7 +98,7 @@ class ConstraintQueryEnforcementServiceTests {
         final var handler = CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
 
         // THEN
-        assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
+        assertThat(handler.getQueryManipulationRecords()).isEqualTo(result.getQueryManipulationRecords());
     }
 
     @Test
@@ -123,10 +123,10 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        final var accessDeniedException = assertThrows(AccessDeniedException.class,
-                () -> CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision));
-        assertEquals(TestUtils.removeWhitespace(errorMessage),
-                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+        assertThatThrownBy(() -> CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision))
+                .isInstanceOf(AccessDeniedException.class)
+                .satisfies(ex -> assertThat(TestUtils.removeWhitespace(ex.getMessage()))
+                        .isEqualTo(TestUtils.removeWhitespace(errorMessage)));
     }
 
     @Test
@@ -145,10 +145,10 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        final var accessDeniedException = assertThrows(AccessDeniedException.class,
-                () -> CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision));
-        assertEquals(TestUtils.removeWhitespace(errorMessage),
-                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+        assertThatThrownBy(() -> CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision))
+                .isInstanceOf(AccessDeniedException.class)
+                .satisfies(ex -> assertThat(TestUtils.removeWhitespace(ex.getMessage()))
+                        .isEqualTo(TestUtils.removeWhitespace(errorMessage)));
     }
 
     @Test
@@ -171,10 +171,10 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        final var accessDeniedException = assertThrows(AccessDeniedException.class,
-                () -> CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision));
-        assertEquals(TestUtils.removeWhitespace(errorMessage),
-                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+        assertThatThrownBy(() -> CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision))
+                .isInstanceOf(AccessDeniedException.class)
+                .satisfies(ex -> assertThat(TestUtils.removeWhitespace(ex.getMessage()))
+                        .isEqualTo(TestUtils.removeWhitespace(errorMessage)));
     }
 
     @Test
@@ -199,10 +199,10 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        final var accessDeniedException = assertThrows(AccessDeniedException.class,
-                () -> CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision));
-        assertEquals(TestUtils.removeWhitespace(errorMessage),
-                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+        assertThatThrownBy(() -> CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision))
+                .isInstanceOf(AccessDeniedException.class)
+                .satisfies(ex -> assertThat(TestUtils.removeWhitespace(ex.getMessage()))
+                        .isEqualTo(TestUtils.removeWhitespace(errorMessage)));
     }
 
     @BeforeEach

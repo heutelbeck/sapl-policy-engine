@@ -24,6 +24,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
@@ -95,8 +96,8 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
             ConstraintEnforcementService constraintsService, Class<V> clazz) {
-        final var pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
-                constraintsService, clazz);
+        val pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
+                clazz);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints)
                 .onErrorMap(AccessDeniedException.class, pep::handleAccessDenied).doOnCancel(pep::handleCancel)
@@ -107,7 +108,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
         if (sink != null)
             throw new IllegalStateException(ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE);
-        final var context = subscriber.currentContext();
+        val context = subscriber.currentContext();
         sink                = new EnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
         Flux.create(sink).subscribe(subscriber);
@@ -115,7 +116,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     private void handleNextDecision(AuthorizationDecision decision) {
-        final var                          previousDecision = latestDecision.getAndSet(decision);
+        val                                previousDecision = latestDecision.getAndSet(decision);
         ReactiveConstraintHandlerBundle<T> newBundle;
         try {
             newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
@@ -134,7 +135,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
             return;
         }
 
-        var resource = decision.resource();
+        val resource = decision.resource();
         if (!(resource instanceof UndefinedValue)) {
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
@@ -180,7 +181,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         if (stopped.get())
             return;
         try {
-            final var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            val transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
         } catch (Throwable t) {

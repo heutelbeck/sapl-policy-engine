@@ -42,15 +42,17 @@ class TestConfigurationTests {
     void whenBuildingWithDefaults_thenConfigurationHasDefaults() {
         var config = TestConfiguration.builder().build();
 
-        assertThat(config.saplDocuments()).isEmpty();
-        assertThat(config.saplTestDocuments()).isEmpty();
-        assertThat(config.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
-        assertThat(config.pdpVariables()).isEmpty();
-        assertThat(config.pdpSecrets()).isEmpty();
-        assertThat(config.functionLibraries()).isEmpty();
-        assertThat(config.policyInformationPoints()).isEmpty();
-        assertThat(config.failFast()).isFalse();
-        assertThat(config.verificationTimeout()).isEqualTo(TestConfiguration.DEFAULT_VERIFICATION_TIMEOUT);
+        assertThat(config).satisfies(c -> {
+            assertThat(c.saplDocuments()).isEmpty();
+            assertThat(c.saplTestDocuments()).isEmpty();
+            assertThat(c.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
+            assertThat(c.pdpVariables()).isEmpty();
+            assertThat(c.pdpSecrets()).isEmpty();
+            assertThat(c.functionLibraries()).isEmpty();
+            assertThat(c.policyInformationPoints()).isEmpty();
+            assertThat(c.failFast()).isFalse();
+            assertThat(c.verificationTimeout()).isEqualTo(TestConfiguration.DEFAULT_VERIFICATION_TIMEOUT);
+        });
     }
 
     @Test
@@ -218,15 +220,17 @@ class TestConfigurationTests {
                 .withFunctionLibrary(Object.class).withPolicyInformationPoint(pip).withFailFast(true)
                 .withVerificationTimeout(timeout).build();
 
-        assertThat(config.saplDocuments()).containsExactly(document);
-        assertThat(config.saplTestDocuments()).containsExactly(testDoc);
-        assertThat(config.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE));
-        assertThat(config.pdpVariables()).containsEntry("key", Value.of("value"));
-        assertThat(config.pdpSecrets()).containsEntry("apiKey", Value.of("secret"));
-        assertThat(config.functionLibraries()).containsExactly(Object.class);
-        assertThat(config.policyInformationPoints()).containsExactly(pip);
-        assertThat(config.failFast()).isTrue();
-        assertThat(config.verificationTimeout()).isEqualTo(timeout);
+        assertThat(config).satisfies(c -> {
+            assertThat(c.saplDocuments()).containsExactly(document);
+            assertThat(c.saplTestDocuments()).containsExactly(testDoc);
+            assertThat(c.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE));
+            assertThat(c.pdpVariables()).containsEntry("key", Value.of("value"));
+            assertThat(c.pdpSecrets()).containsEntry("apiKey", Value.of("secret"));
+            assertThat(c.functionLibraries()).containsExactly(Object.class);
+            assertThat(c.policyInformationPoints()).containsExactly(pip);
+            assertThat(c.failFast()).isTrue();
+            assertThat(c.verificationTimeout()).isEqualTo(timeout);
+        });
     }
 
     @Test

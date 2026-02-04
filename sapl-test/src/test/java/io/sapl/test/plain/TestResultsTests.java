@@ -32,11 +32,13 @@ class TestResultsTests {
     void whenCreatingSuccess_thenAllTestsPass() {
         var results = TestResults.success(5);
 
-        assertThat(results.total()).isEqualTo(5);
-        assertThat(results.passed()).isEqualTo(5);
-        assertThat(results.failed()).isZero();
-        assertThat(results.failures()).isEmpty();
-        assertThat(results.allPassed()).isTrue();
+        assertThat(results).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(5);
+            assertThat(r.passed()).isEqualTo(5);
+            assertThat(r.failed()).isZero();
+            assertThat(r.failures()).isEmpty();
+            assertThat(r.allPassed()).isTrue();
+        });
     }
 
     @Test
@@ -46,11 +48,13 @@ class TestResultsTests {
 
         var results = TestResults.withFailures(3, failures);
 
-        assertThat(results.total()).isEqualTo(3);
-        assertThat(results.passed()).isEqualTo(2);
-        assertThat(results.failed()).isEqualTo(1);
-        assertThat(results.failures()).containsKey("scenario1");
-        assertThat(results.allPassed()).isFalse();
+        assertThat(results).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(3);
+            assertThat(r.passed()).isEqualTo(2);
+            assertThat(r.failed()).isEqualTo(1);
+            assertThat(r.failures()).containsKey("scenario1");
+            assertThat(r.allPassed()).isFalse();
+        });
     }
 
     @Test
@@ -76,9 +80,11 @@ class TestResultsTests {
         var failures = Map.<String, Throwable>of("test1", failure);
         var results  = new TestResults(5, 4, 1, failures);
 
-        assertThat(results.total()).isEqualTo(5);
-        assertThat(results.passed()).isEqualTo(4);
-        assertThat(results.failed()).isEqualTo(1);
-        assertThat(results.failures()).containsEntry("test1", failure);
+        assertThat(results).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(5);
+            assertThat(r.passed()).isEqualTo(4);
+            assertThat(r.failed()).isEqualTo(1);
+            assertThat(r.failures()).containsEntry("test1", failure);
+        });
     }
 }

@@ -19,6 +19,7 @@ package io.sapl.spring.data.r2dbc.queries;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.relational.core.mapping.Table;
 import reactor.core.publisher.Flux;
@@ -35,7 +36,7 @@ public class QueryManipulationExecutor {
     public <T> Flux<T> execute(String query, Class<T> domainType) {
 
         if (query.contains(XXXXX)) {
-            final var tableName = getTableName(domainType);
+            val tableName = getTableName(domainType);
 
             query = query.replace(XXXXX, tableName);
 
@@ -50,12 +51,12 @@ public class QueryManipulationExecutor {
     }
 
     private <T> String getTableName(Class<T> domainType) {
-        boolean hasTableAnnotation = domainType.isAnnotationPresent(Table.class);
+        val hasTableAnnotation = domainType.isAnnotationPresent(Table.class);
 
         if (hasTableAnnotation) {
             return domainType.getAnnotation(Table.class).value();
         } else {
-            var name = domainType.getSimpleName();
+            val name = domainType.getSimpleName();
             return Character.toUpperCase(name.charAt(0)) + name.substring(1);
         }
     }

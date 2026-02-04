@@ -45,9 +45,8 @@ import reactor.core.publisher.Flux;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -103,14 +102,14 @@ class PostEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenThrow(new IllegalStateException("TEST FAILURE"));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
     @WithMockUser()
     void when_bundleIsNull_then_AccessDenied() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -119,7 +118,7 @@ class PostEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        assertThat(testService.doSomething(), is(ORIGINAL_RETURN_OBJECT));
+        assertThat(testService.doSomething()).isEqualTo(ORIGINAL_RETURN_OBJECT);
     }
 
     @Test
@@ -128,7 +127,7 @@ class PostEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -138,7 +137,7 @@ class PostEnforcePolicyEnforcementPointTests {
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -148,7 +147,7 @@ class PostEnforcePolicyEnforcementPointTests {
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -157,7 +156,7 @@ class PostEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -170,7 +169,7 @@ class PostEnforcePolicyEnforcementPointTests {
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                         Value.of(CHANGED_RETURN_OBJECT))));
-        assertThat(testService.doSomething(), is(CHANGED_RETURN_OBJECT));
+        assertThat(testService.doSomething()).isEqualTo(CHANGED_RETURN_OBJECT);
     }
 
     @Test
@@ -184,7 +183,7 @@ class PostEnforcePolicyEnforcementPointTests {
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                         Value.of(CHANGED_RETURN_OBJECT))));
-        assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
+        assertThat(testService.doSomethingOptional()).isEqualTo(Optional.of(CHANGED_RETURN_OBJECT));
     }
 
     @Test
@@ -193,7 +192,7 @@ class PostEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        assertThat(testService.doSomethingOptionalEmpty(), is(Optional.empty()));
+        assertThat(testService.doSomethingOptionalEmpty()).isEmpty();
     }
 
     @Test
@@ -209,7 +208,7 @@ class PostEnforcePolicyEnforcementPointTests {
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                         Value.of(CHANGED_RETURN_OBJECT))));
-        assertThat(testService.doSomethingOptionalEmpty(), is(expectedReturnObject));
+        assertThat(testService.doSomethingOptionalEmpty()).isEqualTo(expectedReturnObject);
     }
 
 }

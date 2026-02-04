@@ -18,6 +18,7 @@
 package io.sapl.test.junit;
 
 import io.sapl.test.plain.SaplDocument;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -25,15 +26,19 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Helper class for discovering SAPL policy files from the classpath.
  */
+@Slf4j
 class PolicyDiscoveryHelper {
 
-    private static final String[] SAPL_FILE_EXTENSIONS = { "sapl" };
-    public static final String    RESOURCES_ROOT       = "src/main/resources";
+    private static final String   WARN_FAILED_TO_READ_POLICY = "Failed to read policy file {}: {}";
+    private static final String[] SAPL_FILE_EXTENSIONS       = { "sapl" };
+    public static final String    RESOURCES_ROOT             = "src/main/resources";
 
     private PolicyDiscoveryHelper() {
     }
@@ -44,30 +49,12 @@ class PolicyDiscoveryHelper {
      * @return list of SaplDocument instances
      */
     public static List<SaplDocument> discoverPolicies() {
-        var documents = new ArrayList<SaplDocument>();
         var directory = FileUtils.getFile(RESOURCES_ROOT);
-
         if (!directory.exists() || !directory.isDirectory()) {
-            return documents;
+            return new ArrayList<>();
         }
-
-        var files       = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
-        var resourceDir = FileUtils.getFile(RESOURCES_ROOT);
-        for (var file : files) {
-            try {
-                var relativePath = directory.toPath().relativize(file.toPath()).toString();
-                var name         = extractPolicyName(relativePath);
-                var sourceCode   = Files.readString(file.toPath(), StandardCharsets.UTF_8);
-                // Use full path relative to resources root for coverage reporting
-                var filePath = resourceDir.toPath().relativize(file.toPath()).toString().replace(File.separatorChar,
-                        '/');
-                documents.add(SaplDocument.of(name, sourceCode, filePath));
-            } catch (IOException e) {
-                // Skip files that can't be read
-            }
-        }
-
-        return documents;
+        var files = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
+        return processFiles(files, directory, PolicyDiscoveryHelper::extractPolicyName);
     }
 
     /**
@@ -85,30 +72,32 @@ class PolicyDiscoveryHelper {
      * @return list of SaplDocument instances
      */
     public static List<SaplDocument> discoverPolicies(String subdirectory) {
-        var documents   = new ArrayList<SaplDocument>();
         var directory   = FileUtils.getFile(RESOURCES_ROOT, subdirectory);
         var useFilename = "policies".equals(subdirectory);
-
         if (!directory.exists() || !directory.isDirectory()) {
-            return documents;
+            return new ArrayList<>();
         }
+        var files = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
+        return processFiles(files, directory,
+                relativePath -> extractPolicyName(subdirectory, relativePath, useFilename));
+    }
 
-        var files       = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
+    private static List<SaplDocument> processFiles(Collection<File> files, File directory,
+            Function<String, String> nameExtractor) {
+        var documents   = new ArrayList<SaplDocument>();
         var resourceDir = FileUtils.getFile(RESOURCES_ROOT);
         for (var file : files) {
             try {
                 var relativePath = directory.toPath().relativize(file.toPath()).toString();
-                var name         = extractPolicyName(subdirectory, relativePath, useFilename);
+                var name         = nameExtractor.apply(relativePath);
                 var sourceCode   = Files.readString(file.toPath(), StandardCharsets.UTF_8);
-                // Use full path relative to resources root for coverage reporting
-                var filePath = resourceDir.toPath().relativize(file.toPath()).toString().replace(File.separatorChar,
+                var filePath     = resourceDir.toPath().relativize(file.toPath()).toString().replace(File.separatorChar,
                         '/');
                 documents.add(SaplDocument.of(name, sourceCode, filePath));
             } catch (IOException e) {
-                // Skip files that can't be read
+                log.warn(WARN_FAILED_TO_READ_POLICY, file.getPath(), e.getMessage());
             }
         }
-
         return documents;
     }
 

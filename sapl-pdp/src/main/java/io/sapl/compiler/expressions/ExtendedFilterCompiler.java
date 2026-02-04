@@ -69,9 +69,9 @@ public class ExtendedFilterCompiler {
     private static final int MAX_RECURSION_DEPTH = 500;
 
     public static final String     ERROR_MAXIMUM_RECURSION_DEPTH_EXCEEDED                          = "Maximum recursion depth exceeded";
-    public static final String     ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_PATH               = "Stream operators not allowed in filter path.";
     public static final ErrorValue ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS = Value
             .error("Stream operators not allowed in filter function arguments.");
+    public static final String     ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_PATH               = "Stream operators not allowed in filter path.";
 
     public static CompiledExpression compile(ExtendedFilter ef, CompilationContext ctx) {
         val compiledBase = ExpressionCompiler.compile(ef.base(), ctx);

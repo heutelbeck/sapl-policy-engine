@@ -57,16 +57,34 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+/**
+ * HTTP/HTTPS client for connecting to a remote SAPL Policy Decision Point.
+ * <p>
+ * This class implements the {@link PolicyDecisionPoint} interface, allowing
+ * seamless integration with applications that use SAPL for authorization.
+ * <p>
+ * Supports multiple authentication methods:
+ * <ul>
+ * <li>Basic authentication</li>
+ * <li>API key authentication</li>
+ * <li>OAuth2 client credentials</li>
+ * </ul>
+ * <p>
+ * The client automatically handles connection failures with exponential backoff
+ * and returns {@link AuthorizationDecision#INDETERMINATE} during reconnection.
+ *
+ * @see RemotePolicyDecisionPoint#builder()
+ */
 @Slf4j
 public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
-    private static final String DECIDE = "/api/pdp/decide";
-
-    private static final String DECIDE_ONCE = "/api/pdp/decide-once";
-
-    private static final String MULTI_DECIDE = "/api/pdp/multi-decide";
-
+    private static final String DECIDE           = "/api/pdp/decide";
+    private static final String DECIDE_ONCE      = "/api/pdp/decide-once";
+    private static final String MULTI_DECIDE     = "/api/pdp/multi-decide";
     private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
+
+    private static final String WARN_INSECURE_SSL_ATTENTION = "------------------------------------------------------------------";
+    private static final String WARN_INSECURE_SSL_MESSAGE   = "!!! ATTENTION: don't not use insecure sslContext in production !!!";
 
     private final WebClient client;
 
@@ -159,9 +177,9 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
 
         public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
-            log.warn("------------------------------------------------------------------");
-            log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
-            log.warn("------------------------------------------------------------------");
+            log.warn(WARN_INSECURE_SSL_ATTENTION);
+            log.warn(WARN_INSECURE_SSL_MESSAGE);
+            log.warn(WARN_INSECURE_SSL_ATTENTION);
             val sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
         }

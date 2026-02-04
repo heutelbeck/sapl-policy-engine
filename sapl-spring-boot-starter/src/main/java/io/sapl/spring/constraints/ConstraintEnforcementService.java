@@ -35,6 +35,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Subscription;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
@@ -129,7 +130,7 @@ public class ConstraintEnforcementService {
         Collections.sort(this.globalErrorMappingHandlerProviders);
 
         globalRunnableIndex = new EnumMap<>(RunnableConstraintHandlerProvider.Signal.class);
-        for (var provider : globalRunnableProviders)
+        for (val provider : globalRunnableProviders)
             globalRunnableIndex.computeIfAbsent(provider.getSignal(), k -> new ArrayList<>()).add(provider);
     }
 
@@ -170,10 +171,10 @@ public class ConstraintEnforcementService {
     public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision, Class<T> clazz,
             Value... ignoredObligations) {
 
-        final var unhandledObligations = new HashSet<>(decision.obligations());
+        val unhandledObligations = new HashSet<>(decision.obligations());
 
         // @formatter:off
-		var bundle = new ReactiveConstraintHandlerBundle<>(
+		val bundle = new ReactiveConstraintHandlerBundle<>(
 				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.ON_CANCEL, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.ON_COMPLETE, decision, unhandledObligations),
@@ -190,7 +191,7 @@ public class ConstraintEnforcementService {
 		// @formatter:on
 
         if (!unhandledObligations.isEmpty()) {
-            for (var unhandledObligation : unhandledObligations) {
+            for (val unhandledObligation : unhandledObligations) {
                 if (Arrays.stream(ignoredObligations).filter(ignored -> ignored.equals(unhandledObligation)).findFirst()
                         .isEmpty()) {
                     throw missingHandlerError(unhandledObligations);
@@ -212,10 +213,10 @@ public class ConstraintEnforcementService {
     public <T> BlockingConstraintHandlerBundle<T> blockingPostEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
 
-        final var unhandledObligations = new HashSet<>(decision.obligations());
+        val unhandledObligations = new HashSet<>(decision.obligations());
 
         // @formatter:off
-		var bundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+		val bundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
 				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
 				onNextHandlers(decision, unhandledObligations, clazz),
 				mapNextHandlers(decision, unhandledObligations, clazz),
@@ -245,8 +246,8 @@ public class ConstraintEnforcementService {
      */
     public <T> BlockingConstraintHandlerBundle<T> blockingPreEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
-        final var unhandledObligations = new HashSet<>(decision.obligations());
-        final var bundle               = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(
+        val unhandledObligations = new HashSet<>(decision.obligations());
+        val bundle               = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(
                 runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
                 onNextHandlers(decision, unhandledObligations, clazz),
                 mapNextHandlers(decision, unhandledObligations, clazz), onErrorHandlers(decision, unhandledObligations),
@@ -270,8 +271,8 @@ public class ConstraintEnforcementService {
      * cannot be constructed.
      */
     public <T> BlockingConstraintHandlerBundle<T> accessManagerBundleFor(AuthorizationDecision decision) {
-        final var unhandledObligations = new HashSet<>(decision.obligations());
-        final var bundle               = BlockingConstraintHandlerBundle.<T>accessManagerConstraintHandlerBundle(
+        val unhandledObligations = new HashSet<>(decision.obligations());
+        val bundle               = BlockingConstraintHandlerBundle.<T>accessManagerConstraintHandlerBundle(
                 runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
         if (!unhandledObligations.isEmpty())
             throw missingHandlerError(unhandledObligations);
@@ -280,9 +281,9 @@ public class ConstraintEnforcementService {
 
     private Consumer<MethodInvocation> methodInvocationHandlers(AuthorizationDecision decision,
             HashSet<Value> unhandledObligations) {
-        final var obligationHandlers = obligation(
+        val obligationHandlers = obligation(
                 constructMethodInvocationHandlersForConstraints(decision.obligations(), unhandledObligations::remove));
-        final var adviceHandlers     = advice(
+        val adviceHandlers     = advice(
                 constructMethodInvocationHandlersForConstraints(decision.advice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -294,8 +295,8 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        for (var constraint : constraints) {
-            for (var provider : methodInvocationHandlerProviders) {
+        for (val constraint : constraints) {
+            for (val provider : methodInvocationHandlerProviders) {
                 if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = consumeWithBoth(handlers, checkInvocationType(provider.getHandler(constraint)));
@@ -316,9 +317,9 @@ public class ConstraintEnforcementService {
 
     private Predicate<Object> filterConstraintHandlers(AuthorizationDecision decision,
             HashSet<Value> unhandledObligations) {
-        final var obligationHandlers = constructFilterHandlersForConstraint(decision.obligations(),
+        val obligationHandlers = constructFilterHandlersForConstraint(decision.obligations(),
                 unhandledObligations::remove, this::obligation);
-        final var adviceHandlers     = constructFilterHandlersForConstraint(decision.advice(), FunctionUtil.sink(),
+        val adviceHandlers     = constructFilterHandlersForConstraint(decision.advice(), FunctionUtil.sink(),
                 this::advice);
         return obligationHandlers.and(adviceHandlers);
     }
@@ -330,8 +331,8 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        for (var constraint : constraints) {
-            for (var provider : filterPredicateProviders) {
+        for (val constraint : constraints) {
+            for (val provider : filterPredicateProviders) {
                 if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = handlers.and(wrapper.apply(provider.getHandler(constraint)));
@@ -343,10 +344,9 @@ public class ConstraintEnforcementService {
     }
 
     private Consumer<Throwable> onErrorHandlers(AuthorizationDecision decision, HashSet<Value> unhandledObligations) {
-        final var obligationHandlers = obligation(
+        val obligationHandlers = obligation(
                 constructOnErrorHandlersForConstraints(decision.obligations(), unhandledObligations::remove));
-        final var adviceHandlers     = advice(
-                constructOnErrorHandlersForConstraints(decision.advice(), FunctionUtil.sink()));
+        val adviceHandlers     = advice(constructOnErrorHandlersForConstraints(decision.advice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
 
@@ -357,8 +357,8 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        for (var constraint : constraints) {
-            for (var provider : globalErrorHandlerProviders) {
+        for (val constraint : constraints) {
+            for (val provider : globalErrorHandlerProviders) {
                 if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = consumeWithBoth(handlers, provider.getHandler(constraint));
@@ -371,9 +371,9 @@ public class ConstraintEnforcementService {
 
     private UnaryOperator<Throwable> mapErrorHandlers(AuthorizationDecision decision,
             HashSet<Value> unhandledObligations) {
-        final var obligationHandlers = constructMapErrorHandlersForConstraints(decision.obligations(),
+        val obligationHandlers = constructMapErrorHandlersForConstraints(decision.obligations(),
                 unhandledObligations::remove, this::obligation);
-        final var adviceHandlers     = constructMapErrorHandlersForConstraints(decision.advice(), FunctionUtil.sink(),
+        val adviceHandlers     = constructMapErrorHandlersForConstraints(decision.advice(), FunctionUtil.sink(),
                 this::advice);
         return mapBoth(obligationHandlers, adviceHandlers);
     }
@@ -385,10 +385,10 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        final var prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<Throwable>>>();
+        val prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<Throwable>>>();
 
-        for (var constraint : constraints) {
-            for (var provider : globalErrorMappingHandlerProviders) {
+        for (val constraint : constraints) {
+            for (val provider : globalErrorMappingHandlerProviders) {
                 if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     prioritizedHandlers
@@ -399,7 +399,7 @@ public class ConstraintEnforcementService {
 
         Collections.sort(prioritizedHandlers);
 
-        for (var handler : prioritizedHandlers) {
+        for (val handler : prioritizedHandlers) {
             handlers = mapBoth(handlers, wrapper.apply(handler.getHandler()));
         }
 
@@ -408,10 +408,10 @@ public class ConstraintEnforcementService {
 
     private <T> UnaryOperator<T> mapNextHandlers(AuthorizationDecision decision, HashSet<Value> unhandledObligations,
             Class<T> clazz) {
-        final var obligationHandlers = constructMapNextHandlersForConstraints(decision.obligations(),
+        val obligationHandlers = constructMapNextHandlersForConstraints(decision.obligations(),
                 unhandledObligations::remove, clazz, this::obligation);
-        final var adviceHandlers     = constructMapNextHandlersForConstraints(decision.advice(), FunctionUtil.sink(),
-                clazz, this::advice);
+        val adviceHandlers     = constructMapNextHandlersForConstraints(decision.advice(), FunctionUtil.sink(), clazz,
+                this::advice);
         return mapBoth(obligationHandlers, adviceHandlers);
     }
 
@@ -435,9 +435,9 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        final var prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<T>>>();
-        for (var constraint : constraints) {
-            for (var provider : globalMappingHandlerProviders) {
+        val prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<T>>>();
+        for (val constraint : constraints) {
+            for (val provider : globalMappingHandlerProviders) {
                 if (provider.supports(clazz) && provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     prioritizedHandlers.add(new HandlerWithPriority<>(
@@ -448,7 +448,7 @@ public class ConstraintEnforcementService {
 
         Collections.sort(prioritizedHandlers);
 
-        for (var handler : prioritizedHandlers) {
+        for (val handler : prioritizedHandlers) {
             handlers = mapBoth(handlers, wrapper.apply(handler.getHandler()));
         }
 
@@ -457,9 +457,9 @@ public class ConstraintEnforcementService {
 
     private <T> Consumer<T> onNextHandlers(AuthorizationDecision decision, HashSet<Value> unhandledObligations,
             Class<T> clazz) {
-        final var obligationHandlers = obligation(
+        val obligationHandlers = obligation(
                 constructOnNextHandlersForConstraints(decision.obligations(), unhandledObligations::remove, clazz));
-        final var adviceHandlers     = advice(
+        val adviceHandlers     = advice(
                 constructOnNextHandlersForConstraints(decision.advice(), FunctionUtil.sink(), clazz));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -472,8 +472,8 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        for (var constraint : constraints) {
-            for (var provider : globalConsumerProviders) {
+        for (val constraint : constraints) {
+            for (val provider : globalConsumerProviders) {
                 if (provider.supports(clazz) && provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = consumeWithBoth(handlers, (Consumer<T>) provider.getHandler(constraint));
@@ -485,10 +485,9 @@ public class ConstraintEnforcementService {
     }
 
     private LongConsumer requestHandlers(AuthorizationDecision decision, HashSet<Value> unhandledObligations) {
-        final var obligationHandlers = obligation(
+        val obligationHandlers = obligation(
                 constructRequestHandlersForConstraints(decision.obligations(), unhandledObligations::remove));
-        final var adviceHandlers     = advice(
-                constructRequestHandlersForConstraints(decision.advice(), FunctionUtil.sink()));
+        val adviceHandlers     = advice(constructRequestHandlersForConstraints(decision.advice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
 
@@ -499,8 +498,8 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        for (var constraint : constraints) {
-            for (var provider : globalRequestHandlerProviders) {
+        for (val constraint : constraints) {
+            for (val provider : globalRequestHandlerProviders) {
                 if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = consumeWithBoth(handlers, provider.getHandler(constraint));
@@ -513,9 +512,9 @@ public class ConstraintEnforcementService {
 
     private Consumer<Subscription> subscriptionHandlers(AuthorizationDecision decision,
             HashSet<Value> unhandledObligations) {
-        final var obligationHandlers = obligation(
+        val obligationHandlers = obligation(
                 constructSubscriptionHandlersForConstraints(decision.obligations(), unhandledObligations::remove));
-        final var adviceHandlers     = advice(
+        val adviceHandlers     = advice(
                 constructSubscriptionHandlersForConstraints(decision.advice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -527,8 +526,8 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        for (var constraint : constraints) {
-            for (var provider : globalSubscriptionHandlerProviders) {
+        for (val constraint : constraints) {
+            for (val provider : globalSubscriptionHandlerProviders) {
                 if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = consumeWithBoth(handlers, provider.getHandler(constraint));
@@ -541,9 +540,9 @@ public class ConstraintEnforcementService {
 
     private Runnable runnableHandlersForSignal(Signal signal, AuthorizationDecision decision,
             HashSet<Value> unhandledObligations) {
-        final var onDecisionObligationHandlers = obligation(
+        val onDecisionObligationHandlers = obligation(
                 constructRunnableHandlersForConstraints(signal, decision.obligations(), unhandledObligations::remove));
-        final var onDecisionAdviceHandlers     = advice(
+        val onDecisionAdviceHandlers     = advice(
                 constructRunnableHandlersForConstraints(signal, decision.advice(), FunctionUtil.sink()));
         return runBoth(onDecisionObligationHandlers, onDecisionAdviceHandlers);
     }
@@ -687,8 +686,8 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        for (var constraint : constraints) {
-            for (var provider : globalRunnableIndex.getOrDefault(signal, List.of())) {
+        for (val constraint : constraints) {
+            for (val provider : globalRunnableIndex.getOrDefault(signal, List.of())) {
                 if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = runBoth(handlers, provider.getHandler(constraint));
@@ -704,10 +703,10 @@ public class ConstraintEnforcementService {
             return UnaryOperator.identity();
 
         try {
-            final var replacement = unmarshallResource(resource, clazz);
+            val replacement = unmarshallResource(resource, clazz);
             return originalResult -> replacement;
         } catch (JacksonException | IllegalArgumentException e) {
-            final var message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
+            val message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
             log.warn(message);
             throw new AccessDeniedException(message, e);
         }
@@ -730,7 +729,7 @@ public class ConstraintEnforcementService {
         try {
             return Flux.just(unmarshallResource(resource, clazz));
         } catch (JacksonException | IllegalArgumentException e) {
-            final var message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
+            val message = ERROR_CANNOT_MAP_RESOURCE.formatted(resource, clazz.getSimpleName());
             log.warn(message);
             return Flux.error(new AccessDeniedException(message, e));
         }
@@ -748,7 +747,7 @@ public class ConstraintEnforcementService {
      * @throws IllegalArgumentException on JSON marshaling error
      */
     public <T> T unmarshallResource(Value resource, Class<T> clazz) throws JacksonException {
-        var jsonString = ValueJsonMarshaller.toJsonString(resource);
+        val jsonString = ValueJsonMarshaller.toJsonString(resource);
         return mapper.readValue(jsonString, clazz);
     }
 

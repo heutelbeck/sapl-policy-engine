@@ -30,10 +30,12 @@ class SaplDocumentTests {
     void whenCreatingWithConstructor_thenAllFieldsAreStored() {
         var doc = new SaplDocument("id1", "name1", "policy \"test\" permit", "/path/to/file.sapl");
 
-        assertThat(doc.id()).isEqualTo("id1");
-        assertThat(doc.name()).isEqualTo("name1");
-        assertThat(doc.sourceCode()).isEqualTo("policy \"test\" permit");
-        assertThat(doc.filePath()).isEqualTo("/path/to/file.sapl");
+        assertThat(doc).satisfies(d -> {
+            assertThat(d.id()).isEqualTo("id1");
+            assertThat(d.name()).isEqualTo("name1");
+            assertThat(d.sourceCode()).isEqualTo("policy \"test\" permit");
+            assertThat(d.filePath()).isEqualTo("/path/to/file.sapl");
+        });
     }
 
     @Test
@@ -41,10 +43,12 @@ class SaplDocumentTests {
     void whenUsingOfWithTwoArgs_thenIdEqualsNameAndPathIsNull() {
         var doc = SaplDocument.of("myPolicy", "policy \"myPolicy\" deny");
 
-        assertThat(doc.id()).isEqualTo("myPolicy");
-        assertThat(doc.name()).isEqualTo("myPolicy");
-        assertThat(doc.sourceCode()).isEqualTo("policy \"myPolicy\" deny");
-        assertThat(doc.filePath()).isNull();
+        assertThat(doc).satisfies(d -> {
+            assertThat(d.id()).isEqualTo("myPolicy");
+            assertThat(d.name()).isEqualTo("myPolicy");
+            assertThat(d.sourceCode()).isEqualTo("policy \"myPolicy\" deny");
+            assertThat(d.filePath()).isNull();
+        });
     }
 
     @Test
@@ -52,10 +56,12 @@ class SaplDocumentTests {
     void whenUsingOfWithThreeArgs_thenIdEqualsNameAndPathIsSet() {
         var doc = SaplDocument.of("myPolicy", "policy \"myPolicy\" deny", "/path/to/myPolicy.sapl");
 
-        assertThat(doc.id()).isEqualTo("myPolicy");
-        assertThat(doc.name()).isEqualTo("myPolicy");
-        assertThat(doc.sourceCode()).isEqualTo("policy \"myPolicy\" deny");
-        assertThat(doc.filePath()).isEqualTo("/path/to/myPolicy.sapl");
+        assertThat(doc).satisfies(d -> {
+            assertThat(d.id()).isEqualTo("myPolicy");
+            assertThat(d.name()).isEqualTo("myPolicy");
+            assertThat(d.sourceCode()).isEqualTo("policy \"myPolicy\" deny");
+            assertThat(d.filePath()).isEqualTo("/path/to/myPolicy.sapl");
+        });
     }
 
     @Test

@@ -37,10 +37,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UtilitiesTests {
 
@@ -87,83 +85,83 @@ class UtilitiesTests {
     @ParameterizedTest
     @ValueSource(strings = { "findBy", "readBy", "queryBy", "searchBy", "streamBy" })
     void when_methodNameIsNotValid_then_returnFalse1(String methodName) {
-        assertFalse(Utilities.isMethodNameValid(methodName));
+        assertThat(Utilities.isMethodNameValid(methodName)).isFalse();
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "findB", "reedBy", "queryBY", "search", "StreamBy" })
     void when_methodNameIsNotValid_then_returnFalse2(String methodName) {
-        assertFalse(Utilities.isMethodNameValid(methodName));
+        assertThat(Utilities.isMethodNameValid(methodName)).isFalse();
     }
 
     @Test
     void when_isSpringDataDefaultMethod_then_returnTrue() {
-        assertTrue(Utilities.isSpringDataDefaultMethod("findAll"));
+        assertThat(Utilities.isSpringDataDefaultMethod("findAll")).isTrue();
     }
 
     @Test
     void when_isSpringDataDefaultMethod_then_returnFalse() {
-        assertFalse(Utilities.isSpringDataDefaultMethod("finddAll"));
+        assertThat(Utilities.isSpringDataDefaultMethod("finddAll")).isFalse();
     }
 
     @Test
     void when_classIsFlux_then_returnTrue() {
-        assertTrue(Utilities.isFlux(returnClassOfFluxMethod));
+        assertThat(Utilities.isFlux(returnClassOfFluxMethod)).isTrue();
     }
 
     @Test
     void when_classIsNoFlux_then_returnFalse() {
-        assertFalse(Utilities.isFlux(returnClassOfMonoMethod));
+        assertThat(Utilities.isFlux(returnClassOfMonoMethod)).isFalse();
     }
 
     @Test
     void when_classIsMono_then_returnTrue() {
-        assertTrue(Utilities.isMono(returnClassOfMonoMethod));
+        assertThat(Utilities.isMono(returnClassOfMonoMethod)).isTrue();
     }
 
     @Test
     void when_classIsNoMono_then_returnFalse() {
-        assertFalse(Utilities.isMono(returnClassOfFluxMethod));
+        assertThat(Utilities.isMono(returnClassOfFluxMethod)).isFalse();
     }
 
     @Test
     void when_classIsList_then_returnTrue() {
-        assertTrue(Utilities.isListOrCollection(returnClassOfListMethod));
+        assertThat(Utilities.isListOrCollection(returnClassOfListMethod)).isTrue();
     }
 
     @Test
     void when_classIsNoList_then_returnFalse() {
-        assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
+        assertThat(Utilities.isListOrCollection(returnClassOfMonoMethod)).isFalse();
     }
 
     @Test
     void when_classIsCollection_then_returnTrue() {
-        assertTrue(Utilities.isListOrCollection(returnClassOfCollectionMethod));
+        assertThat(Utilities.isListOrCollection(returnClassOfCollectionMethod)).isTrue();
     }
 
     @Test
     void when_classIsNoCollection_then_returnFalse() {
-        assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
+        assertThat(Utilities.isListOrCollection(returnClassOfMonoMethod)).isFalse();
     }
 
     @Test
     void when_classIsString_then_returnFalse() {
-        assertFalse(Utilities.isString(returnClassOfMonoMethod));
+        assertThat(Utilities.isString(returnClassOfMonoMethod)).isFalse();
     }
 
     @Test
     void when_classIsString_then_returnTrue() {
-        assertTrue(Utilities.isString("Test".getClass()));
+        assertThat(Utilities.isString("Test".getClass())).isTrue();
     }
 
     @Test
     void when_objectIsString_then_returnTrue() {
-        assertTrue(Utilities.isString("Test"));
+        assertThat(Utilities.isString("Test")).isTrue();
     }
 
     @Test
     void when_objectIsNoString_then_returnFalse() {
-        assertFalse(Utilities.isString(2));
+        assertThat(Utilities.isString(2)).isFalse();
     }
 
     @Test
@@ -202,7 +200,7 @@ class UtilitiesTests {
         final var result = (List<Person>) Utilities.convertReturnTypeIfNecessary(data, List.class);
 
         // THEN
-        assertEquals(result, dataAsList);
+        assertThat(result).isEqualTo(dataAsList);
     }
 
     @Test
@@ -212,7 +210,8 @@ class UtilitiesTests {
         // WHEN
 
         // THEN
-        assertThrows(ClassNotFoundException.class, () -> Utilities.convertReturnTypeIfNecessary(data, Person.class));
+        assertThatThrownBy(() -> Utilities.convertReturnTypeIfNecessary(data, Person.class))
+                .isInstanceOf(ClassNotFoundException.class);
     }
 
     @Test
@@ -222,16 +221,16 @@ class UtilitiesTests {
         // WHEN
 
         // THEN
-        assertThrows(StreamReadException.class, () -> Utilities.readTree("{asd:a}"));
+        assertThatThrownBy(() -> Utilities.readTree("{asd:a}")).isInstanceOf(StreamReadException.class);
     }
 
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
-        assertThrows(InvocationTargetException.class, () -> {
+        assertThatThrownBy(() -> {
             final var constructor = Utilities.class.getDeclaredConstructor();
-            assertTrue(Modifier.isPrivate(constructor.getModifiers()));
+            assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
             ReflectionUtils.makeAccessible(constructor);
             constructor.newInstance();
-        });
+        }).isInstanceOf(InvocationTargetException.class);
     }
 }

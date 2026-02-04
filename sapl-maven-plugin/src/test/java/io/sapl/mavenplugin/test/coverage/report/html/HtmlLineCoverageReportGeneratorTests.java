@@ -17,12 +17,13 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import org.assertj.core.api.SoftAssertions;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Tag;
@@ -54,12 +55,13 @@ class HtmlLineCoverageReportGeneratorTests {
         generator.generateHtmlReport(SampleCoverageInformation.policies(), tempDir, POLICY_SET_HIT_RATIO,
                 POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
 
-        assertAll("All expected files should exist",
-                () -> assertTrue(Files.exists(tempDir.resolve("html/assets/images/favicon.png"))),
-                () -> assertTrue(Files.exists(tempDir.resolve("html/assets/images/logo-header.png"))),
-                () -> assertTrue(Files.exists(tempDir.resolve("html/assets/lib/css/main.css"))),
-                () -> assertTrue(Files.exists(tempDir.resolve("html/policies/policy_1.sapl.html"))),
-                () -> assertTrue(Files.exists(tempDir.resolve("html/report.html"))));
+        SoftAssertions.assertSoftly(softly -> {
+            softly.assertThat(tempDir.resolve("html/assets/images/favicon.png")).exists();
+            softly.assertThat(tempDir.resolve("html/assets/images/logo-header.png")).exists();
+            softly.assertThat(tempDir.resolve("html/assets/lib/css/main.css")).exists();
+            softly.assertThat(tempDir.resolve("html/policies/policy_1.sapl.html")).exists();
+            softly.assertThat(tempDir.resolve("html/report.html")).exists();
+        });
     }
 
     @Test
@@ -70,8 +72,6 @@ class HtmlLineCoverageReportGeneratorTests {
 
         var reportContent = Files.readString(tempDir.resolve("html/report.html"));
 
-        assertAll("Report should contain expected content",
-                () -> assertTrue(reportContent.contains("policy_1.sapl"), "Should contain policy filename"),
-                () -> assertTrue(reportContent.contains("Coverage Report"), "Should contain report title"));
+        assertThat(reportContent).contains("policy_1.sapl", "Coverage Report");
     }
 }

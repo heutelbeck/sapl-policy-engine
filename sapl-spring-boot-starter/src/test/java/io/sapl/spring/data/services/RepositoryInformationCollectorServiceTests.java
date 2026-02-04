@@ -31,7 +31,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 class RepositoryInformationCollectorServiceTests {
@@ -50,8 +50,7 @@ class RepositoryInformationCollectorServiceTests {
         final var repositories = service.getRepositories();
 
         // THEN
-        assertEquals(1, repositories.size());
-        assertEquals(repositoryInformationMock, repositories.iterator().next());
+        assertThat(repositories).hasSize(1).containsExactly(repositoryInformationMock);
     }
 
     @Test
@@ -61,7 +60,7 @@ class RepositoryInformationCollectorServiceTests {
 
         service.add(person);
 
-        assertEquals(person, service.getRepositoryByName("io.sapl.spring.data.database.Person"));
+        assertThat(service.getRepositoryByName("io.sapl.spring.data.database.Person")).isEqualTo(person);
     }
 
     private static class RepositoryInformationImpl implements RepositoryInformation {

@@ -24,6 +24,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
@@ -91,8 +92,8 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
             ConstraintEnforcementService constraintsService, Class<V> clazz) {
-        final var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
-                constraintsService, clazz);
+        val pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
+                clazz);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints).doOnCancel(pep::handleCancel).onErrorStop();
     }
@@ -130,7 +131,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
         latestDecision.set(implicitDecision);
 
-        var resource = implicitDecision.resource();
+        val resource = implicitDecision.resource();
         if (!(resource instanceof UndefinedValue)) {
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
@@ -165,7 +166,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         if (stopped.get())
             return;
 
-        final var decision = latestDecision.get();
+        val decision = latestDecision.get();
 
         if (decision.decision() != Decision.PERMIT)
             return;
@@ -175,7 +176,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
             return;
 
         try {
-            final var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            val transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
             sink.next(transformedValue);
         } catch (Throwable t) {
             // NOOP drop only the element with the failed obligation

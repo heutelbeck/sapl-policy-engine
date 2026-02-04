@@ -42,8 +42,9 @@ import java.util.Map;
 @Slf4j
 public class CoverageWriter {
 
-    private static final String     COVERAGE_FILENAME = "coverage.ndjson";
-    private static final JsonMapper MAPPER            = createJsonMapper();
+    private static final String     COVERAGE_FILENAME             = "coverage.ndjson";
+    private static final JsonMapper MAPPER                        = createJsonMapper();
+    private static final String     WARN_FAILED_TO_WRITE_COVERAGE = "Failed to write coverage data: {}";
 
     private final Path outputDirectory;
 
@@ -89,7 +90,7 @@ public class CoverageWriter {
             write(coverageRecord);
             return true;
         } catch (IOException e) {
-            log.warn("Failed to write coverage data: {}", e.getMessage());
+            log.warn(WARN_FAILED_TO_WRITE_COVERAGE, e.getMessage());
             return false;
         }
     }

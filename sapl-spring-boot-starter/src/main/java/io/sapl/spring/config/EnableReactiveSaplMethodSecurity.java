@@ -18,7 +18,6 @@
 package io.sapl.spring.config;
 
 import org.springframework.context.annotation.AdviceMode;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 
@@ -35,7 +34,6 @@ import java.lang.annotation.Target;
  * Publisher.
  */
 @Documented
-@Configuration
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Import(ReactiveSaplMethodSecuritySelector.class)

@@ -18,14 +18,9 @@
 package io.sapl.spring.method.metadata;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.expression.Expression;
 import org.springframework.security.util.MethodInvocationUtils;
 
-import static com.spotify.hamcrest.pojo.IsPojo.pojo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsMapContaining.hasValue;
-import static org.hamcrest.collection.IsMapWithSize.anEmptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class SaplAttributeRegistryTests {
 
@@ -33,7 +28,7 @@ class SaplAttributeRegistryTests {
     void whenInspectedIsObject_ThenReturnsEmptyCollection() {
         final var sut = new SaplAttributeRegistry();
         final var mi  = MethodInvocationUtils.createFromClass(Object.class, "toString");
-        assertThat(sut.getAllSaplAttributes(mi), anEmptyMap());
+        assertThat(sut.getAllSaplAttributes(mi)).isEmpty();
     }
 
     @Test
@@ -48,7 +43,7 @@ class SaplAttributeRegistryTests {
 
         final var sut = new SaplAttributeRegistry();
         final var mi  = MethodInvocationUtils.createFromClass(NoAnnotations.class, "doSomething");
-        assertThat(sut.getAllSaplAttributes(mi), anEmptyMap());
+        assertThat(sut.getAllSaplAttributes(mi)).isEmpty();
     }
 
     @Test
@@ -258,8 +253,8 @@ class SaplAttributeRegistryTests {
         final var sut        = new SaplAttributeRegistry();
         final var mi         = MethodInvocationUtils.createFromClass(clazz, "doSomething");
         final var attributes = sut.getAllSaplAttributes(mi);
-        assertThat(attributes, hasValue(is(pojo(SaplAttribute.class).where("subjectExpression",
-                is(pojo(Expression.class).where("getExpressionString", is(expectedExpressionString)))))));
+        assertThat(attributes.values()).anySatisfy(
+                attr -> assertThat(attr.subjectExpression().getExpressionString()).isEqualTo(expectedExpressionString));
     }
 
 }

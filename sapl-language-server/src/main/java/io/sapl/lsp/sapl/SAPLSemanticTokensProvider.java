@@ -30,7 +30,7 @@ import io.sapl.lsp.core.ParsedDocument;
 /**
  * Provides semantic tokens for syntax highlighting in SAPL documents.
  */
-public class SAPLSemanticTokensProvider {
+class SAPLSemanticTokensProvider {
 
     /**
      * Provides semantic tokens for a parsed document.

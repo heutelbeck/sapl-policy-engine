@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import lombok.val;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
@@ -38,7 +39,7 @@ class ReportingEnabledCondition implements Condition {
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        var environment = context.getEnvironment();
+        val environment = context.getEnvironment();
         return "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-trace"))
                 || "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-json-report"))
                 || "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-text-report"));

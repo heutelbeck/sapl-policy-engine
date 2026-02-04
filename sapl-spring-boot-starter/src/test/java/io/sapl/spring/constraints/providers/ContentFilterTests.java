@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ContentFilterTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -52,6 +52,6 @@ class ContentFilterTests {
                 """);
         final var condition  = ContentFilter.predicateFromConditions(constraint, MAPPER);
         final var data       = new DataPoint("ABC", 100);
-        assertTrue(condition.test(data));
+        assertThat(condition.test(data)).isTrue();
     }
 }

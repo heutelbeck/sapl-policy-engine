@@ -43,12 +43,14 @@ class PolicyCoverageDataTests {
     void whenCreated_thenHasCorrectMetadata() {
         val coverage = new PolicyCoverageData("elder-policy", CULTIST_POLICY, "policy");
 
-        assertThat(coverage.getDocumentName()).isEqualTo("elder-policy");
-        assertThat(coverage.getDocumentSource()).isEqualTo(CULTIST_POLICY);
-        assertThat(coverage.getDocumentType()).isEqualTo("policy");
-        assertThat(coverage.getTargetTrueHits()).isZero();
-        assertThat(coverage.getTargetFalseHits()).isZero();
-        assertThat(coverage.getConditionCount()).isZero();
+        assertThat(coverage).satisfies(c -> {
+            assertThat(c.getDocumentName()).isEqualTo("elder-policy");
+            assertThat(c.getDocumentSource()).isEqualTo(CULTIST_POLICY);
+            assertThat(c.getDocumentType()).isEqualTo("policy");
+            assertThat(c.getTargetTrueHits()).isZero();
+            assertThat(c.getTargetFalseHits()).isZero();
+            assertThat(c.getConditionCount()).isZero();
+        });
     }
 
     @Test
@@ -59,10 +61,12 @@ class PolicyCoverageDataTests {
         coverage.recordTargetHit(true);
         coverage.recordTargetHit(true);
 
-        assertThat(coverage.getTargetTrueHits()).isEqualTo(2);
-        assertThat(coverage.getTargetFalseHits()).isZero();
-        assertThat(coverage.wasTargetMatched()).isTrue();
-        assertThat(coverage.wasTargetEvaluated()).isTrue();
+        assertThat(coverage).satisfies(c -> {
+            assertThat(c.getTargetTrueHits()).isEqualTo(2);
+            assertThat(c.getTargetFalseHits()).isZero();
+            assertThat(c.wasTargetMatched()).isTrue();
+            assertThat(c.wasTargetEvaluated()).isTrue();
+        });
     }
 
     @Test
@@ -72,10 +76,12 @@ class PolicyCoverageDataTests {
 
         coverage.recordTargetHit(false);
 
-        assertThat(coverage.getTargetTrueHits()).isZero();
-        assertThat(coverage.getTargetFalseHits()).isOne();
-        assertThat(coverage.wasTargetMatched()).isFalse();
-        assertThat(coverage.wasTargetEvaluated()).isTrue();
+        assertThat(coverage).satisfies(c -> {
+            assertThat(c.getTargetTrueHits()).isZero();
+            assertThat(c.getTargetFalseHits()).isOne();
+            assertThat(c.wasTargetMatched()).isFalse();
+            assertThat(c.wasTargetEvaluated()).isTrue();
+        });
     }
 
     @Test
@@ -87,9 +93,11 @@ class PolicyCoverageDataTests {
         coverage.recordConditionHit(0, 3, false);
         coverage.recordConditionHit(1, 5, true);
 
-        assertThat(coverage.getConditionCount()).isEqualTo(2);
-        assertThat(coverage.getFullyCoveredConditionCount()).isOne();
-        assertThat(coverage.getPartiallyCoveredConditionCount()).isEqualTo(2);
+        assertThat(coverage).satisfies(c -> {
+            assertThat(c.getConditionCount()).isEqualTo(2);
+            assertThat(c.getFullyCoveredConditionCount()).isOne();
+            assertThat(c.getPartiallyCoveredConditionCount()).isEqualTo(2);
+        });
     }
 
     @Test
@@ -126,10 +134,12 @@ class PolicyCoverageDataTests {
 
         coverage1.merge(coverage2);
 
-        assertThat(coverage1.getTargetTrueHits()).isOne();
-        assertThat(coverage1.getTargetFalseHits()).isOne();
-        assertThat(coverage1.getConditionCount()).isEqualTo(2);
-        assertThat(coverage1.getFullyCoveredConditionCount()).isOne();
+        assertThat(coverage1).satisfies(c -> {
+            assertThat(c.getTargetTrueHits()).isOne();
+            assertThat(c.getTargetFalseHits()).isOne();
+            assertThat(c.getConditionCount()).isEqualTo(2);
+            assertThat(c.getFullyCoveredConditionCount()).isOne();
+        });
     }
 
     @Test
@@ -187,9 +197,7 @@ class PolicyCoverageDataTests {
         coverage.recordConditionHit(0, 3, true);
         coverage.recordConditionHit(1, 5, false);
 
-        val coveredLines = coverage.getCoveredLines();
-
-        assertThat(coveredLines).containsExactlyInAnyOrder(1, 3, 5);
+        assertThat(coverage.getCoveredLines()).containsExactlyInAnyOrder(1, 3, 5);
     }
 
     @Test
@@ -199,9 +207,7 @@ class PolicyCoverageDataTests {
         coverage.recordTargetHit(false);
         coverage.recordConditionHit(0, 3, true);
 
-        val coveredLines = coverage.getCoveredLines();
-
-        assertThat(coveredLines).containsExactly(3);
+        assertThat(coverage.getCoveredLines()).containsExactly(3);
     }
 
     @Test
@@ -232,8 +238,10 @@ class PolicyCoverageDataTests {
         coverage.recordConditionHit(1, 5, 5, 25, 50, false); // condition at chars 25-50
 
         // Should be 2 separate conditions, not merged
-        assertThat(coverage.getConditionCount()).isEqualTo(2);
-        assertThat(coverage.getBranchCoveragePercent()).isEqualTo(50.0); // 2 of 4 branches
+        assertThat(coverage).satisfies(c -> {
+            assertThat(c.getConditionCount()).isEqualTo(2);
+            assertThat(c.getBranchCoveragePercent()).isEqualTo(50.0); // 2 of 4 branches
+        });
     }
 
     @Test
@@ -267,13 +275,14 @@ class PolicyCoverageDataTests {
         coverage.recordConditionHit(1, 5, 5, 15, 25, true);
         coverage.recordConditionHit(1, 5, 5, 15, 25, false);
 
-        val lineCoverage = coverage.getLineCoverage();
-        val line5Info    = lineCoverage.get(4); // 0-indexed
+        val line5Info = coverage.getLineCoverage().get(4); // 0-indexed
 
         // Line 5 should show 3 of 4 branches covered (1+2 covered, 2+2 total)
-        assertThat(line5Info.coveredBranches()).isEqualTo(3);
-        assertThat(line5Info.totalBranches()).isEqualTo(4);
-        assertThat(line5Info.status()).isEqualTo(LineCoverageStatus.PARTIALLY_COVERED);
+        assertThat(line5Info).satisfies(info -> {
+            assertThat(info.coveredBranches()).isEqualTo(3);
+            assertThat(info.totalBranches()).isEqualTo(4);
+            assertThat(info.status()).isEqualTo(LineCoverageStatus.PARTIALLY_COVERED);
+        });
     }
 
     @Test
@@ -286,13 +295,14 @@ class PolicyCoverageDataTests {
         val hits = coverage.getBranchHits();
         assertThat(hits).hasSize(1);
 
-        val hit = hits.getFirst();
-        assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_SINGLE_BRANCH_ID);
-        assertThat(hit.isSingleBranch()).isTrue();
-        assertThat(hit.trueHits()).isOne();
-        assertThat(hit.falseHits()).isZero();
-        assertThat(hit.totalBranchCount()).isEqualTo(1);
-        assertThat(hit.coveredBranchCount()).isEqualTo(1);
+        assertThat(hits.getFirst()).satisfies(hit -> {
+            assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_SINGLE_BRANCH_ID);
+            assertThat(hit.isSingleBranch()).isTrue();
+            assertThat(hit.trueHits()).isOne();
+            assertThat(hit.falseHits()).isZero();
+            assertThat(hit.totalBranchCount()).isEqualTo(1);
+            assertThat(hit.coveredBranchCount()).isEqualTo(1);
+        });
     }
 
     @Test
@@ -305,13 +315,14 @@ class PolicyCoverageDataTests {
         val hits = coverage.getBranchHits();
         assertThat(hits).hasSize(1);
 
-        val hit = hits.getFirst();
-        assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_TWO_BRANCH_ID);
-        assertThat(hit.isSingleBranch()).isFalse();
-        assertThat(hit.trueHits()).isOne();
-        assertThat(hit.falseHits()).isZero();
-        assertThat(hit.totalBranchCount()).isEqualTo(2);
-        assertThat(hit.coveredBranchCount()).isEqualTo(1);
+        assertThat(hits.getFirst()).satisfies(hit -> {
+            assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_TWO_BRANCH_ID);
+            assertThat(hit.isSingleBranch()).isFalse();
+            assertThat(hit.trueHits()).isOne();
+            assertThat(hit.falseHits()).isZero();
+            assertThat(hit.totalBranchCount()).isEqualTo(2);
+            assertThat(hit.coveredBranchCount()).isEqualTo(1);
+        });
     }
 
     @Test
@@ -327,11 +338,12 @@ class PolicyCoverageDataTests {
         val hits = coverage.getBranchHits();
         assertThat(hits).hasSize(1);
 
-        val hit = hits.getFirst();
-        assertThat(hit.trueHits()).isOne();
-        assertThat(hit.falseHits()).isOne();
-        assertThat(hit.isFullyCovered()).isTrue();
-        assertThat(hit.coveredBranchCount()).isEqualTo(2);
+        assertThat(hits.getFirst()).satisfies(hit -> {
+            assertThat(hit.trueHits()).isOne();
+            assertThat(hit.falseHits()).isOne();
+            assertThat(hit.isFullyCovered()).isTrue();
+            assertThat(hit.coveredBranchCount()).isEqualTo(2);
+        });
     }
 
     @Test
@@ -373,13 +385,14 @@ class PolicyCoverageDataTests {
         // Single-branch policy on line 1
         coverage.recordPolicyOutcome(1, 1, 0, 10, true, false);
 
-        val lineCoverage = coverage.getLineCoverage();
-        val line1Info    = lineCoverage.getFirst();
+        val line1Info = coverage.getLineCoverage().getFirst();
 
         // Single-branch: 1/1 = fully covered
-        assertThat(line1Info.coveredBranches()).isEqualTo(1);
-        assertThat(line1Info.totalBranches()).isEqualTo(1);
-        assertThat(line1Info.status()).isEqualTo(LineCoverageStatus.FULLY_COVERED);
+        assertThat(line1Info).satisfies(info -> {
+            assertThat(info.coveredBranches()).isEqualTo(1);
+            assertThat(info.totalBranches()).isEqualTo(1);
+            assertThat(info.status()).isEqualTo(LineCoverageStatus.FULLY_COVERED);
+        });
     }
 
     @Test
@@ -391,11 +404,12 @@ class PolicyCoverageDataTests {
         // Target on line 1 (uses negative statementId)
         coverage.recordTargetHit(true, 1, 1);
 
-        val lineCoverage = coverage.getLineCoverage();
-        val line1Info    = lineCoverage.getFirst();
+        val line1Info = coverage.getLineCoverage().getFirst();
 
         // Target is single-branch: hit = 1/1 covered
-        assertThat(line1Info.coveredBranches()).isEqualTo(1);
-        assertThat(line1Info.totalBranches()).isEqualTo(1);
+        assertThat(line1Info).satisfies(info -> {
+            assertThat(info.coveredBranches()).isEqualTo(1);
+            assertThat(info.totalBranches()).isEqualTo(1);
+        });
     }
 }

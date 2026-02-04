@@ -23,6 +23,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import lombok.NonNull;
+import lombok.val;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
@@ -96,7 +97,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
             ConstraintEnforcementService constraintsService, Class<V> clazz) {
-        final var pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
+        val pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
                 constraintsService, clazz);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints).map(pep::handleAccessDenied)
@@ -107,7 +108,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     public void subscribe(@NonNull CoreSubscriber<? super ProtectedPayload<T>> actual) {
         if (sink != null)
             throw new IllegalStateException(ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE);
-        final var context = actual.currentContext();
+        val context = actual.currentContext();
         sink                = new RecoverableEnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
         Flux.create(sink).subscribe(actual);
@@ -158,7 +159,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         // decision == Decision.PERMIT from here on
 
         latestDecision.set(decision);
-        var resource = decision.resource();
+        val resource = decision.resource();
         if (!(resource instanceof UndefinedValue)) {
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
@@ -202,7 +203,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         if (stopped.get())
             return;
 
-        final var decision = latestDecision.get();
+        val decision = latestDecision.get();
 
         if (decision.decision() != Decision.PERMIT)
             return;
@@ -212,7 +213,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             return;
 
         try {
-            final var transformedValue = constraintHandlerBundle.get().handleAllOnNextConstraints(value);
+            val transformedValue = constraintHandlerBundle.get().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
         } catch (Exception t) {

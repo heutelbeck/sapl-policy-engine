@@ -51,7 +51,6 @@ import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -1072,7 +1071,7 @@ class ConstraintEnforcementServiceTests {
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
-        assertThrows(RuntimeException.class, wrapped::blockLast);
+        assertThatThrownBy(wrapped::blockLast).isInstanceOf(RuntimeException.class);
     }
 
     @Test
@@ -1127,8 +1126,8 @@ class ConstraintEnforcementServiceTests {
         final var service  = buildConstraintHandlerService();
         final var decision = permitWithObligation();
         final var bundle   = service.blockingPreEnforceBundleFor(decision, Object.class);
-        assertThrows(AccessDeniedException.class,
-                () -> bundle.handleMethodInvocationHandlers(mock(MethodInvocation.class)));
+        assertThatThrownBy(() -> bundle.handleMethodInvocationHandlers(mock(MethodInvocation.class)))
+                .isInstanceOf(AccessDeniedException.class);
         verify(provider, times(0)).accept(any());
     }
 

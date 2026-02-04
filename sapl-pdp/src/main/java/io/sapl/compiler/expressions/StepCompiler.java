@@ -71,22 +71,22 @@ import java.util.function.IntFunction;
 public class StepCompiler {
 
     private static final int    MAX_RECURSION_DEPTH                   = 500;
-    private static final String ERROR_INDEX_OUT_OF_BOUNDS             = "Array index out of bounds: %d (size: %d).";
-    private static final String ERROR_INDEX_ON_NON_ARRAY              = "Cannot apply index step to %s.";
-    private static final String ERROR_WILDCARD_ON_INVALID             = "Cannot apply wildcard step to %s.";
-    private static final String ERROR_INDEX_UNION_ON_INVALID          = "Cannot apply index union to %s.";
     private static final String ERROR_ATTR_UNION_ON_INVALID           = "Cannot apply attribute union to %s.";
-    private static final String ERROR_SLICE_ON_NON_ARRAY              = "Cannot apply slice to %s.";
-    private static final String ERROR_SLICE_STEP_ZERO                 = "Slice step cannot be zero.";
-    private static final String ERROR_EXPR_STEP_INVALID_TYPE          = "Expression step requires number or string, got %s.";
-    private static final String ERROR_CONDITION_ON_INVALID            = "Cannot apply condition step to %s.";
     private static final String ERROR_CONDITION_NON_BOOLEAN           = "Condition must evaluate to boolean, got %s.";
+    private static final String ERROR_CONDITION_ON_INVALID            = "Cannot apply condition step to %s.";
     private static final String ERROR_CONDITION_STREAMING_UNSUPPORTED = "Condition step with streaming condition not yet supported";
+    private static final String ERROR_EXPR_STEP_INVALID_TYPE          = "Expression step requires number or string, got %s.";
     private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Expression step with streaming expression not yet supported";
     private static final String ERROR_HANDLED_ABOVE                   = "Handled above";
+    private static final String ERROR_INDEX_ON_NON_ARRAY              = "Cannot apply index step to %s.";
+    private static final String ERROR_INDEX_OUT_OF_BOUNDS             = "Array index out of bounds: %d (size: %d).";
+    private static final String ERROR_INDEX_UNION_ON_INVALID          = "Cannot apply index union to %s.";
     private static final String ERROR_MAX_RECURSION_DEPTH_INDEX       = "Maximum nesting depth exceeded during recursive index step.";
     private static final String ERROR_MAX_RECURSION_DEPTH_KEY         = "Maximum nesting depth exceeded during recursive key step.";
     private static final String ERROR_MAX_RECURSION_DEPTH_WILDCARD    = "Maximum nesting depth exceeded during recursive wildcard step.";
+    private static final String ERROR_SLICE_ON_NON_ARRAY              = "Cannot apply slice to %s.";
+    private static final String ERROR_SLICE_STEP_ZERO                 = "Slice step cannot be zero.";
+    private static final String ERROR_WILDCARD_ON_INVALID             = "Cannot apply wildcard step to %s.";
 
     public CompiledExpression compile(Step step, CompilationContext ctx) {
         return switch (step) {

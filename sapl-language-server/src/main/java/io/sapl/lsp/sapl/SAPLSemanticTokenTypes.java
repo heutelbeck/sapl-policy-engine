@@ -24,7 +24,7 @@ import java.util.Set;
  * Defines the semantic token types and modifiers for SAPL syntax highlighting.
  * Maps to standard LSP semantic token types.
  */
-public final class SAPLSemanticTokenTypes {
+final class SAPLSemanticTokenTypes {
 
     private SAPLSemanticTokenTypes() {
     }

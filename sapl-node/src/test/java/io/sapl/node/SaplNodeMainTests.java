@@ -17,20 +17,20 @@
  */
 package io.sapl.node;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import org.junit.jupiter.api.Test;
 
 class SaplNodeMainTests {
 
     @Test
     void whenExecutingMain_withApiKeyParameter_thenSuccessful() {
-        assertDoesNotThrow(() -> SaplNodeApplication.main(new String[] { "-apiKey" }));
+        assertThatCode(() -> SaplNodeApplication.main(new String[] { "-apiKey" })).doesNotThrowAnyException();
     }
 
     @Test
     void whenExecutingMain_withBasicCredentialsParameter_thenSuccessful() {
-        assertDoesNotThrow(() -> SaplNodeApplication.main(new String[] { "-basicCredentials" }));
+        assertThatCode(() -> SaplNodeApplication.main(new String[] { "-basicCredentials" })).doesNotThrowAnyException();
     }
 
 }

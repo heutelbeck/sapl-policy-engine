@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ContentFilteringProviderTests {
@@ -112,7 +112,7 @@ class ContentFilteringProviderTests {
         final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
         final var original   = MAPPER.readTree("{\"key1\": \"value1\", \"key2\": \"value2\"}");
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
     }
 
     static Stream<Arguments> blackenValidationErrorCases() {
@@ -144,7 +144,7 @@ class ContentFilteringProviderTests {
         final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
         final var original   = MAPPER.readTree(originalJson);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
     }
 
     static Stream<Arguments> blackenSuccessCases() {
@@ -312,7 +312,7 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
     }
 
     static Stream<Arguments> malformedConstraintCases() {
@@ -415,13 +415,13 @@ class ContentFilteringProviderTests {
             throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue(constraintJson);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
+        assertThatThrownBy(() -> sut.getHandler(constraint)).isInstanceOf(AccessConstraintViolationException.class);
     }
 
     @Test
     void when_constraintNull_then_AccessConstraintViolationException() {
         final var sut = new ContentFilteringProvider(MAPPER);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(null));
+        assertThatThrownBy(() -> sut.getHandler(null)).isInstanceOf(AccessConstraintViolationException.class);
     }
 
     @Test
@@ -483,7 +483,7 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
     }
 
     @Test
@@ -1212,7 +1212,7 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
     }
 
     @Test
@@ -1320,7 +1320,7 @@ class ContentFilteringProviderTests {
                 """);
         final var handler    = sut.getHandler(constraint);
         final var original   = new Person("Bob", 32);
-        assertThrows(RuntimeException.class, () -> handler.apply(original));
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(RuntimeException.class);
     }
 
 }

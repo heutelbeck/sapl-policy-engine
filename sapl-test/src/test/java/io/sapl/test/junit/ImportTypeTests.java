@@ -19,38 +19,18 @@ package io.sapl.test.junit;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("ImportType tests")
 class ImportTypeTests {
 
-    @Test
-    @DisplayName("PIP enum value exists")
-    void whenAccessingPip_thenValueExists() {
-        assertThat(ImportType.PIP).isNotNull();
-        assertThat(ImportType.PIP.name()).isEqualTo("PIP");
-    }
-
-    @Test
-    @DisplayName("STATIC_PIP enum value exists")
-    void whenAccessingStaticPip_thenValueExists() {
-        assertThat(ImportType.STATIC_PIP).isNotNull();
-        assertThat(ImportType.STATIC_PIP.name()).isEqualTo("STATIC_PIP");
-    }
-
-    @Test
-    @DisplayName("FUNCTION_LIBRARY enum value exists")
-    void whenAccessingFunctionLibrary_thenValueExists() {
-        assertThat(ImportType.FUNCTION_LIBRARY).isNotNull();
-        assertThat(ImportType.FUNCTION_LIBRARY.name()).isEqualTo("FUNCTION_LIBRARY");
-    }
-
-    @Test
-    @DisplayName("STATIC_FUNCTION_LIBRARY enum value exists")
-    void whenAccessingStaticFunctionLibrary_thenValueExists() {
-        assertThat(ImportType.STATIC_FUNCTION_LIBRARY).isNotNull();
-        assertThat(ImportType.STATIC_FUNCTION_LIBRARY.name()).isEqualTo("STATIC_FUNCTION_LIBRARY");
+    @ParameterizedTest(name = "{0} enum value exists and has correct name")
+    @EnumSource(ImportType.class)
+    void whenAccessingEnumValue_thenValueExistsWithCorrectName(ImportType importType) {
+        assertThat(importType).isNotNull().satisfies(value -> assertThat(value.name()).isEqualTo(importType.name()));
     }
 
     @Test
@@ -60,12 +40,9 @@ class ImportTypeTests {
                 ImportType.FUNCTION_LIBRARY, ImportType.STATIC_FUNCTION_LIBRARY);
     }
 
-    @Test
-    @DisplayName("valueOf returns correct enum constant")
-    void whenUsingValueOf_thenReturnsCorrectConstant() {
-        assertThat(ImportType.valueOf("PIP")).isEqualTo(ImportType.PIP);
-        assertThat(ImportType.valueOf("STATIC_PIP")).isEqualTo(ImportType.STATIC_PIP);
-        assertThat(ImportType.valueOf("FUNCTION_LIBRARY")).isEqualTo(ImportType.FUNCTION_LIBRARY);
-        assertThat(ImportType.valueOf("STATIC_FUNCTION_LIBRARY")).isEqualTo(ImportType.STATIC_FUNCTION_LIBRARY);
+    @ParameterizedTest(name = "valueOf(\"{0}\") returns correct constant")
+    @EnumSource(ImportType.class)
+    void whenUsingValueOf_thenReturnsCorrectConstant(ImportType expected) {
+        assertThat(ImportType.valueOf(expected.name())).isEqualTo(expected);
     }
 }

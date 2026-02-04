@@ -17,8 +17,8 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -64,7 +64,7 @@ class ReportCoverageInformationMojoTests {
     void whenCoverageDisabled_thenFails() throws Exception {
         setField(mojo, "coverageEnabled", false);
 
-        assertThrows(MojoFailureException.class, mojo::execute);
+        assertThatThrownBy(mojo::execute).isInstanceOf(MojoFailureException.class);
     }
 
     @Test
@@ -74,7 +74,7 @@ class ReportCoverageInformationMojoTests {
         mojo.setSkipTests(true);
         mojo.setFailOnDisabledTests(true);
 
-        assertThrows(MojoFailureException.class, mojo::execute);
+        assertThatThrownBy(mojo::execute).isInstanceOf(MojoFailureException.class);
         verify(log, atLeastOnce())
                 .error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
     }
@@ -86,7 +86,7 @@ class ReportCoverageInformationMojoTests {
         mojo.setSkipTests(true);
         mojo.setFailOnDisabledTests(false);
 
-        assertDoesNotThrow(mojo::execute);
+        assertThatCode(mojo::execute).doesNotThrowAnyException();
         verify(log, atLeastOnce()).info(contains("Tests disabled"));
     }
 
@@ -97,7 +97,7 @@ class ReportCoverageInformationMojoTests {
         mojo.setMavenTestSkip(true);
         mojo.setFailOnDisabledTests(true);
 
-        assertThrows(MojoFailureException.class, mojo::execute);
+        assertThatThrownBy(mojo::execute).isInstanceOf(MojoFailureException.class);
         verify(log, atLeastOnce())
                 .error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
     }
@@ -109,13 +109,13 @@ class ReportCoverageInformationMojoTests {
         mojo.setMavenTestSkip(true);
         mojo.setFailOnDisabledTests(false);
 
-        assertDoesNotThrow(mojo::execute);
+        assertThatCode(mojo::execute).doesNotThrowAnyException();
         verify(log, atLeastOnce()).info(contains("Tests disabled"));
     }
 
     @Test
     void whenCoverageFileMissing_thenFails() {
-        assertThrows(MojoFailureException.class, mojo::execute);
+        assertThatThrownBy(mojo::execute).isInstanceOf(MojoFailureException.class);
         verify(log, atLeastOnce()).error(contains("Coverage file not found"));
     }
 
@@ -123,7 +123,7 @@ class ReportCoverageInformationMojoTests {
     void whenCoverageDataValid_thenSucceeds() throws Exception {
         writeCoverageData(tempDir.resolve("sapl-coverage"));
 
-        assertDoesNotThrow(mojo::execute);
+        assertThatCode(mojo::execute).doesNotThrowAnyException();
     }
 
     private void writeCoverageData(Path baseDir) throws IOException {

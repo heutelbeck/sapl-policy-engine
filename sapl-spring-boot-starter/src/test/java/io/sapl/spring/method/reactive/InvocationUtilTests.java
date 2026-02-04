@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +32,7 @@ class InvocationUtilTests {
     void sneakyThrows() throws Throwable {
         final var mock = mock(MethodInvocation.class);
         when(mock.proceed()).thenThrow(new IOException());
-        assertThrows(IOException.class, () -> InvocationUtil.proceed(mock));
+        assertThatThrownBy(() -> InvocationUtil.proceed(mock)).isInstanceOf(IOException.class);
     }
 
 }

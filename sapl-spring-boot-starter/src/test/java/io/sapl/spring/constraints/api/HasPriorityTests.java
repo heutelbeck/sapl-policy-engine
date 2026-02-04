@@ -20,7 +20,6 @@ package io.sapl.spring.constraints.api;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +28,7 @@ class HasPriorityTests {
     @Test
     void minimalPriorityIsZero() {
         final var sut = spy(HasPriority.class);
-        assertEquals(0, sut.getPriority());
+        assertThat(sut.getPriority()).isZero();
     }
 
     @Test

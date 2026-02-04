@@ -25,7 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.r2dbc.repository.support.R2dbcRepositoryFactoryBean;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,7 +55,7 @@ class R2dbcBeanPostProcessorTests {
                 "R2dbcRepositoryFactoryBean");
 
         // THEN
-        assertEquals(result, r2dbcRepositoryFactoryBeanMock);
+        assertThat(result).isSameAs(r2dbcRepositoryFactoryBeanMock);
         verify(r2dbcRepositoryFactoryBeanMock, times(1))
                 .addRepositoryFactoryCustomizer(r2dbcRepositoryFactoryCustomizerMock);
     }
@@ -71,7 +71,7 @@ class R2dbcBeanPostProcessorTests {
                 "R2dbcRepositoryFactoryBean");
 
         // THEN
-        assertEquals(result, mongoDbRepositoryTestMock);
+        assertThat(result).isSameAs(mongoDbRepositoryTestMock);
         verify(r2dbcRepositoryFactoryBeanMock, times(0))
                 .addRepositoryFactoryCustomizer(r2dbcRepositoryFactoryCustomizerMock);
     }

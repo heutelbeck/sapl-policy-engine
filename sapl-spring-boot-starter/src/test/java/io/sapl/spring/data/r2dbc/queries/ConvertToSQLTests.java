@@ -24,7 +24,7 @@ import org.springframework.data.domain.Sort;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ConvertToSQLTests {
 
@@ -39,7 +39,7 @@ class ConvertToSQLTests {
         final var actual = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -53,7 +53,7 @@ class ConvertToSQLTests {
         final var actual = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -67,7 +67,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -81,7 +81,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -95,7 +95,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -110,7 +110,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.conditions(saplConditionList);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -123,7 +123,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.conditions(saplConditionList);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -137,7 +137,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -151,7 +151,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -165,7 +165,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -179,7 +179,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -193,7 +193,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -207,7 +207,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -221,7 +221,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -235,7 +235,7 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -249,6 +249,6 @@ class ConvertToSQLTests {
         final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 }

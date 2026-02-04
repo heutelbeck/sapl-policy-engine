@@ -52,7 +52,7 @@ public class ApiKeyService {
      */
     private Mono<Authentication> checkApiKey(final String apiKey) {
         val cache = cacheManager.getCache("ApiKeyCache");
-        // get authentication from cache of possible
+        // get authentication from cache if possible
         if (cache != null) {
             val cacheEntry = cache.get(apiKey);
             if (cacheEntry != null) {
@@ -62,7 +62,7 @@ public class ApiKeyService {
 
         // validate key and get authentication
         for (var encodedApiKey : pdpProperties.getAllowedApiKeys()) {
-            log.debug("checking ApiKey against encoded ApiKey: " + encodedApiKey);
+            log.debug("checking ApiKey against encoded ApiKey: {}", encodedApiKey);
             if (passwordEncoder.matches(apiKey, encodedApiKey)) {
                 if (cache != null) {
                     cache.put(apiKey, encodedApiKey);

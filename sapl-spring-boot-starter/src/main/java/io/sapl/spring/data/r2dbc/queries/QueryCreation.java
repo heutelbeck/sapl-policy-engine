@@ -19,6 +19,7 @@ package io.sapl.spring.data.r2dbc.queries;
 
 import io.sapl.spring.data.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.domain.Sort;
 import tools.jackson.databind.JsonNode;
@@ -51,13 +52,13 @@ public class QueryCreation {
     }
 
     private String createConditionPartWithoutWherePart(String query, ArrayNode conditions) {
-        final var indexWithoutWhere = query.toLowerCase().indexOf(" where ");
-        final var indexWithWhere    = indexWithoutWhere + 7;
+        val indexWithoutWhere = query.toLowerCase().indexOf(" where ");
+        val indexWithWhere    = indexWithoutWhere + 7;
 
-        final var originalConditions    = query.substring(indexWithWhere);
-        final var queryBeforeConditions = query.substring(0, indexWithWhere);
+        val originalConditions    = query.substring(indexWithWhere);
+        val queryBeforeConditions = query.substring(0, indexWithWhere);
 
-        final var queryBuilder = new StringBuilder();
+        val queryBuilder = new StringBuilder();
 
         for (JsonNode condition : conditions) {
             queryBuilder.append(getConditionWithoutPropositionalConnectives(condition.asString()))
@@ -74,7 +75,7 @@ public class QueryCreation {
      * @return the propositionalConnectives.
      */
     private String getPropositionalConnectives(String condition) {
-        final var adjustedCondition = condition.toLowerCase().trim();
+        val adjustedCondition = condition.toLowerCase().trim();
 
         if (adjustedCondition.startsWith("or ")) {
             return " OR ";
@@ -92,7 +93,7 @@ public class QueryCreation {
      * @return the manipulated query.
      */
     private String getConditionWithoutPropositionalConnectives(String condition) {
-        final var adjustedCondition = condition.toLowerCase().trim();
+        val adjustedCondition = condition.toLowerCase().trim();
 
         if (adjustedCondition.startsWith("and ")) {
             return condition.substring(4);
@@ -106,9 +107,9 @@ public class QueryCreation {
     }
 
     public static String createBaselineQuery(MethodInvocation invocation) {
-        final var queryWithParameterSolved = QueryAnnotationParameterResolver
+        val queryWithParameterSolved = QueryAnnotationParameterResolver
                 .resolveForRelationalDatabase(invocation.getMethod(), invocation.getArguments());
-        final var sortingPart              = ConvertToSQL.prepareAndMergeSortObjects(Sort.unsorted(),
+        val sortingPart              = ConvertToSQL.prepareAndMergeSortObjects(Sort.unsorted(),
                 invocation.getArguments());
         return queryWithParameterSolved + sortingPart;
     }
@@ -125,7 +126,7 @@ public class QueryCreation {
      */
     public <T> String createSqlQuery(ArrayNode conditions, ArrayNode selection, ArrayNode transformations,
             Class<T> domainType, String baseQuery) {
-        final var queryBuilder = new StringBuilder();
+        val queryBuilder = new StringBuilder();
 
         queryBuilder.append(
                 QuerySelectionUtils.createSelectionPartForMethodNameQuery(selection, transformations, domainType));
@@ -152,11 +153,11 @@ public class QueryCreation {
      * @return the condition with conjunction or not
      */
     private String addMissingConjunction(String sqlConditionFromDecision) {
-        final var conditionStartsWithPropositionalConnectives = sqlConditionFromDecision.toLowerCase().trim()
+        val conditionStartsWithPropositionalConnectives = sqlConditionFromDecision.toLowerCase().trim()
                 .startsWith("and ") || sqlConditionFromDecision.toLowerCase().trim().startsWith("or ");
 
-        final var propositionalConnective = sqlConditionFromDecision.trim().substring(0, 3);
-        final var sqlCondition            = sqlConditionFromDecision.trim().substring(3);
+        val propositionalConnective = sqlConditionFromDecision.trim().substring(0, 3);
+        val sqlCondition            = sqlConditionFromDecision.trim().substring(3);
 
         if (conditionStartsWithPropositionalConnectives) {
             return sqlCondition + " " + propositionalConnective + " ";

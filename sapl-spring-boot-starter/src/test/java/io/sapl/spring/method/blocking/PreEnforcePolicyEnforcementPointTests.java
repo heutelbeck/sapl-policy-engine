@@ -45,9 +45,8 @@ import reactor.core.publisher.Flux;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -103,7 +102,7 @@ class PreEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -112,7 +111,7 @@ class PreEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -120,7 +119,7 @@ class PreEnforcePolicyEnforcementPointTests {
     void whenBeforeAndDecidePermitButBundleNull_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(null);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -129,7 +128,7 @@ class PreEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        assertThat(testService.doSomething(), is(ORIGINAL_RETURN_OBJECT));
+        assertThat(testService.doSomething()).isEqualTo(ORIGINAL_RETURN_OBJECT);
     }
 
     @Test
@@ -141,7 +140,7 @@ class PreEnforcePolicyEnforcementPointTests {
                 FunctionUtil.all(), FunctionUtil.sink(), UnaryOperator.identity());
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(mockBundle);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -151,7 +150,7 @@ class PreEnforcePolicyEnforcementPointTests {
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -161,7 +160,7 @@ class PreEnforcePolicyEnforcementPointTests {
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -170,7 +169,7 @@ class PreEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
-        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+        assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -184,7 +183,7 @@ class PreEnforcePolicyEnforcementPointTests {
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                         Value.of(CHANGED_RETURN_OBJECT))));
-        assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
+        assertThat(testService.doSomethingOptional()).isEqualTo(Optional.of(CHANGED_RETURN_OBJECT));
     }
 
 }

@@ -21,7 +21,8 @@ import io.sapl.spring.data.r2dbc.database.Person;
 import io.sapl.spring.data.utils.Utilities;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,8 +40,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -93,7 +92,7 @@ class PartTreeToSqlQueryStringConverterTests {
         final var result = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class);
 
         // THEN
-        Assertions.assertEquals(sqlQueryResult, result);
+        assertThat(result).isEqualTo(sqlQueryResult);
 
         convertToSQLMock.verify(() -> ConvertToSQL.conditions(any(List.class)), times(1));
     }
@@ -114,7 +113,7 @@ class PartTreeToSqlQueryStringConverterTests {
         final var result = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class);
 
         // THEN
-        Assertions.assertEquals("", result);
+        assertThat(result).isEmpty();
         convertToSQLMock.verify(() -> ConvertToSQL.conditions(any(List.class)), times(0));
     }
 
@@ -127,8 +126,9 @@ class PartTreeToSqlQueryStringConverterTests {
         when(methodInvocationMock.getArguments()).thenReturn(new Object[] {});
 
         // THEN
-        assertThrows(NoSuchElementException.class,
-                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class));
+        assertThatThrownBy(
+                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class))
+                .isInstanceOf(NoSuchElementException.class);
     }
 
     @Test
@@ -144,8 +144,9 @@ class PartTreeToSqlQueryStringConverterTests {
         when(methodInvocationMock.getArguments()).thenReturn(new Object[] { "Juni" });
 
         // THEN
-        assertThrows(IllegalStateException.class,
-                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class));
+        assertThatThrownBy(
+                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -157,18 +158,17 @@ class PartTreeToSqlQueryStringConverterTests {
         when(methodInvocationMock.getArguments()).thenReturn(new Object[] { 22, null });
 
         // THEN
-        assertThrows(NullPointerException.class,
-                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class));
+        assertThatThrownBy(
+                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
-        assertThrows(InvocationTargetException.class, () -> {
-            final var constructor = PartTreeToSqlQueryStringConverter.class.getDeclaredConstructor();
-            assertTrue(Modifier.isPrivate(constructor.getModifiers()));
-            ReflectionUtils.makeAccessible(constructor);
-            constructor.newInstance();
-        });
+        final var constructor = PartTreeToSqlQueryStringConverter.class.getDeclaredConstructors()[0];
+        assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
+        ReflectionUtils.makeAccessible(constructor);
+        assertThatThrownBy(constructor::newInstance).isInstanceOf(InvocationTargetException.class);
     }
 
     private static Stream<Arguments> methodNameToSqlQuery() {

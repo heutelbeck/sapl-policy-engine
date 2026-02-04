@@ -24,8 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class AnnotationUtilitiesTests {
 
@@ -40,7 +39,7 @@ class AnnotationUtilitiesTests {
         final var result = AnnotationUtilities.hasAnnotationQueryReactiveMongo(method);
 
         // THEN
-        assertTrue(result);
+        assertThat(result).isTrue();
     }
 
     @Test
@@ -54,7 +53,7 @@ class AnnotationUtilitiesTests {
         final var result = AnnotationUtilities.hasAnnotationQueryReactiveMongo(method);
 
         // THEN
-        assertFalse(result);
+        assertThat(result).isFalse();
     }
 
     @Test
@@ -68,7 +67,7 @@ class AnnotationUtilitiesTests {
         final var result = AnnotationUtilities.hasAnnotationQueryR2dbc(method);
 
         // THEN
-        assertTrue(result);
+        assertThat(result).isTrue();
     }
 
     @Test
@@ -82,7 +81,7 @@ class AnnotationUtilitiesTests {
         final var result = AnnotationUtilities.hasAnnotationQueryR2dbc(method);
 
         // THEN
-        assertFalse(result);
+        assertThat(result).isFalse();
     }
 
     @Test
@@ -96,7 +95,7 @@ class AnnotationUtilitiesTests {
         final var result = AnnotationUtilities.hasAnnotationQueryEnforce(method);
 
         // THEN
-        assertTrue(result);
+        assertThat(result).isTrue();
     }
 
     @Test
@@ -110,7 +109,7 @@ class AnnotationUtilitiesTests {
         final var result = AnnotationUtilities.hasAnnotationQueryEnforce(method);
 
         // THEN
-        assertFalse(result);
+        assertThat(result).isFalse();
     }
 
 }

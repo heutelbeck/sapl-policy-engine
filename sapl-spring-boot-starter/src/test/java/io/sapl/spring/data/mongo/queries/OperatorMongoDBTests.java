@@ -21,8 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OperatorMongoDBTests {
 
@@ -30,23 +30,24 @@ class OperatorMongoDBTests {
 
     @Test
     void when_keywordNotExist_then_throwUnsupportedOperationException() {
-        assertThrows(UnsupportedOperationException.class, () -> OperatorMongoDB.getOperatorByKeyword("notValid"));
+        assertThatThrownBy(() -> OperatorMongoDB.getOperatorByKeyword("notValid"))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
     void when_keywordExist_then_returnOperation() {
         OperatorMongoDB result = OperatorMongoDB.getOperatorByKeyword("$lte");
-        assertEquals(OperatorMongoDB.LESS_THAN_EQUAL, result);
+        assertThat(result).isEqualTo(OperatorMongoDB.LESS_THAN_EQUAL);
     }
 
     @Test
     void when_keywordExists_then_getSqlQueryBasedKeywords() {
-        assertEquals(operator.mongoBasedKeywords, List.of("$lte", "lte"));
+        assertThat(operator.mongoBasedKeywords).isEqualTo(List.of("$lte", "lte"));
     }
 
     @Test
     void when_keywordExists_then_getMethodNameBasedKeywords() {
-        assertEquals(operator.methodNameBasedKeywords, List.of("IsLessThanEqual", "LessThanEqual"));
+        assertThat(operator.methodNameBasedKeywords).isEqualTo(List.of("IsLessThanEqual", "LessThanEqual"));
     }
 
 }

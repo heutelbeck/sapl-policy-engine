@@ -34,7 +34,6 @@ import org.springframework.security.util.MethodInvocationUtils;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 class ReactiveSaplMethodSecurityConfigurationTests {
@@ -79,7 +78,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                     final var attribute = attribute(null, null, null, null, Object.class);
                     final var actual = context.getBean(AuthorizationSubscriptionBuilderService.class)
                             .reactiveConstructAuthorizationSubscription(invocation, attribute);
-                    assertNotNull(actual);
+                    assertThat(actual).isNotNull();
                 });
     }
 

@@ -59,8 +59,8 @@ import java.util.function.Function;
 @UtilityClass
 public class PolicySetUtil {
 
-    public static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE = "Unexpected isApplicable type. Indicates implementation bug.";
     public static final String ERROR_STREAM_IN_PURE_CONTEXT        = "Stream vote maker in pure context. Indicates implementation bug.";
+    public static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE = "Unexpected isApplicable type. Indicates implementation bug.";
     public static final String ERROR_UNEXPECTED_STREAM_IN_TARGET   = "Unexpected Stream Operator in target expression. Indicates implementation bug.";
 
     /**

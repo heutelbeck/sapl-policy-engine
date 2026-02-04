@@ -25,14 +25,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
-import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
-import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("unchecked")
 class BlockingConstraintHandlerBundleTests {
@@ -51,7 +44,7 @@ class BlockingConstraintHandlerBundleTests {
 							UnaryOperator.identity());
 		// @formatter:on
         final var result = (Optional<String>) sut.handleAllOnNextConstraints(Optional.of("Hello"));
-        assertThat(result, is(emptyOptional()));
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -68,7 +61,7 @@ class BlockingConstraintHandlerBundleTests {
 							UnaryOperator.identity());
 		// @formatter:on
         final var result = (Optional<String>) sut.handleAllOnNextConstraints(Optional.of("Hello"));
-        assertThat(result, is(optionalWithValue(is("Hello"))));
+        assertThat(result).hasValue("Hello");
 
     }
 
@@ -87,7 +80,7 @@ class BlockingConstraintHandlerBundleTests {
 		// @formatter:on
         final var result = (List<String>) sut
                 .handleAllOnNextConstraints(List.of("Alice", "Bob", "Ada", "Adam", "Donald"));
-        assertThat(result, contains("Alice", "Ada", "Adam"));
+        assertThat(result).containsExactly("Alice", "Ada", "Adam");
     }
 
     @Test
@@ -105,7 +98,7 @@ class BlockingConstraintHandlerBundleTests {
 		// @formatter:on
         final var result = (String[]) sut
                 .handleAllOnNextConstraints(new String[] { "Alice", "Bob", "Ada", "Adam", "Donald" });
-        assertThat(result, arrayContaining("Alice", "Ada", "Adam"));
+        assertThat(result).containsExactly("Alice", "Ada", "Adam");
     }
 
     @Test
@@ -123,7 +116,7 @@ class BlockingConstraintHandlerBundleTests {
 		// @formatter:on
         final var result = (Set<String>) sut
                 .handleAllOnNextConstraints(Set.of("Alice", "Bob", "Ada", "Adam", "Donald"));
-        assertThat(result, containsInAnyOrder("Alice", "Ada", "Adam"));
+        assertThat(result).containsExactlyInAnyOrder("Alice", "Ada", "Adam");
     }
 
     @Test
@@ -140,7 +133,7 @@ class BlockingConstraintHandlerBundleTests {
 							UnaryOperator.identity());
 		// @formatter:on
         final var result = sut.handleAllOnNextConstraints("Bob");
-        assertThat(result, is(nullValue()));
+        assertThat(result).isNull();
     }
 
     @Test
@@ -157,7 +150,7 @@ class BlockingConstraintHandlerBundleTests {
 							UnaryOperator.identity());
 		// @formatter:on
         final var result = sut.handleAllOnNextConstraints("Alice");
-        assertThat(result, is("Alice"));
+        assertThat(result).isEqualTo("Alice");
     }
 
 }

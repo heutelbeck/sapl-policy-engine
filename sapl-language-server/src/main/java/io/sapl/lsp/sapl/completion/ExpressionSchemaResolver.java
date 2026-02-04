@@ -20,11 +20,9 @@ package io.sapl.lsp.sapl.completion;
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import tools.jackson.databind.JsonNode;
@@ -66,13 +64,7 @@ import lombok.experimental.UtilityClass;
  * - Function/attribute return types from documentation
  */
 @UtilityClass
-public class ExpressionSchemaResolver {
-
-    /**
-     * Authorization subscription variable names that can have associated schemas.
-     */
-    public static final Collection<String> AUTHORIZATION_SUBSCRIPTION_VARIABLES = Set.of("subject", "action",
-            "resource", "environment");
+class ExpressionSchemaResolver {
 
     /**
      * Infers potential schemas for an expression by analyzing its structure.
@@ -368,7 +360,7 @@ public class ExpressionSchemaResolver {
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, SaplContext sapl, int cursorOffset,
             LSPConfiguration config) {
-        if (AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
+        if (VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, sapl, config);
         }
 

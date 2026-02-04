@@ -53,7 +53,6 @@ import java.util.function.LongConsumer;
 import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -118,7 +117,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
         final var sut                = EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, data,
                 constraintsService, Integer.class);
         sut.blockLast();
-        assertThrows(IllegalStateException.class, sut::blockLast);
+        assertThatThrownBy(sut::blockLast).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

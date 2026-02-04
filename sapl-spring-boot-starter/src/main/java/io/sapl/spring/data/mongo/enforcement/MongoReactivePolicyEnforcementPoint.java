@@ -62,6 +62,8 @@ import static io.sapl.spring.data.utils.Utilities.convertReturnTypeIfNecessary;
 @RequiredArgsConstructor
 public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor {
 
+    private static final String ERROR_QUERY_ENFORCE_ON_CUSTOM_METHOD = "The QueryEnforce annotation cannot be applied to custom repository methods.";
+
     private final ObjectProvider<MongoReactiveAnnotationQueryManipulationEnforcementPoint<T>> mongoReactiveAnnotationQueryManipulationEnforcementPoint;
     private final ObjectProvider<MongoReactiveMethodNameQueryManipulationEnforcementPoint<T>> mongoReactiveMethodNameQueryManipulationEnforcementPoint;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService>                     subscriptionBuilderProvider;
@@ -86,8 +88,7 @@ public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor
                 .getRepositoryByName(repository.getName());
 
         if (repositoryInformation.isCustomMethod(repositoryMethod)) {
-            throw new IllegalStateException(
-                    "The QueryEnforce annotation cannot be applied to custom repository methods. ");
+            throw new IllegalStateException(ERROR_QUERY_ENFORCE_ON_CUSTOM_METHOD);
         }
 
         final var domainType          = (Class<T>) repositoryInformation.getDomainType();

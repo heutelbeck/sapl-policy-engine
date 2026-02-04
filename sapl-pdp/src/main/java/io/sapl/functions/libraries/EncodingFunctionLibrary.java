@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.nio.ByteBuffer;
@@ -59,7 +58,6 @@ import java.util.HexFormat;
  * prevent timing attacks
  * </ul>
  */
-@Slf4j
 @UtilityClass
 @FunctionLibrary(name = EncodingFunctionLibrary.NAME, description = EncodingFunctionLibrary.DESCRIPTION)
 public class EncodingFunctionLibrary {
@@ -92,13 +90,13 @@ public class EncodingFunctionLibrary {
     private static final String EMPTY_STRING = "";
     private static final String UNDERSCORE   = "_";
 
-    private static final String ERROR_DECODED_INVALID_UTF8      = "Decoded data contains invalid UTF-8 sequences.";
-    private static final String ERROR_INPUT_EXCEEDS_MAX_LENGTH  = "Input exceeds maximum allowed length.";
-    private static final String ERROR_INVALID_BASE64            = "Invalid Base64 data.";
+    private static final String ERROR_DECODED_INVALID_UTF8      = "Decoded data contains invalid UTF-8 sequences: %s";
+    private static final String ERROR_INPUT_EXCEEDS_MAX_LENGTH  = "Input length %d exceeds maximum allowed length of %d.";
+    private static final String ERROR_INVALID_BASE64            = "Invalid Base64 data: %s";
     private static final String ERROR_INVALID_BASE64_STRICT     = "Invalid Base64 data: input must be properly padded and have length multiple of 4.";
-    private static final String ERROR_INVALID_BASE64_URL        = "Invalid Base64 URL data.";
+    private static final String ERROR_INVALID_BASE64_URL        = "Invalid Base64 URL data: %s";
     private static final String ERROR_INVALID_BASE64_URL_STRICT = "Invalid Base64 URL data: input must be properly padded and have length multiple of 4.";
-    private static final String ERROR_INVALID_HEX               = "Invalid hexadecimal data.";
+    private static final String ERROR_INVALID_HEX               = "Invalid hexadecimal data: %s";
 
     @Function(docs = """
             ```base64Encode(TEXT data)```: Encodes text data to Base64 standard format.
@@ -115,13 +113,9 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_TEXT)
     public static Value base64Encode(TextValue input) {
-
         if (input.value().length() > MAX_INPUT_LENGTH) {
-            log.warn("Base64 decode attempted with input length {}, exceeds maximum {}", input.value().length(),
-                    MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.value().length(), MAX_INPUT_LENGTH));
         }
-
         val bytes   = input.value().getBytes(StandardCharsets.UTF_8);
         val encoded = Base64.getEncoder().encodeToString(bytes);
         return Value.of(encoded);
@@ -147,23 +141,17 @@ public class EncodingFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public static Value base64Decode(TextValue data) {
         val input = data.value();
-
         if (input.length() > MAX_INPUT_LENGTH) {
-            log.warn("Base64 decode attempted with input length {}, exceeds maximum {}", input.length(),
-                    MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
         try {
             val bytes   = Base64.getDecoder().decode(input);
             val decoded = decodeUtf8(bytes);
             return Value.of(decoded);
         } catch (IllegalArgumentException exception) {
-            log.debug("Invalid Base64 data", exception);
-            return Value.error(ERROR_INVALID_BASE64);
+            return Value.error(ERROR_INVALID_BASE64.formatted(exception.getMessage()));
         } catch (CharacterCodingException exception) {
-            log.debug("Base64 decoded data contains invalid UTF-8", exception);
-            return Value.error(ERROR_DECODED_INVALID_UTF8);
+            return Value.error(ERROR_DECODED_INVALID_UTF8.formatted(exception.getMessage()));
         }
     }
 
@@ -187,13 +175,9 @@ public class EncodingFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public static Value base64DecodeStrict(TextValue data) {
         val input = data.value();
-
         if (input.length() > MAX_INPUT_LENGTH) {
-            log.warn("Base64 strict decode attempted with input length {}, exceeds maximum {}", input.length(),
-                    MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
         if (!isValidBase64Format(input, false)) {
             return Value.error(ERROR_INVALID_BASE64_STRICT);
         }
@@ -268,13 +252,9 @@ public class EncodingFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public static Value base64UrlEncode(TextValue data) {
         val input = data.value();
-
         if (input.length() > MAX_INPUT_LENGTH) {
-            log.warn("Base64 URL encode attempted with input length {}, exceeds maximum {}", input.length(),
-                    MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
         val encoded = Base64.getUrlEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
         return Value.of(encoded);
     }
@@ -299,23 +279,17 @@ public class EncodingFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public static Value base64UrlDecode(TextValue data) {
         val input = data.value();
-
         if (input.length() > MAX_INPUT_LENGTH) {
-            log.warn("Base64 URL decode attempted with input length {}, exceeds maximum {}", input.length(),
-                    MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
         try {
             val bytes   = Base64.getUrlDecoder().decode(input);
             val decoded = decodeUtf8(bytes);
             return Value.of(decoded);
         } catch (IllegalArgumentException exception) {
-            log.debug("Invalid Base64 URL data", exception);
-            return Value.error(ERROR_INVALID_BASE64_URL);
+            return Value.error(ERROR_INVALID_BASE64_URL.formatted(exception.getMessage()));
         } catch (CharacterCodingException exception) {
-            log.debug("Base64 URL decoded data contains invalid UTF-8", exception);
-            return Value.error(ERROR_DECODED_INVALID_UTF8);
+            return Value.error(ERROR_DECODED_INVALID_UTF8.formatted(exception.getMessage()));
         }
     }
 
@@ -339,13 +313,9 @@ public class EncodingFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public static Value base64UrlDecodeStrict(TextValue data) {
         val input = data.value();
-
         if (input.length() > MAX_INPUT_LENGTH) {
-            log.warn("Base64 URL strict decode attempted with input length {}, exceeds maximum {}", input.length(),
-                    MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
         if (!isValidBase64Format(input, true)) {
             return Value.error(ERROR_INVALID_BASE64_URL_STRICT);
         }
@@ -420,12 +390,9 @@ public class EncodingFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public static Value hexEncode(TextValue data) {
         val input = data.value();
-
         if (input.length() > MAX_INPUT_LENGTH) {
-            log.warn("Hex encode attempted with input length {}, exceeds maximum {}", input.length(), MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
         val bytes   = input.getBytes(StandardCharsets.UTF_8);
         val encoded = HexFormat.of().formatHex(bytes);
         return Value.of(encoded);
@@ -452,23 +419,18 @@ public class EncodingFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public static Value hexDecode(TextValue data) {
         val input = data.value();
-
         if (input.length() > MAX_INPUT_LENGTH) {
-            log.warn("Hex decode attempted with input length {}, exceeds maximum {}", input.length(), MAX_INPUT_LENGTH);
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
         try {
             val cleanedInput = input.strip().replace(UNDERSCORE, EMPTY_STRING);
             val bytes        = HexFormat.of().parseHex(cleanedInput);
             val decoded      = decodeUtf8(bytes);
             return Value.of(decoded);
         } catch (IllegalArgumentException exception) {
-            log.debug("Invalid hexadecimal data", exception);
-            return Value.error(ERROR_INVALID_HEX);
+            return Value.error(ERROR_INVALID_HEX.formatted(exception.getMessage()));
         } catch (CharacterCodingException exception) {
-            log.debug("Hex decoded data contains invalid UTF-8", exception);
-            return Value.error(ERROR_DECODED_INVALID_UTF8);
+            return Value.error(ERROR_DECODED_INVALID_UTF8.formatted(exception.getMessage()));
         }
     }
 

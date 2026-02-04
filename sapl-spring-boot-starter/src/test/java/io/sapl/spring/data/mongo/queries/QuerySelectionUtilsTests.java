@@ -22,7 +22,7 @@ import org.springframework.data.mongodb.core.query.BasicQuery;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class QuerySelectionUtilsTests {
 
@@ -43,7 +43,8 @@ class QuerySelectionUtilsTests {
         final var result = QuerySelectionUtils.addSelectionPartToQuery(selection, basicQuery);
 
         // THEN
-        assertEquals("Query: { \"firstname\" : \"Susi\"}, Fields: { \"firstname\" : 1}, Sort: {}", result.toString());
+        assertThat(result.toString())
+                .isEqualTo("Query: { \"firstname\" : \"Susi\"}, Fields: { \"firstname\" : 1}, Sort: {}");
     }
 
 }

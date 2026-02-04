@@ -30,9 +30,11 @@ class SaplTestDocumentTests {
     void whenCreatingWithConstructor_thenAllFieldsAreStored() {
         var doc = new SaplTestDocument("id1", "name1", "requirement \"test\" {}");
 
-        assertThat(doc.id()).isEqualTo("id1");
-        assertThat(doc.name()).isEqualTo("name1");
-        assertThat(doc.sourceCode()).isEqualTo("requirement \"test\" {}");
+        assertThat(doc).satisfies(d -> {
+            assertThat(d.id()).isEqualTo("id1");
+            assertThat(d.name()).isEqualTo("name1");
+            assertThat(d.sourceCode()).isEqualTo("requirement \"test\" {}");
+        });
     }
 
     @Test
@@ -40,8 +42,10 @@ class SaplTestDocumentTests {
     void whenUsingOfFactory_thenIdEqualsName() {
         var doc = SaplTestDocument.of("myTests", "requirement \"myTests\" {}");
 
-        assertThat(doc.id()).isEqualTo("myTests");
-        assertThat(doc.name()).isEqualTo("myTests");
-        assertThat(doc.sourceCode()).isEqualTo("requirement \"myTests\" {}");
+        assertThat(doc).satisfies(d -> {
+            assertThat(d.id()).isEqualTo("myTests");
+            assertThat(d.name()).isEqualTo("myTests");
+            assertThat(d.sourceCode()).isEqualTo("requirement \"myTests\" {}");
+        });
     }
 }

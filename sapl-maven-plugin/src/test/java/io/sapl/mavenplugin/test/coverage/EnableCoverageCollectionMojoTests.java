@@ -17,8 +17,8 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -57,7 +57,7 @@ class EnableCoverageCollectionMojoTests {
     void whenCoverageDisabled_thenSkipsExecution() throws Exception {
         setField(mojo, "coverageEnabled", false);
 
-        assertDoesNotThrow(mojo::execute);
+        assertThatCode(mojo::execute).doesNotThrowAnyException();
     }
 
     @Test
@@ -65,7 +65,7 @@ class EnableCoverageCollectionMojoTests {
         try (var pathHelperMock = mockStatic(PathHelper.class)) {
             pathHelperMock.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(tempDir);
 
-            assertDoesNotThrow(mojo::execute);
+            assertThatCode(mojo::execute).doesNotThrowAnyException();
         }
     }
 
@@ -76,7 +76,7 @@ class EnableCoverageCollectionMojoTests {
                 pathHelperMock.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
                 fileUtilsMock.when(() -> FileUtils.deleteDirectory(any())).thenThrow(new IOException("Delete failed."));
 
-                assertThrows(MojoExecutionException.class, mojo::execute);
+                assertThatThrownBy(mojo::execute).isInstanceOf(MojoExecutionException.class);
             }
         }
     }

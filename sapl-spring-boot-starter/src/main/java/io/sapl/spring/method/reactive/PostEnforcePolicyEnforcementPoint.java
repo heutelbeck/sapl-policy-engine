@@ -24,6 +24,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;

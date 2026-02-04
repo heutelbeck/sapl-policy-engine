@@ -50,37 +50,37 @@ public class ContentFilter {
     private static final String ERROR_CONVERTING_MODIFIED_OBJECT              = "Error converting modified object to original class type.";
     private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
 
-    private static final String DISCLOSE_LEFT                = "discloseLeft";
-    private static final String DISCLOSE_RIGHT               = "discloseRight";
-    private static final String REPLACEMENT                  = "replacement";
-    private static final String REPLACE                      = "replace";
-    private static final String LENGTH                       = "length";
-    private static final String BLACKEN                      = "blacken";
-    private static final String DELETE                       = "delete";
-    private static final String PATH                         = "path";
-    private static final String ACTIONS                      = "actions";
-    private static final String CONDITIONS                   = "conditions";
-    private static final String VALUE                        = "value";
-    private static final String EQUALS                       = "==";
-    private static final String NEQ                          = "!=";
-    private static final String GEQ                          = ">=";
-    private static final String LEQ                          = "<=";
-    private static final String GT                           = ">";
-    private static final String LT                           = "<";
-    private static final String REGEX                        = "=~";
-    private static final String TYPE                         = "type";
-    private static final String BLACK_SQUARE                 = "█";
-    private static final String UNDEFINED_KEY_S              = "An action does not declare '%s'.";
-    private static final String VALUE_NOT_INTEGER_S          = "An action's '%s' is not an integer.";
-    private static final String VALUE_NOT_TEXTUAL_S          = "An action's '%s' is not textual.";
-    private static final String PATH_NOT_TEXTUAL             = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
-    private static final String NO_REPLACEMENT_SPECIFIED     = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
-    private static final String REPLACEMENT_NOT_TEXTUAL      = "'replacement' of 'blacken' action is not textual.";
-    private static final String LENGTH_NOT_NUMBER            = "'length' of 'blacken' action is not numeric.";
-    private static final String UNKNOWN_ACTION_S             = "Unknown action type: '%s'.";
-    private static final String ACTION_NOT_AN_OBJECT         = "An action in 'actions' is not an object.";
-    private static final String ACTIONS_NOT_AN_ARRAY         = "'actions' is not an array.";
-    private static final int    BLACKEN_LENGTH_INVALID_VALUE = -1;
+    private static final String DISCLOSE_LEFT                  = "discloseLeft";
+    private static final String DISCLOSE_RIGHT                 = "discloseRight";
+    private static final String REPLACEMENT                    = "replacement";
+    private static final String REPLACE                        = "replace";
+    private static final String LENGTH                         = "length";
+    private static final String BLACKEN                        = "blacken";
+    private static final String DELETE                         = "delete";
+    private static final String PATH                           = "path";
+    private static final String ACTIONS                        = "actions";
+    private static final String CONDITIONS                     = "conditions";
+    private static final String VALUE                          = "value";
+    private static final String EQUALS                         = "==";
+    private static final String NEQ                            = "!=";
+    private static final String GEQ                            = ">=";
+    private static final String LEQ                            = "<=";
+    private static final String GT                             = ">";
+    private static final String LT                             = "<";
+    private static final String REGEX                          = "=~";
+    private static final String TYPE                           = "type";
+    private static final String BLACK_SQUARE                   = "█";
+    private static final String ERROR_ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
+    private static final String ERROR_ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
+    private static final String ERROR_LENGTH_NOT_NUMBER        = "'length' of 'blacken' action is not numeric.";
+    private static final String ERROR_NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+    private static final String ERROR_PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+    private static final String ERROR_REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
+    private static final String ERROR_UNDEFINED_KEY_S          = "An action does not declare '%s'.";
+    private static final String ERROR_UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
+    private static final String ERROR_VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
+    private static final String ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
+    private static final int    BLACKEN_LENGTH_INVALID_VALUE   = -1;
 
     public static UnaryOperator<Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
         final var predicate      = predicateFromConditions(constraint, objectMapper);
@@ -349,7 +349,7 @@ public class ContentFilter {
                 return original;
 
             if (!actions.isArray())
-                throw new AccessConstraintViolationException(ACTIONS_NOT_AN_ARRAY);
+                throw new AccessConstraintViolationException(ERROR_ACTIONS_NOT_AN_ARRAY);
 
             // Convert to native Java types (Map/List) for jsonpath compatibility
             final var originalAsNative = objectMapper.convertValue(original, Object.class);
@@ -371,7 +371,7 @@ public class ContentFilter {
 
     private static void applyAction(DocumentContext jsonContext, JsonNode action, ObjectMapper objectMapper) {
         if (!action.isObject())
-            throw new AccessConstraintViolationException(ACTION_NOT_AN_OBJECT);
+            throw new AccessConstraintViolationException(ERROR_ACTION_NOT_AN_OBJECT);
 
         final var path       = getTextualValueOfActionKey(action, PATH);
         final var actionType = getTextualValueOfActionKey(action, TYPE).trim().toLowerCase();
@@ -398,7 +398,7 @@ public class ContentFilter {
         default      -> { /* no-op */ }
         }
 
-        throw new AccessConstraintViolationException(String.format(UNKNOWN_ACTION_S, actionType));
+        throw new AccessConstraintViolationException(String.format(ERROR_UNKNOWN_ACTION_S, actionType));
 
     }
 
@@ -409,7 +409,7 @@ public class ContentFilter {
     private static MapFunction replaceNode(JsonNode action, ObjectMapper objectMapper) {
         return (original, configuration) -> {
             if (!action.has(REPLACEMENT))
-                throw new AccessConstraintViolationException(NO_REPLACEMENT_SPECIFIED);
+                throw new AccessConstraintViolationException(ERROR_NO_REPLACEMENT_SPECIFIED);
 
             // Convert JsonNode replacement to native Java type
             return objectMapper.convertValue(action.get(REPLACEMENT), Object.class);
@@ -424,7 +424,7 @@ public class ContentFilter {
         return (original, configuration) -> {
             // With native Java types, original is now a String (not JsonNode)
             if (!(original instanceof String originalString))
-                throw new AccessConstraintViolationException(PATH_NOT_TEXTUAL);
+                throw new AccessConstraintViolationException(ERROR_PATH_NOT_TEXTUAL);
 
             final var replacementString = determineReplacementString(action);
             final var discloseRight     = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_RIGHT);
@@ -444,7 +444,7 @@ public class ContentFilter {
         if (replacementNode.isNumber() && replacementNode.intValue() >= 0)
             return replacementNode.intValue();
 
-        throw new AccessConstraintViolationException(LENGTH_NOT_NUMBER);
+        throw new AccessConstraintViolationException(ERROR_LENGTH_NOT_NUMBER);
     }
 
     private static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
@@ -477,14 +477,14 @@ public class ContentFilter {
         if (replacementNode.isString())
             return replacementNode.stringValue();
 
-        throw new AccessConstraintViolationException(REPLACEMENT_NOT_TEXTUAL);
+        throw new AccessConstraintViolationException(ERROR_REPLACEMENT_NOT_TEXTUAL);
     }
 
     private static String getTextualValueOfActionKey(JsonNode action, String key) {
         final var value = getValueOfActionKey(action, key);
 
         if (!value.isString())
-            throw new AccessConstraintViolationException(String.format(VALUE_NOT_TEXTUAL_S, key));
+            throw new AccessConstraintViolationException(String.format(ERROR_VALUE_NOT_TEXTUAL_S, key));
 
         return value.stringValue();
     }
@@ -496,14 +496,14 @@ public class ContentFilter {
         final var value = action.get(key);
 
         if (!value.canConvertToInt())
-            throw new AccessConstraintViolationException(String.format(VALUE_NOT_INTEGER_S, key));
+            throw new AccessConstraintViolationException(String.format(ERROR_VALUE_NOT_INTEGER_S, key));
 
         return value.intValue();
     }
 
     private static JsonNode getValueOfActionKey(JsonNode action, String key) {
         if (!action.hasNonNull(key))
-            throw new AccessConstraintViolationException(String.format(UNDEFINED_KEY_S, key));
+            throw new AccessConstraintViolationException(String.format(ERROR_UNDEFINED_KEY_S, key));
 
         return action.get(key);
     }

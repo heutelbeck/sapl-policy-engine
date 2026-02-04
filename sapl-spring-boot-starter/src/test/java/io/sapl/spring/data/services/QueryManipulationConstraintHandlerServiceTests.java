@@ -29,8 +29,8 @@ import tools.jackson.databind.node.ArrayNode;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class QueryManipulationConstraintHandlerServiceTests {
 
@@ -159,7 +159,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getSelections();
 
         // THEN
-        assertEquals(result, selections);
+        assertThat(result).isEqualTo(selections);
     }
 
     @Test
@@ -185,11 +185,10 @@ class QueryManipulationConstraintHandlerServiceTests {
 
         // WHEN
 
-        final var accessDeniedException = assertThrows(AccessDeniedException.class, handlerBundle::getSelections);
-
         // THEN
-        assertEquals(TestUtils.removeWhitespace(errorMessage),
-                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+        assertThatThrownBy(handlerBundle::getSelections).isInstanceOf(AccessDeniedException.class)
+                .satisfies(ex -> assertThat(TestUtils.removeWhitespace(ex.getMessage()))
+                        .isEqualTo(TestUtils.removeWhitespace(errorMessage)));
     }
 
     @Test
@@ -203,7 +202,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getConditions();
 
         // THEN
-        assertEquals(result, MAPPER.createArrayNode());
+        assertThat(result).isEqualTo(MAPPER.createArrayNode());
     }
 
     @Test
@@ -217,7 +216,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getSelections();
 
         // THEN
-        assertEquals(result, MAPPER.createArrayNode());
+        assertThat(result).isEqualTo(MAPPER.createArrayNode());
     }
 
     @Test
@@ -232,7 +231,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getSelections();
 
         // THEN
-        assertEquals(result, MAPPER.createArrayNode());
+        assertThat(result).isEqualTo(MAPPER.createArrayNode());
     }
 
     @Test
@@ -249,7 +248,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getConditions();
 
         // THEN
-        assertEquals(result, conditions);
+        assertThat(result).isEqualTo(conditions);
     }
 
     @Test
@@ -267,9 +266,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getQueryManipulationObligations();
 
         // THEN
-        for (int i = 0; i < result.length; i++) {
-            assertEquals(result[i], obligations[i]);
-        }
+        assertThat(result).containsExactly(obligations);
     }
 
     @Test
@@ -284,7 +281,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getQueryManipulationObligations();
 
         // THEN
-        assertEquals(0, result.length);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -299,7 +296,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getQueryManipulationObligations();
 
         // THEN
-        assertEquals(0, result.length);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -316,7 +313,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getTransformations();
 
         // THEN
-        assertEquals(result, transformations);
+        assertThat(result).isEqualTo(transformations);
     }
 
     @Test
@@ -332,7 +329,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getTransformations();
 
         // THEN
-        assertEquals(result, MAPPER.createArrayNode());
+        assertThat(result).isEqualTo(MAPPER.createArrayNode());
     }
 
     @Test
@@ -347,7 +344,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getTransformations();
 
         // THEN
-        assertEquals(result, MAPPER.createArrayNode());
+        assertThat(result).isEqualTo(MAPPER.createArrayNode());
     }
 
     @Test
@@ -363,7 +360,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getAlias();
 
         // THEN
-        assertEquals("p", result);
+        assertThat(result).isEqualTo("p");
     }
 
     @Test
@@ -379,7 +376,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getAlias();
 
         // THEN
-        assertEquals("", result);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -395,6 +392,6 @@ class QueryManipulationConstraintHandlerServiceTests {
         final var result = handlerBundle.getAlias();
 
         // THEN
-        assertEquals("", result);
+        assertThat(result).isEmpty();
     }
 }

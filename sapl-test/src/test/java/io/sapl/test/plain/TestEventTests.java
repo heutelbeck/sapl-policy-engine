@@ -35,8 +35,10 @@ class TestEventTests {
         var scenarioResult = ScenarioResult.passed("doc", "req", "scenario", Duration.ofMillis(50), null);
         var event          = new TestEvent.ScenarioCompleted(scenarioResult);
 
-        assertThat(event.result()).isSameAs(scenarioResult);
-        assertThat(event).isInstanceOf(TestEvent.class);
+        assertThat(event).satisfies(e -> {
+            assertThat(e.result()).isSameAs(scenarioResult);
+            assertThat(e).isInstanceOf(TestEvent.class);
+        });
     }
 
     @Test
@@ -46,7 +48,9 @@ class TestEventTests {
         var testResults    = PlainTestResults.from(List.of(scenarioResult), Map.of());
         var event          = new TestEvent.ExecutionCompleted(testResults);
 
-        assertThat(event.results()).isSameAs(testResults);
-        assertThat(event).isInstanceOf(TestEvent.class);
+        assertThat(event).satisfies(e -> {
+            assertThat(e.results()).isSameAs(testResults);
+            assertThat(e).isInstanceOf(TestEvent.class);
+        });
     }
 }

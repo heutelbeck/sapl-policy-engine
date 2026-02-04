@@ -20,6 +20,7 @@ package io.sapl.spring.data.r2dbc.queries;
 import io.sapl.spring.data.utils.Utilities;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
@@ -45,23 +46,23 @@ public class PartTreeToSqlQueryStringConverter {
      * @return SQL query of a {@link PartTree}.
      */
     public <T> String createSqlBaseQuery(MethodInvocation invocation, Class<T> domainType) {
-        final var methodName = invocation.getMethod().getName();
+        val methodName = invocation.getMethod().getName();
 
         if (Utilities.isSpringDataDefaultMethod(methodName)) {
             return "";
         }
 
-        final var arguments        = invocation.getArguments();
-        final var partTree         = new PartTree(methodName, domainType);
-        final var argumentIterator = Arrays.stream(arguments).iterator();
-        final var sortPart         = ConvertToSQL.prepareAndMergeSortObjects(partTree.getSort(), arguments);
-        var       baseConditions   = new ArrayList<SqlCondition>();
+        val arguments        = invocation.getArguments();
+        val partTree         = new PartTree(methodName, domainType);
+        val argumentIterator = Arrays.stream(arguments).iterator();
+        val sortPart         = ConvertToSQL.prepareAndMergeSortObjects(partTree.getSort(), arguments);
+        var baseConditions   = new ArrayList<SqlCondition>();
 
         for (PartTree.OrPart node : partTree) {
 
-            final var partsIterator = node.iterator();
+            val partsIterator = node.iterator();
 
-            final var currentOrPart = new ArrayList<SqlCondition>();
+            val currentOrPart = new ArrayList<SqlCondition>();
             currentOrPart.add(and(partsIterator.next(), argumentIterator.next(), domainType));
 
             while (partsIterator.hasNext()) {
@@ -81,7 +82,7 @@ public class PartTreeToSqlQueryStringConverter {
      * @return sql query.
      */
     private String toString(List<SqlCondition> conditions, String sortOrders) {
-        final var whereClause = new StringBuilder();
+        val whereClause = new StringBuilder();
 
         whereClause.append(ConvertToSQL.conditions(conditions));
         whereClause.append(sortOrders);
@@ -100,7 +101,7 @@ public class PartTreeToSqlQueryStringConverter {
      * @return the composite {@link SqlCondition}s.
      */
     private ArrayList<SqlCondition> or(ArrayList<SqlCondition> baseConditions, ArrayList<SqlCondition> currentOrPart) {
-        final var conditionsSize = currentOrPart.size();
+        val conditionsSize = currentOrPart.size();
         currentOrPart.get(conditionsSize - 1).setPropositionalConnectives(PropositionalConnectives.OR);
         baseConditions.addAll(currentOrPart);
         return baseConditions;
@@ -129,7 +130,7 @@ public class PartTreeToSqlQueryStringConverter {
             throw new IllegalStateException(ERROR_OPERATOR_REQUIRES_ARRAY);
         }
 
-        final var arrayList = new ArrayList<String>();
+        val arrayList = new ArrayList<String>();
 
         for (Object argument : arguments) {
             if (argument instanceof String stringArgument) {
@@ -165,8 +166,8 @@ public class PartTreeToSqlQueryStringConverter {
             throw new NullPointerException(ERROR_ARGUMENT_MISSING_FOR_PART);
         }
 
-        final var operator  = OperatorR2dbc.valueOf(part.getType().name());
-        final var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
+        val operator  = OperatorR2dbc.valueOf(part.getType().name());
+        val fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
 
         if (fieldType.isAssignableFrom(String.class) && operator.isArray()) {
             argument = createSqlArgumentArray(argument);

@@ -27,9 +27,8 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class QueryAnnotationParameterResolverTests {
 
@@ -45,7 +44,7 @@ class QueryAnnotationParameterResolverTests {
                 r2dbcMethodInvocationTest.getMethod(), r2dbcMethodInvocationTest.getArguments());
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -61,7 +60,7 @@ class QueryAnnotationParameterResolverTests {
         final var result = QueryAnnotationParameterResolver.resolveForMongoDB(method, args);
 
         // THEN
-        assertEquals(expectedResult, result);
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -77,7 +76,7 @@ class QueryAnnotationParameterResolverTests {
         final var result = QueryAnnotationParameterResolver.resolveForMongoDB(method, args);
 
         // THEN
-        assertEquals(expectedResult, result);
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -92,16 +91,16 @@ class QueryAnnotationParameterResolverTests {
                 r2dbcMethodInvocationTest.getMethod(), r2dbcMethodInvocationTest.getArguments());
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
-        assertThrows(InvocationTargetException.class, () -> {
+        assertThatThrownBy(() -> {
             final var constructor = QueryAnnotationParameterResolver.class.getDeclaredConstructor();
-            assertTrue(Modifier.isPrivate(constructor.getModifiers()));
+            assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
             ReflectionUtils.makeAccessible(constructor);
             constructor.newInstance();
-        });
+        }).isInstanceOf(InvocationTargetException.class);
     }
 }

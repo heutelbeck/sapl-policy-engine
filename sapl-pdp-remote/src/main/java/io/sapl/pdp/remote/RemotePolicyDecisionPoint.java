@@ -17,12 +17,32 @@
  */
 package io.sapl.pdp.remote;
 
+/**
+ * Factory for creating remote Policy Decision Point clients.
+ * <p>
+ * Use the fluent builder API to configure and create a remote PDP connection:
+ *
+ * <pre>{@code
+ * var pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("https://localhost:8443")
+ *         .basicAuth("clientKey", "clientSecret").build();
+ * }</pre>
+ */
 public class RemotePolicyDecisionPoint {
 
+    /**
+     * Creates a new builder for configuring a remote PDP connection.
+     *
+     * @return a new builder instance
+     */
     public static RemotePolicyDecisionPoint builder() {
         return new RemotePolicyDecisionPoint();
     }
 
+    /**
+     * Configures the remote PDP to use HTTP/HTTPS transport.
+     *
+     * @return an HTTP-specific builder for further configuration
+     */
     public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
         return RemoteHttpPolicyDecisionPoint.builder();
     }

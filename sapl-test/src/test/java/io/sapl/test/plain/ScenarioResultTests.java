@@ -37,12 +37,14 @@ class ScenarioResultTests {
     void whenCreatingPassed_thenStatusIsPassed() {
         var result = ScenarioResult.passed(DOC_ID, REQUIREMENT, SCENARIO, DURATION, null);
 
-        assertThat(result.status()).isEqualTo(TestStatus.PASSED);
-        assertThat(result.isPassed()).isTrue();
-        assertThat(result.isFailed()).isFalse();
-        assertThat(result.isError()).isFalse();
-        assertThat(result.failureMessage()).isNull();
-        assertThat(result.failureCause()).isNull();
+        assertThat(result).satisfies(r -> {
+            assertThat(r.status()).isEqualTo(TestStatus.PASSED);
+            assertThat(r.isPassed()).isTrue();
+            assertThat(r.isFailed()).isFalse();
+            assertThat(r.isError()).isFalse();
+            assertThat(r.failureMessage()).isNull();
+            assertThat(r.failureCause()).isNull();
+        });
     }
 
     @Test
@@ -51,12 +53,14 @@ class ScenarioResultTests {
         var message = "assertion failed";
         var result  = ScenarioResult.failed(DOC_ID, REQUIREMENT, SCENARIO, DURATION, message, null);
 
-        assertThat(result.status()).isEqualTo(TestStatus.FAILED);
-        assertThat(result.isPassed()).isFalse();
-        assertThat(result.isFailed()).isTrue();
-        assertThat(result.isError()).isFalse();
-        assertThat(result.failureMessage()).isEqualTo(message);
-        assertThat(result.failureCause()).isNull();
+        assertThat(result).satisfies(r -> {
+            assertThat(r.status()).isEqualTo(TestStatus.FAILED);
+            assertThat(r.isPassed()).isFalse();
+            assertThat(r.isFailed()).isTrue();
+            assertThat(r.isError()).isFalse();
+            assertThat(r.failureMessage()).isEqualTo(message);
+            assertThat(r.failureCause()).isNull();
+        });
     }
 
     @Test
@@ -65,12 +69,14 @@ class ScenarioResultTests {
         var cause  = new RuntimeException("execution error");
         var result = ScenarioResult.error(DOC_ID, REQUIREMENT, SCENARIO, DURATION, cause, null);
 
-        assertThat(result.status()).isEqualTo(TestStatus.ERROR);
-        assertThat(result.isPassed()).isFalse();
-        assertThat(result.isFailed()).isFalse();
-        assertThat(result.isError()).isTrue();
-        assertThat(result.failureMessage()).isEqualTo("execution error");
-        assertThat(result.failureCause()).isEqualTo(cause);
+        assertThat(result).satisfies(r -> {
+            assertThat(r.status()).isEqualTo(TestStatus.ERROR);
+            assertThat(r.isPassed()).isFalse();
+            assertThat(r.isFailed()).isFalse();
+            assertThat(r.isError()).isTrue();
+            assertThat(r.failureMessage()).isEqualTo("execution error");
+            assertThat(r.failureCause()).isEqualTo(cause);
+        });
     }
 
     @Test
@@ -86,10 +92,12 @@ class ScenarioResultTests {
     void whenAccessingRecordComponents_thenValuesAreCorrect() {
         var result = ScenarioResult.passed(DOC_ID, REQUIREMENT, SCENARIO, DURATION, null);
 
-        assertThat(result.saplTestDocumentId()).isEqualTo(DOC_ID);
-        assertThat(result.requirementName()).isEqualTo(REQUIREMENT);
-        assertThat(result.scenarioName()).isEqualTo(SCENARIO);
-        assertThat(result.duration()).isEqualTo(DURATION);
-        assertThat(result.coverage()).isNull();
+        assertThat(result).satisfies(r -> {
+            assertThat(r.saplTestDocumentId()).isEqualTo(DOC_ID);
+            assertThat(r.requirementName()).isEqualTo(REQUIREMENT);
+            assertThat(r.scenarioName()).isEqualTo(SCENARIO);
+            assertThat(r.duration()).isEqualTo(DURATION);
+            assertThat(r.coverage()).isNull();
+        });
     }
 }

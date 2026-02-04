@@ -18,6 +18,7 @@
 package io.sapl.spring.data.mongo.queries;
 
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,11 +30,11 @@ import org.springframework.data.mongodb.core.query.Query;
 public class ConvertToMQL {
 
     public Pageable createPageable(MethodInvocation invocation, BasicQuery query) {
-        final var arguments           = invocation.getArguments();
-        final var sortMethodName      = extractSort(query);
-        final var sortMethodArguments = extractSort(arguments);
-        final var mergedSort          = sortMethodName.and(sortMethodArguments);
-        final var pageable            = extractPageable(arguments);
+        val arguments           = invocation.getArguments();
+        val sortMethodName      = extractSort(query);
+        val sortMethodArguments = extractSort(arguments);
+        val mergedSort          = sortMethodName.and(sortMethodArguments);
+        val pageable            = extractPageable(arguments);
 
         return processSort(pageable, mergedSort);
     }
@@ -70,15 +71,15 @@ public class ConvertToMQL {
     }
 
     private static Sort extractSort(Query query) {
-        final var sortDocument = query.getSortObject();
+        val sortDocument = query.getSortObject();
 
         if (!sortDocument.isEmpty()) {
 
-            final var orders = new Sort.Order[sortDocument.size()];
-            var       i      = 0;
+            val orders = new Sort.Order[sortDocument.size()];
+            var i      = 0;
             for (String key : sortDocument.keySet()) {
-                final var directionValue = sortDocument.getInteger(key);
-                final var direction      = directionValue == 1 ? Sort.Direction.ASC : Sort.Direction.DESC;
+                val directionValue = sortDocument.getInteger(key);
+                val direction      = directionValue == 1 ? Sort.Direction.ASC : Sort.Direction.DESC;
                 orders[i++] = new Sort.Order(direction, key);
             }
             return Sort.by(orders);

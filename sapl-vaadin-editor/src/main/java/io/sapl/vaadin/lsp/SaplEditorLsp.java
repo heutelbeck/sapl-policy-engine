@@ -31,7 +31,11 @@ import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.coverage.LineCoverageStatus;
 import io.sapl.api.coverage.PolicyCoverageData;
-import io.sapl.vaadin.*;
+import io.sapl.vaadin.DocumentChangedEvent;
+import io.sapl.vaadin.DocumentChangedListener;
+import io.sapl.vaadin.Issue;
+import io.sapl.vaadin.ValidationFinishedEvent;
+import io.sapl.vaadin.ValidationFinishedListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

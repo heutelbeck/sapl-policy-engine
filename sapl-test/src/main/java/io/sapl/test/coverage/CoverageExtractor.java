@@ -175,7 +175,7 @@ public class CoverageExtractor {
             coverage.recordTargetHit(matched, startLine, endLine);
         }
         case TargetResult tr                            -> {
-            // TargetResult without location - just record the match result
+            // Fallback for TargetResult with null location (first case handles non-null)
             val matched = Value.TRUE.equals(tr.match());
             coverage.recordTargetHit(matched);
         }

@@ -45,10 +45,7 @@ import reactor.test.StepVerifier;
 import javax.net.ssl.SSLException;
 import java.io.IOException;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class RemoteHttpPolicyDecisionPointTests {
 
@@ -166,7 +163,7 @@ class RemoteHttpPolicyDecisionPointTests {
     void construct() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
-        assertThat(pdpUnderTest, notNullValue());
+        assertThat(pdpUnderTest).isNotNull();
     }
 
     @Test
@@ -174,7 +171,7 @@ class RemoteHttpPolicyDecisionPointTests {
         val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").secure(sslContext).build();
-        assertThat(pdpUnderTest, notNullValue());
+        assertThat(pdpUnderTest).isNotNull();
     }
 
     @Test
@@ -184,9 +181,11 @@ class RemoteHttpPolicyDecisionPointTests {
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);
         pdpUnderTest.setMaxBackOffMillis(1001);
-        assertAll(() -> assertThat(pdpUnderTest.getBackoffFactor(), is(999)),
-                () -> assertThat(pdpUnderTest.getFirstBackoffMillis(), is(998)),
-                () -> assertThat(pdpUnderTest.getMaxBackOffMillis(), is(1001)));
+        assertThat(pdpUnderTest).satisfies(pdp -> {
+            assertThat(pdp.getBackoffFactor()).isEqualTo(999);
+            assertThat(pdp.getFirstBackoffMillis()).isEqualTo(998);
+            assertThat(pdp.getMaxBackOffMillis()).isEqualTo(1001);
+        });
     }
 
 }

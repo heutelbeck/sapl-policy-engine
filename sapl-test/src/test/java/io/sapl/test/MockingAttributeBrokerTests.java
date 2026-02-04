@@ -593,8 +593,10 @@ class MockingAttributeBrokerTests {
         broker.attributeStream(invocation).blockFirst();
 
         var recorded = broker.getInvocations().getFirst();
-        assertThat(recorded.entity()).isEqualTo(entity);
-        assertThat(recorded.isEnvironmentAttribute()).isFalse();
+        assertThat(recorded).satisfies(r -> {
+            assertThat(r.entity()).isEqualTo(entity);
+            assertThat(r.isEnvironmentAttribute()).isFalse();
+        });
     }
 
     @Test
@@ -605,8 +607,10 @@ class MockingAttributeBrokerTests {
         broker.attributeStream(invocation).blockFirst();
 
         var recorded = broker.getInvocations().getFirst();
-        assertThat(recorded.entity()).isNull();
-        assertThat(recorded.isEnvironmentAttribute()).isTrue();
+        assertThat(recorded).satisfies(r -> {
+            assertThat(r.entity()).isNull();
+            assertThat(r.isEnvironmentAttribute()).isTrue();
+        });
     }
 
     @Test

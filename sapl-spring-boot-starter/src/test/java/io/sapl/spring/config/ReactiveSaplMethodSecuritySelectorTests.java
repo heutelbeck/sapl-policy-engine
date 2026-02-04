@@ -20,24 +20,22 @@ package io.sapl.spring.config;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AdviceMode;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ReactiveSaplMethodSecuritySelectorTests {
 
     @Test
     void when_AdviceModeNotProxy_throwIllegalState() {
         final var sut = new ReactiveSaplMethodSecuritySelector();
-        assertThrows(IllegalStateException.class, () -> sut.selectImports(AdviceMode.ASPECTJ));
+        assertThatThrownBy(() -> sut.selectImports(AdviceMode.ASPECTJ)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void when_AdviceModeProxy_thenRegistrarAndSaplConfigIncludedInSelectImports() {
         final var sut    = new ReactiveSaplMethodSecuritySelector();
         final var actual = sut.selectImports(AdviceMode.PROXY);
-        assertThat(actual, is(arrayContainingInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName())));
+        assertThat(actual).containsExactlyInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName());
     }
 
 }

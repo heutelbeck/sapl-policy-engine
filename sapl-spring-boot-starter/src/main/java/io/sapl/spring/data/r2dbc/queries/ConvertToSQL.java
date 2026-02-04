@@ -18,6 +18,7 @@
 package io.sapl.spring.data.r2dbc.queries;
 
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
@@ -49,8 +50,7 @@ public class ConvertToSQL {
 
         var sqlSortClause = ORDERBY;
 
-        final var sortOrders = sort.stream()
-                .map(order -> order.getProperty() + " " + getOrderDirection(order.getDirection()))
+        val sortOrders = sort.stream().map(order -> order.getProperty() + " " + getOrderDirection(order.getDirection()))
                 .collect(Collectors.joining(", "));
 
         sqlSortClause += sortOrders;
@@ -67,7 +67,7 @@ public class ConvertToSQL {
             return "";
         }
 
-        final var stringBuilder = new StringBuilder(conditions.getFirst().getCondition());
+        val stringBuilder = new StringBuilder(conditions.getFirst().getCondition());
 
         for (int i = 1; i < conditions.size(); i++) {
             stringBuilder.append(' ').append(conditions.get(i).getPropositionalConnectives()).append(' ')
@@ -78,9 +78,9 @@ public class ConvertToSQL {
     }
 
     public static String prepareAndMergeSortObjects(Sort sortPartTree, Object[] arguments) {
-        final var sqlQuery  = new StringBuilder();
-        var       finalSort = sortPartTree;
-        Pageable  pageable  = null;
+        val      sqlQuery  = new StringBuilder();
+        var      finalSort = sortPartTree;
+        Pageable pageable  = null;
 
         for (Object argument : arguments) {
             if (argument instanceof Sort sor) {
@@ -94,7 +94,7 @@ public class ConvertToSQL {
             finalSort = pageable.getSort();
         }
 
-        Consumer<Sort.Order> appendOrder = order -> sqlQuery.append(order.getProperty()).append(' ')
+        val appendOrder = (Consumer<Sort.Order>) order -> sqlQuery.append(order.getProperty()).append(' ')
                 .append(order.getDirection().name()).append(", ");
 
         if (finalSort != null && !finalSort.isEmpty()) {
@@ -104,8 +104,8 @@ public class ConvertToSQL {
         }
 
         if (pageable != null) {
-            final var pageNumber = pageable.getPageNumber();
-            final var pageSize   = pageable.getPageSize();
+            val pageNumber = pageable.getPageNumber();
+            val pageSize   = pageable.getPageSize();
             sqlQuery.append(" LIMIT ").append(pageSize).append(" OFFSET ").append(pageNumber);
         }
 

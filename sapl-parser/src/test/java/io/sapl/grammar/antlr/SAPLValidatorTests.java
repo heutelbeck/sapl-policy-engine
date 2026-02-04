@@ -154,11 +154,11 @@ class SAPLValidatorTests {
 
         var errors = validatePolicy(policy);
 
-        assertThat(errors).isNotEmpty();
-        var error = errors.getFirst();
-        assertThat(error.line()).isGreaterThan(0);
-        assertThat(error.charPositionInLine()).isGreaterThanOrEqualTo(0);
-        assertThat(error.offendingText()).isNotEmpty();
+        assertThat(errors).isNotEmpty().first().satisfies(error -> {
+            assertThat(error.line()).isGreaterThan(0);
+            assertThat(error.charPositionInLine()).isGreaterThanOrEqualTo(0);
+            assertThat(error.offendingText()).isNotEmpty();
+        });
     }
 
     @Test
@@ -170,9 +170,8 @@ class SAPLValidatorTests {
 
         var errors = validatePolicy(policy);
 
-        assertThat(errors).isNotEmpty();
-        var errorString = errors.getFirst().toString();
-        assertThat(errorString).matches("line \\d+:\\d+ .*");
+        assertThat(errors).isNotEmpty().first().extracting(ValidationError::toString).asString()
+                .matches("line \\d+:\\d+ .*");
     }
 
     private List<ValidationError> validatePolicy(String input) {

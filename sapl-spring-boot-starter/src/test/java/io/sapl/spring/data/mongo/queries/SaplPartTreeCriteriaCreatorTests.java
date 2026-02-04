@@ -24,8 +24,8 @@ import org.springframework.data.repository.query.parser.PartTree;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SaplPartTreeCriteriaCreatorTests {
 
@@ -40,7 +40,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -55,7 +55,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -71,7 +71,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -88,7 +88,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -102,7 +102,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -116,7 +116,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -130,7 +130,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -144,7 +144,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -158,7 +158,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -172,7 +172,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -186,7 +186,7 @@ class SaplPartTreeCriteriaCreatorTests {
         final var result = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
         // THEN
-        assertEquals(result, criteria);
+        assertThat(result).isEqualTo(criteria);
     }
 
     @Test
@@ -195,14 +195,12 @@ class SaplPartTreeCriteriaCreatorTests {
         final var    manipulatedPartTree         = new PartTree("findAllByAgeNear", TestUser.class);
         List<Object> allParametersValueAsObjects = List.of(12);
 
-        final var accessIllegalArgumentException = assertThrows(IllegalArgumentException.class, () -> {
-            SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
-        });
-
         final var errorMessage = "Unsupported part type: NEAR (1): [IsNear, Near]";
+
         // WHEN
 
         // THEN
-        assertEquals(errorMessage, accessIllegalArgumentException.getMessage());
+        assertThatThrownBy(() -> SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage(errorMessage);
     }
 }

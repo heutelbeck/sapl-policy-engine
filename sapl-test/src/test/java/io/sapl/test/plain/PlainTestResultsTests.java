@@ -39,11 +39,13 @@ class PlainTestResultsTests {
 
         var plainResults = PlainTestResults.from(results, Map.of());
 
-        assertThat(plainResults.total()).isEqualTo(2);
-        assertThat(plainResults.passed()).isEqualTo(2);
-        assertThat(plainResults.failed()).isZero();
-        assertThat(plainResults.errors()).isZero();
-        assertThat(plainResults.allPassed()).isTrue();
+        assertThat(plainResults).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(2);
+            assertThat(r.passed()).isEqualTo(2);
+            assertThat(r.failed()).isZero();
+            assertThat(r.errors()).isZero();
+            assertThat(r.allPassed()).isTrue();
+        });
     }
 
     @Test
@@ -54,11 +56,13 @@ class PlainTestResultsTests {
 
         var plainResults = PlainTestResults.from(results, Map.of());
 
-        assertThat(plainResults.total()).isEqualTo(2);
-        assertThat(plainResults.passed()).isEqualTo(1);
-        assertThat(plainResults.failed()).isEqualTo(1);
-        assertThat(plainResults.errors()).isZero();
-        assertThat(plainResults.allPassed()).isFalse();
+        assertThat(plainResults).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(2);
+            assertThat(r.passed()).isEqualTo(1);
+            assertThat(r.failed()).isEqualTo(1);
+            assertThat(r.errors()).isZero();
+            assertThat(r.allPassed()).isFalse();
+        });
     }
 
     @Test
@@ -69,11 +73,13 @@ class PlainTestResultsTests {
 
         var plainResults = PlainTestResults.from(results, Map.of());
 
-        assertThat(plainResults.total()).isEqualTo(2);
-        assertThat(plainResults.passed()).isEqualTo(1);
-        assertThat(plainResults.failed()).isZero();
-        assertThat(plainResults.errors()).isEqualTo(1);
-        assertThat(plainResults.allPassed()).isFalse();
+        assertThat(plainResults).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(2);
+            assertThat(r.passed()).isEqualTo(1);
+            assertThat(r.failed()).isZero();
+            assertThat(r.errors()).isEqualTo(1);
+            assertThat(r.allPassed()).isFalse();
+        });
     }
 
     @Test
@@ -85,11 +91,13 @@ class PlainTestResultsTests {
 
         var plainResults = PlainTestResults.from(results, Map.of());
 
-        assertThat(plainResults.total()).isEqualTo(3);
-        assertThat(plainResults.passed()).isEqualTo(1);
-        assertThat(plainResults.failed()).isEqualTo(1);
-        assertThat(plainResults.errors()).isEqualTo(1);
-        assertThat(plainResults.allPassed()).isFalse();
+        assertThat(plainResults).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(3);
+            assertThat(r.passed()).isEqualTo(1);
+            assertThat(r.failed()).isEqualTo(1);
+            assertThat(r.errors()).isEqualTo(1);
+            assertThat(r.allPassed()).isFalse();
+        });
     }
 
     @Test
@@ -120,9 +128,11 @@ class PlainTestResultsTests {
         var result       = ScenarioResult.passed("doc", "req", "s", DURATION, null);
         var plainResults = new PlainTestResults(1, 1, 0, 0, List.of(result), null);
 
-        assertThat(plainResults.total()).isEqualTo(1);
-        assertThat(plainResults.passed()).isEqualTo(1);
-        assertThat(plainResults.failed()).isZero();
-        assertThat(plainResults.errors()).isZero();
+        assertThat(plainResults).satisfies(r -> {
+            assertThat(r.total()).isEqualTo(1);
+            assertThat(r.passed()).isEqualTo(1);
+            assertThat(r.failed()).isZero();
+            assertThat(r.errors()).isZero();
+        });
     }
 }

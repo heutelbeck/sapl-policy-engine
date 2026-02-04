@@ -43,7 +43,7 @@ import io.sapl.grammar.antlr.SAPLParserBaseListener;
  */
 public class SAPLValidator {
 
-    public static final String VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA = "Attribute access is forbidden in schema expressions.";
+    public static final String ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA = "Attribute access is forbidden in schema expressions.";
 
     /**
      * Validates a SAPL document parse tree.
@@ -59,8 +59,7 @@ public class SAPLValidator {
         var errors = new ArrayList<ValidationError>();
 
         for (var schema : sapl.schemaStatement()) {
-            validateNoAttributes(schema.schemaExpression, VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA,
-                    errors::add);
+            validateNoAttributes(schema.schemaExpression, ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA, errors::add);
         }
 
         switch (sapl.policyElement()) {
@@ -91,7 +90,7 @@ public class SAPLValidator {
     private void validateValueDefinition(ValueDefinitionContext valueDefinition,
             Consumer<ValidationError> errorConsumer) {
         for (var schemaExpression : valueDefinition.schemaVarExpression) {
-            validateNoAttributes(schemaExpression, VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA, errorConsumer);
+            validateNoAttributes(schemaExpression, ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA, errorConsumer);
         }
     }
 

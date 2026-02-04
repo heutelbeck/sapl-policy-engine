@@ -70,8 +70,8 @@ public class JsonTestUtility {
     public static Map<String, Value> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2,
             KeyPair keyPair2) {
 
-        ObjectNode keyNode   = MAPPER.createObjectNode();
-        ObjectNode valueNode = MAPPER.createObjectNode();
+        val keyNode   = MAPPER.createObjectNode();
+        val valueNode = MAPPER.createObjectNode();
 
         if (null != keyPair1) {
             String encodedFirstKey = Base64.getUrlEncoder().encodeToString(keyPair1.getPublic().getEncoded());

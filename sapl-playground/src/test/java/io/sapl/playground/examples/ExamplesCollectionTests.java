@@ -116,10 +116,6 @@ class ExamplesCollectionTests {
                         ExamplesCollection.ACCESS_CONTROL_BREWER_NASH_CONSULTING, Decision.DENY));
     }
 
-    // ==========================================================================
-    // Time-dependent examples (require mocked time attributes)
-    // ==========================================================================
-
     @Test
     @DisplayName("Default example: PERMIT during business hours (mocked time)")
     void defaultExamplePermitsDuringBusinessHours() throws Exception {

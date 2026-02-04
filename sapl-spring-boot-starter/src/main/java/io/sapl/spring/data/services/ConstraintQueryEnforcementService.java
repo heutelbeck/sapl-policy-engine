@@ -26,6 +26,8 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.providers.ConstraintResponsibility;
 import org.springframework.security.access.AccessDeniedException;
 
+import lombok.val;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,10 +39,10 @@ public class ConstraintQueryEnforcementService {
 
     public QueryManipulationConstraintHandlerService queryManipulationForMongoReactive(AuthorizationDecision decision) {
 
-        var obligations        = new HashSet<>(decision.obligations());
-        var handledObligations = new HashSet<Value>();
+        val obligations        = new HashSet<>(decision.obligations());
+        val handledObligations = new HashSet<Value>();
 
-        var bundle = new QueryManipulationConstraintHandlerService(
+        val bundle = new QueryManipulationConstraintHandlerService(
                 filterHandlerType(obligations, handledObligations, ConstraintHandlerType.MONGO_QUERY_MANIPULATION));
 
         obligations.removeIf(handledObligations::contains);
@@ -54,10 +56,10 @@ public class ConstraintQueryEnforcementService {
 
     public QueryManipulationConstraintHandlerService queryManipulationForR2dbc(AuthorizationDecision decision) {
 
-        var obligations        = new HashSet<>(decision.obligations());
-        var handledObligations = new HashSet<Value>();
+        val obligations        = new HashSet<>(decision.obligations());
+        val handledObligations = new HashSet<Value>();
 
-        var bundle = new QueryManipulationConstraintHandlerService(
+        val bundle = new QueryManipulationConstraintHandlerService(
                 filterHandlerType(obligations, handledObligations, ConstraintHandlerType.R2DBC_QUERY_MANIPULATION));
 
         obligations.removeIf(handledObligations::contains);
@@ -71,15 +73,15 @@ public class ConstraintQueryEnforcementService {
 
     private List<RecordConstraintData> filterHandlerType(HashSet<Value> obligations, HashSet<Value> handledObligations,
             ConstraintHandlerType type) {
-        var constraintDataRecords = new ArrayList<RecordConstraintData>();
+        val constraintDataRecords = new ArrayList<RecordConstraintData>();
 
-        for (var obligation : obligations) {
+        for (val obligation : obligations) {
 
             if (ConstraintResponsibility.isResponsible(obligation, type.getType())) {
-                var jsonObligation = ValueJsonMarshaller.toJsonNode(obligation);
-                var schema         = SCHEMA_REGISTRY.getSchema(SchemaLocation.of("mem://constraint"),
+                val jsonObligation = ValueJsonMarshaller.toJsonNode(obligation);
+                val schema         = SCHEMA_REGISTRY.getSchema(SchemaLocation.of("mem://constraint"),
                         type.getTemplate());
-                var errors         = schema.validate(jsonObligation);
+                val errors         = schema.validate(jsonObligation);
 
                 if (errors.isEmpty()) {
                     constraintDataRecords.add(new RecordConstraintData(type, jsonObligation));
@@ -93,9 +95,9 @@ public class ConstraintQueryEnforcementService {
 
     private AccessDeniedException getAccessDeniedException(Iterable<Value> unhandledObligations) {
 
-        var messageBuilder = new StringBuilder();
+        val messageBuilder = new StringBuilder();
 
-        for (var unhandableObligation : unhandledObligations) {
+        for (val unhandableObligation : unhandledObligations) {
             messageBuilder.append("Unhandable Obligation: ")
                     .append(ValueJsonMarshaller.toPrettyString(unhandableObligation)).append('\n');
         }

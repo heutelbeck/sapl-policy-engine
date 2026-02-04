@@ -36,9 +36,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SaplConditionOperationTests {
 
@@ -112,7 +111,7 @@ class SaplConditionOperationTests {
                 .jsonNodeToSaplConditions(JsonNodeFactory.instance.nullNode());
 
         // THEN
-        assertEquals(actualSaplConditions, expected);
+        assertThat(actualSaplConditions).isEqualTo(expected);
     }
 
     @ParameterizedTest
@@ -129,7 +128,7 @@ class SaplConditionOperationTests {
         final var actualMethodName = SaplConditionOperation.toModifiedMethodName(originalMethodName, saplConditions);
 
         // THEN
-        assertEquals(methodNameManipulated, actualMethodName);
+        assertThat(actualMethodName).isEqualTo(methodNameManipulated);
     }
 
     private static Stream<Arguments> modifyMethodNameArguments() {
@@ -139,10 +138,10 @@ class SaplConditionOperationTests {
     }
 
     private void assertTwoSaplConditions(SaplCondition first, SaplCondition second) {
-        assertEquals(first.field(), second.field());
-        assertEquals(first.value(), second.value());
-        assertEquals(first.operator(), second.operator());
-        assertEquals(first.conjunction(), second.conjunction());
+        assertThat(first.field()).isEqualTo(second.field());
+        assertThat(first.value()).isEqualTo(second.value());
+        assertThat(first.operator()).isEqualTo(second.operator());
+        assertThat(first.conjunction()).isEqualTo(second.conjunction());
     }
 
     @Test
@@ -159,7 +158,7 @@ class SaplConditionOperationTests {
         final var actualResult = SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class);
 
         // THEN
-        assertEquals(expectedResult, actualResult);
+        assertThat(actualResult).isEqualTo(expectedResult);
     }
 
     @Test
@@ -173,8 +172,8 @@ class SaplConditionOperationTests {
         // WHEN
 
         // THEN
-        assertThrows(ArrayIndexOutOfBoundsException.class,
-                () -> SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class));
+        assertThatThrownBy(() -> SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class))
+                .isInstanceOf(ArrayIndexOutOfBoundsException.class);
     }
 
     @Test
@@ -199,12 +198,10 @@ class SaplConditionOperationTests {
 
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
-        assertThrows(InvocationTargetException.class, () -> {
-            final var constructor = SaplConditionOperation.class.getDeclaredConstructor();
-            assertTrue(Modifier.isPrivate(constructor.getModifiers()));
-            ReflectionUtils.makeAccessible(constructor);
-            constructor.newInstance();
-        });
+        final var constructor = SaplConditionOperation.class.getDeclaredConstructors()[0];
+        assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
+        ReflectionUtils.makeAccessible(constructor);
+        assertThatThrownBy(() -> constructor.newInstance()).isInstanceOf(InvocationTargetException.class);
     }
 
 }

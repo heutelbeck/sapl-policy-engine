@@ -27,6 +27,7 @@ import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
@@ -64,20 +65,20 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     @Override
     @SuppressWarnings("unchecked")
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
-        final var returnedObject = methodInvocation.proceed();
-        final var attribute      = attributeRegistryProvider.getObject()
-                .getSaplAttributeForAnnotationType(methodInvocation, PostEnforce.class);
+        val returnedObject = methodInvocation.proceed();
+        val attribute      = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
+                PostEnforce.class);
         if (attribute.isEmpty()) {
             return returnedObject;
         }
 
-        final var postEnforceAttribute               = attribute.get();
-        final var isOptional                         = returnedObject instanceof Optional;
-        var       returnedObjectForAuthzSubscription = returnedObject;
-        var       returnType                         = methodInvocation.getMethod().getReturnType();
+        val postEnforceAttribute               = attribute.get();
+        val isOptional                         = returnedObject instanceof Optional;
+        var returnedObjectForAuthzSubscription = returnedObject;
+        var returnType                         = methodInvocation.getMethod().getReturnType();
 
         if (isOptional) {
-            final var optObject = (Optional<Object>) returnedObject;
+            val optObject = (Optional<Object>) returnedObject;
             if (optObject.isPresent()) {
                 returnedObjectForAuthzSubscription = optObject.get();
                 returnType                         = returnedObjectForAuthzSubscription.getClass();
@@ -87,16 +88,16 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
             }
         }
 
-        final var authzSubscription = subscriptionBuilderProvider.getObject()
+        val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscriptionWithReturnObject(authentication.get(), methodInvocation,
                         postEnforceAttribute, returnedObjectForAuthzSubscription);
 
-        final var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
+        val authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
             throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_RETURNED_NULL, attribute));
         }
 
-        final var authzDecision = authzDecisions.blockFirst();
+        val authzDecision = authzDecisions.blockFirst();
 
         if (authzDecision == null) {
             throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY, attribute));
@@ -123,11 +124,11 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
         try {
             blockingPostEnforceBundle.handleOnDecisionConstraints();
 
-            final var isNotPermit = authzDecision.decision() != Decision.PERMIT;
+            val isNotPermit = authzDecision.decision() != Decision.PERMIT;
             if (isNotPermit)
                 throw new AccessDeniedException(ERROR_ACCESS_DENIED_ACTION_NOT_PERMITTED);
 
-            final var result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
+            val result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
 
             if (isOptional)
                 return Optional.ofNullable(result);
@@ -141,7 +142,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
         return () -> {
-            final var authentication = strategy.getContext().getAuthentication();
+            val authentication = strategy.getContext().getAuthentication();
             if (authentication == null) {
                 throw new AuthenticationCredentialsNotFoundException(
                         ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);

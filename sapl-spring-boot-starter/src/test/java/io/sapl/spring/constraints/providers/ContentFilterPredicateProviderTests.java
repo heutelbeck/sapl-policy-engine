@@ -28,8 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.stream.Stream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ContentFilterPredicateProviderTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -41,21 +40,21 @@ class ContentFilterPredicateProviderTests {
     @Test
     void when_constraintIsNull_then_notResponsible() {
         final var sut = new ContentFilterPredicateProvider(MAPPER);
-        assertThat(sut.isResponsible(null), is(false));
+        assertThat(sut.isResponsible(null)).isFalse();
     }
 
     @Test
     void when_constraintNonObject_then_notResponsible() throws JacksonException {
         final var sut        = new ContentFilterPredicateProvider(MAPPER);
         final var constraint = toValue("123");
-        assertThat(sut.isResponsible(constraint), is(false));
+        assertThat(sut.isResponsible(constraint)).isFalse();
     }
 
     @Test
     void when_constraintNoType_then_notResponsible() throws JacksonException {
         final var sut        = new ContentFilterPredicateProvider(MAPPER);
         final var constraint = toValue("{ }");
-        assertThat(sut.isResponsible(constraint), is(false));
+        assertThat(sut.isResponsible(constraint)).isFalse();
     }
 
     private static Stream<Arguments> provideTestCases() {
@@ -88,7 +87,7 @@ class ContentFilterPredicateProviderTests {
     void validateResponsibility(String constraint, boolean expectedResponsibility) throws JacksonException {
         final var sut             = new ContentFilterPredicateProvider(MAPPER);
         final var valueConstraint = toValue(constraint);
-        assertThat(sut.isResponsible(valueConstraint), is(expectedResponsibility));
+        assertThat(sut.isResponsible(valueConstraint)).isEqualTo(expectedResponsibility);
     }
 
     @Test
@@ -119,7 +118,7 @@ class ContentFilterPredicateProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThat(handler.test(original), is(false));
+        assertThat(handler.test(original)).isFalse();
     }
 
     @Test
@@ -138,8 +137,7 @@ class ContentFilterPredicateProviderTests {
                 """);
         final var handler    = sut.getHandler(constraint);
         Object    original   = null;
-        Object    expected   = null;
-        assertThat(handler.apply(original), is(expected));
+        assertThat(handler.apply(original)).isNull();
     }
 
 }

@@ -48,8 +48,8 @@ import java.util.regex.PatternSyntaxException;
 @UtilityClass
 public class RegexCompiler {
 
-    private static final String ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
     private static final String ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
+    private static final String ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val left  = ExpressionCompiler.compile(binaryOperation.left(), ctx);

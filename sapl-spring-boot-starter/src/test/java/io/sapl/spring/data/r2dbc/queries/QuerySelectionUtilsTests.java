@@ -24,7 +24,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class QuerySelectionUtilsTests {
 
@@ -112,7 +112,7 @@ class QuerySelectionUtilsTests {
                 transformations, Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -125,7 +125,7 @@ class QuerySelectionUtilsTests {
                 transformations, Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -138,7 +138,7 @@ class QuerySelectionUtilsTests {
                 transformations, Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -151,7 +151,7 @@ class QuerySelectionUtilsTests {
                 transformations, Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -164,7 +164,7 @@ class QuerySelectionUtilsTests {
                 transformations, Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -177,7 +177,7 @@ class QuerySelectionUtilsTests {
                 transformations, Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -191,7 +191,7 @@ class QuerySelectionUtilsTests {
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -204,7 +204,7 @@ class QuerySelectionUtilsTests {
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(baseQuery, actual);
+        assertThat(actual).isEqualTo(baseQuery);
     }
 
     @Test
@@ -217,7 +217,7 @@ class QuerySelectionUtilsTests {
                 MAPPER.createArrayNode(), "", Person.class);
 
         // THEN
-        assertEquals(baseQuery, actual);
+        assertThat(actual).isEqualTo(baseQuery);
     }
 
     @Test
@@ -231,7 +231,7 @@ class QuerySelectionUtilsTests {
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -245,7 +245,7 @@ class QuerySelectionUtilsTests {
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -259,7 +259,7 @@ class QuerySelectionUtilsTests {
                 transformations, "p", Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -273,7 +273,7 @@ class QuerySelectionUtilsTests {
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -287,7 +287,7 @@ class QuerySelectionUtilsTests {
                 MAPPER.createArrayNode(), "", Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
 }

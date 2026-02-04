@@ -27,6 +27,7 @@ import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
@@ -68,23 +69,23 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     @Override
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
 
-        final var attribute = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
+        val attribute = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
                 PreEnforce.class);
         if (attribute.isEmpty()) {
             return methodInvocation.proceed();
         }
 
-        final var saplAttribute    = attribute.get();
-        final var authzDecision    = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute);
-        final var methodReturnType = methodInvocation.getMethod().getReturnType();
-        var       bundleReturnType = methodReturnType;
+        val saplAttribute    = attribute.get();
+        val authzDecision    = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute);
+        val methodReturnType = methodInvocation.getMethod().getReturnType();
+        var bundleReturnType = methodReturnType;
 
-        final var methodReturnsOptional = Optional.class.isAssignableFrom(methodReturnType);
+        val methodReturnsOptional = Optional.class.isAssignableFrom(methodReturnType);
         if (methodReturnsOptional) {
             bundleReturnType = saplAttribute.genericsType();
         }
 
-        final var blockingPreEnforceBundle = constraintEnforcementServiceProvider.getObject()
+        val blockingPreEnforceBundle = constraintEnforcementServiceProvider.getObject()
                 .blockingPreEnforceBundleFor(authzDecision, bundleReturnType);
         if (blockingPreEnforceBundle == null) {
             throw new AccessDeniedException(ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL);
@@ -93,13 +94,13 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         try {
             blockingPreEnforceBundle.handleOnDecisionConstraints();
 
-            final var notGranted = authzDecision.decision() != Decision.PERMIT;
+            val notGranted = authzDecision.decision() != Decision.PERMIT;
             if (notGranted)
                 throw new AccessDeniedException(ERROR_ACCESS_DENIED_ACTION_NOT_PERMITTED);
 
             blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);
 
-            final var returnedObject = methodInvocation.proceed();
+            val returnedObject = methodInvocation.proceed();
 
             var unpackedObject = returnedObject;
             if (returnedObject instanceof Optional<?> optional) {
@@ -121,15 +122,15 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(MethodInvocation methodInvocation,
             SaplAttribute attribute) {
-        final var authzSubscription = subscriptionBuilderProvider.getObject()
+        val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscription(authenticationSupplier.get(), methodInvocation, attribute);
 
-        final var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
+        val authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
             throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_RETURNED_NULL, attribute));
         }
 
-        final var authzDecision = authzDecisions.blockFirst();
+        val authzDecision = authzDecisions.blockFirst();
         if (authzDecision == null) {
             throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY, attribute));
         }
@@ -139,7 +140,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
         return () -> {
-            final var authentication = strategy.getContext().getAuthentication();
+            val authentication = strategy.getContext().getAuthentication();
             if (authentication == null) {
                 throw new AuthenticationCredentialsNotFoundException(
                         ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);

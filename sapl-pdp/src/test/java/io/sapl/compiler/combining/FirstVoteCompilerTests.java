@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static io.sapl.compiler.policyset.PolicySetUtil.toStream;
 import static io.sapl.util.SaplTesting.attributeBroker;
 import static io.sapl.util.SaplTesting.compilePolicySet;
 import static io.sapl.util.SaplTesting.evaluatePolicySet;
@@ -617,6 +618,188 @@ class FirstVoteCompilerTests {
     @Nested
     @DisplayName("Stream evaluation")
     class StreamEvaluation {
+
+        @Test
+        @DisplayName("streaming policies with constant permit fallback - first policy matches")
+        void whenStreamingPoliciesWithConstantFallbackAndFirstMatches_thenFirstPolicyPermits() {
+            val attrBroker = attributeBroker(Map.of("test.attr1", new Value[] { Value.TRUE }));
+            val compiled   = compilePolicySet("""
+                    set "time-based-access"
+                    first or abstain errors propagate
+
+                    policy "first-check"
+                    permit
+                      <test.attr1>;
+
+                    policy "second-check"
+                    permit
+                      <test.attr2>;
+
+                    policy "fallback-permit"
+                    permit
+                    """, attrBroker);
+
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                        assertVoteHasAllTheseContributing(vote, List.of("first-check"));
+                    }).expectComplete().verify(TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("streaming policies with constant permit fallback - all streaming NOT_APPLICABLE falls through")
+        void whenStreamingPoliciesWithConstantFallbackAndAllNotApplicable_thenFallsThrough() {
+            val attrBroker = attributeBroker(
+                    Map.of("test.attr1", new Value[] { Value.FALSE }, "test.attr2", new Value[] { Value.FALSE }));
+            val compiled   = compilePolicySet("""
+                    set "time-based-access"
+                    first or abstain errors propagate
+
+                    policy "first-check"
+                    permit
+                      <test.attr1>;
+
+                    policy "second-check"
+                    permit
+                      <test.attr2>;
+
+                    policy "fallback-permit"
+                    permit
+                    """, attrBroker);
+
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                        assertVoteHasAllTheseContributing(vote,
+                                List.of("first-check", "second-check", "fallback-permit"));
+                    }).expectComplete().verify(TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("classified documents pattern: pure target + streaming policies + constant fallback")
+        void whenPureTargetWithStreamingPoliciesAndConstantFallback_thenAttributeIsEvaluated() {
+            // Mirrors classified_documents.sapl structure:
+            // - Pure policy set target: action == "read"
+            // - Streaming policies with conditions using attributes
+            // - Constant permit fallback
+            val attrBroker = attributeBroker(Map.of("test.time", new Value[] { Value.of(10) }));
+            val compiled   = compilePolicySet("""
+                    set "classified-documents"
+                    first or abstain errors propagate
+                    for action == "read"
+
+                    policy "first-window"
+                    permit
+                      <test.time> < 20;
+
+                    policy "second-window"
+                    permit
+                      <test.time> < 40;
+
+                    policy "fallback"
+                    permit
+                    """, attrBroker);
+
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            // When time=10, first policy should match (10 < 20)
+            StepVerifier.create(
+                    toStream(compiled.applicabilityAndVote()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                        assertVoteHasAllTheseContributing(vote, List.of("first-window"));
+                    }).expectComplete().verify(TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("classified documents pattern: time beyond first window falls to second")
+        void whenPureTargetWithStreamingPoliciesAndTimeBeyondFirstWindow_thenSecondPolicyMatches() {
+            val attrBroker = attributeBroker(Map.of("test.time", new Value[] { Value.of(25) }));
+            val compiled   = compilePolicySet("""
+                    set "classified-documents"
+                    first or abstain errors propagate
+                    for action == "read"
+
+                    policy "first-window"
+                    permit
+                      <test.time> < 20;
+
+                    policy "second-window"
+                    permit
+                      <test.time> < 40;
+
+                    policy "fallback"
+                    permit
+                    """, attrBroker);
+
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            // When time=25, first policy doesn't match (25 < 20 is false), second matches
+            // (25 < 40)
+            StepVerifier.create(
+                    toStream(compiled.applicabilityAndVote()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                        assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window"));
+                    }).expectComplete().verify(TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("classified documents pattern: time beyond all windows falls to constant")
+        void whenPureTargetWithStreamingPoliciesAndTimeBeyondAllWindows_thenFallbackMatches() {
+            val attrBroker = attributeBroker(Map.of("test.time", new Value[] { Value.of(45) }));
+            val compiled   = compilePolicySet("""
+                    set "classified-documents"
+                    first or abstain errors propagate
+                    for action == "read"
+
+                    policy "first-window"
+                    permit
+                      <test.time> < 20;
+
+                    policy "second-window"
+                    permit
+                      <test.time> < 40;
+
+                    policy "fallback"
+                    permit
+                    """, attrBroker);
+
+            val subscription = parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            // When time=45, both streaming policies don't match, falls through to constant
+            StepVerifier.create(
+                    toStream(compiled.applicabilityAndVote()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                        assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window", "fallback"));
+                    }).expectComplete().verify(TIMEOUT);
+        }
 
         record StreamTestCase(
                 String description,

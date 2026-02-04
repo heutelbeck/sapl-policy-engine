@@ -49,7 +49,7 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.UnaryOperator;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -112,7 +112,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
         final var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
                 Integer.class);
         sut.blockLast();
-        assertThrows(IllegalStateException.class, sut::blockLast);
+        assertThatThrownBy(sut::blockLast).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

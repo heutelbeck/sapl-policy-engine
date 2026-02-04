@@ -29,6 +29,14 @@ class TestDiscoveryHelper {
     private TestDiscoveryHelper() {
     }
 
+    /**
+     * Discovers all SAPL test files in the test resources directory.
+     * <p>
+     * Searches recursively for files with the {@code .sapltest} extension
+     * under {@code src/test/resources}.
+     *
+     * @return list of relative paths to discovered test files
+     */
     public static List<String> discoverTests() {
         var directory = FileUtils.getFile(RESOURCES_ROOT);
         return FileUtils.listFiles(directory, SAPL_TEST_FILE_EXTENSIONS, true).stream()

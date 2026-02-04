@@ -25,7 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +49,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(PageRequest.of(0, 2147483647, sort.and(sortObject)), result);
+        assertThat(result).isEqualTo(PageRequest.of(0, 2147483647, sort.and(sortObject)));
     }
 
     @Test
@@ -66,7 +66,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(pageableObject, result);
+        assertThat(result).isEqualTo(pageableObject);
     }
 
     @Test
@@ -86,7 +86,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -105,7 +105,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -122,7 +122,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -141,7 +141,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(PageRequest.of(0, 2147483647, sort.and(sortObject)), result);
+        assertThat(result).isEqualTo(PageRequest.of(0, 2147483647, sort.and(sortObject)));
     }
 
     @Test
@@ -158,7 +158,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(PageRequest.of(0, 2147483647, sortObject), result);
+        assertThat(result).isEqualTo(PageRequest.of(0, 2147483647, sortObject));
     }
 
     @Test
@@ -175,7 +175,7 @@ class ConvertToMQLTests {
         final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
-        assertEquals(PageRequest.of(0, 2147483647, sortObject), result);
+        assertThat(result).isEqualTo(PageRequest.of(0, 2147483647, sortObject));
     }
 
 }

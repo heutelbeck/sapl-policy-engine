@@ -20,6 +20,7 @@ package io.sapl.test.lang;
 import io.sapl.compiler.util.InputStreamUtil;
 import io.sapl.compiler.util.TrojanSourceUtil;
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
+import io.sapl.test.grammar.antlr.SAPLTestParser;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 import lombok.experimental.UtilityClass;
 import org.antlr.v4.runtime.CharStreams;
@@ -77,7 +78,7 @@ public class SaplTestParser {
         var charStream  = CharStreams.fromStream(inputStream, StandardCharsets.UTF_8);
         var lexer       = new SAPLTestLexer(charStream);
         var tokenStream = new CommonTokenStream(lexer);
-        var parser      = new io.sapl.test.grammar.antlr.SAPLTestParser(tokenStream);
+        var parser      = new SAPLTestParser(tokenStream);
 
         // Collect syntax errors
         var errorListener = new SaplTestErrorListener();

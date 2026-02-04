@@ -28,6 +28,7 @@ import io.sapl.spring.data.mongo.queries.QueryCreation;
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -69,7 +70,7 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
      */
     public Flux<T> enforce(AuthorizationSubscription authorizationSubscription, Class<T> domainType,
             MethodInvocation invocation) {
-        final var baseQuery = QueryCreation.createBaselineQuery(invocation);
+        val baseQuery = QueryCreation.createBaselineQuery(invocation);
 
         return Mono.defer(() -> pdpProvider.getObject().decide(authorizationSubscription).next())
                 .flatMapMany(enforceDecision(baseQuery, domainType, invocation));
@@ -89,21 +90,21 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
 
             Flux<T> resourceAccessPoint;
 
-            var decisionIsPermit = Decision.PERMIT == decision.decision();
+            val decisionIsPermit = Decision.PERMIT == decision.decision();
 
             if (!decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
             } else {
-                var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
+                val queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForMongoReactive(decision);
 
-                var jsonObligations = queryManipulationHandler.getQueryManipulationObligations();
-                var conditions      = queryManipulationHandler.getConditions();
-                var selections      = queryManipulationHandler.getSelections();
+                val jsonObligations = queryManipulationHandler.getQueryManipulationObligations();
+                val conditions      = queryManipulationHandler.getConditions();
+                val selections      = queryManipulationHandler.getSelections();
 
-                var obligations             = Arrays.stream(jsonObligations).map(ValueJsonMarshaller::fromJsonNode)
+                val obligations             = Arrays.stream(jsonObligations).map(ValueJsonMarshaller::fromJsonNode)
                         .toArray(Value[]::new);
-                var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
+                val constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
                         obligations);
 
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
@@ -134,7 +135,7 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
     private Flux<T> retrieveDataFromDatabase(ArrayNode conditions, ArrayNode selections, BasicQuery annotationQuery,
             Class<T> domainType, MethodInvocation invocation) {
 
-        final var manipulatedQuery = QueryCreation.manipulateQuery(conditions, selections, annotationQuery, invocation);
+        val manipulatedQuery = QueryCreation.manipulateQuery(conditions, selections, annotationQuery, invocation);
 
         log.debug(QUERY_LOG, manipulatedQuery);
 
