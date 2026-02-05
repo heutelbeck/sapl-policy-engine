@@ -36,7 +36,7 @@ public final class SaplAuthenticationToken extends AbstractAuthenticationToken {
 
     private static final SimpleGrantedAuthority PDP_CLIENT_AUTHORITY = new SimpleGrantedAuthority("ROLE_PDP_CLIENT");
 
-    private final SaplUser saplUser;
+    private final SaplUser         saplUser;
     private final transient Object credentials;
 
     /**

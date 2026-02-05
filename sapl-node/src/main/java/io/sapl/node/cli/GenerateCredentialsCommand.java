@@ -20,7 +20,6 @@ package io.sapl.node.cli;
 import java.util.concurrent.Callable;
 
 import io.sapl.node.SecretGenerator;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
@@ -30,7 +29,6 @@ import picocli.CommandLine.Spec;
 /**
  * Commands for generating authentication credentials.
  */
-@UtilityClass
 @Command(name = "generate", description = "Generate authentication credentials", subcommands = {
         GenerateCredentialsCommand.BasicCredentials.class, GenerateCredentialsCommand.ApiKey.class })
 class GenerateCredentialsCommand {
