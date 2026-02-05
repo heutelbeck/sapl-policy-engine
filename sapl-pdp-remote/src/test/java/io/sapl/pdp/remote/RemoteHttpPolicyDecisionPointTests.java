@@ -181,10 +181,10 @@ class RemoteHttpPolicyDecisionPointTests {
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);
         pdpUnderTest.setMaxBackOffMillis(1001);
-        assertThat(pdpUnderTest).satisfies(pdp -> {
-            assertThat(pdp.getBackoffFactor()).isEqualTo(999);
-            assertThat(pdp.getFirstBackoffMillis()).isEqualTo(998);
-            assertThat(pdp.getMaxBackOffMillis()).isEqualTo(1001);
+        assertThat(pdpUnderTest).satisfies(p -> {
+            assertThat(p.getBackoffFactor()).isEqualTo(999);
+            assertThat(p.getFirstBackoffMillis()).isEqualTo(998);
+            assertThat(p.getMaxBackOffMillis()).isEqualTo(1001);
         });
     }
 

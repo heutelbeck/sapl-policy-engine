@@ -42,6 +42,7 @@ import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleManifest;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 import io.sapl.pdp.configuration.bundle.BundleSigner;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
@@ -53,6 +54,7 @@ import picocli.CommandLine.Spec;
  * <p>
  * These commands run without starting Spring Boot for fast execution.
  */
+@UtilityClass
 @Command(name = "bundle", description = "Policy bundle operations", subcommands = { BundleCommand.Create.class,
         BundleCommand.Sign.class, BundleCommand.Verify.class, BundleCommand.Inspect.class, BundleCommand.Keygen.class })
 class BundleCommand {

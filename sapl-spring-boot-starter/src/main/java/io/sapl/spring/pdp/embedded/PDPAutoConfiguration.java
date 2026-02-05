@@ -209,7 +209,7 @@ public class PDPAutoConfiguration {
         try {
             val path       = Path.of(keyPath);
             val keyBytes   = Files.readAllBytes(path);
-            val keyContent = new String(keyBytes).trim();
+            val keyContent = new String(keyBytes, java.nio.charset.StandardCharsets.UTF_8).trim();
             return parsePublicKey(keyContent);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read public key from: " + keyPath, e);

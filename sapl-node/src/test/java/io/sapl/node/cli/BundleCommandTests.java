@@ -404,7 +404,8 @@ class BundleCommandTests {
     }
 
     private String toPem(java.security.Key key, String type) {
-        val base64 = Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(key.getEncoded());
+        val base64 = Base64.getMimeEncoder(64, "\n".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .encodeToString(key.getEncoded());
         return "-----BEGIN " + type + "-----\n" + base64 + "\n-----END " + type + "-----\n";
     }
 

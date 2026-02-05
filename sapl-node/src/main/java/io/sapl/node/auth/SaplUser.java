@@ -17,13 +17,21 @@
  */
 package io.sapl.node.auth;
 
+import io.sapl.api.SaplVersion;
+
+import java.io.Serial;
+import java.io.Serializable;
+
 /**
  * Represents an authenticated SAPL user with their associated PDP identifier.
  *
  * @param id the unique identifier for the user
  * @param pdpId the PDP instance identifier this user should be routed to
  */
-public record SaplUser(String id, String pdpId) {
+public record SaplUser(String id, String pdpId) implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String DEFAULT_PDP_ID = "default";
     private static final String ERROR_ID_NULL_OR_BLANK = "User id must not be null or blank";

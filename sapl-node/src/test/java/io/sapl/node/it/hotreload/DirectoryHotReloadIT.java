@@ -24,9 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.net.ssl.SSLException;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -89,8 +86,7 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
 
         @Test
         @DisplayName("IT-004: new request gets updated decision after policy file change")
-        void whenPolicyChangedThenNewRequestGetsUpdatedDecision(@TempDir Path tempDir)
-                throws IOException, SSLException {
+        void whenPolicyChangedThenNewRequestGetsUpdatedDecision(@TempDir Path tempDir) throws IOException {
             val policiesDir = tempDir.resolve("policies");
             Files.createDirectories(policiesDir);
             Files.writeString(policiesDir.resolve("pdp.json"), PDP_JSON);
@@ -132,8 +128,7 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
 
         @Test
         @DisplayName("IT-005: streaming subscriber receives updated decision when policy changes")
-        void whenPolicyChangedThenStreamingSubscriberReceivesUpdate(@TempDir Path tempDir)
-                throws IOException, SSLException {
+        void whenPolicyChangedThenStreamingSubscriberReceivesUpdate(@TempDir Path tempDir) throws IOException {
             val policiesDir = tempDir.resolve("policies");
             Files.createDirectories(policiesDir);
             Files.writeString(policiesDir.resolve("pdp.json"), PDP_JSON);
@@ -155,18 +150,14 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
                 val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpsBaseUrl(container))
                         .basicAuth(BASIC_USERNAME, BASIC_SECRET).withUnsecureSSL().build();
 
-                val receivedDecisions = new AtomicReference<AuthorizationDecision>();
-
                 StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.DENY).then(() -> {
                     try {
                         Files.writeString(policiesDir.resolve("policy.sapl"), PERMIT_POLICY);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                }).expectNextMatches(decision -> {
-                    receivedDecisions.set(decision);
-                    return decision.decision() == AuthorizationDecision.PERMIT.decision();
-                }).thenCancel().verify(Duration.ofSeconds(30));
+                }).expectNextMatches(decision -> decision.decision() == AuthorizationDecision.PERMIT.decision())
+                        .thenCancel().verify(Duration.ofSeconds(30));
             }
         }
 

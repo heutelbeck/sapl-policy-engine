@@ -33,7 +33,7 @@ class SaplNodeMainTests {
     @BeforeEach
     void suppressOutput() {
         originalOut = System.out;
-        System.setOut(new PrintStream(new ByteArrayOutputStream()));
+        System.setOut(new PrintStream(new ByteArrayOutputStream(), true, java.nio.charset.StandardCharsets.UTF_8));
     }
 
     @AfterEach

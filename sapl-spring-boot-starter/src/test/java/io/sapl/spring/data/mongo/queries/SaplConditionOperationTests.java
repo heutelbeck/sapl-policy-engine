@@ -201,7 +201,7 @@ class SaplConditionOperationTests {
         final var constructor = SaplConditionOperation.class.getDeclaredConstructors()[0];
         assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
         ReflectionUtils.makeAccessible(constructor);
-        assertThatThrownBy(() -> constructor.newInstance()).isInstanceOf(InvocationTargetException.class);
+        assertThatThrownBy(constructor::newInstance).isInstanceOf(InvocationTargetException.class);
     }
 
 }

@@ -28,7 +28,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * Helper class for discovering SAPL policy files from the classpath.
@@ -83,7 +83,7 @@ class PolicyDiscoveryHelper {
     }
 
     private static List<SaplDocument> processFiles(Collection<File> files, File directory,
-            Function<String, String> nameExtractor) {
+            UnaryOperator<String> nameExtractor) {
         var documents   = new ArrayList<SaplDocument>();
         var resourceDir = FileUtils.getFile(RESOURCES_ROOT);
         for (var file : files) {

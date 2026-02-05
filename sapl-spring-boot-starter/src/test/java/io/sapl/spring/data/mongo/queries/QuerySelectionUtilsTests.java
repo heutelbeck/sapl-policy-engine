@@ -43,8 +43,8 @@ class QuerySelectionUtilsTests {
         final var result = QuerySelectionUtils.addSelectionPartToQuery(selection, basicQuery);
 
         // THEN
-        assertThat(result.toString())
-                .isEqualTo("Query: { \"firstname\" : \"Susi\"}, Fields: { \"firstname\" : 1}, Sort: {}");
+        assertThat(result)
+                .hasToString("Query: { \"firstname\" : \"Susi\"}, Fields: { \"firstname\" : 1}, Sort: {}");
     }
 
 }
