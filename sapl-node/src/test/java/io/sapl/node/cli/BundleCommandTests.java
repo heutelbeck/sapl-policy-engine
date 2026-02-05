@@ -226,6 +226,90 @@ class BundleCommandTests {
     }
 
     @Nested
+    @DisplayName("bundle keygen")
+    class KeygenTests {
+
+        @Test
+        @DisplayName("generates Ed25519 keypair")
+        void whenValidOutput_thenGeneratesKeypair() {
+            val outputPrefix = tempDir.resolve("test-key");
+
+            val exitCode = cmd.execute("bundle", "keygen", "-o", outputPrefix.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).satisfies(output -> {
+                assertThat(output).contains("Generated Ed25519 keypair");
+                assertThat(output).contains("Private key:");
+                assertThat(output).contains("Public key:");
+            });
+            assertThat(tempDir.resolve("test-key.pem")).exists();
+            assertThat(tempDir.resolve("test-key.pub")).exists();
+        }
+
+        @Test
+        @DisplayName("generated keys have valid PEM format")
+        void whenGenerated_thenKeysHaveValidPemFormat() throws Exception {
+            val outputPrefix = tempDir.resolve("format-test");
+
+            cmd.execute("bundle", "keygen", "-o", outputPrefix.toString());
+
+            val privateKeyContent = Files.readString(tempDir.resolve("format-test.pem"));
+            val publicKeyContent  = Files.readString(tempDir.resolve("format-test.pub"));
+
+            assertThat(privateKeyContent).startsWith("-----BEGIN PRIVATE KEY-----")
+                    .endsWith("-----END PRIVATE KEY-----\n");
+            assertThat(publicKeyContent).startsWith("-----BEGIN PUBLIC KEY-----")
+                    .endsWith("-----END PUBLIC KEY-----\n");
+        }
+
+        @Test
+        @DisplayName("generated keys work with sign and verify")
+        void whenGeneratedKeys_thenSignAndVerifyWorks() throws Exception {
+            val keyPrefix  = tempDir.resolve("e2e-key");
+            val bundleFile = createTestBundle();
+
+            cmd.execute("bundle", "keygen", "-o", keyPrefix.toString());
+
+            val signedBundle = tempDir.resolve("e2e-signed.saplbundle");
+            val signExitCode = cmd.execute("bundle", "sign", "-b", bundleFile.toString(), "-k",
+                    tempDir.resolve("e2e-key.pem").toString(), "-o", signedBundle.toString());
+            assertThat(signExitCode).isZero();
+
+            val verifyExitCode = cmd.execute("bundle", "verify", "-b", signedBundle.toString(), "-k",
+                    tempDir.resolve("e2e-key.pub").toString());
+            assertThat(verifyExitCode).isZero();
+            assertThat(out.toString()).contains("Verification successful");
+        }
+
+        @Test
+        @DisplayName("fails when file already exists")
+        void whenFileExists_thenFailsWithoutForce() throws Exception {
+            val outputPrefix = tempDir.resolve("existing");
+            Files.writeString(tempDir.resolve("existing.pem"), "existing content");
+
+            val exitCode = cmd.execute("bundle", "keygen", "-o", outputPrefix.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("File already exists").contains("--force");
+        }
+
+        @Test
+        @DisplayName("overwrites existing files with --force")
+        void whenForceFlag_thenOverwritesExistingFiles() throws Exception {
+            val outputPrefix = tempDir.resolve("overwrite");
+            Files.writeString(tempDir.resolve("overwrite.pem"), "old content");
+            Files.writeString(tempDir.resolve("overwrite.pub"), "old content");
+
+            val exitCode = cmd.execute("bundle", "keygen", "-o", outputPrefix.toString(), "--force");
+
+            assertThat(exitCode).isZero();
+            assertThat(Files.readString(tempDir.resolve("overwrite.pem"))).startsWith("-----BEGIN PRIVATE KEY-----");
+            assertThat(Files.readString(tempDir.resolve("overwrite.pub"))).startsWith("-----BEGIN PUBLIC KEY-----");
+        }
+
+    }
+
+    @Nested
     @DisplayName("bundle verify")
     class VerifyTests {
 

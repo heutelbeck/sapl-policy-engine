@@ -18,9 +18,25 @@
 package io.sapl.node.cli;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.KeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleManifest;
@@ -38,11 +54,30 @@ import picocli.CommandLine.Spec;
  * These commands run without starting Spring Boot for fast execution.
  */
 @Command(name = "bundle", description = "Policy bundle operations", subcommands = { BundleCommand.Create.class,
-        BundleCommand.Sign.class, BundleCommand.Verify.class, BundleCommand.Inspect.class })
+        BundleCommand.Sign.class, BundleCommand.Verify.class, BundleCommand.Inspect.class, BundleCommand.Keygen.class })
 class BundleCommand {
 
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
+
+    private static final String PEM_PRIVATE_KEY_BEGIN = "-----BEGIN PRIVATE KEY-----";
+    private static final String PEM_PRIVATE_KEY_END   = "-----END PRIVATE KEY-----";
+    private static final String PEM_PUBLIC_KEY_BEGIN  = "-----BEGIN PUBLIC KEY-----";
+    private static final String PEM_PUBLIC_KEY_END    = "-----END PUBLIC KEY-----";
+
+    private static final String ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: ";
+    private static final String ERROR_BUNDLE_NOT_SIGNED   = "Error: Bundle is not signed (no manifest found)";
+    private static final String ERROR_CREATING_BUNDLE     = "Error creating bundle: ";
+    private static final String ERROR_FILE_ALREADY_EXISTS = "Error: File already exists: ";
+    private static final String ERROR_GENERATING_KEYPAIR  = "Error generating keypair: ";
+    private static final String ERROR_INSPECTING_BUNDLE   = "Error inspecting bundle: ";
+    private static final String ERROR_KEY_NOT_FOUND       = "Error: Key file not found: ";
+    private static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: ";
+    private static final String ERROR_NOT_A_DIRECTORY     = "Error: Input path is not a directory: ";
+    private static final String ERROR_SIGNING_BUNDLE      = "Error signing bundle: ";
+    private static final String ERROR_VERIFICATION_FAILED = "Verification FAILED: ";
+    private static final String ERROR_VERIFYING_BUNDLE    = "Error verifying bundle: ";
+    private static final String HINT_USE_FORCE            = "Use --force to overwrite";
 
     @Command(name = "create", description = "Create a policy bundle from a directory")
     static class Create implements Callable<Integer> {
@@ -62,7 +97,7 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.isDirectory(inputDir)) {
-                err.println("Error: Input path is not a directory: " + inputDir);
+                err.println(ERROR_NOT_A_DIRECTORY + inputDir);
                 return 1;
             }
 
@@ -85,7 +120,7 @@ class BundleCommand {
                 }
 
                 if (policies == 0) {
-                    err.println("Error: No .sapl files found in: " + inputDir);
+                    err.println(ERROR_NO_POLICIES_FOUND + inputDir);
                     return 1;
                 }
 
@@ -94,7 +129,7 @@ class BundleCommand {
                 return 0;
 
             } catch (IOException e) {
-                err.println("Error creating bundle: " + e.getMessage());
+                err.println(ERROR_CREATING_BUNDLE + e.getMessage());
                 return 1;
             }
         }
@@ -125,12 +160,12 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.exists(bundleFile)) {
-                err.println("Error: Bundle file not found: " + bundleFile);
+                err.println(ERROR_BUNDLE_NOT_FOUND + bundleFile);
                 return 1;
             }
 
             if (!Files.exists(keyFile)) {
-                err.println("Error: Key file not found: " + keyFile);
+                err.println(ERROR_KEY_NOT_FOUND + keyFile);
                 return 1;
             }
 
@@ -160,8 +195,8 @@ class BundleCommand {
                 out.printf("Signed bundle: %s (key-id: %s)%n", target, keyId);
                 return 0;
 
-            } catch (Exception e) {
-                err.println("Error signing bundle: " + e.getMessage());
+            } catch (IOException | GeneralSecurityException e) {
+                err.println(ERROR_SIGNING_BUNDLE + e.getMessage());
                 return 1;
             }
         }
@@ -189,12 +224,12 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.exists(bundleFile)) {
-                err.println("Error: Bundle file not found: " + bundleFile);
+                err.println(ERROR_BUNDLE_NOT_FOUND + bundleFile);
                 return 1;
             }
 
             if (!Files.exists(keyFile)) {
-                err.println("Error: Key file not found: " + keyFile);
+                err.println(ERROR_KEY_NOT_FOUND + keyFile);
                 return 1;
             }
 
@@ -204,12 +239,12 @@ class BundleCommand {
 
                 val manifestJson = contents.remove(BundleManifest.MANIFEST_FILENAME);
                 if (manifestJson == null) {
-                    err.println("Error: Bundle is not signed (no manifest found)");
+                    err.println(ERROR_BUNDLE_NOT_SIGNED);
                     return 1;
                 }
 
                 val manifest    = BundleManifest.fromJson(manifestJson);
-                val currentTime = checkExpiration ? java.time.Instant.now() : null;
+                val currentTime = checkExpiration ? Instant.now() : null;
 
                 contents.remove(BundleManifest.MANIFEST_FILENAME);
                 BundleSigner.verify(manifest, contents, publicKey, currentTime);
@@ -224,10 +259,10 @@ class BundleCommand {
                 return 0;
 
             } catch (BundleSignatureException e) {
-                err.println("Verification FAILED: " + e.getMessage());
+                err.println(ERROR_VERIFICATION_FAILED + e.getMessage());
                 return 1;
-            } catch (Exception e) {
-                err.println("Error verifying bundle: " + e.getMessage());
+            } catch (IOException | GeneralSecurityException e) {
+                err.println(ERROR_VERIFYING_BUNDLE + e.getMessage());
                 return 1;
             }
         }
@@ -249,7 +284,7 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.exists(bundleFile)) {
-                err.println("Error: Bundle file not found: " + bundleFile);
+                err.println(ERROR_BUNDLE_NOT_FOUND + bundleFile);
                 return 1;
             }
 
@@ -299,8 +334,8 @@ class BundleCommand {
 
                 return 0;
 
-            } catch (Exception e) {
-                err.println("Error inspecting bundle: " + e.getMessage());
+            } catch (IOException e) {
+                err.println(ERROR_INSPECTING_BUNDLE + e.getMessage());
                 return 1;
             }
         }
@@ -311,40 +346,102 @@ class BundleCommand {
 
     }
 
-    private static java.util.Map<String, String> extractBundleContents(Path bundlePath) throws IOException {
-        val contents = new java.util.HashMap<String, String>();
-        try (val zipStream = new java.util.zip.ZipInputStream(Files.newInputStream(bundlePath))) {
-            java.util.zip.ZipEntry entry;
+    @Command(name = "keygen", description = "Generate Ed25519 keypair for bundle signing")
+    static class Keygen implements Callable<Integer> {
+
+        @Spec
+        CommandSpec spec;
+
+        @Option(names = { "-o",
+                "--output" }, required = true, description = "Output file prefix (creates <prefix>.pem and <prefix>.pub)")
+        Path outputPrefix;
+
+        @Option(names = { "--force" }, description = "Overwrite existing files")
+        boolean force;
+
+        @Override
+        public Integer call() {
+            val out        = spec.commandLine().getOut();
+            val err        = spec.commandLine().getErr();
+            val privateKey = outputPrefix.resolveSibling(outputPrefix.getFileName() + ".pem");
+            val publicKey  = outputPrefix.resolveSibling(outputPrefix.getFileName() + ".pub");
+
+            if (!force && Files.exists(privateKey)) {
+                err.println(ERROR_FILE_ALREADY_EXISTS + privateKey);
+                err.println(HINT_USE_FORCE);
+                return 1;
+            }
+
+            if (!force && Files.exists(publicKey)) {
+                err.println(ERROR_FILE_ALREADY_EXISTS + publicKey);
+                err.println(HINT_USE_FORCE);
+                return 1;
+            }
+
+            try {
+                val keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
+                val keyPair          = keyPairGenerator.generateKeyPair();
+
+                val privatePem = encodePem(keyPair.getPrivate().getEncoded(), PEM_PRIVATE_KEY_BEGIN,
+                        PEM_PRIVATE_KEY_END);
+                val publicPem  = encodePem(keyPair.getPublic().getEncoded(), PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
+
+                Files.writeString(privateKey, privatePem);
+                Files.writeString(publicKey, publicPem);
+
+                out.println("Generated Ed25519 keypair:");
+                out.printf("  Private key: %s%n", privateKey);
+                out.printf("  Public key:  %s%n", publicKey);
+                return 0;
+
+            } catch (IOException | GeneralSecurityException e) {
+                err.println(ERROR_GENERATING_KEYPAIR + e.getMessage());
+                return 1;
+            }
+        }
+
+    }
+
+    private static String encodePem(byte[] keyBytes, String beginMarker, String endMarker) {
+        val encoded = Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(keyBytes);
+        return beginMarker + "\n" + encoded + "\n" + endMarker + "\n";
+    }
+
+    private static Map<String, String> extractBundleContents(Path bundlePath) throws IOException {
+        val contents = new HashMap<String, String>();
+        try (val zipStream = new ZipInputStream(Files.newInputStream(bundlePath))) {
+            ZipEntry entry;
             while ((entry = zipStream.getNextEntry()) != null) {
                 if (entry.isDirectory()) {
                     continue;
                 }
                 val name    = entry.getName();
-                val content = new String(zipStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                val content = new String(zipStream.readAllBytes(), StandardCharsets.UTF_8);
                 contents.put(name, content);
             }
         }
         return contents;
     }
 
-    private static java.security.PrivateKey loadEd25519PrivateKey(Path keyFile) throws Exception {
-        val pemContent = Files.readString(keyFile).trim();
-        val base64Key  = pemContent.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s", "");
-        val keyBytes   = java.util.Base64.getDecoder().decode(base64Key);
-        val keySpec    = new java.security.spec.PKCS8EncodedKeySpec(keyBytes);
-        val keyFactory = java.security.KeyFactory.getInstance("Ed25519");
-        return keyFactory.generatePrivate(keySpec);
+    private static PrivateKey loadEd25519PrivateKey(Path keyFile) throws IOException, GeneralSecurityException {
+        val keyBytes = loadPemKeyBytes(keyFile, PEM_PRIVATE_KEY_BEGIN, PEM_PRIVATE_KEY_END);
+        return (PrivateKey) loadKey(keyBytes, new PKCS8EncodedKeySpec(keyBytes), true);
     }
 
-    private static java.security.PublicKey loadEd25519PublicKey(Path keyFile) throws Exception {
+    private static PublicKey loadEd25519PublicKey(Path keyFile) throws IOException, GeneralSecurityException {
+        val keyBytes = loadPemKeyBytes(keyFile, PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
+        return (PublicKey) loadKey(keyBytes, new X509EncodedKeySpec(keyBytes), false);
+    }
+
+    private static byte[] loadPemKeyBytes(Path keyFile, String beginMarker, String endMarker) throws IOException {
         val pemContent = Files.readString(keyFile).trim();
-        val base64Key  = pemContent.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "")
-                .replaceAll("\\s", "");
-        val keyBytes   = java.util.Base64.getDecoder().decode(base64Key);
-        val keySpec    = new java.security.spec.X509EncodedKeySpec(keyBytes);
-        val keyFactory = java.security.KeyFactory.getInstance("Ed25519");
-        return keyFactory.generatePublic(keySpec);
+        val base64Key  = pemContent.replace(beginMarker, "").replace(endMarker, "").replaceAll("\\s", "");
+        return Base64.getDecoder().decode(base64Key);
+    }
+
+    private static Key loadKey(byte[] keyBytes, KeySpec keySpec, boolean isPrivate) throws GeneralSecurityException {
+        val keyFactory = KeyFactory.getInstance("Ed25519");
+        return isPrivate ? keyFactory.generatePrivate(keySpec) : keyFactory.generatePublic(keySpec);
     }
 
 }
