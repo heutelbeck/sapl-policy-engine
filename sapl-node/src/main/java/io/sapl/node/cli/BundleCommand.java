@@ -316,7 +316,7 @@ class BundleCommand {
                 val pdpJson = contents.get(PDP_JSON);
                 if (pdpJson != null) {
                     out.println("Configuration (pdp.json):");
-                    out.println(indent(pdpJson.trim(), "  "));
+                    out.print(pdpJson.trim().indent(2));
                 } else {
                     out.println("Configuration: (none)");
                 }
@@ -340,10 +340,6 @@ class BundleCommand {
                 err.println(ERROR_INSPECTING_BUNDLE + e.getMessage());
                 return 1;
             }
-        }
-
-        private String indent(String text, String prefix) {
-            return prefix + text.replace("\n", "\n" + prefix);
         }
 
     }
@@ -427,12 +423,12 @@ class BundleCommand {
 
     private static PrivateKey loadEd25519PrivateKey(Path keyFile) throws IOException, GeneralSecurityException {
         val keyBytes = loadPemKeyBytes(keyFile, PEM_PRIVATE_KEY_BEGIN, PEM_PRIVATE_KEY_END);
-        return (PrivateKey) loadKey(keyBytes, new PKCS8EncodedKeySpec(keyBytes), true);
+        return (PrivateKey) loadKey(new PKCS8EncodedKeySpec(keyBytes), true);
     }
 
     private static PublicKey loadEd25519PublicKey(Path keyFile) throws IOException, GeneralSecurityException {
         val keyBytes = loadPemKeyBytes(keyFile, PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
-        return (PublicKey) loadKey(keyBytes, new X509EncodedKeySpec(keyBytes), false);
+        return (PublicKey) loadKey(new X509EncodedKeySpec(keyBytes), false);
     }
 
     private static byte[] loadPemKeyBytes(Path keyFile, String beginMarker, String endMarker) throws IOException {
@@ -441,7 +437,7 @@ class BundleCommand {
         return Base64.getDecoder().decode(base64Key);
     }
 
-    private static Key loadKey(byte[] keyBytes, KeySpec keySpec, boolean isPrivate) throws GeneralSecurityException {
+    private static Key loadKey(KeySpec keySpec, boolean isPrivate) throws GeneralSecurityException {
         val keyFactory = KeyFactory.getInstance("Ed25519");
         return isPrivate ? keyFactory.generatePrivate(keySpec) : keyFactory.generatePublic(keySpec);
     }
