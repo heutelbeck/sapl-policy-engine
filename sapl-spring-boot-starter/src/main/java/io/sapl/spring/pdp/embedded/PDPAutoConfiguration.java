@@ -26,6 +26,8 @@ import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.configuration.PDPConfigurationSource;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -42,8 +44,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -140,15 +151,85 @@ public class PDPAutoConfiguration {
     }
 
     private void configureSource(PolicyDecisionPointBuilder builder, EmbeddedPDPProperties properties) {
-        if (properties.getPdpConfigType() == PDPDataSource.FILESYSTEM) {
-            val path         = PDPConfigurationSource.resolveHomeFolderIfPresent(properties.getPoliciesPath());
-            val resolvedPath = path.toAbsolutePath().normalize();
-            log.info("Loading policies from filesystem: {}", resolvedPath);
+        val path         = PDPConfigurationSource.resolveHomeFolderIfPresent(properties.getPoliciesPath());
+        val resolvedPath = path.toAbsolutePath().normalize();
+
+        switch (properties.getPdpConfigType()) {
+        case DIRECTORY       -> {
+            log.info("Loading policies from directory: {}", resolvedPath);
             builder.withDirectorySource(path);
-        } else {
+        }
+        case MULTI_DIRECTORY -> {
+            log.info("Loading policies from multi-directory: {}", resolvedPath);
+            builder.withMultiDirectorySource(path);
+        }
+        case BUNDLES         -> {
+            log.info("Loading policies from bundles: {}", resolvedPath);
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity());
+            builder.withBundleDirectorySource(path, securityPolicy);
+        }
+        case RESOURCES       -> {
             val resourcePath = properties.getPoliciesPath();
             log.info("Loading policies from resources: {}", resourcePath);
             builder.withResourcesSource(resourcePath);
+        }
+        }
+    }
+
+    private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps) {
+        val publicKey = loadPublicKey(securityProps);
+
+        if (publicKey != null) {
+            log.info("Bundle signature verification enabled");
+            return BundleSecurityPolicy.builder(publicKey).withExpirationCheck(securityProps.isCheckExpiration())
+                    .build();
+        }
+
+        if (securityProps.isAllowUnsigned() && securityProps.isAcceptRisks()) {
+            return BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
+        }
+
+        throw new IllegalStateException("Bundle security not configured. Either provide a public key via "
+                + "bundle-security.public-key-path or bundle-security.public-key, "
+                + "or explicitly disable verification by setting both "
+                + "bundle-security.allow-unsigned=true and bundle-security.accept-risks=true");
+    }
+
+    private PublicKey loadPublicKey(BundleSecurityProperties securityProps) {
+        if (securityProps.getPublicKeyPath() != null && !securityProps.getPublicKeyPath().isBlank()) {
+            return loadPublicKeyFromFile(securityProps.getPublicKeyPath());
+        }
+        if (securityProps.getPublicKey() != null && !securityProps.getPublicKey().isBlank()) {
+            return loadPublicKeyFromBase64(securityProps.getPublicKey());
+        }
+        return null;
+    }
+
+    private PublicKey loadPublicKeyFromFile(String keyPath) {
+        try {
+            val path       = Path.of(keyPath);
+            val keyBytes   = Files.readAllBytes(path);
+            val keyContent = new String(keyBytes).trim();
+            return parsePublicKey(keyContent);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to read public key from: " + keyPath, e);
+        }
+    }
+
+    private PublicKey loadPublicKeyFromBase64(String base64Key) {
+        return parsePublicKey(base64Key);
+    }
+
+    private PublicKey parsePublicKey(String keyContent) {
+        try {
+            val cleanKey   = keyContent.replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
+            val keyBytes   = Base64.getDecoder().decode(cleanKey);
+            val keySpec    = new X509EncodedKeySpec(keyBytes);
+            val keyFactory = KeyFactory.getInstance("Ed25519");
+            return keyFactory.generatePublic(keySpec);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new IllegalStateException("Failed to parse Ed25519 public key", e);
         }
     }
 

@@ -39,11 +39,82 @@ import java.math.BigDecimal;
  * bitwise operations in policies.
  */
 @UtilityClass
-@FunctionLibrary(name = PermissionsFunctionLibrary.NAME, description = PermissionsFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = PermissionsFunctionLibrary.NAME, description = PermissionsFunctionLibrary.DESCRIPTION, libraryDocumentation = PermissionsFunctionLibrary.DOCUMENTATION)
 public class PermissionsFunctionLibrary {
 
-    public static final String NAME        = "permissions";
-    public static final String DESCRIPTION = "Permission and access control functions for checking and manipulating permission bitmasks, with specialized support for POSIX/Unix permissions.";
+    public static final String NAME          = "permissions";
+    public static final String DESCRIPTION   = "Permission and access control functions for checking and manipulating permission bitmasks, with specialized support for POSIX/Unix permissions.";
+    public static final String DOCUMENTATION = """
+            # Permission Bitmasks
+
+            Functions for checking and manipulating permission bitmasks. Supports both
+            custom permission schemes and POSIX/Unix file permissions.
+
+            ## Function Categories
+
+            | Category        | Functions                                          |
+            |-----------------|---------------------------------------------------|
+            | Bit checks      | `hasAll`, `hasAny`, `hasNone`, `hasExact`, `hasOnly` |
+            | Combining       | `combine` (OR), `combineAll` (AND)                 |
+            | Set operations  | `isSubsetOf`, `overlaps`, `areDisjoint`            |
+            | Mutation        | `grant`, `revoke`, `toggle`                        |
+            | Unix extraction | `unixOwner`, `unixGroup`, `unixOther`              |
+            | Unix checks     | `unixCanRead`, `unixCanWrite`, `unixCanExecute`    |
+            | Constants       | `bit`, `none`, `all`, `posixRead/Write/Execute`    |
+            | Mode presets    | `posixMode755`, `posixMode644`, `posixMode600`     |
+
+            ## Custom Permission Scheme
+
+            Define application permissions using bit positions:
+
+            ```sapl
+            policy "require editor permissions"
+            permit
+                action == "edit"
+            where
+                var CREATE = permissions.bit(0);
+                var READ   = permissions.bit(1);
+                var UPDATE = permissions.bit(2);
+                var DELETE = permissions.bit(3);
+                permissions.hasAll(subject.permissions, [READ, UPDATE]);
+            ```
+
+            Example: `subject.permissions = 7` (binary: 0111). The mask `[READ, UPDATE]`
+            combines to 6 (binary: 0110). Check `(7 & 6) == 6` is true, so permit.
+
+            ## POSIX File Permission Check
+
+            Validate Unix file permissions before allowing access:
+
+            ```sapl
+            policy "owner can write"
+            permit
+                action == "write"
+            where
+                subject.uid == resource.ownerUid;
+                var ownerPerms = permissions.unixOwner(resource.mode);
+                permissions.unixCanWrite(ownerPerms);
+            ```
+
+            Example: `resource.mode = 420` (octal 644, rw-r--r--). `unixOwner(420)`
+            extracts bits 6-8, returning 6 (rw-). `unixCanWrite(6)` checks bit 2,
+            returning true.
+
+            ## Permission Delegation
+
+            Verify delegated permissions are subset of grantor's permissions:
+
+            ```sapl
+            policy "delegate only owned permissions"
+            permit
+                action == "delegate"
+            where
+                permissions.isSubsetOf(action.permissionsToGrant, subject.permissions);
+            ```
+
+            Example: `subject.permissions = 15` (bits 0-3 set), `action.permissionsToGrant = 5`
+            (bits 0 and 2). Check `(5 & 15) == 5` is true, so delegation is valid.
+            """;
 
     private static final String RETURNS_NUMBER = """
             {

@@ -96,11 +96,15 @@ The SAPL Node includes an [embedded PDP](https://github.com/heutelbeck/sapl-poli
 
 #### Configuration Type
 
-The `io.sapl.pdp.embedded.pdp-config-type` property allows you to set the source for the [configuration](#configuration-path) and [policies](#policy-storage-location). You can choose between the values `RESOURCES` and `FILESYSTEM`. This property defaults to the `RESOURCES` value if no configuration is provided. The `FILESYSTEM` value is preconfigured by default.
+The `io.sapl.pdp.embedded.pdp-config-type` property allows you to set the source for the [configuration](#configuration-path) and [policies](#policy-storage-location). You can choose between the values `RESOURCES`, `DIRECTORY`, `MULTI_DIRECTORY`, and `BUNDLES`. This property defaults to the `RESOURCES` value if no configuration is provided. The `DIRECTORY` value is preconfigured by default.
 
 If the property is set to `RESOURCES`, the system will load a predetermined set of documents and `pdp.json` from the bundled resource during runtime. These resources cannot be updated while the system is running.
 
-If the property is set to `FILESYSTEM`, the system will monitor directories for documents and configuration changes. Any updates made to the documents and configuration during runtime will be automatically reflected in existing subscriptions and new decisions will be sent if necessary.
+If the property is set to `DIRECTORY`, the system will monitor a single directory for documents and configuration changes. Any updates made to the documents and configuration during runtime will be automatically reflected in existing subscriptions and new decisions will be sent if necessary.
+
+If the property is set to `MULTI_DIRECTORY`, the system monitors subdirectories within a base directory. Each subdirectory name becomes the pdpId for multi-tenant routing. This allows different tenants to have separate policy sets.
+
+If the property is set to `BUNDLES`, the system monitors a directory for `.saplbundle` files. Each bundle filename (without extension) becomes the pdpId for multi-tenant routing. Bundles can be signed for integrity verification.
 
 #### Configuration File
 
@@ -133,7 +137,7 @@ permit
 
 The property `io.sapl.pdp.embedded.config-path` specifies the folder path where the `pdp.json` file is saved. Any changes made to the file are immediately applied at runtime and for current subscriptions.
 
-If [pdpConfigType](#configuration-type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#configuration-type) is set to `FILESYSTEM`, it must be a valid path in the system's file system.
+If [pdpConfigType](#configuration-type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#configuration-type) is set to `DIRECTORY`, `MULTI_DIRECTORY`, or `BUNDLES`, it must be a valid path in the system's file system.
 
 If the `io.sapl.pdp.embedded.config-path` property is not configured differently, the server will search for the `pdp.json` file in the `/policies` directory.
 
@@ -163,7 +167,7 @@ Lastly, define the rate limit parameters using `bucket4j.filters.rate-limits.ban
 
 The property `io.sapl.pdp.embedded.policies-path` specifies the path of the folder where the `*.sapl` documents are saved. When specifying a path, only include the parent or main folder. Subfolders within the main folder will be automatically searched and monitored. Any changes made are immediately taken into account at runtime and for current subscriptions.
 
-If [pdpConfigType](#configuration-type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#configuration-type) is set to `FILESYSTEM`, it must be a valid path in the system's file system.
+If [pdpConfigType](#configuration-type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#configuration-type) is set to `DIRECTORY`, `MULTI_DIRECTORY`, or `BUNDLES`, it must be a valid path in the system's file system.
 
 By default, the server monitors and searches for SAPL policies in the `/policies` directory. SAPL policies are documents that end with `*.sapl`.
 

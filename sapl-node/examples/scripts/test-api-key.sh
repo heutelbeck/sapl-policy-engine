@@ -4,21 +4,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Test SAPL Node with API Key Authentication
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# This script sends authorization requests to a SAPL Node using API Key auth
-# for experimentation and validation.
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Prerequisites:
-#   - SAPL Node running with allowApiKeyAuth: true and configured API keys
-#   - curl and jq installed
-#
-# Usage:
-#   ./test-api-key.sh [API_KEY] [BASE_URL]
-#
-# Examples:
-#   ./test-api-key.sh sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
-#   ./test-api-key.sh sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j https://localhost:8443
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 set -euo pipefail

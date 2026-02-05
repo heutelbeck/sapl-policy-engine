@@ -27,7 +27,7 @@
   {
     "name": "io.sapl.pdp.embedded.pdp-config-type",
     "type": "java.lang.String",
-    "description": "pdp-config-type may be RESOURCES (loading policies and configuration from bundles resources) or FILESYSTEM (loading policies and configuration from a folder on the filesystem."
+    "description": "pdp-config-type may be RESOURCES (loading policies from bundled resources), DIRECTORY (loading from a monitored folder), MULTI_DIRECTORY (multi-tenant with subdirectories), or BUNDLES (multi-tenant with .saplbundle files)."
   },
   {
     "name": "io.sapl.pdp.embedded.config-path",

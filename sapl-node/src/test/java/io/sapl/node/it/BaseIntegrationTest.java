@@ -31,16 +31,16 @@ import io.sapl.api.pdp.AuthorizationSubscription;
  * Base class for SAPL Node integration tests providing shared container
  * configuration, test fixtures, and utility methods.
  */
-abstract class BaseIntegrationTest {
+public abstract class BaseIntegrationTest {
 
-    protected static final int             SAPL_SERVER_PORT     = 8443;
-    protected static final String          SAPL_SERVER_IMAGE    = "ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT";
-    protected static final ImagePullPolicy NEVER_PULL           = imageName -> false;
-    protected static final Duration        CONTAINER_STARTUP    = Duration.ofMinutes(2);
-    protected static final String          STARTUP_LOG_PATTERN  = ".*Started SaplNodeApplication.*\\n";
+    protected static final int             SAPL_SERVER_PORT    = 8443;
+    protected static final String          SAPL_SERVER_IMAGE   = "ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT";
+    protected static final ImagePullPolicy NEVER_PULL          = imageName -> false;
+    protected static final Duration        CONTAINER_STARTUP   = Duration.ofMinutes(2);
+    protected static final String          STARTUP_LOG_PATTERN = ".*Started SaplNodeApplication.*\\n";
 
-    protected static final String BASIC_USERNAME      = "testUser123";
-    protected static final String BASIC_SECRET        = "testSecret!@#456SecurePass";
+    protected static final String BASIC_USERNAME       = "testUser123";
+    protected static final String BASIC_SECRET         = "testSecret!@#456SecurePass";
     protected static final String BASIC_SECRET_ENCODED = "$argon2id$v=19$m=16384,t=2,p=1$abc123def456$encodedHashValueHere";
 
     protected static final String API_KEY         = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
@@ -70,8 +70,8 @@ abstract class BaseIntegrationTest {
      */
     protected GenericContainer<?> createSaplNodeContainerWithTls(String policiesPath) {
         return createSaplNodeContainer().withClasspathResourceMapping(policiesPath, "/pdp/data/", BindMode.READ_ONLY)
-                .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
-                .withEnv("SERVER_SSL_KEYSTORETYPE", "PKCS12").withEnv("SERVER_SSL_KEYSTORE", "/pdp/data/keystore.p12")
+                .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data").withEnv("SERVER_SSL_KEYSTORETYPE", "PKCS12")
+                .withEnv("SERVER_SSL_KEYSTORE", "/pdp/data/keystore.p12")
                 .withEnv("SERVER_SSL_KEYSTOREPASSWORD", "changeme").withEnv("SERVER_SSL_KEYPASSWORD", "changeme")
                 .withEnv("SERVER_SSL_KEYALIAS", "netty");
     }

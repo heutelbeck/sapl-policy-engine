@@ -59,7 +59,7 @@ management:
 io.sapl:
   pdp.embedded:
     enabled: true
-    pdp-config-type: FILESYSTEM
+    pdp-config-type: DIRECTORY
   node:
     allowNoAuth: false
     allowBasicAuth: false

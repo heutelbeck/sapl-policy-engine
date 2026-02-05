@@ -49,12 +49,12 @@ class DirectorySourceIT extends BaseIntegrationTest {
 
     private static final String POLICIES_PATH = "it/policies/single-pdp/";
 
-    private static final String          BASIC_USERNAME       = "mpI3KjU7n1";
-    private static final String          BASIC_SECRET         = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
-    private static final String          BASIC_SECRET_ENCODED = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
-    private static final String          API_KEY              = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
-    private static final String          API_KEY_ENCODED      = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
-    private static final String          DEFAULT_PDP_ID       = "default";
+    private static final String                    BASIC_USERNAME       = "mpI3KjU7n1";
+    private static final String                    BASIC_SECRET         = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
+    private static final String                    BASIC_SECRET_ENCODED = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+    private static final String                    API_KEY              = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
+    private static final String                    API_KEY_ENCODED      = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
+    private static final String                    DEFAULT_PDP_ID       = "default";
     private static final AuthorizationSubscription PERMIT_SUBSCRIPTION  = AuthorizationSubscription.of("Willi", "eat",
             "apple");
 
@@ -65,8 +65,8 @@ class DirectorySourceIT extends BaseIntegrationTest {
         @Test
         @DisplayName("returns PERMIT when policy matches and no auth required")
         void whenNoAuthRequiredAndPolicyMatchesThenReturnsPermit() {
-            try (val container = createSaplNodeContainerWithoutTls(POLICIES_PATH)
-                    .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")) {
+            try (val container = createSaplNodeContainerWithoutTls(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH",
+                    "true")) {
                 container.start();
 
                 val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container)).build();
@@ -79,16 +79,16 @@ class DirectorySourceIT extends BaseIntegrationTest {
         @Test
         @DisplayName("returns DENY when policy does not match and no auth required")
         void whenNoAuthRequiredAndPolicyDoesNotMatchThenReturnsDeny() {
-            try (val container = createSaplNodeContainerWithoutTls(POLICIES_PATH)
-                    .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")) {
+            try (val container = createSaplNodeContainerWithoutTls(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH",
+                    "true")) {
                 container.start();
 
-                val pdp                 = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
+                val pdp                  = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
                         .build();
                 val nonMatchSubscription = AuthorizationSubscription.of("Nobody", "destroy", "everything");
 
-                StepVerifier.create(pdp.decide(nonMatchSubscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
-                        .verify();
+                StepVerifier.create(pdp.decide(nonMatchSubscription)).expectNext(AuthorizationDecision.DENY)
+                        .thenCancel().verify();
             }
         }
 
@@ -152,8 +152,8 @@ class DirectorySourceIT extends BaseIntegrationTest {
                     .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", API_KEY_ENCODED)) {
                 container.start();
 
-                val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpsBaseUrl(container))
-                        .apiKey(API_KEY).withUnsecureSSL().build();
+                val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpsBaseUrl(container)).apiKey(API_KEY)
+                        .withUnsecureSSL().build();
 
                 StepVerifier.create(pdp.decide(PERMIT_SUBSCRIPTION)).expectNext(AuthorizationDecision.PERMIT)
                         .thenCancel().verify();
@@ -170,8 +170,7 @@ class DirectorySourceIT extends BaseIntegrationTest {
         @DisplayName("uses correct pdpId from user configuration")
         void whenUserHasPdpIdConfiguredThenUsesCorrectPdp() throws SSLException {
             try (val container = createSaplNodeContainerWithTls(POLICIES_PATH)
-                    .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true")
-                    .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-client")
+                    .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true").withEnv("IO_SAPL_NODE_USERS_0_ID", "test-client")
                     .withEnv("IO_SAPL_NODE_USERS_0_PDPID", DEFAULT_PDP_ID)
                     .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", BASIC_USERNAME)
                     .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", BASIC_SECRET_ENCODED)) {
@@ -183,7 +182,7 @@ class DirectorySourceIT extends BaseIntegrationTest {
                 val decision = pdp.decide(PERMIT_SUBSCRIPTION).blockFirst();
 
                 assertThat(decision).isNotNull();
-                assertThat(decision.getDecision()).isEqualTo(AuthorizationDecision.PERMIT.getDecision());
+                assertThat(decision.decision()).isEqualTo(AuthorizationDecision.PERMIT.decision());
             }
         }
 
@@ -191,8 +190,7 @@ class DirectorySourceIT extends BaseIntegrationTest {
         @DisplayName("uses defaultPdpId when user has no explicit pdpId")
         void whenUserHasNoPdpIdThenUsesDefault() throws SSLException {
             try (val container = createSaplNodeContainerWithTls(POLICIES_PATH)
-                    .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true")
-                    .withEnv("IO_SAPL_NODE_DEFAULTPDPID", DEFAULT_PDP_ID)
+                    .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true").withEnv("IO_SAPL_NODE_DEFAULTPDPID", DEFAULT_PDP_ID)
                     .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-client-no-pdpid")
                     .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", BASIC_USERNAME)
                     .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", BASIC_SECRET_ENCODED)) {

@@ -38,11 +38,58 @@ import java.util.Arrays;
  * decisions.
  */
 @UtilityClass
-@FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION, libraryDocumentation = FilterFunctionLibrary.DOCUMENTATION)
 public class FilterFunctionLibrary {
 
-    public static final String NAME        = "filter";
-    public static final String DESCRIPTION = "Essential functions for content filtering.";
+    public static final String NAME          = "filter";
+    public static final String DESCRIPTION   = "Functions for redacting, replacing, and removing sensitive data.";
+    public static final String DOCUMENTATION = """
+            # Content Filtering
+
+            Functions for redacting, replacing, and removing sensitive data in authorization
+            decisions. Use these in resource transformations to enforce data minimization.
+
+            ## Redacting Sensitive Data
+
+            Use `blacken` to mask portions of text while optionally revealing ends:
+
+            ```sapl
+            policy "mask credit card"
+            permit
+                action == "view_payment"
+            transform
+                resource |- {
+                    @.cardNumber : filter.blacken(4, 4)
+                }
+            // "4111111111111111" becomes "4111XXXXXXXX1111"
+            ```
+
+            ## Removing Fields
+
+            Use `remove` to strip fields entirely from the response:
+
+            ```sapl
+            policy "hide internal fields"
+            permit
+            transform
+                resource |- {
+                    @.internalId : filter.remove
+                }
+            ```
+
+            ## Replacing Values
+
+            Use `replace` to substitute a value while preserving error propagation:
+
+            ```sapl
+            policy "anonymize user"
+            permit
+            transform
+                resource |- {
+                    @.email : filter.replace("[redacted]")
+                }
+            ```
+            """;
 
     private static final String ERROR_ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_LENGTH. Expecting a positive integer. Got: %s.";
     private static final String ERROR_ILLEGAL_PARAMETER_DISCLOSE_LEFT  = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer. Got: %s.";

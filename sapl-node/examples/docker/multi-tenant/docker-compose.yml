@@ -1,0 +1,59 @@
+#
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+services:
+  sapl-node:
+    image: ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+    container_name: sapl-node-multitenant
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./policies:/pdp/data:ro
+    environment:
+      # Multi-Tenant Configuration
+      - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=MULTI_DIRECTORY
+      - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
+
+      # Authentication Configuration
+      - IO_SAPL_NODE_ALLOWNOAUTH=false
+      - IO_SAPL_NODE_ALLOWBASICAUTH=true
+
+      # PDP ID Configuration
+      - IO_SAPL_NODE_REJECTONMISSINGPDPID=true
+
+      # Tenant A User
+      - IO_SAPL_NODE_USERS_0_ID=tenant-a-client
+      - IO_SAPL_NODE_USERS_0_PDPID=tenant-a
+      - IO_SAPL_NODE_USERS_0_BASIC_USERNAME=tenant-a-user
+      - IO_SAPL_NODE_USERS_0_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$abc123def456$$encodedHashPlaceholderA
+
+      # Tenant B User
+      - IO_SAPL_NODE_USERS_1_ID=tenant-b-client
+      - IO_SAPL_NODE_USERS_1_PDPID=tenant-b
+      - IO_SAPL_NODE_USERS_1_BASIC_USERNAME=tenant-b-user
+      - IO_SAPL_NODE_USERS_1_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$abc123def456$$encodedHashPlaceholderB
+
+      # Logging
+      - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:8443/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped

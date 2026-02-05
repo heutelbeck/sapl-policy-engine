@@ -67,11 +67,85 @@ import java.util.List;
  * }</pre>
  */
 @UtilityClass
-@FunctionLibrary(name = X509FunctionLibrary.NAME, description = X509FunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = X509FunctionLibrary.NAME, description = X509FunctionLibrary.DESCRIPTION, libraryDocumentation = X509FunctionLibrary.DOCUMENTATION)
 public class X509FunctionLibrary {
 
-    public static final String NAME        = "x509";
-    public static final String DESCRIPTION = "Functions for certificate-based access control in mTLS and PKI scenarios.";
+    public static final String NAME          = "x509";
+    public static final String DESCRIPTION   = "Functions for certificate-based access control in mTLS and PKI scenarios.";
+    public static final String DOCUMENTATION = """
+            # X.509 Certificate Functions
+
+            Functions for certificate-based access control in mutual TLS (mTLS) and PKI
+            scenarios. All functions accept PEM or DER encoded certificates.
+
+            ## Function Categories
+
+            | Category       | Functions                                            |
+            |----------------|-----------------------------------------------------|
+            | Parsing        | `parseCertificate`                                   |
+            | Identity       | `extractSubjectDn`, `extractIssuerDn`, `extractCommonName` |
+            | Metadata       | `extractSerialNumber`, `extractNotBefore`, `extractNotAfter` |
+            | Fingerprinting | `extractFingerprint`, `matchesFingerprint`           |
+            | SAN checks     | `extractSubjectAltNames`, `hasDnsName`, `hasIpAddress` |
+            | Validity       | `isExpired`, `isValidAt`, `remainingValidityDays`    |
+
+            ## mTLS Client Authorization
+
+            Authorize API clients based on their certificate properties:
+
+            ```sapl
+            policy "allow trusted partners"
+            permit
+                action == "api:call"
+            where
+                var cert = x509.parseCertificate(subject.clientCertificate);
+                cert.subject =~ "O=Trusted Partners";
+                !x509.isExpired(subject.clientCertificate);
+            ```
+
+            Example: `subject.clientCertificate` contains a PEM string. `parseCertificate`
+            returns `{"subject": "CN=api-client,O=Trusted Partners,C=US", ...}`. The
+            regex matches "O=Trusted Partners" in the subject. `isExpired` returns false
+            if current time is before notAfter. Policy permits.
+
+            ## Certificate Pinning
+
+            Pin specific certificates for critical services:
+
+            ```sapl
+            policy "pin payment gateway cert"
+            permit
+                action == "payment"
+            where
+                x509.matchesFingerprint(
+                    resource.serverCertificate,
+                    "a4b2c8d1e5f6789012345678901234567890abcdef1234567890abcdef123456",
+                    "SHA-256"
+                );
+            ```
+
+            Example: `resource.serverCertificate` is the payment gateway's cert.
+            `matchesFingerprint` computes SHA-256 of the cert and compares to the
+            expected hex fingerprint. Returns true only for exact match.
+
+            ## Certificate Expiry Monitoring
+
+            Add obligations for certificates nearing expiry:
+
+            ```sapl
+            policy "warn on expiring certs"
+            permit
+            where
+                var days = x509.remainingValidityDays(subject.clientCertificate);
+                days > 0;
+            obligation
+                days < 30 ? { "type": "renewalWarning", "daysRemaining": days } : null;
+            ```
+
+            Example: `remainingValidityDays` returns 15 for a cert expiring in 15 days.
+            Since 15 > 0, access is permitted. Since 15 < 30, the renewal warning
+            obligation is attached to the response.
+            """;
 
     private static final String RETURNS_TEXT = """
             {

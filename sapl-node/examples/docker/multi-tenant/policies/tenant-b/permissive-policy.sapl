@@ -1,0 +1,8 @@
+/*
+ * Tenant B: Permissive Policy
+ *
+ * This policy permits all access by default.
+ * This is typically used for development/testing tenants.
+ */
+policy "tenant-b-permit-all"
+permit true;

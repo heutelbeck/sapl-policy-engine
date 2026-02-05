@@ -1,0 +1,8 @@
+/*
+ * Tenant A: Restrictive Policy
+ *
+ * This policy denies all access by default.
+ * Only explicitly permitted actions are allowed.
+ */
+policy "tenant-a-deny-all"
+deny true;

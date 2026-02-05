@@ -31,11 +31,44 @@ import lombok.experimental.UtilityClass;
  * are matching against mqtt topics which contain wildcards.
  */
 @UtilityClass
-@FunctionLibrary(name = MqttFunctionLibrary.NAME, description = MqttFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = MqttFunctionLibrary.NAME, description = MqttFunctionLibrary.DESCRIPTION, libraryDocumentation = MqttFunctionLibrary.DOCUMENTATION)
 public class MqttFunctionLibrary {
 
-    static final String NAME        = "mqtt";
-    static final String DESCRIPTION = "Functions for matching topics to mqtt topics which contain wildcards.";
+    static final String NAME          = "mqtt";
+    static final String DESCRIPTION   = "Functions for matching MQTT topics against wildcard patterns.";
+    static final String DOCUMENTATION = """
+            # MQTT Topic Matching
+
+            Functions for matching MQTT topics against wildcard patterns, enabling
+            topic-based access control for IoT and messaging systems.
+
+            ## MQTT Wildcard Syntax
+
+            - `+` matches exactly one topic level: `home/+/temperature` matches `home/kitchen/temperature`
+            - `#` matches zero or more levels: `sensors/#` matches `sensors/floor1/room2/temp`
+
+            ## Access Control Patterns
+
+            Restrict a client to topics within their assigned namespace:
+
+            ```sapl
+            policy "client can only publish to own topics"
+            permit
+                action == "publish"
+            where
+                mqtt.isMatchingAllTopics("clients/" + subject.clientId + "/#", resource.topic);
+            ```
+
+            Allow subscription if at least one requested topic is in an allowed set:
+
+            ```sapl
+            policy "subscriber has partial access"
+            permit
+                action == "subscribe"
+            where
+                mqtt.isMatchingAtLeastOneTopic("public/#", resource.topics);
+            ```
+            """;
 
     private static final String ERROR_ALL_TOPICS_MUST_BE_TEXT      = "All topics must be text values.";
     private static final String ERROR_TOPIC_CONTAINS_WILDCARD      = "The wildcard topic must not be matched against topics containing wildcards.";

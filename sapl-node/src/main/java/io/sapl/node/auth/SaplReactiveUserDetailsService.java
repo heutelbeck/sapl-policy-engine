@@ -40,8 +40,6 @@ import reactor.core.publisher.Mono;
 public class SaplReactiveUserDetailsService implements ReactiveUserDetailsService {
 
     static final String ROLE_PDP_CLIENT = "PDP_CLIENT";
-    static final String ATTR_USER_ID    = "userId";
-    static final String ATTR_PDP_ID     = "pdpId";
 
     private final UserLookupService userLookupService;
 
@@ -51,10 +49,7 @@ public class SaplReactiveUserDetailsService implements ReactiveUserDetailsServic
         if (userEntryOpt.isEmpty()) {
             return Mono.error(new UsernameNotFoundException("User not found: " + username));
         }
-
-        val userEntry = userEntryOpt.get();
-        val basic     = userEntry.getBasic();
-
+        val basic = userEntryOpt.get().getBasic();
         return Mono.just(User.builder().username(basic.getUsername()).password(basic.getSecret()).roles(ROLE_PDP_CLIENT)
                 .build());
     }

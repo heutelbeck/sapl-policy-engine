@@ -1,0 +1,10 @@
+/*
+ * Example SAPL Policy
+ *
+ * This policy permits read access to documents for authenticated users.
+ * Modify this file to experiment with policy changes (hot-reload enabled).
+ */
+policy "permit-read-documents"
+permit
+    action == "read";
+    resource == "document";

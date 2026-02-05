@@ -4,21 +4,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Test SAPL Node with Basic Authentication
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# This script sends authorization requests to a SAPL Node using HTTP Basic Auth
-# for experimentation and validation.
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Prerequisites:
-#   - SAPL Node running with allowBasicAuth: true and configured users
-#   - curl and jq installed
-#
-# Usage:
-#   ./test-basic-auth.sh [USERNAME] [PASSWORD] [BASE_URL]
-#
-# Examples:
-#   ./test-basic-auth.sh myuser mypassword
-#   ./test-basic-auth.sh myuser mypassword https://localhost:8443
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 set -euo pipefail

@@ -487,7 +487,7 @@ The embedded PDP runs inside your application. Policies are loaded from bundled 
 # Enable the embedded PDP (required)
 io.sapl.pdp.embedded.enabled=true
 
-# Where to load policies from: RESOURCES or FILESYSTEM
+# Where to load policies from: RESOURCES, DIRECTORY, MULTI_DIRECTORY, or BUNDLES
 io.sapl.pdp.embedded.pdp-config-type=RESOURCES
 
 # Path to policies (in resources or filesystem)
@@ -502,7 +502,7 @@ The full list of embedded PDP properties:
 | Property | Default | Description |
 |----------|---------|-------------|
 | `io.sapl.pdp.embedded.enabled` | `true` | Enable or disable the embedded PDP |
-| `io.sapl.pdp.embedded.pdp-config-type` | `RESOURCES` | `RESOURCES` loads from classpath, `FILESYSTEM` loads from disk and watches for changes |
+| `io.sapl.pdp.embedded.pdp-config-type` | `RESOURCES` | `RESOURCES` loads from classpath, `DIRECTORY` loads from disk and watches for changes, `MULTI_DIRECTORY` for multi-tenant subdirectories, `BUNDLES` for multi-tenant .saplbundle files |
 | `io.sapl.pdp.embedded.policies-path` | `/policies` | Directory containing `.sapl` policy files |
 | `io.sapl.pdp.embedded.config-path` | `/policies` | Directory containing `pdp.json` configuration |
 | `io.sapl.pdp.embedded.index` | `NAIVE` | Index algorithm: `NAIVE` for small policy sets, `CANONICAL` for large ones |
@@ -511,7 +511,7 @@ The full list of embedded PDP properties:
 | `io.sapl.pdp.embedded.print-text-report` | `false` | Log human-readable decision report |
 | `io.sapl.pdp.embedded.pretty-print-reports` | `false` | Format JSON in reports |
 
-For development, `RESOURCES` is convenient because policies are bundled in the JAR. For production with dynamic policy updates, use `FILESYSTEM` and point to a directory that can be updated without redeployment.
+For development, `RESOURCES` is convenient because policies are bundled in the JAR. For production with dynamic policy updates, use `DIRECTORY` and point to a directory that can be updated without redeployment. For multi-tenant deployments, use `MULTI_DIRECTORY` (one subdirectory per tenant) or `BUNDLES` (one .saplbundle file per tenant).
 
 ### Remote PDP
 
@@ -570,7 +570,7 @@ With an embedded PDP, this isn't an issue since it's part of your application. W
 
 **Where do policy files go?**
 
-By default, `src/main/resources/policies/`. The embedded PDP loads from this path when `pdp-config-type=RESOURCES`. If you use `FILESYSTEM`, specify an absolute path and the PDP will watch for changes.
+By default, `src/main/resources/policies/`. The embedded PDP loads from this path when `pdp-config-type=RESOURCES`. If you use `DIRECTORY`, specify an absolute path and the PDP will watch for changes.
 
 ## Next Steps
 

@@ -59,11 +59,52 @@ import java.util.HexFormat;
  * </ul>
  */
 @UtilityClass
-@FunctionLibrary(name = EncodingFunctionLibrary.NAME, description = EncodingFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = EncodingFunctionLibrary.NAME, description = EncodingFunctionLibrary.DESCRIPTION, libraryDocumentation = EncodingFunctionLibrary.DOCUMENTATION)
 public class EncodingFunctionLibrary {
 
-    public static final String NAME        = "encoding";
-    public static final String DESCRIPTION = "Encoding and decoding functions for Base64 and hexadecimal representations used in cryptographic operations.";
+    public static final String NAME          = "encoding";
+    public static final String DESCRIPTION   = "Encoding and decoding functions for Base64 and hexadecimal representations.";
+    public static final String DOCUMENTATION = """
+            # Encoding Functions
+
+            Convert between text and encoded representations (Base64, hexadecimal) for
+            working with cryptographic data, URLs, and binary content.
+
+            ## Encoding Variants
+
+            | Format          | Characters      | Use Case                          |
+            |-----------------|-----------------|-----------------------------------|
+            | Base64          | A-Z, a-z, +, /  | General binary-to-text            |
+            | Base64 URL-safe | A-Z, a-z, -, _  | URLs, filenames, JWT tokens       |
+            | Hexadecimal     | 0-9, a-f        | Hashes, byte inspection           |
+
+            ## Lenient vs Strict Decoding
+
+            Lenient functions accept missing padding; strict functions require RFC-compliant
+            format with proper `=` padding and length divisible by 4.
+
+            ```sapl
+            policy "validate token format"
+            permit
+                action == "authenticate"
+            where
+                encoding.isValidBase64UrlStrict(resource.token);
+            ```
+
+            ## Working with Cryptographic Data
+
+            Decode Base64-encoded signatures or certificates for verification:
+
+            ```sapl
+            policy "verify signature format"
+            permit
+            where
+                var sig = encoding.base64Decode(resource.signature);
+                standard.length(sig) > 0;
+            ```
+
+            **Security:** Input limited to 10MB to prevent resource exhaustion.
+            """;
 
     /**
      * Maximum allowed input length in characters to prevent resource exhaustion

@@ -42,7 +42,7 @@ class EmbeddedPDPPropertiesValidationTests {
     @Test
     void whenValidPropertiesArePresent_thenPropertiesLoad() {
         contextRunner
-                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
+                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=DIRectory",
                         "io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
                         "io.sapl.pdp.embedded.policiesPath=" + tempDir)
                 .run(context -> assertThat(context).hasNotFailed());
@@ -51,7 +51,7 @@ class EmbeddedPDPPropertiesValidationTests {
     @Test
     void whenValidPropertiesWithMissingPathsArePresent_thenPropertiesFallBackToDefaults() {
         contextRunner
-                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE")
+                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=DIRECTORY", "io.sapl.pdp.embedded.index=NAIVE")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(EmbeddedPDPProperties.class).getConfigPath()).isEqualTo("/policies");
@@ -62,7 +62,7 @@ class EmbeddedPDPPropertiesValidationTests {
     @Test
     void whenPathsAreSetToNull_thenContextFailsLoading() {
         contextRunner
-                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE",
+                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=DIRECTORY", "io.sapl.pdp.embedded.index=NAIVE",
                         "io.sapl.pdp.embedded.configPath=", "io.sapl.pdp.embedded.policiesPath=")
                 .run(context -> assertThat(context).hasFailed());
     }

@@ -1,5 +1,3 @@
 policy "production-strict"
 deny
-    true
-where
     true;

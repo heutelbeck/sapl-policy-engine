@@ -32,11 +32,61 @@ import java.util.Set;
  * Functions for converting human-readable unit strings into numeric values.
  */
 @UtilityClass
-@FunctionLibrary(name = UnitsFunctionLibrary.NAME, description = UnitsFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = UnitsFunctionLibrary.NAME, description = UnitsFunctionLibrary.DESCRIPTION, libraryDocumentation = UnitsFunctionLibrary.DOCUMENTATION)
 public class UnitsFunctionLibrary {
 
-    public static final String NAME        = "units";
-    public static final String DESCRIPTION = "Functions for converting human-readable unit strings into numeric values.";
+    public static final String NAME          = "units";
+    public static final String DESCRIPTION   = "Functions for converting human-readable unit strings into numeric values.";
+    public static final String DOCUMENTATION = """
+            # Unit Parsing
+
+            Convert human-readable unit notation into numeric values for comparisons
+            and calculations. Two functions serve different contexts:
+
+            | Function     | Context       | Example Input | Result    |
+            |--------------|---------------|---------------|-----------|
+            | `parse`      | General units | "5K"          | 5000      |
+            | `parseBytes` | Byte sizes    | "5KB"         | 5000      |
+
+            ## Decimal vs Binary Prefixes
+
+            | Prefix | Decimal (SI) | Binary (IEC) |
+            |--------|--------------|--------------|
+            | K/Ki   | 1,000        | 1,024        |
+            | M/Mi   | 1,000,000    | 1,048,576    |
+            | G/Gi   | 1,000,000,000| 1,073,741,824|
+
+            ## Resource Size Validation
+
+            Enforce upload limits with consistent unit handling:
+
+            ```sapl
+            policy "enforce upload limit"
+            permit
+                action == "upload"
+            where
+                units.parseBytes(resource.size) <= units.parseBytes(subject.quota);
+            ```
+
+            Example: `resource.size = "750KB"` (750000 bytes), `subject.quota = "1MiB"`
+            (1048576 bytes). Condition evaluates to `750000 <= 1048576` which is true.
+
+            ## Quota Comparison
+
+            Compare values regardless of how they are expressed:
+
+            ```sapl
+            policy "bandwidth check"
+            permit
+            where
+                var limit = units.parse(environment.rateLimit);
+                var usage = units.parse(subject.currentUsage);
+                usage < limit;
+            ```
+
+            Example: `environment.rateLimit = "10M"` (10000000), `subject.currentUsage = "8.5M"`
+            (8500000). Condition evaluates to `8500000 < 10000000` which is true.
+            """;
 
     /**
      * Maximum length for entire input string to prevent DoS via extremely long

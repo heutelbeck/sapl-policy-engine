@@ -38,10 +38,10 @@ class AllAutoConfigurationsIntegrationTests {
     File tempDir;
 
     @Test
-    void whenFilesystemPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAPDPIsCreated() {
+    void whenDirectoryPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAPDPIsCreated() {
         contextRunner.withBean(JsonMapper.class, JsonMapper::new)
-                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
-                        "io.sapl.pdp.embedded.enabled=true", "io.sapl.pdp.embedded.policiesPath=" + tempDir)
+                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=DIRECTORY", "io.sapl.pdp.embedded.enabled=true",
+                        "io.sapl.pdp.embedded.policiesPath=" + tempDir)
                 .run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(DynamicPolicyDecisionPoint.class);
                 });

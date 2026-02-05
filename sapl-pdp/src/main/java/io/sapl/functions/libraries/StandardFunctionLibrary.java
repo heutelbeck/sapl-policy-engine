@@ -28,11 +28,40 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 @UtilityClass
-@FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION, libraryDocumentation = StandardFunctionLibrary.DOCUMENTATION)
 public class StandardFunctionLibrary {
 
-    public static final String NAME        = "standard";
-    public static final String DESCRIPTION = "This the standard function library for SAPL.";
+    public static final String NAME          = "standard";
+    public static final String DESCRIPTION   = "Essential utility functions for measuring size, converting values, and handling errors.";
+    public static final String DOCUMENTATION = """
+            # Standard Functions
+
+            Essential utility functions available in every SAPL policy for common operations
+            like measuring collection sizes, converting values to strings, and handling errors
+            gracefully.
+
+            ## Error Handling
+
+            Use `onErrorMap` to provide fallback values when expressions might fail:
+
+            ```sapl
+            policy "safe division"
+            permit
+            where
+                var ratio = standard.onErrorMap(resource.count / resource.total, 0);
+                ratio > 0.5;
+            ```
+
+            ## Measuring Size
+
+            The `length` function works uniformly across text, arrays, and objects:
+
+            ```sapl
+            policy "limit items"
+            deny
+                action == "add_item" & standard.length(resource.cart) >= 100;
+            ```
+            """;
 
     private static final String ERROR_ARGUMENT_MUST_BE_TEXT_ARRAY_OR_OBJECT = "Argument must be a text, array, or object.";
 

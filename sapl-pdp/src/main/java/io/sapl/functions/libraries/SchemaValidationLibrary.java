@@ -39,11 +39,103 @@ import java.util.HashMap;
 import java.util.List;
 
 @UtilityClass
-@FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION)
+@FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
 public class SchemaValidationLibrary {
 
-    public static final String NAME        = "jsonschema";
-    public static final String DESCRIPTION = "This library contains the functions for testing the compliance of a value with a JSON schema.";
+    public static final String NAME          = "jsonschema";
+    public static final String DESCRIPTION   = "This library contains the functions for testing the compliance of a value with a JSON schema.";
+    public static final String DOCUMENTATION = """
+            # JSON Schema Validation
+
+            Validate data structures against JSON Schema 2020-12 specifications. Two
+            modes: simple boolean checks and detailed validation results with errors.
+
+            ## Function Selection
+
+            | Need                    | Function                         | Returns  |
+            |-------------------------|----------------------------------|----------|
+            | Pass/fail check         | `isCompliant`                    | boolean  |
+            | Pass/fail with $ref     | `isCompliantWithExternalSchemas` | boolean  |
+            | Detailed errors         | `validate`                       | object   |
+            | Detailed with $ref      | `validateWithExternalSchemas`    | object   |
+
+            ## Simple Validation
+
+            Check if input matches expected structure:
+
+            ```sapl
+            policy "validate request body"
+            permit
+                action == "api:create"
+            where
+                var schema = {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string", "minLength": 1 },
+                        "age":  { "type": "integer", "minimum": 0 }
+                    },
+                    "required": ["name"]
+                };
+                jsonschema.isCompliant(resource.body, schema);
+            ```
+
+            Example: `resource.body = {"name": "Alice", "age": 30}`. Schema requires
+            object with string "name" (min 1 char) and optional integer "age" (min 0).
+            Returns true.
+
+            ## Using $ref for Schema Composition
+
+            When schemas reference other schemas via `$ref`, pass referenced schemas
+            in the `externalSchemas` array. Each external schema must have an `$id`
+            field matching the `$ref` URI.
+
+            ```sapl
+            policy "validate with shared schemas"
+            permit
+            where
+                var addressSchema = {
+                    "$id": "https://example.com/address",
+                    "type": "object",
+                    "properties": {
+                        "city": { "type": "string" },
+                        "zip":  { "type": "string", "pattern": "^[0-9]{5}$" }
+                    },
+                    "required": ["city", "zip"]
+                };
+                var orderSchema = {
+                    "type": "object",
+                    "properties": {
+                        "shipping": { "$ref": "https://example.com/address" }
+                    }
+                };
+                jsonschema.isCompliantWithExternalSchemas(
+                    resource.order, orderSchema, [addressSchema]
+                );
+            ```
+
+            Example: `resource.order = {"shipping": {"city": "Berlin", "zip": "10115"}}`.
+            The orderSchema references addressSchema via `$ref`. The validator resolves
+            `$ref` by matching the URI to the `$id` in externalSchemas. Returns true.
+
+            ## Detailed Error Information
+
+            Use `validate` functions to get error locations and messages:
+
+            ```sapl
+            policy "reject with details"
+            deny
+                action == "submit"
+            where
+                var result = jsonschema.validate(resource.form, resource.formSchema);
+                !result.valid;
+            obligation
+                { "type": "validationError", "errors": result.errors }
+            ```
+
+            Example: If `resource.form = {"zip": "ABC"}` fails pattern validation,
+            `result.errors` contains: `[{"path": "/zip", "message": "does not match
+            pattern ^[0-9]{5}$", "type": "pattern", "schemaPath": "/properties/zip"}]`.
+            """;
 
     // JSON Schema field names
     private static final String SCHEMA_ID_FIELD = "$id";

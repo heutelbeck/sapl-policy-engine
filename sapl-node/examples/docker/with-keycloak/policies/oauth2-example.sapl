@@ -1,0 +1,9 @@
+/*
+ * OAuth2/Keycloak Example Policy
+ *
+ * This policy permits read access for authenticated OAuth2 users.
+ */
+policy "oauth2-permit-read"
+permit
+    action == "read";
+    resource == "document";

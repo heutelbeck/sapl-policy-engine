@@ -4,7 +4,7 @@ title: SAPL Reference
 description: "SAPL is a powerful policy language and engine to implement Attribute-based access control (ABAC). It comes with developement tools for testing, authorization servers, authoring tools. Framework integrations are available for Spring, Axon, and Vaadin to provide flexible policy enforcement points (PEPs) in your application."
 nav_order: 1
 has_children: true
-#permalink: /docs/3.0.0-MD/
+#permalink: /docs/4.0.0-SNAPSHOT/
 has_toc: false
 ---
 

@@ -9,13 +9,13 @@ nav_order: 3
 
 ## Java API
 
-The Java API is based on the reactive libraries of Project Reactor (<https://projectreactor.io/>). The API is defined in the `sapl-pdp-api` module:
+The Java API is based on the reactive libraries of Project Reactor (<https://projectreactor.io/>). The API is defined in the `sapl-api` module:
 
 ```xml
    <dependency>
       <groupId>io.sapl</groupId>
-      <artifactId>sapl-pdp-api</artifactId>
-      <version>3.0.0</version>
+      <artifactId>sapl-api</artifactId>
+      <version>4.0.0-SNAPSHOT</version>
    </dependency>
 ```
 
@@ -88,58 +88,65 @@ public interface PolicyDecisionPoint {
 }
 ```
 
-### Embedded PDP
+### Embedded PDP (Non-Spring)
 
-To use a PDP two implementations of the API are supplied. First, a completely embedded PDP can be used to be deployed with an application. (See: <https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-embedded>)
-
-```xml
-   <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-pdp-embedded</artifactId>
-      <version>3.0.0</version>
-   </dependency>
-```
-
-The library with Spring autoconfiguration support:
+For non-Spring applications, an embedded PDP can be used directly:
 
 ```xml
    <dependency>
       <groupId>io.sapl</groupId>
-      <artifactId>sapl-spring-pdp-embedded</artifactId>
-      <version>3.0.0</version>
+      <artifactId>sapl-pdp</artifactId>
+      <version>4.0.0-SNAPSHOT</version>
    </dependency>
 ```
 
-### Remote PDP
+### Remote PDP Client (Non-Spring)
 
-Alternatively, a remote PDP server can be used via the same interface by using the client implementation. (See: <https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-remote>)
+For non-Spring applications connecting to a remote PDP server:
 
 ```xml
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-remote</artifactId>
-      <version>3.0.0</version>
+      <version>4.0.0-SNAPSHOT</version>
    </dependency>
 ```
 
-The library with Spring autoconfiguration support:
+### Spring Boot Applications
+
+For Spring Boot applications, use the unified starter which includes the embedded PDP, remote PDP client, Spring Security integration, and all autoconfiguration:
 
 ```xml
    <dependency>
       <groupId>io.sapl</groupId>
-      <artifactId>sapl-spring-pdp-remote</artifactId>
-      <version>3.0.0</version>
+      <artifactId>sapl-spring-boot-starter</artifactId>
+      <version>4.0.0-SNAPSHOT</version>
    </dependency>
 ```
 
-### Spring Security Integration and PEP Implementation
+By default, the embedded PDP is active. To use a remote PDP server instead, configure the following properties:
 
-For Spring Security (<https://spring.io/projects/spring-security>), a full PEP implementation is available. A matching Spring PDP implementation also must be declared to use the integration (see above).
+```properties
+io.sapl.pdp.remote.enabled=true
+io.sapl.pdp.remote.host=https://your-pdp-server:8443
+io.sapl.pdp.remote.key=your-client-key
+io.sapl.pdp.remote.secret=your-client-secret
+```
+
+#### Reducing Application Footprint
+
+When using only a remote PDP, you can exclude the embedded PDP dependency to reduce the application size:
 
 ```xml
    <dependency>
       <groupId>io.sapl</groupId>
-      <artifactId>sapl-spring-security</artifactId>
-      <version>3.0.0</version>
+      <artifactId>sapl-spring-boot-starter</artifactId>
+      <version>4.0.0-SNAPSHOT</version>
+      <exclusions>
+         <exclusion>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-pdp</artifactId>
+         </exclusion>
+      </exclusions>
    </dependency>
 ```

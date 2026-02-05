@@ -1,0 +1,108 @@
+{
+  "realm": "sapl-demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "sapl-client",
+      "name": "SAPL Demo Client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "sapl-client-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "300"
+      },
+      "protocolMappers": [
+        {
+          "name": "sapl-pdp-id-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "sapl_pdp_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "sapl_pdp_id",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "production-user",
+      "enabled": true,
+      "email": "production@example.com",
+      "firstName": "Production",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "production123",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "sapl_pdp_id": ["production"]
+      }
+    },
+    {
+      "username": "staging-user",
+      "enabled": true,
+      "email": "staging@example.com",
+      "firstName": "Staging",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "staging123",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "sapl_pdp_id": ["staging"]
+      }
+    },
+    {
+      "username": "default-user",
+      "enabled": true,
+      "email": "default@example.com",
+      "firstName": "Default",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "default123",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "sapl",
+      "description": "SAPL authorization scope",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }
+  ],
+  "defaultDefaultClientScopes": [
+    "sapl"
+  ]
+}

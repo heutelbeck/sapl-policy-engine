@@ -1,0 +1,63 @@
+#
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+services:
+  sapl-node:
+    image: ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+    container_name: sapl-node
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./policies:/pdp/data:ro
+    environment:
+      # Authentication Configuration
+      - IO_SAPL_NODE_ALLOWNOAUTH=false
+      - IO_SAPL_NODE_ALLOWBASICAUTH=true
+      - IO_SAPL_NODE_ALLOWAPIKEYAUTH=false
+      - IO_SAPL_NODE_ALLOWOAUTH2AUTH=false
+
+      # Default PDP Configuration
+      - IO_SAPL_NODE_DEFAULTPDPID=default
+      - IO_SAPL_NODE_REJECTONMISSINGPDPID=false
+
+      # Demo User (username: demo, password: demoPassword123!)
+      # IMPORTANT: Generate your own credentials for production!
+      - IO_SAPL_NODE_USERS_0_ID=demo-client
+      - IO_SAPL_NODE_USERS_0_PDPID=default
+      - IO_SAPL_NODE_USERS_0_BASIC_USERNAME=demo
+      # Password hash for "demoPassword123!" (Argon2id)
+      - IO_SAPL_NODE_USERS_0_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$abc123def456$$encodedHashPlaceholder
+
+      # Policy Configuration
+      - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
+
+      # SSL Configuration (using built-in self-signed cert for demo)
+      # For production, mount your own keystore
+      # - SERVER_SSL_KEYSTORE=/pdp/data/keystore.p12
+      # - SERVER_SSL_KEYSTOREPASSWORD=changeme
+      # - SERVER_SSL_KEYPASSWORD=changeme
+
+      # Logging (verbose for demonstration)
+      - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:8443/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped

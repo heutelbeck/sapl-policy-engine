@@ -528,6 +528,7 @@
 							<header>
 								${main.basedir}/APACHE-2.txt</header>
 							<excludes>
+								<exclude>**/*.sapl</exclude>
 								<exclude>**/*.vim</exclude>
 								<exclude>**/*.lua</exclude>
 								<exclude>**/types.d.ts</exclude>

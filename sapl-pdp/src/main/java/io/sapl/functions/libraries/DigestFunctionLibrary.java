@@ -43,11 +43,55 @@ import java.util.HexFormat;
  * only be used for compatibility with existing systems.
  */
 @UtilityClass
-@FunctionLibrary(name = DigestFunctionLibrary.NAME, description = DigestFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = DigestFunctionLibrary.NAME, description = DigestFunctionLibrary.DESCRIPTION, libraryDocumentation = DigestFunctionLibrary.DOCUMENTATION)
 public class DigestFunctionLibrary {
 
-    public static final String NAME        = "digest";
-    public static final String DESCRIPTION = "Cryptographic hash functions for computing message digests used in integrity verification and content addressing.";
+    public static final String NAME          = "digest";
+    public static final String DESCRIPTION   = "Cryptographic hash functions for computing message digests.";
+    public static final String DOCUMENTATION = """
+            # Message Digests
+
+            Cryptographic hash functions for integrity verification, content addressing,
+            and fingerprinting. All functions return lowercase hexadecimal strings.
+
+            ## Algorithm Selection
+
+            | Algorithm   | Output  | Use Case                                   |
+            |-------------|---------|-------------------------------------------|
+            | `sha256`    | 256-bit | General purpose, widely supported          |
+            | `sha384`    | 384-bit | Higher security, fast on 64-bit systems    |
+            | `sha512`    | 512-bit | Maximum SHA-2 security                     |
+            | `sha3_256`  | 256-bit | Alternative to SHA-2, different construction |
+            | `sha3_512`  | 512-bit | Maximum SHA-3 security                     |
+            | `md5`       | 128-bit | Legacy only - cryptographically broken     |
+            | `sha1`      | 160-bit | Legacy only - cryptographically weak       |
+
+            ## Content Integrity
+
+            Verify that a resource matches an expected hash:
+
+            ```sapl
+            policy "verify document integrity"
+            permit
+                action == "download"
+            where
+                digest.sha256(resource.content) == resource.expectedHash;
+            ```
+
+            ## Consistent Anonymization
+
+            Hash identifiers for privacy while maintaining consistency:
+
+            ```sapl
+            policy "log anonymized"
+            permit
+            obligation
+                {
+                    "type": "log",
+                    "anonymizedUser": digest.sha256(subject.id + environment.salt)
+                }
+            ```
+            """;
 
     private static final String RETURNS_TEXT = """
             {

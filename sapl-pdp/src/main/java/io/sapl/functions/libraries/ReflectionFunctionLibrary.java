@@ -36,11 +36,55 @@ import java.math.BigDecimal;
  * Functions for runtime type inspection and reflection on Value objects.
  */
 @UtilityClass
-@FunctionLibrary(name = ReflectionFunctionLibrary.NAME, description = ReflectionFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = ReflectionFunctionLibrary.NAME, description = ReflectionFunctionLibrary.DESCRIPTION, libraryDocumentation = ReflectionFunctionLibrary.DOCUMENTATION)
 public class ReflectionFunctionLibrary {
 
-    public static final String NAME        = "reflect";
-    public static final String DESCRIPTION = "Functions for runtime type inspection and reflection.";
+    public static final String NAME          = "reflect";
+    public static final String DESCRIPTION   = "Functions for runtime type inspection and reflection.";
+    public static final String DOCUMENTATION = """
+            # Type Reflection
+
+            Functions for runtime type inspection, enabling policies to handle dynamic
+            or heterogeneous data safely. Use these to validate input structure before
+            accessing fields or performing type-specific operations.
+
+            ## Defensive Type Checking
+
+            Validate expected types before accessing nested properties:
+
+            ```sapl
+            policy "safe metadata access"
+            permit
+                action == "read"
+            where
+                reflect.isObject(resource.metadata);
+                reflect.isArray(resource.metadata.tags);
+            ```
+
+            ## Handling Optional Values
+
+            Distinguish between missing, null, and error states:
+
+            ```sapl
+            policy "require defined department"
+            permit
+            where
+                reflect.isDefined(subject.department);
+                subject.department == "engineering";
+            ```
+
+            ## Dynamic Dispatch
+
+            Route logic based on runtime types:
+
+            ```sapl
+            policy "type-aware validation"
+            permit
+            where
+                var id = resource.id;
+                reflect.isText(id) | reflect.isNumber(id);
+            ```
+            """;
 
     private static final String SCHEMA_BOOLEAN = """
             {

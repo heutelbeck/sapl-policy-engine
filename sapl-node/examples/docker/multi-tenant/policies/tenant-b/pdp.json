@@ -1,0 +1,10 @@
+{
+  "algorithm": {
+    "votingMode": "PRIORITY_PERMIT",
+    "defaultDecision": "PERMIT",
+    "errorHandling": "PROPAGATE"
+  },
+  "variables": {
+    "tenant": "tenant-b"
+  }
+}

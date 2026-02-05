@@ -74,11 +74,67 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA_S
  * JVM implementations, providing protection against timing attacks.
  */
 @UtilityClass
-@FunctionLibrary(name = SignatureFunctionLibrary.NAME, description = SignatureFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = SignatureFunctionLibrary.NAME, description = SignatureFunctionLibrary.DESCRIPTION, libraryDocumentation = SignatureFunctionLibrary.DOCUMENTATION)
 public class SignatureFunctionLibrary {
 
-    public static final String NAME        = "signature";
-    public static final String DESCRIPTION = "Digital signature verification functions for RSA, ECDSA, and EdDSA signatures using public key cryptography.";
+    public static final String NAME          = "signature";
+    public static final String DESCRIPTION   = "Digital signature verification functions for RSA, ECDSA, and EdDSA signatures using public key cryptography.";
+    public static final String DOCUMENTATION = """
+            # Digital Signature Verification
+
+            Verify digital signatures using public key cryptography. All functions take
+            a message, signature, and PEM-encoded public key, returning true if valid.
+
+            ## Algorithm Selection
+
+            | Algorithm        | Function            | Key Size | Use Case                |
+            |------------------|---------------------|----------|-------------------------|
+            | RSA + SHA-256    | `isValidRsaSha256`  | 2048+    | General purpose, legacy |
+            | RSA + SHA-512    | `isValidRsaSha512`  | 2048+    | High security RSA       |
+            | ECDSA P-256      | `isValidEcdsaP256`  | 256-bit  | Modern, compact         |
+            | ECDSA P-384      | `isValidEcdsaP384`  | 384-bit  | Government compliance   |
+            | Ed25519          | `isValidEd25519`    | 256-bit  | Fast, modern default    |
+
+            ## API Request Authentication
+
+            Verify signed API requests before processing:
+
+            ```sapl
+            policy "verify api signature"
+            permit
+                action == "api:call"
+            where
+                var payload = action.requestBody;
+                var sig = action.headers.signature;
+                var pubKey = subject.registeredPublicKey;
+                signature.isValidEd25519(payload, sig, pubKey);
+            ```
+
+            Example: `action.requestBody = "{"amount":100}"`, `action.headers.signature`
+            is the Base64-encoded Ed25519 signature. `subject.registeredPublicKey` is
+            a PEM string like `-----BEGIN PUBLIC KEY-----\\nMCo...\\n-----END PUBLIC KEY-----`.
+            Returns true if the signature was created with the matching private key.
+
+            ## Document Integrity Check
+
+            Ensure documents haven't been tampered with:
+
+            ```sapl
+            policy "verify document"
+            permit
+                action == "view"
+            where
+                signature.isValidRsaSha256(
+                    resource.content,
+                    resource.signature,
+                    environment.trustedSignerKey
+                );
+            ```
+
+            Example: `resource.content` is the document text, `resource.signature` is
+            hex-encoded (e.g., "3045022100..."). Signature format is auto-detected
+            (hex or Base64). Returns true if document is authentic.
+            """;
 
     private static final String RETURNS_BOOLEAN = """
             {
