@@ -399,7 +399,7 @@ class BundleCommand {
     }
 
     private static String encodePem(byte[] keyBytes, String beginMarker, String endMarker) {
-        val encoded = Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(keyBytes);
+        val encoded = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8)).encodeToString(keyBytes);
         return beginMarker + "\n" + encoded + "\n" + endMarker + "\n";
     }
 

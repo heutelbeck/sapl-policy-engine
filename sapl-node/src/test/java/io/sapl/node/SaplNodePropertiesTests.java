@@ -85,9 +85,10 @@ class SaplNodePropertiesTests {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(true);
 
-            var user = createUserEntry("user-1", null);
+            var user  = createUserEntry("user-1", null);
+            var users = List.of(user);
 
-            assertThatThrownBy(() -> properties.setUsers(List.of(user))).isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(() -> properties.setUsers(users)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("user-1").hasMessageContaining("no pdpId configured");
         }
 
@@ -97,9 +98,10 @@ class SaplNodePropertiesTests {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(true);
 
-            var user = createUserEntry("user-1", "   ");
+            var user  = createUserEntry("user-1", "   ");
+            var users = List.of(user);
 
-            assertThatThrownBy(() -> properties.setUsers(List.of(user))).isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(() -> properties.setUsers(users)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("user-1");
         }
 

@@ -54,14 +54,13 @@ class SaplNodeAuthenticationTests {
     private static final String   PDP_ID          = "test-pdp";
     private final PasswordEncoder passwordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
 
-    private SaplNodeProperties pdpProperties;
-    private CacheManager       cacheManager;
-    private UserLookupService  userLookupService;
+    private CacheManager      cacheManager;
+    private UserLookupService userLookupService;
 
     @BeforeEach
     void setUp() {
-        pdpProperties = mock(SaplNodeProperties.class);
-        cacheManager  = mock(CacheManager.class);
+        val pdpProperties = mock(SaplNodeProperties.class);
+        cacheManager = mock(CacheManager.class);
 
         val userEntry = new UserEntry();
         userEntry.setId(USER_ID);

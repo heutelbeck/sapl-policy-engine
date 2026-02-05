@@ -29,15 +29,15 @@ import io.sapl.api.SaplVersion;
 /**
  * Authentication token carrying a SaplUser principal.
  */
-public final class SaplAuthenticationToken extends AbstractAuthenticationToken {
+public class SaplAuthenticationToken extends AbstractAuthenticationToken {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final SimpleGrantedAuthority PDP_CLIENT_AUTHORITY = new SimpleGrantedAuthority("ROLE_PDP_CLIENT");
 
-    private final SaplUser         saplUser;
-    private final transient Object credentials;
+    private final SaplUser saplUser;
+    private Object         credentials;
 
     /**
      * Creates an authentication token for the given SAPL user.
@@ -87,6 +87,12 @@ public final class SaplAuthenticationToken extends AbstractAuthenticationToken {
      */
     public String getPdpId() {
         return saplUser.pdpId();
+    }
+
+    @Override
+    public void eraseCredentials() {
+        super.eraseCredentials();
+        this.credentials = null;
     }
 
 }
