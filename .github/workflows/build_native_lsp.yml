@@ -22,12 +22,16 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'sapl-language-server-antlr/**'
-      - '.github/workflows/build_native_lsp.yml'
+    tags:
+      - 'v*'
   pull_request:
     paths:
-      - 'sapl-language-server-antlr/**'
+      - 'pom.xml'
+      - 'sapl-api/**'
+      - 'sapl-language-server/**'
+      - 'sapl-parser/**'
+      - 'sapl-pdp/**'
+      - 'sapl-test-parser/**'
       - '.github/workflows/build_native_lsp.yml'
 
 concurrency:
@@ -35,7 +39,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-native:
@@ -53,33 +57,29 @@ jobs:
             executable: sapl-language-server
       fail-fast: false
 
-    name: Native Build (${{ matrix.os }})
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Harden Runner
         if: matrix.os == 'ubuntu-latest'
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      # Linux: Install GCC and zlib development headers
       - name: Install Native Build Tools (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential zlib1g-dev
 
-      # Windows: Setup Visual Studio Build Tools (MSVC)
       - name: Setup Visual Studio Build Tools (Windows)
         if: matrix.os == 'windows-latest'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
-
-      # macOS: Xcode Command Line Tools are pre-installed on GitHub runners
 
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@22cc13fe88ef133134b3798e128fb208df55e1f5 # v1.2.3
@@ -90,7 +90,7 @@ jobs:
           native-image-job-reports: 'true'
 
       - name: Cache Maven packages
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-native-${{ hashFiles('**/pom.xml') }}
@@ -99,19 +99,166 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Build Dependencies
-        run: mvn -B install -pl sapl-language-server-antlr -am -DskipTests
+        run: mvn -B install -pl sapl-language-server -am -DskipTests
 
       - name: Build Native Image
-        run: mvn -B package -pl sapl-language-server-antlr -Pnative -DskipTests
+        run: mvn -B package -pl sapl-language-server -Pnative -DskipTests
 
       - name: Upload Native Executable
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.artifact-name }}
-          path: sapl-language-server-antlr/target/${{ matrix.executable }}
+          path: sapl-language-server/target/${{ matrix.executable }}
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
 
       - name: Clean up Local Repository before Caching
         shell: bash
         run: rm -rf ~/.m2/repository/io/sapl
+
+  publish-snapshot:
+    name: Publish Snapshot
+    needs: build-native
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        with:
+          egress-policy: audit
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sapl-language-server-linux-amd64
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sapl-language-server-windows-amd64
+          path: artifacts/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sapl-language-server-macos-amd64
+          path: artifacts/macos
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          cp artifacts/linux/sapl-language-server release/sapl-language-server-linux-amd64
+          cp artifacts/windows/sapl-language-server.exe release/sapl-language-server-windows-amd64.exe
+          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-amd64
+          chmod +x release/sapl-language-server-linux-amd64
+          chmod +x release/sapl-language-server-macos-amd64
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Update snapshot release
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        with:
+          tag_name: snapshot
+          name: Latest Snapshot
+          prerelease: true
+          body: |
+            ## Latest Development Snapshot
+
+            This is an automatically updated pre-release containing the latest native builds from the `master` branch.
+
+            **Warning:** This is a development snapshot and may be unstable.
+
+            ### Downloads
+            - `sapl-language-server-linux-amd64` - Linux x86_64
+            - `sapl-language-server-windows-amd64.exe` - Windows x86_64
+            - `sapl-language-server-macos-amd64` - macOS x86_64
+
+            ### Verification
+            Verify downloads using `SHA256SUMS.txt`:
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            Built from commit: ${{ github.sha }}
+          files: release/*
+          fail_on_unmatched_files: true
+
+  publish-release:
+    name: Publish Release
+    needs: build-native
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        with:
+          egress-policy: audit
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sapl-language-server-linux-amd64
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sapl-language-server-windows-amd64
+          path: artifacts/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sapl-language-server-macos-amd64
+          path: artifacts/macos
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          cp artifacts/linux/sapl-language-server release/sapl-language-server-linux-amd64
+          cp artifacts/windows/sapl-language-server.exe release/sapl-language-server-windows-amd64.exe
+          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-amd64
+          chmod +x release/sapl-language-server-linux-amd64
+          chmod +x release/sapl-language-server-macos-amd64
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        with:
+          name: SAPL Language Server ${{ github.ref_name }}
+          body: |
+            ## SAPL Language Server ${{ github.ref_name }}
+
+            Native executables for the SAPL Language Server.
+
+            ### Downloads
+            - `sapl-language-server-linux-amd64` - Linux x86_64
+            - `sapl-language-server-windows-amd64.exe` - Windows x86_64
+            - `sapl-language-server-macos-amd64` - macOS x86_64
+
+            ### Verification
+            Verify downloads using `SHA256SUMS.txt`:
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            ### Usage
+            ```bash
+            # Make executable (Linux/macOS)
+            chmod +x sapl-language-server-*
+
+            # Run in stdio mode (default for IDE integration)
+            ./sapl-language-server-linux-amd64
+            ```
+          files: release/*
+          fail_on_unmatched_files: true
