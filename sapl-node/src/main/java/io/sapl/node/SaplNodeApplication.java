@@ -34,15 +34,24 @@ import picocli.CommandLine;
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
-    private static final Set<String> CLI_ONLY_ARGS = Set.of("--help", "-h", "--version", "-V", "bundle", "credentials");
+    private static final Set<String> CLI_ONLY_ARGS = Set.of("--help", "-h", "--version", "-V", "bundle", "generate");
 
     public static void main(String[] args) {
-        if (isCliOnlyCommand(args)) {
-            int exitCode = new CommandLine(new SaplNodeCli()).execute(args);
+        int exitCode = run(args);
+        if (exitCode != 0 || isCliOnlyCommand(args)) {
             System.exit(exitCode);
-        } else {
-            SpringApplication.run(SaplNodeApplication.class, args);
         }
+    }
+
+    /**
+     * Runs the application and returns an exit code. Testable entry point.
+     */
+    static int run(String[] args) {
+        if (isCliOnlyCommand(args)) {
+            return new CommandLine(new SaplNodeCli()).execute(args);
+        }
+        SpringApplication.run(SaplNodeApplication.class, args);
+        return 0;
     }
 
     private static boolean isCliOnlyCommand(String[] args) {

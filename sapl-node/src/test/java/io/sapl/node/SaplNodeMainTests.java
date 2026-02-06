@@ -17,7 +17,7 @@
  */
 package io.sapl.node;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -42,14 +42,15 @@ class SaplNodeMainTests {
     }
 
     @Test
-    void whenExecutingMain_withGenerateApiKeyCommand_thenSuccessful() {
-        assertThatCode(() -> SaplNodeApplication.main(new String[] { "generate", "apikey" }))
-                .doesNotThrowAnyException();
+    void whenExecutingRun_withGenerateApiKeyCommand_thenReturnsZero() {
+        int exitCode = SaplNodeApplication.run(new String[] { "generate", "apikey" });
+        assertThat(exitCode).isZero();
     }
 
     @Test
-    void whenExecutingMain_withGenerateBasicCommand_thenSuccessful() {
-        assertThatCode(() -> SaplNodeApplication.main(new String[] { "generate", "basic" })).doesNotThrowAnyException();
+    void whenExecutingRun_withGenerateBasicCommand_thenReturnsZero() {
+        int exitCode = SaplNodeApplication.run(new String[] { "generate", "basic" });
+        assertThat(exitCode).isZero();
     }
 
 }
