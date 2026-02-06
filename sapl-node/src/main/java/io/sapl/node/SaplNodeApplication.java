@@ -17,13 +17,16 @@
  */
 package io.sapl.node;
 
-import org.springframework.boot.builder.SpringApplicationBuilder;
+import java.util.Set;
+
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 
 import io.sapl.node.cli.SaplNodeCli;
+import picocli.CommandLine;
 
 @EnableCaching
 @SpringBootApplication(excludeName = "org.springframework.boot.autoconfigure.security.rsocket.RSocketSecurityAutoConfiguration")
@@ -31,18 +34,24 @@ import io.sapl.node.cli.SaplNodeCli;
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
-    /**
-     * Main entry point - delegates to CLI handler.
-     */
+    private static final Set<String> CLI_ONLY_ARGS = Set.of("--help", "-h", "--version", "-V", "bundle", "credentials");
+
     public static void main(String[] args) {
-        SaplNodeCli.main(args);
+        if (isCliOnlyCommand(args)) {
+            int exitCode = new CommandLine(new SaplNodeCli()).execute(args);
+            System.exit(exitCode);
+        } else {
+            SpringApplication.run(SaplNodeApplication.class, args);
+        }
     }
 
-    /**
-     * Starts the Spring Boot server. Called by CLI when no command is specified.
-     */
-    public static void runServer(String[] args) {
-        new SpringApplicationBuilder(SaplNodeApplication.class).main(SaplNodeApplication.class).run(args);
+    private static boolean isCliOnlyCommand(String[] args) {
+        for (var arg : args) {
+            if (CLI_ONLY_ARGS.contains(arg)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

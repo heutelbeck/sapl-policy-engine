@@ -17,48 +17,33 @@
  */
 package io.sapl.node.cli;
 
-import java.util.List;
 import java.util.concurrent.Callable;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.functions.libraries.SaplFunctionLibrary;
-import io.sapl.node.SaplNodeApplication;
 import lombok.val;
-import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Unmatched;
 
 /**
  * Main CLI entry point for sapl-node.
  * <p>
- * When no command is specified, starts the PDP server (Spring Boot).
- * Subcommands like 'bundle' are handled by Picocli without starting Spring.
+ * When no subcommand is specified, the server runs (Spring Boot is already
+ * started).
+ * Subcommands like 'bundle' are handled by picocli within the Spring context.
  */
 @Command(name = "sapl-node", description = "SAPL Policy Decision Point Server", mixinStandardHelpOptions = true, versionProvider = SaplNodeCli.VersionProvider.class, subcommands = {
         BundleCommand.class, GenerateCredentialsCommand.class })
 public class SaplNodeCli implements Callable<Integer> {
 
-    @Unmatched
-    List<String> springArgs;
-
     @Override
     public Integer call() {
-        // Default behavior: start Spring Boot server
-        // Pass any unmatched args to Spring Boot
-        val args = springArgs != null ? springArgs.toArray(String[]::new) : new String[0];
-        SaplNodeApplication.runServer(args);
+        // Default behavior: server is already running (Spring Boot started in main)
+        // Just keep the application alive - Spring handles the web server
         return 0;
     }
 
-    public static void main(String[] args) {
-        val exitCode = new CommandLine(new SaplNodeCli()).execute(args);
-        if (exitCode != 0) {
-            System.exit(exitCode);
-        }
-    }
-
-    static class VersionProvider implements CommandLine.IVersionProvider {
+    static class VersionProvider implements picocli.CommandLine.IVersionProvider {
 
         private static final String UNKNOWN = "unknown";
 

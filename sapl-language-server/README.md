@@ -58,13 +58,7 @@ set GRAALVM_HOME=C:\path\to\graalvm
 mvn package -Pnative -DskipTests
 ```
 
-This produces `target/sapl-language-server` (or `.exe` on Windows), approximately 68MB.
-
-**Performance:**
-| Metric | Native | JAR (JVM) | Improvement |
-|--------|--------|-----------|-------------|
-| Time to first response | ~27ms | ~360ms | 13x faster |
-| Executable size | ~68MB | ~7MB JAR | Self-contained |
+This produces `target/sapl-language-server` (or `.exe` on Windows).
 
 **Benefits:**
 - Near-instant startup (no JVM warmup)

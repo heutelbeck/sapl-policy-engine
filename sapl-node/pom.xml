@@ -338,6 +338,15 @@
 									<goal>process-aot</goal>
 								</goals>
 							</execution>
+							<execution>
+								<id>default</id>
+								<goals>
+									<goal>repackage</goal>
+								</goals>
+								<configuration>
+									<skip>true</skip>
+								</configuration>
+							</execution>
 						</executions>
 					</plugin>
 					<plugin>
@@ -360,10 +369,7 @@
 								<buildArg>--no-fallback</buildArg>
 								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
 								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>--install-exit-handlers</buildArg>
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>--strict-image-heap</buildArg>
-								<buildArg>--enable-sbom=cyclonedx,export</buildArg>
 								<buildArg>-march=compatibility</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
@@ -387,6 +393,15 @@
 									<goal>process-aot</goal>
 								</goals>
 							</execution>
+							<execution>
+								<id>default</id>
+								<goals>
+									<goal>repackage</goal>
+								</goals>
+								<configuration>
+									<skip>true</skip>
+								</configuration>
+							</execution>
 						</executions>
 					</plugin>
 					<plugin>
@@ -409,10 +424,7 @@
 								<buildArg>--no-fallback</buildArg>
 								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
 								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>--install-exit-handlers</buildArg>
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>--strict-image-heap</buildArg>
-								<buildArg>--enable-sbom=cyclonedx,export</buildArg>
 								<buildArg>-march=compatibility</buildArg>
 								<buildArg>--static</buildArg>
 								<buildArg>--libc=musl</buildArg>

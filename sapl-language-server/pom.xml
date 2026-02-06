@@ -283,10 +283,7 @@
 								<buildArg>--no-fallback</buildArg>
 								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
 								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>--install-exit-handlers</buildArg>
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>--strict-image-heap</buildArg>
-								<buildArg>--enable-sbom=cyclonedx,export</buildArg>
 								<buildArg>-march=compatibility</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
@@ -321,10 +318,7 @@
 								<buildArg>--no-fallback</buildArg>
 								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
 								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>--install-exit-handlers</buildArg>
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>--strict-image-heap</buildArg>
-								<buildArg>--enable-sbom=cyclonedx,export</buildArg>
 								<buildArg>-march=compatibility</buildArg>
 								<buildArg>--static</buildArg>
 								<buildArg>--libc=musl</buildArg>
