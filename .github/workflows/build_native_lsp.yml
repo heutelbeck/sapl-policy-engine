@@ -49,12 +49,15 @@ jobs:
           - os: ubuntu-latest
             artifact-name: sapl-language-server-linux-amd64
             executable: sapl-language-server
+            profile: native-linux
           - os: windows-latest
             artifact-name: sapl-language-server-windows-amd64
             executable: sapl-language-server.exe
+            profile: native
           - os: macos-latest
             artifact-name: sapl-language-server-macos-amd64
             executable: sapl-language-server
+            profile: native
       fail-fast: false
 
     name: Build (${{ matrix.os }})
@@ -75,7 +78,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential zlib1g-dev
+          sudo apt-get install -y build-essential zlib1g-dev musl-tools
 
       - name: Setup Visual Studio Build Tools (Windows)
         if: matrix.os == 'windows-latest'
@@ -102,7 +105,7 @@ jobs:
         run: mvn -B install -pl sapl-language-server -am -DskipTests
 
       - name: Build Native Image
-        run: mvn -B package -pl sapl-language-server -Pnative -DskipTests
+        run: mvn -B package -pl sapl-language-server -P${{ matrix.profile }} -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -174,7 +177,7 @@ jobs:
             **Warning:** This is a development snapshot and may be unstable.
 
             ### Downloads
-            - `sapl-language-server-linux-amd64` - Linux x86_64
+            - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
             - `sapl-language-server-windows-amd64.exe` - Windows x86_64
             - `sapl-language-server-macos-amd64` - macOS x86_64
 
@@ -242,7 +245,7 @@ jobs:
             Native executables for the SAPL Language Server.
 
             ### Downloads
-            - `sapl-language-server-linux-amd64` - Linux x86_64
+            - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
             - `sapl-language-server-windows-amd64.exe` - Windows x86_64
             - `sapl-language-server-macos-amd64` - macOS x86_64
 
