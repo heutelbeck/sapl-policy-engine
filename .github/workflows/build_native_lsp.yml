@@ -55,7 +55,7 @@ jobs:
             executable: sapl-language-server.exe
             profile: native
           - os: macos-latest
-            artifact-name: sapl-language-server-macos-amd64
+            artifact-name: sapl-language-server-macos-arm64
             executable: sapl-language-server
             profile: native
       fail-fast: false
@@ -78,7 +78,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential zlib1g-dev musl-tools
+          sudo apt-get install -y build-essential musl-dev musl-tools
+          # Build static zlib for musl (required for static native-image)
+          curl -sL https://zlib.net/zlib-1.3.1.tar.gz | tar xz
+          cd zlib-1.3.1
+          CC=musl-gcc ./configure --static --prefix=/usr/local/musl
+          make -j$(nproc)
+          sudo make install
+          sudo ln -sf /usr/local/musl/lib/libz.a /usr/lib/x86_64-linux-musl/
 
       - name: Setup Visual Studio Build Tools (Windows)
         if: matrix.os == 'windows-latest'
@@ -146,7 +153,7 @@ jobs:
       - name: Download macOS artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: sapl-language-server-macos-amd64
+          name: sapl-language-server-macos-arm64
           path: artifacts/macos
 
       - name: Prepare release assets
@@ -154,9 +161,9 @@ jobs:
           mkdir -p release
           cp artifacts/linux/sapl-language-server release/sapl-language-server-linux-amd64
           cp artifacts/windows/sapl-language-server.exe release/sapl-language-server-windows-amd64.exe
-          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-amd64
+          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-arm64
           chmod +x release/sapl-language-server-linux-amd64
-          chmod +x release/sapl-language-server-macos-amd64
+          chmod +x release/sapl-language-server-macos-arm64
 
       - name: Generate checksums
         run: |
@@ -179,7 +186,7 @@ jobs:
             ### Downloads
             - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
             - `sapl-language-server-windows-amd64.exe` - Windows x86_64
-            - `sapl-language-server-macos-amd64` - macOS x86_64
+            - `sapl-language-server-macos-arm64` - macOS Apple Silicon (ARM64)
 
             ### Verification
             Verify downloads using `SHA256SUMS.txt`:
@@ -218,7 +225,7 @@ jobs:
       - name: Download macOS artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: sapl-language-server-macos-amd64
+          name: sapl-language-server-macos-arm64
           path: artifacts/macos
 
       - name: Prepare release assets
@@ -226,9 +233,9 @@ jobs:
           mkdir -p release
           cp artifacts/linux/sapl-language-server release/sapl-language-server-linux-amd64
           cp artifacts/windows/sapl-language-server.exe release/sapl-language-server-windows-amd64.exe
-          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-amd64
+          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-arm64
           chmod +x release/sapl-language-server-linux-amd64
-          chmod +x release/sapl-language-server-macos-amd64
+          chmod +x release/sapl-language-server-macos-arm64
 
       - name: Generate checksums
         run: |
@@ -247,7 +254,7 @@ jobs:
             ### Downloads
             - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
             - `sapl-language-server-windows-amd64.exe` - Windows x86_64
-            - `sapl-language-server-macos-amd64` - macOS x86_64
+            - `sapl-language-server-macos-arm64` - macOS Apple Silicon (ARM64)
 
             ### Verification
             Verify downloads using `SHA256SUMS.txt`:
