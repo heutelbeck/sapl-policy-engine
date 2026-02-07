@@ -1,12 +1,11 @@
 import test.upper as uppies
 
 set "testPolicies"
-deny-unless-permit
+priority permit or deny
 
 policy "policy 1"
 permit
-    action == "read"
-where
+    action == "read";
     subject.<test.upper> == "WILLI";
     var test = 1;
     time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";

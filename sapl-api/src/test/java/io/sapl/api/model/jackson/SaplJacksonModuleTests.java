@@ -442,8 +442,8 @@ class SaplJacksonModuleTests {
     void when_roundTrippingPDPConfiguration_then_configurationPreserved() throws JacksonException {
         val algorithm = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
         val original  = new PDPConfiguration("dunwich-pdp", "elder-security", algorithm,
-                List.of("policy whateley-access permit where action == \"read\"",
-                        "policy stone-circles deny where subject.sanity < 50"),
+                List.of("policy whateley-access permit action == \"read\"",
+                        "policy stone-circles deny subject.sanity < 50"),
                 new PdpData(Value.ofObject(Map.of("threshold", Value.of(42), "location", Value.of("standing stones"),
                         "active", Value.TRUE)), Value.EMPTY_OBJECT));
 
@@ -551,7 +551,6 @@ class SaplJacksonModuleTests {
         val multilinePolicy = """
                 policy "elder-sign-access"
                 permit
-                where
                     subject.role == "investigator";
                     action == "read";
                     resource.classification != "restricted";

@@ -53,8 +53,9 @@ import picocli.CommandLine.Spec;
  * <p>
  * These commands run without starting Spring Boot for fast execution.
  */
-@Command(name = "bundle", description = "Policy bundle operations", subcommands = { BundleCommand.Create.class,
-        BundleCommand.Sign.class, BundleCommand.Verify.class, BundleCommand.Inspect.class, BundleCommand.Keygen.class })
+@Command(name = "bundle", description = "Policy bundle operations", mixinStandardHelpOptions = true, subcommands = {
+        BundleCommand.Create.class, BundleCommand.Sign.class, BundleCommand.Verify.class, BundleCommand.Inspect.class,
+        BundleCommand.Keygen.class })
 class BundleCommand {
 
     private static final String PDP_JSON       = "pdp.json";
@@ -79,7 +80,7 @@ class BundleCommand {
     private static final String ERROR_VERIFYING_BUNDLE    = "Error verifying bundle: ";
     private static final String HINT_USE_FORCE            = "Use --force to overwrite";
 
-    @Command(name = "create", description = "Create a policy bundle from a directory")
+    @Command(name = "create", description = "Create a policy bundle from a directory", mixinStandardHelpOptions = true)
     static class Create implements Callable<Integer> {
 
         @Spec
@@ -136,7 +137,7 @@ class BundleCommand {
 
     }
 
-    @Command(name = "sign", description = "Sign a policy bundle")
+    @Command(name = "sign", description = "Sign a policy bundle", mixinStandardHelpOptions = true)
     static class Sign implements Callable<Integer> {
 
         @Spec
@@ -203,7 +204,7 @@ class BundleCommand {
 
     }
 
-    @Command(name = "verify", description = "Verify a signed policy bundle")
+    @Command(name = "verify", description = "Verify a signed policy bundle", mixinStandardHelpOptions = true)
     static class Verify implements Callable<Integer> {
 
         @Spec
@@ -269,7 +270,7 @@ class BundleCommand {
 
     }
 
-    @Command(name = "inspect", description = "Show bundle contents and metadata")
+    @Command(name = "inspect", description = "Show bundle contents and metadata", mixinStandardHelpOptions = true)
     static class Inspect implements Callable<Integer> {
 
         @Spec
@@ -342,7 +343,7 @@ class BundleCommand {
 
     }
 
-    @Command(name = "keygen", description = "Generate Ed25519 keypair for bundle signing")
+    @Command(name = "keygen", description = "Generate Ed25519 keypair for bundle signing", mixinStandardHelpOptions = true)
     static class Keygen implements Callable<Integer> {
 
         @Spec

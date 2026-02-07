@@ -205,7 +205,7 @@ class CoverageWriterTests {
     void whenSourceAvailable_thenIncludesLineCount() throws IOException {
         val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val source         = "policy \"test\" permit\nwhere\n    true;";
+        val source         = "policy \"test\" permit\n    true;";
         val coverage       = new PolicyCoverageData("test", source, "policy");
         coverageRecord.addPolicyCoverage(coverage);
 
@@ -214,7 +214,7 @@ class CoverageWriterTests {
         val json   = MAPPER.readTree(Files.readString(writer.getCoverageFilePath()).trim());
         val policy = json.get("policies").get(0);
 
-        assertThat(policy.get("lineCount").asInt()).isEqualTo(3);
+        assertThat(policy.get("lineCount").asInt()).isEqualTo(2);
         assertThat(policy.has("sourceHash")).isTrue();
     }
 

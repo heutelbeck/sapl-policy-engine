@@ -41,8 +41,7 @@ class BundleCommandTests {
     private static final String TEST_POLICY = """
             policy "test-policy"
             permit
-            where
-              action == "read";
+                action == "read";
             """;
 
     private static final String TEST_PDP_JSON = """

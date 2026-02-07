@@ -42,17 +42,16 @@ import io.sapl.lsp.sapl.completion.ContextAnalyzer.ProposalType;
 class ContextAnalyzerTests {
 
     static Stream<Arguments> functionContextTestCases() {
-        return Stream.of(
-                arguments("Simple no-arg function call", "policy \"test\" permit where time.now().", "time.now"),
-                arguments("Function with single argument", "policy \"test\" permit where time.dayOfWeekFrom(now).",
+        return Stream.of(arguments("Simple no-arg function call", "policy \"test\" permit time.now().", "time.now"),
+                arguments("Function with single argument", "policy \"test\" permit time.dayOfWeekFrom(now).",
                         "time.dayOfWeekFrom"),
-                arguments("Simple function without namespace", "policy \"test\" permit where foo().", "foo"),
-                arguments("Nested function calls - outermost detected", "policy \"test\" permit where outer(inner()).",
+                arguments("Simple function without namespace", "policy \"test\" permit foo().", "foo"),
+                arguments("Nested function calls - outermost detected", "policy \"test\" permit outer(inner()).",
                         "outer"),
-                arguments("Function with multiple arguments",
-                        "policy \"test\" permit where format(template, arg1, arg2).", "format"),
-                arguments("Chained function calls - last function detected",
-                        "policy \"test\" permit where first().second().", "second"));
+                arguments("Function with multiple arguments", "policy \"test\" permit format(template, arg1, arg2).",
+                        "format"),
+                arguments("Chained function calls - last function detected", "policy \"test\" permit first().second().",
+                        "second"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -67,12 +66,12 @@ class ContextAnalyzerTests {
 
     static Stream<Arguments> attributeContextTestCases() {
         return Stream.of(
-                arguments("Regular attribute after subject", "policy \"test\" permit where subject.<auth.user>.",
-                        "auth.user", ProposalType.ATTRIBUTE),
-                arguments("Environment attribute with pipe", "policy \"test\" permit where |<clock.now>.", "clock.now",
+                arguments("Regular attribute after subject", "policy \"test\" permit subject.<auth.user>.", "auth.user",
+                        ProposalType.ATTRIBUTE),
+                arguments("Environment attribute with pipe", "policy \"test\" permit|<clock.now>.", "clock.now",
                         ProposalType.ENVIRONMENT_ATTRIBUTE),
-                arguments("Attribute with arguments", "policy \"test\" permit where subject.<db.query(sql)>.",
-                        "db.query", ProposalType.ATTRIBUTE));
+                arguments("Attribute with arguments", "policy \"test\" permit subject.<db.query(sql)>.", "db.query",
+                        ProposalType.ATTRIBUTE));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -87,9 +86,9 @@ class ContextAnalyzerTests {
 
     static Stream<Arguments> typingAfterDotTestCases() {
         return Stream.of(
-                arguments("Typing after function call dot", "policy \"test\" permit where time.now().ye",
+                arguments("Typing after function call dot", "policy \"test\" permit time.now().ye",
                         ProposalType.FUNCTION, "time.now", "ye"),
-                arguments("Typing after attribute dot", "policy \"test\" permit where subject.<auth.user>.na",
+                arguments("Typing after attribute dot", "policy \"test\" permit subject.<auth.user>.na",
                         ProposalType.ATTRIBUTE, "auth.user", "na"));
     }
 
@@ -106,14 +105,14 @@ class ContextAnalyzerTests {
 
     @Test
     void whenCursorAtSimpleDot_thenVariableOrFunctionType() {
-        var result = analyzeAtEnd("policy \"test\" permit where subject.");
+        var result = analyzeAtEnd("policy \"test\" permit subject.");
 
         assertThat(result.type()).isEqualTo(ProposalType.VARIABLE_OR_FUNCTION_NAME);
     }
 
     @Test
     void whenCursorTypingIdentifier_thenVariableOrFunctionType() {
-        var result = analyzeAtEnd("policy \"test\" permit where sub");
+        var result = analyzeAtEnd("policy \"test\" permit sub");
 
         assertThat(result.type()).isEqualTo(ProposalType.VARIABLE_OR_FUNCTION_NAME);
     }

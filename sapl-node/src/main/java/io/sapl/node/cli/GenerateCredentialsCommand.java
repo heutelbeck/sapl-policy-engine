@@ -29,11 +29,11 @@ import picocli.CommandLine.Spec;
 /**
  * Commands for generating authentication credentials.
  */
-@Command(name = "generate", description = "Generate authentication credentials", subcommands = {
+@Command(name = "generate", description = "Generate authentication credentials", mixinStandardHelpOptions = true, subcommands = {
         GenerateCredentialsCommand.BasicCredentials.class, GenerateCredentialsCommand.ApiKey.class })
 class GenerateCredentialsCommand {
 
-    @Command(name = "basic", description = "Generate Basic Auth credentials (Argon2 encoded)")
+    @Command(name = "basic", description = "Generate Basic Auth credentials (Argon2 encoded)", mixinStandardHelpOptions = true)
     static class BasicCredentials implements Callable<Integer> {
 
         @Spec
@@ -89,7 +89,7 @@ class GenerateCredentialsCommand {
 
     }
 
-    @Command(name = "apikey", description = "Generate an API key")
+    @Command(name = "apikey", description = "Generate an API key", mixinStandardHelpOptions = true)
     static class ApiKey implements Callable<Integer> {
 
         @Spec

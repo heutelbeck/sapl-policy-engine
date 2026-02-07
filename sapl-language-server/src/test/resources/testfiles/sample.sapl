@@ -3,6 +3,5 @@
  */
 policy "allow read access"
 permit
-    action == "read"
-where
+    action == "read";
     subject.role == "user";

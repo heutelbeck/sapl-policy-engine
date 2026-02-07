@@ -83,9 +83,9 @@ public class SAPLCompletionProvider {
     private static final Set<String> ENTITLEMENT_KEYWORDS = Set.of("permit", "deny");
 
     // After entitlement - policy structure keywords
-    private static final Set<String> POLICY_STRUCTURE_KEYWORDS = Set.of("where", "obligation", "advice", "transform");
+    private static final Set<String> POLICY_STRUCTURE_KEYWORDS = Set.of("obligation", "advice", "transform");
 
-    // Inside policy body (after where) - statement-level
+    // Inside policy body - statement-level
     private static final Set<String> BODY_STATEMENT_KEYWORDS = Set.of("var");
 
     // Expression-only keywords (inside any expression context)

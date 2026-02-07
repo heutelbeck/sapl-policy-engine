@@ -164,7 +164,8 @@ class BundleManifestTests {
         val original = BundleManifest.builder().created(Instant.parse("2024-06-15T12:00:00Z"))
                 .expires(Instant.parse("2025-06-15T12:00:00Z"))
                 .addFile("arkham.sapl", "policy \"asylum\" permit subject.role == \"doctor\"")
-                .addFile("pdp.json", "{ \"algorithm\": \"DENY_UNLESS_PERMIT\" }")
+                .addFile("pdp.json",
+                        "{ \"algorithm\": { \"votingMode\": \"PRIORITY_PERMIT\", \"defaultDecision\": \"DENY\", \"errorHandling\": \"ABSTAIN\" } }")
                 .signature("arkham-key", "YXJraGFtX3NpZw==").build();
 
         val json     = original.toJson();

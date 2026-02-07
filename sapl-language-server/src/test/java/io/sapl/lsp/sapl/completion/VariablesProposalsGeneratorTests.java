@@ -44,18 +44,17 @@ class VariablesProposalsGeneratorTests {
     private static final String POLICY_WITH_BODY = """
             policy "test"
             permit
-            where
-              var user = subject.name;
-              var role = subject.role;
+                var user = subject.name;
+                var role = subject.role;
             """;
 
     private static final String POLICY_SET_WITH_VARS = """
             set "test-set"
-            deny-overrides
+            priority deny or permit
             var adminRole = "ADMIN"
             policy "admin-only"
-            permit where
-              subject.role == adminRole;
+            permit
+                subject.role == adminRole;
             """;
 
     private static final String POLICY_WITH_SCHEMA = """

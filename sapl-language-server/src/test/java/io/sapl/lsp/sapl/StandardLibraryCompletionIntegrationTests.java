@@ -81,7 +81,7 @@ class StandardLibraryCompletionIntegrationTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("standardFunctionLibraryTestCases")
     void whenInExpressionContext_thenStandardFunctionOffered(String description, String expectedFunction) {
-        var document = "policy \"test\" permit where ";
+        var document = "policy \"test\" permit ";
         var position = positionAtEnd(document);
 
         var completions = getCompletions(document, position);
@@ -102,7 +102,7 @@ class StandardLibraryCompletionIntegrationTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("pipAttributeTestCases")
     void whenInAttributeContext_thenPIPAttributeOffered(String description, String expectedAttribute) {
-        var document = "policy \"test\" permit where |<";
+        var document = "policy \"test\" permit |<";
         var position = positionAtEnd(document);
 
         var completions = getCompletions(document, position);
@@ -113,7 +113,7 @@ class StandardLibraryCompletionIntegrationTests {
 
     @Test
     void whenInExpressionContext_thenAllMajorLibrariesRepresented() {
-        var document = "policy \"test\" permit where ";
+        var document = "policy \"test\" permit ";
         var position = positionAtEnd(document);
 
         var completions     = getCompletions(document, position);
@@ -148,7 +148,7 @@ class StandardLibraryCompletionIntegrationTests {
 
     @Test
     void whenCompletionsRequested_thenFunctionDocumentationIncluded() {
-        var document = "policy \"test\" permit where ";
+        var document = "policy \"test\" permit ";
         var position = positionAtEnd(document);
 
         var completions = getCompletions(document, position);
@@ -160,7 +160,7 @@ class StandardLibraryCompletionIntegrationTests {
 
     @Test
     void whenCompletionsRequested_thenSnippetsProvided() {
-        var document = "policy \"test\" permit where ";
+        var document = "policy \"test\" permit ";
         var position = positionAtEnd(document);
 
         var completions = getCompletions(document, position);
@@ -172,7 +172,7 @@ class StandardLibraryCompletionIntegrationTests {
 
     @Test
     void whenTypingQualifiedPrefix_thenCompletionsFilteredByPrefix() {
-        var document = "policy \"test\" permit where time.b";
+        var document = "policy \"test\" permit time.b";
         var position = positionAtEnd(document);
 
         var completions = getCompletions(document, position);
@@ -186,7 +186,7 @@ class StandardLibraryCompletionIntegrationTests {
 
     @Test
     void whenTypingLibraryPrefix_thenOnlyMatchingLibrariesShown() {
-        var document = "policy \"test\" permit where ti";
+        var document = "policy \"test\" permit ti";
         var position = positionAtEnd(document);
 
         var completions = getCompletions(document, position);

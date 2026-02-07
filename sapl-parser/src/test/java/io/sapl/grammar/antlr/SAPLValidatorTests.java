@@ -47,7 +47,6 @@ class SAPLValidatorTests {
                 policy "test" permit
                 """), arguments("attribute in variable schema", """
                 policy "test" permit
-                where
                     var x = 123 schema subject.<pip.schema>;
                 """));
     }
@@ -73,13 +72,11 @@ class SAPLValidatorTests {
                 """), arguments("policy with operators in body", """
                 policy "test"
                 permit
-                where
                     subject == "admin" && action == "read";
                     subject == "user" || subject == "guest";
                 """), arguments("attributes in policy body", """
                 policy "test"
                 permit
-                where
                     <time.now> != undefined;
                     subject.<pip.attribute> == "value";
                     |<clock.ticker> != undefined;
@@ -87,8 +84,8 @@ class SAPLValidatorTests {
                 """), arguments("policy set with valid structure", """
                 set "test" priority deny or abstain errors propagate
                 var globalVar = "value";
-                policy "p1" permit where subject == "admin";
-                policy "p2" deny where resource == "secret";
+                policy "p1" permit subject == "admin";
+                policy "p2" deny resource == "secret";
                 """), arguments("static schema expressions", """
                 subject schema { "type": "object" }
                 action enforced schema { "type": "string" }
@@ -96,18 +93,15 @@ class SAPLValidatorTests {
                 environment schema { "type": "object" }
 
                 policy "test" permit
-                where
                     var x = 123 schema { "type": "number" };
                 """), arguments("normal variable names", """
                 policy "test" permit
-                where
                     var mySubject = subject;
                     var actionName = action;
                     var resourceId = resource.id;
                     var envValue = environment.value;
                 """), arguments("reserved words as field access", """
                 policy "test" permit
-                where
                     subject.subject == "value";
                     action.action == "read";
                     resource.resource == "data";
@@ -119,7 +113,6 @@ class SAPLValidatorTests {
 
                 policy "complex"
                 permit
-                where
                     var userId = subject.id;
                     userId != null;
                     subject.role == "admin";

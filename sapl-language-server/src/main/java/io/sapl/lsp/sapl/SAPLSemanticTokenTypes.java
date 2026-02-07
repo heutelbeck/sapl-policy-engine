@@ -60,7 +60,7 @@ final class SAPLSemanticTokenTypes {
      * SAPL keywords that should be highlighted.
      */
     public static final Set<String> KEYWORDS = Set.of("import", "as", "schema", "enforced", "set", "for", "policy",
-            "where", "var", "obligation", "advice", "transform", "in", "each", "true", "false", "null", "undefined");
+            "var", "obligation", "advice", "transform", "in", "each", "true", "false", "null", "undefined");
 
     /**
      * Entitlements and combining algorithms - get special macro styling.

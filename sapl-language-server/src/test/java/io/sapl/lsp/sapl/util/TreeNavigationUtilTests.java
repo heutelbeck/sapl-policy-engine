@@ -39,8 +39,7 @@ class TreeNavigationUtilTests {
     private static final String SIMPLE_POLICY = """
             policy "test"
             permit
-            where
-              var foo = 5;
+                var foo = 5;
             """;
 
     @Test
@@ -93,8 +92,7 @@ class TreeNavigationUtilTests {
         var document = """
                 policy "test"
                 permit
-                where
-                  (1 + 2);
+                    (1 + 2);
                 """;
         var sapl     = parse(document);
         var body     = getPolicyBody(sapl);
@@ -171,7 +169,7 @@ class TreeNavigationUtilTests {
     }
 
     @Test
-    void whenOffsetOf_policyBody_thenReturnsWhereOffset() {
+    void whenOffsetOf_policyBody_thenReturnsBodyOffset() {
         var sapl = parse(SIMPLE_POLICY);
         var body = getPolicyBody(sapl);
         if (body == null) {
@@ -180,7 +178,7 @@ class TreeNavigationUtilTests {
 
         var offset = TreeNavigationUtil.offsetOf(body);
 
-        assertThat(offset).isEqualTo(SIMPLE_POLICY.indexOf("where"));
+        assertThat(offset).isEqualTo(SIMPLE_POLICY.indexOf("var"));
     }
 
     @Test
