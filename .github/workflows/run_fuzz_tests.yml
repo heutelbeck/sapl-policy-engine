@@ -1,8 +1,7 @@
 name: Run Fuzz Tests
 
 on:
-  schedule:
-    - cron: '0 0 * * *' # This schedule runs the action every day at midnight.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -34,5 +33,5 @@ jobs:
       - name: Build with Maven
         run: |
           mvn clean install -DskipTests
-          cd ./sapl-pdp-embedded
+          cd ./sapl-pdp
           mvn test -Prun_fuzz_tests
