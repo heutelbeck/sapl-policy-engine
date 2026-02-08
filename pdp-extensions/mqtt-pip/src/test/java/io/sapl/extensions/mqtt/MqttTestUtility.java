@@ -59,18 +59,19 @@ class MqttTestUtility {
     }
 
     @SneakyThrows
-    public static EmbeddedHiveMQ startBroker(EmbeddedHiveMQ broker) {
+    public static void startBroker(EmbeddedHiveMQ broker) {
         try {
             broker.start().get();
         } catch (ExecutionException | InterruptedException e) {
             broker.close();
             throw e;
         }
-        return broker;
     }
 
     public static EmbeddedHiveMQ buildAndStartBroker(Path configDir, Path dataDir, Path extensionsDir) {
-        return startBroker(buildBroker(configDir, dataDir, extensionsDir));
+        var broker = buildBroker(configDir, dataDir, extensionsDir);
+        startBroker(broker);
+        return broker;
     }
 
     public static void stopBroker(EmbeddedHiveMQ broker) {

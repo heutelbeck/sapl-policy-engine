@@ -132,7 +132,7 @@ public class StandardLibrariesLoader {
         for (var libraryClass : FUNCTION_LIBRARIES) {
             try {
                 broker.loadStaticFunctionLibrary(libraryClass);
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 log.warn("Failed to load function library {}: {}", libraryClass.getSimpleName(), e.getMessage());
             }
         }
@@ -146,20 +146,20 @@ public class StandardLibrariesLoader {
 
         try {
             broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(clock));
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.warn("Failed to load TimePolicyInformationPoint: {}", e.getMessage());
         }
 
         try {
             var webClient = new DummyReactiveWebClient(JsonMapper.builder().build());
             broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(webClient));
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.warn("Failed to load HttpPolicyInformationPoint: {}", e.getMessage());
         }
 
         try {
             broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.warn("Failed to load JWTPolicyInformationPoint: {}", e.getMessage());
         }
 
@@ -172,7 +172,7 @@ public class StandardLibrariesLoader {
         for (var libraryClass : FUNCTION_LIBRARIES) {
             try {
                 libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(libraryClass));
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 log.warn("Failed to extract documentation from {}: {}", libraryClass.getSimpleName(), e.getMessage());
             }
         }
@@ -180,7 +180,7 @@ public class StandardLibrariesLoader {
         for (var pipClass : POLICY_INFORMATION_POINTS) {
             try {
                 libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(pipClass));
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 log.warn("Failed to extract documentation from {}: {}", pipClass.getSimpleName(), e.getMessage());
             }
         }
