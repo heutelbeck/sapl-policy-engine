@@ -29,6 +29,7 @@ import io.sapl.api.pdp.PdpData;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class PlaygroundConfigurationSource {
 
-    private static final String PDP_ID = "playground";
+    private static final String PDP_ID = DynamicPolicyDecisionPoint.DEFAULT_PDP_ID;
 
     @Getter
     private final PdpVoterSource pdpVoterSource;
