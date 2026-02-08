@@ -33,7 +33,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
 import io.sapl.compiler.pdp.PdpCompiler;
-import io.sapl.pdp.CompiledPDPConfigurationSource;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * changes.
  */
 @Slf4j
-public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSource {
+public class PlaygroundConfigurationSource implements PdpVoterSource {
 
     private static final String PDP_ID = "playground";
 

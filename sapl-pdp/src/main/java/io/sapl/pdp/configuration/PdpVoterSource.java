@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp;
+package io.sapl.pdp.configuration;
 
 import io.sapl.compiler.pdp.CompiledPdpVoter;
 import reactor.core.publisher.Flux;
 
 import java.util.Optional;
 
-public interface CompiledPDPConfigurationSource {
+public interface PdpVoterSource {
     /**
      * Returns a reactive stream of configuration updates for the specified PDP. Use
      * this for long-lived streaming

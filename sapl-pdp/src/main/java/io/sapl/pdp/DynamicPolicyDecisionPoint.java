@@ -22,6 +22,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -34,18 +35,18 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
     public static final String ERROR_NO_PDP_CONFIGURATION = "No PDP configuration found.";
 
-    private final CompiledPDPConfigurationSource pdpConfigurationSource;
-    private final IdFactory                      idFactory;
-    private final Mono<String>                   pdpIdExtractor;
-    private final List<VoteInterceptor>          interceptors;
+    private final PdpVoterSource        pdpConfigurationSource;
+    private final IdFactory             idFactory;
+    private final Mono<String>          pdpIdExtractor;
+    private final List<VoteInterceptor> interceptors;
 
-    public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
+    public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
             Mono<String> pdpIdExtractor) {
         this(pdpConfigurationSource, idFactory, pdpIdExtractor, List.of());
     }
 
-    public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
+    public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
             Mono<String> pdpIdExtractor,
             List<VoteInterceptor> interceptors) {

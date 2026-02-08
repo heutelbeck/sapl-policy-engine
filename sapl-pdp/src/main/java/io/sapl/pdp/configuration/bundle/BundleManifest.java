@@ -83,8 +83,8 @@ import java.util.TreeMap;
  * @see BundleBuilder
  * @see BundleParser
  */
-@JsonPropertyOrder({ "version", "hashAlgorithm", "created", "expires", "files", "signature" })
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ "version", "hashAlgorithm", "created", "expires", "files", "signature" })
 public record BundleManifest(
         @JsonProperty("version") String version,
         @JsonProperty("hashAlgorithm") String hashAlgorithm,

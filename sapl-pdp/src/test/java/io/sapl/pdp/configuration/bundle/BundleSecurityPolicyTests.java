@@ -61,8 +61,8 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenCreatingRequireSignatureThenSignatureIsRequired() {
-        val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+    void whenBuildingWithPublicKeyThenSignatureIsRequired() {
+        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
 
         assertThat(policy.signatureRequired()).isTrue();
         assertThat(policy.publicKey()).isEqualTo(elderKeyPair.getPublic());
@@ -76,12 +76,6 @@ class BundleSecurityPolicyTests {
 
         assertThat(policy.signatureRequired()).isTrue();
         assertThat(policy.checkExpiration()).isTrue();
-    }
-
-    @Test
-    void whenRequireSignatureWithNullKeyThenThrowsException() {
-        assertThatThrownBy(() -> BundleSecurityPolicy.requireSignature(null))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Public key must not be null");
     }
 
     @Test
@@ -132,7 +126,7 @@ class BundleSecurityPolicyTests {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                 .withPolicy("cultist-access.sapl", "policy \"cultist\" permit subject.initiated == true").build();
 
-        val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
 
         assertThatThrownBy(() -> BundleParser.parse(bundle, "test-pdp", policy))
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not signed");
@@ -167,7 +161,7 @@ class BundleSecurityPolicyTests {
                 .withPolicy("necronomicon.sapl", "policy \"tome\" deny subject.sanity < 50")
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
 
-        val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
         val config = BundleParser.parse(bundle, "library-pdp", policy);
 
         assertThat(config.pdpId()).isEqualTo("library-pdp");
@@ -181,7 +175,7 @@ class BundleSecurityPolicyTests {
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
 
         val wrongKeyPair = generateEd25519KeyPair();
-        val policy       = BundleSecurityPolicy.requireSignature(wrongKeyPair.getPublic());
+        val policy       = BundleSecurityPolicy.builder(wrongKeyPair.getPublic()).build();
 
         assertThatThrownBy(() -> BundleParser.parse(bundle, "cult-pdp", policy))
                 .isInstanceOf(BundleSignatureException.class);
@@ -207,7 +201,7 @@ class BundleSecurityPolicyTests {
                 .withPolicy("ancient-scroll.sapl", "policy \"scroll\" permit subject.scholar == true")
                 .signWith(elderKeyPair.getPrivate(), "ancient-key").expiresAt(expiredTime).build();
 
-        val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
         val config = BundleParser.parse(bundle, "museum-pdp", policy);
 
         assertThat(config.pdpId()).isEqualTo("museum-pdp");
@@ -228,7 +222,7 @@ class BundleSecurityPolicyTests {
 
     @Test
     void whenCheckUnsignedBundleAllowedWithSignatureRequiredThenThrows() {
-        val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
 
         assertThatThrownBy(() -> policy.checkUnsignedBundleAllowed("test-bundle"))
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not signed")
@@ -252,7 +246,7 @@ class BundleSecurityPolicyTests {
 
     @Test
     void whenValidateWithRequiredSignatureAndKeyThenSucceeds() {
-        val policy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
 
         policy.validate();
     }
@@ -282,12 +276,12 @@ class BundleSecurityPolicyTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("nonEd25519KeyAlgorithms")
-    void whenRequireSignatureWithNonEd25519KeyThenThrowsException(String algorithm) throws Exception {
+    void whenBuilderWithNonEd25519KeyThenThrowsException(String algorithm) throws Exception {
         val keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
         val keyPair          = keyPairGenerator.generateKeyPair();
         val publicKey        = keyPair.getPublic();
-        assertThatThrownBy(() -> BundleSecurityPolicy.requireSignature(publicKey))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Ed25519");
+        assertThatThrownBy(() -> BundleSecurityPolicy.builder(publicKey)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Ed25519");
     }
 
     static Stream<Arguments> nonEd25519KeyAlgorithms() {

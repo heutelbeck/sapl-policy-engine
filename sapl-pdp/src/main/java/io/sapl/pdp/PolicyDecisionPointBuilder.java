@@ -17,8 +17,9 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.pdp.configuration.DefaultPdpVoterSource;
+import io.sapl.pdp.configuration.source.*;
 import reactor.core.publisher.Mono;
-import reactor.util.context.ContextView;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeBrokerException;
@@ -39,11 +40,6 @@ import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
-import io.sapl.pdp.configuration.BundlePDPConfigurationSource;
-import io.sapl.pdp.configuration.DirectoryPDPConfigurationSource;
-import io.sapl.pdp.configuration.MultiDirectoryPDPConfigurationSource;
-import io.sapl.pdp.configuration.PDPConfigurationSource;
-import io.sapl.pdp.configuration.ResourcesPDPConfigurationSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.val;
@@ -81,7 +77,7 @@ import java.util.function.Function;
  * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies")).build();
  *
  * // From bundle files
- * var securityPolicy = BundleSecurityPolicy.requireSignature(publicKey);
+ * var securityPolicy = BundleSecurityPolicy.builder(publicKey).build();
  * var pdpComponents = PolicyDecisionPointBuilder.withDefaults()
  *         .withBundleDirectorySource(Path.of("/bundles"), securityPolicy).build();
  *
@@ -587,7 +583,7 @@ public class PolicyDecisionPointBuilder {
      * configuration. Changes are monitored and hot-reloaded.
      * <p>
      * The security policy determines how bundle signatures are verified. Use
-     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * {@link BundleSecurityPolicy#builder(java.security.PublicKey)} for
      * production environments.
      * </p>
      * <p>
@@ -649,7 +645,7 @@ public class PolicyDecisionPointBuilder {
      * queues.
      * <p>
      * The security policy determines how bundle signatures are verified. Use
-     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * {@link BundleSecurityPolicy#builder(java.security.PublicKey)} for
      * production environments.
      * </p>
      * <p>
@@ -676,7 +672,7 @@ public class PolicyDecisionPointBuilder {
      * receiving bundles via HTTP uploads.
      * <p>
      * The security policy determines how bundle signatures are verified. Use
-     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * {@link BundleSecurityPolicy#builder(java.security.PublicKey)} for
      * production environments.
      * </p>
      * <p>
@@ -702,7 +698,7 @@ public class PolicyDecisionPointBuilder {
      * Loads a configuration from a bundle file path.
      * <p>
      * The security policy determines how bundle signatures are verified. Use
-     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * {@link BundleSecurityPolicy#builder(java.security.PublicKey)} for
      * production environments.
      * </p>
      * <p>
@@ -785,7 +781,7 @@ public class PolicyDecisionPointBuilder {
     public PDPComponents build() throws AttributeBrokerException {
         val functionBroker        = resolveFunctionBroker();
         val attributeBroker       = resolveAttributeBroker();
-        val configurationRegister = new PdpRegister(functionBroker, attributeBroker);
+        val configurationRegister = new DefaultPdpVoterSource(functionBroker, attributeBroker);
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
         val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
@@ -899,7 +895,7 @@ public class PolicyDecisionPointBuilder {
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
-            PdpRegister pdpRegister,
+            DefaultPdpVoterSource defaultPdpVoterSource,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker,
             @Nullable PDPConfigurationSource source,

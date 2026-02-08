@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp;
+package io.sapl.pdp.configuration;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
@@ -74,7 +74,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class PdpRegister implements CompiledPDPConfigurationSource {
+public class DefaultPdpVoterSource implements PdpVoterSource {
 
     private final FunctionBroker  functionBroker;
     private final AttributeBroker attributeBroker;

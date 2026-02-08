@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.security.PublicKey;
@@ -56,8 +57,8 @@ import java.util.Set;
  * // Load trusted public key from secure storage
  * PublicKey trustedKey = loadFromKeyStore();
  *
- * // Create policy requiring valid signatures
- * BundleSecurityPolicy policy = BundleSecurityPolicy.requireSignature(trustedKey);
+ * // Create policy requiring valid signatures (default)
+ * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).build();
  *
  * // With expiration enforcement
  * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).withExpirationCheck().build();
@@ -106,6 +107,7 @@ import java.util.Set;
  * @see BundleSigner
  */
 @Slf4j
+@RequiredArgsConstructor
 public final class BundleSecurityPolicy {
 
     private static final Set<String> ED25519_ALGORITHM_NAMES                          = Set.of("Ed25519", "EdDSA");
@@ -122,42 +124,12 @@ public final class BundleSecurityPolicy {
     private final boolean   checkExpiration;
     private final boolean   unsignedBundleRiskAccepted;
 
-    private BundleSecurityPolicy(PublicKey publicKey,
-            boolean signatureRequired,
-            boolean checkExpiration,
-            boolean unsignedBundleRiskAccepted) {
-        this.publicKey                  = publicKey;
-        this.signatureRequired          = signatureRequired;
-        this.checkExpiration            = checkExpiration;
-        this.unsignedBundleRiskAccepted = unsignedBundleRiskAccepted;
-    }
-
     /**
-     * Creates a security policy requiring valid Ed25519 signatures.
+     * Creates a builder for security policy configuration with signature
+     * verification enabled.
      * <p>
-     * This is the recommended configuration for production environments. All
-     * bundles must be signed with a key that can
-     * be verified against the provided public key.
-     * </p>
-     *
-     * @param publicKey
-     * Ed25519 public key for signature verification
-     *
-     * @return security policy requiring signatures
-     *
-     * @throws IllegalArgumentException
-     * if publicKey is null or not Ed25519
-     */
-    public static BundleSecurityPolicy requireSignature(PublicKey publicKey) {
-        validatePublicKey(publicKey);
-        return new BundleSecurityPolicy(publicKey, true, false, false);
-    }
-
-    /**
-     * Creates a builder for custom security policy configuration.
-     * <p>
-     * Use this when you need signature verification with additional options like
-     * expiration checking.
+     * The builder defaults to requiring valid signatures. Use additional methods
+     * to enable options like expiration checking.
      * </p>
      *
      * @param publicKey

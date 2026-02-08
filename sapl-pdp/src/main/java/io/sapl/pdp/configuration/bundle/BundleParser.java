@@ -19,7 +19,6 @@ package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -30,11 +29,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -105,7 +101,7 @@ import java.util.zip.ZipInputStream;
  * PublicKey trustedKey = loadFromKeyStore();
  *
  * // Create security policy requiring signatures
- * BundleSecurityPolicy policy = BundleSecurityPolicy.requireSignature(trustedKey);
+ * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).build();
  *
  * // Parse bundle with signature verification
  * PDPConfiguration security = BundleParser.parse(bundlePath, "production", "v1.0", policy);
@@ -147,7 +143,6 @@ public class BundleParser {
 
     private static final int READ_BUFFER_SIZE = 4096;
 
-    private static final String ERROR_BUNDLE_SIGNED_BUT_NO_PUBLIC_KEY   = "Bundle '%s' is signed but no public key is configured for verification. Configure a public key or explicitly accept unsigned bundle risks.";
     private static final String ERROR_COMPRESSION_RATIO_EXCEEDS         = "Compression ratio exceeds %d:1.";
     private static final String ERROR_COMPRESSION_RATIO_EXCEEDS_MAXIMUM = "Compression ratio %.1f:1 exceeds maximum %d:1.";
     private static final String ERROR_ENTRY_NAME_TOO_LONG               = "Entry name too long (>%d).";
@@ -155,7 +150,6 @@ public class BundleParser {
     private static final String ERROR_FAILED_TO_READ_BUNDLE             = "Failed to read bundle file.";
     private static final String ERROR_NESTED_ARCHIVE_DETECTED           = "Nested archive detected.";
     private static final String ERROR_PATH_TRAVERSAL_ATTEMPT            = "ZIP security violation: Path traversal attempt in bundle from %s.";
-    private static final String ERROR_SECURITY_POLICY_REQUIRED          = "Security policy is required. Use BundleSecurityPolicy.requireSignature(publicKey) for production or explicitly disable verification with risk acceptance for development.";
     private static final String ERROR_TOO_MANY_ENTRIES                  = "Too many entries (>%d).";
     private static final String ERROR_UNCOMPRESSED_SIZE_EXCEEDS         = "Uncompressed size exceeds %d MB.";
     private static final String ERROR_ZIP_BOMB_DETECTED                 = "ZIP bomb detected: %s Source: %s.";
@@ -278,7 +272,7 @@ public class BundleParser {
                 .toPDPConfiguration(pdpId, securityPolicy);
     }
 
-    private BundleContent parseInternal(InputStream inputStream, long compressedSize, String sourceDescription) {
+    private Bundle parseInternal(InputStream inputStream, long compressedSize, String sourceDescription) {
         val content           = new HashMap<String, String>();
         var totalUncompressed = 0L;
         var entryCount        = 0;
@@ -311,7 +305,7 @@ public class BundleParser {
         return toBundleContent(content);
     }
 
-    private BundleContent toBundleContent(HashMap<String, String> content) {
+    private Bundle toBundleContent(HashMap<String, String> content) {
         val manifestJson = content.remove(MANIFEST_FILENAME);
         val pdpJson      = content.remove(PDP_JSON);
         val saplFiles    = new HashMap<String, String>();
@@ -327,7 +321,7 @@ public class BundleParser {
             manifest = BundleManifest.fromJson(manifestJson);
         }
 
-        return new BundleContent(pdpJson, saplFiles, manifest);
+        return new Bundle(pdpJson, saplFiles, manifest);
     }
 
     private boolean isSkippableEntry(ZipEntry entry, String normalizedName) {
@@ -429,57 +423,4 @@ public class BundleParser {
         return (double) uncompressedSize / compressedSize > MAX_COMPRESSION_RATIO;
     }
 
-    /**
-     * Intermediate representation of extracted bundle content.
-     *
-     * @param pdpJson
-     * the pdp.json content, or null if not present
-     * @param saplDocuments
-     * map of SAPL document names to content
-     * @param manifest
-     * the bundle manifest, or null if bundle is unsigned
-     */
-    private record BundleContent(String pdpJson, Map<String, String> saplDocuments, BundleManifest manifest) {
-
-        PDPConfiguration toPDPConfiguration(String pdpId, BundleSecurityPolicy securityPolicy) {
-            verifySignature(pdpId, securityPolicy);
-            return PDPConfigurationLoader.loadFromBundle(pdpJson, saplDocuments, pdpId);
-        }
-
-        private void verifySignature(String pdpId, BundleSecurityPolicy securityPolicy) {
-            if (securityPolicy == null) {
-                throw new BundleSignatureException(ERROR_SECURITY_POLICY_REQUIRED);
-            }
-
-            val isSigned = manifest != null && BundleSigner.isSigned(manifest);
-
-            if (!isSigned) {
-                // Delegate to security policy - it will throw if not allowed
-                securityPolicy.checkUnsignedBundleAllowed(pdpId);
-                return;
-            }
-
-            // Bundle is signed - verify it
-            val publicKey = securityPolicy.publicKey();
-            if (publicKey == null) {
-                throw new BundleSignatureException(ERROR_BUNDLE_SIGNED_BUT_NO_PUBLIC_KEY.formatted(pdpId));
-            }
-
-            val filesForVerification = buildVerificationMap();
-            val currentTime          = securityPolicy.checkExpiration() ? Instant.now() : null;
-
-            BundleSigner.verify(manifest, filesForVerification, publicKey, currentTime);
-        }
-
-        private Map<String, String> buildVerificationMap() {
-            val files = new TreeMap<String, String>();
-
-            if (pdpJson != null) {
-                files.put(PDP_JSON, pdpJson);
-            }
-
-            files.putAll(saplDocuments);
-            return files;
-        }
-    }
 }

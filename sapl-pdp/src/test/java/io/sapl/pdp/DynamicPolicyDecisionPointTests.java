@@ -25,6 +25,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
+import io.sapl.pdp.configuration.DefaultPdpVoterSource;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -62,14 +63,14 @@ class DynamicPolicyDecisionPointTests {
     private static final CombiningAlgorithm ONLY_ONE_APPLICABLE = new CombiningAlgorithm(VotingMode.UNIQUE,
             DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
-    private PdpRegister                pdpRegister;
+    private DefaultPdpVoterSource      defaultPdpVoterSource;
     private DynamicPolicyDecisionPoint pdp;
 
     @BeforeEach
     void setUp() throws Exception {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
-        pdpRegister = components.pdpRegister();
-        pdp         = (DynamicPolicyDecisionPoint) components.pdp();
+        defaultPdpVoterSource = components.defaultPdpVoterSource();
+        pdp                   = (DynamicPolicyDecisionPoint) components.pdp();
     }
 
     @Test
@@ -385,6 +386,6 @@ class DynamicPolicyDecisionPointTests {
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
-        pdpRegister.loadConfiguration(configuration(algorithm, policies), false);
+        defaultPdpVoterSource.loadConfiguration(configuration(algorithm, policies), false);
     }
 }

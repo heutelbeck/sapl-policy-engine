@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.configuration;
+package io.sapl.pdp.configuration.source;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
@@ -77,7 +78,7 @@ class BundlePDPConfigurationSourceTests {
         developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
                 .build();
 
-        signedPolicy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+        signedPolicy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
     }
 
     @AfterEach

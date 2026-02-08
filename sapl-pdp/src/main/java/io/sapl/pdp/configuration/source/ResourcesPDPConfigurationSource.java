@@ -15,11 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.configuration;
+package io.sapl.pdp.configuration.source;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

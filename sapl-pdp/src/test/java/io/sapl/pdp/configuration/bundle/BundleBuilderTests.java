@@ -82,7 +82,7 @@ class BundleBuilderTests {
         developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
                 .build();
 
-        signedPolicy = BundleSecurityPolicy.requireSignature(cultKeyPair.getPublic());
+        signedPolicy = BundleSecurityPolicy.builder(cultKeyPair.getPublic()).build();
     }
 
     @Test
@@ -427,7 +427,7 @@ class BundleBuilderTests {
                 .signWith(cultKeyPair.getPrivate(), "rlyeh-key").build();
 
         val wrongKeyPair = generateEd25519KeyPair();
-        val wrongPolicy  = BundleSecurityPolicy.requireSignature(wrongKeyPair.getPublic());
+        val wrongPolicy  = BundleSecurityPolicy.builder(wrongKeyPair.getPublic()).build();
 
         assertThatThrownBy(() -> BundleParser.parse(bundle, "cult-pdp", wrongPolicy))
                 .isInstanceOf(BundleSignatureException.class);

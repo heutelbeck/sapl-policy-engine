@@ -15,9 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.configuration;
+package io.sapl.pdp.configuration.source;
 
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
@@ -58,7 +59,7 @@ import java.util.function.Consumer;
  * This source requires a {@link BundleSecurityPolicy} that determines how
  * bundle signatures are verified. In production
  * environments, use
- * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} to
+ * {@link BundleSecurityPolicy#builder(java.security.PublicKey)} to
  * enforce that all bundles
  * are cryptographically signed.
  * </p>
