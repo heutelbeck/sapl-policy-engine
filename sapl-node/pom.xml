@@ -116,7 +116,6 @@
 			<!-- required for Argon2 -->
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk18on</artifactId>
-			<version>1.81</version>
 		</dependency>
 		<!-- Caching with Caffeine -->
 		<dependency>
