@@ -74,7 +74,7 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withDefaults().build();
 
         assertThat(components.pdp()).isNotNull();
-        assertThat(components.defaultPdpVoterSource()).isNotNull();
+        assertThat(components.pdpVoterSource()).isNotNull();
         assertThat(components.functionBroker()).isNotNull();
         assertThat(components.attributeBroker()).isNotNull();
         assertThat(components.source()).isNull();
@@ -87,7 +87,7 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
 
         assertThat(components.pdp()).isNotNull();
-        assertThat(components.defaultPdpVoterSource()).isNotNull();
+        assertThat(components.pdpVoterSource()).isNotNull();
         assertThat(components.source()).isNull();
 
         disposeSource(components);
@@ -186,7 +186,7 @@ class PolicyDecisionPointBuilderTests {
                 .withConfiguration(config2).build();
 
         // Both configurations should be loaded
-        assertThat(components.defaultPdpVoterSource()).isNotNull();
+        assertThat(components.pdpVoterSource()).isNotNull();
 
         disposeSource(components);
     }
@@ -240,7 +240,7 @@ class PolicyDecisionPointBuilderTests {
     void whenRegisteringCustomSourceAfterResourcesSourceThenExceptionIsThrown() {
         val builder = PolicyDecisionPointBuilder.withoutDefaults().withResourcesSource();
 
-        assertThatThrownBy(() -> builder.withConfigurationSource(callback -> null))
+        assertThatThrownBy(() -> builder.withConfigurationSource(voterSource -> null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("configuration source has already been registered");
     }

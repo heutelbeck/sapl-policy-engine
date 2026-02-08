@@ -97,6 +97,7 @@
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.42</lombok.version>
 		<jupiter.version>6.0.2</jupiter.version>
+		<guava.version>33.5.0-jre</guava.version>
 		<assertj.version>3.27.7</assertj.version>
 		<jspecify.version>1.0.0</jspecify.version>
 		<flexmark.version>0.64.8</flexmark.version>
@@ -105,10 +106,9 @@
 		<classgraph.version>4.8.184</classgraph.version>
 		<commons-io.version>2.21.0</commons-io.version>
 		<commons-lang.version>3.20.0</commons-lang.version>
-        <reactor-netty.version>1.3.2</reactor-netty.version>
+		<reactor-netty.version>1.3.2</reactor-netty.version>
 		<testcontainers.version>2.0.3</testcontainers.version>
-        <nimbus-jose-jwt.version>10.7</nimbus-jose-jwt.version>
-		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
+		<nimbus-jose-jwt.version>10.7</nimbus-jose-jwt.version>
 		<spotbugs-annotations.version>4.9.8</spotbugs-annotations.version>
 		<json-schema-validator.version>3.0.0</json-schema-validator.version>
 		<jetbrains-annotations.version>26.0.2-1</jetbrains-annotations.version>
@@ -148,21 +148,11 @@
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- Testing Scope Dependencies -->
+			<!-- Unify transitive Guava versions -->
 			<dependency>
-				<groupId>com.spotify</groupId>
-				<artifactId>hamcrest-pojo</artifactId>
-				<version>${spotify.hamcrest.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.spotify</groupId>
-				<artifactId>hamcrest-optional</artifactId>
-				<version>${spotify.hamcrest.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.spotify</groupId>
-				<artifactId>hamcrest-jackson</artifactId>
-				<version>${spotify.hamcrest.version}</version>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>${guava.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.assertj</groupId>

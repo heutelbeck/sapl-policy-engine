@@ -167,21 +167,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-jackson</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-optional</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-pojo</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>

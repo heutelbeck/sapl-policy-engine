@@ -18,8 +18,8 @@
 package io.sapl.pdp.configuration.source;
 
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.Disposable;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -27,60 +27,27 @@ import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 /**
- * Source of PDP configurations that notifies a callback when configurations
- * change.
- * <p>
- * Implementations handle the specifics of where configurations come from
- * (filesystem directories, ZIP bundles,
- * classpath resources) and monitor for changes. When a configuration is loaded
- * or updated, the implementation invokes
- * the callback provided at construction time.
- * <p>
- * The callback-based design provides several benefits:
- * <ul>
- * <li><b>Simple lifecycle:</b> No subscription management - dispose stops
- * watching</li>
- * <li><b>Spring-friendly:</b> Sources are beans with standard destroy
- * methods</li>
- * <li><b>Testable:</b> Callbacks are easy to mock and verify</li>
- * <li><b>Clear dependencies:</b> Source depends on consumer (via callback), not
- * vice versa</li>
- * </ul>
- * <p>
- * Example usage:
- *
- * <pre>{@code
- * // Create source with callback to configuration register
- * var source = new DirectoryPDPConfigurationSource(Path.of("/policies"), "default",
- *         security -> register.loadConfiguration(security, true));
- *
- * // Source automatically loads initial configuration and watches for changes
- * // When done, dispose to stop file watching
- * source.dispose();
- * }</pre>
- * <p>
- * Thread Safety: Implementations must be thread-safe. The callback may be
- * invoked from background threads (e.g., file
- * watcher threads).
+ * Utility class for PDP identifier validation and path resolution.
  */
-public interface PDPConfigurationSource extends Disposable {
+@UtilityClass
+public class PdpIdValidator {
 
-    String DEFAULT_PDP_ID = "default";
+    public static final String DEFAULT_PDP_ID = "default";
 
-    String ERROR_PDP_ID_EXCEEDS_MAX_LENGTH = "PDP identifier exceeds maximum length of %d characters.";
-    String ERROR_PDP_ID_INVALID_CHARACTERS = "PDP identifier contains invalid characters. Only alphanumeric characters, hyphens, underscores, and dots are allowed.";
-    String ERROR_PDP_ID_NULL_OR_EMPTY      = "PDP identifier must not be null or empty.";
+    static final String ERROR_PDP_ID_EXCEEDS_MAX_LENGTH = "PDP identifier exceeds maximum length of %d characters.";
+    static final String ERROR_PDP_ID_INVALID_CHARACTERS = "PDP identifier contains invalid characters. Only alphanumeric characters, hyphens, underscores, and dots are allowed.";
+    static final String ERROR_PDP_ID_NULL_OR_EMPTY      = "PDP identifier must not be null or empty.";
 
     /**
      * Maximum allowed length for PDP identifiers.
      */
-    int MAX_PDP_ID_LENGTH = 255;
+    public static final int MAX_PDP_ID_LENGTH = 255;
 
     /**
      * Pattern for valid PDP identifiers: alphanumeric, hyphens, underscores, and
      * dots.
      */
-    Pattern VALID_PDP_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
+    public static final Pattern VALID_PDP_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
 
     /**
      * Validates a PDP identifier.
@@ -91,7 +58,7 @@ public interface PDPConfigurationSource extends Disposable {
      * @throws PDPConfigurationException
      * if the pdpId is invalid
      */
-    static void validatePdpId(String pdpId) {
+    public static void validatePdpId(String pdpId) {
         if (pdpId == null || pdpId.isEmpty()) {
             throw new PDPConfigurationException(ERROR_PDP_ID_NULL_OR_EMPTY);
         }
@@ -111,7 +78,7 @@ public interface PDPConfigurationSource extends Disposable {
      *
      * @return true if valid, false otherwise
      */
-    static boolean isValidPdpId(String pdpId) {
+    public static boolean isValidPdpId(String pdpId) {
         return pdpId != null && !pdpId.isEmpty() && pdpId.length() <= MAX_PDP_ID_LENGTH
                 && VALID_PDP_ID_PATTERN.matcher(pdpId).matches();
     }
@@ -120,9 +87,8 @@ public interface PDPConfigurationSource extends Disposable {
      * Resolves the home folder marker (~) in a path string.
      * <p>
      * If the path starts with ~ followed by the system file separator, the ~ is
-     * replaced with the user's home directory
-     * (from the "user.home" system property). Otherwise, the path is returned
-     * as-is.
+     * replaced with the user's home directory (from the "user.home" system
+     * property). Otherwise, the path is returned as-is.
      * </p>
      * <p>
      * This method normalizes forward slashes to the system file separator for
@@ -134,7 +100,7 @@ public interface PDPConfigurationSource extends Disposable {
      *
      * @return the resolved path
      */
-    static Path resolveHomeFolderIfPresent(String path) {
+    public static Path resolveHomeFolderIfPresent(String path) {
         val normalizedPath = path.replace("/", File.separator);
 
         if (normalizedPath.startsWith("~" + File.separator)) {
@@ -156,7 +122,7 @@ public interface PDPConfigurationSource extends Disposable {
      *
      * @return the resolved path
      */
-    static Path resolveHomeFolderIfPresent(Path path) {
+    public static Path resolveHomeFolderIfPresent(Path path) {
         return resolveHomeFolderIfPresent(path.toString());
     }
 

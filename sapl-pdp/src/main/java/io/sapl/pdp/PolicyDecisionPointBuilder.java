@@ -17,8 +17,9 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.pdp.configuration.DefaultPdpVoterSource;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.*;
+import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeBroker;
@@ -53,7 +54,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -107,14 +107,13 @@ import java.util.function.Function;
  *     public class PdpConfiguration {
  *
  *         &#64;Bean
- *         public PDPComponents pdpComponents(PDPConfigurationSource source) {
+ *         public PDPComponents pdpComponents() {
  *             return PolicyDecisionPointBuilder.withDefaults().build();
  *         }
  *
  *         &#64;Bean(destroyMethod = "dispose")
- *         public PDPConfigurationSource policySource(PdpRegister register) {
- *             return new DirectoryPDPConfigurationSource(Path.of("/policies"),
- *                     security -> register.loadConfiguration(security, true));
+ *         public Disposable policySource(PdpVoterSource voterSource) {
+ *             return new DirectoryPDPConfigurationSource(Path.of("/policies"), voterSource);
  *         }
  *     }
  * }
@@ -169,10 +168,10 @@ public class PolicyDecisionPointBuilder {
 
     private final List<VoteInterceptor> interceptors = new ArrayList<>();
 
-    private Mono<String>                                                 pdpIdExtractor        = Mono
+    private Mono<String>                         pdpIdExtractor        = Mono
             .just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID);
-    private Function<Consumer<PDPConfiguration>, PDPConfigurationSource> sourceFactory;
-    private final List<PDPConfiguration>                                 initialConfigurations = new ArrayList<>();
+    private Function<PdpVoterSource, Disposable> sourceFactory;
+    private final List<PDPConfiguration>         initialConfigurations = new ArrayList<>();
 
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
@@ -497,8 +496,7 @@ public class PolicyDecisionPointBuilder {
      * @throws IllegalStateException
      * if a configuration source has already been registered
      */
-    public PolicyDecisionPointBuilder withConfigurationSource(
-            Function<Consumer<PDPConfiguration>, PDPConfigurationSource> sourceFactory) {
+    public PolicyDecisionPointBuilder withConfigurationSource(Function<PdpVoterSource, Disposable> sourceFactory) {
         if (this.sourceFactory != null) {
             throw new IllegalStateException(ERROR_SOURCE_ALREADY_REGISTERED);
         }
@@ -517,7 +515,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withDirectorySource(Path directoryPath) {
-        return withConfigurationSource(callback -> new DirectoryPDPConfigurationSource(directoryPath, callback));
+        return withConfigurationSource(voterSource -> new DirectoryPDPConfigurationSource(directoryPath, voterSource));
     }
 
     /**
@@ -536,7 +534,8 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withDirectorySource(Path directoryPath, String pdpId) {
-        return withConfigurationSource(callback -> new DirectoryPDPConfigurationSource(directoryPath, pdpId, callback));
+        return withConfigurationSource(
+                voterSource -> new DirectoryPDPConfigurationSource(directoryPath, pdpId, voterSource));
     }
 
     /**
@@ -554,7 +553,8 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath) {
-        return withConfigurationSource(callback -> new MultiDirectoryPDPConfigurationSource(directoryPath, callback));
+        return withConfigurationSource(
+                voterSource -> new MultiDirectoryPDPConfigurationSource(directoryPath, voterSource));
     }
 
     /**
@@ -574,7 +574,7 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath, boolean includeRootFiles) {
         return withConfigurationSource(
-                callback -> new MultiDirectoryPDPConfigurationSource(directoryPath, includeRootFiles, callback));
+                voterSource -> new MultiDirectoryPDPConfigurationSource(directoryPath, includeRootFiles, voterSource));
     }
 
     /**
@@ -602,7 +602,7 @@ public class PolicyDecisionPointBuilder {
     public PolicyDecisionPointBuilder withBundleDirectorySource(Path bundleDirectoryPath,
             BundleSecurityPolicy securityPolicy) {
         return withConfigurationSource(
-                callback -> new BundlePDPConfigurationSource(bundleDirectoryPath, securityPolicy, callback));
+                voterSource -> new BundlePDPConfigurationSource(bundleDirectoryPath, securityPolicy, voterSource));
     }
 
     /**
@@ -622,7 +622,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withResourcesSource(String resourcePath) {
-        return withConfigurationSource(callback -> new ResourcesPDPConfigurationSource(resourcePath, callback));
+        return withConfigurationSource(voterSource -> new ResourcesPDPConfigurationSource(resourcePath, voterSource));
     }
 
     /**
@@ -781,7 +781,7 @@ public class PolicyDecisionPointBuilder {
     public PDPComponents build() throws AttributeBrokerException {
         val functionBroker        = resolveFunctionBroker();
         val attributeBroker       = resolveAttributeBroker();
-        val configurationRegister = new DefaultPdpVoterSource(functionBroker, attributeBroker);
+        val configurationRegister = new PdpVoterSource(functionBroker, attributeBroker);
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
         val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
@@ -800,13 +800,9 @@ public class PolicyDecisionPointBuilder {
             configurationRegister.loadConfiguration(config, false);
         }
 
-        // Create configuration source with callback to register
-        // Source calls the callback during construction with initial configs
-        // and continues calling it when files change (for directory/bundle sources)
-        PDPConfigurationSource source = null;
+        Disposable source = null;
         if (sourceFactory != null) {
-            Consumer<PDPConfiguration> callback = config -> configurationRegister.loadConfiguration(config, true);
-            source = sourceFactory.apply(callback);
+            source = sourceFactory.apply(configurationRegister);
         }
 
         return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, source, timestampClock,
@@ -895,10 +891,10 @@ public class PolicyDecisionPointBuilder {
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
-            DefaultPdpVoterSource defaultPdpVoterSource,
+            PdpVoterSource pdpVoterSource,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker,
-            @Nullable PDPConfigurationSource source,
+            @Nullable Disposable source,
             LazyFastClock timestampClock,
             List<VoteInterceptor> sortedInterceptors) {
 

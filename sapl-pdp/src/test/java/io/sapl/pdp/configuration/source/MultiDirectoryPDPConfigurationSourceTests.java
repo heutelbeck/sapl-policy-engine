@@ -23,10 +23,15 @@ import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,10 +43,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-
-import org.junit.jupiter.api.DisplayName;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @DisplayName("MultiDirectoryPDPConfigurationSource")
+@ExtendWith(MockitoExtension.class)
 class MultiDirectoryPDPConfigurationSourceTests {
 
     private static final CombiningAlgorithm DENY_OVERRIDES     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
@@ -54,6 +63,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
     @TempDir
     Path tempDir;
 
+    @Mock
+    PdpVoterSource pdpVoterSource;
+
     private MultiDirectoryPDPConfigurationSource source;
 
     @AfterEach
@@ -63,16 +75,25 @@ class MultiDirectoryPDPConfigurationSourceTests {
         }
     }
 
+    private CopyOnWriteArrayList<PDPConfiguration> captureConfigurations() {
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        doAnswer(inv -> {
+            configs.add(inv.getArgument(0));
+            return null;
+        }).when(pdpVoterSource).loadConfiguration(any(), eq(true));
+        return configs;
+    }
+
     @Test
-    void whenLoadingFromSubdirectoriesThenCallbackIsInvokedForEach() throws IOException {
+    void whenLoadingFromSubdirectoriesThenVoterSourceReceivesConfigForEach() throws IOException {
         createSubdirectoryWithPolicy("arkham", DENY_OVERRIDES, "forbidden.sapl",
                 "policy \"forbidden\" deny subject.sanity < 50;");
         createSubdirectoryWithPolicy("innsmouth", PERMIT_OVERRIDES, "access.sapl",
                 "policy \"access\" permit subject.species == \"deep_one\";");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(2);
 
@@ -96,9 +117,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         createFile(tempDir.resolve("root-policy.sapl"), "policy \"root\" permit true;");
         createSubdirectoryWithPolicy("tenant-a", PERMIT_OVERRIDES, "tenant.sapl", "policy \"tenant\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, pdpVoterSource);
 
         assertThat(configs).hasSize(2);
 
@@ -118,9 +139,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         createFile(tempDir.resolve("root-policy.sapl"), "policy \"root\" permit true;");
         createSubdirectoryWithPolicy("tenant-a", PERMIT_OVERRIDES, "tenant.sapl", "policy \"tenant\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, false, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, false, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("tenant-a");
@@ -131,9 +152,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         createSubdirectoryWithPolicy("default", PERMIT_OVERRIDES, "default.sapl", "policy \"default-dir\" deny true;");
         createFile(tempDir.resolve("root-policy.sapl"), "policy \"root\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("default");
@@ -144,7 +165,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenDirectoryDoesNotExistThenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent");
 
-        assertThatThrownBy(() -> new MultiDirectoryPDPConfigurationSource(nonExistentPath, config -> {}))
+        assertThatThrownBy(() -> new MultiDirectoryPDPConfigurationSource(nonExistentPath, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
@@ -153,17 +174,15 @@ class MultiDirectoryPDPConfigurationSourceTests {
         val file = tempDir.resolve("not-a-directory.txt");
         createFile(file, "content");
 
-        assertThatThrownBy(() -> new MultiDirectoryPDPConfigurationSource(file, config -> {}))
+        assertThatThrownBy(() -> new MultiDirectoryPDPConfigurationSource(file, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
     @Test
-    void whenEmptyDirectoryThenNoCallbackInvoked() {
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+    void whenEmptyDirectoryThenVoterSourceNotInvoked() {
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
-
-        assertThat(configs).isEmpty();
+        verifyNoInteractions(pdpVoterSource);
     }
 
     @Test
@@ -173,9 +192,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         Files.createDirectory(invalidDir);
         createFile(invalidDir.resolve("policy.sapl"), "policy \"invalid\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("valid-name");
@@ -185,9 +204,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenSubdirectoryIsAddedThenNewSourceIsCreated() throws IOException {
         createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
 
@@ -210,9 +229,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         Files.createDirectory(removableDir);
         createFile(removableDir.resolve("policy.sapl"), "policy \"removable\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(2);
         val initialPdpIds = configs.stream().map(PDPConfiguration::pdpId).toList();
@@ -221,31 +240,20 @@ class MultiDirectoryPDPConfigurationSourceTests {
         // Delete the removable directory
         deleteDirectory(removableDir);
 
-        // Wait for file watcher to detect removal
-        // Adding a new directory after removal to verify the source is still working
+        // Wait for file watcher to detect removal and verify configuration is removed
         await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600)).untilAsserted(() -> {
-            assertThat(source.isDisposed()).isFalse();
-        });
-
-        // Verify by adding a new subdirectory - source should still be functional
-        val newDir = tempDir.resolve("newpdp");
-        Files.createDirectory(newDir);
-        createFile(newDir.resolve("policy.sapl"), "policy \"new\" permit true;");
-
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            val pdpIds = configs.stream().map(PDPConfiguration::pdpId).toList();
-            assertThat(pdpIds).contains("newpdp");
+            verify(pdpVoterSource).removeConfigurationForPdp("removable");
         });
     }
 
     @Test
-    void whenFileInSubdirectoryChangesThenCallbackIsInvokedAgain() throws IOException {
+    void whenFileInSubdirectoryChangesThenVoterSourceReceivesUpdatedConfig() throws IOException {
         val subdirPath = createSubdirectoryWithPolicy("mutable", DENY_OVERRIDES, "policy.sapl",
                 "policy \"original\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
 
@@ -265,9 +273,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         createFile(cultistDir.resolve("pdp.json"),
                 "{\"algorithm\":{\"votingMode\":\"PRIORITY_DENY\",\"defaultDecision\":\"DENY\",\"errorHandling\":\"PROPAGATE\"},\"configurationId\":\"eldritch-v1\"}");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, false, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, false, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().configurationId()).isEqualTo("eldritch-v1");
@@ -277,9 +285,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenChildPdpJsonHasNoConfigurationIdThenAutoGeneratesId() throws IOException {
         createSubdirectoryWithPolicy("cultist", DENY_OVERRIDES, "ritual.sapl", "policy \"ritual\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, false, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, false, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         // Auto-generated format: dir:<path>@<timestamp>@sha256:<hash>
@@ -291,7 +299,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenDisposeIsCalledThenIsDisposedReturnsTrue() throws IOException {
         createSubdirectoryWithPolicy("disposable", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, config -> {});
+        captureConfigurations();
+
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(source.isDisposed()).isFalse();
 
@@ -304,7 +314,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenDisposeIsCalledTwiceThenIsIdempotent() throws IOException {
         createSubdirectoryWithPolicy("disposable", DENY_OVERRIDES, "policy.sapl", "policy \"test\" permit true;");
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, config -> {});
+        captureConfigurations();
+
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         source.dispose();
         source.dispose();
@@ -329,9 +341,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
             return;
         }
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         // Symlinks are followed for flexible deployment scenarios
         assertThat(configs).hasSize(2);
@@ -359,10 +371,10 @@ class MultiDirectoryPDPConfigurationSourceTests {
             return;
         }
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
         // Symlink directories are accepted for flexible deployment scenarios
-        source = new MultiDirectoryPDPConfigurationSource(linkDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(linkDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
     }
@@ -376,9 +388,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         Files.createDirectory(target);
         createFile(target.resolve("policy.sapl"), "policy \"target\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("initial");
@@ -406,9 +418,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
                     "policy \"tenant%d\" permit subject.tenantId == %d;".formatted(i, i));
         }
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(10);
     }
@@ -422,9 +434,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """);
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("empty-tenant");
@@ -442,9 +454,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         Files.createDirectories(nestedDir);
         createFile(nestedDir.resolve("nested.sapl"), "policy \"nested\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("parent");
@@ -462,9 +474,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         createFile(firstPolicy, "policy \"first\" permit true;");
         createFile(secondPolicy, "policy \"second\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().saplDocuments()).hasSize(2);
@@ -497,9 +509,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenDirectoryAddedAfterDisposeThenItIsIgnored() throws IOException {
         createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
 
@@ -523,11 +535,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         Files.createDirectory(removable);
         createFile(removable.resolve("policy.sapl"), "policy \"removable\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
-
-        assertThat(configs).hasSize(1);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         source.dispose();
 
@@ -546,10 +556,10 @@ class MultiDirectoryPDPConfigurationSourceTests {
         // Create an invalid pdp.json at root level that won't parse
         createFile(tempDir.resolve("pdp.json"), "not valid json {{{");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
         // Root source fails silently, tenant succeeds
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, pdpVoterSource);
 
         // Only tenant should be loaded (root failed)
         assertThat(configs).hasSize(1);
@@ -566,9 +576,9 @@ class MultiDirectoryPDPConfigurationSourceTests {
         createFile(failing.resolve("pdp.json"), "not valid json {{{");
         createFile(failing.resolve("policy.sapl"), "policy \"failing\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         // Only working should be loaded (failing subdirectory is skipped)
         assertThat(configs).hasSize(1);
@@ -593,10 +603,10 @@ class MultiDirectoryPDPConfigurationSourceTests {
                         """);
         createFile(tempDir.resolve("policy.sapl"), "policy \"from-root\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
         // includeRootFiles=true, but "default" subdirectory exists
-        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, configs::add);
+        source = new MultiDirectoryPDPConfigurationSource(tempDir, true, pdpVoterSource);
 
         // Only one "default" security should exist (from subdirectory, not root)
         assertThat(configs).hasSize(1);

@@ -25,7 +25,7 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.VoteInterceptor;
-import io.sapl.pdp.configuration.source.PDPConfigurationSource;
+import io.sapl.pdp.configuration.source.PdpIdValidator;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
 import jakarta.annotation.PreDestroy;
@@ -150,7 +150,7 @@ public class PDPAutoConfiguration {
     }
 
     private void configureSource(PolicyDecisionPointBuilder builder, EmbeddedPDPProperties properties) {
-        val path         = PDPConfigurationSource.resolveHomeFolderIfPresent(properties.getPoliciesPath());
+        val path         = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPoliciesPath());
         val resolvedPath = path.toAbsolutePath().normalize();
 
         switch (properties.getPdpConfigType()) {

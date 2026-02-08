@@ -23,25 +23,31 @@ import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-
-import org.junit.jupiter.api.DisplayName;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 
 @DisplayName("DirectoryPDPConfigurationSource")
+@ExtendWith(MockitoExtension.class)
 class DirectoryPDPConfigurationSourceTests {
 
     private static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
@@ -52,6 +58,9 @@ class DirectoryPDPConfigurationSourceTests {
     @TempDir
     Path tempDir;
 
+    @Mock
+    PdpVoterSource pdpVoterSource;
+
     private DirectoryPDPConfigurationSource source;
 
     @AfterEach
@@ -61,8 +70,17 @@ class DirectoryPDPConfigurationSourceTests {
         }
     }
 
+    private CopyOnWriteArrayList<PDPConfiguration> captureConfigurations() {
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        doAnswer(inv -> {
+            configs.add(inv.getArgument(0));
+            return null;
+        }).when(pdpVoterSource).loadConfiguration(any(), eq(true));
+        return configs;
+    }
+
     @Test
-    void whenLoadingFromDirectoryThenCallbackIsInvokedWithConfiguration() throws IOException {
+    void whenLoadingFromDirectoryThenVoterSourceReceivesConfiguration() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         {
@@ -76,25 +94,25 @@ class DirectoryPDPConfigurationSourceTests {
                   resource.category == "forbidden";
                 """);
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get()).isNotNull();
-        assertThat(receivedConfig.get().pdpId()).isEqualTo("default");
-        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
-        assertThat(receivedConfig.get().saplDocuments()).hasSize(1);
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().pdpId()).isEqualTo("default");
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
+        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
     }
 
     @Test
     void whenLoadingWithCustomPdpIdThenConfigurationHasCorrectPdpId() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, "innermouth", receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, "innermouth", pdpVoterSource);
 
-        assertThat(receivedConfig.get().pdpId()).isEqualTo("innermouth");
+        assertThat(configs.getFirst().pdpId()).isEqualTo("innermouth");
     }
 
     @Test
@@ -102,33 +120,33 @@ class DirectoryPDPConfigurationSourceTests {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
         createFile(tempDir.resolve("pdp.json"), "{\"configurationId\":\"eldritch-v1\"}");
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, "cultist", receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, "cultist", pdpVoterSource);
 
-        assertThat(receivedConfig.get().pdpId()).isEqualTo("cultist");
-        assertThat(receivedConfig.get().configurationId()).isEqualTo("eldritch-v1");
+        assertThat(configs.getFirst().pdpId()).isEqualTo("cultist");
+        assertThat(configs.getFirst().configurationId()).isEqualTo("eldritch-v1");
     }
 
     @Test
     void whenPdpJsonHasNoConfigurationIdThenAutoGeneratesId() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, "cultist", receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, "cultist", pdpVoterSource);
 
-        assertThat(receivedConfig.get().pdpId()).isEqualTo("cultist");
+        assertThat(configs.getFirst().pdpId()).isEqualTo("cultist");
         // Auto-generated format: dir:<path>@<timestamp>@sha256:<hash>
-        assertThat(receivedConfig.get().configurationId()).startsWith("dir:");
-        assertThat(receivedConfig.get().configurationId()).contains("@sha256:");
+        assertThat(configs.getFirst().configurationId()).startsWith("dir:");
+        assertThat(configs.getFirst().configurationId()).contains("@sha256:");
     }
 
     @Test
     void whenDirectoryDoesNotExistThenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent");
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(nonExistentPath, config -> {}))
+        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(nonExistentPath, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
@@ -137,7 +155,7 @@ class DirectoryPDPConfigurationSourceTests {
         val file = tempDir.resolve("not-a-directory.txt");
         createFile(file, "content");
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(file, config -> {}))
+        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(file, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
@@ -145,24 +163,24 @@ class DirectoryPDPConfigurationSourceTests {
     void whenNoPdpJsonPresentThenUsesDefaultAlgorithm() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
     }
 
     @Test
-    void whenFileIsModifiedThenCallbackIsInvokedAgain() throws IOException {
+    void whenFileIsModifiedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """);
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
@@ -179,12 +197,12 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileIsAddedThenCallbackIsInvokedAgain() throws IOException {
+    void whenFileIsAddedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         createFile(tempDir.resolve("first.sapl"), "policy \"first\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().saplDocuments()).hasSize(1);
@@ -198,15 +216,15 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenFileIsDeletedThenCallbackIsInvokedWithUpdatedConfiguration() throws IOException {
+    void whenFileIsDeletedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         val firstPolicy  = tempDir.resolve("first.sapl");
         val secondPolicy = tempDir.resolve("second.sapl");
         createFile(firstPolicy, "policy \"first\" permit true;");
         createFile(secondPolicy, "policy \"second\" deny true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().saplDocuments()).hasSize(2);
@@ -223,7 +241,9 @@ class DirectoryPDPConfigurationSourceTests {
     void whenDisposeIsCalledThenIsDisposedReturnsTrue() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        source = new DirectoryPDPConfigurationSource(tempDir, config -> {});
+        captureConfigurations();
+
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(source.isDisposed()).isFalse();
 
@@ -236,7 +256,9 @@ class DirectoryPDPConfigurationSourceTests {
     void whenDisposeIsCalledTwiceThenIsIdempotent() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        source = new DirectoryPDPConfigurationSource(tempDir, config -> {});
+        captureConfigurations();
+
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         source.dispose();
         source.dispose();
@@ -245,13 +267,13 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenEmptyDirectoryThenCallbackIsStillInvokedWithEmptyConfiguration() {
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+    void whenEmptyDirectoryThenVoterSourceStillReceivesEmptyConfiguration() {
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get()).isNotNull();
-        assertThat(receivedConfig.get().saplDocuments()).isEmpty();
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().saplDocuments()).isEmpty();
     }
 
     @Test
@@ -268,12 +290,12 @@ class DirectoryPDPConfigurationSourceTests {
             return; // Skip test on systems that don't support symlinks
         }
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         // All files including symlink are loaded
-        assertThat(receivedConfig.get().saplDocuments()).hasSize(3);
+        assertThat(configs.getFirst().saplDocuments()).hasSize(3);
     }
 
     @Test
@@ -289,12 +311,12 @@ class DirectoryPDPConfigurationSourceTests {
             return; // Skip test on systems that don't support symlinks
         }
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
         // Symlink directories are accepted for flexible deployment scenarios
-        source = new DirectoryPDPConfigurationSource(linkDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(linkDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get().saplDocuments()).hasSize(1);
+        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
     }
 
     @Test
@@ -305,7 +327,7 @@ class DirectoryPDPConfigurationSourceTests {
                     "policy \"large%d\" permit \"%s\";".formatted(i, largeContent));
         }
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, config -> {}))
+        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds maximum");
     }
 
@@ -315,7 +337,7 @@ class DirectoryPDPConfigurationSourceTests {
             createFile(tempDir.resolve("policy" + i + ".sapl"), "policy \"p%d\" permit true;".formatted(i));
         }
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, config -> {}))
+        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("File count exceeds maximum");
     }
 
@@ -329,18 +351,18 @@ class DirectoryPDPConfigurationSourceTests {
         Files.createDirectory(subDir);
         createFile(subDir.resolve("nested.sapl"), "policy \"nested\" deny true;");
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get().saplDocuments()).hasSize(1).first().asString().contains("test");
+        assertThat(configs.getFirst().saplDocuments()).hasSize(1).first().asString().contains("test");
     }
 
     @Test
     void whenInvalidPdpIdThenThrowsException() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, "invalid id with spaces", config -> {}))
+        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, "invalid id with spaces", pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("invalid characters");
     }
 
@@ -350,11 +372,11 @@ class DirectoryPDPConfigurationSourceTests {
         createFile(tempDir.resolve("audit.sapl"), "policy \"audit\" deny false;");
         createFile(tempDir.resolve("admin.sapl"), "policy \"admin\" permit action == \"admin\";");
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get().saplDocuments()).hasSize(3);
+        assertThat(configs.getFirst().saplDocuments()).hasSize(3);
     }
 
     @Test
@@ -372,11 +394,11 @@ class DirectoryPDPConfigurationSourceTests {
                         """);
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get().data().variables()).containsKey("tenant").containsKey("department")
+        assertThat(configs.getFirst().data().variables()).containsKey("tenant").containsKey("department")
                 .containsKey("accessLevel");
     }
 
@@ -385,9 +407,9 @@ class DirectoryPDPConfigurationSourceTests {
         val policyFile = tempDir.resolve("policy.sapl");
         createFile(policyFile, "policy \"test\" permit true;");
 
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, configs::add);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
         assertThat(configs).hasSize(1);
 
@@ -408,7 +430,7 @@ class DirectoryPDPConfigurationSourceTests {
         createFile(tempDir.resolve("pdp.json"), "not valid json {{{");
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, config -> {}))
+        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse");
     }
 
@@ -419,7 +441,7 @@ class DirectoryPDPConfigurationSourceTests {
                 """);
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, config -> {}))
+        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse");
     }
 
@@ -430,12 +452,12 @@ class DirectoryPDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """);
 
-        val receivedConfig = new AtomicReference<PDPConfiguration>();
+        val configs = captureConfigurations();
 
-        source = new DirectoryPDPConfigurationSource(tempDir, receivedConfig::set);
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(receivedConfig.get().saplDocuments()).isEmpty();
-        assertThat(receivedConfig.get().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
+        assertThat(configs.getFirst().saplDocuments()).isEmpty();
+        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
     private void createFile(Path path, String content) throws IOException {

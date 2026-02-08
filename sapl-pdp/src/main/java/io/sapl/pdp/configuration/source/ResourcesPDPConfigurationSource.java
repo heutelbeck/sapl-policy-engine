@@ -19,24 +19,22 @@ package io.sapl.pdp.configuration.source;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
-import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import reactor.core.Disposable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  * PDP configuration source that loads configurations from classpath resources.
- * This is useful for bundling policies
- * with an application JAR.
  * <p>
  * The source supports both single-PDP and multi-PDP setups:
  * <p>
@@ -63,61 +61,18 @@ import java.util.function.Consumer;
  *     └── permissive.sapl
  * </pre>
  *
- * Result: The callback is invoked once for each subdirectory configuration.
  * <p>
- * <b>Mixed (backward compatible):</b>
- *
- * <pre>
- * /policies/
- * ├── pdp.json          (default PDP)
- * ├── main.sapl         (default PDP)
- * └── tenant-a/
- *     ├── pdp.json
- *     └── tenant.sapl
- * </pre>
- *
- * Result: The callback is invoked for both "default" and "tenant-a"
- * configurations.
- * <p>
- * Since resources are static, this source invokes the callback once per
- * configuration during construction. There is no
- * hot-reloading from classpath resources.
+ * Since resources are static, this source loads configurations once during
+ * construction. There is no hot-reloading from classpath resources.
  * </p>
  * <h2>Thread Safety</h2>
  * <p>
- * This class is thread-safe. All configurations are loaded during construction
- * and the callback is invoked
- * synchronously. After construction, the source holds no mutable state.
+ * This class is thread-safe. All configurations are loaded during construction.
+ * After construction, the source holds no mutable state.
  * </p>
- * <h2>Security Measures</h2>
- * <ul>
- * <li><b>PDP identifier validation:</b> All PDP identifiers are validated
- * against a strict pattern (alphanumeric,
- * hyphens, underscores, dots) with a maximum length of 255 characters.</li>
- * <li><b>Classpath isolation:</b> Resources are loaded exclusively from the
- * configured classpath prefix using
- * ClassGraph, preventing access to arbitrary filesystem locations.</li>
- * <li><b>Sanitized error messages:</b> Exceptions do not expose traced
- * classpath details or system paths.</li>
- * </ul>
- * <h2>Spring Integration</h2>
- * <p>
- * This class implements {@link reactor.core.Disposable} but Spring does not
- * automatically call {@code dispose()} on
- * Reactor's Disposable interface. When exposing as a Spring bean, explicitly
- * specify the destroy method:
- * </p>
- *
- * <pre>{@code
- * @Bean(destroyMethod = "dispose")
- * public ResourcesPDPConfigurationSource resourcesSource() {
- *     return new ResourcesPDPConfigurationSource("/policies",
- *             security -> configRegister.loadConfiguration(security, false));
- * }
- * }</pre>
  */
 @Slf4j
-public final class ResourcesPDPConfigurationSource implements PDPConfigurationSource {
+public final class ResourcesPDPConfigurationSource implements Disposable {
 
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
@@ -131,29 +86,24 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
     /**
      * Creates a source loading from the default resource path "/policies".
      *
-     * @param callback
-     * called for each configuration found in the resources
+     * @param pdpVoterSource
+     * the voter source to load configurations into
      */
-    public ResourcesPDPConfigurationSource(@NonNull Consumer<PDPConfiguration> callback) {
-        this(DEFAULT_RESOURCE_PATH, callback);
+    public ResourcesPDPConfigurationSource(@NonNull PdpVoterSource pdpVoterSource) {
+        this(DEFAULT_RESOURCE_PATH, pdpVoterSource);
     }
 
     /**
      * Creates a source loading from a custom resource path.
-     * <p>
-     * The configuration ID is determined from pdp.json if present, otherwise
-     * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
-     * </p>
      *
      * @param resourcePath
      * the classpath resource path (e.g., "/policies" or "/custom/security")
-     * @param callback
-     * called for each configuration found in the resources
+     * @param pdpVoterSource
+     * the voter source to load configurations into
      */
-    public ResourcesPDPConfigurationSource(@NonNull String resourcePath, @NonNull Consumer<PDPConfiguration> callback) {
+    public ResourcesPDPConfigurationSource(@NonNull String resourcePath, @NonNull PdpVoterSource pdpVoterSource) {
         log.info("Loading PDP configurations from classpath resources: '{}'.", resourcePath);
-        loadConfigurations(resourcePath, callback);
+        loadConfigurations(resourcePath, pdpVoterSource);
     }
 
     @Override
@@ -168,12 +118,12 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
         return disposed.get();
     }
 
-    private void loadConfigurations(String resourcePath, Consumer<PDPConfiguration> callback) {
+    private void loadConfigurations(String resourcePath, PdpVoterSource pdpVoterSource) {
         val normalizedPath = normalizeResourcePath(resourcePath);
         val scannedData    = scanResources(normalizedPath);
 
-        var configurationsLoaded = loadRootConfiguration(normalizedPath, scannedData, callback);
-        configurationsLoaded += loadSubdirectoryConfigurations(normalizedPath, scannedData, callback);
+        var configurationsLoaded = loadRootConfiguration(normalizedPath, scannedData, pdpVoterSource);
+        configurationsLoaded += loadSubdirectoryConfigurations(normalizedPath, scannedData, pdpVoterSource);
 
         log.info("Loaded {} PDP configurations from resources.", configurationsLoaded);
     }
@@ -215,28 +165,27 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
         }
     }
 
-    private int loadRootConfiguration(String normalizedPath, ScannedResourceData data,
-            Consumer<PDPConfiguration> callback) {
+    private int loadRootConfiguration(String normalizedPath, ScannedResourceData data, PdpVoterSource pdpVoterSource) {
         if (data.rootPdpJson() == null && data.rootSaplFiles().isEmpty()) {
             return 0;
         }
 
         val sourcePath    = "/" + normalizedPath;
         val defaultConfig = PDPConfigurationLoader.loadFromContent(data.rootPdpJson(), data.rootSaplFiles(),
-                DEFAULT_PDP_ID, sourcePath);
-        callback.accept(defaultConfig);
+                PdpIdValidator.DEFAULT_PDP_ID, sourcePath);
+        pdpVoterSource.loadConfiguration(defaultConfig, true);
         log.debug("Loaded default PDP configuration with {} SAPL documents.", data.rootSaplFiles().size());
         return 1;
     }
 
     private int loadSubdirectoryConfigurations(String normalizedPath, ScannedResourceData data,
-            Consumer<PDPConfiguration> callback) {
+            PdpVoterSource pdpVoterSource) {
         var count = 0;
 
         for (val entry : data.subDirectoryData().entrySet()) {
             val subdirName = entry.getKey();
 
-            if (!PDPConfigurationSource.isValidPdpId(subdirName)) {
+            if (!PdpIdValidator.isValidPdpId(subdirName)) {
                 log.warn("Skipping subdirectory with invalid name: {}.", subdirName);
                 continue;
             }
@@ -248,7 +197,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
             if (pdpJson != null || !saplFiles.isEmpty()) {
                 val sourcePath = "/" + normalizedPath + "/" + subdirName;
                 val config     = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, subdirName, sourcePath);
-                callback.accept(config);
+                pdpVoterSource.loadConfiguration(config, true);
                 count++;
                 log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", subdirName, saplFiles.size());
             }

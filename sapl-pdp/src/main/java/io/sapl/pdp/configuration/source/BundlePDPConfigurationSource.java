@@ -17,8 +17,8 @@
  */
 package io.sapl.pdp.configuration.source;
 
-import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
@@ -28,13 +28,13 @@ import lombok.val;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
+import reactor.core.Disposable;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  * PDP configuration source that loads configurations from .saplbundle files in
@@ -57,57 +57,19 @@ import java.util.function.Consumer;
  * <h2>Security Model</h2>
  * <p>
  * This source requires a {@link BundleSecurityPolicy} that determines how
- * bundle signatures are verified. In production
- * environments, use
- * {@link BundleSecurityPolicy#builder(java.security.PublicKey)} to
- * enforce that all bundles
- * are cryptographically signed.
- * </p>
- * <p>
- * For development environments where signature verification needs to be
- * disabled, a two-factor opt-out is required:
- * both signature verification must be disabled AND the associated risks must be
- * explicitly accepted.
- * </p>
- * <h2>Callback Invocation</h2>
- * <p>
- * The callback is invoked:
- * </p>
- * <ul>
- * <li>Once per bundle during construction with initial configurations</li>
- * <li>On each bundle file change (create, modify) after debouncing</li>
- * </ul>
- * <p>
- * For bundle content security (ZIP bomb protection, path traversal prevention),
- * see {@link BundleParser}.
+ * bundle signatures are verified.
  * </p>
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. The file monitoring thread runs independently and
- * invokes the callback directly. The
- * callback implementation must handle thread safety for its own state.
+ * loads configurations directly into the voter source.
  * </p>
- * <h2>Spring Integration</h2>
- * <p>
- * This class implements {@link reactor.core.Disposable} but Spring does not
- * automatically call {@code dispose()} on
- * Reactor's Disposable interface. When exposing as a Spring bean, explicitly
- * specify the destroy method:
- * </p>
- *
- * <pre>{@code
- * @Bean(destroyMethod = "dispose")
- * public BundlePDPConfigurationSource bundleSource(BundleSecurityPolicy policy) {
- *     return new BundlePDPConfigurationSource(Path.of("/bundles"), policy,
- *             security -> configRegister.loadConfiguration(security, false));
- * }
- * }</pre>
  *
  * @see BundleParser
  * @see BundleSecurityPolicy
  */
 @Slf4j
-public final class BundlePDPConfigurationSource implements PDPConfigurationSource {
+public final class BundlePDPConfigurationSource implements Disposable {
 
     private static final String BUNDLE_EXTENSION = ".saplbundle";
 
@@ -119,31 +81,21 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
     private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Bundle path is not a directory.";
     private static final String ERROR_SECURITY_POLICY_NULL         = "Security policy must not be null.";
 
-    private final Path                       directoryPath;
-    private final BundleSecurityPolicy       securityPolicy;
-    private final Consumer<PDPConfiguration> callback;
-    private final FileAlterationMonitor      monitor;
-    private final AtomicBoolean              disposed = new AtomicBoolean(false);
+    private final Path                  directoryPath;
+    private final BundleSecurityPolicy  securityPolicy;
+    private final PdpVoterSource        pdpVoterSource;
+    private final FileAlterationMonitor monitor;
+    private final AtomicBoolean         disposed = new AtomicBoolean(false);
 
     /**
      * Creates a source loading bundles from the specified directory.
-     * <p>
-     * The security policy is validated during construction. If signature
-     * verification is disabled without risk
-     * acceptance, construction will fail.
-     * </p>
-     * <p>
-     * Each bundle must contain a pdp.json file with a {@code configurationId}
-     * field. The PDP ID is derived from the
-     * bundle filename (minus the .saplbundle extension).
-     * </p>
      *
      * @param directoryPath
      * the filesystem directory containing .saplbundle files
      * @param securityPolicy
      * the security policy for bundle signature verification
-     * @param callback
-     * called when a configuration is loaded or updated
+     * @param pdpVoterSource
+     * the voter source to load configurations into
      *
      * @throws NullPointerException
      * if any parameter is null
@@ -152,14 +104,13 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
      */
     public BundlePDPConfigurationSource(@NonNull Path directoryPath,
             @NonNull BundleSecurityPolicy securityPolicy,
-            @NonNull Consumer<PDPConfiguration> callback) {
+            @NonNull PdpVoterSource pdpVoterSource) {
         Objects.requireNonNull(securityPolicy, ERROR_SECURITY_POLICY_NULL);
         securityPolicy.validate();
 
-        this.directoryPath  = PDPConfigurationSource.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath()
-                .normalize();
+        this.directoryPath  = PdpIdValidator.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath().normalize();
         this.securityPolicy = securityPolicy;
-        this.callback       = callback;
+        this.pdpVoterSource = pdpVoterSource;
         this.monitor        = new FileAlterationMonitor(POLL_INTERVAL_MS);
 
         log.info("Loading PDP configurations from bundle directory: '{}'.", this.directoryPath);
@@ -209,7 +160,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
             return;
         }
 
-        if (!PDPConfigurationSource.isValidPdpId(pdpId)) {
+        if (!PdpIdValidator.isValidPdpId(pdpId)) {
             log.warn("Skipping bundle with invalid name: {}.", bundlePath.getFileName());
             return;
         }
@@ -218,7 +169,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
 
         try {
             val config = BundleParser.parse(bundlePath, pdpId, securityPolicy);
-            callback.accept(config);
+            pdpVoterSource.loadConfiguration(config, true);
             log.debug("Loaded bundle '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
         } catch (Exception e) {
             log.error("Failed to load bundle '{}': {}.", pdpId, e.getMessage(), e);
@@ -279,6 +230,18 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
         @Override
         public void onFileChange(File file) {
             handleBundleChange(file);
+        }
+
+        @Override
+        public void onFileDelete(File file) {
+            if (disposed.get()) {
+                return;
+            }
+            val pdpId = derivePdpIdFromBundleName(file.toPath());
+            if (pdpId != null) {
+                pdpVoterSource.removeConfigurationForPdp(pdpId);
+                log.info("Removed configuration for deleted bundle '{}'.", pdpId);
+            }
         }
 
         private void handleBundleChange(File file) {

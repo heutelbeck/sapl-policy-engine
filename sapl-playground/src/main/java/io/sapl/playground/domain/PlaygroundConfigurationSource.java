@@ -17,8 +17,6 @@
  */
 package io.sapl.playground.domain;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
@@ -31,14 +29,10 @@ import io.sapl.api.pdp.PdpData;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.CompiledPdpVoter;
-import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.pdp.configuration.PdpVoterSource;
-import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
 
 import java.util.List;
 import java.util.Map;
@@ -53,31 +47,21 @@ import java.util.concurrent.atomic.AtomicReference;
  * changes.
  */
 @Slf4j
-public class PlaygroundConfigurationSource implements PdpVoterSource {
+public class PlaygroundConfigurationSource {
 
     private static final String PDP_ID = "playground";
 
-    private final FunctionBroker  functionBroker;
-    private final AttributeBroker attributeBroker;
+    @Getter
+    private final PdpVoterSource pdpVoterSource;
 
-    private final Sinks.Many<Optional<CompiledPdpVoter>> configurationSink;
-    private final Flux<Optional<CompiledPdpVoter>>       configurationFlux;
-
-    private final AtomicReference<List<String>>               currentPolicySources = new AtomicReference<>(List.of());
-    private final AtomicReference<Map<String, Value>>         currentVariables     = new AtomicReference<>(Map.of());
-    private final AtomicReference<CombiningAlgorithm>         currentAlgorithm     = new AtomicReference<>(
+    private final AtomicReference<List<String>>       currentPolicySources = new AtomicReference<>(List.of());
+    private final AtomicReference<Map<String, Value>> currentVariables     = new AtomicReference<>(Map.of());
+    private final AtomicReference<CombiningAlgorithm> currentAlgorithm     = new AtomicReference<>(
             new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE));
-    private final AtomicLong                                  configurationVersion = new AtomicLong(0);
-    private final AtomicReference<Optional<CompiledPdpVoter>> currentConfiguration = new AtomicReference<>(
-            Optional.empty());
+    private final AtomicLong                          configurationVersion = new AtomicLong(0);
 
-    public PlaygroundConfigurationSource(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-        this.functionBroker  = functionBroker;
-        this.attributeBroker = attributeBroker;
-
-        this.configurationSink = Sinks.many().replay().latest();
-        this.configurationFlux = configurationSink.asFlux();
-
+    public PlaygroundConfigurationSource(PdpVoterSource pdpVoterSource) {
+        this.pdpVoterSource = pdpVoterSource;
         emitConfiguration();
     }
 
@@ -115,34 +99,14 @@ public class PlaygroundConfigurationSource implements PdpVoterSource {
     }
 
     private void emitConfiguration() {
-        val configuration = buildConfiguration();
-        currentConfiguration.set(configuration);
-        configurationSink.tryEmitNext(configuration);
-    }
-
-    private Optional<CompiledPdpVoter> buildConfiguration() {
-        val configId           = String.valueOf(configurationVersion.incrementAndGet());
-        val pdpConfiguration   = new PDPConfiguration(PDP_ID, configId, currentAlgorithm.get(),
-                currentPolicySources.get(), buildPdpData());
-        val compilationContext = new CompilationContext(PDP_ID, configId, buildPdpData(), functionBroker,
-                attributeBroker);
-
+        val configId      = String.valueOf(configurationVersion.incrementAndGet());
+        val configuration = new PDPConfiguration(PDP_ID, configId, currentAlgorithm.get(), currentPolicySources.get(),
+                buildPdpData());
         try {
-            return Optional.of(PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext));
-        } catch (SaplCompilerException e) {
+            pdpVoterSource.loadConfiguration(configuration, true);
+        } catch (IllegalArgumentException e) {
             log.debug("Failed to compile PDP configuration: {}", e.getMessage());
-            return Optional.empty();
         }
-    }
-
-    @Override
-    public Flux<Optional<CompiledPdpVoter>> getPDPConfigurations(String pdpId) {
-        return configurationFlux;
-    }
-
-    @Override
-    public Optional<CompiledPdpVoter> getCurrentConfiguration(String pdpId) {
-        return currentConfiguration.get();
     }
 
     /**
@@ -156,7 +120,7 @@ public class PlaygroundConfigurationSource implements PdpVoterSource {
      */
     public Optional<SaplCompilerException> tryCompile(String source) {
         val compilationContext = new CompilationContext(new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT),
-                functionBroker, attributeBroker);
+                pdpVoterSource.getFunctionBroker(), pdpVoterSource.getAttributeBroker());
         try {
             compilationContext.resetForNextDocument();
             DocumentCompiler.compileDocument(source, compilationContext);
@@ -180,8 +144,4 @@ public class PlaygroundConfigurationSource implements PdpVoterSource {
         return variables.build();
     }
 
-    @PreDestroy
-    public void destroy() {
-        configurationSink.tryEmitComplete();
-    }
 }

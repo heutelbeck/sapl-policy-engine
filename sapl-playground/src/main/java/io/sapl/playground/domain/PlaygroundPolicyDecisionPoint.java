@@ -26,7 +26,8 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
-import jakarta.annotation.PreDestroy;
+import io.sapl.pdp.configuration.PdpVoterSource;
+import lombok.val;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -63,9 +64,10 @@ public class PlaygroundPolicyDecisionPoint {
      * broker providing function libraries for policy evaluation
      */
     public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
-        this.configurationSource = new PlaygroundConfigurationSource(functionBroker, attributeBroker);
-        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(configurationSource,
-                () -> UUID.randomUUID().toString(), Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));
+        val pdpVoterSource = new PdpVoterSource(functionBroker, attributeBroker);
+        this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
+        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString(),
+                Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));
     }
 
     /**
@@ -121,12 +123,6 @@ public class PlaygroundPolicyDecisionPoint {
     }
 
     /**
-     * Cleans up resources when the component is destroyed. Disposes of active
-     * subscriptions and releases resources to
-     * prevent memory leaks. Called automatically by Spring when the UI scope is
-     * destroyed.
-     */
-    /**
      * Attempts to compile a policy source and returns any compile errors. Useful
      * for validating policies in editors
      * before they are applied.
@@ -141,8 +137,4 @@ public class PlaygroundPolicyDecisionPoint {
         return configurationSource.tryCompile(source);
     }
 
-    @PreDestroy
-    private void destroy() {
-        configurationSource.destroy();
-    }
 }
