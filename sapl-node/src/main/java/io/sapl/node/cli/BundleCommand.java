@@ -84,13 +84,19 @@ class BundleCommand {
     static class Create implements Callable<Integer> {
 
         @Spec
-        CommandSpec spec;
+        private CommandSpec spec;
 
         @Option(names = { "-i", "--input" }, required = true, description = "Input directory containing policies")
-        Path inputDir;
+        private Path inputDir;
+
+        @Option(names = { "-k", "--key" }, description = "Ed25519 private key file (PEM format) for signing")
+        private Path keyFile;
+
+        @Option(names = { "--key-id" }, description = "Key identifier for rotation support", defaultValue = "default")
+        private String keyId;
 
         @Option(names = { "-o", "--output" }, required = true, description = "Output bundle file path")
-        Path outputFile;
+        private Path outputFile;
 
         @Override
         public Integer call() {
@@ -99,6 +105,11 @@ class BundleCommand {
 
             if (!Files.isDirectory(inputDir)) {
                 err.println(ERROR_NOT_A_DIRECTORY + inputDir);
+                return 1;
+            }
+
+            if (keyFile != null && !Files.exists(keyFile)) {
+                err.println(ERROR_KEY_NOT_FOUND + keyFile);
                 return 1;
             }
 
@@ -125,11 +136,21 @@ class BundleCommand {
                     return 1;
                 }
 
+                if (keyFile != null) {
+                    val privateKey = loadEd25519PrivateKey(keyFile);
+                    builder.signWith(privateKey, keyId);
+                }
+
                 builder.writeTo(outputFile);
-                out.printf("Created bundle: %s (%d policies)%n", outputFile, policies);
+
+                if (keyFile != null) {
+                    out.printf("Created signed bundle: %s (%d policies, key-id: %s)%n", outputFile, policies, keyId);
+                } else {
+                    out.printf("Created bundle: %s (%d policies)%n", outputFile, policies);
+                }
                 return 0;
 
-            } catch (IOException e) {
+            } catch (IOException | GeneralSecurityException e) {
                 err.println(ERROR_CREATING_BUNDLE + e.getMessage());
                 return 1;
             }
@@ -141,19 +162,19 @@ class BundleCommand {
     static class Sign implements Callable<Integer> {
 
         @Spec
-        CommandSpec spec;
+        private CommandSpec spec;
 
         @Option(names = { "-b", "--bundle" }, required = true, description = "Bundle file to sign")
-        Path bundleFile;
+        private Path bundleFile;
 
         @Option(names = { "-k", "--key" }, required = true, description = "Ed25519 private key file (PEM format)")
-        Path keyFile;
+        private Path keyFile;
 
         @Option(names = { "--key-id" }, description = "Key identifier for rotation support", defaultValue = "default")
-        String keyId;
+        private String keyId;
 
         @Option(names = { "-o", "--output" }, description = "Output file (default: overwrites input)")
-        Path outputFile;
+        private Path outputFile;
 
         @Override
         public Integer call() {
@@ -208,16 +229,16 @@ class BundleCommand {
     static class Verify implements Callable<Integer> {
 
         @Spec
-        CommandSpec spec;
+        private CommandSpec spec;
 
         @Option(names = { "-b", "--bundle" }, required = true, description = "Bundle file to verify")
-        Path bundleFile;
+        private Path bundleFile;
 
         @Option(names = { "-k", "--key" }, required = true, description = "Ed25519 public key file (PEM format)")
-        Path keyFile;
+        private Path keyFile;
 
         @Option(names = { "--check-expiration" }, description = "Check if signature has expired")
-        boolean checkExpiration;
+        private boolean checkExpiration;
 
         @Override
         public Integer call() {
@@ -247,7 +268,6 @@ class BundleCommand {
                 val manifest    = BundleManifest.fromJson(manifestJson);
                 val currentTime = checkExpiration ? Instant.now() : null;
 
-                contents.remove(BundleManifest.MANIFEST_FILENAME);
                 BundleSigner.verify(manifest, contents, publicKey, currentTime);
 
                 out.println("Verification successful");
@@ -274,10 +294,10 @@ class BundleCommand {
     static class Inspect implements Callable<Integer> {
 
         @Spec
-        CommandSpec spec;
+        private CommandSpec spec;
 
         @Option(names = { "-b", "--bundle" }, required = true, description = "Bundle file to inspect")
-        Path bundleFile;
+        private Path bundleFile;
 
         @Override
         public Integer call() {
@@ -347,14 +367,14 @@ class BundleCommand {
     static class Keygen implements Callable<Integer> {
 
         @Spec
-        CommandSpec spec;
+        private CommandSpec spec;
 
         @Option(names = { "-o",
                 "--output" }, required = true, description = "Output file prefix (creates <prefix>.pem and <prefix>.pub)")
-        Path outputPrefix;
+        private Path outputPrefix;
 
         @Option(names = { "--force" }, description = "Overwrite existing files")
-        boolean force;
+        private boolean force;
 
         @Override
         public Integer call() {

@@ -4704,6 +4704,26 @@
     "queryAllDeclaredMethods": true
   },
   {
+    "name": "io.sapl.api.functions.FunctionLibrary",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.functions.Function",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.attributes.PolicyInformationPoint",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.attributes.Attribute",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.attributes.EnvironmentAttribute",
+    "allDeclaredMethods": true
+  },
+  {
     "name": "io.sapl.api.model.Value",
     "allDeclaredMethods": true
   },

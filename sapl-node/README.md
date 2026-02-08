@@ -79,7 +79,7 @@ Generated Ed25519 keypair:
   Public key:  /home/user/sapl-node/signing-key.pub
 ```
 
-Keep the private key secure. The public key is used by the server to verify bundles.
+Keep the private key secure. The server uses the public key to verify bundles.
 
 ### 4. Sign the Bundle
 

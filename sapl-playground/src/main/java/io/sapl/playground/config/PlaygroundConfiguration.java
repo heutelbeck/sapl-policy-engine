@@ -45,7 +45,6 @@ import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -111,7 +110,7 @@ public class PlaygroundConfiguration {
 
     public static class DummyJWTKeyProvider extends JWTKeyProvider {
         public DummyJWTKeyProvider() {
-            super(WebClient.builder());
+            super();
         }
 
         @Override

@@ -21,9 +21,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.Key;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Base64;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -77,12 +81,8 @@ class BundleCommandTests {
         @Test
         @DisplayName("creates bundle from directory with policies")
         void whenDirectoryWithPolicies_thenCreatesBundleSuccessfully() throws Exception {
-            val inputDir   = tempDir.resolve("policies");
+            val inputDir   = createPolicyInputDir();
             val outputFile = tempDir.resolve("test.saplbundle");
-
-            Files.createDirectory(inputDir);
-            Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
-            Files.writeString(inputDir.resolve("pdp.json"), TEST_PDP_JSON);
 
             val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString());
 
@@ -134,6 +134,60 @@ class BundleCommandTests {
 
             assertThat(exitCode).isEqualTo(1);
             assertThat(err.toString()).contains("No .sapl files found");
+        }
+
+        @Test
+        @DisplayName("creates signed bundle when key provided")
+        void whenKeyProvided_thenCreatesSignedBundle() throws Exception {
+            val inputDir    = createPolicyInputDir();
+            val outputFile  = tempDir.resolve("signed.saplbundle");
+            val keyPair     = generateEd25519KeyPair();
+            val privateKeyF = tempDir.resolve("private.pem");
+
+            Files.writeString(privateKeyF, toPem(keyPair.privateKey(), "PRIVATE KEY"));
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(), "-k",
+                    privateKeyF.toString(), "--key-id", "my-key");
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Created signed bundle").contains("my-key");
+            assertThat(Files.exists(outputFile)).isTrue();
+        }
+
+        @Test
+        @DisplayName("signed bundle created with key passes verification")
+        void whenCreatedWithKey_thenPassesVerification() throws Exception {
+            val inputDir    = createPolicyInputDir();
+            val outputFile  = tempDir.resolve("verified.saplbundle");
+            val keyPair     = generateEd25519KeyPair();
+            val privateKeyF = tempDir.resolve("private.pem");
+            val publicKeyF  = tempDir.resolve("public.pem");
+
+            Files.writeString(privateKeyF, toPem(keyPair.privateKey(), "PRIVATE KEY"));
+            Files.writeString(publicKeyF, toPem(keyPair.publicKey(), "PUBLIC KEY"));
+
+            cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(), "-k",
+                    privateKeyF.toString());
+
+            val verifyExitCode = cmd.execute("bundle", "verify", "-b", outputFile.toString(), "-k",
+                    publicKeyF.toString());
+
+            assertThat(verifyExitCode).isZero();
+            assertThat(out.toString()).contains("Verification successful");
+        }
+
+        @Test
+        @DisplayName("fails when key file not found")
+        void whenKeyFileNotFound_thenFails() throws Exception {
+            val inputDir   = createPolicyInputDir();
+            val outputFile = tempDir.resolve("test.saplbundle");
+            val keyFile    = tempDir.resolve("nonexistent.pem");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(), "-k",
+                    keyFile.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("Key file not found");
         }
 
     }
@@ -358,13 +412,17 @@ class BundleCommandTests {
 
     }
 
-    private Path createTestBundle() throws Exception {
-        val inputDir   = tempDir.resolve("input-" + System.nanoTime());
-        val outputFile = tempDir.resolve("bundle-" + System.nanoTime() + ".saplbundle");
-
+    private Path createPolicyInputDir() throws Exception {
+        val inputDir = tempDir.resolve("input-" + System.nanoTime());
         Files.createDirectory(inputDir);
         Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
         Files.writeString(inputDir.resolve("pdp.json"), TEST_PDP_JSON);
+        return inputDir;
+    }
+
+    private Path createTestBundle() throws Exception {
+        val inputDir   = createPolicyInputDir();
+        val outputFile = tempDir.resolve("bundle-" + System.nanoTime() + ".saplbundle");
 
         val createOut = new StringWriter();
         val createCmd = new CommandLine(new SaplNodeCli());
@@ -378,7 +436,7 @@ class BundleCommandTests {
         return createSignedTestBundle(generateEd25519KeyPair().privateKey());
     }
 
-    private Path createSignedTestBundle(java.security.PrivateKey privateKey) throws Exception {
+    private Path createSignedTestBundle(PrivateKey privateKey) throws Exception {
         val unsignedBundle = createTestBundle();
         val signedBundle   = tempDir.resolve("signed-" + System.nanoTime() + ".saplbundle");
         val privateKeyPem  = tempDir.resolve("key-" + System.nanoTime() + ".pem");
@@ -394,7 +452,7 @@ class BundleCommandTests {
         return signedBundle;
     }
 
-    private record KeyPairHolder(java.security.PrivateKey privateKey, java.security.PublicKey publicKey) {}
+    private record KeyPairHolder(PrivateKey privateKey, PublicKey publicKey) {}
 
     private KeyPairHolder generateEd25519KeyPair() throws Exception {
         val keyGen  = KeyPairGenerator.getInstance("Ed25519");
@@ -402,9 +460,8 @@ class BundleCommandTests {
         return new KeyPairHolder(keyPair.getPrivate(), keyPair.getPublic());
     }
 
-    private String toPem(java.security.Key key, String type) {
-        val base64 = Base64.getMimeEncoder(64, "\n".getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                .encodeToString(key.getEncoded());
+    private String toPem(Key key, String type) {
+        val base64 = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8)).encodeToString(key.getEncoded());
         return "-----BEGIN " + type + "-----\n" + base64 + "\n-----END " + type + "-----\n";
     }
 

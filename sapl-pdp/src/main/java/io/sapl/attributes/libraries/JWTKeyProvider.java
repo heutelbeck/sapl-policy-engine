@@ -68,11 +68,20 @@ public class JWTKeyProvider {
     /**
      * Creates a JWTKeyProvider.
      *
-     * @param builder
-     * a WebClient builder.
+     * @param builder a WebClient builder.
      */
     public JWTKeyProvider(WebClient.Builder builder) {
         webClient    = builder.build();
+        keyCache     = new ConcurrentHashMap<>();
+        cachingTimes = new ConcurrentLinkedQueue<>();
+    }
+
+    /**
+     * Creates a JWTKeyProvider without a WebClient. Intended for dummy/stub
+     * subclasses that override {@link #provide} and never make HTTP calls.
+     */
+    protected JWTKeyProvider() {
+        webClient    = null;
         keyCache     = new ConcurrentHashMap<>();
         cachingTimes = new ConcurrentLinkedQueue<>();
     }

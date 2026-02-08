@@ -24,6 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.functions.libraries.SaplFunctionLibrary;
 import lombok.val;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.IVersionProvider;
 
 /**
  * Main CLI entry point for sapl-node.
@@ -38,12 +39,10 @@ public class SaplNodeCli implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        // Default behavior: server is already running (Spring Boot started in main)
-        // Just keep the application alive - Spring handles the web server
         return 0;
     }
 
-    static class VersionProvider implements picocli.CommandLine.IVersionProvider {
+    static class VersionProvider implements IVersionProvider {
 
         private static final String UNKNOWN = "unknown";
 

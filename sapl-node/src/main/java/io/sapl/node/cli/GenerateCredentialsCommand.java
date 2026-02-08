@@ -17,9 +17,13 @@
  */
 package io.sapl.node.cli;
 
+import static io.sapl.node.SecretGenerator.encodeWithArgon2;
+import static io.sapl.node.SecretGenerator.newApiKey;
+import static io.sapl.node.SecretGenerator.newKey;
+import static io.sapl.node.SecretGenerator.newSecret;
+
 import java.util.concurrent.Callable;
 
-import io.sapl.node.SecretGenerator;
 import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
@@ -37,21 +41,21 @@ class GenerateCredentialsCommand {
     static class BasicCredentials implements Callable<Integer> {
 
         @Spec
-        CommandSpec spec;
+        private CommandSpec spec;
 
         @Option(names = { "-i", "--id" }, description = "User ID (default: generated)", defaultValue = "")
-        String userId;
+        private String userId;
 
         @Option(names = { "-p",
                 "--pdp-id" }, description = "PDP ID for routing (default: 'default')", defaultValue = "default")
-        String pdpId;
+        private String pdpId;
 
         @Override
         public Integer call() {
-            val id            = userId.isEmpty() ? "user-" + SecretGenerator.newKey() : userId;
-            val username      = SecretGenerator.newKey();
-            val secret        = SecretGenerator.newSecret();
-            val encodedSecret = SecretGenerator.encodeWithArgon2(secret);
+            val id            = userId.isEmpty() ? "user-" + newKey() : userId;
+            val username      = newKey();
+            val secret        = newSecret();
+            val encodedSecret = encodeWithArgon2(secret);
             spec.commandLine().getOut().printf("""
                     %n\
                     Basic Auth Credentials%n\
@@ -93,22 +97,22 @@ class GenerateCredentialsCommand {
     static class ApiKey implements Callable<Integer> {
 
         @Spec
-        CommandSpec spec;
+        private CommandSpec spec;
 
         @Option(names = { "-i", "--id" }, description = "User ID (default: generated)", defaultValue = "")
-        String userId;
+        private String userId;
 
         @Option(names = { "-p",
                 "--pdp-id" }, description = "PDP ID for routing (default: 'default')", defaultValue = "default")
-        String pdpId;
+        private String pdpId;
 
         @Override
         public Integer call() {
-            val id         = userId.isEmpty() ? "user-" + SecretGenerator.newKey() : userId;
-            val key        = SecretGenerator.newKey();
-            val secret     = SecretGenerator.newApiKey();
+            val id         = userId.isEmpty() ? "user-" + newKey() : userId;
+            val key        = newKey();
+            val secret     = newApiKey();
             val apiKey     = "sapl_" + key + "_" + secret;
-            val encodedKey = SecretGenerator.encodeWithArgon2(apiKey);
+            val encodedKey = encodeWithArgon2(apiKey);
             spec.commandLine().getOut().printf("""
                     %n\
                     API Key%n\

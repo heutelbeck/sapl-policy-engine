@@ -22,90 +22,99 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import lombok.val;
 import picocli.CommandLine;
 
 @DisplayName("SAPL Node CLI")
 class SaplNodeCliTests {
 
-    @Test
-    @DisplayName("--version outputs SAPL version, build info, Java, and OS details")
-    void whenVersionFlag_thenSucceedsWithVersionInfo() {
-        var out = new StringWriter();
-        var cmd = new CommandLine(new SaplNodeCli());
+    private StringWriter out;
+    private CommandLine  cmd;
+
+    @BeforeEach
+    void setUp() {
+        out = new StringWriter();
+        cmd = new CommandLine(new SaplNodeCli());
         cmd.setOut(new PrintWriter(out));
-
-        var exitCode = cmd.execute("--version");
-
-        assertThat(exitCode).isZero();
-        assertThat(out.toString()).satisfies(output -> {
-            assertThat(output).contains("SAPL Node");
-            assertThat(output).contains("Built:");
-            assertThat(output).contains("Java:");
-            assertThat(output).contains("OS:");
-        });
     }
 
-    @Test
-    @DisplayName("--help lists available subcommands")
-    void whenHelpFlag_thenSucceedsWithSubcommands() {
-        var out = new StringWriter();
-        var cmd = new CommandLine(new SaplNodeCli());
-        cmd.setOut(new PrintWriter(out));
+    @Nested
+    @DisplayName("global options")
+    class GlobalOptionsTests {
 
-        var exitCode = cmd.execute("--help");
+        @Test
+        @DisplayName("--version outputs SAPL version, build info, Java, and OS details")
+        void whenVersionFlag_thenSucceedsWithVersionInfo() {
+            val exitCode = cmd.execute("--version");
 
-        assertThat(exitCode).isZero();
-        assertThat(out.toString()).satisfies(output -> {
-            assertThat(output).contains("bundle");
-            assertThat(output).contains("generate");
-        });
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).satisfies(output -> {
+                assertThat(output).contains("SAPL Node");
+                assertThat(output).contains("Built:");
+                assertThat(output).contains("Java:");
+                assertThat(output).contains("OS:");
+            });
+        }
+
+        @Test
+        @DisplayName("--help lists available subcommands")
+        void whenHelpFlag_thenSucceedsWithSubcommands() {
+            val exitCode = cmd.execute("--help");
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).satisfies(output -> {
+                assertThat(output).contains("bundle");
+                assertThat(output).contains("generate");
+            });
+        }
+
     }
 
-    @Test
-    @DisplayName("generate basic outputs credentials with config and usage examples")
-    void whenGenerateBasic_thenSucceedsWithCredentials() {
-        var out = new StringWriter();
-        var cmd = new CommandLine(new SaplNodeCli());
-        cmd.setOut(new PrintWriter(out));
+    @Nested
+    @DisplayName("generate credentials")
+    class GenerateCredentialsTests {
 
-        var exitCode = cmd.execute("generate", "basic");
+        @Test
+        @DisplayName("generate basic outputs credentials with config and usage examples")
+        void whenGenerateBasic_thenSucceedsWithCredentials() {
+            val exitCode = cmd.execute("generate", "basic");
 
-        assertThat(exitCode).isZero();
-        assertThat(out.toString()).satisfies(output -> {
-            assertThat(output).contains("Basic Auth Credentials");
-            assertThat(output).contains("Username:");
-            assertThat(output).contains("Password:");
-            assertThat(output).contains("io.sapl.node:");
-            assertThat(output).contains("allowBasicAuth: true");
-            assertThat(output).contains("$argon2id$");
-            assertThat(output).contains("curl -u");
-            assertThat(output).contains("/api/pdp/decide-once");
-        });
-    }
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).satisfies(output -> {
+                assertThat(output).contains("Basic Auth Credentials");
+                assertThat(output).contains("Username:");
+                assertThat(output).contains("Password:");
+                assertThat(output).contains("io.sapl.node:");
+                assertThat(output).contains("allowBasicAuth: true");
+                assertThat(output).contains("$argon2id$");
+                assertThat(output).contains("curl -u");
+                assertThat(output).contains("/api/pdp/decide-once");
+            });
+        }
 
-    @Test
-    @DisplayName("generate apikey outputs API key with config and usage examples")
-    void whenGenerateApiKey_thenSucceedsWithApiKey() {
-        var out = new StringWriter();
-        var cmd = new CommandLine(new SaplNodeCli());
-        cmd.setOut(new PrintWriter(out));
+        @Test
+        @DisplayName("generate apikey outputs API key with config and usage examples")
+        void whenGenerateApiKey_thenSucceedsWithApiKey() {
+            val exitCode = cmd.execute("generate", "apikey");
 
-        var exitCode = cmd.execute("generate", "apikey");
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).satisfies(output -> {
+                assertThat(output).contains("API Key");
+                assertThat(output).contains("sapl_");
+                assertThat(output).contains("io.sapl.node:");
+                assertThat(output).contains("allowApiKeyAuth: true");
+                assertThat(output).contains("users:");
+                assertThat(output).contains("$argon2id$");
+                assertThat(output).contains("Authorization: Bearer");
+                assertThat(output).contains("/api/pdp/decide-once");
+            });
+        }
 
-        assertThat(exitCode).isZero();
-        assertThat(out.toString()).satisfies(output -> {
-            assertThat(output).contains("API Key");
-            assertThat(output).contains("sapl_");
-            assertThat(output).contains("io.sapl.node:");
-            assertThat(output).contains("allowApiKeyAuth: true");
-            assertThat(output).contains("users:");
-            assertThat(output).contains("$argon2id$");
-            assertThat(output).contains("Authorization: Bearer");
-            assertThat(output).contains("/api/pdp/decide-once");
-        });
     }
 
 }

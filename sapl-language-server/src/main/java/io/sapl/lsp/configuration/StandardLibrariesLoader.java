@@ -22,14 +22,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.http.HttpMethod;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
@@ -74,6 +77,10 @@ import io.sapl.functions.libraries.XmlFunctionLibrary;
 import io.sapl.functions.libraries.YamlFunctionLibrary;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.security.interfaces.RSAPublicKey;
 
 /**
  * Loads all standard SAPL function libraries and policy information points.
@@ -99,6 +106,10 @@ public class StandardLibrariesLoader {
     private static final List<Class<?>> POLICY_INFORMATION_POINTS = List.of(TimePolicyInformationPoint.class,
             HttpPolicyInformationPoint.class, JWTPolicyInformationPoint.class);
 
+    private static final String ERROR_EXTERNAL_DATA_SOURCE_BLOCKED = "Access to external data sources is not available in the language server.";
+
+    private static final Value PIP_CALL_BLOCKED = Value.error(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED);
+
     /**
      * Creates an LSPConfiguration with all standard libraries loaded.
      *
@@ -121,7 +132,7 @@ public class StandardLibrariesLoader {
         for (var libraryClass : FUNCTION_LIBRARIES) {
             try {
                 broker.loadStaticFunctionLibrary(libraryClass);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.warn("Failed to load function library {}: {}", libraryClass.getSimpleName(), e.getMessage());
             }
         }
@@ -133,24 +144,22 @@ public class StandardLibrariesLoader {
         var repository = new InMemoryAttributeRepository(clock);
         var broker     = new CachingAttributeBroker(repository);
 
-        // Load standard PIPs
         try {
             broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(clock));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.warn("Failed to load TimePolicyInformationPoint: {}", e.getMessage());
         }
 
         try {
-            var reactiveWebClient = new ReactiveWebClient(JsonMapper.builder().build());
-            broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(reactiveWebClient));
-        } catch (Exception e) {
+            var webClient = new DummyReactiveWebClient(JsonMapper.builder().build());
+            broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(webClient));
+        } catch (Throwable e) {
             log.warn("Failed to load HttpPolicyInformationPoint: {}", e.getMessage());
         }
 
         try {
-            var jwtKeyProvider = new JWTKeyProvider(WebClient.builder());
-            broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(jwtKeyProvider));
-        } catch (Exception e) {
+            broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
+        } catch (Throwable e) {
             log.warn("Failed to load JWTPolicyInformationPoint: {}", e.getMessage());
         }
 
@@ -163,7 +172,7 @@ public class StandardLibrariesLoader {
         for (var libraryClass : FUNCTION_LIBRARIES) {
             try {
                 libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(libraryClass));
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.warn("Failed to extract documentation from {}: {}", libraryClass.getSimpleName(), e.getMessage());
             }
         }
@@ -171,12 +180,41 @@ public class StandardLibrariesLoader {
         for (var pipClass : POLICY_INFORMATION_POINTS) {
             try {
                 libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(pipClass));
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.warn("Failed to extract documentation from {}: {}", pipClass.getSimpleName(), e.getMessage());
             }
         }
 
         return new DocumentationBundle(libraries);
+    }
+
+    private static class DummyReactiveWebClient extends ReactiveWebClient {
+
+        DummyReactiveWebClient(JsonMapper mapper) {
+            super(mapper);
+        }
+
+        @Override
+        public Flux<Value> httpRequest(HttpMethod method, ObjectValue requestSettings) {
+            return Flux.just(PIP_CALL_BLOCKED);
+        }
+
+        @Override
+        public Flux<Value> consumeWebSocket(ObjectValue requestSettings) {
+            return Flux.just(PIP_CALL_BLOCKED);
+        }
+    }
+
+    private static class DummyJWTKeyProvider extends JWTKeyProvider {
+
+        DummyJWTKeyProvider() {
+            super();
+        }
+
+        @Override
+        public Mono<RSAPublicKey> provide(String kid, JsonNode publicKeyServer) {
+            return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
+        }
     }
 
 }

@@ -33,24 +33,24 @@ public class SecretGenerator {
     public static final int BASIC_SECRET_LENGTH = 32;
     public static final int MIN_API_KEY_LENGTH  = 32;
 
-    public String newSecret() {
+    public static String newSecret() {
         return generatePassword(BASIC_SECRET_LENGTH);
     }
 
-    public String newKey() {
+    public static String newKey() {
         return generateKey(BASIC_KEY_LENGTH);
     }
 
-    public String newApiKey() {
+    public static String newApiKey() {
         return generateKey(MIN_API_KEY_LENGTH);
     }
 
-    public String encodeWithArgon2(String secret) {
+    public static String encodeWithArgon2(String secret) {
         val encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
         return encoder.encode(secret);
     }
 
-    private String generateKey(int length) {
+    private static String generateKey(int length) {
         val passwordGenerator = new PasswordGenerator();
         val lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
         val upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
@@ -59,7 +59,7 @@ public class SecretGenerator {
         return passwordGenerator.generatePassword(length, rules);
     }
 
-    private String generatePassword(int length) {
+    private static String generatePassword(int length) {
         val passwordGenerator = new PasswordGenerator();
         val lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
         val upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
