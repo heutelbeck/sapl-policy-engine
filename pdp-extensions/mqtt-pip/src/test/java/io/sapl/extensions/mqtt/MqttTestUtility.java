@@ -60,7 +60,12 @@ class MqttTestUtility {
 
     @SneakyThrows
     public static EmbeddedHiveMQ startBroker(EmbeddedHiveMQ broker) {
-        broker.start().get();
+        try {
+            broker.start().get();
+        } catch (ExecutionException | InterruptedException e) {
+            broker.close();
+            throw e;
+        }
         return broker;
     }
 
