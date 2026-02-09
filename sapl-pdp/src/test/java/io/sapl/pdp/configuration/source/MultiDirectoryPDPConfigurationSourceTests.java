@@ -221,7 +221,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryIsRemovedThenSourceIsDisposed() throws IOException, InterruptedException {
+    void whenSubdirectoryIsRemovedThenSourceIsDisposed() throws IOException {
         val keepDir = tempDir.resolve("keep");
         Files.createDirectory(keepDir);
         createFile(keepDir.resolve("policy.sapl"), "policy \"keep\" permit true;");
@@ -531,7 +531,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDeletedAfterDisposeThenItIsIgnored() throws IOException, InterruptedException {
+    void whenDirectoryDeletedAfterDisposeThenItIsIgnored() throws IOException {
         val removable = tempDir.resolve("removable");
         Files.createDirectory(removable);
         createFile(removable.resolve("policy.sapl"), "policy \"removable\" permit true;");
@@ -617,7 +617,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
-    private void deleteDirectory(Path directory) throws IOException, InterruptedException {
+    private void deleteDirectory(Path directory) throws IOException {
         List<Path> contents;
         try (var stream = Files.walk(directory)) {
             contents = stream.filter(p -> !p.equals(directory)).sorted(Comparator.reverseOrder()).toList();
@@ -627,15 +627,10 @@ class MultiDirectoryPDPConfigurationSourceTests {
         }
         // On Windows, the child monitor's polling thread may briefly hold a
         // directory handle. Retry until the handle is released between polls.
-        for (int attempt = 0; attempt < 20; attempt++) {
-            try {
-                Files.deleteIfExists(directory);
-                return;
-            } catch (IOException e) {
-                Thread.sleep(100);
-            }
-        }
-        assertThat(directory).doesNotExist();
+        await().atMost(Duration.ofSeconds(2)).pollInterval(Duration.ofMillis(100)).untilAsserted(() -> {
+            Files.deleteIfExists(directory);
+            assertThat(directory).doesNotExist();
+        });
     }
 
 }

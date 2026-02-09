@@ -205,7 +205,7 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
             }
             if (disposed.compareAndSet(false, true)) {
                 log.info("Directory for PDP '{}' no longer exists, triggering removal.", pdpId);
-                Thread.startVirtualThread(() -> {
+                Thread.ofPlatform().start(() -> {
                     stopMonitorSafely();
                     onDirectoryRemoved.run();
                 });
