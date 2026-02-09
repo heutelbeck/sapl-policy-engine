@@ -220,7 +220,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSubdirectoryIsRemovedThenSourceIsDisposed() throws IOException {
+    void whenSubdirectoryIsRemovedThenSourceIsDisposed() throws IOException, InterruptedException {
         val keepDir = tempDir.resolve("keep");
         Files.createDirectory(keepDir);
         createFile(keepDir.resolve("policy.sapl"), "policy \"keep\" permit true;");
@@ -530,7 +530,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDeletedAfterDisposeThenItIsIgnored() throws IOException {
+    void whenDirectoryDeletedAfterDisposeThenItIsIgnored() throws IOException, InterruptedException {
         val removable = tempDir.resolve("removable");
         Files.createDirectory(removable);
         createFile(removable.resolve("policy.sapl"), "policy \"removable\" permit true;");
@@ -616,15 +616,21 @@ class MultiDirectoryPDPConfigurationSourceTests {
         assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
     }
 
-    private void deleteDirectory(Path directory) throws IOException {
-        try (var stream = Files.walk(directory)) {
-            stream.sorted(Comparator.reverseOrder()).forEach(path -> {
-                try {
-                    Files.delete(path);
-                } catch (IOException e) {
-                    // Ignore
-                }
-            });
+    private void deleteDirectory(Path directory) throws IOException, InterruptedException {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            try (var stream = Files.walk(directory)) {
+                stream.sorted(Comparator.reverseOrder()).forEach(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        // Transient lock on Windows - will retry
+                    }
+                });
+            }
+            if (!Files.exists(directory)) {
+                return;
+            }
+            Thread.sleep(200);
         }
     }
 
