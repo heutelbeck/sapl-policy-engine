@@ -38,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -241,7 +242,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         deleteDirectory(removableDir);
 
         // Wait for file watcher to detect removal and verify configuration is removed
-        await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600)).untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             verify(pdpVoterSource).removeConfigurationForPdp("removable");
         });
     }
@@ -617,21 +618,30 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     private void deleteDirectory(Path directory) throws IOException, InterruptedException {
-        for (int attempt = 0; attempt < 5; attempt++) {
-            try (var stream = Files.walk(directory)) {
-                stream.sorted(Comparator.reverseOrder()).forEach(path -> {
-                    try {
-                        Files.deleteIfExists(path);
-                    } catch (IOException e) {
-                        // Transient lock on Windows - will retry
-                    }
-                });
-            }
-            if (!Files.exists(directory)) {
-                return;
-            }
-            Thread.sleep(200);
+        // On Windows, transient file locks (child monitors, antivirus, indexer)
+        // can prevent deletion. Separate content deletion from directory deletion
+        // and retry with sufficient gaps between attempts.
+        List<Path> contents;
+        try (var stream = Files.walk(directory)) {
+            contents = stream.filter(p -> !p.equals(directory)).sorted(Comparator.reverseOrder()).toList();
         }
+        for (val path : contents) {
+            for (int attempt = 0; attempt < 10; attempt++) {
+                if (Files.deleteIfExists(path)) {
+                    break;
+                }
+                Thread.sleep(100);
+            }
+        }
+        for (int attempt = 0; attempt < 20; attempt++) {
+            try {
+                Files.deleteIfExists(directory);
+                return;
+            } catch (IOException e) {
+                Thread.sleep(100);
+            }
+        }
+        assertThat(directory).doesNotExist();
     }
 
 }
