@@ -242,7 +242,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         deleteDirectory(removableDir);
 
         // Wait for file watcher to detect removal and verify configuration is removed
-        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             verify(pdpVoterSource).removeConfigurationForPdp("removable");
         });
     }
@@ -618,21 +618,15 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     private void deleteDirectory(Path directory) throws IOException, InterruptedException {
-        // On Windows, transient file locks (child monitors, antivirus, indexer)
-        // can prevent deletion. Separate content deletion from directory deletion
-        // and retry with sufficient gaps between attempts.
         List<Path> contents;
         try (var stream = Files.walk(directory)) {
             contents = stream.filter(p -> !p.equals(directory)).sorted(Comparator.reverseOrder()).toList();
         }
         for (val path : contents) {
-            for (int attempt = 0; attempt < 10; attempt++) {
-                if (Files.deleteIfExists(path)) {
-                    break;
-                }
-                Thread.sleep(100);
-            }
+            Files.deleteIfExists(path);
         }
+        // On Windows, the child monitor's polling thread may briefly hold a
+        // directory handle. Retry until the handle is released between polls.
         for (int attempt = 0; attempt < 20; attempt++) {
             try {
                 Files.deleteIfExists(directory);

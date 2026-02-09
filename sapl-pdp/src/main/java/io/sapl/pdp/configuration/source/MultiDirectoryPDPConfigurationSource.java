@@ -185,7 +185,8 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
         }
 
         try {
-            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId, pdpVoterSource);
+            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId, pdpVoterSource,
+                    () -> removeChildSource(pdpId));
             childSources.put(pdpId, source);
             log.debug("Created child source for PDP '{}'.", pdpId);
         } catch (Exception e) {
@@ -236,6 +237,15 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
         }
     }
 
+    private void removeChildSource(String pdpId) {
+        val source = childSources.remove(pdpId);
+        if (source != null) {
+            source.dispose();
+            pdpVoterSource.removeConfigurationForPdp(pdpId);
+            log.debug("Removed and disposed child source for PDP '{}'.", pdpId);
+        }
+    }
+
     private void disposeAllChildSources() {
         for (val entry : childSources.entrySet()) {
             try {
@@ -270,15 +280,6 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
             val pdpId = directory.getName();
             log.debug("Detected subdirectory removal: {}.", pdpId);
             removeChildSource(pdpId);
-        }
-
-        private void removeChildSource(String pdpId) {
-            val source = childSources.remove(pdpId);
-            if (source != null) {
-                source.dispose();
-                pdpVoterSource.removeConfigurationForPdp(pdpId);
-                log.debug("Removed and disposed child source for PDP '{}'.", pdpId);
-            }
         }
     }
 

@@ -83,6 +83,7 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
     private final Path                  directoryPath;
     private final String                pdpId;
     private final PdpVoterSource        pdpVoterSource;
+    private final Runnable              onDirectoryRemoved;
     private final FileAlterationMonitor monitor;
     private final AtomicBoolean         disposed = new AtomicBoolean(false);
 
@@ -111,11 +112,19 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
     public DirectoryPDPConfigurationSource(@NonNull Path directoryPath,
             @NonNull String pdpId,
             @NonNull PdpVoterSource pdpVoterSource) {
+        this(directoryPath, pdpId, pdpVoterSource, () -> {});
+    }
+
+    DirectoryPDPConfigurationSource(@NonNull Path directoryPath,
+            @NonNull String pdpId,
+            @NonNull PdpVoterSource pdpVoterSource,
+            @NonNull Runnable onDirectoryRemoved) {
         PdpIdValidator.validatePdpId(pdpId);
-        this.directoryPath  = PdpIdValidator.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath().normalize();
-        this.pdpId          = pdpId;
-        this.pdpVoterSource = pdpVoterSource;
-        this.monitor        = new FileAlterationMonitor(POLL_INTERVAL_MS);
+        this.directoryPath      = PdpIdValidator.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath().normalize();
+        this.pdpId              = pdpId;
+        this.pdpVoterSource     = pdpVoterSource;
+        this.onDirectoryRemoved = onDirectoryRemoved;
+        this.monitor            = new FileAlterationMonitor(POLL_INTERVAL_MS);
 
         log.info("Loading PDP configuration '{}' from directory: '{}'.", pdpId, this.directoryPath);
         validateDirectory();
@@ -188,6 +197,20 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
      * Listener for file system changes in the watched directory.
      */
     private class DirectoryChangeListener extends FileAlterationListenerAdaptor {
+
+        @Override
+        public void onStart(FileAlterationObserver observer) {
+            if (disposed.get() || Files.exists(directoryPath)) {
+                return;
+            }
+            if (disposed.compareAndSet(false, true)) {
+                log.info("Directory for PDP '{}' no longer exists, triggering removal.", pdpId);
+                Thread.startVirtualThread(() -> {
+                    stopMonitorSafely();
+                    onDirectoryRemoved.run();
+                });
+            }
+        }
 
         @Override
         public void onFileCreate(File file) {
