@@ -24,8 +24,13 @@ local configs = require('lspconfig.configs')
 if not configs.sapl then
   configs.sapl = {
     default_config = {
-      -- REQUIRED: Update path to your sapl-language-server-antlr standalone JAR
-      cmd = { 'java', '-jar', '/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar' },
+      -- REQUIRED: Pick one of the following and update the path.
+      -- Native binary (no Java required):
+      -- cmd = { '/path/to/sapl-language-server-linux-amd64' },
+      -- cmd = { '/path/to/sapl-language-server-macos-arm64' },
+      -- cmd = { '/path/to/sapl-language-server-windows-amd64.exe' },
+      -- Standalone JAR (requires Java 21+):
+      cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar' },
 
       filetypes = { 'sapl', 'sapltest' },
 

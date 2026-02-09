@@ -46,8 +46,8 @@ import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.IconFactory;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.menubar.MenuBar;
-import com.vaadin.flow.component.menubar.MenuBarVariant;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
+import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -1888,22 +1888,23 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates examples menu with categorized examples.
      */
-    private MenuBar createExamplesMenu() {
-        val menuBar = new MenuBar();
-        menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY);
-        val examplesItem = menuBar.addItem(LABEL_EXAMPLES);
-        val mainSubMenu  = examplesItem.getSubMenu();
+    private Button createExamplesMenu() {
+        val button = new Button(LABEL_EXAMPLES, VaadinIcon.CHEVRON_DOWN_SMALL.create());
+        button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        button.setIconAfterText(true);
+        val contextMenu = new ContextMenu(button);
+        contextMenu.setOpenOnClick(true);
         for (val category : ExamplesCollection.getAllCategories()) {
             val categoryIcon = VaadinIcon.valueOf(category.iconName()).create();
             categoryIcon.setSize(CSS_VALUE_ONE_EM);
             val categoryLabel = new Span(categoryIcon, new Text(" " + category.name()));
-            val categoryItem  = mainSubMenu.addItem(categoryLabel);
+            val categoryItem  = contextMenu.addItem(categoryLabel);
             val categoryMenu  = categoryItem.getSubMenu();
             for (val example : category.examples()) {
                 categoryMenu.addItem(example.displayName(), event -> loadExampleWithConfirmation(example));
             }
         }
-        return menuBar;
+        return button;
     }
 
     /*

@@ -71,7 +71,7 @@
       "patterns": [
         {
           "name": "storage.type.algorithm.sapltest",
-          "match": "\\b(deny-overrides|permit-overrides|only-one-applicable|deny-unless-permit|permit-unless-deny)\\b"
+          "match": "\\b(first|priority|unanimous|strict|unique|or|abstain|propagate|errors)\\b"
         }
       ]
     },
@@ -79,7 +79,7 @@
       "patterns": [
         {
           "name": "keyword.control.structure.sapltest",
-          "match": "\\b(requirement|scenario|given|when|then|expect)\\b"
+          "match": "\\b(requirement|scenario|given|when|then|expect|verify)\\b"
         }
       ]
     },
@@ -95,7 +95,7 @@
       "patterns": [
         {
           "name": "keyword.control.mock.sapltest",
-          "match": "\\b(function|attribute|maps|to|emits|stream|timing|of|is|called|virtual-time|error)\\b"
+          "match": "\\b(function|attribute|maps|to|emits|stream|timing|of|is|called|error)\\b"
         }
       ]
     },
@@ -111,7 +111,7 @@
       "patterns": [
         {
           "name": "keyword.control.pdp.sapltest",
-          "match": "\\b(pdp|variables|combining-algorithm|configuration|policy|set|policies)\\b"
+          "match": "\\b(pdp|variables|secrets|combining-algorithm|document|documents|policy|set|policies)\\b"
         }
       ]
     },
@@ -143,7 +143,7 @@
       "patterns": [
         {
           "name": "keyword.control.expect.sapltest",
-          "match": "\\b(no-event|for|wait|next|once|times)\\b"
+          "match": "\\b(for|wait|next|once|times)\\b"
         }
       ]
     },

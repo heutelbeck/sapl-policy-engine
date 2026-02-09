@@ -8,18 +8,13 @@ if exists("b:current_syntax")
 endif
 
 " Keywords
-syn keyword saplKeyword policy set for where var as import schema enforced each
+syn keyword saplKeyword policy set for var as import schema enforced each
 
 " Entitlements
 syn keyword saplEntitlement permit deny
 
-" Combining algorithms (use match for hyphenated words)
-syn match saplAlgorithm '\<first-applicable\>'
-syn match saplAlgorithm '\<only-one-applicable\>'
-syn match saplAlgorithm '\<deny-overrides\>'
-syn match saplAlgorithm '\<permit-overrides\>'
-syn match saplAlgorithm '\<deny-unless-permit\>'
-syn match saplAlgorithm '\<permit-unless-deny\>'
+" Combining algorithm components (natural language in SAPL 4.0)
+syn keyword saplAlgorithm first priority unanimous strict unique or abstain propagate errors
 
 " Clauses
 syn keyword saplClause advice obligation transform
@@ -52,12 +47,21 @@ syn match saplAttribute '<[a-zA-Z_][a-zA-Z0-9_.]*\(([^)]*)\)\?\(\[[^\]]*\]\)\?>'
 " Functions (identifier followed by parenthesis)
 syn match saplFunction '\<[a-zA-Z_][a-zA-Z0-9_]*\(\.[a-zA-Z_][a-zA-Z0-9_]*\)*\s*('me=e-1
 
-" Relative accessor
-syn match saplRelative '@'
+" Relative accessor and location
+syn match saplRelative '[@#]'
+
+" Recursive descent
+syn match saplRecursiveDescent '\.\.'
+
+" Condition operator
+syn match saplConditionOp '?'
 
 " Filter and subtemplate operators
 syn match saplFilterOp '|-'
 syn match saplSubtemplateOp '::'
+
+" Head attribute operator
+syn match saplHeadAttribute '|<'
 
 " Comparison and equality operators
 syn match saplOperatorSymbol '==\|!=\|<=\|>=\|=\~'
@@ -85,9 +89,12 @@ hi saplNumber         guifg=#6897BB ctermfg=67
 hi saplComment        guifg=#808080 ctermfg=244 gui=italic cterm=italic
 hi saplAttribute      guifg=#299999 ctermfg=30
 hi saplFunction       guifg=#FFC66D ctermfg=221
-hi saplRelative       guifg=#5c6370 ctermfg=59
-hi saplFilterOp       guifg=#5c6370 ctermfg=59
-hi saplSubtemplateOp  guifg=#5c6370 ctermfg=59
+hi saplRelative          guifg=#5c6370 ctermfg=59
+hi saplRecursiveDescent  guifg=#5c6370 ctermfg=59
+hi saplConditionOp       guifg=#5c6370 ctermfg=59
+hi saplFilterOp          guifg=#5c6370 ctermfg=59
+hi saplSubtemplateOp     guifg=#5c6370 ctermfg=59
+hi saplHeadAttribute     guifg=#5c6370 ctermfg=59
 hi saplOperatorSymbol guifg=#5c6370 ctermfg=59
 hi saplStructural     guifg=#5c6370 ctermfg=59
 

@@ -66,7 +66,7 @@
       "patterns": [
         {
           "name": "storage.type.algorithm.sapl",
-          "match": "\\b(first-applicable|only-one-applicable|deny-overrides|permit-overrides|deny-unless-permit|permit-unless-deny)\\b"
+          "match": "\\b(first|priority|unanimous|strict|unique|or|abstain|propagate|errors)\\b"
         }
       ]
     },
@@ -82,7 +82,7 @@
       "patterns": [
         {
           "name": "keyword.control.sapl",
-          "match": "\\b(policy|set|for|where|var|as|import|schema|enforced|each|advice|obligation|transform|in)\\b"
+          "match": "\\b(policy|set|for|var|as|import|schema|enforced|each|advice|obligation|transform|in)\\b"
         }
       ]
     },
@@ -135,6 +135,22 @@
         {
           "name": "keyword.operator.relative.sapl",
           "match": "@"
+        },
+        {
+          "name": "keyword.operator.relative-location.sapl",
+          "match": "#"
+        },
+        {
+          "name": "keyword.operator.head-attribute.sapl",
+          "match": "\\|<"
+        },
+        {
+          "name": "keyword.operator.recursive-descent.sapl",
+          "match": "\\.\\."
+        },
+        {
+          "name": "keyword.operator.condition.sapl",
+          "match": "\\?"
         }
       ]
     },

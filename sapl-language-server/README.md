@@ -1,6 +1,6 @@
-# SAPL Language Server (ANTLR-based)
+# SAPL Language Server
 
-A lightweight Language Server Protocol (LSP) implementation for SAPL policy files (`.sapl`) and SAPLTest files (`.sapltest`), built on ANTLR without Xtext or Spring Boot dependencies. Provides IDE support (semantic highlighting, diagnostics, content assist) in any LSP-compatible editor.
+A Language Server Protocol (LSP) implementation for SAPL policy files (`.sapl`) and SAPLTest files (`.sapltest`). Provides IDE support (semantic highlighting, diagnostics, content assist) in any LSP-compatible editor.
 
 ## Supported File Types
 
@@ -32,13 +32,13 @@ java -version
 Build both the library JAR and standalone executable:
 
 ```shell
-cd sapl-language-server-antlr
+cd sapl-language-server
 mvn install -DskipTests
 ```
 
 This produces two artifacts:
-- `target/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar` - Library JAR for Maven dependencies
-- `target/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar` - Executable JAR with all dependencies
+- `target/sapl-language-server-4.0.0-SNAPSHOT.jar` - Library JAR for Maven dependencies
+- `target/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar` - Executable JAR with all dependencies
 
 ### Native Image
 
@@ -71,19 +71,33 @@ If you encounter reflection errors at runtime, use the GraalVM tracing agent to 
 
 ```shell
 java -agentlib:native-image-agent=security-output-dir=native-security \
-     -jar target/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
+     -jar target/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
 ```
 
-Then copy the generated configs to `src/main/resources/META-INF/native-image/io.sapl/sapl-language-server-antlr/`.
+Then copy the generated configs to `src/main/resources/META-INF/native-image/io.sapl/sapl-language-server/`.
 
 ## Running
+
+The language server can be run either as a standalone JAR (requires Java 21+) or as a pre-built native binary (no Java required).
+
+Pre-built native binaries are available from [GitHub Releases](https://github.com/heutelbeck/sapl-policy-engine/releases/tag/snapshot):
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `sapl-language-server-linux-amd64` |
+| macOS ARM64 | `sapl-language-server-macos-arm64` |
+| Windows x86_64 | `sapl-language-server-windows-amd64.exe` |
 
 ### Standard I/O Mode (Default)
 
 Most LSP clients use stdio for communication:
 
 ```shell
-java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
+# Using the native binary
+./sapl-language-server-linux-amd64
+
+# Using the JAR
+java -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
 ```
 
 ### Socket Mode
@@ -91,19 +105,24 @@ java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
 For debugging or testing, use socket mode:
 
 ```shell
-java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar --socket --port=5007
+# Using the native binary
+./sapl-language-server-linux-amd64 --socket --port=5007
+
+# Using the JAR
+java -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar --socket --port=5007
 ```
 
 ## Editor Configuration
 
 ### Neovim
 
-Two configuration variants are provided in `ide-support/`:
+Three configuration variants are provided in `ide-support/`:
 
 | Variant | Directory | Features |
 |---------|-----------|----------|
 | **Full LSP** | `nvim-lsp/` | Content assist, diagnostics, hover, semantic highlighting via LSP |
 | **Syntax Only** | `nvim-highlighting-only/` | Vim syntax highlighting without LSP dependencies |
+| **NixOS** | `nixos/` | Home Manager module with LSP, completion, and semantic highlighting |
 
 #### Option 1: Full LSP Integration (`nvim-lsp/`)
 
@@ -132,7 +151,7 @@ Extract the relevant parts:
 1. **Required:** Copy `lua/sapl_lspconfig.lua` to your Lua path
 2. **Required:** Edit `sapl_lspconfig.lua` and update the JAR path on line 19:
    ```lua
-   cmd = { 'java', '-jar', '/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar' },
+   cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar' },
    ```
 3. **Required:** Add filetype registration from `filetype.lua`
 4. **Optional:** Add semantic highlight colors from `init.lua` (the `setup_semantic_highlights()` function)
@@ -200,7 +219,7 @@ Install [Generic LSP Client (v2)](https://marketplace.visualstudio.com/items?ite
 ```json
 {
   "glspc.server.command": "java",
-  "glspc.server.commandArguments": ["-jar", "/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar"],
+  "glspc.server.commandArguments": ["-jar", "/path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar"],
   "glspc.server.languageId": ["sapl", "sapltest"]
 }
 ```
@@ -222,7 +241,7 @@ Use the **LSP4IJ** plugin for Language Server Protocol support.
 **Settings** > **Languages & Frameworks** > **Language Servers** > **+**
 
 - **Name**: SAPL
-- **Command**: `java -jar /path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar`
+- **Command**: `java -jar /path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar`
 - **Mappings**:
   - File pattern `*.sapl`, Language Id `SAPL`
   - File pattern `*.sapltest`, Language Id `SAPLTest`
@@ -236,7 +255,7 @@ Use the **LSP4IJ** plugin for Language Server Protocol support.
 - Right-click **Program** > **New Configuration**
 - **Name**: SAPL Language Server
 - **Location**: `java`
-- **Arguments**: `-jar /path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar`
+- **Arguments**: `-jar /path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar`
 
 #### Step 2: Create Content Type
 
@@ -282,7 +301,7 @@ Configure LSP in **Settings** > **Configure Kate...** > **LSP Client** > **User 
 {
   "servers": {
     "sapl": {
-      "command": ["java", "-jar", "/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar"],
+      "command": ["java", "-jar", "/path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar"],
       "url": "https://github.com/heutelbeck/sapl-policy-engine",
       "highlightingModeRegex": "^SAPL.*$"
     }
@@ -291,6 +310,10 @@ Configure LSP in **Settings** > **Configure Kate...** > **LSP Client** > **User 
 ```
 
 Note: Kate uses the syntax highlighting definition name for language matching. Both `.sapl` and `.sapltest` files are covered by the extensions in the syntax definition.
+
+### NixOS / Home Manager
+
+A Nix module for Neovim with SAPL LSP integration is provided in `ide-support/nixos/sapl-nvim.nix`. It fetches the language server snapshot binary from [GitHub Releases](https://github.com/heutelbeck/sapl-policy-engine/releases/tag/snapshot) and configures LSP, completion, and semantic highlighting.
 
 ## Troubleshooting
 
@@ -302,7 +325,7 @@ Note: Kate uses the syntax highlighting definition name for language matching. B
    ```shell
    echo 'Content-Length: 119
 
-   {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"processId":null,"rootUri":null}}' | java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
+   {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"processId":null,"rootUri":null}}' | java -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
    ```
    You should see a JSON response starting with `Content-Length:`.
 
@@ -311,7 +334,7 @@ Note: Kate uses the syntax highlighting definition name for language matching. B
 Set the system property to enable verbose logging:
 
 ```shell
-java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
+java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
 ```
 
 ### Neovim shows no highlighting
@@ -344,8 +367,8 @@ server.connect(languageClient);
 ### Semantic Tokens
 
 **SAPL files (`.sapl`):**
-- `keyword`: SAPL keywords (import, policy, where, var, etc.)
-- `macro`: Entitlements and combining algorithms (permit, deny, first-applicable, etc.)
+- `keyword`: SAPL keywords (import, policy, var, etc.)
+- `macro`: Entitlements and combining algorithms (permit, deny, first, priority, etc.)
 - `operator`: Operators (||, &&, ==, etc.)
 - `string`: String literals
 - `number`: Numeric literals
@@ -397,14 +420,3 @@ server.connect(languageClient);
 - Matcher keywords (matching, any, equals, containing, with, where)
 - Type matcher keywords (null, text, number, boolean, array, object)
 
-## Differences from Spring Boot LSP
-
-| Aspect | ANTLR LSP | Spring Boot LSP |
-|--------|-----------|-----------------|
-| Size | ~6 MB | ~30 MB |
-| Startup | Instant | 2-3 seconds |
-| Dependencies | ANTLR, LSP4J | Xtext, Spring Boot |
-| Resource usage | Low | Higher |
-| File types | `.sapl`, `.sapltest` | `.sapl` only |
-
-The ANTLR-based LSP provides the same core functionality (highlighting, diagnostics, completion) with significantly lower resource usage, making it ideal for lightweight editors like Neovim. It also supports SAPLTest files for policy testing.
