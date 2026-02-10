@@ -255,6 +255,7 @@
 								optional:file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
 							<BPE_LOADER_PATH>file:/pdp/data/lib/</BPE_LOADER_PATH>
 							<BPE_JAVA_SECURITY_EGD>file:/dev/./urandom/</BPE_JAVA_SECURITY_EGD>
+							<BPE_DELIM_JAVA_TOOL_OPTIONS xml:space="preserve"> </BPE_DELIM_JAVA_TOOL_OPTIONS>
 							<BPE_APPEND_JAVA_TOOL_OPTIONS>--enable-native-access=ALL-UNNAMED</BPE_APPEND_JAVA_TOOL_OPTIONS>
 						</env>
 					</image>

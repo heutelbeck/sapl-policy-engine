@@ -74,12 +74,12 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    void whenNoConfigurationLoadedThenThrowException() {
+    void whenNoConfigurationLoadedThenReturnIndeterminate() {
         val subscription = subscription("Nyarlathotep", "invoke", "outer_gods_council");
 
-        StepVerifier.create(pdp.decide(subscription).take(1)).expectErrorMatches(
-                e -> e instanceof IllegalArgumentException && e.getMessage().contains("No PDP configuration found"))
-                .verify();
+        StepVerifier.create(pdp.decide(subscription).take(1))
+                .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.INDETERMINATE))
+                .verifyComplete();
     }
 
     @Test
@@ -213,13 +213,14 @@ class DynamicPolicyDecisionPointTests {
 
         val subscription = subscription("scientist", "observe", "shoggoth");
 
-        StepVerifier.create(pdp.decide(subscription).take(1)).assertNext(decision -> {
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.obligations()).hasSize(1);
-            val obligation = (ObjectValue) decision.obligations().getFirst();
-            assertThat(obligation).containsEntry("type", Value.of("log_access")).containsEntry("entity",
-                    Value.of("shoggoth"));
-        }).verifyComplete();
+        StepVerifier.create(pdp.decide(subscription).take(1))
+                .assertNext(decision -> assertThat(decision).satisfies(d -> {
+                    assertThat(d.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(d.obligations()).hasSize(1).first()
+                            .satisfies(first -> assertThat((ObjectValue) first)
+                                    .containsEntry("type", Value.of("log_access"))
+                                    .containsEntry("entity", Value.of("shoggoth")));
+                })).verifyComplete();
     }
 
     @Test
@@ -232,12 +233,12 @@ class DynamicPolicyDecisionPointTests {
 
         val subscription = subscription("student", "study", "forbidden_tome");
 
-        StepVerifier.create(pdp.decide(subscription).take(1)).assertNext(decision -> {
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.advice()).hasSize(1);
-            val advice = (ObjectValue) decision.advice().getFirst();
-            assertThat(advice).containsEntry("warning", Value.of("sanity_check_recommended"));
-        }).verifyComplete();
+        StepVerifier.create(pdp.decide(subscription).take(1))
+                .assertNext(decision -> assertThat(decision).satisfies(d -> {
+                    assertThat(d.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(d.advice()).hasSize(1).first().satisfies(first -> assertThat((ObjectValue) first)
+                            .containsEntry("warning", Value.of("sanity_check_recommended")));
+                })).verifyComplete();
     }
 
     @Test
@@ -250,13 +251,13 @@ class DynamicPolicyDecisionPointTests {
 
         val subscription = subscription("archivist", "retrieve", "cursed_artifact");
 
-        StepVerifier.create(pdp.decide(subscription).take(1)).assertNext(decision -> {
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.resource()).isInstanceOf(ObjectValue.class);
-            val resource = (ObjectValue) decision.resource();
-            assertThat(resource).containsEntry("sanitized", Value.TRUE).containsEntry("original_resource",
-                    Value.of("cursed_artifact"));
-        }).verifyComplete();
+        StepVerifier.create(pdp.decide(subscription).take(1))
+                .assertNext(decision -> assertThat(decision).satisfies(d -> {
+                    assertThat(d.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(d.resource()).isInstanceOf(ObjectValue.class);
+                    assertThat((ObjectValue) d.resource()).containsEntry("sanitized", Value.TRUE)
+                            .containsEntry("original_resource", Value.of("cursed_artifact"));
+                })).verifyComplete();
     }
 
     @Test
@@ -314,10 +315,11 @@ class DynamicPolicyDecisionPointTests {
 
         val subscription = subscription("researcher", "access", "specimen");
 
-        StepVerifier.create(pdp.decide(subscription).take(1)).assertNext(decision -> {
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            assertThat(decision.obligations()).hasSize(2);
-        }).verifyComplete();
+        StepVerifier.create(pdp.decide(subscription).take(1))
+                .assertNext(decision -> assertThat(decision).satisfies(d -> {
+                    assertThat(d.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(d.obligations()).hasSize(2);
+                })).verifyComplete();
     }
 
     @Test
@@ -353,11 +355,11 @@ class DynamicPolicyDecisionPointTests {
 
         val subscription = subscription("analyst", "query", "data");
 
-        StepVerifier.create(pdp.decide(subscription).take(1)).assertNext(decision -> {
-            assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
-            val resource = (ObjectValue) decision.resource();
-            assertThat(resource).containsEntry("threshold_used", Value.of(5));
-        }).verifyComplete();
+        StepVerifier.create(pdp.decide(subscription).take(1))
+                .assertNext(decision -> assertThat(decision).satisfies(d -> {
+                    assertThat(d.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat((ObjectValue) d.resource()).containsEntry("threshold_used", Value.of(5));
+                })).verifyComplete();
     }
 
     @Test

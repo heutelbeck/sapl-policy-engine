@@ -45,9 +45,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>
  * /policies/
- * ├── pdp.json        (optional - combining algorithm and configurationId)
- * ├── access.sapl
- * └── audit.sapl
+ * |-- pdp.json        (optional - combining algorithm and configurationId)
+ * |-- access.sapl
+ * \-- audit.sapl
  * </pre>
  *
  * <h2>Configuration ID</h2>
@@ -77,8 +77,10 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
-    private static final String ERROR_FAILED_TO_START_FILE_MONITOR = "Failed to start file monitor for configuration directory: '%s'.";
-    private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Configuration path is not a directory: '%s'.";
+    private static final String ERROR_FAILED_TO_LOAD_INITIAL_CONFIGURATION = "Failed to load initial configuration for PDP '{}': {}. "
+            + "File monitoring will continue and configuration will be loaded when a valid configuration is provided.";
+    private static final String ERROR_FAILED_TO_START_FILE_MONITOR         = "Failed to start file monitor for configuration directory: '%s'.";
+    private static final String ERROR_PATH_IS_NOT_DIRECTORY                = "Configuration path is not a directory: '%s'.";
 
     private final Path                  directoryPath;
     private final String                pdpId;
@@ -128,7 +130,13 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
 
         log.info("Loading PDP configuration '{}' from directory: '{}'.", pdpId, this.directoryPath);
         validateDirectory();
-        loadAndNotify();
+        try {
+            loadAndNotify();
+        } catch (Exception e) {
+            // Intentionally not rethrowing: the file monitor started below will
+            // detect corrected files and automatically reload a valid configuration.
+            log.error(ERROR_FAILED_TO_LOAD_INITIAL_CONFIGURATION, pdpId, e.getMessage(), e);
+        }
         startFileMonitor();
     }
 

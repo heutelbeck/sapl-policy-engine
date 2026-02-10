@@ -30,6 +30,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,8 +41,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -98,10 +103,11 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().pdpId()).isEqualTo("default");
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
-        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
+        assertThat(configs).hasSize(1).first().satisfies(config -> {
+            assertThat(config.pdpId()).isEqualTo("default");
+            assertThat(config.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
+            assertThat(config.saplDocuments()).hasSize(1);
+        });
     }
 
     @Test
@@ -124,8 +130,10 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, "cultist", pdpVoterSource);
 
-        assertThat(configs.getFirst().pdpId()).isEqualTo("cultist");
-        assertThat(configs.getFirst().configurationId()).isEqualTo("eldritch-v1");
+        assertThat(configs.getFirst()).satisfies(config -> {
+            assertThat(config.pdpId()).isEqualTo("cultist");
+            assertThat(config.configurationId()).isEqualTo("eldritch-v1");
+        });
     }
 
     @Test
@@ -136,10 +144,10 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, "cultist", pdpVoterSource);
 
-        assertThat(configs.getFirst().pdpId()).isEqualTo("cultist");
-        // Auto-generated format: dir:<path>@<timestamp>@sha256:<hash>
-        assertThat(configs.getFirst().configurationId()).startsWith("dir:");
-        assertThat(configs.getFirst().configurationId()).contains("@sha256:");
+        assertThat(configs.getFirst()).satisfies(config -> {
+            assertThat(config.pdpId()).isEqualTo("cultist");
+            assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
+        });
     }
 
     @Test
@@ -182,18 +190,16 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
+        assertThat(configs).hasSize(1).first()
+                .satisfies(config -> assertThat(config.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES));
 
         createFile(tempDir.resolve("pdp.json"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """);
 
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            assertThat(configs.size()).isGreaterThanOrEqualTo(2);
-            assertThat(configs.getLast().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
-        });
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
+                .last().satisfies(config -> assertThat(config.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES)));
     }
 
     @Test
@@ -204,15 +210,12 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
+        assertThat(configs).hasSize(1).first().satisfies(config -> assertThat(config.saplDocuments()).hasSize(1));
 
         createFile(tempDir.resolve("second.sapl"), "policy \"second\" deny true;");
 
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            assertThat(configs.size()).isGreaterThanOrEqualTo(2);
-            assertThat(configs.getLast().saplDocuments()).hasSize(2);
-        });
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
+                .last().satisfies(config -> assertThat(config.saplDocuments()).hasSize(2)));
     }
 
     @Test
@@ -226,15 +229,12 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().saplDocuments()).hasSize(2);
+        assertThat(configs).hasSize(1).first().satisfies(config -> assertThat(config.saplDocuments()).hasSize(2));
 
         Files.delete(secondPolicy);
 
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            assertThat(configs.size()).isGreaterThanOrEqualTo(2);
-            assertThat(configs.getLast().saplDocuments()).hasSize(1);
-        });
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
+                .last().satisfies(config -> assertThat(config.saplDocuments()).hasSize(1)));
     }
 
     @Test
@@ -272,8 +272,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().saplDocuments()).isEmpty();
+        assertThat(configs).hasSize(1).first().satisfies(config -> assertThat(config.saplDocuments()).isEmpty());
     }
 
     @Test
@@ -320,25 +319,27 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenTotalSizeExceedsLimitThenThrowsException() throws IOException {
+    void whenTotalSizeExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
         val largeContent = "x".repeat(2 * 1024 * 1024);
         for (int i = 0; i < 6; i++) {
             createFile(tempDir.resolve("large" + i + ".sapl"),
                     "policy \"large%d\" permit \"%s\";".formatted(i, largeContent));
         }
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds maximum");
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
+
+        assertThat(source.isDisposed()).isFalse();
     }
 
     @Test
-    void whenFileCountExceedsLimitThenThrowsException() throws IOException {
+    void whenFileCountExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
         for (int i = 0; i < 1002; i++) {
             createFile(tempDir.resolve("policy" + i + ".sapl"), "policy \"p%d\" permit true;".formatted(i));
         }
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("File count exceeds maximum");
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
+
+        assertThat(source.isDisposed()).isFalse();
     }
 
     @Test
@@ -425,24 +426,45 @@ class DirectoryPDPConfigurationSourceTests {
         });
     }
 
-    @Test
-    void whenPdpJsonIsInvalidThenThrowsException() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), "not valid json {{{");
+    @ParameterizedTest(name = "invalid pdp.json: {0}")
+    @MethodSource
+    void whenPdpJsonIsInvalidThenSourceCreatesWithoutConfiguration(String description, String pdpJsonContent)
+            throws IOException {
+        createFile(tempDir.resolve("pdp.json"), pdpJsonContent);
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse");
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
+
+        assertThat(source.isDisposed()).isFalse();
+    }
+
+    private static Stream<Arguments> whenPdpJsonIsInvalidThenSourceCreatesWithoutConfiguration() {
+        return Stream.of(arguments("malformed JSON", "not valid json {{{"), arguments("invalid algorithm", """
+                { "algorithm": "INVALID_ALGORITHM" }
+                """));
     }
 
     @Test
-    void whenPdpJsonHasInvalidAlgorithmThenThrowsException() throws IOException {
-        createFile(tempDir.resolve("pdp.json"), """
-                { "algorithm": "INVALID_ALGORITHM" }
-                """);
+    void whenPdpJsonIsInvalidThenRecoveryOnValidFileChange() throws IOException {
+        createFile(tempDir.resolve("pdp.json"), "not valid json {{{");
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
 
-        assertThatThrownBy(() -> new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse");
+        val configs = captureConfigurations();
+
+        source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
+
+        assertThat(configs).isEmpty();
+
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
+
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(configs).hasSize(1).first().satisfies(config -> {
+                    assertThat(config.combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
+                    assertThat(config.saplDocuments()).hasSize(1);
+                }));
     }
 
     @Test
@@ -456,8 +478,10 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(configs.getFirst().saplDocuments()).isEmpty();
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
+        assertThat(configs.getFirst()).satisfies(config -> {
+            assertThat(config.saplDocuments()).isEmpty();
+            assertThat(config.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
+        });
     }
 
     private void createFile(Path path, String content) throws IOException {
