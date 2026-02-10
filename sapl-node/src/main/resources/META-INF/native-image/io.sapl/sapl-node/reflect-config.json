@@ -88,5 +88,239 @@
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.ArrayFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.BitwiseFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.CidrFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.CsvFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.DigestFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.EncodingFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.FilterFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.GraphFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.GraphQLFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.JsonFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.JWTFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.KeysFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.MacFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.MathFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.NumeralFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.ObjectFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.PatternsFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.PermissionsFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.ReflectionFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.SanitizationFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.SaplFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.SchemaValidationLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.SemVerFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.SignatureFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.StandardFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.StringFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.TemporalFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.TomlFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.UnitsFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.UuidFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.X509FunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.XmlFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.libraries.YamlFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.functions.FunctionLibrary",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.functions.Function",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.attributes.PolicyInformationPoint",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.attributes.Attribute",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.attributes.EnvironmentAttribute",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.model.Value",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.api.model.ArrayValue",
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.BooleanValue",
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.ErrorValue",
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.NumberValue",
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.ObjectValue",
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.TextValue",
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.attributes.libraries.TimePolicyInformationPoint",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.attributes.libraries.HttpPolicyInformationPoint",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.attributes.libraries.JWTPolicyInformationPoint",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
   }
 ]

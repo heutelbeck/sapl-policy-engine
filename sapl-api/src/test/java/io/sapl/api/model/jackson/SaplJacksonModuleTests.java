@@ -20,9 +20,9 @@ package io.sapl.api.model.jackson;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
-import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
@@ -383,10 +383,7 @@ class SaplJacksonModuleTests {
                                 ErrorHandling.ABSTAIN)),
                 arguments("""
                         {"votingMode":"UNIQUE","defaultDecision":"ABSTAIN","errorHandling":"PROPAGATE"}""",
-                        new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE)),
-                arguments("""
-                        {"votingMode":"FIRST","defaultDecision":"DENY","errorHandling":"ABSTAIN"}""",
-                        new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.DENY, ErrorHandling.ABSTAIN)));
+                        new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE)));
     }
 
     @Test
@@ -395,6 +392,13 @@ class SaplJacksonModuleTests {
                 {"votingMode":"PRIORITY_DENY"}""";
         assertThatThrownBy(() -> mapper.readValue(json, CombiningAlgorithm.class))
                 .hasMessageContaining("defaultDecision");
+    }
+
+    @Test
+    void when_deserializingCombiningAlgorithmWithFirstVotingMode_then_throwsException() {
+        val json = """
+                {"votingMode":"FIRST","defaultDecision":"DENY","errorHandling":"ABSTAIN"}""";
+        assertThatThrownBy(() -> mapper.readValue(json, CombiningAlgorithm.class)).hasMessageContaining("FIRST");
     }
 
     @Test
@@ -430,12 +434,14 @@ class SaplJacksonModuleTests {
         val expected      = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
                 ErrorHandling.ABSTAIN);
 
-        assertThat(configuration.pdpId()).isEqualTo("innsmouth-pdp");
-        assertThat(configuration.configurationId()).isEqualTo("ritual-security");
-        assertThat(configuration.combiningAlgorithm()).isEqualTo(expected);
-        assertThat(configuration.saplDocuments()).containsExactly("policy deep-ones permit");
-        assertThat(configuration.data().variables()).containsEntry("depth", Value.of(100)).containsEntry("location",
-                Value.of("reef"));
+        assertThat(configuration).satisfies(c -> {
+            assertThat(c.pdpId()).isEqualTo("innsmouth-pdp");
+            assertThat(c.configurationId()).isEqualTo("ritual-security");
+            assertThat(c.combiningAlgorithm()).isEqualTo(expected);
+            assertThat(c.saplDocuments()).containsExactly("policy deep-ones permit");
+            assertThat(c.data().variables()).containsEntry("depth", Value.of(100)).containsEntry("location",
+                    Value.of("reef"));
+        });
     }
 
     @Test
@@ -454,8 +460,8 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_deserializingPDPConfigurationWithObjectAlgorithm_then_parsesCorrectly() throws JacksonException {
-        val json          = """
+    void when_deserializingPDPConfigurationWithFirstVotingMode_then_throwsException() {
+        val json = """
                 {
                     "pdpId": "test-pdp",
                     "configurationId": "test-security",
@@ -463,10 +469,7 @@ class SaplJacksonModuleTests {
                     "saplDocuments": [],
                     "variables": {}
                 }""";
-        val configuration = mapper.readValue(json, PDPConfiguration.class);
-        val expected      = new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.ABSTAIN, ErrorHandling.ABSTAIN);
-
-        assertThat(configuration.combiningAlgorithm()).isEqualTo(expected);
+        assertThatThrownBy(() -> mapper.readValue(json, PDPConfiguration.class)).hasMessageContaining("FIRST");
     }
 
     @Test
@@ -487,8 +490,8 @@ class SaplJacksonModuleTests {
         val configuration = mapper.readValue(json, PDPConfiguration.class);
 
         assertThat(configuration.data().variables()).hasSize(4);
-        assertThat(configuration.data().variables().get("nested")).isInstanceOf(io.sapl.api.model.ObjectValue.class);
-        assertThat(configuration.data().variables().get("array")).isInstanceOf(io.sapl.api.model.ArrayValue.class);
+        assertThat(configuration.data().variables().get("nested")).isInstanceOf(ObjectValue.class);
+        assertThat(configuration.data().variables().get("array")).isInstanceOf(ArrayValue.class);
         assertThat(configuration.data().variables().get("bool")).isEqualTo(Value.TRUE);
         assertThat(configuration.data().variables().get("nullable")).isEqualTo(Value.NULL);
     }

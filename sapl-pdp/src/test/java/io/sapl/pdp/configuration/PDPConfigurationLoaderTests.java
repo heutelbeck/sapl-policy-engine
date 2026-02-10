@@ -54,11 +54,13 @@ class PDPConfigurationLoaderTests {
     void whenLoadingFromEmptyDirectoryThenUsesDefaults() {
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
 
-        assertThat(config.pdpId()).isEqualTo("arkham-pdp");
-        assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-        assertThat(config.data().variables()).isEmpty();
-        assertThat(config.saplDocuments()).isEmpty();
+        assertThat(config).satisfies(c -> {
+            assertThat(c.pdpId()).isEqualTo("arkham-pdp");
+            assertThat(c.configurationId()).startsWith("dir:").contains("@sha256:");
+            assertThat(c.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
+            assertThat(c.data().variables()).isEmpty();
+            assertThat(c.saplDocuments()).isEmpty();
+        });
     }
 
     @Test
@@ -113,10 +115,7 @@ class PDPConfigurationLoaderTests {
                         new CombiningAlgorithm(VotingMode.UNANIMOUS, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE)),
                 arguments("""
                         { "votingMode": "UNIQUE", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }""",
-                        new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN)),
-                arguments("""
-                        { "votingMode": "FIRST", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }""",
-                        new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.PERMIT, ErrorHandling.PROPAGATE)));
+                        new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN)));
     }
 
     @Test
@@ -174,6 +173,16 @@ class PDPConfigurationLoaderTests {
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse pdp.json");
+    }
+
+    @Test
+    void whenLoadingWithFirstAlgorithmThenThrowsException() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {"algorithm": { "votingMode": "FIRST", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }}
+                """);
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).cause().hasMessageContaining("FIRST");
     }
 
     @Test

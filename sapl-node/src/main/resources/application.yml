@@ -1,11 +1,9 @@
 spring:
   application.name: sapl-node
-  autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.security.rsocket.RSocketSecurityAutoConfiguration
   cache:
     type: caffeine
     caffeine:
-      spec: maximumSize=1000,expireAfterWrite=1h
+      spec: maximumSize=1000,expireAfterWrite=1h,recordStats
     cache-names:
       - ApiKeyCache
       - buckets
@@ -68,3 +66,6 @@ io.sapl:
 logging.level:
   "[io.sapl]": INFO
   "[org.springframework]": INFO
+  # GraalVM native images do not expose GC MXBean notifications.
+  # Suppress the unavoidable warning in native mode (no-op on HotSpot).
+  "[io.micrometer.core.instrument.binder.jvm.JvmGcMetrics]": ERROR

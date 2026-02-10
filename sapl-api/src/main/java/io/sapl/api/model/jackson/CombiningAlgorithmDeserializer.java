@@ -54,6 +54,7 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
     private static final String ERROR_DEFAULT_DECISION_REQUIRED = "CombiningAlgorithm requires defaultDecision field.";
     private static final String ERROR_ERROR_HANDLING_REQUIRED   = "CombiningAlgorithm requires errorHandling field.";
     private static final String ERROR_EXPECTED_START_OBJECT     = "Expected START_OBJECT for CombiningAlgorithm.";
+    private static final String ERROR_FIRST_NOT_ALLOWED         = "FIRST is not allowed as combining algorithm voting mode at PDP level. It implies an ordering that is not present here.";
     private static final String ERROR_VOTING_MODE_REQUIRED      = "CombiningAlgorithm requires votingMode field.";
 
     @Override
@@ -80,6 +81,9 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
 
         if (votingMode == null) {
             return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_VOTING_MODE_REQUIRED);
+        }
+        if (votingMode == VotingMode.FIRST) {
+            return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_FIRST_NOT_ALLOWED);
         }
         if (defaultDecision == null) {
             return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_DEFAULT_DECISION_REQUIRED);

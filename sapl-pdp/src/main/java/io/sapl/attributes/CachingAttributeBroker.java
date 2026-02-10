@@ -432,7 +432,7 @@ public class CachingAttributeBroker implements AttributeBroker {
             // Track library
             libraryToPipNamesMap.put(libraryName, List.of(pipName));
 
-            log.info("Loaded library '{}' with {} attributes", libraryName, finders.size());
+            log.debug("Loaded library '{}' with {} attributes", libraryName, finders.size());
         }
     }
 

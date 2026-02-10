@@ -77,8 +77,8 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
-    private static final String ERROR_FAILED_TO_START_FILE_MONITOR = "Failed to start file monitor for configuration directory.";
-    private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Configuration path is not a directory.";
+    private static final String ERROR_FAILED_TO_START_FILE_MONITOR = "Failed to start file monitor for configuration directory: '%s'.";
+    private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Configuration path is not a directory: '%s'.";
 
     private final Path                  directoryPath;
     private final String                pdpId;
@@ -147,7 +147,7 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
 
     private void validateDirectory() {
         if (!Files.isDirectory(directoryPath)) {
-            throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY);
+            throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY.formatted(directoryPath));
         }
     }
 
@@ -167,7 +167,7 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
             monitor.start();
             log.debug("Started file monitoring on directory: {}.", directoryPath);
         } catch (Exception e) {
-            throw new PDPConfigurationException(ERROR_FAILED_TO_START_FILE_MONITOR, e);
+            throw new PDPConfigurationException(ERROR_FAILED_TO_START_FILE_MONITOR.formatted(directoryPath), e);
         }
     }
 

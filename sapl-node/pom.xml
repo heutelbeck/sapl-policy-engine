@@ -213,6 +213,7 @@
 					</execution>
 				</executions>
 				<configuration>
+					<jvmArguments>--enable-native-access=ALL-UNNAMED</jvmArguments>
 					<layout>ZIP</layout>
 					<layers>
 						<enabled>true</enabled>
@@ -254,6 +255,7 @@
 								optional:file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
 							<BPE_LOADER_PATH>file:/pdp/data/lib/</BPE_LOADER_PATH>
 							<BPE_JAVA_SECURITY_EGD>file:/dev/./urandom/</BPE_JAVA_SECURITY_EGD>
+							<BPE_APPEND_JAVA_TOOL_OPTIONS>--enable-native-access=ALL-UNNAMED</BPE_APPEND_JAVA_TOOL_OPTIONS>
 						</env>
 					</image>
 				</configuration>
@@ -370,6 +372,7 @@
 								<buildArg>--enable-url-protocols=http,https</buildArg>
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
 								<buildArg>-march=compatibility</buildArg>
+								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
 						</configuration>
@@ -427,6 +430,7 @@
 								<buildArg>-march=compatibility</buildArg>
 								<buildArg>--static</buildArg>
 								<buildArg>--libc=musl</buildArg>
+								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
 						</configuration>
