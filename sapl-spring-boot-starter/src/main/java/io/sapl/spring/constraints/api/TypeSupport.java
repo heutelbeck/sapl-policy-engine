@@ -22,6 +22,9 @@ public interface TypeSupport<T> {
     Class<T> getSupportedType();
 
     default boolean supports(Class<?> clazz) {
+        if (clazz == void.class) {
+            clazz = Void.class;
+        }
         return getSupportedType().isAssignableFrom(clazz);
     }
 

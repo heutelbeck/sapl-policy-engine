@@ -32,6 +32,7 @@ import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.reactivestreams.Subscription;
@@ -1129,6 +1130,37 @@ class ConstraintEnforcementServiceTests {
         assertThatThrownBy(() -> bundle.handleMethodInvocationHandlers(mock(MethodInvocation.class)))
                 .isInstanceOf(AccessDeniedException.class);
         verify(provider, times(0)).accept(any());
+    }
+
+    @Test
+    @DisplayName("WHEN obligation and onNext handler is responsible AND void return type THEN bundle is constructed")
+    void when_obligation_and_doOnNextHandlerIsResponsible_andVoidReturnType_then_bundleIsConstructed() {
+        final var provider = spy(new ConsumerConstraintHandlerProvider<Object>() {
+
+            @Override
+            public boolean isResponsible(Value constraint) {
+                return true;
+            }
+
+            @Override
+            public Class<Object> getSupportedType() {
+                return Object.class;
+            }
+
+            @Override
+            public Consumer<Object> getHandler(Value constraint) {
+                return this::accept;
+            }
+
+            public void accept(Object o) {
+                // NOOP
+            }
+
+        });
+        globalConsumerProviders.add(provider);
+        final var service  = buildConstraintHandlerService();
+        final var decision = permitWithObligation();
+        assertThatCode(() -> service.blockingPreEnforceBundleFor(decision, void.class)).doesNotThrowAnyException();
     }
 
 }
