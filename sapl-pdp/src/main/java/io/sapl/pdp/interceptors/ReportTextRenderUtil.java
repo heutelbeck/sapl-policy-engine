@@ -23,6 +23,9 @@ import io.sapl.api.model.UndefinedValue;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 
 /**
@@ -52,10 +55,31 @@ public class ReportTextRenderUtil {
 
     private static void appendHeader(StringBuilder sb, VoteReport report) {
         sb.append("--- PDP Decision ---\n");
-        sb.append("Decision : ").append(report.decision()).append('\n');
-        sb.append("PDP ID   : ").append(report.pdpId()).append('\n');
+        sb.append("Timestamp      : ").append(formatTimestamp(report.timestamp())).append('\n');
+        sb.append("Subscription Id: ").append(report.subscriptionId()).append('\n');
+        sb.append("Subscription   : ").append(report.authorizationSubscription()).append('\n');
+        sb.append("Decision       : ").append(report.decision()).append('\n');
+        sb.append("PDP ID         : ").append(report.pdpId()).append('\n');
         if (report.algorithm() != null) {
-            sb.append("Algorithm: ").append(report.algorithm().votingMode()).append('\n');
+            sb.append("Algorithm      : ").append(report.algorithm().votingMode()).append('\n');
+        }
+    }
+
+    /**
+     * Formats a timestamp string. If the timestamp is epoch milliseconds, it is
+     * converted to ISO-8601 with timezone offset. Otherwise, the raw string is
+     * returned as-is.
+     *
+     * @param timestamp the timestamp string to format
+     * @return the formatted timestamp
+     */
+    static String formatTimestamp(String timestamp) {
+        try {
+            val millis = Long.parseLong(timestamp);
+            return Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        } catch (NumberFormatException e) {
+            return timestamp;
         }
     }
 

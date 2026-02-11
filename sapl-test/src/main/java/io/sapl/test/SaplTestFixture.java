@@ -66,6 +66,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.HashMap;
@@ -1363,7 +1364,8 @@ public class SaplTestFixture {
                 return original;
             }
             var vote       = voteWithCoverage.vote();
-            var report     = VoteReport.from(vote);
+            var report     = VoteReport.from(vote, Instant.now().toString(), "test",
+                    AuthorizationSubscription.of("", "", ""));
             var textReport = ReportTextRenderUtil.textReport(report);
             var jsonTrace  = ValueJsonMarshaller.toPrettyString(vote.toTrace());
 

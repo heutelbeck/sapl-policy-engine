@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.TimestampedVote;
 
 /**
@@ -33,8 +34,11 @@ public interface VoteInterceptor extends Comparable<VoteInterceptor> {
      * Processes a vote.
      *
      * @param vote the vote to intercept
+     * @param subscriptionId the subscription identifier
+     * @param authorizationSubscription the authorization subscription that was
+     * evaluated
      */
-    void intercept(TimestampedVote vote);
+    void intercept(TimestampedVote vote, String subscriptionId, AuthorizationSubscription authorizationSubscription);
 
     @Override
     default int compareTo(VoteInterceptor otherInterceptor) {

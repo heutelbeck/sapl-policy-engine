@@ -23,6 +23,7 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -41,8 +42,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ReportTextRenderUtil")
 class ReportTextRenderUtilTests {
 
-    private static final CombiningAlgorithm DENY_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
-            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+    private static final String                    DUMMY_TIMESTAMP       = "2026-01-01T00:00:00Z";
+    private static final String                    DUMMY_SUBSCRIPTION_ID = "sub-456";
+    private static final AuthorizationSubscription DUMMY_SUBSCRIPTION    = AuthorizationSubscription.of("testUser",
+            "read", "testResource");
+    private static final CombiningAlgorithm        DENY_OVERRIDES        = new CombiningAlgorithm(
+            VotingMode.PRIORITY_DENY, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
 
     private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
             Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
@@ -54,7 +59,7 @@ class ReportTextRenderUtilTests {
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Decision :").contains("PERMIT");
+        assertThat(text).contains("Decision       :").contains("PERMIT");
     }
 
     @Test
@@ -64,26 +69,28 @@ class ReportTextRenderUtilTests {
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("PDP ID   : cthulhu-pdp");
+        assertThat(text).contains("PDP ID         : cthulhu-pdp");
     }
 
     @Test
     @DisplayName("renders algorithm in text report")
     void whenTextReportThenContainsAlgorithm() {
-        val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp",
-                "test-config", DENY_OVERRIDES, List.of(), List.of());
+        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp", "test-config", DENY_OVERRIDES,
+                List.of(), List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Algorithm:").contains("PRIORITY_DENY");
+        assertThat(text).contains("Algorithm      :").contains("PRIORITY_DENY");
     }
 
     @Test
     @DisplayName("renders PDP-level errors in text report")
     void whenReportHasPdpErrorsThenErrorsAreRendered() {
         val error  = new ErrorValue("Ritual interrupted by investigators", null);
-        val report = new VoteReport(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",
-                "test-pdp", "test-config", DENY_OVERRIDES, List.of(), List.of(error));
+        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.INDETERMINATE,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp", "test-config", DENY_OVERRIDES,
+                List.of(), List.of(error));
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -94,8 +101,9 @@ class ReportTextRenderUtilTests {
     @DisplayName("renders contributing documents in text report")
     void whenReportHasDocumentsThenDocumentsAreRendered() {
         val doc    = new ContributingDocument("forbidden-knowledge-access", Decision.PERMIT, List.of(), List.of());
-        val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp",
-                "test-config", DENY_OVERRIDES, List.of(doc), List.of());
+        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp", "test-config", DENY_OVERRIDES,
+                List.of(doc), List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -107,8 +115,9 @@ class ReportTextRenderUtilTests {
     void whenReportHasMultipleDocumentsThenAllAreRendered() {
         val doc1   = new ContributingDocument("outer-set", Decision.DENY, List.of(), List.of());
         val doc2   = new ContributingDocument("inner-policy", Decision.DENY, List.of(), List.of());
-        val report = new VoteReport(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "top-set", "test-pdp",
-                "test-config", DENY_OVERRIDES, List.of(doc1, doc2), List.of());
+        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.DENY,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "top-set", "test-pdp", "test-config", DENY_OVERRIDES,
+                List.of(doc1, doc2), List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -119,8 +128,9 @@ class ReportTextRenderUtilTests {
     @DisplayName("renders obligations when present")
     void whenObligationsPresentThenObligationsAreRendered() {
         val obligations = ArrayValue.builder().add(Value.of("log_access")).build();
-        val report      = new VoteReport(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, null, "test-set",
-                "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(), List.of());
+        val report      = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
+                obligations, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
+                List.of(), List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -131,8 +141,9 @@ class ReportTextRenderUtilTests {
     @DisplayName("renders advice when present")
     void whenAdvicePresentThenAdviceIsRendered() {
         val advice = ArrayValue.builder().add(Value.of("consider_logging")).build();
-        val report = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, advice, null, "test-set", "cthulhu-pdp",
-                "test-config", DENY_OVERRIDES, List.of(), List.of());
+        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
+                Value.EMPTY_ARRAY, advice, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(),
+                List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -147,8 +158,9 @@ class ReportTextRenderUtilTests {
                 Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val attr       = new AttributeRecord(invocation, Value.of("2024-01-23T10:30:00Z"), timestamp, null);
         val doc        = new ContributingDocument("time-policy", Decision.PERMIT, List.of(attr), List.of());
-        val report     = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",
-                "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(doc), List.of());
+        val report     = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
+                List.of(doc), List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -165,8 +177,9 @@ class ReportTextRenderUtilTests {
                 Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val attr       = new AttributeRecord(invocation, Value.of("admin"), timestamp, null);
         val doc        = new ContributingDocument("role-policy", Decision.PERMIT, List.of(attr), List.of());
-        val report     = new VoteReport(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",
-                "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(doc), List.of());
+        val report     = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
+                List.of(doc), List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -180,8 +193,9 @@ class ReportTextRenderUtilTests {
     void whenDocumentHasErrorsThenErrorsAreRendered() {
         val error  = new ErrorValue("Failed to evaluate condition", null);
         val doc    = new ContributingDocument("broken-policy", Decision.INDETERMINATE, List.of(), List.of(error));
-        val report = new VoteReport(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set",
-                "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(doc), List.of());
+        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.INDETERMINATE,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
+                List.of(doc), List.of());
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -190,7 +204,7 @@ class ReportTextRenderUtilTests {
     }
 
     private VoteReport createSimpleReport(Decision decision) {
-        return new VoteReport(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp",
-                "test-config", null, List.of(), List.of());
+        return new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, decision, Value.EMPTY_ARRAY,
+                Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", null, List.of(), List.of());
     }
 }

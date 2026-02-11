@@ -1059,8 +1059,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Displays decision report information.
      */
     private void displayDecisionReport(TimestampedVote timestampedVote) {
-        val report      = ReportBuilderUtil.extractReport(timestampedVote.vote());
-        val reportValue = ReportBuilderUtil.extractReportAsValue(timestampedVote.vote());
+        val subscription = parseAuthorizationSubscriptionFromEditor();
+        val timestamp    = timestampedVote.timestamp();
+        val report       = ReportBuilderUtil.extractReport(timestampedVote.vote(), timestamp, "",
+                subscription != null ? subscription : AuthorizationSubscription.of("", "", ""));
+        val reportValue  = ReportBuilderUtil.extractReportAsValue(timestampedVote.vote(), timestamp, "",
+                subscription != null ? subscription : AuthorizationSubscription.of("", "", ""));
 
         decisionJsonReportEditor.setDocument(ValueJsonMarshaller.toPrettyString(reportValue));
         reportTextArea.setValue(ReportTextRenderUtil.textReport(report));

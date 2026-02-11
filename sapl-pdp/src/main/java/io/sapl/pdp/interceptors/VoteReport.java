@@ -20,6 +20,7 @@ package io.sapl.pdp.interceptors;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySetVoterMetadata;
@@ -35,6 +36,10 @@ import java.util.List;
  * Unlike {@link Vote#toTrace()} which produces a full hierarchical trace,
  * this record provides a flattened summary view with essential information.
  *
+ * @param timestamp the timestamp of the decision
+ * @param subscriptionId the subscription identifier
+ * @param authorizationSubscription the authorization subscription that was
+ * evaluated
  * @param decision the final authorization decision
  * @param obligations obligations from the decision
  * @param advice advice from the decision
@@ -48,6 +53,9 @@ import java.util.List;
  * @param errors errors encountered during evaluation
  */
 public record VoteReport(
+        String timestamp,
+        String subscriptionId,
+        AuthorizationSubscription authorizationSubscription,
         Decision decision,
         ArrayValue obligations,
         ArrayValue advice,
@@ -63,9 +71,13 @@ public record VoteReport(
      * Extracts a concise report from a Vote.
      *
      * @param vote the vote to extract from
+     * @param timestamp the timestamp of the decision
+     * @param subscriptionId the subscription identifier
+     * @param authorizationSubscription the authorization subscription
      * @return a VoteReport containing the essential information
      */
-    public static VoteReport from(Vote vote) {
+    public static VoteReport from(Vote vote, String timestamp, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription) {
         val authz = vote.authorizationDecision();
         val voter = vote.voter();
 
@@ -74,8 +86,9 @@ public record VoteReport(
             algorithm = psm.combiningAlgorithm();
         }
 
-        return new VoteReport(authz.decision(), authz.obligations(), authz.advice(), authz.resource(), voter.name(),
-                voter.pdpId(), voter.configurationId(), algorithm, collectContributingDocuments(vote), vote.errors());
+        return new VoteReport(timestamp, subscriptionId, authorizationSubscription, authz.decision(),
+                authz.obligations(), authz.advice(), authz.resource(), voter.name(), voter.pdpId(),
+                voter.configurationId(), algorithm, collectContributingDocuments(vote), vote.errors());
     }
 
     private static List<ContributingDocument> collectContributingDocuments(Vote vote) {

@@ -91,7 +91,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
                         .switchMap(optionalConfig -> optionalConfig
                                 .map(config -> config.vote(authorizationSubscription, subscriptionId))
                                 .orElseGet(() -> Flux.just(noConfigurationVote(pdpId)))))
-                .doOnNext(this::invokeInterceptors);
+                .doOnNext(tv -> invokeInterceptors(tv, subscriptionId, authorizationSubscription));
     }
 
     @Override
@@ -134,7 +134,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
             return noConfigurationVote(DEFAULT_PDP_ID);
         }
         val timestampedVote = pdpConfiguration.get().voteOnce(authorizationSubscription, subscriptionId);
-        invokeInterceptors(timestampedVote);
+        invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);
         return timestampedVote;
     }
 
@@ -145,9 +145,10 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
         return new TimestampedVote(vote, Instant.now().toString());
     }
 
-    private void invokeInterceptors(TimestampedVote vote) {
+    private void invokeInterceptors(TimestampedVote vote, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription) {
         for (val interceptor : interceptors) {
-            interceptor.intercept(vote);
+            interceptor.intercept(vote, subscriptionId, authorizationSubscription);
         }
     }
 

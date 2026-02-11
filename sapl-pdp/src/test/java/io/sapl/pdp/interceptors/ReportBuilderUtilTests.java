@@ -20,6 +20,7 @@ package io.sapl.pdp.interceptors;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -40,15 +41,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ReportBuilderUtil")
 class ReportBuilderUtilTests {
 
-    private static final CombiningAlgorithm DENY_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
-            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+    private static final String                    DUMMY_TIMESTAMP       = "2026-01-01T00:00:00Z";
+    private static final String                    DUMMY_SUBSCRIPTION_ID = "sub-789";
+    private static final AuthorizationSubscription DUMMY_SUBSCRIPTION    = AuthorizationSubscription.of("testUser",
+            "read", "testResource");
+    private static final CombiningAlgorithm        DENY_OVERRIDES        = new CombiningAlgorithm(
+            VotingMode.PRIORITY_DENY, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
 
     @Test
     @DisplayName("extracts decision from vote")
     void whenExtractReportThenDecisionIsExtracted() {
         val vote = createSimplePermitVote();
 
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.decision()).isEqualTo(Decision.PERMIT);
     }
@@ -58,7 +63,7 @@ class ReportBuilderUtilTests {
     void whenExtractReportThenPdpMetadataIsExtracted() {
         val vote = createSimplePermitVote();
 
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.pdpId()).isEqualTo("cthulhu-pdp");
         assertThat(report.configurationId()).isEqualTo("test-security");
@@ -74,7 +79,7 @@ class ReportBuilderUtilTests {
                 Outcome.PERMIT, true);
         val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
 
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.obligations()).contains(obligation);
     }
@@ -91,7 +96,7 @@ class ReportBuilderUtilTests {
                 Outcome.PERMIT, false);
         val vote     = Vote.combinedVote(AuthorizationDecision.PERMIT, setVoter, List.of(policyVote), Outcome.PERMIT);
 
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.contributingDocuments()).hasSize(1);
         assertThat(report.contributingDocuments().getFirst().name()).isEqualTo("forbidden-knowledge-access");
@@ -105,7 +110,7 @@ class ReportBuilderUtilTests {
                 Outcome.DENY, false);
         val vote  = new Vote(AuthorizationDecision.INDETERMINATE, List.of(), List.of(), List.of(), voter, Outcome.DENY);
 
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.decision()).isEqualTo(Decision.INDETERMINATE);
         assertThat(report.contributingDocuments()).isEmpty();
@@ -115,7 +120,7 @@ class ReportBuilderUtilTests {
     @DisplayName("converts report to ObjectValue for JSON serialization")
     void whenToObjectValueThenReportIsConvertedToObjectValue() {
         val vote   = createSimplePermitVote();
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         val objectValue = ReportBuilderUtil.toObjectValue(report);
 
@@ -128,7 +133,8 @@ class ReportBuilderUtilTests {
     void whenExtractReportAsValueThenReturnsObjectValue() {
         val vote = createSimplePermitVote();
 
-        val objectValue = ReportBuilderUtil.extractReportAsValue(vote);
+        val objectValue = ReportBuilderUtil.extractReportAsValue(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID,
+                DUMMY_SUBSCRIPTION);
 
         assertThat(objectValue.get("decision")).isEqualTo(Value.of("PERMIT"));
     }
@@ -138,7 +144,7 @@ class ReportBuilderUtilTests {
     void whenVoterIsPolicySetThenAlgorithmIsExtracted() {
         val vote = createSimplePermitVote();
 
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.algorithm()).isNotNull();
         assertThat(report.algorithm().votingMode()).isEqualTo(VotingMode.PRIORITY_DENY);
@@ -161,7 +167,7 @@ class ReportBuilderUtilTests {
         val vote          = Vote.combinedVote(AuthorizationDecision.DENY, outerSetVoter, List.of(innerSetVote),
                 Outcome.DENY);
 
-        val report = ReportBuilderUtil.extractReport(vote);
+        val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.contributingDocuments()).hasSize(2);
         assertThat(report.contributingDocuments().get(0).name()).isEqualTo("inner-set");

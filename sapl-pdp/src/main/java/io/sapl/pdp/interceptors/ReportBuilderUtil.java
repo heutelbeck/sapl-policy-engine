@@ -23,6 +23,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -37,34 +38,43 @@ import java.util.function.Function;
 public class ReportBuilderUtil {
 
     // Field name constants (alphabetical)
-    private static final String FIELD_ADVICE                 = "advice";
-    private static final String FIELD_ALGORITHM              = "algorithm";
-    private static final String FIELD_ATTRIBUTE_NAME         = "attributeName";
-    private static final String FIELD_ATTRIBUTES             = "attributes";
-    private static final String FIELD_CONFIGURATION_ID       = "configurationId";
-    private static final String FIELD_CONTRIBUTING_DOCUMENTS = "contributingDocuments";
-    private static final String FIELD_DECISION               = "decision";
-    private static final String FIELD_ERRORS                 = "errors";
-    private static final String FIELD_LINE                   = "line";
-    private static final String FIELD_MESSAGE                = "message";
-    private static final String FIELD_NAME                   = "name";
-    private static final String FIELD_OBLIGATIONS            = "obligations";
-    private static final String FIELD_PDP_ID                 = "pdpId";
-    private static final String FIELD_RESOURCE               = "resource";
-    private static final String FIELD_RETRIEVED_AT           = "retrievedAt";
-    private static final String FIELD_VALUE                  = "value";
-    private static final String FIELD_VOTER_NAME             = "voterName";
+    private static final String FIELD_ADVICE                     = "advice";
+    private static final String FIELD_ALGORITHM                  = "algorithm";
+    private static final String FIELD_ATTRIBUTE_NAME             = "attributeName";
+    private static final String FIELD_ATTRIBUTES                 = "attributes";
+    private static final String FIELD_AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription";
+    private static final String FIELD_CONFIGURATION_ID           = "configurationId";
+    private static final String FIELD_CONTRIBUTING_DOCUMENTS     = "contributingDocuments";
+    private static final String FIELD_DECISION                   = "decision";
+    private static final String FIELD_ERRORS                     = "errors";
+    private static final String FIELD_LINE                       = "line";
+    private static final String FIELD_MESSAGE                    = "message";
+    private static final String FIELD_NAME                       = "name";
+    private static final String FIELD_OBLIGATIONS                = "obligations";
+    private static final String FIELD_PDP_ID                     = "pdpId";
+    private static final String FIELD_RESOURCE                   = "resource";
+    private static final String FIELD_RETRIEVED_AT               = "retrievedAt";
+    private static final String FIELD_SUBSCRIPTION_ID            = "subscriptionId";
+    private static final String FIELD_TIMESTAMP                  = "timestamp";
+    private static final String FIELD_VALUE                      = "value";
+    private static final String FIELD_VOTER_NAME                 = "voterName";
 
-    public static VoteReport extractReport(Vote vote) {
-        return VoteReport.from(vote);
+    public static VoteReport extractReport(Vote vote, String timestamp, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription) {
+        return VoteReport.from(vote, timestamp, subscriptionId, authorizationSubscription);
     }
 
-    public static ObjectValue extractReportAsValue(Vote vote) {
-        return toObjectValue(VoteReport.from(vote));
+    public static ObjectValue extractReportAsValue(Vote vote, String timestamp, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription) {
+        return toObjectValue(VoteReport.from(vote, timestamp, subscriptionId, authorizationSubscription));
     }
 
     public static ObjectValue toObjectValue(VoteReport report) {
-        val builder = ObjectValue.builder().put(FIELD_DECISION, Value.of(report.decision().name()))
+        val builder = ObjectValue.builder()
+                .put(FIELD_TIMESTAMP, Value.of(ReportTextRenderUtil.formatTimestamp(report.timestamp())))
+                .put(FIELD_SUBSCRIPTION_ID, Value.of(report.subscriptionId()))
+                .put(FIELD_AUTHORIZATION_SUBSCRIPTION, Value.of(report.authorizationSubscription().toString()))
+                .put(FIELD_DECISION, Value.of(report.decision().name()))
                 .put(FIELD_VOTER_NAME, Value.of(report.voterName())).put(FIELD_PDP_ID, Value.of(report.pdpId()))
                 .put(FIELD_CONFIGURATION_ID, Value.of(report.configurationId()));
 

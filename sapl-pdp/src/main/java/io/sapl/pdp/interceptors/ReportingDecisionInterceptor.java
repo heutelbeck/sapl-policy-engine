@@ -18,6 +18,7 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.pdp.VoteInterceptor;
@@ -54,35 +55,39 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void intercept(TimestampedVote vote) {
+    public void intercept(TimestampedVote vote, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription) {
         if (printTrace) {
             logTrace(vote);
         }
         if (printJsonReport || printTextReport) {
-            val report = ReportBuilderUtil.extractReport(vote.vote());
+            val report = ReportBuilderUtil.extractReport(vote.vote(), vote.timestamp(), subscriptionId,
+                    authorizationSubscription);
             if (printJsonReport) {
-                logJsonReport(vote.timestamp(), report);
+                logJsonReport(report);
             }
             if (printTextReport) {
-                logTextReport(vote.timestamp(), report);
+                logTextReport(report);
             }
         }
     }
 
     private void logTrace(TimestampedVote vote) {
-        val trace  = vote.vote().toTrace();
-        val output = prettyPrint ? ValueJsonMarshaller.toPrettyString(trace) : trace.toString();
-        multiLineLog(vote.timestamp() + ": New Decision (trace): " + output);
+        val trace     = vote.vote().toTrace();
+        val output    = prettyPrint ? ValueJsonMarshaller.toPrettyString(trace) : trace.toString();
+        val timestamp = ReportTextRenderUtil.formatTimestamp(vote.timestamp());
+        multiLineLog(timestamp + ": New Decision (trace): " + output);
     }
 
-    private void logJsonReport(String timestamp, VoteReport report) {
+    private void logJsonReport(VoteReport report) {
         val reportValue = ReportBuilderUtil.toObjectValue(report);
         val output      = prettyPrint ? ValueJsonMarshaller.toPrettyString(reportValue) : reportValue.toString();
+        val timestamp   = ReportTextRenderUtil.formatTimestamp(report.timestamp());
         multiLineLog(timestamp + ": New Decision (report): " + output);
     }
 
-    private void logTextReport(String timestamp, VoteReport report) {
-        multiLineLog(timestamp + ": " + ReportTextRenderUtil.textReport(report));
+    private void logTextReport(VoteReport report) {
+        multiLineLog(ReportTextRenderUtil.textReport(report));
     }
 
     private void multiLineLog(String message) {

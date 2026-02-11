@@ -19,6 +19,7 @@ package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -41,9 +42,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ReportingDecisionInterceptor")
 class ReportingDecisionInterceptorTests {
 
-    private static final String             DUMMY_TIMESTAMP = "2026-01-01T00:00:00Z";
-    private static final CombiningAlgorithm DENY_OVERRIDES  = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
-            DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+    private static final String                    DUMMY_TIMESTAMP       = "2026-01-01T00:00:00Z";
+    private static final String                    DUMMY_SUBSCRIPTION_ID = "sub-123";
+    private static final AuthorizationSubscription DUMMY_SUBSCRIPTION    = AuthorizationSubscription.of("testUser",
+            "read", "testResource");
+    private static final CombiningAlgorithm        DENY_OVERRIDES        = new CombiningAlgorithm(
+            VotingMode.PRIORITY_DENY, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
 
     @Test
     @DisplayName("returns highest priority to execute last")
@@ -60,7 +64,7 @@ class ReportingDecisionInterceptorTests {
         val vote        = createTimestampedVote(Decision.PERMIT);
 
         // Should not throw
-        interceptor.intercept(vote);
+        interceptor.intercept(vote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
     }
 
     @Test
@@ -70,7 +74,7 @@ class ReportingDecisionInterceptorTests {
         val vote        = createTimestampedVote(Decision.PERMIT);
 
         // Should not throw
-        interceptor.intercept(vote);
+        interceptor.intercept(vote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
     }
 
     @Test
@@ -80,7 +84,7 @@ class ReportingDecisionInterceptorTests {
         val vote        = createTimestampedVote(Decision.DENY);
 
         // Should not throw
-        interceptor.intercept(vote);
+        interceptor.intercept(vote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
     }
 
     @Test
@@ -90,7 +94,7 @@ class ReportingDecisionInterceptorTests {
         val vote        = createTimestampedVote(Decision.INDETERMINATE);
 
         // Should not throw
-        interceptor.intercept(vote);
+        interceptor.intercept(vote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
     }
 
     @Test
@@ -100,7 +104,7 @@ class ReportingDecisionInterceptorTests {
         val vote        = createTimestampedVote(Decision.PERMIT);
 
         // Should not throw
-        interceptor.intercept(vote);
+        interceptor.intercept(vote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
     }
 
     @Test
@@ -126,7 +130,7 @@ class ReportingDecisionInterceptorTests {
         val timestampedVote = new TimestampedVote(vote, DUMMY_TIMESTAMP);
 
         // Should not throw
-        interceptor.intercept(timestampedVote);
+        interceptor.intercept(timestampedVote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
     }
 
     @Test
@@ -135,7 +139,8 @@ class ReportingDecisionInterceptorTests {
         val reportingInterceptor     = new ReportingDecisionInterceptor(false, false, false, false);
         val lowerPriorityInterceptor = new VoteInterceptor() {
                                          @Override
-                                         public void intercept(TimestampedVote vote) {
+                                         public void intercept(TimestampedVote vote, String subscriptionId,
+                                                 AuthorizationSubscription authorizationSubscription) {
                                              // no-op
                                          }
 
