@@ -38,6 +38,7 @@ import java.util.function.Function;
 public class ReportBuilderUtil {
 
     // Field name constants (alphabetical)
+    private static final String FIELD_ACTION                     = "action";
     private static final String FIELD_ADVICE                     = "advice";
     private static final String FIELD_ALGORITHM                  = "algorithm";
     private static final String FIELD_ATTRIBUTE_NAME             = "attributeName";
@@ -46,6 +47,7 @@ public class ReportBuilderUtil {
     private static final String FIELD_CONFIGURATION_ID           = "configurationId";
     private static final String FIELD_CONTRIBUTING_DOCUMENTS     = "contributingDocuments";
     private static final String FIELD_DECISION                   = "decision";
+    private static final String FIELD_ENVIRONMENT                = "environment";
     private static final String FIELD_ERRORS                     = "errors";
     private static final String FIELD_LINE                       = "line";
     private static final String FIELD_MESSAGE                    = "message";
@@ -54,6 +56,7 @@ public class ReportBuilderUtil {
     private static final String FIELD_PDP_ID                     = "pdpId";
     private static final String FIELD_RESOURCE                   = "resource";
     private static final String FIELD_RETRIEVED_AT               = "retrievedAt";
+    private static final String FIELD_SUBJECT                    = "subject";
     private static final String FIELD_SUBSCRIPTION_ID            = "subscriptionId";
     private static final String FIELD_TIMESTAMP                  = "timestamp";
     private static final String FIELD_VALUE                      = "value";
@@ -73,7 +76,7 @@ public class ReportBuilderUtil {
         val builder = ObjectValue.builder()
                 .put(FIELD_TIMESTAMP, Value.of(ReportTextRenderUtil.formatTimestamp(report.timestamp())))
                 .put(FIELD_SUBSCRIPTION_ID, Value.of(report.subscriptionId()))
-                .put(FIELD_AUTHORIZATION_SUBSCRIPTION, Value.of(report.authorizationSubscription().toString()))
+                .put(FIELD_AUTHORIZATION_SUBSCRIPTION, subscriptionToValue(report.authorizationSubscription()))
                 .put(FIELD_DECISION, Value.of(report.decision().name()))
                 .put(FIELD_VOTER_NAME, Value.of(report.voterName())).put(FIELD_PDP_ID, Value.of(report.pdpId()))
                 .put(FIELD_CONFIGURATION_ID, Value.of(report.configurationId()));
@@ -113,6 +116,13 @@ public class ReportBuilderUtil {
         return ObjectValue.builder().put(FIELD_ATTRIBUTE_NAME, Value.of(attr.invocation().attributeName()))
                 .put(FIELD_VALUE, attr.attributeValue())
                 .put(FIELD_RETRIEVED_AT, Value.of(attr.retrievedAt().toString())).build();
+    }
+
+    private static ObjectValue subscriptionToValue(AuthorizationSubscription subscription) {
+        val builder = ObjectValue.builder().put(FIELD_SUBJECT, subscription.subject())
+                .put(FIELD_ACTION, subscription.action()).put(FIELD_RESOURCE, subscription.resource());
+        putIfDefined(builder, FIELD_ENVIRONMENT, subscription.environment());
+        return builder.build();
     }
 
     private static void putIfNonEmpty(ObjectValue.Builder builder, String key, ArrayValue value) {
