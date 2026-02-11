@@ -111,7 +111,7 @@
       "patterns": [
         {
           "name": "keyword.control.pdp.sapltest",
-          "match": "\\b(pdp|variables|secrets|combining-algorithm|document|documents|policy|set|policies)\\b"
+          "match": "\\b(pdp|variables|secrets|configuration|pdp-configuration|combining-algorithm|document|documents|policy|set|policies)\\b"
         }
       ]
     },

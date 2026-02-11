@@ -90,7 +90,7 @@ final class SAPLTestSemanticTokenTypes {
      * PDP configuration keywords.
      */
     public static final Set<String> PDP_KEYWORDS = Set.of("pdp", "variables", "secrets", "combining-algorithm",
-            "configuration", "policy", "set", "policies");
+            "configuration", "pdp-configuration", "policy", "set", "policies");
 
     /**
      * Combining algorithm keywords.

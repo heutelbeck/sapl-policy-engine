@@ -109,7 +109,9 @@ public class SAPLTestSemanticTokensProvider {
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Document and configuration keywords
-        case SAPLTestLexer.DOCUMENT, SAPLTestLexer.DOCUMENTS, SAPLTestLexer.VARIABLES ->
+        case SAPLTestLexer.DOCUMENT, SAPLTestLexer.DOCUMENTS, SAPLTestLexer.VARIABLES, SAPLTestLexer.SECRETS,
+                SAPLTestLexer.CONFIGURATION,
+                SAPLTestLexer.PDP_CONFIGURATION                                                                                                                            ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Matcher keywords

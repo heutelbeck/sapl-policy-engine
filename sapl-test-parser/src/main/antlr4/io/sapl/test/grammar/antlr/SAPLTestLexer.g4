@@ -60,8 +60,10 @@ CALLED        : 'called';
 ERROR         : 'error';
 
 // PDP configuration keywords
-VARIABLES : 'variables';
-SECRETS   : 'secrets';
+VARIABLES         : 'variables';
+SECRETS           : 'secrets';
+CONFIGURATION     : 'configuration';
+PDP_CONFIGURATION : 'pdp-configuration';
 
 // Combining algorithm components (same as sapl-parser)
 KW_OR     : 'or';

@@ -57,11 +57,13 @@ given
     ;
 
 givenItem
-    : DASH documentSpecification  # documentGivenItem
-    | DASH combiningAlgorithm     # algorithmGivenItem
-    | DASH variablesDefinition    # variablesGivenItem
-    | DASH secretsDefinition      # secretsGivenItem
-    | DASH mockDefinition         # mockGivenItem
+    : DASH documentSpecification         # documentGivenItem
+    | DASH combiningAlgorithm            # algorithmGivenItem
+    | DASH variablesDefinition           # variablesGivenItem
+    | DASH secretsDefinition             # secretsGivenItem
+    | DASH mockDefinition                # mockGivenItem
+    | DASH configurationSpecification    # configurationGivenItem
+    | DASH pdpConfigurationSpecification # pdpConfigurationGivenItem
     ;
 
 // Document specification
@@ -107,6 +109,16 @@ variablesDefinition
 // Secrets definition - local test secrets override config secrets
 secretsDefinition
     : SECRETS secrets=objectValue
+    ;
+
+// Configuration specification - loads all documents and pdp.json from a folder
+configurationSpecification
+    : CONFIGURATION path=STRING
+    ;
+
+// PDP configuration specification - loads only pdp.json from a resource path
+pdpConfigurationSpecification
+    : PDP_CONFIGURATION path=STRING
     ;
 
 // Mock definitions
@@ -335,6 +347,7 @@ numberLiteral
 testId
     : ID
     | ABSTAIN
+    | CONFIGURATION
     | ERRORS
     | FIRST
     | PRIORITY

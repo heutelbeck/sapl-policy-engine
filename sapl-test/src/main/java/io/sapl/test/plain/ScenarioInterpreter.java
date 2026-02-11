@@ -17,6 +17,7 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
@@ -29,6 +30,7 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.antlr.SAPLTestParser.*;
 import io.sapl.test.verification.Times;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
@@ -62,18 +64,22 @@ public class ScenarioInterpreter {
     private static final String DEFAULT_MOCK_EMIT_ERROR      = "Mock emit error";
     private static final String DEFAULT_MOCK_FUNCTION_ERROR  = "Mock function error";
 
-    private static final String ERROR_DOCUMENT_NOT_FOUND       = "Document not found: '%s'. Available documents: %s.";
-    private static final String ERROR_UNKNOWN_AMOUNT_TYPE      = "Unknown amount type: %s.";
-    private static final String ERROR_UNKNOWN_DECISION_MATCHER = "Unknown decision matcher type: %s.";
-    private static final String ERROR_UNKNOWN_DECISION_TYPE    = "Unknown decision type: %s.";
-    private static final String ERROR_UNKNOWN_DEFAULT_DECISION = "Unknown default decision: %s";
-    private static final String ERROR_UNKNOWN_ERROR_HANDLING   = "Unknown error handling: %s";
-    private static final String ERROR_UNKNOWN_MATCHER_TYPE     = "Unknown matcher type: %s.";
-    private static final String ERROR_UNKNOWN_VOTING_MODE      = "Unknown voting mode: %s";
-    private static final String ERROR_UNIT_TEST_COMBINING_ALG  = "Unit tests (using 'document' singular) cannot specify a combining algorithm. "
+    private static final String ERROR_CONFIGURATION_WITH_DOCUMENTS         = "Cannot use 'configuration' together with 'document' or 'documents'. "
+            + "The 'configuration' directive loads all documents from the specified folder.";
+    private static final String ERROR_CONFIGURATION_WITH_PDP_CONFIGURATION = "Cannot use 'configuration' together with 'pdp-configuration'. "
+            + "The 'configuration' directive already loads the pdp.json from the specified folder.";
+    private static final String ERROR_DOCUMENT_NOT_FOUND                   = "Document not found: '%s'. Available documents: %s.";
+    private static final String ERROR_UNKNOWN_AMOUNT_TYPE                  = "Unknown amount type: %s.";
+    private static final String ERROR_UNKNOWN_DECISION_MATCHER             = "Unknown decision matcher type: %s.";
+    private static final String ERROR_UNKNOWN_DECISION_TYPE                = "Unknown decision type: %s.";
+    private static final String ERROR_UNKNOWN_DEFAULT_DECISION             = "Unknown default decision: %s";
+    private static final String ERROR_UNKNOWN_ERROR_HANDLING               = "Unknown error handling: %s";
+    private static final String ERROR_UNKNOWN_MATCHER_TYPE                 = "Unknown matcher type: %s.";
+    private static final String ERROR_UNKNOWN_VOTING_MODE                  = "Unknown voting mode: %s";
+    private static final String ERROR_UNIT_TEST_COMBINING_ALG              = "Unit tests (using 'document' singular) cannot specify a combining algorithm. "
             + "Unit tests automatically use ONLY_ONE_APPLICABLE. "
             + "Use 'documents' (plural) for integration tests that need a specific algorithm.";
-    private static final String ERROR_UNIT_TEST_DOC_SPEC       = "Document specification ('document') for unit tests must be in the requirement-level given block, "
+    private static final String ERROR_UNIT_TEST_DOC_SPEC                   = "Document specification ('document') for unit tests must be in the requirement-level given block, "
             + "not in the scenario-level given block. All scenarios in a requirement test the same document. "
             + "For integration tests with different document combinations per scenario, use 'documents' instead.";
 
@@ -88,20 +94,27 @@ public class ScenarioInterpreter {
      * @return the scenario result
      */
     public ScenarioResult execute(SaplTestDocument testDoc, RequirementContext requirement, ScenarioContext scenario) {
-        var requirementName = unquoteString(requirement.name.getText());
-        var scenarioName    = unquoteString(scenario.name.getText());
-        var startTime       = System.nanoTime();
+        val requirementName = unquoteString(requirement.name.getText());
+        val scenarioName    = unquoteString(scenario.name.getText());
+        val startTime       = System.nanoTime();
 
         try {
             // Merge requirement-level and scenario-level given blocks
-            var mergedGiven = mergeGivenBlocks(requirement.given(), scenario.given());
+            val mergedGiven = mergeGivenBlocks(requirement.given(), scenario.given());
+
+            // Validate mutual exclusivity of configuration directives
+            validateConfigurationDirectives(mergedGiven);
 
             // Determine test mode (unit vs integration) based on document specification
-            var documentSpec = findDocumentSpecification(mergedGiven);
-            var isUnitTest   = isUnitTest(documentSpec);
+            val documentSpec = findDocumentSpecification(mergedGiven);
+            val isUnitTest   = isUnitTest(documentSpec);
+
+            // Configuration directives force integration test mode
+            val usesConfigDirective = mergedGiven.configurationPath != null || mergedGiven.pdpConfigurationPath != null;
 
             // Create fixture based on test mode
-            var fixture = isUnitTest ? SaplTestFixture.createSingleTest() : SaplTestFixture.createIntegrationTest();
+            val fixture = (isUnitTest && !usesConfigDirective) ? SaplTestFixture.createSingleTest()
+                    : SaplTestFixture.createIntegrationTest();
 
             // Load default function libraries so unmocked functions delegate to real
             // implementations
@@ -110,11 +123,19 @@ public class ScenarioInterpreter {
             // Configure coverage for test identification
             fixture.withTestIdentifier(requirementName + " > " + scenarioName);
 
-            // Apply document selection
-            applyDocumentSelection(fixture, documentSpec, isUnitTest);
+            // Load configuration if specified, otherwise apply document selection
+            if (mergedGiven.configurationPath != null) {
+                fixture.withConfigurationFromResources(mergedGiven.configurationPath);
+            } else if (mergedGiven.pdpConfigurationPath != null) {
+                // Documents must be added before pdp.json config
+                applyDocumentSelection(fixture, documentSpec, false);
+                fixture.withConfigFileFromResource(mergedGiven.pdpConfigurationPath);
+            } else {
+                applyDocumentSelection(fixture, documentSpec, isUnitTest);
+            }
 
             // Apply combining algorithm (if specified or use defaults)
-            applyCombiningAlgorithm(fixture, mergedGiven, isUnitTest);
+            applyCombiningAlgorithm(fixture, mergedGiven, isUnitTest && !usesConfigDirective);
 
             // Apply variables (if specified)
             applyVariables(fixture, mergedGiven);
@@ -129,21 +150,21 @@ public class ScenarioInterpreter {
             applyAttributeMocks(fixture, mergedGiven);
 
             // Build and execute authorization subscription
-            var whenStep       = scenario.whenStep();
-            var decisionResult = executeWhenClause(fixture, whenStep);
+            val whenStep       = scenario.whenStep();
+            val decisionResult = executeWhenClause(fixture, whenStep);
 
             // Execute expectations (including then/expect sequences)
             executeExpectations(decisionResult, scenario.expectOrThenExpect());
 
             // Verify and get result - this actually runs the reactive pipeline
-            var testResult = decisionResult.verify();
+            val testResult = decisionResult.verify();
 
             // Execute verify block AFTER evaluation completes (so invocations are recorded)
             if (scenario.verifyBlock() != null) {
                 executeVerifyBlock(fixture, scenario.verifyBlock());
             }
 
-            var duration = Duration.ofNanos(System.nanoTime() - startTime);
+            val duration = Duration.ofNanos(System.nanoTime() - startTime);
             if (testResult.passed()) {
                 return ScenarioResult.passed(testDoc.id(), requirementName, scenarioName, duration,
                         testResult.coverage());
@@ -153,10 +174,10 @@ public class ScenarioInterpreter {
             }
         } catch (AssertionError e) {
             // StepVerifier throws AssertionError on expectation failure
-            var duration = Duration.ofNanos(System.nanoTime() - startTime);
+            val duration = Duration.ofNanos(System.nanoTime() - startTime);
             return ScenarioResult.failed(testDoc.id(), requirementName, scenarioName, duration, e.getMessage(), null);
         } catch (Exception e) {
-            var duration = Duration.ofNanos(System.nanoTime() - startTime);
+            val duration = Duration.ofNanos(System.nanoTime() - startTime);
             return ScenarioResult.error(testDoc.id(), requirementName, scenarioName, duration, e, null);
         }
     }
@@ -167,23 +188,35 @@ public class ScenarioInterpreter {
      */
     private MergedGiven mergeGivenBlocks(@Nullable GivenContext requirementGiven,
             @Nullable GivenContext scenarioGiven) {
-        var result = new MergedGiven();
+        val result = new MergedGiven();
 
         // First, add requirement-level items
         if (requirementGiven != null) {
-            for (var item : requirementGiven.givenItem()) {
+            for (val item : requirementGiven.givenItem()) {
                 result.addItem(item, false);
             }
         }
 
         // Then, add/override with scenario-level items
         if (scenarioGiven != null) {
-            for (var item : scenarioGiven.givenItem()) {
+            for (val item : scenarioGiven.givenItem()) {
                 result.addItem(item, true);
             }
         }
 
         return result;
+    }
+
+    /**
+     * Validates mutual exclusivity of configuration directives.
+     */
+    private void validateConfigurationDirectives(MergedGiven given) {
+        if (given.configurationPath != null && given.documentSpecification != null) {
+            throw new TestValidationException(ERROR_CONFIGURATION_WITH_DOCUMENTS);
+        }
+        if (given.configurationPath != null && given.pdpConfigurationPath != null) {
+            throw new TestValidationException(ERROR_CONFIGURATION_WITH_PDP_CONFIGURATION);
+        }
     }
 
     /**
@@ -217,21 +250,21 @@ public class ScenarioInterpreter {
         switch (docSpec) {
         case null                              -> {
             // Integration test with all documents from security
-            for (var doc : config.saplDocuments()) {
+            for (val doc : config.saplDocuments()) {
                 addDocumentToFixture(fixture, doc);
             }
         }
         case SingleDocumentContext single      -> {
             // Unit test with single document
-            var docName = unquoteString(single.identifier.getText());
-            var doc     = findDocumentByName(docName);
+            val docName = unquoteString(single.identifier.getText());
+            val doc     = findDocumentByName(docName);
             addDocumentToFixture(fixture, doc);
         }
         case MultipleDocumentsContext multiple -> {
             // Integration test with explicit subset
-            for (var idToken : multiple.identifiers) {
-                var docName = unquoteString(idToken.getText());
-                var doc     = findDocumentByName(docName);
+            for (val idToken : multiple.identifiers) {
+                val docName = unquoteString(idToken.getText());
+                val doc     = findDocumentByName(docName);
                 addDocumentToFixture(fixture, doc);
             }
         }
@@ -257,7 +290,7 @@ public class ScenarioInterpreter {
      */
     private SaplDocument findDocumentByName(String name) {
         return config.saplDocuments().stream().filter(d -> d.name().equals(name)).findFirst().orElseThrow(() -> {
-            var available = config.saplDocuments().stream().map(SaplDocument::name).toList();
+            val available = config.saplDocuments().stream().map(SaplDocument::name).toList();
             return new IllegalArgumentException(ERROR_DOCUMENT_NOT_FOUND.formatted(name, available));
         });
     }
@@ -276,23 +309,24 @@ public class ScenarioInterpreter {
             return;
         }
 
-        // Integration test: use specified or security default
+        // Integration test: use specified or fall back to config/default
         if (given.combiningAlgorithm != null) {
-            var algorithm = parseCombiningAlgorithm(given.combiningAlgorithm);
+            val algorithm = parseCombiningAlgorithm(given.combiningAlgorithm);
             fixture.withCombiningAlgorithm(algorithm);
-        } else {
-            // Use security default
+        } else if (given.configurationPath == null && given.pdpConfigurationPath == null) {
+            // No loaded config -- use framework default
             fixture.withCombiningAlgorithm(config.defaultAlgorithm());
         }
+        // else: algorithm comes from loaded pdp.json (fixture resolves it)
     }
 
     /**
      * Parses a combining algorithm from grammar context.
      */
     private CombiningAlgorithm parseCombiningAlgorithm(CombiningAlgorithmContext ctx) {
-        var votingMode      = parseVotingMode(ctx.votingMode());
-        var defaultDecision = parseDefaultDecision(ctx.defaultDecision());
-        var errorHandling   = ctx.errorHandling() != null ? parseErrorHandling(ctx.errorHandling())
+        val votingMode      = parseVotingMode(ctx.votingMode());
+        val defaultDecision = parseDefaultDecision(ctx.defaultDecision());
+        val errorHandling   = ctx.errorHandling() != null ? parseErrorHandling(ctx.errorHandling())
                 : ErrorHandling.PROPAGATE;
         return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);
     }
@@ -337,14 +371,14 @@ public class ScenarioInterpreter {
      */
     private void applyVariables(SaplTestFixture fixture, MergedGiven given) {
         // First apply config-level variables (from pdp.json or programmatic config)
-        for (var entry : config.pdpVariables().entrySet()) {
+        for (val entry : config.pdpVariables().entrySet()) {
             fixture.givenVariable(entry.getKey(), entry.getValue());
         }
 
         // Then apply test-level variables (these override config-level variables)
         if (given.variables != null) {
-            var testVariables = ValueConverter.convertObjectToMap(given.variables.variables);
-            for (var entry : testVariables.entrySet()) {
+            val testVariables = ValueConverter.convertObjectToMap(given.variables.variables);
+            for (val entry : testVariables.entrySet()) {
                 fixture.givenVariable(entry.getKey(), entry.getValue());
             }
         }
@@ -361,14 +395,14 @@ public class ScenarioInterpreter {
      */
     private void applySecrets(SaplTestFixture fixture, MergedGiven given) {
         // First apply config-level secrets (from programmatic config)
-        for (var entry : config.pdpSecrets().entrySet()) {
+        for (val entry : config.pdpSecrets().entrySet()) {
             fixture.givenSecret(entry.getKey(), entry.getValue());
         }
 
         // Then apply test-level secrets (these override config-level secrets)
         if (given.secrets != null) {
-            var testSecrets = ValueConverter.convertObjectToMap(given.secrets.secrets);
-            for (var entry : testSecrets.entrySet()) {
+            val testSecrets = ValueConverter.convertObjectToMap(given.secrets.secrets);
+            for (val entry : testSecrets.entrySet()) {
                 fixture.givenSecret(entry.getKey(), entry.getValue());
             }
         }
@@ -378,14 +412,14 @@ public class ScenarioInterpreter {
      * Applies function mocks to the fixture.
      */
     private void applyFunctionMocks(SaplTestFixture fixture, MergedGiven given) {
-        for (var funcMock : given.functionMocks) {
-            var functionName       = buildFunctionName(funcMock.functionFullName);
-            var parameters         = buildFunctionParameters(funcMock.functionParameters());
-            var returnValueOrError = ValueConverter.convertValueOrError(funcMock.returnValue);
+        for (val funcMock : given.functionMocks) {
+            val functionName       = buildFunctionName(funcMock.functionFullName);
+            val parameters         = buildFunctionParameters(funcMock.functionParameters());
+            val returnValueOrError = ValueConverter.convertValueOrError(funcMock.returnValue);
 
             if (returnValueOrError.isError()) {
                 // Return error Value - causes policy evaluation to result in indeterminate
-                var errorMessage = returnValueOrError.errorMessage() != null ? returnValueOrError.errorMessage()
+                val errorMessage = returnValueOrError.errorMessage() != null ? returnValueOrError.errorMessage()
                         : DEFAULT_MOCK_FUNCTION_ERROR;
                 fixture.givenFunction(functionName, parameters, Value.error(errorMessage));
             } else {
@@ -398,7 +432,7 @@ public class ScenarioInterpreter {
      * Builds a function name from the grammar context.
      */
     private String buildFunctionName(FunctionNameContext ctx) {
-        return ctx.parts.stream().map(t -> t.getText()).collect(Collectors.joining("."));
+        return ctx.parts.stream().map(TestIdContext::getText).collect(Collectors.joining("."));
     }
 
     /**
@@ -408,7 +442,7 @@ public class ScenarioInterpreter {
         if (ctx == null || ctx.matchers.isEmpty()) {
             return args();
         }
-        var matchers = MatcherConverter.convertAll(ctx.matchers);
+        val matchers = MatcherConverter.convertAll(ctx.matchers);
         return ArgumentMatchers.of(matchers);
     }
 
@@ -416,9 +450,9 @@ public class ScenarioInterpreter {
      * Applies attribute mocks to the fixture.
      */
     private void applyAttributeMocks(SaplTestFixture fixture, MergedGiven given) {
-        for (var attrMock : given.attributeMocks) {
-            var mockId  = unquoteString(attrMock.mockId.getText());
-            var attrRef = attrMock.attributeReference();
+        for (val attrMock : given.attributeMocks) {
+            val mockId  = unquoteString(attrMock.mockId.getText());
+            val attrRef = attrMock.attributeReference();
 
             if (attrRef instanceof EnvironmentAttributeReferenceContext envAttr) {
                 applyEnvironmentAttributeMock(fixture, mockId, envAttr, attrMock.initialValue);
@@ -430,37 +464,37 @@ public class ScenarioInterpreter {
 
     private void applyEnvironmentAttributeMock(SaplTestFixture fixture, String mockId,
             EnvironmentAttributeReferenceContext envAttr, @Nullable ValueOrErrorContext initialValueCtx) {
-        var attributeName = buildAttributeName(envAttr.attributeFullName);
-        var parameters    = buildAttributeParameters(envAttr.attributeParameters());
+        val attributeName = buildAttributeName(envAttr.attributeFullName);
+        val parameters    = buildAttributeParameters(envAttr.attributeParameters());
 
         if (initialValueCtx == null) {
             fixture.givenEnvironmentAttribute(mockId, attributeName, parameters);
             return;
         }
 
-        var initialValue = resolveInitialValue(initialValueCtx);
+        val initialValue = resolveInitialValue(initialValueCtx);
         fixture.givenEnvironmentAttribute(mockId, attributeName, parameters, initialValue);
     }
 
     private void applyEntityAttributeMock(SaplTestFixture fixture, String mockId,
             EntityAttributeReferenceContext entityAttr, @Nullable ValueOrErrorContext initialValueCtx) {
-        var attributeName = buildAttributeName(entityAttr.attributeFullName);
-        var entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
-        var parameters    = buildAttributeParameters(entityAttr.attributeParameters());
+        val attributeName = buildAttributeName(entityAttr.attributeFullName);
+        val entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
+        val parameters    = buildAttributeParameters(entityAttr.attributeParameters());
 
         if (initialValueCtx == null) {
             fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters);
             return;
         }
 
-        var initialValue = resolveInitialValue(initialValueCtx);
+        val initialValue = resolveInitialValue(initialValueCtx);
         fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters, initialValue);
     }
 
     private Value resolveInitialValue(ValueOrErrorContext ctx) {
-        var valueOrError = ValueConverter.convertValueOrError(ctx);
+        val valueOrError = ValueConverter.convertValueOrError(ctx);
         if (valueOrError.isError()) {
-            var errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
+            val errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
                     : DEFAULT_MOCK_ATTRIBUTE_ERROR;
             return Value.error(errorMessage);
         }
@@ -481,7 +515,7 @@ public class ScenarioInterpreter {
         if (ctx == null || ctx.matchers.isEmpty()) {
             return args();
         }
-        var matchers = MatcherConverter.convertAll(ctx.matchers);
+        val matchers = MatcherConverter.convertAll(ctx.matchers);
         return ArgumentMatchers.of(matchers);
     }
 
@@ -489,17 +523,17 @@ public class ScenarioInterpreter {
      * Executes the when clause and returns the decision result.
      */
     private SaplTestFixture.DecisionResult executeWhenClause(SaplTestFixture fixture, WhenStepContext whenStep) {
-        var authSub = whenStep.authorizationSubscription();
+        val authSub = whenStep.authorizationSubscription();
 
-        var subject     = ValueConverter.convert(authSub.subject);
-        var action      = ValueConverter.convert(authSub.action);
-        var resource    = ValueConverter.convert(authSub.resource);
-        var environment = authSub.env != null ? ValueConverter.convertObject(authSub.env) : Value.UNDEFINED;
-        var secrets     = authSub.subscriptionSecrets != null
+        val subject     = ValueConverter.convert(authSub.subject);
+        val action      = ValueConverter.convert(authSub.action);
+        val resource    = ValueConverter.convert(authSub.resource);
+        val environment = authSub.env != null ? ValueConverter.convertObject(authSub.env) : Value.UNDEFINED;
+        val secrets     = authSub.subscriptionSecrets != null
                 ? (ObjectValue) ValueConverter.convertObject(authSub.subscriptionSecrets)
                 : Value.EMPTY_OBJECT;
 
-        var subscription = new AuthorizationSubscription(subject, action, resource, environment, secrets);
+        val subscription = new AuthorizationSubscription(subject, action, resource, environment, secrets);
 
         return fixture.whenDecide(subscription);
     }
@@ -513,7 +547,7 @@ public class ScenarioInterpreter {
         executeExpectation(decisionResult, expectOrThen.expectation());
 
         // Process then/expect sequences
-        for (var thenExpect : expectOrThen.thenExpect()) {
+        for (val thenExpect : expectOrThen.thenExpect()) {
             executeThenBlock(decisionResult, thenExpect.thenBlock());
             executeExpectation(decisionResult, thenExpect.expectation());
         }
@@ -527,7 +561,7 @@ public class ScenarioInterpreter {
         case SingleExpectationContext single      -> {
             // expect permit|deny|... [with obligations ...] [with resource ...] [with
             // advice ...]
-            var matcher = buildDecisionMatcher(single.authorizationDecision());
+            val matcher = buildDecisionMatcher(single.authorizationDecision());
             decisionResult.expectDecisionMatches(matcher);
         }
         case MatcherExpectationContext matcherExp ->
@@ -535,7 +569,7 @@ public class ScenarioInterpreter {
             applyCombinedMatchers(decisionResult, matcherExp.matchers);
         case StreamExpectationContext streamExp -> {
             // expect - permit once - deny 2 times - ...
-            for (var expectStep : streamExp.expectStep()) {
+            for (val expectStep : streamExp.expectStep()) {
                 executeExpectStep(decisionResult, expectStep);
             }
         }
@@ -550,16 +584,16 @@ public class ScenarioInterpreter {
         switch (step) {
         case NextDecisionStepContext nextStep           -> {
             // permit once, deny 2 times
-            var decision = parseDecisionType(nextStep.expectedDecision);
-            var times    = parseNumericAmount(nextStep.amount);
-            var matcher  = createBasicDecisionMatcher(decision);
+            val decision = parseDecisionType(nextStep.expectedDecision);
+            val times    = parseNumericAmount(nextStep.amount);
+            val matcher  = createBasicDecisionMatcher(decision);
             for (int i = 0; i < times; i++) {
                 decisionResult.expectDecisionMatches(matcher);
             }
         }
         case NextWithDecisionStepContext nextWithStep   -> {
             // permit with obligation {...}
-            var matcher = buildDecisionMatcher(nextWithStep.expectedDecision);
+            val matcher = buildDecisionMatcher(nextWithStep.expectedDecision);
             decisionResult.expectDecisionMatches(matcher);
         }
         case NextWithMatcherStepContext nextMatcherStep ->
@@ -573,12 +607,12 @@ public class ScenarioInterpreter {
      * Executes a then block (attribute emissions).
      */
     private void executeThenBlock(SaplTestFixture.DecisionResult decisionResult, ThenBlockContext thenBlock) {
-        for (var thenStep : thenBlock.thenStep()) {
+        for (val thenStep : thenBlock.thenStep()) {
             if (thenStep instanceof AttributeEmitStepContext emitStep) {
-                var mockId       = unquoteString(emitStep.mockId.getText());
-                var valueOrError = ValueConverter.convertValueOrError(emitStep.emittedValue);
+                val mockId       = unquoteString(emitStep.mockId.getText());
+                val valueOrError = ValueConverter.convertValueOrError(emitStep.emittedValue);
                 if (valueOrError.isError()) {
-                    var errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
+                    val errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
                             : DEFAULT_MOCK_EMIT_ERROR;
                     decisionResult.thenEmit(mockId, Value.error(errorMessage));
                 } else {
@@ -592,27 +626,27 @@ public class ScenarioInterpreter {
      * Builds a DecisionMatcher from an authorizationDecision context.
      */
     private DecisionMatcher buildDecisionMatcher(AuthorizationDecisionContext ctx) {
-        var decision = parseDecisionType(ctx.decision);
-        var matcher  = createBasicDecisionMatcher(decision);
+        val decision = parseDecisionType(ctx.decision);
+        val matcher  = createBasicDecisionMatcher(decision);
 
         // Add obligations if present
         if (ctx.obligations != null && !ctx.obligations.isEmpty()) {
-            for (var obligationCtx : ctx.obligations) {
-                var obligation = ValueConverter.convert(obligationCtx);
+            for (val obligationCtx : ctx.obligations) {
+                val obligation = ValueConverter.convert(obligationCtx);
                 matcher.containsObligation(obligation);
             }
         }
 
         // Add resource if present
         if (ctx.resource != null) {
-            var resource = ValueConverter.convert(ctx.resource);
+            val resource = ValueConverter.convert(ctx.resource);
             matcher.withResource(resource);
         }
 
         // Add advice if present
         if (ctx.advice != null && !ctx.advice.isEmpty()) {
-            for (var adviceCtx : ctx.advice) {
-                var advice = ValueConverter.convert(adviceCtx);
+            for (val adviceCtx : ctx.advice) {
+                val advice = ValueConverter.convert(adviceCtx);
                 matcher.containsAdvice(advice);
             }
         }
@@ -632,12 +666,12 @@ public class ScenarioInterpreter {
             decisionResult.expectDecisionMatches(Objects::nonNull);
         case IsDecisionMatcherContext isCtx             -> {
             // is permit|deny|...
-            var decision = parseDecisionType(isCtx.decision);
-            var matcher  = createBasicDecisionMatcher(decision);
+            val decision = parseDecisionType(isCtx.decision);
+            val matcher  = createBasicDecisionMatcher(decision);
             decisionResult.expectDecisionMatches(matcher);
         }
         case HasObligationOrAdviceMatcherContext hasCtx -> {
-            var isObligation = "obligation".equalsIgnoreCase(hasCtx.matcherType.getText());
+            val isObligation = "obligation".equalsIgnoreCase(hasCtx.matcherType.getText());
             if (isObligation) {
                 decisionResult.expectDecisionMatches(decision -> decision != null
                         && DecisionMatcherHelper.matchesObligationConstraint(decision, hasCtx.extendedMatcher));
@@ -685,7 +719,7 @@ public class ScenarioInterpreter {
             if (decision == null) {
                 return false;
             }
-            for (var matcher : matchers) {
+            for (val matcher : matchers) {
                 if (!matchesSingleMatcher(decision, matcher)) {
                     return false;
                 }
@@ -698,16 +732,15 @@ public class ScenarioInterpreter {
      * Checks if a decision matches a single matcher context.
      * Used by applyCombinedMatchers to evaluate each matcher independently.
      */
-    private boolean matchesSingleMatcher(io.sapl.api.pdp.AuthorizationDecision decision,
-            AuthorizationDecisionMatcherContext ctx) {
+    private boolean matchesSingleMatcher(AuthorizationDecision decision, AuthorizationDecisionMatcherContext ctx) {
         return switch (ctx) {
         case AnyDecisionMatcherContext ignored          -> true;
         case IsDecisionMatcherContext isCtx             -> {
-            var expectedDecision = parseDecisionType(isCtx.decision);
+            val expectedDecision = parseDecisionType(isCtx.decision);
             yield decision.decision() == expectedDecision;
         }
         case HasObligationOrAdviceMatcherContext hasCtx -> {
-            var isObligation = "obligation".equalsIgnoreCase(hasCtx.matcherType.getText());
+            val isObligation = "obligation".equalsIgnoreCase(hasCtx.matcherType.getText());
             if (isObligation) {
                 yield DecisionMatcherHelper.matchesObligationConstraint(decision, hasCtx.extendedMatcher);
             } else {
@@ -771,26 +804,26 @@ public class ScenarioInterpreter {
      * Executes the verify block.
      */
     private void executeVerifyBlock(SaplTestFixture fixture, VerifyBlockContext verifyBlock) {
-        for (var verifyStep : verifyBlock.verifyStep()) {
+        for (val verifyStep : verifyBlock.verifyStep()) {
             switch (verifyStep) {
             case FunctionVerificationContext funcVerify  -> {
-                var functionName = buildFunctionName(funcVerify.functionFullName);
-                var parameters   = buildFunctionParameters(funcVerify.functionParameters());
-                var times        = buildTimes(funcVerify.timesCalled);
+                val functionName = buildFunctionName(funcVerify.functionFullName);
+                val parameters   = buildFunctionParameters(funcVerify.functionParameters());
+                val times        = buildTimes(funcVerify.timesCalled);
                 fixture.getMockingFunctionBroker().verify(functionName, parameters, times);
             }
             case AttributeVerificationContext attrVerify -> {
-                var attrRef = attrVerify.attributeReference();
-                var times   = buildTimes(attrVerify.timesCalled);
+                val attrRef = attrVerify.attributeReference();
+                val times   = buildTimes(attrVerify.timesCalled);
 
                 if (attrRef instanceof EnvironmentAttributeReferenceContext envAttr) {
-                    var attributeName = buildAttributeName(envAttr.attributeFullName);
-                    var parameters    = buildAttributeParameters(envAttr.attributeParameters());
+                    val attributeName = buildAttributeName(envAttr.attributeFullName);
+                    val parameters    = buildAttributeParameters(envAttr.attributeParameters());
                     fixture.getMockingAttributeBroker().verifyEnvironmentAttribute(attributeName, parameters, times);
                 } else if (attrRef instanceof EntityAttributeReferenceContext entityAttr) {
-                    var attributeName = buildAttributeName(entityAttr.attributeFullName);
-                    var entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
-                    var parameters    = buildAttributeParameters(entityAttr.attributeParameters());
+                    val attributeName = buildAttributeName(entityAttr.attributeFullName);
+                    val entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
+                    val parameters    = buildAttributeParameters(entityAttr.attributeParameters());
                     fixture.getMockingAttributeBroker().verifyAttribute(attributeName, entityMatcher, parameters,
                             times);
                 }
@@ -804,7 +837,7 @@ public class ScenarioInterpreter {
      * Builds a Times verification from grammar context.
      */
     private Times buildTimes(NumericAmountContext ctx) {
-        var count = parseNumericAmount(ctx);
+        val count = parseNumericAmount(ctx);
         return Times.times(count);
     }
 
@@ -820,12 +853,16 @@ public class ScenarioInterpreter {
         VariablesDefinitionContext   variables;
         @Nullable
         SecretsDefinitionContext     secrets;
+        @Nullable
+        String                       configurationPath;
+        @Nullable
+        String                       pdpConfigurationPath;
         List<FunctionMockContext>    functionMocks  = new ArrayList<>();
         List<AttributeMockContext>   attributeMocks = new ArrayList<>();
 
         void addItem(GivenItemContext item, boolean isScenarioLevel) {
             switch (item) {
-            case DocumentGivenItemContext docItem  -> {
+            case DocumentGivenItemContext docItem            -> {
                 // Only reject single document ('document') at scenario level - unit tests
                 // should have
                 // document at requirement level. Multiple documents ('documents') are allowed
@@ -836,11 +873,15 @@ public class ScenarioInterpreter {
                 }
                 this.documentSpecification = docItem.documentSpecification();
             }
-            case AlgorithmGivenItemContext algItem -> this.combiningAlgorithm = algItem.combiningAlgorithm();
-            case VariablesGivenItemContext varItem -> this.variables = varItem.variablesDefinition();
-            case SecretsGivenItemContext secItem   -> this.secrets = secItem.secretsDefinition();
-            case MockGivenItemContext mockItem     -> addMock(mockItem.mockDefinition());
-            default                                -> { /* NO-OP */ }
+            case AlgorithmGivenItemContext algItem           -> this.combiningAlgorithm = algItem.combiningAlgorithm();
+            case VariablesGivenItemContext varItem           -> this.variables = varItem.variablesDefinition();
+            case SecretsGivenItemContext secItem             -> this.secrets = secItem.secretsDefinition();
+            case MockGivenItemContext mockItem               -> addMock(mockItem.mockDefinition());
+            case ConfigurationGivenItemContext cfgItem       ->
+                this.configurationPath = unquoteString(cfgItem.configurationSpecification().path.getText());
+            case PdpConfigurationGivenItemContext pdpCfgItem ->
+                this.pdpConfigurationPath = unquoteString(pdpCfgItem.pdpConfigurationSpecification().path.getText());
+            default                                          -> { /* NO-OP */ }
             }
         }
 
