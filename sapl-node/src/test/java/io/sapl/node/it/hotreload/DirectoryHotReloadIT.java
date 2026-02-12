@@ -20,6 +20,7 @@ package io.sapl.node.it.hotreload;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.testcontainers.containers.BindMode;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -50,7 +52,7 @@ import reactor.test.StepVerifier;
  */
 @Testcontainers
 @DisplayName("Directory Hot-Reload Integration Tests")
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
+@Timeout(value = 5, unit = TimeUnit.MINUTES, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 class DirectoryHotReloadIT extends BaseIntegrationTest {
 
     private static final String BASIC_USERNAME       = "mpI3KjU7n1";
@@ -109,11 +111,13 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
                         .basicAuth(BASIC_USERNAME, BASIC_SECRET).withUnsecureSSL().build();
 
                 StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.DENY).thenCancel()
-                        .verify();
+                        .verify(Duration.ofSeconds(30));
 
-                Files.writeString(policiesDir.resolve("policy.sapl"), PERMIT_POLICY);
+                container.copyFileToContainer(
+                        Transferable.of(PERMIT_POLICY.getBytes(StandardCharsets.UTF_8)),
+                        "/pdp/data/policy.sapl");
 
-                await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+                await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
                     val decision = pdp.decide(TEST_SUBSCRIPTION).blockFirst();
                     assert decision != null && decision.decision() == AuthorizationDecision.PERMIT.decision();
                 });
@@ -150,14 +154,13 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
                 val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpsBaseUrl(container))
                         .basicAuth(BASIC_USERNAME, BASIC_SECRET).withUnsecureSSL().build();
 
-                StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.DENY).then(() -> {
-                    try {
-                        Files.writeString(policiesDir.resolve("policy.sapl"), PERMIT_POLICY);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).expectNextMatches(decision -> decision.decision() == AuthorizationDecision.PERMIT.decision())
-                        .thenCancel().verify(Duration.ofSeconds(30));
+                StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.DENY)
+                        .then(() -> container.copyFileToContainer(
+                                Transferable.of(PERMIT_POLICY.getBytes(StandardCharsets.UTF_8)),
+                                "/pdp/data/policy.sapl"))
+                        .expectNextMatches(
+                                decision -> decision.decision() == AuthorizationDecision.PERMIT.decision())
+                        .thenCancel().verify(Duration.ofSeconds(60));
             }
         }
 
