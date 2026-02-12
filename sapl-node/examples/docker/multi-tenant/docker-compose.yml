@@ -52,7 +52,8 @@ services:
       - SERVER_SSL_ENABLED=false
       - SERVER_PORT=8080
       - SERVER_ADDRESS=0.0.0.0
-      - BPL_JVM_HEAD_ROOM=5
+      # Override Paketo's MaxDirectMemorySize (default 10M is too low for Netty)
+      - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
 
       # Logging
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true

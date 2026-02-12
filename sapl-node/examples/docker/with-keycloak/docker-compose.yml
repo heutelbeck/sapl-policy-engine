@@ -43,6 +43,12 @@ services:
     volumes:
       - ./policies:/pdp/data:ro
     environment:
+      # SSL/Port/Memory
+      - SERVER_SSL_ENABLED=false
+      - SERVER_PORT=8443
+      - SERVER_ADDRESS=0.0.0.0
+      - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
+
       # OAuth2 Authentication Configuration
       - IO_SAPL_NODE_ALLOWNOAUTH=false
       - IO_SAPL_NODE_ALLOWBASICAUTH=false
@@ -65,10 +71,6 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost:8443/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    # Paketo buildpack images have no curl/wget. Check health from the host:
+    #   curl http://localhost:8443/actuator/health
     restart: unless-stopped

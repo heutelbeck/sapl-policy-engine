@@ -51,7 +51,7 @@ This example demonstrates SAPL Node deployment with Keycloak for OAuth2/JWT auth
 
 4. **Make an authorization request:**
    ```bash
-   curl -k -X POST https://localhost:8443/api/pdp/decide \
+   curl -X POST http://localhost:8443/api/pdp/decide \
      -H "Authorization: Bearer ${TOKEN}" \
      -H "Content-Type: application/json" \
      -d '{"subject":"user","action":"read","resource":"document"}'
