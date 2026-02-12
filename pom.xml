@@ -551,6 +551,8 @@
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
 								<exclude>.npmrc</exclude>
+								<exclude>**/*.pem</exclude>
+								<exclude>**/*.saplbundle</exclude>
 							</excludes>
 						</licenseSet>
 					</licenseSets>
@@ -566,6 +568,7 @@
 						<config>SCRIPT_STYLE</config>
 						<target>XML_STYLE</target>
 						<g4>SLASHSTAR_STYLE</g4>
+						<sapltest>SLASHSTAR_STYLE</sapltest>
 					</mapping>
 				</configuration>
 				<executions>

@@ -148,10 +148,11 @@ io.sapl:
 # The pdpId can be extracted from a JWT claim (configured in oauth.pdpIdClaim above).
 #
 # Setup Spring OAuth2 Resource Server.
-# Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html 
-spring.security.oauth2:
-      resourceserver:
-         jwt.issuer-uri: http://auth-host:32769/default
+# Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html
+# Uncomment and set the issuer URI when allowOauth2Auth is true:
+# spring.security.oauth2:
+#       resourceserver:
+#          jwt.issuer-uri: https://your-auth-server/realms/your-realm
 
 #
 # Setup paths for PDP configuration and SAPL documents. I.e. policies and policy sets.

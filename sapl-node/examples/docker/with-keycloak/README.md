@@ -20,14 +20,25 @@ This example demonstrates SAPL Node deployment with Keycloak for OAuth2/JWT auth
 
 ## Prerequisites
 
-Keycloak uses `KC_HOSTNAME=http://keycloak:8080` so that JWT issuer claims match
-between containers. Add an entry to your hosts file so the host can reach Keycloak
-via the same hostname:
+Keycloak uses `KC_HOSTNAME=http://keycloak:8080` so that JWT issuer claims (`iss`)
+use the Docker-internal hostname. This ensures tokens issued by Keycloak match the
+issuer URI configured in SAPL Node
+(`SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://keycloak:8080/realms/sapl-demo`).
+
+For the host machine to reach Keycloak at the same hostname used in tokens, add an
+entry to your hosts file:
 
 ```
 # /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts (Windows)
 127.0.0.1 keycloak
 ```
+
+> **Note:** Keycloak 25+ hostname v2 redirects HTTP requests to the configured
+> `KC_HOSTNAME`. Without the hosts file entry, curl commands from the host will
+> fail because the redirect target (`keycloak:8080`) cannot be resolved. The
+> docker-compose also sets `KC_HOSTNAME_STRICT_BACKCHANNEL=false` so that
+> server-to-server communication (JWKS, discovery) works without hostname
+> restrictions.
 
 ## Quick Start
 
@@ -35,6 +46,10 @@ via the same hostname:
    ```bash
    docker compose up -d
    ```
+
+   > **Note:** This example uses the `4.0.0-SNAPSHOT` image. Build it locally
+   > with `mvn spring-boot:build-image -pl sapl-node` or pull from the snapshot
+   > registry if available.
 
 2. **Wait for services to be ready:**
    ```bash
@@ -78,6 +93,10 @@ The Keycloak realm is pre-configured with these users:
 | production-user | production123 | production |
 | staging-user | staging123 | staging |
 | default-user | default123 | (none - uses defaultPdpId) |
+
+> **Note:** In the default single-directory configuration, all users resolve to the
+> same "default" PDP and policies. The `sapl_pdp_id` claims on `production-user` and
+> `staging-user` only take effect when `MULTI_DIRECTORY` mode is enabled (see below).
 
 ## JWT Claim Configuration
 
