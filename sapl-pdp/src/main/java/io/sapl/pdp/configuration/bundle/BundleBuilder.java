@@ -29,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PrivateKey;
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -120,7 +119,6 @@ public final class BundleBuilder {
 
     private PrivateKey signingKey;
     private String     signingKeyId;
-    private Instant    signatureExpires;
 
     private BundleBuilder() {
         // Use create() factory method
@@ -319,24 +317,6 @@ public final class BundleBuilder {
     }
 
     /**
-     * Configures the bundle signature to expire at the specified time.
-     * <p>
-     * Expired signatures will be rejected during verification if the verifier
-     * checks expiration. This is useful for
-     * enforcing policy refresh intervals.
-     * </p>
-     *
-     * @param expires
-     * expiration timestamp
-     *
-     * @return this builder for method chaining
-     */
-    public BundleBuilder expiresAt(Instant expires) {
-        this.signatureExpires = expires;
-        return this;
-    }
-
-    /**
      * Builds the bundle and returns it as a byte array.
      *
      * @return the bundle as a byte array
@@ -398,7 +378,7 @@ public final class BundleBuilder {
 
             // Add manifest if signing is enabled
             if (signingKey != null) {
-                val manifest = BundleSigner.sign(allFiles, signingKey, signingKeyId, signatureExpires);
+                val manifest = BundleSigner.sign(allFiles, signingKey, signingKeyId);
                 writeEntry(zipStream, BundleManifest.MANIFEST_FILENAME, manifest.toJson());
             }
         } catch (IOException e) {

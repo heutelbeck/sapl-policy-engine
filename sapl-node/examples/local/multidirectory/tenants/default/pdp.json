@@ -1,0 +1,10 @@
+{
+	"algorithm": {
+		"votingMode": "PRIORITY_DENY",
+		"defaultDecision": "DENY",
+		"errorHandling": "ABSTAIN"
+	},
+	"variables": {
+		"tenant": "default"
+	}
+}

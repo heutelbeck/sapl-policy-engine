@@ -1,0 +1,11 @@
+{
+	"configurationId": "staging-v1",
+	"algorithm": {
+		"votingMode": "PRIORITY_PERMIT",
+		"defaultDecision": "DENY",
+		"errorHandling": "PROPAGATE"
+	},
+	"variables": {
+		"tenant": "staging"
+	}
+}

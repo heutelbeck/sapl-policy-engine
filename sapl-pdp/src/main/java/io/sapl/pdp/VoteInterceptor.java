@@ -40,6 +40,26 @@ public interface VoteInterceptor extends Comparable<VoteInterceptor> {
      */
     void intercept(TimestampedVote vote, String subscriptionId, AuthorizationSubscription authorizationSubscription);
 
+    /**
+     * Called when a new authorization subscription stream begins.
+     *
+     * @param subscriptionId the subscription identifier
+     * @param authorizationSubscription the authorization subscription being
+     * evaluated
+     */
+    default void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+        // no-op by default
+    }
+
+    /**
+     * Called when an authorization subscription stream ends.
+     *
+     * @param subscriptionId the subscription identifier
+     */
+    default void onUnsubscribe(String subscriptionId) {
+        // no-op by default
+    }
+
     @Override
     default int compareTo(VoteInterceptor otherInterceptor) {
         return Integer.compare(priority(), otherInterceptor.priority());

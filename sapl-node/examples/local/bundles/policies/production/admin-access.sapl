@@ -1,0 +1,3 @@
+policy "production-admin-full-access"
+permit
+    subject == "admin";

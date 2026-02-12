@@ -1,0 +1,145 @@
+#
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+io.sapl:
+  pdp.embedded:
+    pdp-config-type: BUNDLES
+    config-path: bundles
+    policies-path: bundles
+    print-trace: true
+    print-json-report: true
+    print-text-report: true
+    pretty-print-reports: true
+    bundle-security:
+      # Per-tenant key catalogue: keyId -> base64 public key
+      keys:
+        default-key: "MCowBQYDK2VwAyEA4osaQaUcjIK+ljvqWZY3UPq14PTenc5kG+MK6ORQizc="
+        production-key: "MCowBQYDK2VwAyEAlmVHWMLuFL3JBp37WPCQHnbsdC/nd6n7MfYzfSJfcus="
+        staging-key: "MCowBQYDK2VwAyEAdVrnc/Tqa8tHuG159r0fNwHACqMmNwOe1UIeYA6U/ck="
+      # Per-tenant key binding: pdpId -> list of trusted keyIds
+      tenants:
+        default:
+          - "default-key"
+        production:
+          - "production-key"
+        staging:
+          - "staging-key"
+      # Per-tenant unsigned opt-out: these tenants may load unsigned bundles
+      unsigned-tenants:
+        - "staging"
+  node:
+    allowNoAuth: true
+    allowBasicAuth: true
+    allowApiKeyAuth: true
+    allowOauth2Auth: false
+    rejectOnMissingPdpId: false
+    defaultPdpId: "default"
+    oauth:
+      pdpIdClaim: "sapl_pdp_id"
+    users:
+      - id: "demo-basic-client"
+        pdpId: "default"
+        basic:
+          username: "xwuUaRD65G"
+          # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
+          secret: "$argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY"
+
+      - id: "demo-apikey-client-1"
+        pdpId: "default"
+        # API key plaintext: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM"
+
+      - id: "demo-apikey-client-2"
+        pdpId: "default"
+        # API key plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k"
+
+spring.security.oauth2:
+  resourceserver:
+    jwt.issuer-uri: http://auth-host:32769/default
+
+server:
+  address: localhost
+  port: 8080
+  ssl:
+    enabled: false
+
+logging.level:
+  "[io.sapl]": INFO
+
+# === TESTING GUIDE ===
+#
+# Start the server:
+#   cd sapl-node/examples/local/bundles
+#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar
+#
+# Test default tenant (permit all):
+#   curl -s http://localhost:8080/api/pdp/decide \
+#     -H "Content-Type: application/json" \
+#     -d '{"subject":"anyone","action":"anything","resource":"anything"}' \
+#     | jq .
+#
+# Test production tenant - admin access:
+#   curl -s http://localhost:8080/api/pdp/decide \
+#     -H "Content-Type: application/json" \
+#     -H "X-SAPL-PDP-ID: production" \
+#     -d '{"subject":"admin","action":"read","resource":"data"}' \
+#     | jq .
+#
+# Test production tenant - deny delete:
+#   curl -s http://localhost:8080/api/pdp/decide \
+#     -H "Content-Type: application/json" \
+#     -H "X-SAPL-PDP-ID: production" \
+#     -d '{"subject":"admin","action":"delete","resource":"data"}' \
+#     | jq .
+#
+# Test staging tenant:
+#   curl -s http://localhost:8080/api/pdp/decide \
+#     -H "Content-Type: application/json" \
+#     -H "X-SAPL-PDP-ID: staging" \
+#     -d '{"subject":"tester","action":"read","resource":"test-data"}' \
+#     | jq .
+#
+# Hot-reload test: Replace production bundle with unsigned version:
+#   cp unsigned/production-unsigned.saplbundle bundles/production.saplbundle
+#   # Should be REJECTED (production is NOT in unsigned-tenants)
+#
+# Per-tenant unsigned test: Replace staging bundle with unsigned version:
+#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#     bundle create -i policies/staging \
+#     -o bundles/staging.saplbundle
+#   # Should be ACCEPTED (staging IS in unsigned-tenants list)
+#
+# Cross-tenant test: Sign production bundle with staging key:
+#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#     bundle create -i policies/production \
+#     -k keys/staging-key.pem --key-id staging-key \
+#     -o bundles/production.saplbundle
+#   # Should be REJECTED (staging-key not trusted for production tenant)
+#
+# Restore production:
+#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#     bundle create -i policies/production \
+#     -k keys/production-key.pem --key-id production-key \
+#     -o bundles/production.saplbundle
+#
+# Restore staging (signed):
+#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#     bundle create -i policies/staging \
+#     -k keys/staging-key.pem --key-id staging-key \
+#     -o bundles/staging.saplbundle

@@ -1,0 +1,4 @@
+policy "policy_A"
+deny
+    resource == "foo";
+    "WILLI" == subject;

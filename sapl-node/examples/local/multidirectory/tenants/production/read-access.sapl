@@ -1,0 +1,3 @@
+policy "production-read-only"
+permit
+    action == "read";

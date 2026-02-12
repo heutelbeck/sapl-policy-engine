@@ -24,6 +24,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -32,8 +33,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,11 +54,13 @@ class BundleSecurityPolicyTests {
             DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
     private static KeyPair elderKeyPair;
+    private static KeyPair stagingKeyPair;
 
     @BeforeAll
     static void setupKeys() throws NoSuchAlgorithmException {
         val generator = KeyPairGenerator.getInstance("Ed25519");
-        elderKeyPair = generator.generateKeyPair();
+        elderKeyPair   = generator.generateKeyPair();
+        stagingKeyPair = generator.generateKeyPair();
     }
 
     @Test
@@ -66,16 +69,7 @@ class BundleSecurityPolicyTests {
 
         assertThat(policy.signatureRequired()).isTrue();
         assertThat(policy.publicKey()).isEqualTo(elderKeyPair.getPublic());
-        assertThat(policy.checkExpiration()).isFalse();
         assertThat(policy.unsignedBundleRiskAccepted()).isFalse();
-    }
-
-    @Test
-    void whenEnablingExpirationCheckThenExpirationIsChecked() {
-        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck().build();
-
-        assertThat(policy.signatureRequired()).isTrue();
-        assertThat(policy.checkExpiration()).isTrue();
     }
 
     @Test
@@ -182,45 +176,6 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingExpiredSignatureWithExpirationCheckThenThrowsException() {
-        val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
-        val bundle      = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                .withPolicy("old-tome.sapl", "policy \"ancient\" deny true")
-                .signWith(elderKeyPair.getPrivate(), "expired-key").expiresAt(expiredTime).build();
-
-        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck().build();
-
-        assertThatThrownBy(() -> BundleParser.parse(bundle, "archive-pdp", policy))
-                .isInstanceOf(BundleSignatureException.class).hasMessageContaining("expired");
-    }
-
-    @Test
-    void whenParsingExpiredSignatureWithoutExpirationCheckThenSucceeds() {
-        val expiredTime = Instant.now().minus(1, ChronoUnit.DAYS);
-        val bundle      = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
-                .withPolicy("ancient-scroll.sapl", "policy \"scroll\" permit subject.scholar == true")
-                .signWith(elderKeyPair.getPrivate(), "ancient-key").expiresAt(expiredTime).build();
-
-        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
-        val config = BundleParser.parse(bundle, "museum-pdp", policy);
-
-        assertThat(config.pdpId()).isEqualTo("museum-pdp");
-    }
-
-    @Test
-    void whenParsingValidFutureExpirationThenSucceeds() {
-        val futureTime = Instant.now().plus(365, ChronoUnit.DAYS);
-        val bundle     = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
-                .withPolicy("prophecy.sapl", "policy \"stars\" permit environment.starsRight == true")
-                .signWith(elderKeyPair.getPrivate(), "prophecy-key").expiresAt(futureTime).build();
-
-        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck().build();
-        val config = BundleParser.parse(bundle, "oracle-pdp", policy);
-
-        assertThat(config.pdpId()).isEqualTo("oracle-pdp");
-    }
-
-    @Test
     void whenCheckUnsignedBundleAllowedWithSignatureRequiredThenThrows() {
         val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
 
@@ -252,17 +207,6 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenWithExpirationCheckBooleanThenSetsCorrectly() {
-        val policyWithCheck = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck(true).build();
-
-        val policyWithoutCheck = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withExpirationCheck(false)
-                .build();
-
-        assertThat(policyWithCheck.checkExpiration()).isTrue();
-        assertThat(policyWithoutCheck.checkExpiration()).isFalse();
-    }
-
-    @Test
     void whenAcceptUnsignedBundleRisksBooleanThenSetsCorrectly() {
         val policyAccepted = BundleSecurityPolicy.builder().disableSignatureVerification()
                 .acceptUnsignedBundleRisks(true).build();
@@ -286,6 +230,235 @@ class BundleSecurityPolicyTests {
 
     static Stream<Arguments> nonEd25519KeyAlgorithms() {
         return Stream.of(arguments("RSA"), arguments("EC"));
+    }
+
+    @Nested
+    @DisplayName("per-tenant key resolution")
+    class PerTenantKeyResolutionTests {
+
+        @Test
+        @DisplayName("resolves key from tenant trust when tenant is configured")
+        void whenTenantConfiguredThenResolvesFromCatalogue() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            assertThat(policy.resolvePublicKey("production", "prod-key")).isEqualTo(elderKeyPair.getPublic());
+        }
+
+        @Test
+        @DisplayName("falls back to global key when tenant is not configured")
+        void whenTenantNotConfiguredThenFallsBackToGlobalKey() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key"));
+
+            val policy = BundleSecurityPolicy.builder(stagingKeyPair.getPublic()).withKeyCatalogue(catalogue)
+                    .withTenantTrust(tenantTrust).build();
+
+            assertThat(policy.resolvePublicKey("staging", "any-key")).isEqualTo(stagingKeyPair.getPublic());
+        }
+
+        @Test
+        @DisplayName("rejects key not trusted for configured tenant")
+        void whenKeyNotTrustedForTenantThenThrows() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic(), "staging-key", stagingKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            assertThatThrownBy(() -> policy.resolvePublicKey("production", "staging-key"))
+                    .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not trusted")
+                    .hasMessageContaining("production");
+        }
+
+        @Test
+        @DisplayName("throws when no global key and tenant not configured")
+        void whenNoGlobalKeyAndTenantNotConfiguredThenThrows() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            assertThatThrownBy(() -> policy.resolvePublicKey("unknown-tenant", "some-key"))
+                    .isInstanceOf(BundleSignatureException.class).hasMessageContaining("No public key available")
+                    .hasMessageContaining("unknown-tenant");
+        }
+
+        @Test
+        @DisplayName("validates tenant trust references during validate()")
+        void whenTenantReferencesInvalidKeyThenValidateFails() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key", "nonexistent-key"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            assertThatThrownBy(policy::validate).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("nonexistent-key").hasMessageContaining("not in the key catalogue");
+        }
+
+        @Test
+        @DisplayName("builds with catalogue-only (no global key)")
+        void whenCatalogueOnlyThenBuildSucceeds() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            assertThat(policy.signatureRequired()).isTrue();
+            assertThat(policy.publicKey()).isNull();
+            policy.validate();
+        }
+
+        @Test
+        @DisplayName("supports multiple keys per tenant")
+        void whenMultipleKeysPerTenantThenAllAccepted() {
+            val catalogue   = Map.of("key-2025", elderKeyPair.getPublic(), "key-2026", stagingKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("key-2025", "key-2026"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            assertThat(policy.resolvePublicKey("production", "key-2025")).isEqualTo(elderKeyPair.getPublic());
+            assertThat(policy.resolvePublicKey("production", "key-2026")).isEqualTo(stagingKeyPair.getPublic());
+        }
+
+        @Test
+        @DisplayName("cross-tenant bundle rejection via parse")
+        void whenBundleSignedWithWrongTenantKeyThenParseThrows() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic(), "staging-key", stagingKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key"), "staging", Set.of("staging-key"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                    .withPolicy("test.sapl", "policy \"test\" permit true")
+                    .signWith(stagingKeyPair.getPrivate(), "staging-key").build();
+
+            assertThatThrownBy(() -> BundleParser.parse(bundle, "production", policy))
+                    .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not trusted")
+                    .hasMessageContaining("production");
+        }
+
+        @Test
+        @DisplayName("per-tenant signed bundle accepted when key matches")
+        void whenBundleSignedWithCorrectTenantKeyThenParseSucceeds() {
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic());
+            val tenantTrust = Map.of("production", Set.of("prod-key"));
+
+            val policy = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue).withTenantTrust(tenantTrust)
+                    .build();
+
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                    .withPolicy("test.sapl", "policy \"test\" permit true")
+                    .signWith(elderKeyPair.getPrivate(), "prod-key").build();
+
+            val config = BundleParser.parse(bundle, "production", policy);
+
+            assertThat(config.pdpId()).isEqualTo("production");
+        }
+
+        @Test
+        @DisplayName("null catalogue treated as empty")
+        void whenNullCatalogueThenTreatedAsEmpty() {
+            val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withKeyCatalogue(null)
+                    .withTenantTrust(null).build();
+
+            assertThat(policy.resolvePublicKey("any-tenant", "any-key")).isEqualTo(elderKeyPair.getPublic());
+        }
+
+    }
+
+    @Nested
+    @DisplayName("per-tenant unsigned opt-out")
+    class PerTenantUnsignedTests {
+
+        @Test
+        @DisplayName("unsigned bundle accepted for tenant in unsigned-tenants list")
+        void whenTenantInUnsignedListThenUnsignedBundleAccepted() {
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                    .withPolicy("dev-policy.sapl", "policy \"dev\" permit true").build();
+
+            val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic())
+                    .withUnsignedTenants(Set.of("development")).build();
+
+            val config = BundleParser.parse(bundle, "development", policy);
+
+            assertThat(config.pdpId()).isEqualTo("development");
+        }
+
+        @Test
+        @DisplayName("unsigned bundle rejected for tenant not in unsigned-tenants list")
+        void whenTenantNotInUnsignedListThenUnsignedBundleRejected() {
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                    .withPolicy("prod-policy.sapl", "policy \"prod\" deny true").build();
+
+            val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic())
+                    .withUnsignedTenants(Set.of("development")).build();
+
+            assertThatThrownBy(() -> BundleParser.parse(bundle, "production", policy))
+                    .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not signed");
+        }
+
+        @Test
+        @DisplayName("empty unsigned-tenants list rejects all unsigned bundles")
+        void whenEmptyUnsignedListThenAllUnsignedRejected() {
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
+                    .withPolicy("test.sapl", "policy \"test\" permit true").build();
+
+            val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withUnsignedTenants(Set.of()).build();
+
+            assertThatThrownBy(() -> BundleParser.parse(bundle, "any-tenant", policy))
+                    .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not signed");
+        }
+
+        @Test
+        @DisplayName("global unsigned override still works alongside unsigned-tenants")
+        void whenGlobalUnsignedEnabledThenOverridesPerTenant() {
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                    .withPolicy("global.sapl", "policy \"global\" permit true").build();
+
+            val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
+                    .build();
+
+            val config = BundleParser.parse(bundle, "any-unlisted-tenant", policy);
+
+            assertThat(config.pdpId()).isEqualTo("any-unlisted-tenant");
+        }
+
+        @Test
+        @DisplayName("signed bundle still works for tenant in unsigned-tenants list")
+        void whenTenantInUnsignedListThenSignedBundleStillAccepted() {
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
+                    .withPolicy("signed-dev.sapl", "policy \"dev\" permit true")
+                    .signWith(elderKeyPair.getPrivate(), "dev-key").build();
+
+            val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic())
+                    .withUnsignedTenants(Set.of("development")).build();
+
+            val config = BundleParser.parse(bundle, "development", policy);
+
+            assertThat(config.pdpId()).isEqualTo("development");
+        }
+
+        @Test
+        @DisplayName("null unsigned-tenants treated as empty")
+        void whenNullUnsignedTenantsThenTreatedAsEmpty() {
+            val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withUnsignedTenants(null).build();
+
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                    .withPolicy("test.sapl", "policy \"test\" permit true").build();
+
+            assertThatThrownBy(() -> BundleParser.parse(bundle, "any-tenant", policy))
+                    .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not signed");
+        }
+
     }
 
     private KeyPair generateEd25519KeyPair() {

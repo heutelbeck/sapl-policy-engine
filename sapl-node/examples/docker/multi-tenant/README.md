@@ -25,16 +25,16 @@ Each user is assigned a `pdpId` that maps to a tenant directory. The server auto
 
 2. **Test Tenant A (restrictive - expects DENY):**
    ```bash
-   curl -k -X POST https://localhost:8443/api/pdp/decide \
-     -u "tenant-a-user:tenantApass123!" \
+   curl -X POST http://localhost:8080/api/pdp/decide \
+     -u 'xwuUaRD65G:3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_' \
      -H "Content-Type: application/json" \
      -d '{"subject":"user","action":"read","resource":"data"}'
    ```
 
 3. **Test Tenant B (permissive - expects PERMIT):**
    ```bash
-   curl -k -X POST https://localhost:8443/api/pdp/decide \
-     -u "tenant-b-user:tenantBpass123!" \
+   curl -X POST http://localhost:8080/api/pdp/decide \
+     -u 'tenant-b-user:3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_' \
      -H "Content-Type: application/json" \
      -d '{"subject":"user","action":"read","resource":"data"}'
    ```

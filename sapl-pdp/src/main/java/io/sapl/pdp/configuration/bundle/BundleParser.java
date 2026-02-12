@@ -91,7 +91,6 @@ import java.util.zip.ZipInputStream;
  * key.</li>
  * <li><b>Integrity:</b> Verifies no files were added, removed, or
  * modified.</li>
- * <li><b>Expiration:</b> Optionally enforces signature expiration times.</li>
  * </ul>
  * <h2>Usage</h2>
  * <h3>Production (Recommended)</h3>
@@ -106,9 +105,6 @@ import java.util.zip.ZipInputStream;
  * // Parse bundle with signature verification
  * PDPConfiguration security = BundleParser.parse(bundlePath, "production", "v1.0", policy);
  *
- * // With expiration checking
- * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).withExpirationCheck().build();
- * PDPConfiguration security = BundleParser.parse(bundleBytes, "production", "v1.0", policy);
  * }</pre>
  *
  * <h3>Development Only (Requires Explicit Risk Acceptance)</h3>

@@ -54,7 +54,11 @@ import java.security.spec.X509EncodedKeySpec;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Auto-configuration for the embedded Policy Decision Point.
@@ -176,20 +180,27 @@ public class PDPAutoConfiguration {
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps) {
-        val publicKey = loadPublicKey(securityProps);
+        val publicKey       = loadPublicKey(securityProps);
+        val keyCatalogue    = buildKeyCatalogue(securityProps.getKeys());
+        val tenantTrust     = buildTenantTrust(securityProps.getTenants());
+        val unsignedTenants = new HashSet<>(securityProps.getUnsignedTenants());
 
-        if (publicKey != null) {
-            log.info("Bundle signature verification enabled");
-            return BundleSecurityPolicy.builder(publicKey).withExpirationCheck(securityProps.isCheckExpiration())
-                    .build();
+        if (publicKey != null || !keyCatalogue.isEmpty()) {
+            log.info("Bundle signature verification enabled. Global key: {}, catalogue keys: {}, tenant bindings: {}",
+                    publicKey != null, keyCatalogue.size(), tenantTrust.size());
+            val builder = publicKey != null ? BundleSecurityPolicy.builder(publicKey) : BundleSecurityPolicy.builder();
+            return builder.withKeyCatalogue(keyCatalogue).withTenantTrust(tenantTrust)
+                    .withUnsignedTenants(unsignedTenants).build();
         }
 
         if (securityProps.isAllowUnsigned() && securityProps.isAcceptRisks()) {
-            return BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
+            return BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
+                    .withUnsignedTenants(unsignedTenants).build();
         }
 
         throw new IllegalStateException("Bundle security not configured. Either provide a public key via "
                 + "bundle-security.public-key-path or bundle-security.public-key, "
+                + "or configure bundle-security.keys with tenant bindings, "
                 + "or explicitly disable verification by setting both "
                 + "bundle-security.allow-unsigned=true and bundle-security.accept-risks=true");
     }
@@ -230,6 +241,35 @@ public class PDPAutoConfiguration {
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new IllegalStateException("Failed to parse Ed25519 public key", e);
         }
+    }
+
+    private Map<String, PublicKey> buildKeyCatalogue(Map<String, String> keysConfig) {
+        if (keysConfig == null || keysConfig.isEmpty()) {
+            return Map.of();
+        }
+        val catalogue = new HashMap<String, PublicKey>();
+        for (val entry : keysConfig.entrySet()) {
+            val keyId     = entry.getKey();
+            val keyBase64 = entry.getValue();
+            try {
+                catalogue.put(keyId, parsePublicKey(keyBase64));
+                log.debug("Loaded public key '{}' into key catalogue", keyId);
+            } catch (IllegalStateException e) {
+                throw new IllegalStateException("Failed to parse public key '%s' in key catalogue".formatted(keyId), e);
+            }
+        }
+        return catalogue;
+    }
+
+    private Map<String, Set<String>> buildTenantTrust(Map<String, List<String>> tenantsConfig) {
+        if (tenantsConfig == null || tenantsConfig.isEmpty()) {
+            return Map.of();
+        }
+        val trust = new HashMap<String, Set<String>>();
+        for (val entry : tenantsConfig.entrySet()) {
+            trust.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+        return trust;
     }
 
     private List<Object> collectFunctionLibraries(ApplicationContext context) {

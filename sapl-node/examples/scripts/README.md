@@ -95,7 +95,7 @@ All scripts use this default test subscription:
 }
 ```
 
-With the default test policy (`permit action == "eat" where resource == "apple"`), this should return `PERMIT`.
+With a matching test policy (`permit action == "eat"; resource == "apple";`), this should return `PERMIT`.
 
 ## Troubleshooting
 

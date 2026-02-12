@@ -30,7 +30,6 @@ import java.security.PublicKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -237,9 +236,6 @@ class BundleCommand {
         @Option(names = { "-k", "--key" }, required = true, description = "Ed25519 public key file (PEM format)")
         private Path keyFile;
 
-        @Option(names = { "--check-expiration" }, description = "Check if signature has expired")
-        private boolean checkExpiration;
-
         @Override
         public Integer call() {
             val out = spec.commandLine().getOut();
@@ -265,17 +261,13 @@ class BundleCommand {
                     return 1;
                 }
 
-                val manifest    = BundleManifest.fromJson(manifestJson);
-                val currentTime = checkExpiration ? Instant.now() : null;
+                val manifest = BundleManifest.fromJson(manifestJson);
 
-                BundleSigner.verify(manifest, contents, publicKey, currentTime);
+                BundleSigner.verify(manifest, contents, publicKey);
 
                 out.println("Verification successful");
                 out.printf("  Key ID: %s%n", manifest.signature().keyId());
                 out.printf("  Created: %s%n", manifest.created());
-                if (manifest.expires() != null) {
-                    out.printf("  Expires: %s%n", manifest.expires());
-                }
                 out.printf("  Files verified: %d%n", manifest.files().size());
                 return 0;
 
@@ -323,9 +315,6 @@ class BundleCommand {
                     out.printf("  Algorithm: %s%n", manifest.signature().algorithm());
                     out.printf("  Key ID: %s%n", manifest.signature().keyId());
                     out.printf("  Created: %s%n", manifest.created());
-                    if (manifest.expires() != null) {
-                        out.printf("  Expires: %s%n", manifest.expires());
-                    }
                 } else {
                     out.println("Signature:");
                     out.printf("  Status: UNSIGNED%n");

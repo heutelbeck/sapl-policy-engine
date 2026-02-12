@@ -43,13 +43,12 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -353,22 +352,6 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenSigningBundleWithExpirationThenManifestContainsExpiration() throws IOException {
-        val expirationTime = Instant.now().plus(30, ChronoUnit.DAYS);
-        val algorithm      = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.DENY,
-                ErrorHandling.ABSTAIN);
-        val bundle         = BundleBuilder.create().withCombiningAlgorithm(algorithm)
-                .withPolicy("shoggoth.sapl", "policy \"containment\" deny subject.sanity < 20")
-                .signWith(cultKeyPair.getPrivate(), "arkham-key").expiresAt(expirationTime).build();
-
-        val entries      = extractEntries(bundle);
-        val manifestJson = entries.get(BundleManifest.MANIFEST_FILENAME);
-        val manifest     = BundleManifest.fromJson(manifestJson);
-
-        assertThat(manifest.expires()).isEqualTo(expirationTime);
-    }
-
-    @Test
     void whenSigningWithNullKeyThenThrowsException() {
         val builder = BundleBuilder.create().withPolicy("forbidden.sapl", "policy \"forbidden\" deny true");
 
@@ -436,7 +419,7 @@ class BundleBuilderTests {
     private Map<String, String> extractEntries(byte[] bundle) throws IOException {
         val entries = new HashMap<String, String>();
         try (val zipStream = new ZipInputStream(new ByteArrayInputStream(bundle))) {
-            java.util.zip.ZipEntry entry;
+            ZipEntry entry;
             while ((entry = zipStream.getNextEntry()) != null) {
                 val content = new String(zipStream.readAllBytes(), StandardCharsets.UTF_8);
                 entries.put(entry.getName(), content);

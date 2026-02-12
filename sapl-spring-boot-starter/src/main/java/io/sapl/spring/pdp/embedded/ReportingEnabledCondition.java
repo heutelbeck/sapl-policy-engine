@@ -31,6 +31,8 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  * <li>{@code io.sapl.pdp.embedded.print-trace}</li>
  * <li>{@code io.sapl.pdp.embedded.print-json-report}</li>
  * <li>{@code io.sapl.pdp.embedded.print-text-report}</li>
+ * <li>{@code io.sapl.pdp.embedded.print-subscription-events}</li>
+ * <li>{@code io.sapl.pdp.embedded.print-unsubscription-events}</li>
  * </ul>
  */
 class ReportingEnabledCondition implements Condition {
@@ -42,7 +44,9 @@ class ReportingEnabledCondition implements Condition {
         val environment = context.getEnvironment();
         return "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-trace"))
                 || "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-json-report"))
-                || "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-text-report"));
+                || "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-text-report"))
+                || "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-subscription-events"))
+                || "true".equalsIgnoreCase(environment.getProperty(PREFIX + "print-unsubscription-events"));
     }
 
 }

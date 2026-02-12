@@ -21,7 +21,7 @@ services:
     image: ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
     container_name: sapl-node-multitenant
     ports:
-      - "8443:8443"
+      - "8080:8080"
     volumes:
       - ./policies:/pdp/data:ro
     environment:
@@ -36,24 +36,26 @@ services:
       # PDP ID Configuration
       - IO_SAPL_NODE_REJECTONMISSINGPDPID=true
 
-      # Tenant A User
+      # Tenant A User (username: xwuUaRD65G, password: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_)
       - IO_SAPL_NODE_USERS_0_ID=tenant-a-client
       - IO_SAPL_NODE_USERS_0_PDPID=tenant-a
-      - IO_SAPL_NODE_USERS_0_BASIC_USERNAME=tenant-a-user
-      - IO_SAPL_NODE_USERS_0_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$abc123def456$$encodedHashPlaceholderA
+      - IO_SAPL_NODE_USERS_0_BASIC_USERNAME=xwuUaRD65G
+      - IO_SAPL_NODE_USERS_0_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$sNTVjma/BQZb5dzyIVCS3Q$$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY
 
-      # Tenant B User
+      # Tenant B User (username: tenant-b-user, password: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_)
       - IO_SAPL_NODE_USERS_1_ID=tenant-b-client
       - IO_SAPL_NODE_USERS_1_PDPID=tenant-b
       - IO_SAPL_NODE_USERS_1_BASIC_USERNAME=tenant-b-user
-      - IO_SAPL_NODE_USERS_1_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$abc123def456$$encodedHashPlaceholderB
+      - IO_SAPL_NODE_USERS_1_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$sNTVjma/BQZb5dzyIVCS3Q$$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY
+
+      # SSL/Port
+      - SERVER_SSL_ENABLED=false
+      - SERVER_PORT=8080
+      - SERVER_ADDRESS=0.0.0.0
+      - BPL_JVM_HEAD_ROOM=5
 
       # Logging
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
-    healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost:8443/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    # Paketo buildpack images have no curl/wget. Check health from the host:
+    #   curl http://localhost:8080/actuator/health
     restart: unless-stopped

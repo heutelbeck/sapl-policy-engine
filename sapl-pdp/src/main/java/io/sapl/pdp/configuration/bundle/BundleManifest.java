@@ -50,7 +50,6 @@ import java.util.TreeMap;
  *   "version": "1.0",
  *   "hashAlgorithm": "SHA-256",
  *   "created": "2024-01-15T10:30:00Z",
- *   "expires": "2025-01-15T10:30:00Z",
  *   "files": {
  *     "access-control.sapl": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
  *     "pdp.json": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -84,12 +83,11 @@ import java.util.TreeMap;
  * @see BundleParser
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "version", "hashAlgorithm", "created", "expires", "files", "signature" })
+@JsonPropertyOrder({ "version", "hashAlgorithm", "created", "files", "signature" })
 public record BundleManifest(
         @JsonProperty("version") String version,
         @JsonProperty("hashAlgorithm") String hashAlgorithm,
         @JsonProperty("created") Instant created,
-        @JsonProperty("expires") Instant expires,
         @JsonProperty("files") Map<String, String> files,
         @JsonProperty("signature") Signature signature) {
 
@@ -202,7 +200,7 @@ public record BundleManifest(
      * @return manifest without signature
      */
     public BundleManifest withoutSignature() {
-        return new BundleManifest(version, hashAlgorithm, created, expires, files, null);
+        return new BundleManifest(version, hashAlgorithm, created, files, null);
     }
 
     /**
@@ -248,7 +246,6 @@ public record BundleManifest(
     public static class Builder {
 
         private Instant             created = Instant.now();
-        private Instant             expires;
         private Map<String, String> files   = new TreeMap<>();
         private Signature           signature;
 
@@ -262,19 +259,6 @@ public record BundleManifest(
          */
         public Builder created(Instant created) {
             this.created = created;
-            return this;
-        }
-
-        /**
-         * Sets the expiration timestamp.
-         *
-         * @param expires
-         * expiration time, or null for no expiration
-         *
-         * @return this builder
-         */
-        public Builder expires(Instant expires) {
-            this.expires = expires;
             return this;
         }
 
@@ -371,7 +355,7 @@ public record BundleManifest(
          * @return unsigned manifest
          */
         public BundleManifest buildUnsigned() {
-            return new BundleManifest(MANIFEST_VERSION, HASH_ALGORITHM, created, expires, new TreeMap<>(files), null);
+            return new BundleManifest(MANIFEST_VERSION, HASH_ALGORITHM, created, new TreeMap<>(files), null);
         }
 
         /**
@@ -380,8 +364,7 @@ public record BundleManifest(
          * @return signed manifest
          */
         public BundleManifest build() {
-            return new BundleManifest(MANIFEST_VERSION, HASH_ALGORITHM, created, expires, new TreeMap<>(files),
-                    signature);
+            return new BundleManifest(MANIFEST_VERSION, HASH_ALGORITHM, created, new TreeMap<>(files), signature);
         }
     }
 }

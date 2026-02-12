@@ -19,32 +19,29 @@ package io.sapl.spring.pdp.embedded;
 
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DisplayName("InterceptorAutoConfiguration")
 class InterceptorAutoConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withBean(ObjectMapper.class, ObjectMapper::new)
             .withConfiguration(AutoConfigurations.of(InterceptorAutoConfiguration.class));
 
-    @Test
-    void whenPrintTraceIsEnabled_thenReportingInterceptorIsCreated() {
-        contextRunner.withPropertyValues("io.sapl.pdp.embedded.print-trace=true", "io.sapl.pdp.embedded.enabled=true")
-                .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(VoteInterceptor.class)
-                            .hasSingleBean(ReportingDecisionInterceptor.class);
-                });
-    }
-
-    @Test
-    void whenPrintJsonReportIsEnabled_thenReportingInterceptorIsCreated() {
+    @ParameterizedTest(name = "when {0} is enabled then interceptor is created")
+    @ValueSource(strings = { "print-trace", "print-json-report", "print-text-report", "print-subscription-events",
+            "print-unsubscription-events" })
+    void whenReportingPropertyEnabledThenInterceptorIsCreated(String property) {
         contextRunner
-                .withPropertyValues("io.sapl.pdp.embedded.print-json-report=true", "io.sapl.pdp.embedded.enabled=true")
+                .withPropertyValues("io.sapl.pdp.embedded." + property + "=true", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(VoteInterceptor.class)
                             .hasSingleBean(ReportingDecisionInterceptor.class);
@@ -52,17 +49,8 @@ class InterceptorAutoConfigurationTests {
     }
 
     @Test
-    void whenPrintTextReportIsEnabled_thenReportingInterceptorIsCreated() {
-        contextRunner
-                .withPropertyValues("io.sapl.pdp.embedded.print-text-report=true", "io.sapl.pdp.embedded.enabled=true")
-                .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(VoteInterceptor.class)
-                            .hasSingleBean(ReportingDecisionInterceptor.class);
-                });
-    }
-
-    @Test
-    void whenNoPrintOptionsAreEnabled_thenNoInterceptorIsCreated() {
+    @DisplayName("no interceptor created when no reporting properties are enabled")
+    void whenNoPrintOptionsAreEnabledThenNoInterceptorIsCreated() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed().doesNotHaveBean(ReportingDecisionInterceptor.class);
         });

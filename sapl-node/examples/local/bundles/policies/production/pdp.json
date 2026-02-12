@@ -1,0 +1,11 @@
+{
+	"configurationId": "production-v1",
+	"algorithm": {
+		"votingMode": "PRIORITY_DENY",
+		"defaultDecision": "DENY",
+		"errorHandling": "PROPAGATE"
+	},
+	"variables": {
+		"tenant": "production"
+	}
+}

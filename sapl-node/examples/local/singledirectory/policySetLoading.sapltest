@@ -1,0 +1,194 @@
+/*
+ * Integration Test Demo
+ *
+ * This file demonstrates integration testing with the SAPL test language:
+ * - Integration tests with multiple documents
+ * - Combining algorithm specification
+ * - Variables definition
+ * - Environment configuration
+ * - All documents loading (omitting document specification)
+ *
+ * Integration tests evaluate policies against a PDP configuration
+ * rather than a single document unit test.
+ */
+
+requirement "should grant read access for WILLI on foo depending on policy set and PDP Config" {
+
+    scenario "WILLI tries to read foo using explicit document list"
+        given
+            // List specific documents for integration test
+            - documents "policiesIT/policy_A", "policiesIT/policy_B", "policiesIT/policy_C"
+            // Specify combining algorithm explicitly
+            - priority permit or abstain errors propagate
+        when "WILLI" attempts "read" on "foo"
+        expect permit;
+
+    scenario "WILLI tries to read foo with deny-overrides"
+        given
+            // Same documents but different algorithm
+            - documents "policiesIT/policy_A", "policiesIT/policy_B", "policiesIT/policy_C"
+            - priority deny or deny errors propagate
+        when "WILLI" attempts "read" on "foo"
+        expect deny;
+
+    scenario "WILLI tries to read foo with only-one-applicable"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B", "policiesIT/policy_C"
+            - unique or abstain errors propagate
+        when "WILLI" attempts "read" on "foo"
+        // Multiple policies may apply, so indeterminate
+        expect indeterminate;
+
+    scenario "WILLI tries to read foo with deny-unless-permit"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B", "policiesIT/policy_C"
+            - priority permit or deny errors abstain
+        when "WILLI" attempts "read" on "foo"
+        // At least one permit -> permit
+        expect permit;
+
+    scenario "WILLI tries to read foo with permit-unless-deny"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B", "policiesIT/policy_C"
+            - priority deny or permit errors abstain
+        when "WILLI" attempts "read" on "foo"
+        // Policy A denies, so deny
+        expect deny;
+}
+
+requirement "Integration tests with variables" {
+
+    scenario "test with empty variables"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B"
+            - priority permit or permit errors propagate
+            // Override PDP variables with empty object
+            - variables {}
+        when "WILLI" attempts "read" on "foo"
+        expect permit;
+
+    scenario "test with custom variables"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B"
+            - priority permit or permit errors propagate
+            // Define custom variables for test
+            - variables {
+                "maxAttempts": 3,
+                "debugMode": true,
+                "allowedRoles": ["admin", "user"]
+            }
+        when "WILLI" attempts "read" on "foo"
+        expect permit;
+
+    scenario "test with variables and environment"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B"
+            // Use permit-overrides so policy_B's permit wins over policy_A's deny
+            - priority permit or permit errors propagate
+            - variables { "testVar": "value" }
+        when "WILLI" attempts "read" on "foo" in { "tenant": "acme", "region": "eu-west" }
+        expect permit;
+}
+
+requirement "Integration test with all combining algorithms" {
+
+    // Central given for all scenarios
+    given
+        - documents "policiesIT/policy_A", "policiesIT/policy_B", "policiesIT/policy_C"
+
+    scenario "deny-overrides algorithm"
+        given
+            - priority deny or deny errors propagate
+        when "WILLI" attempts "read" on "foo"
+        // If any policy denies, result is deny
+        expect deny;
+
+    scenario "permit-overrides algorithm"
+        given
+            - priority permit or permit errors propagate
+        when "WILLI" attempts "read" on "foo"
+        // If any policy permits, result is permit
+        expect permit;
+
+    scenario "only-one-applicable algorithm"
+        given
+            - unique or abstain errors propagate
+        when "WILLI" attempts "read" on "foo"
+        // Multiple applicable policies -> indeterminate
+        expect indeterminate;
+
+    scenario "deny-unless-permit algorithm"
+        given
+            - priority permit or deny errors abstain
+        when "WILLI" attempts "read" on "foo"
+        // At least one permit exists -> permit
+        expect permit;
+
+    scenario "permit-unless-deny algorithm"
+        given
+            - priority deny or permit errors abstain
+        when "WILLI" attempts "read" on "foo"
+        // At least one deny exists -> deny
+        expect deny;
+}
+
+requirement "Integration test with mocking" {
+
+    scenario "integration test with function mock"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B"
+            - priority permit or permit errors propagate
+            // Can still mock functions in integration tests
+            - function some.helper() maps to true
+        when "WILLI" attempts "read" on "foo"
+        expect permit;
+
+    scenario "integration test with attribute mock"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B"
+            // Use permit-overrides so policy_B's permit wins
+            - priority permit or permit errors propagate
+            // Demonstrate that attributes can be mocked in integration tests
+            - attribute "timeMock" <time.now> emits "2025-01-06T12:00:00Z"
+        when "WILLI" attempts "read" on "foo"
+        expect permit;
+
+    scenario "integration test with multiple documents"
+        given
+            - documents "policiesIT/policy_A", "policiesIT/policy_B"
+            - priority permit or permit errors propagate
+        when "WILLI" attempts "read" on "foo"
+        // policy_A denies, policy_B permits, permit-overrides means permit wins
+        expect permit;
+
+    scenario "streaming with policy that uses time attribute"
+        given
+            // policy_C uses <time.now(interval)> with parameter
+            // It checks: time.secondOf(<time.now(interval)>) >= 4
+            - documents "policiesIT/policy_C"
+            - priority permit or abstain errors propagate
+            // Mock the time attribute with parameter using any matcher
+            - attribute "timeMock" <time.now(any)> emits "time1"
+            // Mock secondOf to return controlled values based on time values
+            - function time.secondOf("time1") maps to 5
+            - function time.secondOf("time2") maps to 2
+        when "WILLI" attempts "read" on "bar"
+        // With secondOf returning 5 (>= 4), policy_C permits
+        expect permit
+        then
+            // Change time to trigger re-evaluation
+            - attribute "timeMock" emits "time2"
+        // With secondOf returning 2 (< 4), policy_C's where clause fails
+        expect not-applicable;
+}
+
+requirement "Minimal integration test syntax" {
+
+    // When no given block is provided at all, uses all documents
+    // with default combining algorithm (deny-overrides by default)
+    scenario "using all documents with defaults"
+        when "WILLI" attempts "read" on "foo"
+        // With deny-overrides default and policy_A denying "foo", result is deny
+        expect deny;
+
+}

@@ -23,6 +23,11 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Configuration properties for the embedded PDP.
  */
@@ -170,12 +175,6 @@ public class EmbeddedPDPProperties {
         private String publicKey;
 
         /**
-         * Whether to check signature expiration timestamps.
-         * Only applies when signature verification is enabled.
-         */
-        private boolean checkExpiration = false;
-
-        /**
          * Disable signature verification for bundles.
          * <p>
          * WARNING: Requires acceptRisks to also be true.
@@ -194,6 +193,58 @@ public class EmbeddedPDPProperties {
          * Both allowUnsigned AND acceptRisks must be true to disable verification.
          */
         private boolean acceptRisks = false;
+
+        /**
+         * List of tenant identifiers for which unsigned bundles are accepted.
+         * <p>
+         * Tenants listed here may load unsigned bundles without requiring the
+         * global allowUnsigned + acceptRisks flags. This enables per-tenant
+         * granularity: staging may use unsigned bundles during development while
+         * production must always be signed.
+         * <p>
+         * Default (empty list): no tenants accept unsigned bundles.
+         * <p>
+         * Example:
+         *
+         * <pre>
+         * unsigned-tenants:
+         *   - development
+         *   - staging
+         * </pre>
+         */
+        private List<String> unsignedTenants = new ArrayList<>();
+
+        /**
+         * Named public key catalogue for per-tenant key binding.
+         * Maps key identifiers to Base64-encoded Ed25519 public keys.
+         * <p>
+         * Example:
+         *
+         * <pre>
+         * keys:
+         *   prod-key-2025: "MCowBQYDK2VwAyEA..."
+         *   staging-key:   "MCowBQYDK2VwAyEA..."
+         * </pre>
+         */
+        private Map<String, String> keys = new HashMap<>();
+
+        /**
+         * Per-tenant key binding. Maps pdpId (tenant identifier) to a list of
+         * trusted key identifiers from the keys catalogue.
+         * <p>
+         * When a tenant is configured here, only the listed keys are accepted
+         * for that tenant's bundles. If a tenant is NOT listed, the global
+         * publicKey/publicKeyPath is used as fallback.
+         * <p>
+         * Example:
+         *
+         * <pre>
+         * tenants:
+         *   production: ["prod-key-2025", "prod-key-2026"]
+         *   staging:    ["staging-key"]
+         * </pre>
+         */
+        private Map<String, List<String>> tenants = new HashMap<>();
 
     }
 
@@ -220,5 +271,17 @@ public class EmbeddedPDPProperties {
      * each decision.
      */
     private boolean printTextReport = false;
+
+    /**
+     * If this property is set to true, subscription lifecycle events (new
+     * authorization subscriptions) are logged.
+     */
+    private boolean printSubscriptionEvents = false;
+
+    /**
+     * If this property is set to true, unsubscription lifecycle events (ended
+     * authorization subscriptions) are logged.
+     */
+    private boolean printUnsubscriptionEvents = false;
 
 }

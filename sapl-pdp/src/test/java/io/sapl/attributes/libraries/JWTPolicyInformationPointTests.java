@@ -50,6 +50,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -389,6 +390,7 @@ class JWTPolicyInformationPointTests {
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitAfterNow()).build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+        provider.cache(kid, (RSAPublicKey) keyPair.getPublic());
         StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, accessCtx))
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
                 .thenAwait(JWTTestUtility.twoUnitDuration())
@@ -402,6 +404,7 @@ class JWTPolicyInformationPointTests {
         val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         val claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
         val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+        provider.cache(kid, (RSAPublicKey) keyPair.getPublic());
         StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, accessCtx))
                 .expectNext(Value.of(JWTPolicyInformationPoint.ValidityState.IMMATURE.toString()))
                 .thenAwait(JWTTestUtility.twoUnitDuration())

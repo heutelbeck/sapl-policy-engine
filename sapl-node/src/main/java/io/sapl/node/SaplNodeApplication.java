@@ -29,7 +29,11 @@ import io.sapl.node.cli.SaplNodeCli;
 import picocli.CommandLine;
 
 @EnableCaching
-@SpringBootApplication(excludeName = "org.springframework.boot.autoconfigure.security.rsocket.RSocketSecurityAutoConfiguration")
+@SpringBootApplication(excludeName = { "io.sapl.spring.config.AuthorizationManagerConfiguration",
+        "io.sapl.spring.config.ConstraintsHandlerAutoconfiguration",
+        "org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration",
+        "org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizationAutoConfiguration",
+        "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
 @ComponentScan({ "io.sapl.node", "io.sapl.server" })
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {

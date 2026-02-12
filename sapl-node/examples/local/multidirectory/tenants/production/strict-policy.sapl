@@ -1,0 +1,3 @@
+policy "production-deny-delete"
+deny
+    action == "delete";

@@ -1,0 +1,4 @@
+policy "policy_B"
+permit
+    resource == "foo";
+    "WILLI" == subject;

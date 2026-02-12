@@ -43,6 +43,10 @@ import org.springframework.context.annotation.Role;
  * text report</li>
  * <li>{@code io.sapl.pdp.embedded.pretty-print-reports} - Pretty-print JSON
  * output</li>
+ * <li>{@code io.sapl.pdp.embedded.print-subscription-events} - Log subscription
+ * lifecycle events</li>
+ * <li>{@code io.sapl.pdp.embedded.print-unsubscription-events} - Log
+ * unsubscription lifecycle events</li>
  * </ul>
  * <p>
  * The interceptor is only created if at least one of the print options is
@@ -71,7 +75,8 @@ public class InterceptorAutoConfiguration {
     @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
     VoteInterceptor reportingDecisionInterceptor() {
         return new ReportingDecisionInterceptor(properties.isPrettyPrintReports(), properties.isPrintTrace(),
-                properties.isPrintJsonReport(), properties.isPrintTextReport());
+                properties.isPrintJsonReport(), properties.isPrintTextReport(), properties.isPrintSubscriptionEvents(),
+                properties.isPrintUnsubscriptionEvents());
     }
 
 }

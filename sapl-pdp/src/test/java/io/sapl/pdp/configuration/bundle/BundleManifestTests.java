@@ -25,7 +25,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,15 +55,6 @@ class BundleManifestTests {
         assertThat(manifest.signature().algorithm()).isEqualTo("Ed25519");
         assertThat(manifest.signature().keyId()).isEqualTo("elder-key");
         assertThat(manifest.signature().value()).isEqualTo("base64signature==");
-    }
-
-    @Test
-    void whenSettingExpirationThenManifestContainsExpiration() {
-        val expirationTime = Instant.now().plus(7, ChronoUnit.DAYS);
-        val manifest       = BundleManifest.builder().addFile("prophecy.sapl", "policy \"stars\" permit true")
-                .expires(expirationTime).buildUnsigned();
-
-        assertThat(manifest.expires()).isEqualTo(expirationTime);
     }
 
     @Test
@@ -162,7 +152,6 @@ class BundleManifestTests {
     @Test
     void whenSerializingAndParsingThenRoundtripPreservesContent() {
         val original = BundleManifest.builder().created(Instant.parse("2024-06-15T12:00:00Z"))
-                .expires(Instant.parse("2025-06-15T12:00:00Z"))
                 .addFile("arkham.sapl", "policy \"asylum\" permit subject.role == \"doctor\"")
                 .addFile("pdp.json",
                         "{ \"algorithm\": { \"votingMode\": \"PRIORITY_PERMIT\", \"defaultDecision\": \"DENY\", \"errorHandling\": \"ABSTAIN\" } }")
@@ -174,7 +163,6 @@ class BundleManifestTests {
         assertThat(restored.version()).isEqualTo(original.version());
         assertThat(restored.hashAlgorithm()).isEqualTo(original.hashAlgorithm());
         assertThat(restored.created()).isEqualTo(original.created());
-        assertThat(restored.expires()).isEqualTo(original.expires());
         assertThat(restored.files()).isEqualTo(original.files());
         assertThat(restored.signature().keyId()).isEqualTo(original.signature().keyId());
         assertThat(restored.signature().value()).isEqualTo(original.signature().value());

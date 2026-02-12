@@ -131,6 +131,16 @@
 			<groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
 			<artifactId>bucket4j-spring-boot-starter</artifactId>
 			<version>0.12.8</version>
+			<exclusions>
+				<exclusion>
+					<groupId>javax.cache</groupId>
+					<artifactId>cache-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.bucket4j</groupId>
+					<artifactId>bucket4j-jcache</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.bucket4j</groupId>

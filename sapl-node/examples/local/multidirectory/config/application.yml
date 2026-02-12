@@ -1,0 +1,94 @@
+#
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+io.sapl:
+  pdp.embedded:
+    pdp-config-type: MULTI_DIRECTORY
+    config-path: tenants
+    policies-path: tenants
+    print-trace: true
+    print-json-report: true
+    print-text-report: true
+    pretty-print-reports: true
+  node:
+    allowNoAuth: true
+    allowBasicAuth: true
+    allowApiKeyAuth: true
+    allowOauth2Auth: false
+    rejectOnMissingPdpId: false
+    # Unauthenticated requests use the defaultPdpId
+    defaultPdpId: "default"
+    oauth:
+      pdpIdClaim: "sapl_pdp_id"
+    users:
+      # Routes to "default" tenant (permitall)
+      # alice reads document - Expected: PERMIT
+      # curl -N -u 'xwuUaRD65G:3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"read","resource":"document"}'
+      # alice writes document - Expected: PERMIT (default permits everything)
+      # curl -N -u 'xwuUaRD65G:3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"write","resource":"document"}'
+      # alice deletes production-data - Expected: PERMIT (default has no restrictions)
+      # curl -N -u 'xwuUaRD65G:3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"delete","resource":"production-data"}'
+      - id: "default-client"
+        pdpId: "default"
+        basic:
+          username: "xwuUaRD65G"
+          # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
+          secret: "$argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY"
+
+      # Routes to "production" tenant (read-only + admin-full-access + deny-delete, PRIORITY_DENY)
+      # alice reads document - Expected: PERMIT (read-access policy matches)
+      # curl -N -H 'Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"read","resource":"document"}'
+      # alice writes document - Expected: DENY (no permit for non-admin write, default DENY)
+      # curl -N -H 'Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"write","resource":"document"}'
+      # admin writes document - Expected: PERMIT (admin-full-access matches)
+      # curl -N -H 'Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"admin","action":"write","resource":"document"}'
+      # admin deletes database - Expected: DENY (deny-delete overrides admin permit, PRIORITY_DENY)
+      # curl -N -H 'Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"admin","action":"delete","resource":"database"}'
+      - id: "production-client"
+        pdpId: "production"
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM"
+        # API key plaintext: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
+
+      # Routes to "staging" tenant (permit false + deny delete on production-data, PRIORITY_PERMIT)
+      # Note: permissive-policy.sapl has "permit false;" which never matches.
+      # With default DENY, all requests return DENY since no permit policy matches.
+      # alice reads document - Expected: DENY (no permit matches, default DENY)
+      # curl -N -H 'Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"read","resource":"document"}'
+      # alice writes document - Expected: DENY (no permit matches, default DENY)
+      # curl -N -H 'Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"write","resource":"document"}'
+      # alice deletes production-data - Expected: DENY (deny-delete-prod-data matches + default DENY)
+      # curl -N -H 'Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"delete","resource":"production-data"}'
+      # alice deletes regular data - Expected: DENY (no permit matches, default DENY)
+      # curl -N -H 'Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f' -X POST http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -H 'Accept: application/x-ndjson' -d '{"subject":"alice","action":"delete","resource":"database"}'
+      - id: "staging-client"
+        pdpId: "staging"
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k"
+        # API key plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+
+spring.security.oauth2:
+      resourceserver:
+         jwt.issuer-uri: http://auth-host:32769/default
+
+server:
+   address: localhost
+   port: 8080
+   ssl:
+      enabled: false
+
+logging.level:
+  "[io.sapl]": INFO

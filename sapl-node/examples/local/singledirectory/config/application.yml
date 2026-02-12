@@ -1,0 +1,71 @@
+#
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+io.sapl:
+  pdp.embedded:
+    config-path: .
+    policies-path: .
+    print-trace: true
+    print-json-report: true
+    print-text-report: true
+    pretty-print-reports: true
+  node:
+    allowNoAuth: true
+    allowBasicAuth: true
+    allowApiKeyAuth: true
+    allowOauth2Auth: false
+    rejectOnMissingPdpId: false
+    # Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
+    # is dropped by a firewall or other network components. The default value 0 disables keep-alive messages.
+    # keep-alive: 15
+    defaultPdpId: "default"
+    oauth:
+      pdpIdClaim: "sapl_pdp_id"
+    users:
+      - id: "demo-basic-client"
+        pdpId: "default"
+        basic:
+          username: "xwuUaRD65G"
+          # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
+          secret: "$argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY"
+
+      # Clients authenticate with: Authorization: Bearer <api-key>
+      - id: "demo-apikey-client-1"
+        pdpId: "default"
+        # API key plaintext: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM"
+
+      - id: "demo-apikey-client-2"
+        pdpId: "default"
+        # API key plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k"
+
+spring.security.oauth2:
+      resourceserver:
+         jwt.issuer-uri: http://auth-host:32769/default
+
+
+server:
+   address: localhost
+   port: 8080
+   ssl:
+      enabled: false
+
+
+logging.level:
+  "[io.sapl]": INFO

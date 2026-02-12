@@ -1,0 +1,4 @@
+policy "staging-protect-prod-data"
+deny
+    action == "delete";
+    resource == "production-data";

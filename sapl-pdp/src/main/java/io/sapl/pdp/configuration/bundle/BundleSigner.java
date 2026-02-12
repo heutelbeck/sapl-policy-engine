@@ -26,7 +26,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Set;
@@ -56,8 +55,6 @@ import java.util.TreeMap;
  * // Verify signature and file integrity
  * BundleSigner.verify(manifest, actualFiles, publicKey);
  *
- * // Or verify with expiration check
- * BundleSigner.verify(manifest, actualFiles, publicKey, Instant.now());
  * }</pre>
  *
  * @see BundleManifest
@@ -73,7 +70,6 @@ public class BundleSigner {
     private static final String ERROR_INVALID_PRIVATE_KEY             = "Invalid private key: %s";
     private static final String ERROR_INVALID_PUBLIC_KEY              = "Invalid public key: %s";
     private static final String ERROR_INVALID_SIGNATURE_ENCODING      = "Invalid signature encoding: %s";
-    private static final String ERROR_MANIFEST_EXPIRED                = "Manifest has expired. Expiration: %s, current time: %s.";
     private static final String ERROR_MANIFEST_IS_NOT_SIGNED          = "Manifest is not signed.";
     private static final String ERROR_MANIFEST_IS_NULL                = "Manifest is null.";
     private static final String ERROR_MANIFEST_NO_FILE_ENTRIES        = "Manifest contains no file entries.";
@@ -104,31 +100,10 @@ public class BundleSigner {
      * @throws BundleSignatureException
      * if signing fails
      */
-    public BundleManifest sign(Map<String, String> files, PrivateKey privateKey, String keyId) {
-        return sign(files, privateKey, keyId, null);
-    }
-
-    /**
-     * Signs bundle contents with an expiration time.
-     *
-     * @param files
-     * map of filename to file content
-     * @param privateKey
-     * Ed25519 private key for signing
-     * @param keyId
-     * identifier for the signing key
-     * @param expires
-     * expiration timestamp, or null for no expiration
-     *
-     * @return signed manifest
-     *
-     * @throws BundleSignatureException
-     * if signing fails
-     */
-    public BundleManifest sign(Map<String, String> files, PrivateKey privateKey, String keyId, Instant expires) {
+    public static BundleManifest sign(Map<String, String> files, PrivateKey privateKey, String keyId) {
         validatePrivateKey(privateKey);
 
-        val builder = BundleManifest.builder().expires(expires);
+        val builder = BundleManifest.builder();
 
         for (val entry : files.entrySet()) {
             builder.addFile(entry.getKey(), entry.getValue());
@@ -155,31 +130,10 @@ public class BundleSigner {
      * @throws BundleSignatureException
      * if verification fails
      */
-    public void verify(BundleManifest manifest, Map<String, String> actualFiles, PublicKey publicKey) {
-        verify(manifest, actualFiles, publicKey, null);
-    }
-
-    /**
-     * Verifies a bundle manifest with expiration check.
-     *
-     * @param manifest
-     * the manifest to verify
-     * @param actualFiles
-     * map of filename to actual file content from the bundle
-     * @param publicKey
-     * Ed25519 public key for verification
-     * @param currentTime
-     * current time for expiration check, or null to skip expiration check
-     *
-     * @throws BundleSignatureException
-     * if verification fails
-     */
-    public void verify(BundleManifest manifest, Map<String, String> actualFiles, PublicKey publicKey,
-            Instant currentTime) {
+    public static void verify(BundleManifest manifest, Map<String, String> actualFiles, PublicKey publicKey) {
         validatePublicKey(publicKey);
         verifyManifestStructure(manifest);
         verifySignature(manifest, publicKey);
-        verifyExpiration(manifest, currentTime);
         verifyFileIntegrity(manifest, actualFiles);
     }
 
@@ -196,7 +150,7 @@ public class BundleSigner {
      * @throws BundleSignatureException
      * if signature verification fails
      */
-    public void verifySignatureOnly(BundleManifest manifest, PublicKey publicKey) {
+    public static void verifySignatureOnly(BundleManifest manifest, PublicKey publicKey) {
         validatePublicKey(publicKey);
         verifyManifestStructure(manifest);
         verifySignature(manifest, publicKey);
@@ -210,7 +164,7 @@ public class BundleSigner {
      *
      * @return true if the manifest contains a signature
      */
-    public boolean isSigned(BundleManifest manifest) {
+    public static boolean isSigned(BundleManifest manifest) {
         return manifest != null && manifest.signature() != null && manifest.signature().value() != null;
     }
 
@@ -265,15 +219,6 @@ public class BundleSigner {
         val isValid = verifySignatureBytes(bytesToVerify, signatureBytes, publicKey);
         if (!isValid) {
             throw new BundleSignatureException(ERROR_SIGNATURE_DOES_NOT_MATCH);
-        }
-    }
-
-    private void verifyExpiration(BundleManifest manifest, Instant currentTime) {
-        if (currentTime == null || manifest.expires() == null) {
-            return;
-        }
-        if (currentTime.isAfter(manifest.expires())) {
-            throw new BundleSignatureException(ERROR_MANIFEST_EXPIRED.formatted(manifest.expires(), currentTime));
         }
     }
 

@@ -21,7 +21,6 @@ import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.val;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -33,7 +32,6 @@ import java.util.TreeMap;
  * @param manifest the bundle manifest, or null if bundle is unsigned
  */
 record Bundle(String pdpJson, Map<String, String> saplDocuments, BundleManifest manifest) {
-    private static final String ERROR_BUNDLE_SIGNED_BUT_NO_PUBLIC_KEY = "Bundle '%s' is signed but no public key is configured for verification. Configure a public key or explicitly accept unsigned bundle risks.";
     private static final String ERROR_SECURITY_POLICY_REQUIRED = "Security policy is required. Use BundleSecurityPolicy.builder(publicKey).build() for production or explicitly disable verification with risk acceptance for development.";
 
     private static final String PDP_JSON = "pdp.json";
@@ -51,21 +49,15 @@ record Bundle(String pdpJson, Map<String, String> saplDocuments, BundleManifest 
         val isSigned = manifest != null && BundleSigner.isSigned(manifest);
 
         if (!isSigned) {
-            // Delegate to security policy - it will throw if not allowed
             securityPolicy.checkUnsignedBundleAllowed(pdpId);
             return;
         }
 
-        // Bundle is signed - verify it
-        val publicKey = securityPolicy.publicKey();
-        if (publicKey == null) {
-            throw new BundleSignatureException(ERROR_BUNDLE_SIGNED_BUT_NO_PUBLIC_KEY.formatted(pdpId));
-        }
-
+        val keyId                = manifest.signature().keyId();
+        val publicKey            = securityPolicy.resolvePublicKey(pdpId, keyId);
         val filesForVerification = buildVerificationMap();
-        val currentTime          = securityPolicy.checkExpiration() ? Instant.now() : null;
 
-        BundleSigner.verify(manifest, filesForVerification, publicKey, currentTime);
+        BundleSigner.verify(manifest, filesForVerification, publicKey);
     }
 
     private Map<String, String> buildVerificationMap() {

@@ -25,6 +25,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
+import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -74,38 +76,13 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("no configuration loaded returns INDETERMINATE")
     void whenNoConfigurationLoadedThenReturnIndeterminate() {
         val subscription = subscription("Nyarlathotep", "invoke", "outer_gods_council");
 
         StepVerifier.create(pdp.decide(subscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.INDETERMINATE))
                 .verifyComplete();
-    }
-
-    @Test
-    void whenSimplePermitPolicyThenReturnPermit() {
-        loadConfiguration(DENY_UNLESS_PERMIT, """
-                policy "allow all"
-                permit
-                """);
-
-        val subscription = subscription("Cthulhu", "awaken", "rlyeh");
-
-        StepVerifier.create(pdp.decide(subscription).take(1))
-                .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
-    }
-
-    @Test
-    void whenSimpleDenyPolicyThenReturnDeny() {
-        loadConfiguration(PERMIT_UNLESS_DENY, """
-                policy "deny all"
-                deny
-                """);
-
-        val subscription = subscription("Azathoth", "dream", "universe");
-
-        StepVerifier.create(pdp.decide(subscription).take(1))
-                .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.DENY)).verifyComplete();
     }
 
     @ParameterizedTest(name = "{0}")
@@ -122,10 +99,20 @@ class DynamicPolicyDecisionPointTests {
         val cultistSubscription      = subscription("cultist", "summon", "deep_one");
         val investigatorSubscription = subscription("investigator", "investigate", "innsmouth");
 
-        return Stream.of(arguments("deny-unless-permit with permit returns PERMIT", DENY_UNLESS_PERMIT, List.of("""
-                policy "permit summoning"
+        return Stream.of(arguments("simple permit policy returns PERMIT", DENY_UNLESS_PERMIT, List.of("""
+                policy "allow all"
                 permit
                 """), cultistSubscription, Decision.PERMIT),
+
+                arguments("simple deny policy returns DENY", PERMIT_UNLESS_DENY, List.of("""
+                        policy "deny all"
+                        deny
+                        """), cultistSubscription, Decision.DENY),
+
+                arguments("deny-unless-permit with permit returns PERMIT", DENY_UNLESS_PERMIT, List.of("""
+                        policy "permit summoning"
+                        permit
+                        """), cultistSubscription, Decision.PERMIT),
 
                 arguments("deny-unless-permit with no matching policies returns DENY", DENY_UNLESS_PERMIT, List.of("""
                         policy "never matches"
@@ -182,6 +169,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("target expressions restrict policy applicability")
     void whenPolicyWithTargetExpressionThenOnlyMatchingPoliciesApply() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit investigators"
@@ -204,6 +192,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("obligations are included in the decision")
     void whenPolicyWithObligationsThenObligationsIncludedInDecision() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with obligation"
@@ -224,6 +213,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("advice is included in the decision")
     void whenPolicyWithAdviceThenAdviceIncludedInDecision() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with advice"
@@ -242,6 +232,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("transformation replaces the resource in the decision")
     void whenPolicyWithTransformationThenResourceTransformed() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with transformation"
@@ -261,6 +252,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("body conditions filter applicable policies")
     void whenPolicyWithWhereClauseThenConditionEvaluated() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit only for specific action"
@@ -279,6 +271,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("environment fields are accessible in policy conditions")
     void whenPolicyAccessesSubscriptionFieldsThenFieldsAvailable() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on environment"
@@ -302,6 +295,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("obligations from multiple matching policies are combined")
     void whenMultiplePoliciesWithObligationsThenObligationsCombined() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with first obligation"
@@ -323,6 +317,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("hot-reloaded configuration is used for subsequent decisions")
     void whenConfigurationUpdatedThenNewConfigurationUsed() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "initial deny"
@@ -344,6 +339,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("local variables are available in conditions and transformations")
     void whenPolicyWithVariableDefinitionThenVariableUsedInDecision() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit with local variable"
@@ -363,6 +359,7 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("object subject fields are accessible in policy conditions")
     void whenComplexSubscriptionWithObjectSubjectThenObjectFieldsAccessible() {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit based on subject role"
@@ -385,6 +382,53 @@ class DynamicPolicyDecisionPointTests {
 
         StepVerifier.create(pdp.decide(unauthorizedSubscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.DENY)).verifyComplete();
+    }
+
+    @Test
+    @DisplayName("lifecycle callbacks fire on subscribe and unsubscribe")
+    void whenStreamSubscribedAndCancelledThenLifecycleCallbacksFire() {
+        val subscribedIds   = new ArrayList<String>();
+        val unsubscribedIds = new ArrayList<String>();
+
+        val lifecycleInterceptor = new VoteInterceptor() {
+            @Override
+            public int priority() {
+                return 0;
+            }
+
+            @Override
+            public void intercept(TimestampedVote vote, String subscriptionId,
+                    AuthorizationSubscription authorizationSubscription) {
+                // no-op
+            }
+
+            @Override
+            public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+                subscribedIds.add(subscriptionId);
+            }
+
+            @Override
+            public void onUnsubscribe(String subscriptionId) {
+                unsubscribedIds.add(subscriptionId);
+            }
+        };
+
+        val components     = PolicyDecisionPointBuilder.withoutDefaults().withInterceptor(lifecycleInterceptor).build();
+        val interceptedPdp = (DynamicPolicyDecisionPoint) components.pdp();
+        val voterSource    = components.pdpVoterSource();
+
+        voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, """
+                policy "allow all"
+                permit
+                """), false);
+
+        val subscription = subscription("test", "read", "data");
+
+        StepVerifier.create(interceptedPdp.decide(subscription).take(1))
+                .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
+
+        assertThat(subscribedIds).hasSize(1);
+        assertThat(unsubscribedIds).hasSize(1).first().isEqualTo(subscribedIds.getFirst());
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {

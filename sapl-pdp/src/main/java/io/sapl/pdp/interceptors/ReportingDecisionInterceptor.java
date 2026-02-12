@@ -48,6 +48,8 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     private final boolean printTrace;
     private final boolean printJsonReport;
     private final boolean printTextReport;
+    private final boolean printSubscriptionEvents;
+    private final boolean printUnsubscriptionEvents;
 
     @Override
     public int priority() {
@@ -69,6 +71,20 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
             if (printTextReport) {
                 logTextReport(report);
             }
+        }
+    }
+
+    @Override
+    public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+        if (printSubscriptionEvents) {
+            log.info("Subscription [{}]: {}", subscriptionId, authorizationSubscription);
+        }
+    }
+
+    @Override
+    public void onUnsubscribe(String subscriptionId) {
+        if (printUnsubscriptionEvents) {
+            log.info("Unsubscription [{}]", subscriptionId);
         }
     }
 

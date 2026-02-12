@@ -19,8 +19,10 @@ package io.sapl.pdp.configuration.bundle;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.security.PublicKey;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -60,8 +62,6 @@ import java.util.Set;
  * // Create policy requiring valid signatures (default)
  * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).build();
  *
- * // With expiration enforcement
- * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).withExpirationCheck().build();
  * }</pre>
  *
  * <h3>Development Only (Requires Explicit Risk Acceptance)</h3>
@@ -91,8 +91,7 @@ import java.util.Set;
  *                 AcceptedRisksProperties risks) {
  *
  *             if (props.isSignatureVerificationEnabled()) {
- *                 return BundleSecurityPolicy.builder(props.getPublicKey())
- *                         .withExpirationCheck(props.isCheckExpiration()).build();
+ *                 return BundleSecurityPolicy.builder(props.getPublicKey()).build();
  *             }
  *
  *             // Signature disabled - require risk acceptance
@@ -113,23 +112,27 @@ public final class BundleSecurityPolicy {
     private static final Set<String> ED25519_ALGORITHM_NAMES                          = Set.of("Ed25519", "EdDSA");
     private static final String      ERROR_BUNDLE_NOT_SIGNED_REQUIRED                 = "Bundle '%s' is not signed but signature verification is required.";
     private static final String      ERROR_BUNDLE_NOT_SIGNED_RISK_NOT_ACCEPTED        = "Bundle '%s' is not signed and unsigned bundle risks have not been accepted.";
+    private static final String      ERROR_KEY_ID_NOT_IN_CATALOGUE                    = "Key '%s' referenced by tenant '%s' is not in the key catalogue.";
+    private static final String      ERROR_KEY_ID_NOT_TRUSTED_FOR_TENANT              = "Key '%s' is not trusted for tenant '%s'. Trusted keys: %s.";
+    private static final String      ERROR_NO_PUBLIC_KEY_FOR_TENANT                   = "No public key available for tenant '%s' with key id '%s'. Configure a key catalogue with tenant bindings or a global public key.";
     private static final String      ERROR_NO_PUBLIC_KEY_FOR_VERIFICATION             = "Bundle signature verification is required but no public key was provided.";
     private static final String      ERROR_PUBLIC_KEY_MUST_BE_ED25519                 = "Public key must be Ed25519, got: %s.";
     private static final String      ERROR_PUBLIC_KEY_MUST_NOT_BE_NULL                = "Public key must not be null.";
     private static final String      ERROR_SIGNATURE_DISABLED_WITHOUT_RISK_ACCEPTANCE = "Bundle signature verification disabled without risk acceptance. Set the appropriate configuration to accept unsigned bundle risks.";
-    private static final String      ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY              = "Signature verification requires a public key. Use builder(publicKey) or disable signature verification.";
+    private static final String      ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY              = "Signature verification requires a public key or a key catalogue. Use builder(publicKey), withKeyCatalogue(), or disable signature verification.";
 
-    private final PublicKey publicKey;
-    private final boolean   signatureRequired;
-    private final boolean   checkExpiration;
-    private final boolean   unsignedBundleRiskAccepted;
+    private final PublicKey                publicKey;
+    private final boolean                  signatureRequired;
+    private final boolean                  unsignedBundleRiskAccepted;
+    private final Set<String>              unsignedTenants;
+    private final Map<String, PublicKey>   keyCatalogue;
+    private final Map<String, Set<String>> tenantTrust;
 
     /**
      * Creates a builder for security policy configuration with signature
      * verification enabled.
      * <p>
-     * The builder defaults to requiring valid signatures. Use additional methods
-     * to enable options like expiration checking.
+     * The builder defaults to requiring valid signatures.
      * </p>
      *
      * @param publicKey
@@ -146,14 +149,16 @@ public final class BundleSecurityPolicy {
     }
 
     /**
-     * Creates a builder for security policy without a public key.
+     * Creates a builder for security policy without a global public key.
      * <p>
-     * <b>WARNING:</b> This is intended only for explicitly disabling signature
-     * verification in development
-     * environments. Using this builder requires calling both
-     * {@link Builder#disableSignatureVerification()} and
-     * {@link Builder#acceptUnsignedBundleRisks()} to create a valid policy.
-     * </p>
+     * This builder is used in two scenarios:
+     * <ol>
+     * <li>Per-tenant key configuration via {@link Builder#withKeyCatalogue(Map)}
+     * and {@link Builder#withTenantTrust(Map)} without a global fallback key.</li>
+     * <li>Explicitly disabling signature verification in development environments
+     * by calling both {@link Builder#disableSignatureVerification()} and
+     * {@link Builder#acceptUnsignedBundleRisks()}.</li>
+     * </ol>
      *
      * @return builder for policy configuration
      */
@@ -162,8 +167,8 @@ public final class BundleSecurityPolicy {
     }
 
     /**
-     * Returns the public key for signature verification, or null if verification is
-     * disabled.
+     * Returns the global public key for signature verification, or null if not
+     * configured.
      *
      * @return the Ed25519 public key, or null
      */
@@ -181,15 +186,6 @@ public final class BundleSecurityPolicy {
     }
 
     /**
-     * Returns whether signature expiration should be checked.
-     *
-     * @return true if expired signatures should be rejected
-     */
-    public boolean checkExpiration() {
-        return checkExpiration;
-    }
-
-    /**
      * Returns whether the operator has accepted the risks of loading unsigned
      * bundles.
      *
@@ -197,6 +193,37 @@ public final class BundleSecurityPolicy {
      */
     public boolean unsignedBundleRiskAccepted() {
         return unsignedBundleRiskAccepted;
+    }
+
+    /**
+     * Resolves the public key for a given tenant and key identifier.
+     * <p>
+     * Resolution strategy:
+     * <ol>
+     * <li>If the tenant has an entry in the tenant trust map, the keyId must be
+     * in the trusted set. The key is then resolved from the catalogue.</li>
+     * <li>If the tenant has no entry in the tenant trust map, the global
+     * publicKey is returned as fallback.</li>
+     * </ol>
+     *
+     * @param pdpId
+     * the tenant identifier
+     * @param keyId
+     * the key identifier from the bundle manifest
+     *
+     * @return the resolved public key
+     *
+     * @throws BundleSignatureException
+     * if the key cannot be resolved
+     */
+    public PublicKey resolvePublicKey(String pdpId, String keyId) {
+        if (tenantTrust.containsKey(pdpId)) {
+            return resolveFromTenantTrust(pdpId, keyId);
+        }
+        if (publicKey != null) {
+            return publicKey;
+        }
+        throw new BundleSignatureException(ERROR_NO_PUBLIC_KEY_FOR_TENANT.formatted(pdpId, keyId));
     }
 
     /**
@@ -212,13 +239,15 @@ public final class BundleSecurityPolicy {
      */
     public void validate() {
         if (signatureRequired) {
-            if (publicKey == null) {
+            if (publicKey == null && keyCatalogue.isEmpty()) {
                 throw new BundleSignatureException(ERROR_NO_PUBLIC_KEY_FOR_VERIFICATION);
             }
+            validateTenantTrustReferences();
             log.info(
                     "Bundle security policy: Signature verification ENABLED. "
-                            + "All bundles must be signed with a trusted Ed25519 key. " + "Expiration check: {}.",
-                    checkExpiration ? "enabled" : "disabled");
+                            + "All bundles must be signed with a trusted Ed25519 key. "
+                            + "Key catalogue size: {}. Tenant bindings: {}. Unsigned tenants: {}.",
+                    keyCatalogue.size(), tenantTrust.size(), unsignedTenants.size());
             return;
         }
 
@@ -259,6 +288,12 @@ public final class BundleSecurityPolicy {
      * if unsigned bundles are not allowed
      */
     public void checkUnsignedBundleAllowed(String bundleIdentifier) {
+        if (unsignedTenants.contains(bundleIdentifier)) {
+            log.warn("SECURITY: Loading unsigned bundle '{}'. Tenant is in unsigned-tenants list. "
+                    + "Policy integrity and authenticity are NOT verified.", bundleIdentifier);
+            return;
+        }
+
         if (signatureRequired) {
             throw new BundleSignatureException(ERROR_BUNDLE_NOT_SIGNED_REQUIRED.formatted(bundleIdentifier));
         }
@@ -269,6 +304,30 @@ public final class BundleSecurityPolicy {
 
         log.warn("SECURITY: Loading unsigned bundle '{}'. Policy integrity and authenticity are NOT verified.",
                 bundleIdentifier);
+    }
+
+    private PublicKey resolveFromTenantTrust(String pdpId, String keyId) {
+        val trustedKeyIds = tenantTrust.get(pdpId);
+        if (!trustedKeyIds.contains(keyId)) {
+            throw new BundleSignatureException(
+                    ERROR_KEY_ID_NOT_TRUSTED_FOR_TENANT.formatted(keyId, pdpId, trustedKeyIds));
+        }
+        val resolvedKey = keyCatalogue.get(keyId);
+        if (resolvedKey == null) {
+            throw new BundleSignatureException(ERROR_KEY_ID_NOT_IN_CATALOGUE.formatted(keyId, pdpId));
+        }
+        return resolvedKey;
+    }
+
+    private void validateTenantTrustReferences() {
+        for (val entry : tenantTrust.entrySet()) {
+            val pdpId = entry.getKey();
+            for (val keyId : entry.getValue()) {
+                if (!keyCatalogue.containsKey(keyId)) {
+                    throw new BundleSignatureException(ERROR_KEY_ID_NOT_IN_CATALOGUE.formatted(keyId, pdpId));
+                }
+            }
+        }
     }
 
     private static void validatePublicKey(PublicKey publicKey) {
@@ -285,43 +344,15 @@ public final class BundleSecurityPolicy {
      */
     public static final class Builder {
 
-        private final PublicKey publicKey;
-        private boolean         signatureRequired          = true;
-        private boolean         checkExpiration            = false;
-        private boolean         unsignedBundleRiskAccepted = false;
+        private final PublicKey          publicKey;
+        private boolean                  signatureRequired          = true;
+        private boolean                  unsignedBundleRiskAccepted = false;
+        private Set<String>              unsignedTenants            = Set.of();
+        private Map<String, PublicKey>   keyCatalogue               = Map.of();
+        private Map<String, Set<String>> tenantTrust                = Map.of();
 
         private Builder(PublicKey publicKey) {
             this.publicKey = publicKey;
-        }
-
-        /**
-         * Enables signature expiration checking.
-         * <p>
-         * When enabled, signatures with an expiration timestamp will be rejected if the
-         * current time is past the
-         * expiration. This enforces regular bundle refresh and limits the validity
-         * window of potentially compromised
-         * bundles.
-         * </p>
-         *
-         * @return this builder
-         */
-        public Builder withExpirationCheck() {
-            this.checkExpiration = true;
-            return this;
-        }
-
-        /**
-         * Enables or disables signature expiration checking.
-         *
-         * @param check
-         * true to enable expiration checking
-         *
-         * @return this builder
-         */
-        public Builder withExpirationCheck(boolean check) {
-            this.checkExpiration = check;
-            return this;
         }
 
         /**
@@ -379,6 +410,53 @@ public final class BundleSecurityPolicy {
         }
 
         /**
+         * Sets the key catalogue mapping key identifiers to public keys.
+         *
+         * @param keyCatalogue
+         * map of keyId to Ed25519 public key
+         *
+         * @return this builder
+         */
+        public Builder withKeyCatalogue(Map<String, PublicKey> keyCatalogue) {
+            this.keyCatalogue = keyCatalogue != null ? Map.copyOf(keyCatalogue) : Map.of();
+            return this;
+        }
+
+        /**
+         * Sets the tenant trust mapping tenant identifiers to trusted key
+         * identifiers.
+         *
+         * @param tenantTrust
+         * map of pdpId to set of trusted keyIds
+         *
+         * @return this builder
+         */
+        public Builder withTenantTrust(Map<String, Set<String>> tenantTrust) {
+            this.tenantTrust = tenantTrust != null ? Map.copyOf(tenantTrust) : Map.of();
+            return this;
+        }
+
+        /**
+         * Sets the tenants for which unsigned bundles are accepted.
+         * <p>
+         * Tenants listed here may load unsigned bundles without requiring the global
+         * {@link #disableSignatureVerification()} and
+         * {@link #acceptUnsignedBundleRisks()} flags. This allows per-tenant
+         * granularity: staging may use unsigned bundles during development while
+         * production must always be signed.
+         * </p>
+         *
+         * @param unsignedTenants
+         * set of tenant identifiers that accept unsigned bundles
+         *
+         * @return this builder
+         */
+        public Builder withUnsignedTenants(Set<String> unsignedTenants) {
+            this.unsignedTenants = unsignedTenants != null ? Set.copyOf(unsignedTenants) : Set.of();
+            return this;
+        }
+
+        /**
          * Builds the security policy.
          * <p>
          * The resulting policy is validated to ensure consistent configuration. If
@@ -393,11 +471,12 @@ public final class BundleSecurityPolicy {
          * if the configuration is invalid
          */
         public BundleSecurityPolicy build() {
-            if (signatureRequired && publicKey == null) {
+            if (signatureRequired && publicKey == null && keyCatalogue.isEmpty()) {
                 throw new IllegalStateException(ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY);
             }
 
-            return new BundleSecurityPolicy(publicKey, signatureRequired, checkExpiration, unsignedBundleRiskAccepted);
+            return new BundleSecurityPolicy(publicKey, signatureRequired, unsignedBundleRiskAccepted, unsignedTenants,
+                    keyCatalogue, tenantTrust);
         }
     }
 
