@@ -88,8 +88,9 @@ cd sapl-node/examples/local/multidirectory
 java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar
 ```
 
-**Tenant routing** uses the `X-SAPL-PDP-ID` header or client-to-tenant binding in
-`application.yml`. Unauthenticated requests fall back to `defaultPdpId: "default"`.
+**Tenant routing** uses client-to-tenant binding in `application.yml`. Each authenticated
+client is bound to a specific pdpId. Unauthenticated requests fall back to
+`defaultPdpId: "default"`.
 
 **Test:**
 
@@ -186,16 +187,22 @@ curl -s http://localhost:8080/api/pdp/decide \
   -d '{"subject":"anyone","action":"anything","resource":"anything"}' | jq .
 
 # Production -- admin reads: PERMIT
-curl -s http://localhost:8080/api/pdp/decide \
+curl -s -H "Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j" \
+  http://localhost:8080/api/pdp/decide \
   -H "Content-Type: application/json" \
-  -H "X-SAPL-PDP-ID: production" \
   -d '{"subject":"admin","action":"read","resource":"data"}' | jq .
 
 # Production -- admin deletes: DENY (PRIORITY_DENY, strict-policy denies)
-curl -s http://localhost:8080/api/pdp/decide \
+curl -s -H "Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j" \
+  http://localhost:8080/api/pdp/decide \
   -H "Content-Type: application/json" \
-  -H "X-SAPL-PDP-ID: production" \
   -d '{"subject":"admin","action":"delete","resource":"data"}' | jq .
+
+# Staging -- alice reads: DENY (permissive-policy has "permit false", no permit matches)
+curl -s -H "Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f" \
+  http://localhost:8080/api/pdp/decide \
+  -H "Content-Type: application/json" \
+  -d '{"subject":"alice","action":"read","resource":"document"}' | jq .
 ```
 
 ### Security Tests
@@ -277,7 +284,7 @@ All setups accept three authentication methods:
 |---------|------------------------------------------------------|------------------------------------------------|
 | No auth | (none)                                               | Routes to `defaultPdpId` ("default")           |
 | Basic   | `xwuUaRD65G` / `3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_`    | default                                        |
-| API key | `sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j`   | default (single/multi) or production (bundles) |
+| API key | `sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j`   | default (single) or production (multi/bundles) |
 | API key | `sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f`   | default (single) or staging (multi/bundles)    |
 
 Client-to-tenant bindings differ between setups. Check each `application.yml` for details.

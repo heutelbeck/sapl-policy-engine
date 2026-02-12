@@ -18,6 +18,17 @@ This example demonstrates SAPL Node deployment with Keycloak for OAuth2/JWT auth
                  (with JWT in Authorization header)
 ```
 
+## Prerequisites
+
+Keycloak uses `KC_HOSTNAME=http://keycloak:8080` so that JWT issuer claims match
+between containers. Add an entry to your hosts file so the host can reach Keycloak
+via the same hostname:
+
+```
+# /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts (Windows)
+127.0.0.1 keycloak
+```
+
 ## Quick Start
 
 1. **Start the services:**
@@ -37,13 +48,14 @@ This example demonstrates SAPL Node deployment with Keycloak for OAuth2/JWT auth
 3. **Get an access token from Keycloak:**
    ```bash
    # Using Resource Owner Password flow (for demo only)
-   TOKEN=$(curl -s -X POST http://localhost:8080/realms/sapl-demo/protocol/openid-connect/token \
+   # Uses default-user (no sapl_pdp_id claim, falls back to "default" tenant)
+   TOKEN=$(curl -s -X POST http://keycloak:8080/realms/sapl-demo/protocol/openid-connect/token \
      -H "Content-Type: application/x-www-form-urlencoded" \
      -d "grant_type=password" \
      -d "client_id=sapl-client" \
      -d "client_secret=sapl-client-secret" \
-     -d "username=production-user" \
-     -d "password=production123" \
+     -d "username=default-user" \
+     -d "password=default123" \
      | jq -r '.access_token')
 
    echo "Token: ${TOKEN:0:50}..."
@@ -84,7 +96,9 @@ To use a different claim name, update both:
 
 ## Multi-Tenant Setup with OAuth2
 
-To use multi-tenant directory routing with OAuth2:
+The default setup uses single-directory mode. The `production-user` and `staging-user`
+have `sapl_pdp_id` claims that require multi-tenant configuration to work. To enable
+multi-tenant directory routing with OAuth2:
 
 1. Enable `MULTI_DIRECTORY` source type:
    ```yaml
@@ -114,7 +128,7 @@ Configure what happens when the JWT lacks the `sapl_pdp_id` claim:
 ## Keycloak Administration
 
 Access the Keycloak admin console:
-- URL: http://localhost:8080/admin
+- URL: http://keycloak:8080/admin
 - Username: admin
 - Password: admin
 
@@ -129,4 +143,4 @@ From here you can:
 1. **TLS:** Enable HTTPS for Keycloak in production
 2. **Secrets:** Use proper secret management (not hardcoded in compose files)
 3. **Token Lifetime:** Adjust token lifetimes based on security requirements
-4. **Issuer URI:** Use the actual Keycloak URL (not `keycloak` hostname)
+4. **Issuer URI:** Set `KC_HOSTNAME` to the production Keycloak URL

@@ -60,12 +60,12 @@ io.sapl:
           secret: "$argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY"
 
       - id: "demo-apikey-client-1"
-        pdpId: "default"
+        pdpId: "production"
         # API key plaintext: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
         apiKey: "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM"
 
       - id: "demo-apikey-client-2"
-        pdpId: "default"
+        pdpId: "staging"
         # API key plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
         apiKey: "$argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k"
 
@@ -94,25 +94,25 @@ logging.level:
 #     -d '{"subject":"anyone","action":"anything","resource":"anything"}' \
 #     | jq .
 #
-# Test production tenant - admin access:
-#   curl -s http://localhost:8080/api/pdp/decide \
+# Test production tenant - admin reads: PERMIT
+#   curl -s -H "Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j" \
+#     http://localhost:8080/api/pdp/decide \
 #     -H "Content-Type: application/json" \
-#     -H "X-SAPL-PDP-ID: production" \
 #     -d '{"subject":"admin","action":"read","resource":"data"}' \
 #     | jq .
 #
-# Test production tenant - deny delete:
-#   curl -s http://localhost:8080/api/pdp/decide \
+# Test production tenant - admin deletes: DENY
+#   curl -s -H "Authorization: Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j" \
+#     http://localhost:8080/api/pdp/decide \
 #     -H "Content-Type: application/json" \
-#     -H "X-SAPL-PDP-ID: production" \
 #     -d '{"subject":"admin","action":"delete","resource":"data"}' \
 #     | jq .
 #
-# Test staging tenant:
-#   curl -s http://localhost:8080/api/pdp/decide \
+# Test staging tenant - alice reads: DENY (permit false never matches)
+#   curl -s -H "Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f" \
+#     http://localhost:8080/api/pdp/decide \
 #     -H "Content-Type: application/json" \
-#     -H "X-SAPL-PDP-ID: staging" \
-#     -d '{"subject":"tester","action":"read","resource":"test-data"}' \
+#     -d '{"subject":"alice","action":"read","resource":"document"}' \
 #     | jq .
 #
 # Hot-reload test: Replace production bundle with unsigned version:

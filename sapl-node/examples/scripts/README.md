@@ -72,15 +72,28 @@ This script prompts for credentials for two different tenants and demonstrates t
 
 2. Start SAPL Node with appropriate configuration:
    ```bash
-   # For no-auth testing:
+   # For no-auth testing (using a local example):
+   cd sapl-node/examples/local/singledirectory
+   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar
+
+   # Or with Docker:
    docker run -p 8443:8443 \
+     -v ./policies:/pdp/data:ro \
      -e IO_SAPL_NODE_ALLOWNOAUTH=true \
+     -e IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data \
      -e SERVER_SSL_ENABLED=false \
+     -e SERVER_PORT=8443 \
+     -e SERVER_ADDRESS=0.0.0.0 \
+     -e JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M \
      ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
    ```
 
 3. Run a test script:
    ```bash
+   # Against local example (port 8080):
+   ./test-no-auth.sh http://localhost:8080
+
+   # Against Docker (port 8443):
    ./test-no-auth.sh http://localhost:8443
    ```
 
@@ -95,7 +108,10 @@ All scripts use this default test subscription:
 }
 ```
 
-With a matching test policy (`permit action == "eat"; resource == "apple";`), this should return `PERMIT`.
+The result depends on the loaded policies. With the local `singledirectory` example
+(which has a `permitall` policy), this returns `PERMIT`. For other configurations,
+add a matching policy (e.g. `permit action == "eat"; resource == "apple";`) to get
+a `PERMIT` result. Scripts also include interactive mode for custom subscriptions.
 
 ## Troubleshooting
 
