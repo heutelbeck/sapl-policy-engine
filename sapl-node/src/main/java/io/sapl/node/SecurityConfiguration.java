@@ -21,7 +21,6 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -204,7 +203,6 @@ public class SecurityConfiguration {
      * @return the reactive JWT decoder
      */
     @Bean
-    @ConditionalOnProperty(prefix = "io.sapl.node", name = "allowOauth2Auth", havingValue = "true")
     ReactiveJwtDecoder jwtDecoder() {
         if (pdpProperties.isAllowOauth2Auth()) {
             return ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI);

@@ -113,8 +113,7 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
                 StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.DENY).thenCancel()
                         .verify(Duration.ofSeconds(30));
 
-                container.copyFileToContainer(
-                        Transferable.of(PERMIT_POLICY.getBytes(StandardCharsets.UTF_8)),
+                container.copyFileToContainer(Transferable.of(PERMIT_POLICY.getBytes(StandardCharsets.UTF_8)),
                         "/pdp/data/policy.sapl");
 
                 await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
@@ -158,8 +157,7 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
                         .then(() -> container.copyFileToContainer(
                                 Transferable.of(PERMIT_POLICY.getBytes(StandardCharsets.UTF_8)),
                                 "/pdp/data/policy.sapl"))
-                        .expectNextMatches(
-                                decision -> decision.decision() == AuthorizationDecision.PERMIT.decision())
+                        .expectNextMatches(decision -> decision.decision() == AuthorizationDecision.PERMIT.decision())
                         .thenCancel().verify(Duration.ofSeconds(60));
             }
         }

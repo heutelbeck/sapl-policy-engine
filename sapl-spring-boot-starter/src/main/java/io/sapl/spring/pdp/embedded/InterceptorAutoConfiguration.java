@@ -27,7 +27,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Role;
 
 /**
@@ -71,9 +70,12 @@ public class InterceptorAutoConfiguration {
      */
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @Conditional(ReportingEnabledCondition.class)
     @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
     VoteInterceptor reportingDecisionInterceptor() {
+        if (!properties.isPrintTrace() && !properties.isPrintJsonReport() && !properties.isPrintTextReport()
+                && !properties.isPrintSubscriptionEvents() && !properties.isPrintUnsubscriptionEvents()) {
+            return null;
+        }
         return new ReportingDecisionInterceptor(properties.isPrettyPrintReports(), properties.isPrintTrace(),
                 properties.isPrintJsonReport(), properties.isPrintTextReport(), properties.isPrintSubscriptionEvents(),
                 properties.isPrintUnsubscriptionEvents());
