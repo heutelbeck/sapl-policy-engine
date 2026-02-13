@@ -112,9 +112,4 @@ class MetricsVoteInterceptor implements VoteInterceptor {
         }
     }
 
-    @Override
-    public int compareTo(VoteInterceptor otherInterceptor) {
-        return Integer.compare(priority(), otherInterceptor.priority());
-    }
-
 }

@@ -29,7 +29,7 @@ class StandardLibrariesLoaderTests {
         var bundle = config.documentationBundle();
 
         assertThat(bundle.functionLibraries()).hasSizeGreaterThanOrEqualTo(30);
-        assertThat(bundle.policyInformationPoints()).hasSize(3);
+        assertThat(bundle.policyInformationPoints()).hasSize(4);
     }
 
     @Test
@@ -58,7 +58,7 @@ class StandardLibrariesLoaderTests {
         var pipNames = bundle.policyInformationPoints().stream().map(pip -> pip.name()).toList();
 
         // Check PIPs are present
-        assertThat(pipNames).contains("time", "http", "jwt");
+        assertThat(pipNames).contains("time", "http", "jwt", "x509");
     }
 
 }

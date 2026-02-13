@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration;
 
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -307,27 +308,25 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            val variables = ObjectValue.builder();
-            if (node.has("variables")) {
-                val variablesNode = node.get("variables");
-                for (val property : variablesNode.properties()) {
-                    val value = MAPPER.treeToValue(property.getValue(), Value.class);
-                    variables.put(property.getKey(), value);
-                }
-            }
-            val secrets = ObjectValue.builder();
-            if (node.has("secrets")) {
-                val secretsNode = node.get("secrets");
-                for (val property : secretsNode.properties()) {
-                    val value = MAPPER.treeToValue(property.getValue(), Value.class);
-                    secrets.put(property.getKey(), value);
-                }
-            }
+            val variables = parseValueSection(node, "variables");
+            val secrets   = parseValueSection(node, "secrets");
 
-            return new PdpJsonContent(algorithm, configurationId, variables.build(), secrets.build());
+            return new PdpJsonContent(algorithm, configurationId, variables, secrets);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
+    }
+
+    private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {
+        val builder = ObjectValue.builder();
+        if (node.has(sectionName)) {
+            val sectionNode = node.get(sectionName);
+            for (val property : sectionNode.properties()) {
+                val value = MAPPER.treeToValue(property.getValue(), Value.class);
+                builder.put(property.getKey(), value);
+            }
+        }
+        return builder.build();
     }
 
     private static Map<String, String> loadSaplDocumentsAsMap(Path directory) {

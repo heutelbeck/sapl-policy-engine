@@ -40,6 +40,7 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
+import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.ArrayFunctionLibrary;
@@ -104,7 +105,7 @@ public class StandardLibrariesLoader {
             UuidFunctionLibrary.class, X509FunctionLibrary.class, XmlFunctionLibrary.class, YamlFunctionLibrary.class);
 
     private static final List<Class<?>> POLICY_INFORMATION_POINTS = List.of(TimePolicyInformationPoint.class,
-            HttpPolicyInformationPoint.class, JWTPolicyInformationPoint.class);
+            HttpPolicyInformationPoint.class, JWTPolicyInformationPoint.class, X509PolicyInformationPoint.class);
 
     private static final String ERROR_EXTERNAL_DATA_SOURCE_BLOCKED = "Access to external data sources is not available in the language server.";
 
@@ -161,6 +162,12 @@ public class StandardLibrariesLoader {
             broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
         } catch (Exception e) {
             log.warn("Failed to load JWTPolicyInformationPoint: {}", e.getMessage());
+        }
+
+        try {
+            broker.loadPolicyInformationPointLibrary(new X509PolicyInformationPoint(clock));
+        } catch (Exception e) {
+            log.warn("Failed to load X509PolicyInformationPoint: {}", e.getMessage());
         }
 
         return broker;

@@ -40,6 +40,7 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
+import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.bundle.BundleParser;
@@ -863,6 +864,9 @@ public class PolicyDecisionPointBuilder {
 
             val timePip = new TimePolicyInformationPoint(clock);
             attributeBroker.loadPolicyInformationPointLibrary(timePip);
+
+            val x509Pip = new X509PolicyInformationPoint(clock);
+            attributeBroker.loadPolicyInformationPointLibrary(x509Pip);
         }
 
         for (val pip : policyInformationPoints) {

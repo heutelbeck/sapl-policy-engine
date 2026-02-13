@@ -82,33 +82,37 @@ class PdpCompilerTests {
         @Test
         @DisplayName("parsing failure throws SaplCompilerException")
         void whenParsingFailsThenThrowsSaplCompilerException() {
-            val config = new PDPConfiguration("test-pdp", "config-1",
+            val config  = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(INVALID_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+            val context = compilationContext();
 
-            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, compilationContext()))
+            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, context))
                     .isInstanceOf(SaplCompilerException.class);
         }
 
         @Test
         @DisplayName("name collision throws SaplCompilerException")
         void whenNameCollisionThenThrowsSaplCompilerException() {
-            val config = new PDPConfiguration("test-pdp", "config-1",
+            val config  = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE),
                     List.of(DUPLICATE_NAME_POLICY, DUPLICATE_NAME_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+            val context = compilationContext();
 
-            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, compilationContext()))
+            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, context))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("duplicate");
         }
 
         @Test
         @DisplayName("FIRST algorithm at PDP level throws SaplCompilerException")
         void whenFirstAlgorithmThenThrowsSaplCompilerException() {
-            val config = new PDPConfiguration("test-pdp", "config-1", new CombiningAlgorithm(FIRST, ABSTAIN, PROPAGATE),
-                    List.of(VALID_POLICY), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+            val config  = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(FIRST, ABSTAIN, PROPAGATE), List.of(VALID_POLICY),
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+            val context = compilationContext();
 
-            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, compilationContext()))
+            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, context))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("FIRST");
         }
     }

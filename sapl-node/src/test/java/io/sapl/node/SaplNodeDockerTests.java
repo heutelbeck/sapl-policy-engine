@@ -17,6 +17,8 @@
  */
 package io.sapl.node;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
@@ -35,9 +37,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SaplNodeDockerTests {
 
     @DynamicPropertySource
-    static void pdpPaths(DynamicPropertyRegistry registry) {
+    static void pdpPaths(DynamicPropertyRegistry registry) throws IOException {
         var dir = Path.of(System.getProperty("java.io.tmpdir"), "sapl-test");
-        dir.toFile().mkdirs();
+        Files.createDirectories(dir);
         registry.add("io.sapl.pdp.embedded.config-path", dir::toString);
         registry.add("io.sapl.pdp.embedded.policies-path", dir::toString);
     }

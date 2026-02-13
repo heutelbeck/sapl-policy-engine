@@ -19,7 +19,6 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -365,15 +364,6 @@ class X509FunctionLibraryTests {
     /* Validity Check Tests */
 
     @ParameterizedTest(name = "{0}")
-    @CsvSource({ "false, Valid certificate", "true, Expired certificate" })
-    void whenIsExpiredThenChecksExpirationCorrectly(boolean shouldBeExpired, String description) {
-        val certPem = shouldBeExpired ? expiredCertPem : cthulhuCertPem;
-        val result  = X509FunctionLibrary.isExpired((TextValue) Value.of(certPem));
-
-        assertThat(result).as(description).isEqualTo(Value.of(shouldBeExpired));
-    }
-
-    @ParameterizedTest(name = "{0}")
     @CsvSource({ "1, DAYS, true, Within validity period", "-365, DAYS, false, Before validity start",
             "400, DAYS, false, After validity end" })
     void whenIsValidAtWithVariousTimestampsThenReturnsExpectedResult(long amount, ChronoUnit unit, boolean expected,
@@ -407,36 +397,6 @@ class X509FunctionLibraryTests {
     static Stream<Arguments> boundaryTimestamps() {
         return Stream.of(arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotBefore),
                 arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotAfter));
-    }
-
-    /* Remaining Validity Tests */
-
-    @Test
-    void whenRemainingValidityDaysWithValidCertThenReturnsPositiveNumber() {
-        val result = X509FunctionLibrary.remainingValidityDays((TextValue) Value.of(cthulhuCertPem));
-
-        assertThat(result).isNotInstanceOf(ErrorValue.class);
-        assertThat(((NumberValue) result).value().longValue()).isGreaterThan(0);
-    }
-
-    @Test
-    void whenRemainingValidityDaysWithExpiredCertThenReturnsNegativeNumber() {
-        val result = X509FunctionLibrary.remainingValidityDays((TextValue) Value.of(expiredCertPem));
-
-        assertThat(result).isNotInstanceOf(ErrorValue.class);
-        assertThat(((NumberValue) result).value().longValue()).isLessThan(0);
-    }
-
-    @Test
-    void whenRemainingValidityDaysWithCertExpiringInTwoDaysThenReturnsOneOrTwo()
-            throws OperatorCreationException, CertificateException, IOException {
-        val now     = Instant.now();
-        val cert    = generateCertificate(CTHULHU_DN, now.minus(365, ChronoUnit.DAYS), now.plus(2, ChronoUnit.DAYS),
-                false, null);
-        val certPem = toPem(cert);
-        val result  = X509FunctionLibrary.remainingValidityDays((TextValue) Value.of(certPem));
-
-        assertThat(((NumberValue) result).value().longValue()).isIn(1L, 2L);
     }
 
     /* Unicode Tests */

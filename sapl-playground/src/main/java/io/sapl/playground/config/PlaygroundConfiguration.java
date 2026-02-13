@@ -33,6 +33,7 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
+import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
@@ -88,6 +89,7 @@ public class PlaygroundConfiguration {
         broker.loadPolicyInformationPointLibrary(new TraccarPolicyInformationPoint(webClient));
         broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
         broker.loadPolicyInformationPointLibrary(new MqttPolicyInformationPoint(new DummySaplMqttClient()));
+        broker.loadPolicyInformationPointLibrary(new X509PolicyInformationPoint(Clock.systemUTC()));
         return broker;
     }
 
@@ -105,6 +107,7 @@ public class PlaygroundConfiguration {
         libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(TraccarPolicyInformationPoint.class));
         libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(JWTPolicyInformationPoint.class));
         libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(MqttPolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(X509PolicyInformationPoint.class));
         return new DocumentationBundle(libraries);
     }
 
