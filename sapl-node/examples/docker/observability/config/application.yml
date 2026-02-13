@@ -1,0 +1,26 @@
+#
+# Observability demo configuration for sapl-node.
+# No TLS, no authentication, metrics enabled.
+# NOT for production use.
+#
+
+io.sapl:
+  pdp.embedded:
+    metrics-enabled: true
+    print-text-report: true
+  node:
+    allowNoAuth: true
+    allowBasicAuth: false
+    allowApiKeyAuth: false
+    allowOauth2Auth: false
+    rejectOnMissingPdpId: false
+    defaultPdpId: "default"
+
+server:
+  port: 8080
+  ssl:
+    enabled: false
+
+logging.level:
+  "[io.sapl]": INFO
+  "[org.springframework]": WARN
