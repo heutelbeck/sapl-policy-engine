@@ -96,9 +96,7 @@ spring.security.oauth2:
 #
 io.sapl.pdp.embedded:
       enabled: true
-      pdp-config-type: DIRECTORY
-      config-path: ~/sapl    # The server expects a pdp.json file in this folder
-      policies-path: ~/sapl  # The server will monitor this folder for *.sapl files
+      pdp-config-type: RESOURCES
 
 #
 # The following options enable or disable different levels of logging for decisions.

@@ -430,6 +430,112 @@ io.sapl.pdp.embedded.bundle-security:
 
 At least one option must be configured. For production, use signed bundles with key verification.
 
+## Observability
+
+SAPL Node integrates with Spring Boot Actuator for health checks, info endpoints, and Prometheus metrics.
+
+### Actuator Endpoints
+
+The following endpoints are exposed by default:
+
+| Endpoint | Auth Required | Description |
+|----------|---------------|-------------|
+| `/actuator/health` | No | Overall health status (for load balancers) |
+| `/actuator/health/liveness` | No | K8s liveness probe |
+| `/actuator/health/readiness` | No | K8s readiness probe |
+| `/actuator/info` | Yes | PDP configuration details (configType, index, paths) |
+| `/actuator/prometheus` | Yes | Prometheus metrics scrape endpoint |
+
+Health endpoints are unauthenticated so K8s probes work without credentials. Info and Prometheus require authentication to prevent information disclosure.
+
+Health details (per-PDP status, configuration IDs, error messages) are only shown to authenticated users (`show-details: when-authorized`).
+
+### Kubernetes Probes
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: sapl-node
+          image: sapl-node:4.0.0
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+```
+
+The startup probe gives the PDP up to 60 seconds to compile policies before liveness checks begin.
+
+### Prometheus Metrics
+
+Enable metrics collection in `application.yml`:
+
+```yaml
+io.sapl.pdp.embedded:
+  metrics-enabled: true
+```
+
+SAPL Node exposes four custom metrics covering the golden signals for PDP decision traffic:
+
+| Metric | Type | Tags | Description |
+|--------|------|------|-------------|
+| `sapl.decisions` | Counter | `decision` (PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE) | Total authorization decisions by outcome |
+| `sapl.decision.first.latency` | Timer | | Time from subscription to first decision |
+| `sapl.subscriptions.active` | Gauge | | Currently active SSE streaming subscriptions |
+| `sapl.subscription.duration` | Timer | | Total lifetime of completed subscriptions |
+
+These metrics cover both one-shot (`decide-once`) and streaming (`decide`) endpoints. Standard Spring Boot HTTP metrics (`http.server.requests`) are also available for request-level monitoring.
+
+When `metrics-enabled` is `false` (the default in embedded mode), no metrics are recorded and there is zero runtime overhead.
+
+**Example Prometheus scrape config:**
+
+```yaml
+scrape_configs:
+  - job_name: sapl-node
+    metrics_path: /actuator/prometheus
+    basic_auth:
+      username: prometheus
+      password: secret
+    static_configs:
+      - targets: ['sapl-node:8080']
+```
+
+### Info Endpoint
+
+The `/actuator/info` endpoint exposes PDP configuration under the `sapl` key:
+
+```json
+{
+  "sapl": {
+    "configType": "BUNDLES",
+    "index": "NAIVE",
+    "configPath": "/policies",
+    "policiesPath": "bundles"
+  }
+}
+```
+
 ## Bundle Format
 
 A `.saplbundle` file is a ZIP archive:
