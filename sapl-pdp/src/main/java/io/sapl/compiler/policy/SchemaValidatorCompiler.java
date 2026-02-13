@@ -29,6 +29,7 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.ast.SchemaCondition;
@@ -42,6 +43,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -51,9 +53,8 @@ import java.util.List;
  * Schema expressions are validated at compile time and must be:
  * <ul>
  * <li>Constant object literals (not runtime expressions)</li>
- * <li>Valid JSON Schema objects</li>
- * <li>Free of {@code $ref} references (which would require external schemas at
- * runtime)</li>
+ * <li>Valid JSON Schema objects (schemas using {@code $ref} are resolved
+ * against the SCHEMAS pdp.json variable)</li>
  * </ul>
  * <p>
  * Only schemas with {@code enforced = true} are compiled into the validator.
@@ -70,18 +71,13 @@ import java.util.List;
 @UtilityClass
 public class SchemaValidatorCompiler {
 
-    private static final String ERROR_SCHEMA_CONTAINS_REF        = "Schema contains $ref which requires external schemas at runtime. "
-            + "Use inline schema definitions instead, or move $ref targets into the schema itself.";
     private static final String ERROR_SCHEMA_EVALUATION_FAILED   = "Schema expression evaluation failed: %s";
     private static final String ERROR_SCHEMA_INVALID_JSON_SCHEMA = "Invalid JSON Schema: %s";
     private static final String ERROR_SCHEMA_MUST_BE_CONSTANT    = "Schema must be a constant object literal, not a runtime expression. "
             + "Variable references and function calls are not allowed in schema definitions.";
     private static final String ERROR_SCHEMA_MUST_BE_OBJECT      = "Schema must be an object, got: %s";
 
-    private static final String REF_FIELD = "$ref";
-
-    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
-            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+    private static final String SCHEMA_ID_FIELD = "$id";
 
     public static CompiledExpression compileValidator(@Nullable SchemaCondition match, CompilationContext ctx) {
         if (match == null || match.schemas().isEmpty()) {
@@ -91,73 +87,61 @@ public class SchemaValidatorCompiler {
     }
 
     public static CompiledExpression compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
-        val validators = schemas.stream().map(schema -> compileSchemaValidator(schema, ctx)).toList();
+        val registry   = buildSchemaRegistry(ctx);
+        val validators = schemas.stream().map(schema -> compileSchemaValidator(schema, ctx, registry)).toList();
         if (validators.size() == 1) {
             return validators.getFirst();
         }
         return new CombinedSchemaValidator(validators);
     }
 
-    private static PrecompiledSchemaValidator compileSchemaValidator(SchemaStatement schema, CompilationContext ctx) {
+    private static PrecompiledSchemaValidator compileSchemaValidator(SchemaStatement schema, CompilationContext ctx,
+            SchemaRegistry registry) {
         val compiledSchema = ExpressionCompiler.compile(schema.schema(), ctx);
         val location       = schema.location();
         return switch (compiledSchema) {
-        case ErrorValue error                                            ->
+        case ErrorValue error           ->
             throw new SaplCompilerException(ERROR_SCHEMA_EVALUATION_FAILED.formatted(error.message()), location);
-        case PureOperator ignored                                        ->
-            throw new SaplCompilerException(ERROR_SCHEMA_MUST_BE_CONSTANT, location);
-        case ObjectValue constantSchema when containsRef(constantSchema) ->
-            throw new SaplCompilerException(ERROR_SCHEMA_CONTAINS_REF, location);
-        case ObjectValue constantSchema                                  ->
-            createPrecompiledValidator(schema.element(), constantSchema, location);
-        default                                                          -> throw new SaplCompilerException(
+        case PureOperator ignored       -> throw new SaplCompilerException(ERROR_SCHEMA_MUST_BE_CONSTANT, location);
+        case ObjectValue constantSchema ->
+            createPrecompiledValidator(schema.element(), constantSchema, location, registry);
+        default                         -> throw new SaplCompilerException(
                 ERROR_SCHEMA_MUST_BE_OBJECT.formatted(compiledSchema.getClass().getSimpleName()), location);
         };
     }
 
-    private static boolean containsRef(ObjectValue schema) {
-        if (schema.containsKey(REF_FIELD)) {
-            return true;
-        }
-        for (val entry : schema.entrySet()) {
-            if (containsRef(entry.getValue())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean containsRef(ArrayValue array) {
-        for (val item : array) {
-            if (containsRef(item)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean containsRef(Value value) {
-        return switch (value) {
-        case ObjectValue obj -> containsRef(obj);
-        case ArrayValue arr  -> containsRef(arr);
-        default              -> false;
-        };
-    }
-
-    /**
-     * Creates a pre-compiled validator for a constant schema.
-     */
     private static PrecompiledSchemaValidator createPrecompiledValidator(SubscriptionElement element,
-            ObjectValue constantSchema, SourceLocation location) {
+            ObjectValue constantSchema, SourceLocation location, SchemaRegistry registry) {
         try {
             val schemaNode        = ValueJsonMarshaller.toJsonNode(constantSchema);
-            val precompiledSchema = SCHEMA_REGISTRY.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
-            // Force initialization to catch schema errors at compile time
+            val precompiledSchema = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             precompiledSchema.initializeValidators();
             return new PrecompiledSchemaValidator(element, precompiledSchema, location);
         } catch (SchemaException e) {
             throw new SaplCompilerException(ERROR_SCHEMA_INVALID_JSON_SCHEMA.formatted(e.getMessage()), e, location);
         }
+    }
+
+    private static SchemaRegistry buildSchemaRegistry(CompilationContext ctx) {
+        val schemasValue = ctx.getData().variables().get("SCHEMAS");
+        if (!(schemasValue instanceof ArrayValue schemas)) {
+            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+        }
+        val schemaMap = new HashMap<String, String>();
+        for (val schema : schemas) {
+            if (schema instanceof ObjectValue obj && obj.containsKey(SCHEMA_ID_FIELD)) {
+                val id = obj.get(SCHEMA_ID_FIELD);
+                if (id instanceof TextValue text) {
+                    val schemaNode = ValueJsonMarshaller.toJsonNode(obj);
+                    schemaMap.put(text.value(), schemaNode.toString());
+                }
+            }
+        }
+        if (schemaMap.isEmpty()) {
+            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+        }
+        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
+                builder -> builder.schemas(schemaMap));
     }
 
     record PrecompiledSchemaValidator(SubscriptionElement element, Schema schema, SourceLocation location)

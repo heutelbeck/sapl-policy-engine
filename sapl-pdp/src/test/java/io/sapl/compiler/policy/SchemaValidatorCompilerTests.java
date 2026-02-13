@@ -172,25 +172,25 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when schema contains $ref then throws SaplCompilerException")
-        void whenSchemaContainsRefThenThrowsCompilerException() {
+        @DisplayName("when schema contains unresolvable $ref then throws SaplCompilerException")
+        void whenSchemaContainsUnresolvableRefThenThrowsCompilerException() {
             val schemaWithRef = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("location", obj("$ref", Value.of("https://example.com/coordinates"))));
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schemaWithRef));
             val ctx           = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("$ref");
+                    .hasMessageContaining("Invalid JSON Schema");
         }
 
         @Test
-        @DisplayName("when schema contains nested $ref in array then throws SaplCompilerException")
-        void whenSchemaContainsNestedRefInArrayThenThrowsCompilerException() {
+        @DisplayName("when schema contains nested unresolvable $ref in array then throws SaplCompilerException")
+        void whenSchemaContainsNestedUnresolvableRefInArrayThenThrowsCompilerException() {
             val schemaWithNestedRef = (ObjectValue) obj("anyOf",
                     array(obj("type", Value.of("string")), obj("$ref", Value.of("https://example.com/other"))));
             val schemas             = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schemaWithNestedRef));
             val ctx                 = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("$ref");
+                    .hasMessageContaining("Invalid JSON Schema");
         }
 
         @Test
@@ -418,8 +418,8 @@ class SchemaValidatorCompilerTests {
     }
 
     @Nested
-    @DisplayName("$ref detection")
-    class RefDetectionTests {
+    @DisplayName("$ref resolution")
+    class RefResolutionTests {
 
         @Test
         @DisplayName("when schema has no $ref then compiles successfully")
@@ -432,36 +432,62 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when schema has deeply nested $ref then throws")
-        void whenSchemaHasDeeplyNestedRefThenThrows() {
+        @DisplayName("when schema has deeply nested unresolvable $ref then throws")
+        void whenSchemaHasDeeplyNestedUnresolvableRefThenThrows() {
             val deepSchema = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("level1", obj("type", Value.of("object"), "properties",
                             obj("level2", obj("$ref", Value.of("https://example.com/deep"))))));
             val schemas    = List.of(enforcedSchema(SubscriptionElement.SUBJECT, deepSchema));
             val ctx        = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("$ref");
+                    .hasMessageContaining("Invalid JSON Schema");
         }
 
         @Test
-        @DisplayName("when schema has $ref in oneOf array then throws")
-        void whenSchemaHasRefInOneOfArrayThenThrows() {
+        @DisplayName("when schema has unresolvable $ref in oneOf array then throws")
+        void whenSchemaHasUnresolvableRefInOneOfArrayThenThrows() {
             val oneOfSchema = (ObjectValue) obj("oneOf",
                     array(obj("type", Value.of("string")), obj("$ref", Value.of("https://example.com/number"))));
             val schemas     = List.of(enforcedSchema(SubscriptionElement.SUBJECT, oneOfSchema));
             val ctx         = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("$ref");
+                    .hasMessageContaining("Invalid JSON Schema");
         }
 
         @Test
-        @DisplayName("when schema has $ref key with non-URI value then still throws")
-        void whenSchemaHasRefKeyWithNonUriValueThenStillThrows() {
+        @DisplayName("when schema has $ref key with non-URI value then throws")
+        void whenSchemaHasRefKeyWithNonUriValueThenThrows() {
             val schema  = (ObjectValue) obj("$ref", Value.of("not-a-uri"));
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
             val ctx     = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("$ref");
+                    .hasMessageContaining("Invalid JSON Schema");
+        }
+
+        @Test
+        @DisplayName("when schema uses local $defs then compiles successfully")
+        void whenSchemaUsesLocalDefsThenCompilesSuccessfully() {
+            val schema  = (ObjectValue) obj("$defs",
+                    obj("address",
+                            obj("type", Value.of("object"), "properties",
+                                    obj("city", obj("type", Value.of("string"))))),
+                    "type", Value.of("object"), "properties", obj("home", obj("$ref", Value.of("#/$defs/address"))));
+            val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
+            val result  = compileValidator(schemas, compilationContext());
+            assertThat(result).isInstanceOf(PrecompiledSchemaValidator.class);
+        }
+
+        @Test
+        @DisplayName("when schema $ref resolves via SCHEMAS variable then compiles successfully")
+        void whenSchemaRefResolvesViaSchemasVariableThenCompilesSuccessfully() {
+            val addressSchema = (ObjectValue) obj("$id", Value.of("https://example.com/address"), "type",
+                    Value.of("object"), "properties", obj("city", obj("type", Value.of("string"))));
+            val variables     = (ObjectValue) obj("SCHEMAS", array(addressSchema));
+            val mainSchema    = (ObjectValue) obj("type", Value.of("object"), "properties",
+                    obj("shipping", obj("$ref", Value.of("https://example.com/address"))));
+            val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, mainSchema));
+            val result        = compileValidator(schemas, compilationContext(variables));
+            assertThat(result).isInstanceOf(PrecompiledSchemaValidator.class);
         }
     }
 
