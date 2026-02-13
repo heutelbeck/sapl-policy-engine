@@ -17,11 +17,15 @@
  */
 package io.sapl.node;
 
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,6 +33,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles(profiles = { "docker" })
 class SaplNodeDockerTests {
+
+    @DynamicPropertySource
+    static void pdpPaths(DynamicPropertyRegistry registry) {
+        var dir = Path.of(System.getProperty("java.io.tmpdir"), "sapl-test");
+        dir.toFile().mkdirs();
+        registry.add("io.sapl.pdp.embedded.config-path", dir::toString);
+        registry.add("io.sapl.pdp.embedded.policies-path", dir::toString);
+    }
 
     @Test
     void contextLoads(ApplicationContext context) {
