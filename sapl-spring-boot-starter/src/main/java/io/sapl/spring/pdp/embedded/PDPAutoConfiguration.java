@@ -25,6 +25,7 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.VoteInterceptor;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.PdpIdValidator;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
@@ -151,6 +152,15 @@ public class PDPAutoConfiguration {
         this.pdpComponents = builder.build();
 
         return pdpComponents.pdp();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PdpVoterSource pdpVoterSource() {
+        if (pdpComponents == null) {
+            return null;
+        }
+        return pdpComponents.pdpVoterSource();
     }
 
     private void configureSource(PolicyDecisionPointBuilder builder, EmbeddedPDPProperties properties) {

@@ -54,7 +54,7 @@ A purchase order in DRAFT state can be edited by the creator. Once SUBMITTED, on
 
 Each state transition changes who can do what. The permissions aren't attached to users or even to the document type. They're attached to the document's current state and the user's role in the workflow.
 
-Modeling this with roles means creating roles like `PO_CREATOR`, `PO_APPROVER`, `PO_FINANCE`, `PO_AUDITOR` and then writing complex expressions that check both role and document state. With ABAC, the policy directly expresses the business rule: permit edit where resource.state == "DRAFT" and subject.id == resource.creatorId.
+Modeling this with roles means creating roles like `PO_CREATOR`, `PO_APPROVER`, `PO_FINANCE`, `PO_AUDITOR` and then writing complex expressions that check both role and document state. With ABAC, the policy directly expresses the business rule: `permit action == "edit"; resource.state == "DRAFT"; subject.id == resource.creatorId`.
 
 ### Streaming and Long-Lived Sessions
 
@@ -161,9 +161,8 @@ public Book findById(Long id) {
 
 ```
 policy "users can read their own books"
-permit action == "read"
-where
-    subject == resource.ownerId;
+permit action == "read";
+      subject == resource.ownerId
 ```
 
 When someone calls `findById(42)`, SAPL checks if the authenticated user owns book 42. If yes, the method runs. If no, an `AccessDeniedException` is thrown.
@@ -510,6 +509,7 @@ The full list of embedded PDP properties:
 | `io.sapl.pdp.embedded.print-json-report` | `false` | Log JSON decision report |
 | `io.sapl.pdp.embedded.print-text-report` | `false` | Log human-readable decision report |
 | `io.sapl.pdp.embedded.pretty-print-reports` | `false` | Format JSON in reports |
+| `io.sapl.pdp.embedded.metrics-enabled` | `false` | Record PDP decision metrics for Prometheus via Micrometer |
 
 For development, `RESOURCES` is convenient because policies are bundled in the JAR. For production with dynamic policy updates, use `DIRECTORY` and point to a directory that can be updated without redeployment. For multi-tenant deployments, use `MULTI_DIRECTORY` (one subdirectory per tenant) or `BUNDLES` (one .saplbundle file per tenant).
 
@@ -549,6 +549,22 @@ The full list of remote PDP properties:
 | `io.sapl.pdp.remote.ignore-certificates` | `false` | Skip TLS certificate validation (not for production) |
 
 You must configure exactly one authentication method: either `key` and `secret` together, or `api-key` alone.
+
+## Health Indicator
+
+When Spring Boot Actuator is on the classpath and the embedded PDP is enabled, SAPL automatically registers a health indicator at `/actuator/health`. It reports the operational status of all configured PDP instances.
+
+The health indicator maps PDP states to overall health:
+
+| PDP State | Health Status | Meaning |
+|-----------|---------------|---------|
+| All LOADED | UP | All PDPs have successfully compiled policies |
+| Any STALE | UP (with warning) | A policy reload failed, but the PDP is still serving the previous valid configuration |
+| Any ERROR or no PDPs | DOWN | A PDP has no valid configuration and is returning INDETERMINATE decisions |
+
+Each PDP's details include the configuration ID, combining algorithm, document count, and timestamps for the last successful and failed loads. This information appears in the health endpoint response under the `sapl` component.
+
+No additional configuration is needed. The health indicator is active whenever `spring-boot-starter-actuator` is a dependency and `io.sapl.pdp.embedded.enabled` is `true` (the default).
 
 ## Common Questions
 

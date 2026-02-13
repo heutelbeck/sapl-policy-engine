@@ -103,6 +103,10 @@ public class PDPConfigurationLoader {
     private static final String ERROR_FAILED_TO_READ_PDP_JSON         = "Failed to read pdp.json from '%s'.";
     private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT    = "Failed to read SAPL document '%s'.";
     private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
+    private static final String ERROR_PDP_JSON_CONTENT_REQUIRED       = "pdp.json content must not be empty.";
+    private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED      = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
+    private static final String ERROR_PDP_JSON_MISSING_ALGORITHM      = "pdp.json must contain an 'algorithm' field with votingMode, defaultDecision, and errorHandling.";
+    private static final String ERROR_PDP_JSON_REQUIRED               = "pdp.json is required but not found at '%s'.";
     private static final String ERROR_SHA256_NOT_AVAILABLE            = "SHA-256 algorithm not available.";
     private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM      = "Total size of SAPL documents exceeds maximum of %d MB.";
 
@@ -115,6 +119,7 @@ public class PDPConfigurationLoader {
     /**
      * Loads a PDP configuration from a directory path.
      * <p>
+     * Requires pdp.json to be present with an {@code algorithm} field.
      * If pdp.json contains a {@code configurationId}, it is used. Otherwise, an ID
      * is auto-generated in the format:
      * {@code dir:<path>@<timestamp>@sha256:<hash>}
@@ -152,7 +157,7 @@ public class PDPConfigurationLoader {
      * </p>
      *
      * @param pdpJsonContent
-     * the content of pdp.json, or null if not present
+     * the content of pdp.json (required, must contain algorithm)
      * @param saplDocuments
      * map of filename to SAPL document content
      * @param pdpId
@@ -268,7 +273,7 @@ public class PDPConfigurationLoader {
 
     private static PdpJsonContent loadPdpJson(Path pdpJsonPath) {
         if (!Files.exists(pdpJsonPath)) {
-            return PdpJsonContent.defaults();
+            throw new PDPConfigurationException(ERROR_PDP_JSON_REQUIRED.formatted(pdpJsonPath));
         }
         try {
             val content = Files.readString(pdpJsonPath, StandardCharsets.UTF_8);
@@ -280,15 +285,19 @@ public class PDPConfigurationLoader {
 
     private static PdpJsonContent parsePdpJson(String content) {
         if (content == null || content.isBlank()) {
-            return PdpJsonContent.defaults();
+            throw new PDPConfigurationException(ERROR_PDP_JSON_CONTENT_REQUIRED);
         }
         try {
             val node = MAPPER.readTree(content);
 
-            var algorithm = CombiningAlgorithm.DEFAULT;
-            if (node.has("algorithm")) {
-                algorithm = MAPPER.treeToValue(node.get("algorithm"), CombiningAlgorithm.class);
+            if (!node.has("algorithm")) {
+                throw new PDPConfigurationException(ERROR_PDP_JSON_MISSING_ALGORITHM);
             }
+            val algorithmNode = node.get("algorithm");
+            if (algorithmNode.has("votingMode") && "FIRST".equals(algorithmNode.path("votingMode").asString())) {
+                throw new PDPConfigurationException(ERROR_PDP_JSON_FIRST_NOT_ALLOWED);
+            }
+            val algorithm = MAPPER.treeToValue(algorithmNode, CombiningAlgorithm.class);
 
             String configurationId = null;
             if (node.has("configurationId")) {
@@ -367,10 +376,6 @@ public class PDPConfigurationLoader {
             CombiningAlgorithm algorithm,
             String configurationId,
             ObjectValue variables,
-            ObjectValue secrets) {
-        static PdpJsonContent defaults() {
-            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, null, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
-        }
-    }
+            ObjectValue secrets) {}
 
 }

@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PDPConfiguration;
@@ -47,8 +46,21 @@ public class PdpCompiler {
     public static final String ERROR_FIRST_NOT_ALLOWED = "FIRST is not allowed as combining algorithm option on PDP level as it implies an ordering that is not present here. Got: %s.";
     public static final String ERROR_NAME_COLLISION    = "Name collision during compilation of PDP. The policy or policy set with the name \"%s\" is defined at least twice.";
 
-    private static CompiledPdpVoter illegalConfigurationVoter(ErrorValue error, PdpVoterMetadata voterMetadata,
-            CompilationContext ctx) {
+    /**
+     * Creates an error voter that returns INDETERMINATE for all authorization
+     * requests. Used by {@link io.sapl.pdp.configuration.PdpVoterSource} when
+     * compilation fails and no previous valid configuration exists.
+     *
+     * @param pdpConfiguration the PDP configuration that failed to compile
+     * @param ctx the compilation context
+     * @param exception the compilation exception
+     * @return a compiled voter that always returns INDETERMINATE
+     */
+    public static CompiledPdpVoter createErrorVoter(PDPConfiguration pdpConfiguration, CompilationContext ctx,
+            SaplCompilerException exception) {
+        val voterMetadata  = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
+                pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
+        val error          = Value.error(exception.getMessage());
         val errorVote      = Vote.error(error, voterMetadata);
         val coverage       = new Coverage.PolicySetCoverage(voterMetadata, Coverage.BLANK_TARGET_HIT, List.of());
         val coverageStream = Flux.just(new VoteWithCoverage(errorVote, coverage));
@@ -62,7 +74,9 @@ public class PdpCompiler {
      * @param pdpConfiguration the PDP configuration containing documents and
      * combining algorithm
      * @param ctx the compilation context with function and attribute brokers
-     * @return compiled PDP voter, or an INDETERMINATE voter on configuration errors
+     * @return compiled PDP voter
+     * @throws SaplCompilerException if any document fails to compile, document
+     * names collide, or the FIRST combining algorithm is used at PDP level
      */
     public static CompiledPdpVoter compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
         val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
@@ -70,17 +84,12 @@ public class PdpCompiler {
 
         val compiledDocuments = new ArrayList<CompiledDocument>(pdpConfiguration.saplDocuments().size());
         for (val saplDocument : pdpConfiguration.saplDocuments()) {
-            try {
-                compiledDocuments.add(compileDocument(saplDocument, ctx));
-            } catch (SaplCompilerException e) {
-                return illegalConfigurationVoter(Value.error(e.getMessage()), voterMetadata, ctx);
-            }
+            compiledDocuments.add(compileDocument(saplDocument, ctx));
         }
 
         val nameCollision = findNameCollision(compiledDocuments);
         if (nameCollision != null) {
-            val error = Value.error(ERROR_NAME_COLLISION.formatted(nameCollision));
-            return illegalConfigurationVoter(error, voterMetadata, ctx);
+            throw new SaplCompilerException(ERROR_NAME_COLLISION.formatted(nameCollision));
         }
 
         val algorithm       = pdpConfiguration.combiningAlgorithm();
@@ -89,7 +98,7 @@ public class PdpCompiler {
 
         val voter = switch (algorithm.votingMode()) {
         case FIRST            ->
-            Vote.error(Value.error(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode())), voterMetadata);
+            throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
         case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.DENY,
                 defaultDecision, errorHandling);
         case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.PERMIT,
@@ -103,12 +112,8 @@ public class PdpCompiler {
         };
 
         val coverageStream = switch (algorithm.votingMode()) {
-        case FIRST            -> {
-            val errorVote = Vote.error(Value.error(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode())),
-                    voterMetadata);
-            val coverage  = new Coverage.PolicySetCoverage(voterMetadata, Coverage.BLANK_TARGET_HIT, List.of());
-            yield Flux.just(new VoteWithCoverage(errorVote, coverage));
-        }
+        case FIRST            ->
+            throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
         case PRIORITY_DENY    -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
                 Decision.DENY, defaultDecision, errorHandling);
         case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,

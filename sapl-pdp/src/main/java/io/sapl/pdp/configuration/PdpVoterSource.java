@@ -33,6 +33,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -81,6 +82,7 @@ public class PdpVoterSource {
     private final FunctionBroker  functionBroker;
     @Getter
     private final AttributeBroker attributeBroker;
+    private final Clock           clock;
 
     /**
      * Per-PDP configuration cache using AtomicReference for lock-free volatile
@@ -98,17 +100,23 @@ public class PdpVoterSource {
     private final Map<String, Sinks.Many<Optional<CompiledPdpVoter>>> updateSinks = new ConcurrentHashMap<>();
 
     /**
+     * Per-PDP status tracking for health reporting.
+     */
+    private final Map<String, AtomicReference<PdpStatus>> statusCache = new ConcurrentHashMap<>();
+
+    /**
      * Loads a new configuration for a PDP, compiling all SAPL documents and making
-     * the configuration immediately
-     * available to both synchronous and reactive readers.
+     * the configuration immediately available to both synchronous and reactive
+     * readers.
+     * <p>
+     * This method never throws. On compilation failure, the PDP transitions to
+     * either STALE (if {@code keepOldConfigOnError} is true and a valid config
+     * exists) or ERROR (storing an error voter that returns INDETERMINATE).
+     * </p>
      *
-     * @param pdpConfiguration
-     * the configuration to load
-     * @param keepOldConfigOnError
-     * if true, retains existing security on compilation errors
-     *
-     * @throws IllegalArgumentException
-     * if compilation fails or document names collide
+     * @param pdpConfiguration the configuration to load
+     * @param keepOldConfigOnError if true, retains existing configuration on
+     * compilation errors
      */
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val              compilationContext = new CompilationContext(pdpConfiguration.pdpId(),
@@ -117,30 +125,47 @@ public class PdpVoterSource {
         try {
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext);
         } catch (SaplCompilerException compilerException) {
-            if (!keepOldConfigOnError) {
-                removeConfigurationForPdp(pdpConfiguration.pdpId());
-            }
             val formattedError = CompilationErrorFormatter.format(compilerException);
+            val now            = clock.instant();
+            val currentState   = getStatusRef(pdpConfiguration.pdpId()).get().state();
+            if (keepOldConfigOnError && (currentState == PdpState.LOADED || currentState == PdpState.STALE)) {
+                getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.STALE,
+                        current.configurationId(), current.combiningAlgorithm(), current.documentCount(),
+                        current.lastSuccessfulLoad(), now, formattedError));
+            } else {
+                val errorVoter     = PdpCompiler.createErrorVoter(pdpConfiguration, compilationContext,
+                        compilerException);
+                val optionalConfig = Optional.of(errorVoter);
+                getConfigRef(pdpConfiguration.pdpId()).set(optionalConfig);
+                getUpdateSink(pdpConfiguration.pdpId()).tryEmitNext(optionalConfig);
+                getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null,
+                        0, current.lastSuccessfulLoad(), now, formattedError));
+            }
             log.error("Configuration rejected:\n{}", formattedError);
-            throw new IllegalArgumentException(formattedError, compilerException);
+            return;
         }
         val optionalConfig = Optional.of(newConfiguration);
 
-        // Update cache atomically, then notify streaming subscribers
         getConfigRef(pdpConfiguration.pdpId()).set(optionalConfig);
         getUpdateSink(pdpConfiguration.pdpId()).tryEmitNext(optionalConfig);
+
+        val now = clock.instant();
+        getStatusRef(pdpConfiguration.pdpId()).set(new PdpStatus(PdpState.LOADED, pdpConfiguration.configurationId(),
+                pdpConfiguration.combiningAlgorithm().toCanonicalString(), pdpConfiguration.saplDocuments().size(), now,
+                null, null));
     }
 
     /**
-     * Removes the configuration for a PDP, notifying all subscribers.
+     * Removes the configuration for a PDP, notifying all subscribers and removing
+     * its status entry.
      *
-     * @param pdpId
-     * the PDP identifier
+     * @param pdpId the PDP identifier
      */
     public void removeConfigurationForPdp(String pdpId) {
         val emptyConfig = Optional.<CompiledPdpVoter>empty();
         getConfigRef(pdpId).set(emptyConfig);
         getUpdateSink(pdpId).tryEmitNext(emptyConfig);
+        statusCache.remove(pdpId);
     }
 
     /**
@@ -190,6 +215,31 @@ public class PdpVoterSource {
     }
 
     /**
+     * Returns the current status of all known PDPs.
+     *
+     * @return an unmodifiable map of PDP ID to status
+     */
+    public Map<String, PdpStatus> getAllPdpStatuses() {
+        val result = new ConcurrentHashMap<String, PdpStatus>();
+        for (val entry : statusCache.entrySet()) {
+            result.put(entry.getKey(), entry.getValue().get());
+        }
+        return Map.copyOf(result);
+    }
+
+    /**
+     * Returns the current status of a specific PDP.
+     *
+     * @param pdpId the PDP identifier
+     *
+     * @return the current status, or empty if the PDP is unknown
+     */
+    public Optional<PdpStatus> getPdpStatus(String pdpId) {
+        val ref = statusCache.get(pdpId);
+        return ref != null ? Optional.of(ref.get()) : Optional.empty();
+    }
+
+    /**
      * Gets or creates the AtomicReference cache entry for a PDP.
      */
     private AtomicReference<Optional<CompiledPdpVoter>> getConfigRef(String pdpId) {
@@ -204,4 +254,12 @@ public class PdpVoterSource {
     private Sinks.Many<Optional<CompiledPdpVoter>> getUpdateSink(String pdpId) {
         return updateSinks.computeIfAbsent(pdpId, id -> Sinks.many().multicast().directBestEffort());
     }
+
+    /**
+     * Gets or creates the status reference for a PDP.
+     */
+    private AtomicReference<PdpStatus> getStatusRef(String pdpId) {
+        return statusCache.computeIfAbsent(pdpId, id -> new AtomicReference<>(PdpStatus.initial()));
+    }
+
 }

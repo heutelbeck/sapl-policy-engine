@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.*;
 import reactor.core.Disposable;
@@ -176,6 +177,7 @@ public class PolicyDecisionPointBuilder {
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
+    private static final String ERROR_INITIAL_CONFIG_FAILED     = "Initial PDP configuration failed for '%s': %s";
     private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper, Clock clock) {
@@ -781,7 +783,7 @@ public class PolicyDecisionPointBuilder {
     public PDPComponents build() throws AttributeBrokerException {
         val functionBroker        = resolveFunctionBroker();
         val attributeBroker       = resolveAttributeBroker();
-        val configurationRegister = new PdpVoterSource(functionBroker, attributeBroker);
+        val configurationRegister = new PdpVoterSource(functionBroker, attributeBroker, clock);
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
         val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
@@ -798,6 +800,13 @@ public class PolicyDecisionPointBuilder {
         // Load initial configurations
         for (val config : initialConfigurations) {
             configurationRegister.loadConfiguration(config, false);
+        }
+
+        for (val entry : configurationRegister.getAllPdpStatuses().entrySet()) {
+            if (entry.getValue().state() == PdpState.ERROR) {
+                throw new IllegalStateException(
+                        ERROR_INITIAL_CONFIG_FAILED.formatted(entry.getKey(), entry.getValue().lastError()));
+            }
         }
 
         Disposable source = null;

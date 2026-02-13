@@ -26,7 +26,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,6 +47,7 @@ import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
 import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PdpCompiler")
@@ -79,74 +80,36 @@ class PdpCompilerTests {
     class ErrorHandlingTests {
 
         @Test
-        @DisplayName("parsing failure returns INDETERMINATE with coverage")
-        void whenParsingFailsThenReturnsIndeterminateWithCoverage() {
+        @DisplayName("parsing failure throws SaplCompilerException")
+        void whenParsingFailsThenThrowsSaplCompilerException() {
             val config = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(INVALID_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
-
-            assertThat(compiledVoter.pdpVoter()).satisfies(voter -> {
-                assertThat(voter).isInstanceOf(Vote.class);
-                val vote = (Vote) voter;
-                assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-                assertThat(vote.errors()).isNotEmpty();
-            });
-
-            StepVerifier.create(compiledVoter.coverageStream()).assertNext(vwc -> {
-                assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-                assertThat(vwc.coverage()).isInstanceOf(Coverage.PolicySetCoverage.class);
-                val coverage = (Coverage.PolicySetCoverage) vwc.coverage();
-                assertThat(coverage.targetHit()).isEqualTo(Coverage.BLANK_TARGET_HIT);
-                assertThat(coverage.policyCoverages()).isEmpty();
-            }).verifyComplete();
+            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, compilationContext()))
+                    .isInstanceOf(SaplCompilerException.class);
         }
 
         @Test
-        @DisplayName("name collision returns INDETERMINATE with coverage")
-        void whenNameCollisionThenReturnsIndeterminateWithCoverage() {
+        @DisplayName("name collision throws SaplCompilerException")
+        void whenNameCollisionThenThrowsSaplCompilerException() {
             val config = new PDPConfiguration("test-pdp", "config-1",
                     new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE),
                     List.of(DUPLICATE_NAME_POLICY, DUPLICATE_NAME_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
-
-            assertThat(compiledVoter.pdpVoter()).satisfies(voter -> {
-                assertThat(voter).isInstanceOf(Vote.class);
-                val vote = (Vote) voter;
-                assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-                assertThat(vote.errors()).anyMatch(e -> e.message().contains("duplicate"));
-            });
-
-            StepVerifier.create(compiledVoter.coverageStream()).assertNext(vwc -> {
-                assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-                assertThat(vwc.coverage()).isInstanceOf(Coverage.PolicySetCoverage.class);
-            }).verifyComplete();
+            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, compilationContext()))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("duplicate");
         }
 
         @Test
-        @DisplayName("FIRST algorithm at PDP level returns INDETERMINATE with coverage")
-        void whenFirstAlgorithmAtPdpLevelThenReturnsIndeterminateWithCoverage() {
+        @DisplayName("FIRST algorithm at PDP level throws SaplCompilerException")
+        void whenFirstAlgorithmThenThrowsSaplCompilerException() {
             val config = new PDPConfiguration("test-pdp", "config-1", new CombiningAlgorithm(FIRST, ABSTAIN, PROPAGATE),
                     List.of(VALID_POLICY), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
-
-            assertThat(compiledVoter.pdpVoter()).satisfies(voter -> {
-                assertThat(voter).isInstanceOf(Vote.class);
-                val vote = (Vote) voter;
-                assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-                assertThat(vote.errors()).anyMatch(e -> e.message().contains("FIRST"));
-            });
-
-            StepVerifier.create(compiledVoter.coverageStream()).assertNext(vwc -> {
-                assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-                assertThat(vwc.coverage()).isInstanceOf(Coverage.PolicySetCoverage.class);
-                val coverage = (Coverage.PolicySetCoverage) vwc.coverage();
-                assertThat(coverage.targetHit()).isEqualTo(Coverage.BLANK_TARGET_HIT);
-            }).verifyComplete();
+            assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, compilationContext()))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("FIRST");
         }
     }
 

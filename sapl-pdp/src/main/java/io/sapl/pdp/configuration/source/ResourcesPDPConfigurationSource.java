@@ -21,6 +21,7 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
+import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -79,7 +80,9 @@ public final class ResourcesPDPConfigurationSource implements Disposable {
 
     private static final String DEFAULT_RESOURCE_PATH = "/policies";
 
-    private static final String ERROR_FAILED_TO_READ_RESOURCE = "Failed to read resource: %s.";
+    private static final String ERROR_FAILED_TO_READ_RESOURCE     = "Failed to read resource: %s.";
+    private static final String ERROR_NO_CONFIGURATIONS_FOUND     = "No PDP configurations found at resource path '%s'. Ensure SAPL documents exist at this classpath location.";
+    private static final String ERROR_RESOURCE_COMPILATION_FAILED = "Resource-based PDP '%s' has compilation errors (no hot-reload possible): %s";
 
     private final AtomicBoolean disposed = new AtomicBoolean(false);
 
@@ -103,7 +106,11 @@ public final class ResourcesPDPConfigurationSource implements Disposable {
      */
     public ResourcesPDPConfigurationSource(@NonNull String resourcePath, @NonNull PdpVoterSource pdpVoterSource) {
         log.info("Loading PDP configurations from classpath resources: '{}'.", resourcePath);
-        loadConfigurations(resourcePath, pdpVoterSource);
+        val configurationsLoaded = loadConfigurations(resourcePath, pdpVoterSource);
+        if (configurationsLoaded == 0) {
+            throw new PDPConfigurationException(ERROR_NO_CONFIGURATIONS_FOUND.formatted(resourcePath));
+        }
+        failOnErrors(pdpVoterSource);
     }
 
     @Override
@@ -118,7 +125,16 @@ public final class ResourcesPDPConfigurationSource implements Disposable {
         return disposed.get();
     }
 
-    private void loadConfigurations(String resourcePath, PdpVoterSource pdpVoterSource) {
+    private static void failOnErrors(PdpVoterSource pdpVoterSource) {
+        for (val entry : pdpVoterSource.getAllPdpStatuses().entrySet()) {
+            if (entry.getValue().state() == PdpState.ERROR) {
+                throw new PDPConfigurationException(
+                        ERROR_RESOURCE_COMPILATION_FAILED.formatted(entry.getKey(), entry.getValue().lastError()));
+            }
+        }
+    }
+
+    private int loadConfigurations(String resourcePath, PdpVoterSource pdpVoterSource) {
         val normalizedPath = normalizeResourcePath(resourcePath);
         val scannedData    = scanResources(normalizedPath);
 
@@ -126,6 +142,7 @@ public final class ResourcesPDPConfigurationSource implements Disposable {
         configurationsLoaded += loadSubdirectoryConfigurations(normalizedPath, scannedData, pdpVoterSource);
 
         log.info("Loaded {} PDP configurations from resources.", configurationsLoaded);
+        return configurationsLoaded;
     }
 
     private ScannedResourceData scanResources(String normalizedPath) {

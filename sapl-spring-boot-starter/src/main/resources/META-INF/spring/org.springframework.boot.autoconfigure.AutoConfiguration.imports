@@ -4,6 +4,7 @@ io.sapl.spring.config.AuthorizationManagerConfiguration
 io.sapl.spring.pdp.remote.RemotePDPAutoConfiguration
 io.sapl.spring.pdp.embedded.PDPAutoConfiguration
 io.sapl.spring.pdp.embedded.InterceptorAutoConfiguration
+io.sapl.spring.pdp.embedded.PdpHealthIndicatorAutoConfiguration
 io.sapl.spring.data.config.SaplSpringDataCommonAutoConfiguration
 io.sapl.spring.data.r2dbc.config.SaplR2dbcAutoConfiguration
 io.sapl.spring.data.mongo.config.SaplMongoReactiveAutoConfiguration

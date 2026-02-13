@@ -51,7 +51,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class }, properties = {
-        "spring.main.web-application-type=servlet" })
+        "spring.main.web-application-type=servlet", "io.sapl.pdp.embedded.enabled=false" })
 class PostEnforcePolicyEnforcementPointTests {
 
     private static final String ORIGINAL_RETURN_OBJECT = "original return object";

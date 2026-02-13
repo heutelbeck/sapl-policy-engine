@@ -32,6 +32,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,7 +65,7 @@ public class PlaygroundPolicyDecisionPoint {
      * broker providing function libraries for policy evaluation
      */
     public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
-        val pdpVoterSource = new PdpVoterSource(functionBroker, attributeBroker);
+        val pdpVoterSource = new PdpVoterSource(functionBroker, attributeBroker, Clock.systemUTC());
         this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
         this.policyDecisionPoint = new DynamicPolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString(),
                 Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));

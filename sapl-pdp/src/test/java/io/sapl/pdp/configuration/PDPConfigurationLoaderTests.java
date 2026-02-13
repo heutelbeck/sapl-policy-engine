@@ -51,16 +51,9 @@ class PDPConfigurationLoaderTests {
     Path tempDir;
 
     @Test
-    void whenLoadingFromEmptyDirectoryThenUsesDefaults() {
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
-
-        assertThat(config).satisfies(c -> {
-            assertThat(c.pdpId()).isEqualTo("arkham-pdp");
-            assertThat(c.configurationId()).startsWith("dir:").contains("@sha256:");
-            assertThat(c.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-            assertThat(c.data().variables()).isEmpty();
-            assertThat(c.saplDocuments()).isEmpty();
-        });
+    void whenLoadingFromDirectoryWithoutPdpJsonThenThrowsException() {
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdp.json is required");
     }
 
     @Test
@@ -120,6 +113,7 @@ class PDPConfigurationLoaderTests {
 
     @Test
     void whenLoadingWithSaplFilesThenLoadsAllDocuments() throws IOException {
+        writePdpJson(tempDir);
         Files.writeString(tempDir.resolve("access.sapl"), """
                 policy "grant access to deep ones"
                 permit subject.species == "deep_one"
@@ -140,7 +134,7 @@ class PDPConfigurationLoaderTests {
         Files.writeString(tempDir.resolve("valid.sapl"), "policy \"valid\" permit");
         Files.writeString(tempDir.resolve("readme.md"), "# Documentation");
         Files.writeString(tempDir.resolve("security.json"), "{}");
-        Files.writeString(tempDir.resolve("pdp.json"), "{}");
+        writePdpJson(tempDir);
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
@@ -149,17 +143,19 @@ class PDPConfigurationLoaderTests {
 
     @Test
     void whenLoadingWithNestedVariablesThenParsesCorrectly() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                {
-                  "variables": {
-                    "shrine": {
-                      "location": "Devil Reef",
-                      "depth": 100,
-                      "guardians": ["shoggoth", "deep_one"]
-                    }
-                  }
-                }
-                """);
+        Files.writeString(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "variables": {
+                            "shrine": {
+                              "location": "Devil Reef",
+                              "depth": 100,
+                              "guardians": ["shoggoth", "deep_one"]
+                            }
+                          }
+                        }
+                        """);
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
@@ -182,7 +178,7 @@ class PDPConfigurationLoaderTests {
                 """);
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
-                .isInstanceOf(PDPConfigurationException.class).cause().hasMessageContaining("FIRST");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("FIRST");
     }
 
     @Test
@@ -218,17 +214,24 @@ class PDPConfigurationLoaderTests {
         assertThat(config.saplDocuments()).hasSize(2);
     }
 
-    @ParameterizedTest(name = "pdpJson = \"{0}\" should use defaults")
+    @ParameterizedTest(name = "pdpJson = \"{0}\" should throw for empty content")
     @NullAndEmptySource
-    @ValueSource(strings = { "   \n\t  ", "{}" })
-    void whenLoadingFromContentWithAbsentOrEmptyPdpJsonThenUsesDefaults(String pdpJson) {
+    @ValueSource(strings = "   \n\t  ")
+    void whenLoadingFromContentWithNullOrBlankPdpJsonThenThrowsException(String pdpJson) {
         val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
 
-        val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, "test-pdp", "/test/policies");
+        assertThatThrownBy(
+                () -> PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, "test-pdp", "/test/policies"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("must not be empty");
+    }
 
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-        assertThat(config.data().variables()).isEmpty();
-        assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
+    @Test
+    void whenLoadingFromContentWithMissingAlgorithmThenThrowsException() {
+        val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
+
+        assertThatThrownBy(
+                () -> PDPConfigurationLoader.loadFromContent("{}", saplDocuments, "test-pdp", "/test/policies"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("algorithm");
     }
 
     @Test
@@ -246,13 +249,12 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingFromContentWithOnlyVariablesThenUsesDefaultAlgorithm() {
-        val config = PDPConfigurationLoader.loadFromContent("""
+    void whenLoadingFromContentWithOnlyVariablesThenThrowsForMissingAlgorithm() {
+        val emptyMap = Map.<String, String>of();
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromContent("""
                 { "variables": { "realm": "arkham" } }
-                """, Map.of(), "test-pdp", "/policies/arkham");
-
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-        assertThat(config.data().variables()).containsEntry("realm", Value.of("arkham"));
+                """, emptyMap, "test-pdp", "/policies/arkham")).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("algorithm");
     }
 
     @Test
@@ -265,6 +267,7 @@ class PDPConfigurationLoaderTests {
 
     @Test
     void whenLoadingWithSubdirectoryThenSubdirectoryIsIgnored() throws IOException {
+        writePdpJson(tempDir);
         Files.writeString(tempDir.resolve("root.sapl"), "policy \"root\" permit true;");
         val subdir = tempDir.resolve("subdir");
         Files.createDirectory(subdir);
@@ -273,6 +276,25 @@ class PDPConfigurationLoaderTests {
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
         assertThat(config.saplDocuments()).hasSize(1).first().asString().contains("root");
+    }
+
+    @Test
+    void whenLoadingFromDirectoryWithValidPdpJsonButNoSaplFilesThenSucceeds() throws IOException {
+        writePdpJson(tempDir);
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.saplDocuments()).isEmpty();
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
+    }
+
+    @Test
+    void whenLoadingFromContentWithFirstAlgorithmThenThrowsException() {
+        val emptyMap = Map.<String, String>of();
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromContent("""
+                {"algorithm": { "votingMode": "FIRST", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }}
+                """, emptyMap, "test-pdp", "/test/policies")).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("FIRST");
     }
 
     @Test
@@ -293,6 +315,13 @@ class PDPConfigurationLoaderTests {
 
         assertThat(config.data().variables()).containsKey("nullValue").containsEntry("realValue", Value.of("test"))
                 .containsKey("roles").containsKey("permissions");
+    }
+
+    private void writePdpJson(Path directory) throws IOException {
+        Files.writeString(directory.resolve("pdp.json"),
+                """
+                        {"algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }}
+                        """);
     }
 
 }

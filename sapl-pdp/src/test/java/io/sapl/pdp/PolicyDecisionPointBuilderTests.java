@@ -124,6 +124,10 @@ class PolicyDecisionPointBuilderTests {
     void whenBuildingWithDirectorySourceThenPoliciesAreLoaded() throws Exception {
         val policyDir = tempDir.resolve("policies");
         Files.createDirectories(policyDir);
+        Files.writeString(policyDir.resolve("pdp.json"),
+                """
+                        {"algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }}
+                        """);
         Files.writeString(policyDir.resolve("permit.sapl"), "policy \"permit\" permit");
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir, DEFAULT_PDP_ID)
@@ -161,6 +165,10 @@ class PolicyDecisionPointBuilderTests {
     void whenDisposeSourceThenResourcesAreReleased() throws Exception {
         val policyDir = tempDir.resolve("dispose-test");
         Files.createDirectories(policyDir);
+        Files.writeString(policyDir.resolve("pdp.json"),
+                """
+                        {"algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }}
+                        """);
         Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir, DEFAULT_PDP_ID)

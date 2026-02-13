@@ -22,6 +22,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -35,10 +36,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @DisplayName("ResourcesPDPConfigurationSource")
 @ExtendWith(MockitoExtension.class)
@@ -120,15 +121,11 @@ class ResourcesPDPConfigurationSourceTests {
         source.dispose();
     }
 
-    @Test
-    void whenLoadingFromEmptyOrNonExistentPathThenVoterSourceNotInvoked() {
-        val emptySource       = new ResourcesPDPConfigurationSource("/empty-policies", pdpVoterSource);
-        val nonExistentSource = new ResourcesPDPConfigurationSource("/non-existent-path", pdpVoterSource);
-
-        verifyNoInteractions(pdpVoterSource);
-
-        emptySource.dispose();
-        nonExistentSource.dispose();
+    @ParameterizedTest(name = "path \"{0}\" with no configurations fails fast")
+    @ValueSource(strings = { "/empty-policies", "/non-existent-path" })
+    void whenLoadingFromEmptyOrNonExistentPathThenFailsFast(String path) {
+        assertThatThrownBy(() -> new ResourcesPDPConfigurationSource(path, pdpVoterSource))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(path);
     }
 
     @Test

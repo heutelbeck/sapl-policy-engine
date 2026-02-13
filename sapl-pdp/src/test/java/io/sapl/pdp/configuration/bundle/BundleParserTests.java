@@ -134,9 +134,12 @@ class BundleParserTests {
     @ParameterizedTest(name = "parse from InputStream with size known = {0}")
     @ValueSource(booleans = { true, false })
     void whenParsingFromInputStreamThenConfigurationIsExtracted(boolean sizeKnown) throws IOException {
-        val bundleBytes = createBundleWithConfigId("""
-                { "configurationId": "%s" }
-                """.formatted(TEST_CONFIG_ID), "dagon.sapl", "policy \"dagon\" permit true;");
+        val bundleBytes = createBundleWithConfigId(
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "%s" }
+                        """
+                        .formatted(TEST_CONFIG_ID),
+                "dagon.sapl", "policy \"dagon\" permit true;");
         val inputStream = new ByteArrayInputStream(bundleBytes);
 
         val config = sizeKnown ? BundleParser.parse(inputStream, bundleBytes.length, TEST_PDP_ID, developmentPolicy)
@@ -193,9 +196,12 @@ class BundleParserTests {
     @Test
     void whenBundleExceedsCompressionRatioThenThrowsException() throws IOException {
         val largeRepetitiveContent = "A".repeat(50_000);
-        val bundleBytes            = createBundleWithConfigId("""
-                { "configurationId": "%s" }
-                """.formatted(TEST_CONFIG_ID), "eldritch-tome.sapl",
+        val bundleBytes            = createBundleWithConfigId(
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "%s" }
+                        """
+                        .formatted(TEST_CONFIG_ID),
+                "eldritch-tome.sapl",
                 "policy \"forbidden-knowledge\" permit true; /* " + largeRepetitiveContent + " */");
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
@@ -312,7 +318,9 @@ class BundleParserTests {
     }
 
     private void addPdpJsonEntry(ZipOutputStream zos) throws IOException {
-        val pdpJson = "{\"configurationId\":\"%s\"}".formatted(TEST_CONFIG_ID);
+        val pdpJson = """
+                {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"},"configurationId":"%s"}"""
+                .formatted(TEST_CONFIG_ID);
         zos.putNextEntry(new ZipEntry("pdp.json"));
         zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
         zos.closeEntry();

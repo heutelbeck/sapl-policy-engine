@@ -224,10 +224,12 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenSubdirectoryIsRemovedThenSourceIsDisposed() throws IOException {
         val keepDir = tempDir.resolve("keep");
         Files.createDirectory(keepDir);
+        writePdpJson(keepDir);
         createFile(keepDir.resolve("policy.sapl"), "policy \"keep\" permit true;");
 
         val removableDir = tempDir.resolve("removable");
         Files.createDirectory(removableDir);
+        writePdpJson(removableDir);
         createFile(removableDir.resolve("policy.sapl"), "policy \"removable\" deny true;");
 
         val configs = captureConfigurations();
@@ -332,6 +334,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         // Create target directory OUTSIDE the watched directory
         val target = externalDir.resolve("target");
         Files.createDirectory(target);
+        writePdpJson(target);
         createFile(target.resolve("policy.sapl"), "policy \"target\" deny true;");
 
         val link = tempDir.resolve("link");
@@ -387,6 +390,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         // Create target directory OUTSIDE the watched directory
         val target = externalDir.resolve("symlink-target");
         Files.createDirectory(target);
+        writePdpJson(target);
         createFile(target.resolve("policy.sapl"), "policy \"target\" deny true;");
 
         val configs = captureConfigurations();
@@ -449,6 +453,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenNestedSubdirectoriesThenOnlyFirstLevelIsProcessed() throws IOException {
         val parentDir = tempDir.resolve("parent");
         Files.createDirectories(parentDir);
+        writePdpJson(parentDir);
         createFile(parentDir.resolve("parent.sapl"), "policy \"parent\" permit true;");
 
         val nestedDir = parentDir.resolve("nested");
@@ -470,6 +475,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenFileDeletedInSubdirectoryThenConfigIsReloaded() throws IOException {
         val subdirPath = tempDir.resolve("modifiable");
         Files.createDirectory(subdirPath);
+        writePdpJson(subdirPath);
         val firstPolicy  = subdirPath.resolve("first.sapl");
         val secondPolicy = subdirPath.resolve("second.sapl");
         createFile(firstPolicy, "policy \"first\" permit true;");
@@ -506,6 +512,13 @@ class MultiDirectoryPDPConfigurationSourceTests {
         Files.writeString(path, content);
     }
 
+    private void writePdpJson(Path directory) throws IOException {
+        createFile(directory.resolve("pdp.json"),
+                """
+                        {"algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }}
+                        """);
+    }
+
     @Test
     void whenDirectoryAddedAfterDisposeThenItIsIgnored() throws IOException {
         createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
@@ -534,6 +547,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     void whenDirectoryDeletedAfterDisposeThenItIsIgnored() throws IOException {
         val removable = tempDir.resolve("removable");
         Files.createDirectory(removable);
+        writePdpJson(removable);
         createFile(removable.resolve("policy.sapl"), "policy \"removable\" permit true;");
 
         captureConfigurations();

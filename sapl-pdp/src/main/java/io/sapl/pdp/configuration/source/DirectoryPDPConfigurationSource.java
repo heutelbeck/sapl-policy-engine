@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * PDP configuration source that loads configurations from a filesystem
  * directory with file watching for hot-reload.
  * <p>
- * The source monitors a directory for .sapl policy files and an optional
+ * The source monitors a directory for .sapl policy files and a required
  * pdp.json configuration file. When files
  * change, the configuration is reloaded into the voter source.
  * </p>
@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>
  * /policies/
- * |-- pdp.json        (optional - combining algorithm and configurationId)
+ * |-- pdp.json        (required - combining algorithm and configurationId)
  * |-- access.sapl
  * \-- audit.sapl
  * </pre>

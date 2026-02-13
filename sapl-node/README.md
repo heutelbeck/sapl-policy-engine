@@ -193,7 +193,33 @@ Store the plaintext credentials securely. Only the Argon2-encoded values go into
 
 ### 8. Configure and Start the Server
 
-TODO: Document server configuration and startup with bundle source.
+Create a `config/application.yml` next to the JAR:
+
+```yaml
+io.sapl:
+  pdp.embedded:
+    pdp-config-type: BUNDLES
+    policies-path: bundles
+  node:
+    allowNoAuth: true
+    defaultPdpId: "default"
+
+server:
+  address: localhost
+  port: 8080
+  ssl:
+    enabled: false
+```
+
+Place your `.saplbundle` file in the `bundles/` directory. The filename without extension becomes the PDP ID (e.g., `default.saplbundle` serves PDP ID `default`).
+
+Start the server:
+
+```shell
+java -jar sapl-node-4.0.0-SNAPSHOT.jar
+```
+
+The server loads all bundles from the `bundles/` directory and watches for changes. When you replace a bundle file, the server reloads it automatically.
 
 ## CLI Reference
 
@@ -301,7 +327,108 @@ Options:
 
 ## Server Configuration
 
-TODO: Document server configuration (application.yml), authentication schemes, TLS, PDP config types, and bundle security properties.
+SAPL Node is configured via `application.yml`. Place it in a `config/` directory next to the JAR, or pass `--spring.config.location=file:/path/to/application.yml`.
+
+### PDP Source Types
+
+| Type | Description |
+|------|-------------|
+| `DIRECTORY` | Single directory with `pdp.json` and `.sapl` files. Hot-reloads on changes. |
+| `MULTI_DIRECTORY` | Parent directory where each subdirectory is a tenant. Each subdirectory needs its own `pdp.json` and `.sapl` files. |
+| `BUNDLES` | Watches a directory for `.saplbundle` files. Filename (minus extension) becomes the PDP ID. |
+
+`RESOURCES` is not supported in SAPL Node (it loads from the classpath, which is for embedded use in Spring Boot applications).
+
+```yaml
+io.sapl.pdp.embedded:
+  pdp-config-type: BUNDLES     # DIRECTORY, MULTI_DIRECTORY, or BUNDLES
+  policies-path: bundles       # path to the policy source directory
+```
+
+### Authentication
+
+SAPL Node supports four authentication modes. Enable one or more in `application.yml`:
+
+```yaml
+io.sapl.node:
+  allowNoAuth: false       # allow unauthenticated requests
+  allowBasicAuth: true     # HTTP Basic authentication
+  allowApiKeyAuth: false   # Bearer token API keys
+  allowOauth2Auth: false   # OAuth2/JWT tokens
+  defaultPdpId: "default"  # PDP ID for unauthenticated requests
+```
+
+**Client credentials** are defined in the `users` list. Use the `generate` CLI commands to create Argon2-encoded secrets:
+
+```yaml
+io.sapl.node:
+  users:
+    - id: "my-client"
+      pdpId: "default"
+      basic:
+        username: "my-client"
+        secret: "$argon2id$v=19$m=16384,t=2,p=1$..."
+      apiKey: "$argon2id$v=19$m=16384,t=2,p=1$..."
+```
+
+The `pdpId` field routes the client to a specific tenant's policies. For single-tenant deployments, use `"default"`.
+
+**OAuth2/JWT** requires Spring Security's resource server configuration:
+
+```yaml
+io.sapl.node:
+  allowOauth2Auth: true
+  oauth:
+    pdpIdClaim: "sapl_pdp_id"   # JWT claim for tenant routing
+
+spring.security.oauth2:
+  resourceserver:
+    jwt:
+      issuer-uri: https://auth.example.com/realm
+```
+
+### TLS
+
+Use standard Spring Boot SSL properties:
+
+```yaml
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: file:/path/to/keystore.p12
+    key-store-password: "changeit"
+    key-store-type: PKCS12
+```
+
+### Bundle Security
+
+Bundles can be signed with Ed25519 keys. Configure verification in `bundle-security`:
+
+```yaml
+io.sapl.pdp.embedded.bundle-security:
+  # Option 1: Global public key (verifies all bundles)
+  publicKeyPath: "/etc/sapl/public.key"
+  # or inline: publicKey: "MCowBQYDK2VwAyEA..."
+
+  # Option 2: Per-tenant key catalogue
+  keys:
+    prod-key: "MCowBQYDK2VwAyEA..."
+    staging-key: "MCowBQYDK2VwAyEA..."
+  tenants:
+    production:
+      - "prod-key"
+    staging:
+      - "staging-key"
+
+  # Option 3: Allow unsigned bundles (development only)
+  allowUnsigned: true
+  acceptRisks: true
+  unsignedTenants:
+    - "development"
+```
+
+At least one option must be configured. For production, use signed bundles with key verification.
 
 ## Bundle Format
 
