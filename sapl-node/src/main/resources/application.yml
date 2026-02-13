@@ -53,7 +53,18 @@ server:
 management:
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
 io.sapl:
   pdp.embedded:
     enabled: true

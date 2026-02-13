@@ -137,7 +137,8 @@ public class SecurityConfiguration {
             log.warn("Server has been configured to reply to requests without authentication.");
             http = http.authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll());
         } else {
-            http = http.authorizeExchange(exchange -> exchange.anyExchange().authenticated());
+            http = http.authorizeExchange(exchange -> exchange.pathMatchers("/actuator/health", "/actuator/health/**")
+                    .permitAll().anyExchange().authenticated());
         }
 
         if (pdpProperties.isAllowApiKeyAuth()) {
