@@ -69,6 +69,7 @@ io.sapl:
   pdp.embedded:
     enabled: true
     pdp-config-type: DIRECTORY
+    metrics-enabled: true
   node:
     allowNoAuth: false
     allowBasicAuth: false

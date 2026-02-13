@@ -249,6 +249,12 @@ public class EmbeddedPDPProperties {
     }
 
     /**
+     * If this property is set to true, PDP decision metrics are recorded for
+     * Prometheus via Micrometer.
+     */
+    private boolean metricsEnabled = false;
+
+    /**
      * If this property is set to true, JSON in logged traces and reports is pretty
      * printed.
      */
