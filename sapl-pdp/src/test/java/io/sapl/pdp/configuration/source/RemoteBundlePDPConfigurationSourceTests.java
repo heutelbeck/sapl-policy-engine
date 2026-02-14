@@ -117,12 +117,6 @@ class RemoteBundlePDPConfigurationSourceTests {
                 """).signWith(elderKeyPair.getPrivate(), "test-key").build();
     }
 
-    private byte[] createSignedBundleV2() {
-        return BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES).withPolicy("test.sapl", """
-                policy "test-policy-v2" permit true
-                """).signWith(elderKeyPair.getPrivate(), "test-key").build();
-    }
-
     private CopyOnWriteArrayList<PDPConfiguration> captureConfigurations() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
         doAnswer(inv -> {
@@ -147,60 +141,61 @@ class RemoteBundlePDPConfigurationSourceTests {
         server.enqueue(new MockResponse().setResponseCode(statusCode));
     }
 
+    private void awaitRetries() {
+        await().atMost(Duration.ofSeconds(2))
+                .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2));
+    }
+
     @Nested
     @DisplayName("A: Bootstrap and First Fetch")
     class BootstrapAndFirstFetch {
 
         @Test
-        @DisplayName("A1: fetches and loads valid bundle on startup")
+        @DisplayName("A1: fetches and loads valid signed bundle on startup")
         void whenServerAvailableAtStartupThenBundleLoaded() {
             val configs = captureConfigurations();
-            enqueueBundle(createUnsignedBundle(), "\"v1\"");
-            // Enqueue a 304 so the poll loop doesn't fail on second iteration
+            enqueueBundle(createSignedBundle(), "\"v1\"");
             enqueueNotModified();
 
-            source = new RemoteBundlePDPConfigurationSource(defaultConfig(developmentPolicy), pdpVoterSource);
+            source = new RemoteBundlePDPConfigurationSource(defaultConfig(signedPolicy), pdpVoterSource);
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
         }
 
         @ParameterizedTest(name = "A4/A5: server returns {0} at startup triggers retry")
         @ValueSource(ints = { 401, 403, 404, 500, 502, 503 })
-        void whenServerReturnsErrorAtStartupThenRetries(int statusCode) throws InterruptedException {
+        void whenServerReturnsErrorAtStartupThenRetries(int statusCode) {
             enqueueError(statusCode);
             enqueueError(statusCode);
 
             source = new RemoteBundlePDPConfigurationSource(defaultConfig(developmentPolicy), pdpVoterSource);
 
-            // Give the retry loop time to make at least 2 attempts
-            Thread.sleep(500);
-            assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2);
+            awaitRetries();
             verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
         }
 
         @Test
         @DisplayName("A6: rejects invalid/non-ZIP body and retries")
-        void whenServerReturnsInvalidBodyThenRetries() throws InterruptedException {
+        void whenServerReturnsInvalidBodyThenRetries() {
             server.enqueue(new MockResponse().setBody("this is not a zip file")
                     .addHeader("Content-Type", "application/octet-stream").addHeader("ETag", "\"bad\""));
             server.enqueue(new MockResponse().setBody("still not zip"));
 
             source = new RemoteBundlePDPConfigurationSource(defaultConfig(developmentPolicy), pdpVoterSource);
 
-            Thread.sleep(500);
-            assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2);
+            awaitRetries();
             verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
         }
 
         @Test
         @DisplayName("A7: rejects unsigned bundle when signatures mandatory")
-        void whenUnsignedBundleWithMandatorySignaturesThenRejects() throws InterruptedException {
+        void whenUnsignedBundleWithMandatorySignaturesThenRejects() {
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
 
             source = new RemoteBundlePDPConfigurationSource(defaultConfig(signedPolicy), pdpVoterSource);
 
-            Thread.sleep(500);
+            awaitRetries();
             verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
         }
 
@@ -223,7 +218,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("B1: 304 Not Modified preserves current bundle without reload")
-        void whenServerReturns304ThenNoReload() throws InterruptedException {
+        void whenServerReturns304ThenNoReload() {
             val configs = captureConfigurations();
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
             enqueueNotModified();
@@ -233,9 +228,9 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
 
-            // Wait for additional polls to confirm no extra loadConfiguration calls
-            Thread.sleep(500);
-            assertThat(configs).hasSize(1);
+            // Verify config count stays at 1 after additional poll cycles
+            await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofSeconds(2))
+                    .untilAsserted(() -> assertThat(configs).hasSize(1));
         }
 
         @Test
@@ -338,7 +333,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("C2: 304 on long-poll timeout triggers immediate reconnect")
-        void whenLongPollTimeoutThenImmediateReconnect() throws InterruptedException {
+        void whenLongPollTimeoutThenImmediateReconnect() {
             val configs = captureConfigurations();
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
             enqueueNotModified();
@@ -373,7 +368,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("D7: extended outage caps backoff and retries indefinitely")
-        void whenExtendedOutageThenBackoffCappedAndRetriesContinue() throws InterruptedException {
+        void whenExtendedOutageThenBackoffCappedAndRetriesContinue() {
             // Enqueue many errors to test backoff capping
             for (int i = 0; i < 10; i++) {
                 enqueueError(503);
@@ -433,7 +428,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             source = new RemoteBundlePDPConfigurationSource(defaultConfig(wrongKeyPolicy), pdpVoterSource);
 
-            Thread.sleep(500);
+            awaitRetries();
             verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
         }
 
@@ -459,14 +454,13 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("F5: empty response body treated as error")
-        void whenEmptyResponseBodyThenRetries() throws InterruptedException {
+        void whenEmptyResponseBodyThenRetries() {
             server.enqueue(new MockResponse().addHeader("ETag", "\"empty\""));
             server.enqueue(new MockResponse().addHeader("ETag", "\"empty\""));
 
             source = new RemoteBundlePDPConfigurationSource(defaultConfig(developmentPolicy), pdpVoterSource);
 
-            Thread.sleep(500);
-            assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2);
+            awaitRetries();
             verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
         }
 
@@ -492,7 +486,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("H1: dispose cancels all fetch loops")
-        void whenDisposedThenFetchLoopsStopped() throws InterruptedException {
+        void whenDisposedThenFetchLoopsStopped() {
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
             // Enqueue many 304s so the poll loop has work to do
             for (int i = 0; i < 20; i++) {
@@ -504,12 +498,12 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
 
-            val requestCountBeforeDispose = server.getRequestCount();
             source.dispose();
-            Thread.sleep(300);
+            val requestCountAfterDispose = server.getRequestCount();
 
-            // After dispose, request count should not increase significantly
-            assertThat(server.getRequestCount()).isLessThanOrEqualTo(requestCountBeforeDispose + 1);
+            // Verify request count stays stable after dispose
+            await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofSeconds(2)).untilAsserted(
+                    () -> assertThat(server.getRequestCount()).isLessThanOrEqualTo(requestCountAfterDispose + 1));
         }
 
         @Test
@@ -534,60 +528,73 @@ class RemoteBundlePDPConfigurationSourceTests {
     @DisplayName("I: Configuration Validation")
     class ConfigurationValidation {
 
+        private final List<String>                       validPdpIds          = List.of(PDP_ID);
+        private final RemoteBundleSourceConfig.FetchMode validMode            = RemoteBundleSourceConfig.FetchMode.POLLING;
+        private final Duration                           validPollInterval    = Duration.ofSeconds(30);
+        private final Duration                           validLongPollTimeout = Duration.ofSeconds(30);
+        private final Map<String, Duration>              emptyIntervals       = Map.of();
+        private final Duration                           validFirstBackoff    = Duration.ofMillis(500);
+        private final Duration                           validMaxBackoff      = Duration.ofSeconds(5);
+
         @Test
         @DisplayName("I1: missing baseUrl fails fast")
         void whenMissingBaseUrlThenFails() {
-            assertThatThrownBy(() -> new RemoteBundleSourceConfig(null, List.of(PDP_ID),
-                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofSeconds(30), Duration.ofSeconds(30), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(500), Duration.ofSeconds(5),
-                    WebClient.builder())).isInstanceOf(PDPConfigurationException.class).hasMessageContaining("baseUrl");
+            val wcb = WebClient.builder();
+            assertThatThrownBy(() -> new RemoteBundleSourceConfig(null, validPdpIds, validMode, validPollInterval,
+                    validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals, validFirstBackoff,
+                    validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("baseUrl");
         }
 
         @Test
         @DisplayName("I1: blank baseUrl fails fast")
         void whenBlankBaseUrlThenFails() {
-            assertThatThrownBy(() -> new RemoteBundleSourceConfig("  ", List.of(PDP_ID),
-                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofSeconds(30), Duration.ofSeconds(30), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(500), Duration.ofSeconds(5),
-                    WebClient.builder())).isInstanceOf(PDPConfigurationException.class).hasMessageContaining("baseUrl");
+            val wcb = WebClient.builder();
+            assertThatThrownBy(() -> new RemoteBundleSourceConfig("  ", validPdpIds, validMode, validPollInterval,
+                    validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals, validFirstBackoff,
+                    validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("baseUrl");
         }
 
         @Test
         @DisplayName("I2: empty pdpIds list fails fast")
         void whenEmptyPdpIdsThenFails() {
-            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", List.of(),
-                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofSeconds(30), Duration.ofSeconds(30), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(500), Duration.ofSeconds(5),
-                    WebClient.builder())).isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdpIds");
+            val emptyPdpIds = List.<String>of();
+            val wcb         = WebClient.builder();
+            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", emptyPdpIds, validMode,
+                    validPollInterval, validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals,
+                    validFirstBackoff, validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("pdpIds");
         }
 
         @Test
         @DisplayName("I3: zero poll interval fails fast")
         void whenZeroPollIntervalThenFails() {
-            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", List.of(PDP_ID),
-                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ZERO, Duration.ofSeconds(30), null, null, true,
-                    developmentPolicy, Map.of(), Duration.ofMillis(500), Duration.ofSeconds(5), WebClient.builder()))
-                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pollInterval");
+            val wcb = WebClient.builder();
+            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", validPdpIds, validMode,
+                    Duration.ZERO, validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals,
+                    validFirstBackoff, validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("pollInterval");
         }
 
         @Test
         @DisplayName("I4: auth header name without value fails fast")
         void whenAuthHeaderNameWithoutValueThenFails() {
-            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", List.of(PDP_ID),
-                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofSeconds(30), Duration.ofSeconds(30),
-                    "Authorization", null, true, developmentPolicy, Map.of(), Duration.ofMillis(500),
-                    Duration.ofSeconds(5), WebClient.builder())).isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("authHeaderName");
+            val wcb = WebClient.builder();
+            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", validPdpIds, validMode,
+                    validPollInterval, validLongPollTimeout, "Authorization", null, true, developmentPolicy,
+                    emptyIntervals, validFirstBackoff, validMaxBackoff, wcb))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("authHeaderName");
         }
 
         @Test
         @DisplayName("I4: auth header value without name fails fast")
         void whenAuthHeaderValueWithoutNameThenFails() {
-            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", List.of(PDP_ID),
-                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofSeconds(30), Duration.ofSeconds(30), null,
-                    "Bearer token", true, developmentPolicy, Map.of(), Duration.ofMillis(500), Duration.ofSeconds(5),
-                    WebClient.builder())).isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("authHeaderName");
+            val wcb = WebClient.builder();
+            assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", validPdpIds, validMode,
+                    validPollInterval, validLongPollTimeout, null, "Bearer token", true, developmentPolicy,
+                    emptyIntervals, validFirstBackoff, validMaxBackoff, wcb))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("authHeaderName");
         }
 
         @Test
@@ -604,7 +611,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("I6: per-pdpId poll interval override applied")
-        void whenPerPdpIdPollIntervalThenOverrideUsed() throws InterruptedException {
+        void whenPerPdpIdPollIntervalThenOverrideUsed() {
             val configs = captureConfigurations();
             val config  = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofSeconds(60), Duration.ofSeconds(5), null,
