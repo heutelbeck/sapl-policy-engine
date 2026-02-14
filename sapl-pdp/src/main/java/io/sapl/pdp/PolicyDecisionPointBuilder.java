@@ -609,6 +609,20 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
+     * Loads policies from a remote HTTP server that serves {@code .saplbundle}
+     * files. Each configured PDP ID is fetched independently with change
+     * detection via HTTP conditional requests (ETag).
+     *
+     * @param config
+     * the remote bundle source configuration
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withRemoteBundleSource(RemoteBundleSourceConfig config) {
+        return withConfigurationSource(voterSource -> new RemoteBundlePDPConfigurationSource(config, voterSource));
+    }
+
+    /**
      * Loads policies from classpath resources. This is useful for embedded policies
      * shipped with your application.
      * Supports both single-PDP (root-level files) and multi-PDP (subdirectories)

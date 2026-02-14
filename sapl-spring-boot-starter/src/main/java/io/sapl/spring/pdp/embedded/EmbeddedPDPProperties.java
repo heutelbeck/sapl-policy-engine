@@ -23,6 +23,7 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +57,10 @@ public class EmbeddedPDPProperties {
      * <p>
      * - BUNDLES: Monitors a directory for .saplbundle files, where each bundle
      * filename (without extension) becomes the pdpId for multi-tenant routing.
+     * <p>
+     * - REMOTE_BUNDLES: Fetches .saplbundle files from a remote HTTP server.
+     * Supports regular polling and long-poll change detection with ETag-based
+     * conditional requests.
      */
     @NotNull
     private PDPDataSource pdpConfigType = PDPDataSource.RESOURCES;
@@ -99,9 +104,15 @@ public class EmbeddedPDPProperties {
 
     /**
      * Security configuration for bundle signature verification.
-     * Only used when pdpConfigType is BUNDLES.
+     * Used when pdpConfigType is BUNDLES or REMOTE_BUNDLES.
      */
     private BundleSecurityProperties bundleSecurity = new BundleSecurityProperties();
+
+    /**
+     * Configuration for remote bundle fetching.
+     * Only used when pdpConfigType is REMOTE_BUNDLES.
+     */
+    private RemoteBundleProperties remoteBundles = new RemoteBundleProperties();
 
     /**
      * Indicate the source type for loading policies.
@@ -127,7 +138,12 @@ public class EmbeddedPDPProperties {
          * Monitors a directory for .saplbundle files, where each bundle
          * filename (without extension) becomes the pdpId for multi-tenant routing.
          */
-        BUNDLES
+        BUNDLES,
+        /**
+         * Fetches .saplbundle files from a remote HTTP server with
+         * ETag-based change detection.
+         */
+        REMOTE_BUNDLES
 
     }
 
@@ -246,6 +262,87 @@ public class EmbeddedPDPProperties {
          */
         private Map<String, List<String>> tenants = new HashMap<>();
 
+    }
+
+    /**
+     * Configuration for fetching bundles from a remote HTTP server.
+     * <p>
+     * Bundles are addressed by convention: {@code {baseUrl}/{pdpId}}.
+     * Change detection uses HTTP conditional requests (ETag / If-None-Match).
+     */
+    @Data
+    public static class RemoteBundleProperties {
+
+        /**
+         * Base URL of the bundle server.
+         * Example: {@code https://pap.example.com/bundles}
+         */
+        private String baseUrl;
+
+        /**
+         * List of PDP identifiers to fetch bundles for.
+         */
+        private List<String> pdpIds = new ArrayList<>();
+
+        /**
+         * Change detection mode.
+         */
+        private RemoteFetchMode mode = RemoteFetchMode.POLLING;
+
+        /**
+         * Default interval between polls. Applies to all pdpIds unless
+         * overridden in {@link #pdpIdPollIntervals}.
+         */
+        private Duration pollInterval = Duration.ofSeconds(30);
+
+        /**
+         * Server hold timeout for long-poll mode.
+         */
+        private Duration longPollTimeout = Duration.ofSeconds(30);
+
+        /**
+         * Optional HTTP header name for authentication
+         * (e.g., {@code Authorization}, {@code X-Api-Key}).
+         */
+        private String authHeaderName;
+
+        /**
+         * Optional HTTP header value for authentication
+         * (e.g., {@code Bearer <token>}, {@code <api-key>}).
+         */
+        private String authHeaderValue;
+
+        /**
+         * Whether to follow HTTP 3xx redirects.
+         */
+        private boolean followRedirects = true;
+
+        /**
+         * Per-pdpId poll interval overrides. Keys are pdpId strings,
+         * values are durations.
+         */
+        private Map<String, Duration> pdpIdPollIntervals = new HashMap<>();
+
+        /**
+         * Initial backoff duration after a fetch failure.
+         */
+        private Duration firstBackoff = Duration.ofMillis(500);
+
+        /**
+         * Maximum backoff duration after repeated failures.
+         */
+        private Duration maxBackoff = Duration.ofSeconds(5);
+
+    }
+
+    /**
+     * Change detection mode for remote bundle fetching.
+     */
+    public enum RemoteFetchMode {
+        /** Regular interval-based polling. */
+        POLLING,
+        /** Long-poll GET with automatic reconnect on timeout. */
+        LONG_POLL
     }
 
     /**

@@ -184,7 +184,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webflux</artifactId>
-			<scope>test</scope>
 		</dependency>
         <!-- Testcontainers -->
         <dependency>

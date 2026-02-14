@@ -27,8 +27,10 @@ import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.PdpIdValidator;
+import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
+import org.springframework.web.reactive.function.client.WebClient;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -180,6 +182,17 @@ public class PDPAutoConfiguration {
             log.info("Loading policies from bundles: {}", resolvedPath);
             val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity());
             builder.withBundleDirectorySource(path, securityPolicy);
+        }
+        case REMOTE_BUNDLES  -> {
+            val props          = properties.getRemoteBundles();
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity());
+            log.info("Loading policies from remote bundles: {}", props.getBaseUrl());
+            val sourceConfig = new RemoteBundleSourceConfig(props.getBaseUrl(), props.getPdpIds(),
+                    RemoteBundleSourceConfig.FetchMode.valueOf(props.getMode().name()), props.getPollInterval(),
+                    props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
+                    props.isFollowRedirects(), securityPolicy, props.getPdpIdPollIntervals(), props.getFirstBackoff(),
+                    props.getMaxBackoff(), WebClient.builder());
+            builder.withRemoteBundleSource(sourceConfig);
         }
         case RESOURCES       -> {
             val resourcePath = properties.getPoliciesPath();
