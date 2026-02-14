@@ -174,8 +174,10 @@ public final class RemoteBundlePDPConfigurationSource implements Disposable {
         if (etag != null) {
             headers.set(HttpHeaders.IF_NONE_MATCH, etag);
         }
-        if (config.authHeaderName() != null && config.authHeaderValue() != null) {
-            headers.set(config.authHeaderName(), config.authHeaderValue());
+        val authName  = config.authHeaderName();
+        val authValue = config.authHeaderValue();
+        if (authName != null && authValue != null) {
+            headers.set(authName, authValue);
         }
         headers.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_OCTET_STREAM_VALUE);
     }

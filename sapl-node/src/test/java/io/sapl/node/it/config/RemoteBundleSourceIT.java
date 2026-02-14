@@ -177,6 +177,82 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
 
     }
 
+    @Nested
+    @DisplayName("Health Endpoint")
+    class HealthEndpointTests {
+
+        @Test
+        @DisplayName("G1: health reports DOWN when no valid bundle has been loaded")
+        void whenNoBundleLoadedThenHealthDown() {
+            try (val network = Network.newNetwork(); val wiremock = createWireMockContainer(network)) {
+                wiremock.start();
+                configureErrorStub(wiremock, DEFAULT_PDP_ID, 500);
+
+                try (val saplNode = createRemoteBundleNode(network)) {
+                    saplNode.start();
+
+                    await().pollDelay(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(15))
+                            .pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+                                val health = fetchHealthStatus(saplNode);
+                                assertThat(health).contains("\"status\":\"DOWN\"");
+                            });
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("G2: health reports UP after successful bundle fetch")
+        void whenBundleLoadedThenHealthUp() {
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
+                    .withPolicy("permit-all", PERMIT_POLICY).build();
+
+            try (val network = Network.newNetwork(); val wiremock = createWireMockContainer(network)) {
+                wiremock.start();
+                configureBundleStub(wiremock, DEFAULT_PDP_ID, bundle, "\"v1\"");
+
+                try (val saplNode = createRemoteBundleNode(network)) {
+                    saplNode.start();
+
+                    val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(saplNode)).build();
+                    StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.PERMIT)
+                            .thenCancel().verify(Duration.ofSeconds(30));
+
+                    val health = fetchHealthStatus(saplNode);
+                    assertThat(health).contains("\"status\":\"UP\"");
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("G3: health stays UP during server outage with last-known bundle")
+        void whenServerOutageThenHealthStillUp() {
+            val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
+                    .withPolicy("permit-all", PERMIT_POLICY).build();
+
+            try (val network = Network.newNetwork(); val wiremock = createWireMockContainer(network)) {
+                wiremock.start();
+                configureBundleStub(wiremock, DEFAULT_PDP_ID, bundle, "\"v1\"");
+
+                try (val saplNode = createRemoteBundleNode(network)) {
+                    saplNode.start();
+
+                    val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(saplNode)).build();
+                    StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.PERMIT)
+                            .thenCancel().verify(Duration.ofSeconds(30));
+
+                    clearAllStubs(wiremock);
+                    configureErrorStub(wiremock, DEFAULT_PDP_ID, 500);
+
+                    await().pollDelay(Duration.ofSeconds(5)).atMost(Duration.ofSeconds(15))
+                            .pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+                                val health = fetchHealthStatus(saplNode);
+                                assertThat(health).contains("\"status\":\"UP\"");
+                            });
+                }
+            }
+        }
+    }
+
     private GenericContainer<?> createWireMockContainer(Network network) {
         return new GenericContainer<>(DockerImageName.parse(WIREMOCK_IMAGE)).withNetwork(network)
                 .withNetworkAliases(BUNDLE_SERVER_ALIAS).withExposedPorts(WIREMOCK_PORT)
@@ -227,6 +303,11 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
 
     private String wireMockAdminUrl(GenericContainer<?> wiremock) {
         return "http://" + wiremock.getHost() + ":" + wiremock.getMappedPort(WIREMOCK_PORT);
+    }
+
+    private String fetchHealthStatus(GenericContainer<?> saplNode) {
+        return WebClient.create().get().uri(getHttpBaseUrl(saplNode) + "/actuator/health")
+                .exchangeToMono(response -> response.bodyToMono(String.class)).block(Duration.ofSeconds(5));
     }
 
 }
