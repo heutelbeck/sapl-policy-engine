@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.util.MethodInvocationUtils;
 import tools.jackson.databind.ObjectMapper;
@@ -48,7 +47,6 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                     assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
                     assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
                     assertThat(context).hasSingleBean(AuthorizationSubscriptionBuilderService.class);
-                    assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
                 });
     }
 
@@ -63,7 +61,6 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                     assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
                     assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
                     assertThat(context).hasSingleBean(AuthorizationSubscriptionBuilderService.class);
-                    assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
                 });
     }
 

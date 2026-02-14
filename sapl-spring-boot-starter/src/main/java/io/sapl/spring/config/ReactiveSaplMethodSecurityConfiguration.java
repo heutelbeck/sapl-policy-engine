@@ -28,12 +28,11 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -63,18 +62,25 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     @NonNull
     private final ObjectMapper mapper;
 
-    private GrantedAuthorityDefaults grantedAuthorityDefaults;
+    @NonNull
+    private final ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider;
+
+    @NonNull
+    private final ObjectProvider<GrantedAuthorityDefaults> defaultsProvider;
+
+    @NonNull
+    private final ApplicationContext applicationContext;
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     Advisor reactiveSaplMethodSecurityPolicyEnforcementPoint(SaplAttributeRegistry source,
-            MethodSecurityExpressionHandler expressionHandler,
             AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
             PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
             PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
 
         log.debug("Deploy ReactiveSaplMethodInterceptor");
-        final var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
+        val expressionHandler      = resolveExpressionHandler();
+        val policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
                 constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
                 preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
         return PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
@@ -83,12 +89,11 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     ReactiveSaplMethodInterceptor securityMethodInterceptor(SaplAttributeRegistry source,
-            MethodSecurityExpressionHandler handler,
             AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
             PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
             PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
-        return new ReactiveSaplMethodInterceptor(source, handler, pdp, constraintHandlerService, mapper,
-                authorizationSubscriptionBuilderService, preEnforcePolicyEnforcementPoint,
+        return new ReactiveSaplMethodInterceptor(source, resolveExpressionHandler(), pdp, constraintHandlerService,
+                mapper, authorizationSubscriptionBuilderService, preEnforcePolicyEnforcementPoint,
                 postEnforcePolicyEnforcementPoint);
     }
 
@@ -109,31 +114,19 @@ public final class ReactiveSaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
-            MethodSecurityExpressionHandler methodSecurityHandler) {
-        return new AuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
-        final var handler = new DefaultMethodSecurityExpressionHandler();
-        if (this.grantedAuthorityDefaults != null) {
-            var authFactory = new DefaultAuthorizationManagerFactory<MethodInvocation>();
-            authFactory.setRolePrefix(this.grantedAuthorityDefaults.getRolePrefix());
-            handler.setAuthorizationManagerFactory(authFactory);
-        }
-        return handler;
+    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
+        return new AuthorizationSubscriptionBuilderService(resolveExpressionHandler(), mapper);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
-        final var exprProvider = expressionHandlerProvider
-                .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
-        return new SaplAttributeRegistry(exprProvider);
+    SaplAttributeRegistry saplAttributeRegistry() {
+        return new SaplAttributeRegistry(resolveExpressionHandler());
+    }
+
+    private MethodSecurityExpressionHandler resolveExpressionHandler() {
+        return expressionHandlerProvider
+                .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, applicationContext));
     }
 
     private static MethodSecurityExpressionHandler defaultExpressionHandler(
@@ -147,11 +140,6 @@ public final class ReactiveSaplMethodSecurityConfiguration {
         });
         handler.setApplicationContext(context);
         return handler;
-    }
-
-    @Autowired(required = false)
-    void setGrantedAuthorityDefaults(GrantedAuthorityDefaults grantedAuthorityDefaults) {
-        this.grantedAuthorityDefaults = grantedAuthorityDefaults;
     }
 
 }
