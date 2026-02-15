@@ -24,6 +24,7 @@ import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.SubscriptionSecretsInjector;
 import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.Advisor;
@@ -49,9 +50,9 @@ class SaplMethodSecurityConfiguration {
     AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
             ObjectProvider<ObjectMapper> mapperProvider, ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-            ApplicationContext context) {
+            ApplicationContext context, ObjectProvider<SubscriptionSecretsInjector> secretsInjectorProvider) {
         return new AuthorizationSubscriptionBuilderService(expressionHandlerProvider, mapperProvider, defaultsProvider,
-                context);
+                context, secretsInjectorProvider.getIfAvailable());
     }
 
     @Bean

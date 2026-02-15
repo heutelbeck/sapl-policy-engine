@@ -52,7 +52,7 @@ import io.sapl.functions.libraries.EncodingFunctionLibrary;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.GraphFunctionLibrary;
 import io.sapl.functions.libraries.GraphQLFunctionLibrary;
-import io.sapl.functions.libraries.JWTFunctionLibrary;
+
 import io.sapl.functions.libraries.JsonFunctionLibrary;
 import io.sapl.functions.libraries.KeysFunctionLibrary;
 import io.sapl.functions.libraries.MacFunctionLibrary;
@@ -81,7 +81,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.security.interfaces.RSAPublicKey;
+import java.security.Key;
 
 /**
  * Loads all standard SAPL function libraries and policy information points.
@@ -96,7 +96,7 @@ public class StandardLibrariesLoader {
             BitwiseFunctionLibrary.class, CidrFunctionLibrary.class, CsvFunctionLibrary.class,
             DigestFunctionLibrary.class, EncodingFunctionLibrary.class, FilterFunctionLibrary.class,
             GraphFunctionLibrary.class, GraphQLFunctionLibrary.class, JsonFunctionLibrary.class,
-            JWTFunctionLibrary.class, KeysFunctionLibrary.class, MacFunctionLibrary.class, MathFunctionLibrary.class,
+            KeysFunctionLibrary.class, MacFunctionLibrary.class, MathFunctionLibrary.class,
             NumeralFunctionLibrary.class, ObjectFunctionLibrary.class, PatternsFunctionLibrary.class,
             PermissionsFunctionLibrary.class, ReflectionFunctionLibrary.class, SanitizationFunctionLibrary.class,
             SaplFunctionLibrary.class, SchemaValidationLibrary.class, SemVerFunctionLibrary.class,
@@ -219,7 +219,7 @@ public class StandardLibrariesLoader {
         }
 
         @Override
-        public Mono<RSAPublicKey> provide(String kid, JsonNode publicKeyServer) {
+        public Mono<Key> provide(String kid, JsonNode publicKeyServer) {
             return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
         }
     }

@@ -29,7 +29,7 @@ import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import reactor.core.publisher.Mono;
 
 import java.io.Serial;
-import java.security.interfaces.RSAPublicKey;
+import java.security.Key;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Class for retrieving public keys from the JWT Authorization Server
+ * Class for retrieving public keys from the JWT Authorization Server.
  */
 @Slf4j
 public class JWTKeyProvider {
@@ -60,10 +60,10 @@ public class JWTKeyProvider {
         private static final long serialVersionUID = SaplVersion.VERSION_UID;
     }
 
-    private final Map<String, RSAPublicKey> keyCache;
-    private final Queue<CacheEntry>         cachingTimes;
-    private final WebClient                 webClient;
-    private long                            lastTTL = DEFAULT_CACHING_TTL;
+    private final Map<String, Key>  keyCache;
+    private final Queue<CacheEntry> cachingTimes;
+    private final WebClient         webClient;
+    private long                    lastTTL = DEFAULT_CACHING_TTL;
 
     /**
      * Creates a JWTKeyProvider.
@@ -89,17 +89,12 @@ public class JWTKeyProvider {
     /**
      * Fetches the public key of a server.
      *
-     * @param kid
-     * the key id
-     * @param jPublicKeyServer
-     * the key server
-     *
+     * @param kid the key id
+     * @param jPublicKeyServer the key server
      * @return the public key
-     *
-     * @throws CachingException
-     * on errors
+     * @throws CachingException on errors
      */
-    public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
+    public Mono<Key> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
 
         final var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
         if (null == jUri)
@@ -113,8 +108,6 @@ public class JWTKeyProvider {
         final var sUri = jUri.asString();
         final var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
         var       lTTL = DEFAULT_CACHING_TTL;
-        // nested if-statement in order to cover all possible branches during testing
-        // (e.g. null && canConvertToLong not possible)
         if (null != jTTL) {
             if (jTTL.canConvertToLong()) {
                 lTTL = jTTL.longValue();
@@ -128,28 +121,24 @@ public class JWTKeyProvider {
     }
 
     /**
-     * Put public key into cache.
+     * Put key into cache.
      *
-     * @param kid
-     * key id
-     * @param pubKey
-     * public key
+     * @param kid the key id
+     * @param key the key
      */
-    public void cache(String kid, RSAPublicKey pubKey) {
+    public void cache(String kid, Key key) {
 
         if (isCached(kid))
             return;
 
-        keyCache.put(kid, pubKey);
+        keyCache.put(kid, key);
         cachingTimes.add(new CacheEntry(kid));
     }
 
     /**
      * Checks if the key is in the cache.
      *
-     * @param kid
-     * key id
-     *
+     * @param kid key id
      * @return true, if the cache contains the key with the given id.
      */
     public boolean isCached(String kid) {
@@ -160,44 +149,35 @@ public class JWTKeyProvider {
     /**
      * Sets the cache TTL.
      *
-     * @param newTtlMillis
-     * time to live for cache entries.
+     * @param newTtlMillis time to live for cache entries.
      */
     public void setTtlMillis(long newTtlMillis) {
         lastTTL = newTtlMillis >= 0L ? newTtlMillis : DEFAULT_CACHING_TTL;
     }
 
     /**
-     * Fetches public key from remote authentication server
+     * Fetches public key from remote authentication server.
      *
-     * @param kid
-     * ID of public key to fetch
-     * @param publicKeyURI
-     * URI to request the public key
-     * @param publicKeyRequestMethod
-     * HTTP request method: GET or POST
-     *
+     * @param kid ID of public key to fetch
+     * @param publicKeyURI URI to request the public key
+     * @param publicKeyRequestMethod HTTP request method: GET or POST
      * @return public key or empty
      */
-    private Mono<RSAPublicKey> fetchPublicKey(String kid, String publicKeyURI, String publicKeyRequestMethod) {
+    private Mono<Key> fetchPublicKey(String kid, String publicKeyURI, String publicKeyRequestMethod) {
         final ResponseSpec response;
 
-        // return cached key if present
         if (isCached(kid)) {
             return Mono.just(keyCache.get(kid));
         }
 
         if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
-            // POST request
             response = webClient.post().uri(publicKeyURI, kid).retrieve();
         } else {
-            // default GET request
             response = webClient.get().uri(publicKeyURI, kid).retrieve();
         }
 
         return response.onStatus(HttpStatusCode::isError, this::handleHttpError).bodyToMono(String.class)
-                .map(JWTEncodingDecodingUtils::encodedX509ToRSAPublicKey).filter(Optional::isPresent)
-                .map(Optional::get);
+                .map(JWTEncodingDecodingUtils::encodedX509ToPublicKey).filter(Optional::isPresent).map(Optional::get);
     }
 
     private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
@@ -206,7 +186,7 @@ public class JWTKeyProvider {
     }
 
     /**
-     * remove all keys from cache, that are older than ttlMillis before now
+     * Remove all keys from cache that are older than ttlMillis before now.
      */
     private void pruneCache() {
         final var pruneTime   = Instant.now().minusMillis(lastTTL);

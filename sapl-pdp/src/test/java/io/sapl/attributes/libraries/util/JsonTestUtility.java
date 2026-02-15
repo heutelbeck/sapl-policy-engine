@@ -42,7 +42,6 @@ public class JsonTestUtility {
      */
     static JsonNode jsonNode(Object source) {
 
-        // first try if source is a Json String
         if (source instanceof String) {
             try {
                 return MAPPER.readTree((String) source);
@@ -51,21 +50,17 @@ public class JsonTestUtility {
             }
         }
 
-        // if that failed, convert source object to JsonNode
         return MAPPER.valueToTree(source);
     }
 
     /**
-     * @param kid1
-     * the ID of the first KeyPair
-     * @param kid2
-     * the ID of the second KeyPair
-     * @param keyPair1
-     * KeyPair of the first public key. Non-textual, if null
-     * @param keyPair2
-     * KeyPair of the second public key. Bogus, if null
+     * Creates JWT config variables containing a whitelist with two public keys.
      *
-     * @return whitelist variables containing two public keys
+     * @param kid1 the ID of the first KeyPair
+     * @param keyPair1 KeyPair of the first public key. Non-textual, if null
+     * @param kid2 the ID of the second KeyPair
+     * @param keyPair2 KeyPair of the second public key. Bogus, if null
+     * @return variables map containing JWT config with whitelist
      */
     public static Map<String, Value> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2,
             KeyPair keyPair2) {
@@ -89,15 +84,50 @@ public class JsonTestUtility {
     }
 
     /**
-     * @param server
-     * mock web server for automatically generated url, or use null to omit
-     * @param method
-     * request method ("GET" or "POST"), use null or empty String to omit, use
-     * "NONETEXT" to generate a
-     * none-text value
+     * Creates JWT config variables containing a whitelist with a single HMAC key.
      *
-     * @return environment variables containing public key server URI and request
-     * method
+     * @param kid the key ID
+     * @param base64Key Base64-encoded HMAC key bytes
+     * @return variables map containing JWT config with whitelist
+     */
+    public static Map<String, Value> publicKeyWhitelistVariablesForHmac(String kid, String base64Key) {
+        val keyNode   = MAPPER.createObjectNode();
+        val valueNode = MAPPER.createObjectNode();
+        valueNode.put(kid, base64Key);
+        keyNode.set(JWTPolicyInformationPoint.WHITELIST_VARIABLES_KEY, valueNode);
+        return Map.of("jwt", ValueJsonMarshaller.fromJsonNode(keyNode));
+    }
+
+    /**
+     * Creates JWT config variables containing a whitelist with additional config
+     * fields.
+     *
+     * @param kid the key ID
+     * @param keyPair the key pair (public key is Base64 encoded)
+     * @param extraConfig additional config fields to add to the jwt config
+     * @return variables map containing JWT config with whitelist and extra config
+     */
+    public static Map<String, Value> publicKeyWhitelistVariablesWithConfig(String kid, KeyPair keyPair,
+            java.util.function.Consumer<ObjectNode> extraConfig) {
+        val keyNode   = MAPPER.createObjectNode();
+        val valueNode = MAPPER.createObjectNode();
+        val encoded   = Base64.getUrlEncoder().encodeToString(keyPair.getPublic().getEncoded());
+        valueNode.put(kid, encoded);
+        keyNode.set(JWTPolicyInformationPoint.WHITELIST_VARIABLES_KEY, valueNode);
+        if (extraConfig != null) {
+            extraConfig.accept(keyNode);
+        }
+        return Map.of("jwt", ValueJsonMarshaller.fromJsonNode(keyNode));
+    }
+
+    /**
+     * Creates JWT config variables containing a public key server configuration.
+     *
+     * @param server mock web server for automatically generated url, or use null to
+     * omit
+     * @param method request method ("GET" or "POST"), use null or empty String to
+     * omit
+     * @return variables map containing JWT config with public key server
      */
     public static Map<String, Value> publicKeyUriVariables(MockWebServer server, String method) {
 

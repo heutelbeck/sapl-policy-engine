@@ -49,7 +49,7 @@ import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.security.interfaces.RSAPublicKey;
+import java.security.Key;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Map;
@@ -117,7 +117,7 @@ public class PlaygroundConfiguration {
         }
 
         @Override
-        public Mono<RSAPublicKey> provide(String kid, JsonNode publicKeyServer) throws CachingException {
+        public Mono<Key> provide(String kid, JsonNode publicKeyServer) throws CachingException {
             return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
         }
     }

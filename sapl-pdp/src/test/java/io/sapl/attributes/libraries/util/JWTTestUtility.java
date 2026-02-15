@@ -21,6 +21,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -28,6 +29,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.val;
 
+import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.security.interfaces.ECPrivateKey;
 import java.time.Duration;
@@ -92,6 +94,18 @@ public class JWTTestUtility {
         SignedJWT signedJwt = new SignedJWT(header, claims);
         signedJwt.sign(signer);
         return (TextValue) Value.of(signedJwt.serialize());
+    }
+
+    public static TextValue buildAndSignHmacJwt(JWSHeader header, JWTClaimsSet claims, SecretKey secretKey)
+            throws JOSEException {
+        val signer    = new MACSigner(secretKey);
+        val signedJwt = new SignedJWT(header, claims);
+        signedJwt.sign(signer);
+        return (TextValue) Value.of(signedJwt.serialize());
+    }
+
+    public static String encodeSecretKey(SecretKey secretKey) {
+        return java.util.Base64.getUrlEncoder().encodeToString(secretKey.getEncoded());
     }
 
     public static TextValue replacePayload(TextValue signedJWT, JWTClaimsSet tamperedPayload) {

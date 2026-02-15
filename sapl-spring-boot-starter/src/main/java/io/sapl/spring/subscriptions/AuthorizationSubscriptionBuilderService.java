@@ -91,6 +91,7 @@ public class AuthorizationSubscriptionBuilderService {
     private final ObjectProvider<ObjectMapper>                    mapperProvider;
     private final ObjectProvider<GrantedAuthorityDefaults>        defaultsProvider;
     private final ApplicationContext                              applicationContext;
+    private final SubscriptionSecretsInjector                     secretsInjector;
 
     private MethodSecurityExpressionHandler expressionHandler;
     private ObjectMapper                    mapper;
@@ -103,12 +104,27 @@ public class AuthorizationSubscriptionBuilderService {
      */
     public AuthorizationSubscriptionBuilderService(MethodSecurityExpressionHandler expressionHandler,
             ObjectMapper mapper) {
+        this(expressionHandler, mapper, null);
+    }
+
+    /**
+     * Constructor for reactive method security context with resolved beans
+     * and optional secrets injector.
+     *
+     * @param expressionHandler the method security expression handler
+     * @param mapper the object mapper for JSON serialization
+     * @param secretsInjector optional injector for subscription secrets
+     */
+    public AuthorizationSubscriptionBuilderService(MethodSecurityExpressionHandler expressionHandler,
+            ObjectMapper mapper,
+            @Nullable SubscriptionSecretsInjector secretsInjector) {
         this.expressionHandler         = expressionHandler;
         this.mapper                    = mapper;
         this.expressionHandlerProvider = null;
         this.mapperProvider            = null;
         this.defaultsProvider          = null;
         this.applicationContext        = null;
+        this.secretsInjector           = secretsInjector;
     }
 
     /**
@@ -124,10 +140,30 @@ public class AuthorizationSubscriptionBuilderService {
             ObjectProvider<ObjectMapper> mapperProvider,
             ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
             ApplicationContext applicationContext) {
+        this(expressionHandlerProvider, mapperProvider, defaultsProvider, applicationContext, null);
+    }
+
+    /**
+     * Constructor for lazy bean resolution via ObjectProviders with optional
+     * secrets injector.
+     *
+     * @param expressionHandlerProvider provider for the expression handler
+     * @param mapperProvider provider for the object mapper
+     * @param defaultsProvider provider for granted authority defaults
+     * @param applicationContext the application context
+     * @param secretsInjector optional injector for subscription secrets
+     */
+    public AuthorizationSubscriptionBuilderService(
+            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+            ObjectProvider<ObjectMapper> mapperProvider,
+            ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+            ApplicationContext applicationContext,
+            @Nullable SubscriptionSecretsInjector secretsInjector) {
         this.expressionHandlerProvider = expressionHandlerProvider;
         this.mapperProvider            = mapperProvider;
         this.defaultsProvider          = defaultsProvider;
         this.applicationContext        = applicationContext;
+        this.secretsInjector           = secretsInjector;
     }
 
     /**
@@ -318,12 +354,25 @@ public class AuthorizationSubscriptionBuilderService {
         val action      = retrieveAction(methodInvocation, actionExpr, evaluationCtx, httpRequest);
         val resource    = retrieveResource(methodInvocation, resourceExpr, evaluationCtx, httpRequest, domainType);
         val environment = retrieveEnvironment(environmentExpr, evaluationCtx);
-        val secrets     = retrieveSecrets(secretsExpr, evaluationCtx);
+        val secrets     = retrieveSecrets(authentication, secretsExpr, evaluationCtx);
 
         return new AuthorizationSubscription(fromJsonNode(subject), action, resource,
                 environment != null ? fromJsonNode(mapper().valueToTree(environment)) : Value.UNDEFINED, secrets);
     }
 
+    /**
+     * Retrieves the subject for the authorization subscription. When no explicit
+     * subject expression is provided, serializes the authentication object and
+     * strips sensitive fields:
+     * <ul>
+     * <li>{@code credentials} - removed from the root authentication object</li>
+     * <li>{@code token.tokenValue} - raw encoded token removed from token
+     * object</li>
+     * <li>{@code principal.password} - password removed from principal</li>
+     * <li>{@code principal.tokenValue} - raw encoded token removed from
+     * principal</li>
+     * </ul>
+     */
     private JsonNode retrieveSubject(Authentication authentication, Expression subjectExpr, EvaluationContext ctx) {
         if (subjectExpr != null) {
             return evaluateToJson(subjectExpr, ctx);
@@ -331,9 +380,11 @@ public class AuthorizationSubscriptionBuilderService {
 
         ObjectNode subject = mapper().valueToTree(authentication);
         subject.remove("credentials");
+        stripTokenValue(subject.get("token"));
         val principal = subject.get("principal");
         if (principal instanceof ObjectNode objectPrincipal) {
             objectPrincipal.remove("password");
+            objectPrincipal.remove("tokenValue");
         }
 
         return subject;
@@ -401,16 +452,25 @@ public class AuthorizationSubscriptionBuilderService {
         return evaluateToJson(environmentExpr, ctx);
     }
 
-    private ObjectValue retrieveSecrets(Expression secretsExpr, EvaluationContext ctx) {
-        if (secretsExpr == null) {
-            return Value.EMPTY_OBJECT;
+    private static void stripTokenValue(JsonNode node) {
+        if (node instanceof ObjectNode objectNode) {
+            objectNode.remove("tokenValue");
         }
-        val result = evaluateToJson(secretsExpr, ctx);
-        val value  = fromJsonNode(result);
-        if (value instanceof ObjectValue ov) {
-            return ov;
+    }
+
+    private ObjectValue retrieveSecrets(Authentication authentication, Expression secretsExpr, EvaluationContext ctx) {
+        if (secretsExpr != null) {
+            val result = evaluateToJson(secretsExpr, ctx);
+            val value  = fromJsonNode(result);
+            if (value instanceof ObjectValue ov) {
+                return ov;
+            }
+            throw new IllegalArgumentException(ERROR_SECRETS_MUST_BE_OBJECT + value.getClass().getSimpleName());
         }
-        throw new IllegalArgumentException(ERROR_SECRETS_MUST_BE_OBJECT + value.getClass().getSimpleName());
+        if (secretsInjector != null) {
+            return secretsInjector.injectSecrets(authentication);
+        }
+        return Value.EMPTY_OBJECT;
     }
 
     private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {

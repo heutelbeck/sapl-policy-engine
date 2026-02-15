@@ -4589,11 +4589,6 @@
     "queryAllDeclaredMethods": true
   },
   {
-    "name": "io.sapl.functions.libraries.JWTFunctionLibrary",
-    "allDeclaredMethods": true,
-    "queryAllDeclaredMethods": true
-  },
-  {
     "name": "io.sapl.functions.libraries.KeysFunctionLibrary",
     "allDeclaredMethods": true,
     "queryAllDeclaredMethods": true

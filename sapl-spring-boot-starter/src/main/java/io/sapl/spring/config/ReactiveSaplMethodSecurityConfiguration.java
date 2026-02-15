@@ -25,6 +25,7 @@ import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.SubscriptionSecretsInjector;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -114,8 +115,10 @@ public final class ReactiveSaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
-        return new AuthorizationSubscriptionBuilderService(resolveExpressionHandler(), mapper);
+    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+            ObjectProvider<SubscriptionSecretsInjector> secretsInjectorProvider) {
+        return new AuthorizationSubscriptionBuilderService(resolveExpressionHandler(), mapper,
+                secretsInjectorProvider.getIfAvailable());
     }
 
     @Bean

@@ -21,51 +21,71 @@ import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPublicKey;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Optional;
 
+import javax.crypto.spec.SecretKeySpec;
+
 @UtilityClass
 public class JWTEncodingDecodingUtils {
 
+    private static final String[] ASYMMETRIC_ALGORITHMS = { "RSA", "EC", "EdDSA" };
+
     /**
-     * Converts a Base64-encoded X509 key to an RSA public key.
+     * Converts a Base64-encoded X509 key to a public key. Attempts RSA, EC, then
+     * EdDSA.
      *
      * @param encodedKey the Base64-encoded key
-     * @return the RSA public key, or empty if conversion fails
+     * @return the public key, or empty if conversion fails
      */
-    static Optional<RSAPublicKey> encodedX509ToRSAPublicKey(String encodedKey) {
+    static Optional<Key> encodedX509ToPublicKey(String encodedKey) {
         return decode(encodedKey).map(X509EncodedKeySpec::new).flatMap(JWTEncodingDecodingUtils::generatePublicKey);
     }
 
     /**
-     * Extracts an RSA public key from a JSON text node.
+     * Decodes a Base64-encoded string into bytes and wraps them as an HMAC secret
+     * key.
      *
-     * @param jsonNode the JSON node containing the key
-     * @return the RSA public key, or empty if extraction fails
+     * @param encodedKey the Base64-encoded symmetric key
+     * @return the secret key, or empty if decoding fails
      */
-    public static Optional<RSAPublicKey> jsonNodeToKey(JsonNode jsonNode) {
-        if (!jsonNode.isString())
-            return Optional.empty();
-
-        return encodedX509ToRSAPublicKey(jsonNode.asString());
+    static Optional<Key> encodedToSecretKey(String encodedKey) {
+        return decode(encodedKey).map(bytes -> new SecretKeySpec(bytes, "HMAC"));
     }
 
     /**
-     * decodes a Base64 encoded string into bytes
+     * Extracts a key from a JSON text node. Tries asymmetric (X509) first,
+     * then falls back to symmetric (HMAC). This order is safe because X509
+     * has well-defined ASN.1 structure that raw bytes never accidentally
+     * match.
      *
-     * @param base64
-     * encoded string
+     * @param jsonNode the JSON node containing the key
+     * @return the key, or empty if extraction fails
+     */
+    public static Optional<Key> jsonNodeToKey(JsonNode jsonNode) {
+        if (!jsonNode.isString())
+            return Optional.empty();
+
+        val encoded    = jsonNode.asString();
+        val asymmetric = encodedX509ToPublicKey(encoded);
+        if (asymmetric.isPresent())
+            return asymmetric;
+        return encodedToSecretKey(encoded);
+    }
+
+    /**
+     * Decodes a Base64 encoded string into bytes.
      *
+     * @param base64 encoded string
      * @return bytes
      */
     private static Optional<byte[]> decode(String base64) {
-
-        // ensure base64url encoding
         val pattern = "\\+";
         base64 = base64.replace(pattern, "-").replace('/', '_').replace(',', '_');
 
@@ -78,21 +98,22 @@ public class JWTEncodingDecodingUtils {
     }
 
     /**
-     * generates an RSAPublicKey from an X509EncodedKeySpec
+     * Generates a public key from an X509EncodedKeySpec. Tries RSA, EC, then EdDSA.
      *
-     * @param x509Key
-     * an X509EncodedKeySpec object
-     *
-     * @return the RSAPublicKey object
+     * @param x509Key an X509EncodedKeySpec object
+     * @return the public key
      */
-    private static Optional<RSAPublicKey> generatePublicKey(X509EncodedKeySpec x509Key) {
-        try {
-            val kf        = KeyFactory.getInstance("RSA");
-            val publicKey = (RSAPublicKey) kf.generatePublic(x509Key);
-            return Optional.of(publicKey);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            return Optional.empty();
+    private static Optional<Key> generatePublicKey(X509EncodedKeySpec x509Key) {
+        for (val algorithm : ASYMMETRIC_ALGORITHMS) {
+            try {
+                val kf        = KeyFactory.getInstance(algorithm);
+                val publicKey = (PublicKey) kf.generatePublic(x509Key);
+                return Optional.of(publicKey);
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException | ClassCastException e) {
+                // try next algorithm
+            }
         }
+        return Optional.empty();
     }
 
 }

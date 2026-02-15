@@ -8,3 +8,4 @@ io.sapl.spring.pdp.embedded.PdpHealthIndicatorAutoConfiguration
 io.sapl.spring.data.config.SaplSpringDataCommonAutoConfiguration
 io.sapl.spring.data.r2dbc.config.SaplR2dbcAutoConfiguration
 io.sapl.spring.data.mongo.config.SaplMongoReactiveAutoConfiguration
+io.sapl.spring.config.JwtSecretsAutoConfiguration

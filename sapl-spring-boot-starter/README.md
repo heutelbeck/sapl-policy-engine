@@ -550,6 +550,73 @@ The full list of remote PDP properties:
 
 You must configure exactly one authentication method: either `key` and `secret` together, or `api-key` alone.
 
+### JWT Token Injection
+
+When your application is an OAuth2 resource server using Spring Security's JWT support, SAPL can automatically inject the bearer token into authorization subscription secrets. This allows the JWT PIP to validate tokens and extract claims in policies via `<jwt.token>`.
+
+**Why this is opt-in:** Passing a bearer token across the PEP/PDP boundary is a deliberate security trade-off. The token is placed into `subscriptionSecrets`, which is never exposed to policy evaluation, never appears in logs or `toString()` output, and is only accessible to PIPs via the `AttributeAccessContext`. However, it does cross a trust boundary, so it requires explicit activation.
+
+```properties
+# Enable automatic JWT bearer token injection (default: false)
+io.sapl.jwt.inject-token=true
+
+# Key name under which the token is stored in subscription secrets (default: jwt)
+# Must match the secretsKey in pdp.json JWT PIP configuration
+io.sapl.jwt.secrets-key=jwt
+```
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `io.sapl.jwt.inject-token` | `false` | Inject the raw encoded JWT from `JwtAuthenticationToken` into subscription secrets |
+| `io.sapl.jwt.secrets-key` | `jwt` | Key name in subscription secrets. Must match the `secretsKey` configured in the JWT PIP section of `pdp.json` |
+
+This auto-configuration activates only when both conditions are met:
+1. `io.sapl.jwt.inject-token=true` is set in application properties
+2. `spring-security-oauth2-resource-server` is on the classpath (providing `JwtAuthenticationToken`)
+
+Once enabled, every authorization subscription built from `@PreEnforce`, `@PostEnforce`, or `@QueryEnforce` annotations will automatically include the bearer token in its secrets when the authenticated principal is a `JwtAuthenticationToken`. For other authentication types, no token is injected.
+
+If a `@PreEnforce` annotation also specifies an explicit `secrets` SpEL expression, the SpEL expression takes precedence and the auto-injected token is not used.
+
+Policies can then use the JWT PIP to validate and inspect the token securely:
+
+```
+policy "require valid token with admin scope"
+permit
+    <jwt.token>.valid;
+    "admin" in <jwt.token>.payload.scope
+```
+
+The corresponding `pdp.json` configures the JWT PIP with public key resolution:
+
+```json
+{
+  "variables": {
+    "jwt": {
+      "secretsKey": "jwt",
+      "publicKeyServer": {
+        "uri": "http://auth-server:9000/public-key/{kid}",
+        "method": "GET",
+        "keyCachingTtlMillis": 300000
+      }
+    }
+  }
+}
+```
+
+### Subject Field Stripping
+
+When no explicit `subject` expression is provided in `@PreEnforce` or `@PostEnforce`, SAPL serializes the full `Authentication` object as the subject. To prevent accidental credential leakage, the following fields are automatically stripped from the default subject serialization:
+
+| Field | Description |
+|-------|-------------|
+| `credentials` | Removed from the root authentication object |
+| `token.tokenValue` | Raw encoded token removed from token object (e.g., JWT bearer token) |
+| `principal.password` | Password removed from the principal object |
+| `principal.tokenValue` | Raw encoded token removed from the principal object |
+
+This stripping applies only to the default subject construction. If you provide an explicit `subject` SpEL expression, no stripping occurs and you are responsible for excluding sensitive fields.
+
 ## Health Indicator
 
 When Spring Boot Actuator is on the classpath and the embedded PDP is enabled, SAPL automatically registers a health indicator at `/actuator/health`. It reports the operational status of all configured PDP instances.

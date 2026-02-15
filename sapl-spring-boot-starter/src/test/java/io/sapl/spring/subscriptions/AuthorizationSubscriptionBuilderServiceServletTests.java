@@ -334,6 +334,55 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     }
 
     @Nested
+    @DisplayName("Subject token stripping")
+    class SubjectTokenStrippingTests {
+
+        @Test
+        @DisplayName("when JwtAuthenticationToken, then tokenValue is stripped from subject.token and subject.principal")
+        void whenJwtAuthentication_thenTokenValueStrippedFromSubject() {
+            var jwt           = new org.springframework.security.oauth2.jwt.Jwt(
+                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", java.time.Instant.now(),
+                    java.time.Instant.now().plusSeconds(3600), java.util.Map.of("alg", "RS256"),
+                    java.util.Map.of("sub", "user"));
+            var jwtAuth       = new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(
+                    jwt, AuthorityUtils.createAuthorityList("ROLE_USER"));
+            val attribute     = attribute(null, null, null, null, Object.class);
+            val subscription  = defaultWebBuilderUnderTest.constructAuthorizationSubscription(jwtAuth, invocation,
+                    attribute);
+            val subject       = toJson(subscription.subject());
+            val tokenNode     = subject.get("token");
+            val principalNode = subject.get("principal");
+
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(tokenNode).isNotNull();
+            assertThat(tokenNode.has("tokenValue")).isFalse();
+            assertThat(principalNode).isNotNull();
+            assertThat(principalNode.has("tokenValue")).isFalse();
+            assertThat(principalNode.has("claims")).isTrue();
+        }
+
+        @Test
+        @DisplayName("when JwtAuthenticationToken without injector then secrets are empty and token stripped")
+        void whenJwtAuthWithoutInjectorThenSecretsEmptyAndTokenStripped() {
+            var jwt          = new org.springframework.security.oauth2.jwt.Jwt(
+                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", java.time.Instant.now(),
+                    java.time.Instant.now().plusSeconds(3600), java.util.Map.of("alg", "RS256"),
+                    java.util.Map.of("sub", "user"));
+            var jwtAuth      = new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(
+                    jwt, AuthorityUtils.createAuthorityList("ROLE_USER"));
+            val attribute    = attribute(null, null, null, null, Object.class);
+            val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(jwtAuth, invocation,
+                    attribute);
+            val subject      = toJson(subscription.subject());
+
+            assertThat(subscription.secrets()).isEqualTo(Value.EMPTY_OBJECT);
+            assertThat(subject.get("token").has("tokenValue")).isFalse();
+            assertThat(subject.get("principal").has("tokenValue")).isFalse();
+        }
+
+    }
+
+    @Nested
     @DisplayName("Secrets handling")
     class SecretsTests {
 
@@ -364,6 +413,40 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
             assertThatThrownBy(() -> defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                     invocation, attribute)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Secrets expression must evaluate to an object");
+        }
+
+        @Test
+        @DisplayName("when injector wired then injector output appears in subscription secrets")
+        void whenInjectorWiredThenSecretsContainInjectorOutput() {
+            val injector = new SubscriptionSecretsInjector() {
+                             @Override
+                             public io.sapl.api.model.ObjectValue injectSecrets(Authentication auth) {
+                                 return io.sapl.api.model.ObjectValue.builder().put("jwt", Value.of("test-token"))
+                                         .build();
+                             }
+                         };
+            val sut      = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+                    mapper, injector);
+            val attr     = attribute(null, null, null, null, Object.class);
+            val sub      = sut.constructAuthorizationSubscription(authentication, invocation, attr);
+            assertThat(sub.secrets()).containsEntry("jwt", new TextValue("test-token"));
+        }
+
+        @Test
+        @DisplayName("when SpEL secrets expression set then takes precedence over injector")
+        void whenSpelSecretsThenPrecedenceOverInjector() {
+            val injector = new SubscriptionSecretsInjector() {
+                             @Override
+                             public io.sapl.api.model.ObjectValue injectSecrets(Authentication auth) {
+                                 return io.sapl.api.model.ObjectValue.builder().put("jwt", Value.of("injected"))
+                                         .build();
+                             }
+                         };
+            val sut      = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+                    mapper, injector);
+            val attr     = attributeWithSecrets(null, null, null, null, "{jwt: 'spel-value'}", Object.class);
+            val sub      = sut.constructAuthorizationSubscription(authentication, invocation, attr);
+            assertThat(sub.secrets()).containsEntry("jwt", new TextValue("spel-value"));
         }
 
     }

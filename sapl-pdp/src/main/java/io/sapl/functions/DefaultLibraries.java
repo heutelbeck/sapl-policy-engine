@@ -26,7 +26,7 @@ import io.sapl.functions.libraries.EncodingFunctionLibrary;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.GraphFunctionLibrary;
 import io.sapl.functions.libraries.GraphQLFunctionLibrary;
-import io.sapl.functions.libraries.JWTFunctionLibrary;
+
 import io.sapl.functions.libraries.JsonFunctionLibrary;
 import io.sapl.functions.libraries.KeysFunctionLibrary;
 import io.sapl.functions.libraries.MacFunctionLibrary;
@@ -73,7 +73,7 @@ public class DefaultLibraries {
             GraphFunctionLibrary.class,
             GraphQLFunctionLibrary.class,
             JsonFunctionLibrary.class,
-            JWTFunctionLibrary.class,
+
             KeysFunctionLibrary.class,
             MacFunctionLibrary.class,
             MathFunctionLibrary.class,

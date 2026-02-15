@@ -21,9 +21,12 @@ import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 
 @UtilityClass
@@ -64,6 +67,28 @@ public class Base64DataUtil {
     public static KeyPair generateRSAKeyPair() {
         val keyGen = KeyPairGenerator.getInstance("RSA");
         return keyGen.genKeyPair();
+    }
+
+    /**
+     * @return an EC key pair using P-256 curve
+     */
+    @SneakyThrows
+    public static KeyPair generateECKeyPair() {
+        val keyGen = KeyPairGenerator.getInstance("EC");
+        keyGen.initialize(new ECGenParameterSpec("secp256r1"));
+        return keyGen.generateKeyPair();
+    }
+
+    /**
+     * @param keyLengthBytes the key length in bytes (32 for HS256, 48 for HS384, 64
+     * for HS512)
+     * @return a random HMAC secret key
+     */
+    @SneakyThrows
+    public static SecretKey generateHmacKey(int keyLengthBytes) {
+        val keyGen = KeyGenerator.getInstance("HmacSHA256");
+        keyGen.init(keyLengthBytes * 8);
+        return keyGen.generateKey();
     }
 
 }

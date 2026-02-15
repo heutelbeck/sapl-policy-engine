@@ -18,12 +18,15 @@
 package io.sapl.attributes.libraries;
 
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
+import com.nimbusds.jose.proc.JWSVerifierFactory;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -32,42 +35,77 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
-import java.security.interfaces.RSAPublicKey;
+import java.security.Key;
 import java.text.ParseException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.function.Function;
 
 /**
  * Policy Information Point for validating and monitoring JSON Web Tokens.
- * Attributes depend on the JWT's validity,
- * meaning they can change their state over time according to the JWT's
- * signature, maturity, and expiration. Public keys
- * must be fetched from the trusted authentication server for validating
- * signatures. For this purpose, the URL and HTTP
- * method for fetching public keys need to be specified in the pdp.json
- * configuration file.
+ * <p>
+ * Tokens are read from subscription secrets for security. Public key
+ * configuration is read from policy variables. The PIP supports all standard
+ * JWS algorithms (RSA, EC, HMAC) via Nimbus DefaultJWSVerifierFactory.
  */
 @Slf4j
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION, pipDocumentation = JWTPolicyInformationPoint.DOCUMENTATION)
 public class JWTPolicyInformationPoint {
 
-    public static final String JWT_KEY                  = "jwt";
-    public static final String NAME                     = JWT_KEY;
-    public static final String DESCRIPTION              = "Policy Information Point for validating and monitoring JSON Web Tokens (JWT). Attributes update automatically based on token lifecycle events such as maturity and expiration.";
-    public static final String PUBLIC_KEY_VARIABLES_KEY = "publicKeyServer";
-    public static final String WHITELIST_VARIABLES_KEY  = "whitelist";
+    public static final String CLOCK_SKEW_SECONDS_KEY         = "clockSkewSeconds";
+    public static final String JWT_KEY                        = "jwt";
+    public static final String MAX_TOKEN_LIFETIME_SECONDS_KEY = "maxTokenLifetimeSeconds";
+    public static final String NAME                           = JWT_KEY;
+    public static final String DESCRIPTION                    = "Policy Information Point for validating and monitoring JSON Web Tokens (JWT). Tokens are read securely from subscription secrets. Attributes update automatically based on token lifecycle events such as maturity and expiration.";
+    public static final String SECRETS_KEY                    = "secretsKey";
+    public static final String PUBLIC_KEY_VARIABLES_KEY       = "publicKeyServer";
+    public static final String WHITELIST_VARIABLES_KEY        = "whitelist";
+
+    static final long DEFAULT_CLOCK_SKEW_SECONDS   = 0L;
+    static final long MAX_REASONABLE_EPOCH_SECONDS = 253_402_300_799L;
 
     public static final String DOCUMENTATION = """
             This Policy Information Point validates JSON Web Tokens and monitors their validity state over time.
 
-            JWT tokens are validated against multiple criteria:
+            JWT tokens are read securely from subscription secrets, never from the policy evaluation context.
+            Public key configuration is read from policy variables.
+
+            **Token Access**
+
+            Use the `<jwt.token>` environment attribute to access token data:
+
+            ```sapl
+            policy "require valid jwt"
+            permit
+              <jwt.token>.valid;
+
+            policy "role check"
+            permit action == "admin:action";
+              "admin" in <jwt.token>.payload.roles;
+              <jwt.token>.validity == "VALID";
+            ```
+
+            The attribute returns an object with:
+            * `header`: Decoded JWT header (algorithm, key ID, etc.)
+            * `payload`: Decoded JWT payload with time claims converted to ISO-8601
+            * `valid`: Boolean indicating current validity
+            * `validity`: Detailed validity state string
 
             **Signature Verification**
 
-            Tokens must be signed with RS256 algorithm. Public keys for signature verification are sourced from:
-            * A whitelist of trusted public keys configured in policy variables
+            Tokens are verified against all standard JWS algorithms:
+            * RSA: RS256, RS384, RS512, PS256, PS384, PS512
+            * ECDSA: ES256, ES384, ES512
+            * HMAC: HS256, HS384, HS512
+
+            Public keys for signature verification are sourced from:
+            * A whitelist of trusted keys configured in policy variables
             * A remote key server that provides public keys on demand
 
             **Time-based Validation**
@@ -76,42 +114,41 @@ public class JWTPolicyInformationPoint {
             * `nbf` (not before): Token becomes valid at this timestamp
             * `exp` (expiration): Token becomes invalid at this timestamp
 
-            Validity states transition automatically as time progresses, triggering policy re-evaluation when
-            tokens become mature or expire.
+            Validity states transition automatically, triggering policy re-evaluation.
 
             **Configuration**
 
-            Configure the JWT PIP through policy variables in `pdp.json`:
+            Configure through policy variables in `pdp.json`:
 
             ```json
             {
-              "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" },
               "variables": {
                 "jwt": {
+                  "secretsKey": "jwt",
+                  "clockSkewSeconds": 60,
                   "publicKeyServer": {
                     "uri": "http://authz-server:9000/public-key/{id}",
-                    "method": "POST",
+                    "method": "GET",
                     "keyCachingTtlMillis": 300000
                   },
                   "whitelist": {
-                    "key-id-1": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...",
-                    "key-id-2": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEB..."
+                    "key-id-1": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA..."
                   }
                 }
               }
             }
             ```
 
-            **Public Key Server Configuration**
+            The `secretsKey` field specifies which key in subscription secrets holds the JWT token.
+            Defaults to `"jwt"` if omitted.
 
-            * `uri`: URL template for fetching public keys. Use `{id}` placeholder for key ID
-            * `method`: HTTP method for requests (GET or POST). Defaults to GET if omitted
-            * `keyCachingTtlMillis`: Cache duration for retrieved keys in milliseconds. Defaults to 300000 (5 minutes)
+            The `clockSkewSeconds` field specifies clock skew tolerance in seconds for time claim
+            validation (RFC 7519 recommends allowing some leeway). Defaults to 0 (exact comparison)
+            if omitted. Set to 60 for typical server deployments.
 
-            **Whitelist Configuration**
-
-            The whitelist maps key IDs to Base64-encoded public keys. Whitelisted keys take precedence over
-            the key server. Keys must be Base64 URL-safe encoded X.509 SubjectPublicKeyInfo structures.
+            The `maxTokenLifetimeSeconds` field specifies the maximum allowed token lifetime in seconds.
+            If set and the token's lifetime (`exp` minus `iat`, or `exp` minus now if `iat` is absent)
+            exceeds this value, the token is treated as `NEVER_VALID`. Defaults to 0 (disabled) if omitted.
 
             **Validity States**
 
@@ -120,257 +157,241 @@ public class JWTPolicyInformationPoint {
             * `IMMATURE`: Token has not yet reached its not-before time
             * `NEVER_VALID`: Token's not-before time is after its expiration time
             * `UNTRUSTED`: Signature verification failed or public key unavailable
-            * `INCOMPATIBLE`: Token uses unsupported algorithm or has critical parameters
+            * `INCOMPATIBLE`: Token has critical header parameters
             * `INCOMPLETE`: Required claims (key ID) are missing
             * `MALFORMED`: Token is not a valid JWT structure
+            * `MISSING_TOKEN`: No token found under the configured secrets key
 
-            **Access Control Examples**
+            **Limitations**
 
-            Basic token validation:
-            ```sapl
-            policy "require_valid_jwt"
-            permit
-              var token = subject.jwt;
-              token.<jwt.valid>;
-            ```
-
-            Check specific validity state:
-            ```sapl
-            policy "allow_immature_tokens_for_testing"
-            permit action == "test:access";
-              var token = subject.jwt;
-              var state = token.<jwt.validity>;
-              state == "VALID" || state == "IMMATURE";
-            ```
-
-            Grant access only when token is valid, deny when expired:
-            ```sapl
-            policy "time_sensitive_access"
-            permit action == "document:read";
-              var token = subject.credentials.bearer;
-              var state = token.<jwt.validity>;
-              state == "VALID";
-
-            obligation
-              {
-                "type": "logAccess",
-                "tokenState": state
-              }
-            ```
-
-            Reject untrusted or tampered tokens:
-            ```sapl
-            policy "reject_untrusted_tokens"
-            deny
-              var token = subject.jwt;
-              var state = token.<jwt.validity>;
-              state == "UNTRUSTED" || state == "MALFORMED";
-            ```
-
-            **Reactive Behavior**
-
-            The validity attributes are reactive streams that emit new values when the token's state changes.
-            This triggers automatic policy re-evaluation without requiring the client to re-submit requests.
-
-            Example timeline for a token with nbf=now+10s and exp=now+30s:
-            * t=0s: Emits IMMATURE
-            * t=10s: Emits VALID (policy re-evaluated)
-            * t=30s: Emits EXPIRED (policy re-evaluated)
+            * Only JWS (JSON Web Signature, RFC 7515) tokens are supported. JWE (JSON Web
+              Encryption, RFC 7516) tokens are not supported. JWE encrypts the token payload
+              for confidentiality and uses a fundamentally different structure (5 parts instead
+              of 3) requiring private decryption keys. Attempting to use a JWE token will
+              result in `MALFORMED` validity state. JWE adoption is low as most deployments
+              rely on TLS for transport confidentiality.
+            * Token revocation is not checked. JWTs are validated statelessly based on
+              cryptographic signature and time claims only. A revoked token remains valid
+              from this PIP's perspective until it expires. Applications requiring revocation
+              checks should use OAuth2 Token Introspection (RFC 7662) at the application
+              layer or a dedicated introspection PIP.
+            * Audience (`aud`) and issuer (`iss`) claims are not validated by the PIP.
+              These are exposed in `<jwt.token>.payload` for policy authors to check
+              directly in policy conditions.
             """;
 
-    private static final String ERROR_JWT_CONFIG_MISSING = "The key 'jwt' with the configuration of public key server and key whitelist. All JWT tokens will be treated as if the signatures could not be validated.";
+    private static final String ERROR_JWT_CONFIG_MISSING = "The key 'jwt' with the configuration of public key server and key whitelist is missing from variables. All JWT tokens will be treated as if the signatures could not be validated.";
+
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
+    private static final JsonMapper      MAPPER = JsonMapper.builder().build();
+
+    private static final JWSVerifierFactory VERIFIER_FACTORY = new DefaultJWSVerifierFactory();
 
     /**
-     * Possible states of validity a JWT can have
+     * Possible states of validity a JWT can have.
      */
     public enum ValidityState {
-        /**
-         * The JWT is valid
-         */
+        /** The JWT is valid. */
         VALID,
-        /**
-         * The JWT has expired
-         */
+        /** The JWT has expired. */
         EXPIRED,
-        /**
-         * The JWT expires before it becomes valid, so it is never valid
-         */
+        /** The JWT expires before it becomes valid, so it is never valid. */
         NEVER_VALID,
-        /**
-         * The JWT will become valid in future
-         */
+        /** The JWT will become valid in the future. */
         IMMATURE,
-        /**
-         * The JWT's signature does not match. Either the payload has been tampered
-         * with, the public key could not be
-         * obtained, or the public key does not match the signature
-         */
+        /** The JWT's signature does not match. */
         UNTRUSTED,
-        /**
-         * The JWT is incompatible. Either an incompatible hashing algorithm has been
-         * used or required fields do not
-         * have the correct format
-         */
+        /** The JWT has critical header parameters. */
         INCOMPATIBLE,
-        /**
-         * The JWT is missing required fields
-         */
+        /** The JWT is missing required fields. */
         INCOMPLETE,
-        /**
-         * The token is not a JWT
-         */
-        MALFORMED
+        /** The token is not a JWT. */
+        MALFORMED,
+        /** No token was found under the configured secrets key. */
+        MISSING_TOKEN
     }
 
     private final JWTKeyProvider keyProvider;
 
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param jwtKeyProvider
-     * a JWTKeyProvider
+     * @param jwtKeyProvider a JWTKeyProvider
      */
     public JWTPolicyInformationPoint(JWTKeyProvider jwtKeyProvider) {
         this.keyProvider = jwtKeyProvider;
     }
 
     /**
-     * Checks the validity of a JWT token. Will update based on validity times of
-     * the token.
+     * Reads a JWT from subscription secrets using the configured default key and
+     * returns a reactive stream of token data including header, payload, validity
+     * state, and a boolean valid flag.
      *
-     * @param rawToken a raw JWT Token
      * @param ctx the attribute access context
-     * @return a TRUE Value, iff the token is valid.
+     * @return a reactive stream of ObjectValue containing token data
      */
-    @Attribute(docs = """
-            ```(TEXT jwt).<valid>``` validates a JWT token and returns true if the token is currently valid.
+    @EnvironmentAttribute(docs = """
+            ```<jwt.token>``` reads a JWT from subscription secrets using the configured default secrets key
+            and returns an object containing the decoded token data and its current validity state.
 
-            This attribute takes the JWT token as the left-hand input and returns a boolean stream that
-            updates automatically as the token transitions between validity states.
+            The returned object has the structure:
+            ```json
+            {
+              "header": { "kid": "key-1", "alg": "RS256" },
+              "payload": { "sub": "user123", "roles": ["admin"], "exp": "2026-02-15T..." },
+              "valid": true,
+              "validity": "VALID"
+            }
+            ```
 
-            A token is considered valid when:
-            * Signature verification succeeds with a trusted public key
-            * Current time is within the token's validity period (after nbf, before exp)
-            * Token structure and claims meet requirements (RS256 algorithm, key ID present)
+            Time claims (nbf, exp, iat) are converted from epoch seconds to ISO-8601 timestamps.
 
-            The attribute returns `true` only when the validity state is VALID. All other states
-            (EXPIRED, IMMATURE, UNTRUSTED, etc.) result in `false`.
+            The stream re-emits automatically when the token transitions between validity states
+            (IMMATURE -> VALID -> EXPIRED).
 
             Example:
             ```sapl
-            policy "api_access"
-            permit action == "api:call";
-              var token = subject.credentials.bearer;
-              token.<jwt.valid>;
+            policy "require valid jwt"
+            permit
+              <jwt.token>.valid;
             ```
 
-            Example with token extracted from authorization header:
+            Example with claims:
             ```sapl
-            policy "rest_api_access"
-            permit action.http.method == "GET";
-              var authHeader = resource.http.headers.Authorization;
-              var token = authHeader.substring(7);
-              token.<jwt.valid>;
+            policy "admin access"
+            permit action == "admin:action";
+              "admin" in <jwt.token>.payload.roles;
             ```
             """)
-    public Flux<Value> valid(TextValue rawToken, AttributeAccessContext ctx) {
-        return validityState(rawToken, ctx).map(ValidityState.VALID::equals).map(Value::of);
+    public Flux<Value> token(AttributeAccessContext ctx) {
+        val secretsKey = resolveSecretsKey(ctx);
+        return tokenFromSecrets(secretsKey, ctx);
     }
 
     /**
-     * A JWT's validity state over time. The validity may change over time as it
-     * becomes mature and then expires.
+     * Reads a JWT from subscription secrets using the specified key name and
+     * returns a reactive stream of token data.
      *
-     * @param rawToken object containing JWT
      * @param ctx the attribute access context
-     * @return Flux representing the JWT's validity over time
+     * @param secretsKeyName the key name in subscription secrets
+     * @return a reactive stream of ObjectValue containing token data
      */
-    @Attribute(docs = """
-            ```(TEXT jwt).<validity>``` returns the current validity state of a JWT token as a text value.
+    @EnvironmentAttribute(docs = """
+            ```<jwt.token(TEXT secretsKeyName)>``` reads a JWT from subscription secrets using the specified
+            key name and returns an object containing the decoded token data and its current validity state.
 
-            This attribute provides detailed information about why a token is or is not valid. The stream
-            emits new states as the token lifecycle progresses, enabling policies to react to state changes.
+            This overload allows reading tokens stored under a custom key in subscription secrets.
 
-            Possible return values:
-            * `VALID`: Token is currently valid and trusted
-            * `EXPIRED`: Token validity period has ended
-            * `IMMATURE`: Token validity period has not yet begun
-            * `NEVER_VALID`: Token configuration is invalid (nbf after exp)
-            * `UNTRUSTED`: Signature verification failed or key unavailable
-            * `INCOMPATIBLE`: Unsupported algorithm or critical parameters
-            * `INCOMPLETE`: Required claims missing (e.g., key ID)
-            * `MALFORMED`: Invalid JWT structure
-
-            Example checking for multiple acceptable states:
+            Example:
             ```sapl
-            policy "grace_period_access"
-            permit action == "service:use";
-              var token = subject.jwt;
-              var state = token.<jwt.validity>;
-              state == "VALID" || state == "IMMATURE";
-            ```
-
-            Example with state-specific obligations:
-            ```sapl
-            policy "monitored_access"
-            permit action == "resource:access";
-              var token = subject.credentials.jwt;
-              var state = token.<jwt.validity>;
-              state == "VALID" || state == "IMMATURE";
-
-            obligation
-              {
-                "type": "auditLog",
-                "tokenState": state,
-                "userId": token.<jwt.parseJwt>.payload.sub
-              }
-            ```
-
-            Example denying specific invalid states:
-            ```sapl
-            policy "deny_tampered_tokens"
-            deny
-              var token = subject.jwt;
-              var state = token.<jwt.validity>;
-              state == "UNTRUSTED" || state == "MALFORMED" || state == "INCOMPATIBLE";
-
-            obligation
-              {
-                "type": "securityAlert",
-                "reason": "Invalid token detected",
-                "state": state
-              }
-            ```
-
-            Example handling expiration gracefully:
-            ```sapl
-            policy "token_refresh_hint"
-            permit action == "api:call";
-              var token = subject.jwt;
-              var state = token.<jwt.validity>;
-              state == "VALID";
-
-            advice
-              {
-                "type": "tokenStatus",
-                "message": state == "VALID" ? "Token valid" : "Token refresh required"
-              }
+            policy "access token check"
+            permit
+              <jwt.token("accessToken")>.valid;
             ```
             """)
-    public Flux<Value> validity(TextValue rawToken, AttributeAccessContext ctx) {
-        return validityState(rawToken, ctx).map(Object::toString).map(Value::of);
+    public Flux<Value> token(AttributeAccessContext ctx, TextValue secretsKeyName) {
+        val key = secretsKeyName != null ? secretsKeyName.value() : JWT_KEY;
+        return tokenFromSecrets(key, ctx);
     }
 
-    private Flux<ValidityState> validityState(TextValue rawToken, AttributeAccessContext ctx) {
+    private String resolveSecretsKey(AttributeAccessContext ctx) {
+        val jwtConfig = ctx.variables().get(JWT_KEY);
+        if (jwtConfig instanceof ObjectValue jwtConfigObj) {
+            val secretsKeyValue = jwtConfigObj.get(SECRETS_KEY);
+            if (secretsKeyValue instanceof TextValue(var value)) {
+                return value;
+            }
+        }
+        return JWT_KEY;
+    }
 
-        if (null == rawToken)
-            return Flux.just(ValidityState.MALFORMED);
+    private long resolveClockSkewSeconds(AttributeAccessContext ctx) {
+        val jwtConfig = ctx.variables().get(JWT_KEY);
+        if (jwtConfig instanceof ObjectValue jwtConfigObj) {
+            val skewValue = jwtConfigObj.get(CLOCK_SKEW_SECONDS_KEY);
+            if (skewValue instanceof NumberValue(var value)) {
+                return value.longValue();
+            }
+        }
+        return DEFAULT_CLOCK_SKEW_SECONDS;
+    }
 
-        SignedJWT    signedJwt;
+    private long resolveMaxTokenLifetimeSeconds(AttributeAccessContext ctx) {
+        val jwtConfig = ctx.variables().get(JWT_KEY);
+        if (jwtConfig instanceof ObjectValue jwtConfigObj) {
+            val maxValue = jwtConfigObj.get(MAX_TOKEN_LIFETIME_SECONDS_KEY);
+            if (maxValue instanceof NumberValue(var value)) {
+                return value.longValue();
+            }
+        }
+        return 0L;
+    }
+
+    private Flux<Value> tokenFromSecrets(String secretsKey, AttributeAccessContext ctx) {
+        val tokenValue = ctx.subscriptionSecrets().get(secretsKey);
+
+        if (!(tokenValue instanceof TextValue(String value)))
+            return Flux.just(buildTokenValue(null, ValidityState.MISSING_TOKEN));
+
+        SignedJWT signedJwt;
+        try {
+            signedJwt = SignedJWT.parse(value);
+        } catch (ParseException e) {
+            return Flux.just(buildTokenValue(null, ValidityState.MALFORMED));
+        }
+
+        val parsedToken = extractParsedToken(signedJwt);
+        return validityState(signedJwt, ctx).map(state -> buildTokenValue(parsedToken, state));
+    }
+
+    private Value buildTokenValue(ParsedToken parsedToken, ValidityState state) {
+        val builder = ObjectValue.builder();
+
+        if (parsedToken != null) {
+            builder.put("header", parsedToken.header());
+            builder.put("payload", parsedToken.payload());
+        } else {
+            builder.put("header", Value.EMPTY_OBJECT);
+            builder.put("payload", Value.EMPTY_OBJECT);
+        }
+
+        builder.put("valid", Value.of(ValidityState.VALID == state));
+        builder.put("validity", Value.of(state.toString()));
+
+        return builder.build();
+    }
+
+    private record ParsedToken(Value header, Value payload) {}
+
+    private ParsedToken extractParsedToken(SignedJWT signedJwt) {
+        val payload = MAPPER.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+
+        ifPresentReplaceEpochFieldWithIsoTime(payload, "nbf");
+        ifPresentReplaceEpochFieldWithIsoTime(payload, "exp");
+        ifPresentReplaceEpochFieldWithIsoTime(payload, "iat");
+
+        val headerValue  = ValueJsonMarshaller
+                .fromJsonNode(MAPPER.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
+        val payloadValue = ValueJsonMarshaller.fromJsonNode(payload);
+        return new ParsedToken(headerValue, payloadValue);
+    }
+
+    private void ifPresentReplaceEpochFieldWithIsoTime(JsonNode payload, String key) {
+        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
+            return;
+
+        val epochSeconds = payload.get(key).asLong();
+        if (epochSeconds < 0 || epochSeconds > MAX_REASONABLE_EPOCH_SECONDS)
+            return;
+
+        val isoString = Instant.ofEpochSecond(epochSeconds).toString();
+        ((ObjectNode) payload).set(key, JSON.stringNode(isoString));
+    }
+
+    private Flux<ValidityState> validityState(SignedJWT signedJwt, AttributeAccessContext ctx) {
         JWTClaimsSet claims;
         try {
-            signedJwt = SignedJWT.parse(rawToken.value());
-            claims    = signedJwt.getJWTClaimsSet();
+            claims = signedJwt.getJWTClaimsSet();
         } catch (ParseException e) {
             return Flux.just(ValidityState.MALFORMED);
         }
@@ -381,18 +402,20 @@ public class JWTPolicyInformationPoint {
         if (!hasRequiredClaims(signedJwt))
             return Flux.just(ValidityState.INCOMPLETE);
 
+        val clockSkewSeconds        = resolveClockSkewSeconds(ctx);
+        val maxTokenLifetimeSeconds = resolveMaxTokenLifetimeSeconds(ctx);
         return validateSignature(signedJwt, ctx).flatMapMany(isValid -> {
 
-            if (Boolean.FALSE.equals(isValid))
+            if (!isValid)
                 return Flux.just(ValidityState.UNTRUSTED);
 
-            return validateTime(claims);
+            return validateTime(claims, clockSkewSeconds, maxTokenLifetimeSeconds);
         });
     }
 
     private Mono<Boolean> validateSignature(SignedJWT signedJwt, AttributeAccessContext ctx) {
 
-        val jwtConfig = ctx.pdpSecrets().get(JWT_KEY);
+        val jwtConfig = ctx.variables().get(JWT_KEY);
         if (!(jwtConfig instanceof ObjectValue jwtConfigObj)) {
             log.error(ERROR_JWT_CONFIG_MISSING);
             return Mono.just(Boolean.FALSE);
@@ -400,9 +423,9 @@ public class JWTPolicyInformationPoint {
 
         val keyId = signedJwt.getHeader().getKeyID();
 
-        Mono<RSAPublicKey> publicKey       = null;
-        val                whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
-        var                isFromWhitelist = false;
+        Mono<Key> publicKey       = null;
+        val       whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
+        var       isFromWhitelist = false;
         if (whitelist instanceof ObjectValue whitelistObj && whitelistObj.containsKey(keyId)) {
             val keyValue = whitelistObj.get(keyId);
             val key      = JWTEncodingDecodingUtils.jsonNodeToKey(ValueJsonMarshaller.toJsonNode(keyValue));
@@ -429,14 +452,13 @@ public class JWTPolicyInformationPoint {
         return publicKey.map(signatureOfTokenIsValid(keyId, signedJwt, isFromWhitelist)).defaultIfEmpty(Boolean.FALSE);
     }
 
-    private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(String keyId, SignedJWT signedJwt,
-            boolean isFromWhitelist) {
-        return publicKey -> {
-            val verifier = new RSASSAVerifier(publicKey);
+    private Function<Key, Boolean> signatureOfTokenIsValid(String keyId, SignedJWT signedJwt, boolean isFromWhitelist) {
+        return key -> {
             try {
-                val isValid = signedJwt.verify(verifier);
+                JWSVerifier verifier = VERIFIER_FACTORY.createJWSVerifier(signedJwt.getHeader(), key);
+                val         isValid  = signedJwt.verify(verifier);
                 if (isValid && !isFromWhitelist)
-                    keyProvider.cache(keyId, publicKey);
+                    keyProvider.cache(keyId, key);
                 return isValid;
             } catch (JOSEException e) {
                 return Boolean.FALSE;
@@ -444,78 +466,75 @@ public class JWTPolicyInformationPoint {
         };
     }
 
-    /**
-     * Verifies token validity based on time
-     *
-     * @param claims
-     * JWT claims
-     *
-     * @return Flux containing IMMATURE, VALID, and/or EXPIRED
-     */
-    private Flux<ValidityState> validateTime(JWTClaimsSet claims) {
+    private Flux<ValidityState> validateTime(JWTClaimsSet claims, long clockSkewSeconds, long maxTokenLifetimeSeconds) {
 
         val notBefore      = claims.getNotBeforeTime();
         val expirationTime = claims.getExpirationTime();
         val now            = new Date();
+        val skewMillis     = clockSkewSeconds * 1000L;
 
         if (null != notBefore && null != expirationTime && notBefore.getTime() > expirationTime.getTime())
             return Flux.just(ValidityState.NEVER_VALID);
 
-        if (null != expirationTime && expirationTime.getTime() < now.getTime()) {
+        if (maxTokenLifetimeSeconds > 0 && null != expirationTime) {
+            val issueTime         = claims.getIssueTime();
+            val referenceMillis   = null != issueTime ? issueTime.getTime() : now.getTime();
+            val lifetimeMillis    = expirationTime.getTime() - referenceMillis;
+            val maxLifetimeMillis = maxTokenLifetimeSeconds * 1000L;
+            if (lifetimeMillis > maxLifetimeMillis)
+                return Flux.just(ValidityState.NEVER_VALID);
+        }
+
+        val expWithSkew = null != expirationTime ? saturatingAdd(expirationTime.getTime(), skewMillis) : 0L;
+        val nbfWithSkew = null != notBefore ? notBefore.getTime() - skewMillis : 0L;
+
+        if (null != expirationTime && expWithSkew < now.getTime()) {
             return Flux.just(ValidityState.EXPIRED);
         }
 
-        if (null != notBefore && notBefore.getTime() > now.getTime()) {
+        if (null != notBefore && nbfWithSkew > now.getTime()) {
             if (null == expirationTime) {
-                return Flux.concat(Mono.just(ValidityState.IMMATURE), Mono.just(ValidityState.VALID)
-                        .delayElement(Duration.ofMillis(notBefore.getTime() - now.getTime())));
-            } else {
+                val nbfDelay = nbfWithSkew - now.getTime();
                 return Flux.concat(Mono.just(ValidityState.IMMATURE),
-                        Mono.just(ValidityState.VALID)
-                                .delayElement(Duration.ofMillis(notBefore.getTime() - now.getTime())),
-                        Mono.just(ValidityState.EXPIRED)
-                                .delayElement(Duration.ofMillis(expirationTime.getTime() - notBefore.getTime())));
+                        Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbfDelay)));
+            } else {
+                val nbfDelay = nbfWithSkew - now.getTime();
+                val expDelay = expWithSkew - nbfWithSkew;
+                return Flux.concat(Mono.just(ValidityState.IMMATURE),
+                        Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbfDelay)),
+                        Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(expDelay)));
             }
         }
 
         if (null == expirationTime) {
             return Flux.just(ValidityState.VALID);
         } else {
-            return Flux.concat(Mono.just(ValidityState.VALID), Mono.just(ValidityState.EXPIRED)
-                    .delayElement(Duration.ofMillis(expirationTime.getTime() - now.getTime())));
+            return validThenExpiredAfterDelay(expWithSkew - now.getTime());
         }
 
     }
 
-    /**
-     * Checks if token contains all required claims
-     *
-     * @param jwt
-     * base64 encoded header.body.signature triplet
-     *
-     * @return true if the token contains all required claims
-     */
-    private boolean hasRequiredClaims(SignedJWT jwt) {
+    private static Flux<ValidityState> validThenExpiredAfterDelay(long delayMillis) {
+        if (delayMillis > MAX_REASONABLE_EPOCH_SECONDS * 1000L)
+            return Flux.just(ValidityState.VALID);
+        return Flux.concat(Mono.just(ValidityState.VALID),
+                Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(delayMillis)));
+    }
 
+    private static long saturatingAdd(long a, long b) {
+        val result = a + b;
+        if (((a ^ result) & (b ^ result)) < 0)
+            return Long.MAX_VALUE;
+        return result;
+    }
+
+    private boolean hasRequiredClaims(SignedJWT jwt) {
         val keyId = jwt.getHeader().getKeyID();
         return null != keyId && !keyId.isBlank();
     }
 
-    /**
-     * Checks if claims meet requirements
-     *
-     * @param jwt
-     * JWT
-     *
-     * @return true all claims meet requirements
-     */
     private boolean hasCompatibleClaims(SignedJWT jwt) {
-
         val header = jwt.getHeader();
-
-        if (!"RS256".equalsIgnoreCase(header.getAlgorithm().getName()))
-            return false;
-
         return null == header.getCriticalParams();
     }
 
