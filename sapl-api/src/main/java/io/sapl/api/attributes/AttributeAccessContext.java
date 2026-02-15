@@ -33,6 +33,6 @@ public record AttributeAccessContext(
     }
 
     private String mask(ObjectValue secrets) {
-        return secrets.isEmpty() ? "SECRETS REDACTED" : "NO SECRETS";
+        return secrets.isEmpty() ? "NO SECRETS" : "SECRETS REDACTED";
     }
 }

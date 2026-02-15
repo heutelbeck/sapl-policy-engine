@@ -59,6 +59,7 @@ public record AuthorizationSubscription(
         @NonNull ObjectValue secrets) {
 
     private static final ObjectMapper DEFAULT_MAPPER = JsonMapper.builder().build();
+    private static final String SECRETS_KEY = "secrets";
     private static final Value SECRETS_REDACTED = Value.of("SECRETS REDACTED");
 
     /**
@@ -149,7 +150,7 @@ public record AuthorizationSubscription(
             asObject.put(ENVIRONMENT, environment);
         }
         if (!secrets.isEmpty()) {
-            asObject.put(ENVIRONMENT, SECRETS_REDACTED);
+            asObject.put(SECRETS_KEY, SECRETS_REDACTED);
         }
         return asObject.build().toString();
     }
