@@ -41,6 +41,13 @@ SAPL is a powerful policy language and engine for implementing ABAC. It comes wi
 
 For an explanation, overview, and documentation about the SAPL project look up our [website][website-url].
 
+## Compatibility
+
+| SAPL  | Java    | Spring Boot |
+|-------|---------|-------------|
+| 4.0.x | 21 - 25 | 4.0.x       |
+| 3.0.x | 17+     | 3.x         |
+
 <!-- GETTING STARTED -->
 ## Getting Started
 
@@ -53,8 +60,8 @@ To get started with integrating SAPL into your Java application, add the followi
 ```xml
 <dependency>
   <groupId>io.sapl</groupId>
-  <artifactId>sapl-pdp-embedded</artifactId>
-  <version>3.0.0</version>
+  <artifactId>sapl-pdp</artifactId>
+  <version>4.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -62,7 +69,7 @@ To get started with integrating SAPL into your Java application, add the followi
 
 ```gradle
 dependencies {
-  implementation 'io.sapl:sapl-pdp-embedded:3.0.0'
+  implementation 'io.sapl:sapl-pdp:4.0.0-SNAPHOT'
 }
 ```
 
@@ -151,7 +158,7 @@ After doing so, the projects now has access to the SAPL snapshot builds which ca
   <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-{package}</artifactId>
-    <version>3.0.0</version>
+    <version>4.0.0-SNAPSHOT</version>
   </dependency>
 </dependencies>
 ```
@@ -169,7 +176,7 @@ repositories {
 }
 
 dependencies {
-  implementation 'io.sapl:{package}3.0.0'
+  implementation 'io.sapl:{package}4.0.0-SNAPSHOT'
 }
 ```
 
