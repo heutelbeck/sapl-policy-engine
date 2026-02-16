@@ -184,7 +184,7 @@ public class MyPolicyInformationPoint {
             **Returns:** Flux of role values that updates on changes
             """
     )
-    public Flux<Value> userRole(Value userId, Map<String, Value> variables) {
+    public Flux<Value> userRole(Value userId, AttributeAccessContext ctx) {
         // implementation
     }
 

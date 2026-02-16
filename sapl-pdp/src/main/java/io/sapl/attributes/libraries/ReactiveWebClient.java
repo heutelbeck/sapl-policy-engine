@@ -85,7 +85,7 @@ public class ReactiveWebClient {
     public static final String  REPEAT_TIMES                                = "repetitions";
     public static final String  ACCEPT_MEDIATYPE                            = "accept";
     public static final String  CONTENT_MEDIATYPE                           = "contentType";
-    static final long           DEFAULT_POLLING_INTERVALL_MS                = 1000L;
+    static final long           DEFAULT_POLLING_INTERVAL_MS                 = 1000L;
     static final long           DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
 
     private static final int CONNECTION_TIMEOUT_SECONDS = 10;
@@ -114,7 +114,7 @@ public class ReactiveWebClient {
         val urlParameters      = toStringMap(
                 getFieldAsJsonNodeOrDefault(requestSettings, URL_PARAMS, JSON.objectNode()));
         val requestHeaders     = getFieldAsJsonNodeOrDefault(requestSettings, HEADERS, JSON.objectNode());
-        val pollingIntervallMs = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS);
+        val pollingIntervallMs = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL_MS);
         val repetitions        = longOrDefault(requestSettings, REPEAT_TIMES, DEFAULT_REPETITIONS);
         val accept             = toMediaType(
                 getFieldAsJsonNodeOrDefault(requestSettings, ACCEPT_MEDIATYPE, APPLICATION_JSON));
@@ -155,6 +155,8 @@ public class ReactiveWebClient {
     }
 
     /**
+     * Connects to a WebSocket endpoint and streams incoming messages as Values.
+     *
      * @param requestSettings
      * the request specification
      *
@@ -246,7 +248,7 @@ public class ReactiveWebClient {
         return mapper.convertValue(node, new TypeReference<Map<String, String>>() {});
     }
 
-    public MediaType toMediaType(JsonNode mediaTypeJson) {
+    MediaType toMediaType(JsonNode mediaTypeJson) {
         return MediaType.parseMediaType(mediaTypeJson.asString());
     }
 

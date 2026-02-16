@@ -18,6 +18,7 @@
 package io.sapl.documentation;
 
 import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.documentation.EntryType;
@@ -39,7 +40,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -301,22 +301,22 @@ class LibraryDocumentationExtractorTests {
     static class TestPip {
 
         @EnvironmentAttribute(docs = "Current phase of the moon")
-        public Flux<TextValue> moonPhase(Map<String, Value> variables) {
+        public Flux<TextValue> moonPhase(AttributeAccessContext ctx) {
             return Flux.empty();
         }
 
         @EnvironmentAttribute(docs = "Eldritch hour in given timezone")
-        public Flux<NumberValue> eldritchHour(Map<String, Value> variables, NumberValue timezone) {
+        public Flux<NumberValue> eldritchHour(AttributeAccessContext ctx, NumberValue timezone) {
             return Flux.empty();
         }
 
         @Attribute(docs = "Retrieves the madness level of an entity")
-        public Flux<NumberValue> madnessLevel(Value entity, Map<String, Value> variables) {
+        public Flux<NumberValue> madnessLevel(Value entity, AttributeAccessContext ctx) {
             return Flux.empty();
         }
 
         @Attribute(docs = "Gets the entity's forbidden name in a realm")
-        public Flux<TextValue> forbiddenName(Value entity, Map<String, Value> variables, TextValue realm) {
+        public Flux<TextValue> forbiddenName(Value entity, AttributeAccessContext ctx, TextValue realm) {
             return Flux.empty();
         }
     }

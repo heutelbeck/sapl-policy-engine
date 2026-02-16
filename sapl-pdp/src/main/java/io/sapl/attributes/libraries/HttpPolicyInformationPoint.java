@@ -17,7 +17,11 @@
  */
 package io.sapl.attributes.libraries;
 
+import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
+import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
+
 import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.ObjectValue;
@@ -27,67 +31,144 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION, pipDocumentation = HttpPolicyInformationPoint.DOCUMENTATION)
 public class HttpPolicyInformationPoint {
     public static final String DESCRIPTION   = "This Policy Information Point to get and monitor HTTP based information.";
     public static final String DOCUMENTATION = """
-            This Policy Information Point provides basic means to source attribute data by consuming
-            HTTP-based APIs and Websockets.
+            This Policy Information Point provides means to source attribute data by consuming
+            HTTP-based APIs and WebSockets.
 
-            The Attributes are named according to the HTTP verb, i.e., get, put, delete, post, and patch.
-            And are available as either environment attributes or attributes of a an URL which semantically
-            identifies a resource used as the left-hand input parameter of the attribute finders.
+            ## Attribute Invocation
 
-            This PIP is more technical than domain driven and therefore the attributes are specified by
-            defining HTTP requests by defining a ```requestSetings``` object, which may contain the following
-            parameters:
-            * ```baseUrl```: The starting URL to build the request path.
-            * ```path```: Path components to be appended to the baseUrl.
-            * ```urlParameters```: An object with key-value pairs representing the HTTP query parameters to
-            be embedded in the request URL.
-            * ```headers```: An object with key-value pairs representing the HTTP headers.
-            * ```body```: The request body.
-            * ```accept```: The accepted mime media type.
-            * ```contentType```: The mime type of the request body.
-            * ```pollingIntervalMs```: The number of milliseconds between polling the HTTP endpoint. Defaults to 1000ms.
-            * ```repetitions```: Upper bound for number of repeated requests. Defaults to 0x7fffffffffffffffL.
+            Attributes are named after the HTTP verb: `get`, `post`, `put`, `patch`, `delete`,
+            and `websocket`. Each is available as an environment attribute or as an attribute of
+            a resource URL.
 
-            For the media type ```text/event-stream```, the attribute finder will treat the consumed
-            endpoint to be sending server-sent events (SSEs) and will not poll the endpoint, but subscribe
-            to the events emitted by the consumed API.
+            | Policy syntax | Meaning |
+            |---|---|
+            | `<http.get(request)>` | Environment attribute, HTTP GET with request settings. |
+            | `"https://api.example.com".<http.get(request)>` | Entity attribute, URL used as `baseUrl`. |
+            | `<http.post(request)>` | Environment attribute, HTTP POST. |
+            | `<http.websocket(request)>` | Environment attribute, WebSocket connection. |
 
-            If the accepted media type is ```application/json```, the PIP will attempt to parse it and map
-            the response body to a SAPL value. Else, the response body is returned as a text value.
+            ## Request Settings
 
-            Connection timeout is 10 seconds, read timeout is 30 seconds. Unresponsive endpoints will
-            result in an error value.
+            All attributes take a `requestSettings` object parameter with the following fields:
 
-            Example:
+            | Field | Type | Default | Description |
+            |---|---|---|---|
+            | `baseUrl` | text | (required) | The base URL for the HTTP request. |
+            | `path` | text | `""` | Path appended to the base URL. |
+            | `urlParameters` | object | `{}` | Key-value pairs for HTTP query parameters. |
+            | `headers` | object | `{}` | Key-value pairs for HTTP request headers. |
+            | `body` | any | (none) | The request body. |
+            | `accept` | text | `"application/json"` | Accepted response media type. |
+            | `contentType` | text | `"application/json"` | Media type of the request body. |
+            | `pollingIntervalMs` | number | `1000` | Milliseconds between polling requests. |
+            | `repetitions` | number | `Long.MAX_VALUE` | Upper bound for repeated requests. |
+            | `secretsKey` | text | (none) | Selects a named credential set from secrets (see below). |
+
+            The `secretsKey` field is metadata for credential selection and is stripped before
+            the HTTP request is sent.
+
+            ## Secrets Configuration
+
+            HTTP credentials (API keys, bearer tokens, custom headers) are sourced from the
+            `secrets` section in `pdp.json` and/or from subscription secrets. They are never
+            embedded directly in policies.
+
+            Header precedence (highest to lowest):
+            1. **pdpSecrets** -- operator-configured secrets always win
+            2. **Policy headers** -- headers specified in the `requestSettings` object
+            3. **subscriptionSecrets** -- headers from the authorization subscription
+
+            When headers from multiple sources use the same header name, the higher-priority
+            source overwrites the lower-priority value.
+
+            ### Named Credentials with `secretsKey`
+
+            Use the `secretsKey` field in `requestSettings` to select which named credential
+            set to use. For a request with `"secretsKey": "weather-api"`, the PDP resolves
+            `secrets.http.weather-api.headers` from each secrets source.
+
+            If the `secretsKey` is specified but the named entry does not exist in a given
+            secrets source, no headers are contributed from that source (fail closed).
+
+            ### Flat Fallback (no `secretsKey`)
+
+            When no `secretsKey` is specified, the PDP falls back to `secrets.http.headers`
+            as a flat default for each secrets source.
+
+            ### Resolution Walkthrough
+
+            For each secrets source (pdpSecrets and subscriptionSecrets):
+            1. If `secretsKey` is present, look up `secrets.http.<secretsKey>.headers`.
+            2. If `secretsKey` is absent, look up `secrets.http.headers`.
+            3. If neither exists, no headers from that source.
+
+            ### Multi-Service Secrets Example
+
             ```json
             {
-              "baseUrl": "https://example.com",
-              "path": "/api/owners",
-              "urlParameters": {
-                                  "age": 5,
-                                  "sort": "ascending"
-                               },
-              "headers": {
-                           "Authorization": "Bearer <token>",
-                           "If-Modified-Since": "Tue, 19 Jul 2016 12:22:11 UTC"
-                         },
-              "body": "<tag>abc</tag>",
-              "accept": "application/json",
-              "contentType": "application/xml",
-              "pollingIntervalMs": 4500,
-              "repetitions": 999
+              "variables": { },
+              "secrets": {
+                "http": {
+                  "weather-api": {
+                    "headers": { "X-API-Key": "abc123" }
+                  },
+                  "internal-api": {
+                    "headers": { "Authorization": "Bearer infra-token" }
+                  },
+                  "headers": { "Authorization": "Bearer default-fallback" }
+                }
+              }
             }
             ```
+
+            With this configuration:
+            * A request with `"secretsKey": "weather-api"` gets header `X-API-Key: abc123`.
+            * A request with `"secretsKey": "internal-api"` gets header
+              `Authorization: Bearer infra-token`.
+            * A request without `secretsKey` gets header
+              `Authorization: Bearer default-fallback`.
+
+            ### Subscription Secrets
+
+            Subscription secrets follow the same structure and can be supplied per authorization
+            subscription. They have the lowest priority and are overridden by both policy headers
+            and pdpSecrets headers.
+
+            ## Security
+
+            Avoid embedding credentials directly in policy `headers`. Use the secrets
+            configuration to keep credentials separate from policy logic. The `secretsKey`
+            field itself is non-sensitive metadata and is safe to use in policies.
+
+            ## Media Type Handling
+
+            * `application/json`: Response body is parsed and mapped to a SAPL value.
+            * `text/event-stream`: The PIP subscribes to server-sent events (SSEs) instead
+              of polling.
+            * Other types: Response body is returned as a text value.
+
+            ## Timeouts
+
+            Connection timeout is 10 seconds, read timeout is 30 seconds. Unresponsive
+            endpoints result in an error value.
             """;
+
+    private static final JsonNodeFactory JSON            = JsonNodeFactory.instance;
+    private static final String          SECRETS_HEADERS = "headers";
+    private static final String          SECRETS_HTTP    = "http";
+    private static final String          SECRETS_KEY     = "secretsKey";
 
     private final ReactiveWebClient webClient;
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```<get(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP GET request and
@@ -100,15 +181,15 @@ public class HttpPolicyInformationPoint {
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status"
-                            }
+                            };
               <http.get(request)>.status == "OK";
             ```
             """)
-    @Attribute
-    public Flux<Value> get(ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.GET, requestSettings);
+    public Flux<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.GET, mergeHeaders(ctx, requestSettings));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```<post(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP POST request and
@@ -122,15 +203,15 @@ public class HttpPolicyInformationPoint {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
                                 "body": { "action": "turnOff", "resource": "heater" }
-                            }
+                            };
               <http.post(request)>.status == "off";
             ```
             """)
-    @Attribute
-    public Flux<Value> post(ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.POST, requestSettings);
+    public Flux<Value> post(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.POST, mergeHeaders(ctx, requestSettings));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```<put(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP PUT request and
@@ -144,15 +225,15 @@ public class HttpPolicyInformationPoint {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
                                 "body": { "action": "turnOff", "resource": "heater" }
-                            }
+                            };
               <http.put(request)>.status == "off";
             ```
             """)
-    @Attribute
-    public Flux<Value> put(ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PUT, requestSettings);
+    public Flux<Value> put(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.PUT, mergeHeaders(ctx, requestSettings));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```<patch(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP PATCH request and
@@ -166,15 +247,15 @@ public class HttpPolicyInformationPoint {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
                                 "body": { "action": "turnOff", "resource": "heater" }
-                            }
+                            };
               <http.patch(request)>.status == "off";
             ```
             """)
-    @Attribute
-    public Flux<Value> patch(ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PATCH, requestSettings);
+    public Flux<Value> patch(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.PATCH, mergeHeaders(ctx, requestSettings));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```<delete(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP DELETE
@@ -187,15 +268,15 @@ public class HttpPolicyInformationPoint {
               var request = {
                                 "baseUrl": "https://example.com",
                                 "path": "/status"
-                            }
+                            };
               <http.delete(request)> != undefined;
             ```
             """)
-    @Attribute
-    public Flux<Value> delete(ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.DELETE, requestSettings);
+    public Flux<Value> delete(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.DELETE, mergeHeaders(ctx, requestSettings));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```<websocket(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and connects to a Websocket and emits events
@@ -209,15 +290,15 @@ public class HttpPolicyInformationPoint {
                                 "baseUrl": "https://example.com",
                                 "path": "/status",
                                 "body": "message"
-                            }
+                            };
               <http.websocket(request)>.health == "GOOD";
             ```
             """)
-    @Attribute
-    public Flux<Value> websocket(ObjectValue requestSettings) {
-        return webClient.consumeWebSocket(requestSettings);
+    public Flux<Value> websocket(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.consumeWebSocket(mergeHeaders(ctx, requestSettings));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```(TEXT resourceUrl).<get(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -231,11 +312,11 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.get({ })>.status == "HEALTHY";
             ```
             """)
-    @Attribute
-    public Flux<Value> get(TextValue resourceUrl, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.GET, withBaseUrl(resourceUrl, requestSettings));
+    public Flux<Value> get(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.GET, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```(TEXT resourceUrl).<post(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -246,14 +327,14 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-              "https://example.com/resources/123".<http.post({ body = "\\"test\\"" })>.status == "OK";
+              "https://example.com/resources/123".<http.post({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    @Attribute
-    public Flux<Value> post(TextValue resourceUrl, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.POST, withBaseUrl(resourceUrl, requestSettings));
+    public Flux<Value> post(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.POST, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```(TEXT resourceUrl).<put(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -264,14 +345,14 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-              "https://example.com/resources/123".<http.put({ body = "\\"test\\"" })>.status == "OK";
+              "https://example.com/resources/123".<http.put({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    @Attribute
-    public Flux<Value> put(TextValue resourceUrl, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PUT, withBaseUrl(resourceUrl, requestSettings));
+    public Flux<Value> put(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.PUT, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```(TEXT resourceUrl).<patch(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -282,14 +363,14 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-              "https://example.com/resources/123".<http.patch({ body = "\\"test\\"" })>.status == "OK";
+              "https://example.com/resources/123".<http.patch({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    @Attribute
-    public Flux<Value> patch(TextValue resourceUrl, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PATCH, withBaseUrl(resourceUrl, requestSettings));
+    public Flux<Value> patch(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.PATCH, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```(TEXT resourceUrl).<delete(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -303,11 +384,11 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.delete({})> != undefined;
             ```
             """)
-    @Attribute
-    public Flux<Value> delete(TextValue resourceUrl, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.DELETE, withBaseUrl(resourceUrl, requestSettings));
+    public Flux<Value> delete(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+        return webClient.httpRequest(HttpMethod.DELETE, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    @Attribute
     @EnvironmentAttribute(docs = """
             ```(TEXT resourceUrl).<websocket(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -318,19 +399,100 @@ public class HttpPolicyInformationPoint {
             ```sapl
             policy "http example"
             permit
-              var request = { "body": "message" }
-             "baseUrl": "https://example.com/status".<http.websocket(request)>.health == "GOOD";
+              var request = { "body": "message" };
+              "https://example.com/status".<http.websocket(request)>.health == "GOOD";
             ```
             """)
-    @Attribute
-    public Flux<Value> websocket(TextValue resourceUrl, ObjectValue requestSettings) {
-        return webClient.consumeWebSocket(withBaseUrl(resourceUrl, requestSettings));
+    public Flux<Value> websocket(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+        return webClient.consumeWebSocket(withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
-    private ObjectValue withBaseUrl(TextValue baseUrl, ObjectValue requestSettings) {
+    private static ObjectValue withBaseUrl(TextValue baseUrl, ObjectValue requestSettings) {
         val builder = ObjectValue.builder();
         builder.putAll(requestSettings);
         builder.put(ReactiveWebClient.BASE_URL, baseUrl);
+        return builder.build();
+    }
+
+    static ObjectValue mergeHeaders(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        val secretsKey          = extractSecretsKey(requestSettings);
+        val subscriptionHeaders = resolveHttpHeaders(ctx.subscriptionSecrets(), secretsKey);
+        val policyHeaders       = extractPolicyHeaders(requestSettings);
+        val pdpHeaders          = resolveHttpHeaders(ctx.pdpSecrets(), secretsKey);
+
+        if (subscriptionHeaders == null && policyHeaders == null && pdpHeaders == null) {
+            return stripSecretsKey(requestSettings);
+        }
+
+        val merged = JSON.objectNode();
+        if (subscriptionHeaders != null) {
+            merged.setAll((ObjectNode) toJsonNode(subscriptionHeaders));
+        }
+        if (policyHeaders != null) {
+            merged.setAll((ObjectNode) toJsonNode(policyHeaders));
+        }
+        if (pdpHeaders != null) {
+            merged.setAll((ObjectNode) toJsonNode(pdpHeaders));
+        }
+
+        val builder = ObjectValue.builder();
+        for (val entry : requestSettings.entrySet()) {
+            if (!SECRETS_KEY.equals(entry.getKey())) {
+                builder.put(entry.getKey(), entry.getValue());
+            }
+        }
+        builder.put(ReactiveWebClient.HEADERS, fromJsonNode(merged));
+        return builder.build();
+    }
+
+    private static ObjectValue resolveHttpHeaders(ObjectValue secrets, String secretsKey) {
+        if (secrets == null || secrets.isEmpty()) {
+            return null;
+        }
+        val httpValue = secrets.get(SECRETS_HTTP);
+        if (!(httpValue instanceof ObjectValue httpObj)) {
+            return null;
+        }
+
+        if (secretsKey != null) {
+            val namedValue = httpObj.get(secretsKey);
+            if (namedValue instanceof ObjectValue namedObj) {
+                val h = namedObj.get(SECRETS_HEADERS);
+                return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : null;
+            }
+            return null;
+        }
+
+        val h = httpObj.get(SECRETS_HEADERS);
+        return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : null;
+    }
+
+    private static String extractSecretsKey(ObjectValue requestSettings) {
+        if (!requestSettings.containsKey(SECRETS_KEY)) {
+            return null;
+        }
+        val v = requestSettings.get(SECRETS_KEY);
+        return v instanceof TextValue text ? text.value() : null;
+    }
+
+    private static ObjectValue extractPolicyHeaders(ObjectValue requestSettings) {
+        if (!requestSettings.containsKey(ReactiveWebClient.HEADERS)) {
+            return null;
+        }
+        val h = requestSettings.get(ReactiveWebClient.HEADERS);
+        return h instanceof ObjectValue obj && !obj.isEmpty() ? obj : null;
+    }
+
+    private static ObjectValue stripSecretsKey(ObjectValue requestSettings) {
+        if (!requestSettings.containsKey(SECRETS_KEY)) {
+            return requestSettings;
+        }
+        val builder = ObjectValue.builder();
+        for (val entry : requestSettings.entrySet()) {
+            if (!SECRETS_KEY.equals(entry.getKey())) {
+                builder.put(entry.getKey(), entry.getValue());
+            }
+        }
         return builder.build();
     }
 

@@ -25,6 +25,7 @@ import io.sapl.api.documentation.EntryType;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.documentation.LibraryType;
 import io.sapl.api.documentation.ParameterDocumentation;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
@@ -174,8 +175,8 @@ public class LibraryDocumentationExtractor {
             }
         }
 
-        // Variables map parameter
-        if (index < parameters.length && Map.class.equals(parameters[index].getType())) {
+        // Context parameter
+        if (index < parameters.length && AttributeAccessContext.class.equals(parameters[index].getType())) {
             index++;
         }
 

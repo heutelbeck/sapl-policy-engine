@@ -32,12 +32,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -73,8 +76,12 @@ class ReactiveWebClientTests {
         mockBackEnd.shutdown();
     }
 
-    private String toJsonString(Value v) throws JacksonException {
-        return MAPPER.writeValueAsString(ValueJsonMarshaller.toJsonNode(v));
+    private String toJsonString(Value v) {
+        try {
+            return MAPPER.writeValueAsString(ValueJsonMarshaller.toJsonNode(v));
+        } catch (JacksonException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private ObjectValue defaultRequest(String mimeType) {
@@ -89,23 +96,24 @@ class ReactiveWebClientTests {
         return (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl, mimeType));
     }
 
-    @Test
-    void whenHttpGetThenReturnsExpectedResponse() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("httpMethods")
+    @DisplayName("HTTP method returns expected JSON response")
+    void whenHttpMethodCalledThenReturnsExpectedResponse(HttpMethod method) {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        val response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(v -> {
-                                try {
-                                    return toJsonString(v);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
+        val response        = clientUnderTest.httpRequest(method, httpTestRequest).map(this::toJsonString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
+    static Stream<HttpMethod> httpMethods() {
+        return Stream.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE);
+    }
+
     @Test
-    void whenUrlParamsAndHeadersThenParamsAndHeadersInReqest() throws InterruptedException {
+    @DisplayName("URL parameters and headers are included in the request")
+    void whenUrlParamsAndHeadersThenParamsAndHeadersInRequest() throws InterruptedException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val template        = """
@@ -126,13 +134,7 @@ class ReactiveWebClientTests {
                 """;
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller
                 .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE)));
-        clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).<String>handle((v, sink) -> {
-            try {
-                sink.next(toJsonString(v));
-            } catch (JacksonException e) {
-                sink.error(new RuntimeException(e));
-            }
-        }).blockFirst();
+        clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(this::toJsonString).blockFirst();
         val recordedRequest = mockBackEnd.takeRequest(1, TimeUnit.SECONDS);
 
         assertThat(recordedRequest).isNotNull();
@@ -148,6 +150,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
+    @DisplayName("HTTP 500 error is mapped to error value")
     void whenHttpErrorThenValError() {
         val mockResponse = new MockResponse().setResponseCode(500).setHeader("content-type", "application/json")
                 .setBody("{}");
@@ -171,6 +174,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
+    @DisplayName("XML response is returned as text value")
     void whenFetchingXMLThenIsInTextVal() {
         val minimalXML   = "<a/>";
         val mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
@@ -184,6 +188,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
+    @DisplayName("XML content type when expecting JSON results in error")
     void whenReturningXMLWhenExpectingJsonThenIsInTextVal() {
         val minimalXML   = "<a/>";
         val mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
@@ -204,7 +209,8 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenPollingIntervallNotDefinedFallsBackToDefaultAndWorks() {
+    @DisplayName("missing polling interval falls back to default")
+    void whenPollingIntervalNotDefinedThenFallsBackToDefault() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val template        = """
@@ -216,32 +222,12 @@ class ReactiveWebClientTests {
                 """;
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller
                 .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE)));
-        val response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(v -> {
-                                try {
-                                    return toJsonString(v);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
+        val response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(this::toJsonString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
     @Test
-    void whenHttpPostThenReturnsExpectedResponse() {
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        val response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(v -> {
-                                try {
-                                    return toJsonString(v);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-        StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
-    }
-
-    @Test
+    @DisplayName("POST with body returns expected response")
     void whenHttpPostWithBodyThenReturnsExpectedResponse() {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
@@ -259,17 +245,12 @@ class ReactiveWebClientTests {
                 """;
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller
                 .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl)));
-        val response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(v -> {
-                                try {
-                                    return toJsonString(v);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
+        val response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(this::toJsonString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
     @Test
+    @DisplayName("null polling interval throws error")
     void whenIntervalNotANumberThenError() {
         val template        = """
                 {
@@ -285,6 +266,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
+    @DisplayName("missing base URL throws error")
     void whenNoBaseUrlThenError() {
         val httpTestRequest = Value.EMPTY_OBJECT;
         assertThatThrownBy(() -> clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest))
@@ -292,51 +274,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void whenHttpPutThenReturnsExpectedResponse() {
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        val response        = clientUnderTest.httpRequest(HttpMethod.PUT, httpTestRequest).map(v -> {
-                                try {
-                                    return toJsonString(v);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-        StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
-    }
-
-    @Test
-    void whenHttpPatchThenReturnsExpectedResponse() {
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        val response        = clientUnderTest.httpRequest(HttpMethod.PATCH, httpTestRequest).map(v -> {
-                                try {
-                                    return toJsonString(v);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-        StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
-    }
-
-    @Test
-    void whenHttpDeleteThenReturnsExpectedResponse() {
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        val response        = clientUnderTest.httpRequest(HttpMethod.DELETE, httpTestRequest).map(v -> {
-                                try {
-                                    return toJsonString(v);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-        StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
-    }
-
-    @Test
+    @DisplayName("SSE endpoint is consumed as event stream")
     void whenServerSentEventsThenReceivesEventStream() {
         val eventStream = "id:id1\nevent:event1\ndata:" + DEFAULT_BODY + "\n\n" + "id:id2\nevent:event2\ndata:"
                 + DEFAULT_BODY + "\n\n" + "id:id3\nevent:event3\ndata:" + DEFAULT_BODY + "\n\n";
@@ -353,13 +291,7 @@ class ReactiveWebClientTests {
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller
                 .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl)));
 
-        val response = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).<String>handle((v, sink) -> {
-            try {
-                sink.next(toJsonString(v));
-            } catch (JacksonException e) {
-                sink.error(new RuntimeException(e));
-            }
-        });
+        val response = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(this::toJsonString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY)
                 .expectComplete().verify();
     }

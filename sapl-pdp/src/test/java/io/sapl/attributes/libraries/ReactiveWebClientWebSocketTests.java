@@ -24,7 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.libraries.ReactiveWebClientWebSocketTests.WebSocketConfig;
 import lombok.val;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -101,17 +101,17 @@ class ReactiveWebClientWebSocketTests {
                 .expectComplete().verify(Duration.ofSeconds(15L));
     }
 
-    public static class EchoHandler implements WebSocketHandler {
+    static class EchoHandler implements WebSocketHandler {
         @Override
-        public @NotNull Mono<Void> handle(WebSocketSession webSocketSession) {
+        public @NonNull Mono<Void> handle(WebSocketSession webSocketSession) {
             return webSocketSession.send(webSocketSession.receive().map(WebSocketMessage::getPayloadAsText)
                     .map(webSocketSession::textMessage));
         }
     }
 
-    public static class CounterHandler implements WebSocketHandler {
+    static class CounterHandler implements WebSocketHandler {
         @Override
-        public @NotNull Mono<Void> handle(WebSocketSession webSocketSession) {
+        public @NonNull Mono<Void> handle(WebSocketSession webSocketSession) {
             return webSocketSession
                     .send(Flux.interval(Duration.ofMillis(100)).map(Object::toString)
                             .map(webSocketSession::textMessage))
@@ -120,7 +120,7 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Configuration
-    public static class WebSocketConfig {
+    static class WebSocketConfig {
 
         @Bean
         CounterHandler reactiveWebSocketHandler() {
