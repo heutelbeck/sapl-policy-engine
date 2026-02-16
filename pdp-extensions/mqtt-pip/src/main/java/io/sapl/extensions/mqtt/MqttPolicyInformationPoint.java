@@ -39,8 +39,18 @@ public class MqttPolicyInformationPoint {
             This Policy Information Point subscribes to MQTT topics and returns messages from
             MQTT brokers as a reactive stream of attribute values.
 
-            Subscribe to single or multiple topics with configurable Quality of Service levels
-            and broker configurations.
+            ## Attribute Invocation
+
+            The `mqtt.messages` attribute accepts up to three parameters:
+
+            | Policy syntax | Meaning |
+            |---|---|
+            | `topic.<mqtt.messages>` | Subscribe with QoS 0, using the default broker. |
+            | `topic.<mqtt.messages(qos)>` | Subscribe with the given QoS level, using the default broker. |
+            | `topic.<mqtt.messages(qos, "staging")>` | Subscribe with the given QoS, selecting the broker named `"staging"` from the `brokerConfig` array. |
+            | `topic.<mqtt.messages(qos, { ... })>` | Subscribe with the given QoS, using the inline object as broker configuration. |
+
+            The topic can be a single topic string or an array of topic strings.
 
             ## Quality of Service Levels
 
@@ -49,63 +59,135 @@ public class MqttPolicyInformationPoint {
             * QoS 1: At least once - acknowledged delivery, possible duplicates
             * QoS 2: Exactly once - assured delivery, no duplicates
 
-            ## Configuration
+            ## Broker Configuration
 
-            Configure the PIP through the SAPL environment variables. The `mqttPipConfig`
-            variable contains:
+            Configure the PIP through the `mqttPipConfig` SAPL environment variable in `pdp.json`.
 
-            * `brokerConfig`: Single object or array of broker configuration objects
-            * `defaultBrokerConfigName`: Default broker configuration name (optional)
-            * `defaultResponse`: Default response when no messages arrive - "undefined" or "error" (defaults to "undefined")
-            * `defaultResponseTimeout`: Timeout in milliseconds before emitting default response (defaults to 1000ms)
-            * `emitAtRetry`: Emit value on reconnection - "true" or "false" (defaults to "false")
+            Top-level settings:
+            * `brokerConfig`: A single broker configuration object, or an array of named broker
+              configuration objects for multi-broker setups
+            * `defaultBrokerConfigName`: The `name` of the broker to use when no broker is
+              specified in the policy (defaults to `"default"`)
+            * `defaultResponse`: Response when no messages arrive before timeout --
+              `"undefined"` or `"error"` (defaults to `"undefined"`)
+            * `defaultResponseTimeout`: Timeout in milliseconds before emitting the default
+              response (defaults to 1000)
+            * `emitAtRetry`: Emit value on reconnection -- `"true"` or `"false"` (defaults to `"false"`)
 
             Each broker configuration object contains:
-            * `name`: Broker configuration identifier (optional)
+            * `name`: Broker identifier used for broker selection and secrets matching (see below)
             * `brokerAddress`: Hostname or IP address of the MQTT broker
             * `brokerPort`: Port number of the MQTT broker
             * `clientId`: Unique identifier for the MQTT client connection
-            * `username`: Username for broker authentication (optional, defaults to empty string)
-            * `password`: Password for broker authentication (optional, defaults to empty string)
 
-            Configuration example without authentication:
+            Example `pdp.json` with two named brokers:
             ```json
             {
-              "defaultBrokerConfigName": "production",
-              "defaultResponse": "undefined",
-              "defaultResponseTimeout": 5000,
-              "emitAtRetry": "false",
-              "brokerConfig": [
-                {
-                  "name": "production",
-                  "brokerAddress": "mqtt.example.com",
-                  "brokerPort": 1883,
-                  "clientId": "sapl-client-prod"
-                },
-                {
-                  "name": "staging",
-                  "brokerAddress": "mqtt-staging.example.com",
-                  "brokerPort": 1883,
-                  "clientId": "sapl-client-staging"
+              "variables": {
+                "mqttPipConfig": {
+                  "defaultBrokerConfigName": "production",
+                  "brokerConfig": [
+                    {
+                      "name": "production",
+                      "brokerAddress": "mqtt.example.com",
+                      "brokerPort": 1883,
+                      "clientId": "sapl-prod"
+                    },
+                    {
+                      "name": "staging",
+                      "brokerAddress": "mqtt-staging.example.com",
+                      "brokerPort": 1883,
+                      "clientId": "sapl-staging"
+                    }
+                  ]
                 }
-              ]
-            }
-            ```
-
-            Configuration example with authentication:
-            ```json
-            {
-              "defaultBrokerConfigName": "production",
-              "brokerConfig": {
-                "name": "production",
-                "brokerAddress": "mqtt.example.com",
-                "brokerPort": 1883,
-                "clientId": "sapl-client-prod",
-                "username": "sapl-user",
-                "password": "secure-password"
               }
             }
             ```
+
+            ## Broker Selection
+
+            When the policy does not specify a broker (e.g. `topic.<mqtt.messages>`):
+            1. The PDP reads `defaultBrokerConfigName` from `mqttPipConfig`.
+               If not set, the default name is `"default"`.
+            2. The `brokerConfig` array is searched for a broker whose `name` matches.
+            3. If `brokerConfig` is a single object (not an array), it is used directly
+               without name matching.
+
+            When the policy specifies a broker name (e.g. `topic.<mqtt.messages(1, "staging")>`):
+            1. The `brokerConfig` array is searched for a broker whose `name` matches `"staging"`.
+            2. If no match is found, an error is returned.
+
+            When the policy provides an inline broker object
+            (e.g. `topic.<mqtt.messages(1, { "brokerAddress": "...", ... })>`):
+            1. The inline object is used directly as the broker configuration.
+
+            ## Secrets Configuration
+
+            Broker credentials are sourced exclusively from the `secrets` section in `pdp.json`.
+            They are never read from broker configuration objects or policy parameters.
+
+            The broker `name` field is the join key between the broker configuration and the
+            secrets. For a broker with `"name": "staging"`, the PDP looks up
+            `secrets.mqtt.staging` for that broker's credentials.
+
+            Credential resolution order:
+            1. **Per-broker secrets**: If the resolved broker config has a `name` field, look
+               for `secrets.mqtt.<name>` (e.g. `secrets.mqtt.production`).
+            2. **Flat secrets**: If no per-broker match, check whether `secrets.mqtt` directly
+               contains `username`/`password` fields.
+            3. **Anonymous**: If no secrets are found at all, connect with empty credentials.
+
+            Multi-broker secrets example:
+            ```json
+            {
+              "secrets": {
+                "mqtt": {
+                  "production": { "username": "prod-user", "password": "prod-secret" },
+                  "staging": { "username": "staging-user", "password": "staging-secret" }
+                }
+              }
+            }
+            ```
+
+            Single-broker or flat secrets example (used when no per-broker key matches):
+            ```json
+            {
+              "secrets": {
+                "mqtt": { "username": "sapl-user", "password": "secure-password" }
+              }
+            }
+            ```
+
+            ## Complete pdp.json Example
+
+            ```json
+            {
+              "variables": {
+                "mqttPipConfig": {
+                  "defaultBrokerConfigName": "production",
+                  "brokerConfig": [
+                    { "name": "production", "brokerAddress": "mqtt.example.com", "brokerPort": 1883, "clientId": "sapl-prod" },
+                    { "name": "staging", "brokerAddress": "mqtt-staging.example.com", "brokerPort": 1883, "clientId": "sapl-staging" }
+                  ]
+                }
+              },
+              "secrets": {
+                "mqtt": {
+                  "production": { "username": "prod-user", "password": "prod-secret" },
+                  "staging": { "username": "staging-user", "password": "staging-secret" }
+                }
+              }
+            }
+            ```
+
+            With this configuration:
+            * `"sensors/#".<mqtt.messages>` connects to `mqtt.example.com` as `prod-user`
+              (default broker is `"production"`).
+            * `"sensors/#".<mqtt.messages(1, "staging")>` connects to `mqtt-staging.example.com`
+              as `staging-user`.
+            * `"sensors/#".<mqtt.messages(1, { "brokerAddress": "other.host", "brokerPort": 1883, "clientId": "custom" })>`
+              connects to `other.host` with flat secrets fallback (or anonymous if no flat secrets).
 
             ## Message Format
 
@@ -123,16 +205,6 @@ public class MqttPolicyInformationPoint {
             Examples:
             * `sensors/+/temperature` matches `sensors/room1/temperature` and `sensors/room2/temperature`
             * `building/#` matches `building/floor1/room1` and `building/floor2/room3/sensor5`
-
-            ## Example Policy
-
-            ```sapl
-            policy "temperature_monitoring"
-            permit
-                action == "monitor";
-                var sensors = ["sensors/room1/temp", "sensors/room2/temp"];
-                sensors.<mqtt.messages>.celsius < 30.0;
-            ```
 
             ## Reconnection Behavior
 
@@ -188,7 +260,7 @@ public class MqttPolicyInformationPoint {
             ```
             """)
     public Flux<Value> messages(Value topic, AttributeAccessContext ctx) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx.variables());
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx);
     }
 
     /**
@@ -231,7 +303,7 @@ public class MqttPolicyInformationPoint {
             ```
             """)
     public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx.variables(), qos);
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx, qos);
     }
 
     /**
@@ -254,7 +326,7 @@ public class MqttPolicyInformationPoint {
 
             The `mqttPipConfig` parameter accepts:
             * A string referencing a broker configuration by name
-            * A broker configuration object with properties: `brokerAddress`, `brokerPort`, `clientId`, optional `username`, optional `password`
+            * A broker configuration object with properties: `brokerAddress`, `brokerPort`, `clientId`
             * An array of broker configuration objects for multi-broker subscriptions
 
             Example referencing a broker by name:
@@ -272,9 +344,7 @@ public class MqttPolicyInformationPoint {
               var brokerConfig = {
                   "brokerAddress": "mqtt.internal.example.com",
                   "brokerPort": 1883,
-                  "clientId": "policy-specific-client",
-                  "username": "device-monitor",
-                  "password": "secure-token"
+                  "clientId": "policy-specific-client"
               };
               "devices/status".<mqtt.messages(1, brokerConfig)>.online == true;
             ```
@@ -301,6 +371,6 @@ public class MqttPolicyInformationPoint {
             ```
             """)
     public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos, Value mqttPipConfig) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx.variables(), qos, mqttPipConfig);
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx, qos, mqttPipConfig);
     }
 }

@@ -1,15 +1,15 @@
-/* Compact tabs for playground */
-vaadin-tabsheet {
+/* Compact tabs for main playground editor (not documentation) */
+.playground-main vaadin-tabsheet {
   --vaadin-tabsheet-gap: 0.25rem;
   --vaadin-tabsheet-padding: 0.25rem 0 0 0;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-vaadin-tabs {
+.playground-main vaadin-tabs {
   --vaadin-tabs-padding: 0;
 }
 
-vaadin-tab {
+.playground-main vaadin-tab {
   --vaadin-tab-padding: 0.125rem 0.375rem;
   --vaadin-tab-line-height: 1.2;
 }

@@ -17,12 +17,16 @@
  */
 package io.sapl.playground.domain;
 
+import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.data.MutableDataSet;
 import io.sapl.api.documentation.LibraryDocumentation;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.List;
 
 /**
  * Utility class for generating and converting SAPL documentation. Provides
@@ -36,13 +40,40 @@ import lombok.val;
 @UtilityClass
 public class MarkdownGenerator {
 
-    private static final Parser       PARSER   = Parser.builder().build();
-    private static final HtmlRenderer RENDERER = HtmlRenderer.builder().build();
+    private static final MutableDataSet OPTIONS  = new MutableDataSet().set(Parser.EXTENSIONS,
+            List.of(TablesExtension.create()));
+    private static final Parser         PARSER   = Parser.builder(OPTIONS).build();
+    private static final HtmlRenderer   RENDERER = HtmlRenderer.builder(OPTIONS).build();
 
     private static final String MARKDOWN_HEADER_LEVEL_1  = "# ";
     private static final String MARKDOWN_HEADER_LEVEL_2  = "## ";
     private static final String MARKDOWN_HORIZONTAL_RULE = "---\n\n";
     private static final String MARKDOWN_LINE_BREAK      = "\n\n";
+
+    private static final String DOCS_STYLE = """
+            <style>
+            .sapl-docs { padding: 1rem 1.5rem; line-height: 1.6; }
+            .sapl-docs table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+            .sapl-docs th, .sapl-docs td {
+                border: 1px solid var(--lumo-contrast-20pct, rgba(255, 255, 255, 0.2));
+                padding: 0.5rem 0.75rem; text-align: left;
+            }
+            .sapl-docs th {
+                background-color: var(--lumo-contrast-5pct, rgba(255, 255, 255, 0.05));
+                font-weight: 600;
+            }
+            .sapl-docs pre {
+                background-color: var(--lumo-contrast-5pct, rgba(255, 255, 255, 0.05));
+                padding: 0.75rem 1rem; border-radius: 4px; overflow-x: auto;
+            }
+            .sapl-docs code { font-size: 0.875em; }
+            .sapl-docs h1, .sapl-docs h2, .sapl-docs h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+            .sapl-docs hr {
+                border: none;
+                border-top: 1px solid var(--lumo-contrast-10pct, rgba(255, 255, 255, 0.1));
+                margin: 1.5rem 0;
+            }
+            </style>""";
 
     /**
      * Generates markdown documentation for a library (function library or PIP).
@@ -104,7 +135,7 @@ public class MarkdownGenerator {
      * @return the HTML content wrapped in a div element
      */
     public String wrapInDiv(String innerHtml) {
-        return "<div>%n%s%n</div>".formatted(innerHtml);
+        return "<div class=\"sapl-docs\">%s%n%s%n</div>".formatted(DOCS_STYLE, innerHtml);
     }
 
     private void appendHeader(StringBuilder stringBuilder, String title) {

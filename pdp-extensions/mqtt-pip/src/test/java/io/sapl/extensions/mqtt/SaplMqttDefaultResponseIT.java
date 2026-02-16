@@ -34,7 +34,8 @@ import reactor.test.StepVerifier;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Map;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.model.ObjectValue;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.extensions.mqtt.MqttTestUtility.*;
@@ -77,7 +78,7 @@ class SaplMqttDefaultResponseIT {
         val topics = json("[\"topic1\",\"topic2\"]");
 
         // WHEN
-        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildVariables());
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildContext());
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNext(Value.UNDEFINED)
@@ -90,7 +91,7 @@ class SaplMqttDefaultResponseIT {
         val topics = json("[\"topic1\",\"topic2\"]");
 
         // WHEN
-        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildCustomConfig());
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildCustomContext());
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -111,7 +112,7 @@ class SaplMqttDefaultResponseIT {
                 """);
 
         // WHEN
-        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildVariables(), Value.of(0),
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildContext(), Value.of(0),
                 configParams);
 
         // THEN
@@ -134,7 +135,7 @@ class SaplMqttDefaultResponseIT {
                 """.formatted(8 * DELAY_MS));
 
         // WHEN
-        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildVariables(), Value.of(0),
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildContext(), Value.of(0),
                 configParams);
 
         // THEN
@@ -170,8 +171,8 @@ class SaplMqttDefaultResponseIT {
                 """);
     }
 
-    private static Map<String, Value> buildCustomConfig() {
-        return Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig", customPipConfig(), "resource",
-                Value.NULL, "subject", Value.NULL);
+    private static AttributeAccessContext buildCustomContext() {
+        val variables = ObjectValue.builder().put("mqttPipConfig", customPipConfig()).build();
+        return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 }

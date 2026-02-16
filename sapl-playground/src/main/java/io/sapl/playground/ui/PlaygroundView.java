@@ -454,6 +454,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         getContent().setSizeFull();
         getContent().setPadding(false);
         getContent().setSpacing(false);
+        getContent().addClassName("playground-main");
 
         getContent().add(header, main, documentationDrawer.getToggleButton());
 
@@ -573,13 +574,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates controls layout for subscription editor.
      */
     private Component createSubscriptionControlsLayout() {
-        val layout = new VerticalLayout();
+        val layout = new HorizontalLayout();
         layout.setWidthFull();
         layout.setPadding(false);
         layout.setSpacing(true);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
 
         val formatButton = createFormatJsonButton(() -> formatJsonEditorLsp(subscriptionEditor));
         layout.add(formatButton, subscriptionValidationDisplay);
+        layout.setFlexGrow(1, subscriptionValidationDisplay);
 
         return layout;
     }
@@ -1316,17 +1319,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates controls layout for variables editor.
      */
     private Component createVariablesControlsLayout() {
-        val buttonLayout = new HorizontalLayout();
-        buttonLayout.setWidthFull();
-
-        val formatButton = createFormatJsonButton(() -> formatJsonEditorLsp(variablesEditor));
-        buttonLayout.add(formatButton);
-
-        val layout = new VerticalLayout();
+        val layout = new HorizontalLayout();
         layout.setWidthFull();
         layout.setPadding(false);
-        layout.setSpacing(false);
-        layout.add(buttonLayout, variablesValidationDisplay);
+        layout.setSpacing(true);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        val formatButton = createFormatJsonButton(() -> formatJsonEditorLsp(variablesEditor));
+        layout.add(formatButton, variablesValidationDisplay);
+        layout.setFlexGrow(1, variablesValidationDisplay);
 
         return layout;
     }

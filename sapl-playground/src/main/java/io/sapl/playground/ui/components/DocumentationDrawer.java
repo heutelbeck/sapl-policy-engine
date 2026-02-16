@@ -149,7 +149,7 @@ public class DocumentationDrawer implements Serializable {
     private Component createDocumentationContent() {
         val layout = new VerticalLayout();
         layout.setSizeFull();
-        layout.setPadding(false);
+        layout.setPadding(true);
         layout.setSpacing(false);
 
         val tabSheet = new TabSheet();
@@ -175,7 +175,10 @@ public class DocumentationDrawer implements Serializable {
             val markdown      = MarkdownGenerator.generateMarkdownForLibrary(documentation);
             val htmlContent   = MarkdownGenerator.markdownToHtml(markdown);
             val htmlComponent = new Html(MarkdownGenerator.wrapInDiv(htmlContent));
-            tabSheet.add(name, htmlComponent);
+            val scrollWrapper = new com.vaadin.flow.component.html.Div(htmlComponent);
+            scrollWrapper.setSizeFull();
+            scrollWrapper.getStyle().set("overflow-y", "auto");
+            tabSheet.add(name, scrollWrapper);
         }
 
         return tabSheet;

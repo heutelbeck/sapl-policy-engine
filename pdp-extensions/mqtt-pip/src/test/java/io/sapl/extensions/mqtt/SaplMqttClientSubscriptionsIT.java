@@ -75,7 +75,7 @@ class SaplMqttClientSubscriptionsIT {
         val topics = json("[\"topic1\",\"topic2\"]");
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
@@ -92,8 +92,8 @@ class SaplMqttClientSubscriptionsIT {
         val topicsFirstFlux  = json("[\"topic1\",\"topic2\"]");
         val topicsSecondFlux = json("[\"topic2\",\"topic3\"]");
 
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(topicsFirstFlux, buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(topicsSecondFlux, buildVariables());
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(topicsFirstFlux, buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(topicsSecondFlux, buildContext());
 
         // WHEN
         val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -112,8 +112,8 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics() {
         // GIVEN
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic"), buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic"), buildVariables())
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic"), buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic"), buildContext())
                 .takeUntil(value -> value instanceof TextValue textValue && "message".equals(textValue.value()));
 
         // WHEN
@@ -134,8 +134,8 @@ class SaplMqttClientSubscriptionsIT {
         val topicsFirstFlux  = json("[\"topic1\",\"topic2\"]");
         val topicsSecondFlux = json("[\"topic2\",\"topic3\"]");
 
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(topicsFirstFlux, buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(topicsSecondFlux, buildVariables())
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(topicsFirstFlux, buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(topicsSecondFlux, buildContext())
                 .takeUntil(value -> value instanceof TextValue textValue && "message2".equals(textValue.value()));
         // WHEN
         val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -162,7 +162,7 @@ class SaplMqttClientSubscriptionsIT {
         // GIVEN
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/+/level3"), buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/+/level3"), buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
@@ -177,7 +177,7 @@ class SaplMqttClientSubscriptionsIT {
         // GIVEN
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/#"), buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/#"), buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
@@ -192,9 +192,9 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard() {
         // GIVEN
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/#"), buildVariables());
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/#"), buildContext());
         val saplMqttMessageFluxSecond = saplMqttClient
-                .buildSaplMqttMessageFlux(Value.of("level1/level2"), buildVariables())
+                .buildSaplMqttMessageFlux(Value.of("level1/level2"), buildContext())
                 .takeUntil(value -> value instanceof TextValue textValue && "message1".equals(textValue.value()));
 
         // WHEN
@@ -214,8 +214,8 @@ class SaplMqttClientSubscriptionsIT {
     void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic() {
         // GIVEN
         val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/level2"),
-                buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/#"), buildVariables())
+                buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/#"), buildContext())
                 .takeUntil(value -> value instanceof TextValue textValue && "message1".equals(textValue.value()));
 
         // WHEN
@@ -237,9 +237,9 @@ class SaplMqttClientSubscriptionsIT {
     void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic() {
         // GIVEN
         val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("level1/level2/level3"),
-                buildVariables());
+                buildContext());
         val saplMqttMessageFluxSecond = saplMqttClient
-                .buildSaplMqttMessageFlux(Value.of("level1/+/level3"), buildVariables())
+                .buildSaplMqttMessageFlux(Value.of("level1/+/level3"), buildContext())
                 .takeUntil(value -> value instanceof TextValue textValue && "message1".equals(textValue.value()));
 
         // WHEN

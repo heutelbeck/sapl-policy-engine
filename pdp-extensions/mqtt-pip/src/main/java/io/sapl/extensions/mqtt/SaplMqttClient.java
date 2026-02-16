@@ -28,10 +28,12 @@ import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.client.mqtt.mqtt5.message.unsubscribe.Mqtt5Unsubscribe;
 import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.*;
 import io.sapl.extensions.mqtt.util.DefaultResponseConfig;
 import io.sapl.extensions.mqtt.util.ErrorUtility;
 import io.sapl.extensions.mqtt.util.MqttClientValues;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -47,7 +49,9 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.sapl.extensions.mqtt.util.ConfigUtility.*;
+import static io.sapl.extensions.mqtt.util.ConfigUtility.getClientId;
+import static io.sapl.extensions.mqtt.util.ConfigUtility.getConfigValueOrDefault;
+import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
 import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultResponseConfig;
 import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultValue;
 import static io.sapl.extensions.mqtt.util.ErrorUtility.emitValueOnRetry;
@@ -66,23 +70,26 @@ public class SaplMqttClient implements Closeable {
     /**
      * The reference for the client id in configurations.
      */
-    public static final String  ENVIRONMENT_CLIENT_ID       = "clientId";
+    public static final String  ENVIRONMENT_CLIENT_ID          = "clientId";
     /**
      * The reference for the broker address in configurations.
      */
-    public static final String  ENVIRONMENT_BROKER_ADDRESS  = "brokerAddress";
+    public static final String  ENVIRONMENT_BROKER_ADDRESS     = "brokerAddress";
     /**
      * The reference for the broker port in configurations.
      */
-    public static final String  ENVIRONMENT_BROKER_PORT     = "brokerPort";
-    private static final String ENVIRONMENT_MQTT_PIP_CONFIG = "mqttPipConfig";
-    private static final String ENVIRONMENT_USERNAME        = "username";
-    private static final String ENVIRONMENT_QOS             = "defaultQos";
-    private static final String DEFAULT_CLIENT_ID           = "mqtt_pip";
-    private static final String DEFAULT_USERNAME            = "";
-    private static final String DEFAULT_BROKER_ADDRESS      = "localhost";
-    private static final int    DEFAULT_BROKER_PORT         = 1883;
-    private static final int    DEFAULT_QOS                 = 0;              // AT_MOST_ONCE
+    public static final String  ENVIRONMENT_BROKER_PORT        = "brokerPort";
+    private static final String ENVIRONMENT_MQTT_PIP_CONFIG    = "mqttPipConfig";
+    private static final String ENVIRONMENT_USERNAME           = "username";
+    private static final String ENVIRONMENT_BROKER_CONFIG_NAME = "name";
+    private static final String ENVIRONMENT_QOS                = "defaultQos";
+    private static final String DEFAULT_CLIENT_ID              = "mqtt_pip";
+    private static final String DEFAULT_USERNAME               = "";
+    private static final String DEFAULT_BROKER_ADDRESS         = "localhost";
+    private static final int    DEFAULT_BROKER_PORT            = 1883;
+    private static final int    DEFAULT_QOS                    = 0;              // AT_MOST_ONCE
+    private static final String SECRETS_MQTT                   = "mqtt";
+    private static final String SECRETS_PASSWORD               = "password";
 
     private static final String ERROR_FAILED_TO_BUILD_MESSAGE_STREAM = "Failed to build stream of messages.";
 
@@ -94,11 +101,11 @@ public class SaplMqttClient implements Closeable {
      * subscribed topics.
      *
      * @param topic A string or array of topic(s) for subscription.
-     * @param variables The configuration specified in the PDP configuration file.
+     * @param ctx The attribute access context containing variables and secrets.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    public Flux<Value> buildSaplMqttMessageFlux(Value topic, Map<String, Value> variables) {
-        return buildSaplMqttMessageFlux(topic, variables, null, Value.UNDEFINED);
+    public Flux<Value> buildSaplMqttMessageFlux(Value topic, AttributeAccessContext ctx) {
+        return buildSaplMqttMessageFlux(topic, ctx, null, Value.UNDEFINED);
     }
 
     /**
@@ -106,14 +113,13 @@ public class SaplMqttClient implements Closeable {
      * subscribed topics.
      *
      * @param topic A string or array of topic(s) for subscription.
-     * @param variables The configuration specified in the PDP configuration file.
-     * @param qos A {@link Flux} of the quality of service level of the mqtt
-     * subscription to the broker. Possible values: 0, 1, 2. This
-     * variable may be null.
+     * @param ctx The attribute access context containing variables and secrets.
+     * @param qos The quality of service level of the mqtt subscription to the
+     * broker. Possible values: 0, 1, 2. This variable may be null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    public Flux<Value> buildSaplMqttMessageFlux(Value topic, Map<String, Value> variables, Value qos) {
-        return buildSaplMqttMessageFlux(topic, variables, qos, Value.UNDEFINED);
+    public Flux<Value> buildSaplMqttMessageFlux(Value topic, AttributeAccessContext ctx, Value qos) {
+        return buildSaplMqttMessageFlux(topic, ctx, qos, Value.UNDEFINED);
     }
 
     /**
@@ -121,11 +127,11 @@ public class SaplMqttClient implements Closeable {
      * subscribed topics.
      *
      * @param topic A string or array of topic(s) for subscription.
-     * @param variables The configuration specified in the PDP configuration
-     * file.
-     * @param qos A {@link Flux} of the quality of service level of the
-     * mqtt subscription to the broker. Possible values: 0, 1,
-     * 2. This variable can be null.
+     * @param ctx The attribute access context containing variables and
+     * secrets.
+     * @param qos The quality of service level of the mqtt subscription
+     * to the broker. Possible values: 0, 1, 2. This variable
+     * can be null.
      * @param mqttPipConfig An {@link tools.jackson.databind.node.ArrayNode}
      * of {@link tools.jackson.databind.node.ObjectNode}s
      * or only a single {@link ObjectNode} containing
@@ -137,17 +143,17 @@ public class SaplMqttClient implements Closeable {
      * may be null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    public Flux<Value> buildSaplMqttMessageFlux(Value topic, Map<String, Value> variables, Value qos,
+    public Flux<Value> buildSaplMqttMessageFlux(Value topic, AttributeAccessContext ctx, Value qos,
             Value mqttPipConfig) {
         try {
-            JsonNode pipMqttClientConfig = null;
-            if (variables != null) {
-                var pipMqttClientConfigVal = variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
-                if (pipMqttClientConfigVal != null && !(pipMqttClientConfigVal instanceof UndefinedValue)) {
-                    pipMqttClientConfig = ValueJsonMarshaller.toJsonNode(pipMqttClientConfigVal);
-                }
+            val      variables              = ctx.variables();
+            val      pdpSecrets             = ctx.pdpSecrets();
+            JsonNode pipMqttClientConfig    = null;
+            val      pipMqttClientConfigVal = variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
+            if (pipMqttClientConfigVal != null && !(pipMqttClientConfigVal instanceof UndefinedValue)) {
+                pipMqttClientConfig = ValueJsonMarshaller.toJsonNode(pipMqttClientConfigVal);
             }
-            var messageFlux = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
+            var messageFlux = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig, pdpSecrets);
             return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
                     .onErrorResume(error -> {
                         log.debug("An error occurred on the sapl mqtt message flux: {}", error.getMessage());
@@ -159,12 +165,12 @@ public class SaplMqttClient implements Closeable {
         }
     }
 
-    private Flux<Value> buildMqttMessageFlux(Value topic, Value qos, Value mqttPipConfig,
-            JsonNode pipMqttClientConfig) {
+    private Flux<Value> buildMqttMessageFlux(Value topic, Value qos, Value mqttPipConfig, JsonNode pipMqttClientConfig,
+            ObjectValue pdpSecrets) {
         Sinks.Many<Value> emitterUndefined = Sinks.many().multicast().directAllOrNothing();
 
         var mqttMessageFlux = buildFluxOfConfigParams(qos, mqttPipConfig, pipMqttClientConfig)
-                .map(params -> getConnectionAndSubscription(topic, pipMqttClientConfig, params))
+                .map(params -> getConnectionAndSubscription(topic, pipMqttClientConfig, params, pdpSecrets))
                 .switchMap(this::connectAndSubscribe).map(this::getValueFromMqttPublishMessage).share()
                 .retryWhen(getRetrySpec(pipMqttClientConfig).doBeforeRetry(
                         retrySignal -> emitValueOnRetry(pipMqttClientConfig, emitterUndefined, retrySignal)));
@@ -221,10 +227,11 @@ public class SaplMqttClient implements Closeable {
     }
 
     private Tuple4<Mqtt5ReactorClient, Mono<Mqtt5ConnAck>, Flux<Mqtt5Publish>, Integer> getConnectionAndSubscription(
-            Value topic, JsonNode pipMqttClientConfig, Tuple2<Value, ObjectNode> params) {
+            Value topic, JsonNode pipMqttClientConfig, Tuple2<Value, ObjectNode> params, ObjectValue pdpSecrets) {
         var mqttBrokerConfig = params.getT2();
         var brokerConfigHash = mqttBrokerConfig.hashCode();
-        var clientValues     = getOrBuildMqttClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig);
+        var clientValues     = getOrBuildMqttClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig,
+                pdpSecrets);
         var qos              = params.getT1();
         var mqttSubscription = buildMqttSubscription(brokerConfigHash, topic, qos);
 
@@ -256,19 +263,19 @@ public class SaplMqttClient implements Closeable {
     }
 
     private MqttClientValues getOrBuildMqttClientValues(ObjectNode mqttBrokerConfig, int brokerConfigHash,
-            JsonNode pipMqttClientConfig) {
+            JsonNode pipMqttClientConfig, ObjectValue pdpSecrets) {
         var clientValues = MQTT_CLIENT_CACHE.get(brokerConfigHash);
         if (clientValues == null) {
-            clientValues = buildClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig);
+            clientValues = buildClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig, pdpSecrets);
         }
         return clientValues;
     }
 
     private MqttClientValues buildClientValues(ObjectNode mqttBrokerConfig, int brokerConfigHash,
-            JsonNode pipMqttClientConfig) {
+            JsonNode pipMqttClientConfig, ObjectValue pdpSecrets) {
         var clientId             = getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
                 getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID));
-        var mqttClientReactor    = buildMqttReactorClient(mqttBrokerConfig, pipMqttClientConfig);
+        var mqttClientReactor    = buildMqttReactorClient(mqttBrokerConfig, pipMqttClientConfig, pdpSecrets);
         var mqttClientConnection = buildClientConnection(mqttClientReactor).share();
         var clientValues         = new MqttClientValues(clientId, mqttClientReactor, mqttBrokerConfig,
                 mqttClientConnection);
@@ -276,23 +283,24 @@ public class SaplMqttClient implements Closeable {
         return clientValues;
     }
 
-    private Mqtt5ReactorClient buildMqttReactorClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig) {
-        return Mqtt5ReactorClient.from(buildMqttClient(mqttBrokerConfig, pipMqttClientConfig));
+    private Mqtt5ReactorClient buildMqttReactorClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig,
+            ObjectValue pdpSecrets) {
+        return Mqtt5ReactorClient.from(buildMqttClient(mqttBrokerConfig, pipMqttClientConfig, pdpSecrets));
     }
 
-    private Mqtt5Client buildMqttClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig) {
+    private Mqtt5Client buildMqttClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig,
+            ObjectValue pdpSecrets) {
         return MqttClient.builder().useMqttVersion5()
                 .identifier(getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
                         getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID)))
-                .serverAddress(
-                        InetSocketAddress.createUnresolved(
-                                getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_ADDRESS,
-                                        getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_BROKER_ADDRESS,
-                                                DEFAULT_BROKER_ADDRESS)),
-                                getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_PORT,
-                                        getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_BROKER_PORT,
-                                                DEFAULT_BROKER_PORT))))
-                .simpleAuth(buildAuthn(mqttBrokerConfig)).build();
+                .serverAddress(InetSocketAddress.createUnresolved(
+                        getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_ADDRESS,
+                                getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_BROKER_ADDRESS,
+                                        DEFAULT_BROKER_ADDRESS)),
+                        getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_PORT,
+                                getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_BROKER_PORT,
+                                        DEFAULT_BROKER_PORT))))
+                .simpleAuth(buildAuthn(mqttBrokerConfig, pdpSecrets)).build();
     }
 
     private Mono<Mqtt5ConnAck> buildClientConnection(Mqtt5ReactorClient mqttClientReactor) {
@@ -305,10 +313,36 @@ public class SaplMqttClient implements Closeable {
                 .ignoreElement();
     }
 
-    private Mqtt5SimpleAuth buildAuthn(JsonNode config) {
-        return Mqtt5SimpleAuth.builder()
-                .username(getConfigValueOrDefault(config, ENVIRONMENT_USERNAME, DEFAULT_USERNAME))
-                .password(getPassword(config)).build();
+    private Mqtt5SimpleAuth buildAuthn(JsonNode brokerConfig, ObjectValue pdpSecrets) {
+        val mqttSecrets = resolveMqttSecrets(brokerConfig, pdpSecrets);
+        val username    = mqttSecrets != null && mqttSecrets.containsKey(ENVIRONMENT_USERNAME)
+                ? ((TextValue) mqttSecrets.get(ENVIRONMENT_USERNAME)).value()
+                : DEFAULT_USERNAME;
+        val password    = mqttSecrets != null && mqttSecrets.containsKey(SECRETS_PASSWORD)
+                ? ((TextValue) mqttSecrets.get(SECRETS_PASSWORD)).value().getBytes(StandardCharsets.UTF_8)
+                : DEFAULT_USERNAME.getBytes(StandardCharsets.UTF_8);
+        return Mqtt5SimpleAuth.builder().username(username).password(password).build();
+    }
+
+    private static ObjectValue resolveMqttSecrets(JsonNode brokerConfig, ObjectValue pdpSecrets) {
+        if (pdpSecrets == null || pdpSecrets.isEmpty()) {
+            return null;
+        }
+        val mqttSecretsValue = pdpSecrets.get(SECRETS_MQTT);
+        if (!(mqttSecretsValue instanceof ObjectValue mqttSecrets)) {
+            return null;
+        }
+        if (brokerConfig != null && brokerConfig.has(ENVIRONMENT_BROKER_CONFIG_NAME)) {
+            val brokerName      = brokerConfig.get(ENVIRONMENT_BROKER_CONFIG_NAME).asString();
+            val perBrokerSecret = mqttSecrets.get(brokerName);
+            if (perBrokerSecret instanceof ObjectValue perBrokerSecrets) {
+                return perBrokerSecrets;
+            }
+        }
+        if (mqttSecrets.containsKey(ENVIRONMENT_USERNAME) || mqttSecrets.containsKey(SECRETS_PASSWORD)) {
+            return mqttSecrets;
+        }
+        return null;
     }
 
     private void handleMessageFluxCancel(int brokerConfigHash, Value topic) {

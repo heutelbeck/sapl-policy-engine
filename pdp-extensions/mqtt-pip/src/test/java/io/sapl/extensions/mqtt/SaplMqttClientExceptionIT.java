@@ -33,7 +33,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
+import static io.sapl.extensions.mqtt.MqttTestUtility.buildContext;
+import static io.sapl.extensions.mqtt.MqttTestUtility.buildContextFromVariables;
 import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
 import static org.mockito.ArgumentMatchers.any;
 
@@ -71,7 +72,8 @@ class SaplMqttClientExceptionIT {
         val topics = "topic";
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), null);
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics),
+                buildContextFromVariables(Value.EMPTY_OBJECT));
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -89,7 +91,7 @@ class SaplMqttClientExceptionIT {
             defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
                     .thenThrow(new RuntimeException("Error in stream"));
 
-            val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), buildVariables());
+            val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), buildContext());
 
             // THEN
             StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))

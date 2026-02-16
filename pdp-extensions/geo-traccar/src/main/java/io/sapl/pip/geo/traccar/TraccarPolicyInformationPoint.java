@@ -52,65 +52,172 @@ public class TraccarPolicyInformationPoint {
     public static final String NAME           = "traccar";
     public static final String DESCRIPTION    = "This policy information point can fetch device positions and geofences from a traccar server.";
 
-    static final String        ERROR_BAD_RESPONSE_EXPECTED_ARRAY = "Bad response. Expected a non-empty array, but got: %s.";
-    static final String        ERROR_REQUIRED_FIELD_MISSING      = "Required field '%s' missing from traccar configuration.";
-    static final String        ERROR_TRACCAR_CONFIG_NOT_OBJECT   = "TRACCAR_CONFIG must be an object, but was: %s";
-    static final String        ERROR_TRACCAR_CONFIG_UNDEFINED    = "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.";
-    public static final String DOCUMENTATION                     = """
-             This policy information point allows interaction with Traccar servers.
-             [Traccar](https://www.traccar.org/) is a GPS tracking platform for monitoring the location of devices and
-             managing geofences.
+    static final String ERROR_BAD_RESPONSE_EXPECTED_ARRAY = "Bad response. Expected a non-empty array, but got: %s.";
+    static final String ERROR_REQUIRED_FIELD_MISSING      = "Required field '%s' missing from traccar configuration.";
+    static final String ERROR_TRACCAR_CONFIG_NOT_OBJECT   = "TRACCAR_CONFIG must be an object, but was: %s";
+    static final String ERROR_TRACCAR_CONFIG_UNDEFINED    = "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.";
+    static final String ERROR_TRACCAR_CREDENTIALS_MISSING = "No Traccar credentials found in pdpSecrets. Configure secrets.traccar with 'token' or 'userName'/'password'.";
 
-             This library enables fetching device positions as device attributes and geofence geometries as fence attributes.
-             By integrating with the geographical function library (`geo`), this allows for policies that enforce geographical
-             access control and geofencing. This library also allows direct access to Traccar-specific data within its schema,
-             allowing to retrieve positions and geofences as GeoJSON objects for use with the operators of the `geo`
-             function library.
+    private static final String SECRETS_TRACCAR  = "traccar";
+    private static final String SECRETS_TOKEN    = "token";
+    private static final String SECRETS_USERNAME = "userName";
+    private static final String SECRETS_PASSWORD = "password";
+    public static final String  DOCUMENTATION    = """
+             This policy information point allows interaction with a single
+             [Traccar](https://www.traccar.org/) GPS tracking server, fetching device positions,
+             geofences, and server metadata.
 
-             **Traccar Server Configuration**
+             By integrating with the geographical function library (`geo`), this allows for
+             policies that enforce geographical access control and geofencing. The library
+             provides both Traccar-native data (positions, geofences in Traccar schema) and
+             GeoJSON-converted data for use with the `geo` function library operators.
 
-             This library uses email and password authentication.
-             A Traccar server configuration is a JSON object named `traccarConfiguration` containing the following attributes:
-              - `baseUrl`: The base URL for constructing API requests. Example: `https://demo.traccar.org`.
-              - `userName`: The email address used to authenticate to the Traccar Server.
-              - `password`: The password to authenticate to the Traccar Server.
-              - `pollingIntervalMs`: The interval, in milliseconds, between polling the Traccar server endpoint. Defaults to 1000ms.
-              - `repetitions`: The maximum number of repeated requests. Defaults to `0x7fffffffffffffffL`.
+             ## Available Attributes
 
-             *** Example: ***
+             Environment attributes (no left-hand operand):
 
+             | Attribute | Description |
+             |---|---|
+             | `<traccar.server>` | Traccar server metadata |
+             | `<traccar.devices>` | List of all devices |
+             | `<traccar.geofences>` | List of all geofences |
+
+             Left-hand operand attributes (entity ID on the left):
+
+             | Attribute | Description |
+             |---|---|
+             | `deviceId.<traccar.device>` | Single device metadata |
+             | `deviceId.<traccar.traccarPosition>` | Most recent position (Traccar schema) |
+             | `deviceId.<traccar.position>` | Most recent position (GeoJSON) |
+             | `geofenceId.<traccar.traccarGeofence>` | Single geofence metadata (Traccar schema) |
+             | `geofenceId.<traccar.geofenceGeometry>` | Single geofence geometry (GeoJSON) |
+
+             Every attribute has two variations:
+             * Without parameter: uses the `TRACCAR_CONFIG` environment variable.
+             * With `traccarConfig` parameter: uses the inline configuration object.
+
+             Both variations use the same `secrets.traccar` credentials (see below).
+
+             ## Server Configuration
+
+             The Traccar server configuration is a JSON object with non-sensitive connection
+             settings. It does not contain any credentials.
+
+             Configuration fields:
+             * `baseUrl` (required): The base URL of the Traccar server.
+             * `pollingIntervalMs` (optional): Interval in milliseconds between polling requests.
+               Defaults to 1000.
+             * `repetitions` (optional): Maximum number of repeated polling requests. Defaults to
+               `Long.MAX_VALUE`.
+
+             The configuration is provided via the `TRACCAR_CONFIG` environment variable in
+             `pdp.json`:
              ```json
              {
-                 "baseUrl": "https://demo.traccar.org",
-                 "userName": "email@address.org",
-                 "password": "password",
-                 "pollingIntervalMs": 250
+               "variables": {
+                 "TRACCAR_CONFIG": {
+                   "baseUrl": "https://demo.traccar.org",
+                   "pollingIntervalMs": 250
+                 }
+               }
              }
              ```
 
-             All attribute finders of this library offer a variation with or without the `traccarConfiguration` as a parameter.
-             If the parameter is not used in a policy, the attribute finder will default to the value of the environment variable
-             `TRACCAR_CONFIG`.
+             This PIP connects to a single Traccar server. There is no multi-server support.
+             All attribute finders -- whether invoked with or without the inline `traccarConfig`
+             parameter -- authenticate against the same `secrets.traccar` credentials.
 
-             *** Examples: ***
+             ## Secrets Configuration
 
-              - `subject.device.<traccar.position>` will use the value of the environment variable `TRACCAR_CONFIG`
-               to connect to the Traccar server.
+             Credentials are sourced exclusively from the `secrets` section in `pdp.json`. They
+             are never read from the `TRACCAR_CONFIG` variable, inline configuration parameters,
+             or any other policy-visible source. Even if a `traccarConfig` object contains
+             `userName` or `password` fields, they are ignored for authentication.
 
-              - Alternatively, a policy-specific set of settings can be used:
-               ```sapl
-               subject.device.<{
-                                 "baseUrl": "https://demo.traccar.org",
-                                 "userName": "email@address.org",
-                                 "password": "password"
-                               }>
-               ```
+             There is a single set of Traccar credentials per PDP. All attribute finders use
+             the same `secrets.traccar` entry regardless of whether they use `TRACCAR_CONFIG`
+             or an inline configuration parameter.
 
-              - `subject.device.<traccar.position(TRACCAR_SERVER_1)>` will use the value of the environment variable
-               `TRACCAR_SERVER_1` to connect to the Traccar server.
+             Two authentication methods are supported:
 
-            As a best practice, credentials should be stored in an environment variable and marked as secret to minimize
-            the risk of exposing credentials.
+             **API token authentication (recommended for Traccar 6.x):**
+
+             The token is passed as a `?token=` query parameter on every API request.
+             ```json
+             { "secrets": { "traccar": { "token": "YOUR_API_TOKEN" } } }
+             ```
+
+             **Basic authentication with email and password:**
+
+             An `Authorization: Basic ...` header is added to every API request.
+             ```json
+             { "secrets": { "traccar": { "userName": "email@address.org", "password": "password" } } }
+             ```
+
+             Credential resolution:
+             1. If `secrets.traccar.token` is present, use token authentication.
+             2. Otherwise, if `secrets.traccar.userName` is present, use basic authentication.
+             3. If neither is present, the attribute returns an error.
+
+             If both `token` and `userName`/`password` are present, token authentication takes
+             precedence.
+
+             ## Attribute Invocation and Resolution
+
+             **Without parameter** (uses `TRACCAR_CONFIG` environment variable):
+             ```sapl
+             policy "check_server"
+             permit
+               <traccar.server>.version == "6.7";
+             ```
+             Resolution: reads `TRACCAR_CONFIG` from `ctx.variables()`, reads credentials from
+             `ctx.pdpSecrets().traccar`, makes the API call.
+
+             **With inline config** (overrides connection settings only):
+             ```sapl
+             policy "check_position"
+             permit
+               subject.device.<traccar.position({
+                                "baseUrl": "https://other.traccar.org",
+                                "pollingIntervalMs": 500
+                              })>;
+             ```
+             Resolution: uses the inline object for `baseUrl` and `pollingIntervalMs`, but
+             credentials still come from `ctx.pdpSecrets().traccar` -- the same single set of
+             secrets. The inline object cannot override authentication.
+
+             ## Complete pdp.json Example
+
+             ```json
+             {
+               "variables": {
+                 "TRACCAR_CONFIG": {
+                   "baseUrl": "https://traccar.example.com",
+                   "pollingIntervalMs": 1000
+                 }
+               },
+               "secrets": {
+                 "traccar": { "token": "YOUR_API_TOKEN" }
+               }
+             }
+             ```
+
+             With this configuration:
+             * `<traccar.devices>` fetches devices from `traccar.example.com` using the API token.
+             * `"42".<traccar.position>` fetches the position of device 42 from the same server.
+             * `"42".<traccar.position({ "baseUrl": "https://other.traccar.org" })>` fetches
+               from a different server, but still authenticates with the same API token from
+               `secrets.traccar`.
+
+             ## Geofencing Example
+
+             ```sapl
+             policy "geofence_check"
+             permit
+               var position = subject.device.<traccar.position>;
+               var fence    = subject.geofence.<traccar.geofenceGeometry>;
+               geo.contains(fence, position);
+             ```
             """;
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -158,7 +265,7 @@ public class TraccarPolicyInformationPoint {
         if (errorFlux != null) {
             return errorFlux;
         }
-        return server(getTraccarConfig(ctx.variables()));
+        return server(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.SERVER_SCHEMA, docs = """
@@ -175,8 +282,7 @@ public class TraccarPolicyInformationPoint {
             ```
             <traccar.server({
                               "baseUrl": "https://demo.traccar.org",
-                              "userName": "email@address.org",
-                              "password": "password"
+                              "pollingIntervalMs": 500
                             })>
             ```
 
@@ -206,7 +312,11 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> server(ObjectValue traccarConfig) {
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/server", traccarConfig);
+        return server(traccarConfig, Value.EMPTY_OBJECT);
+    }
+
+    Flux<Value> server(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/server", traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Flux.just(settingsOrError);
         }
@@ -250,7 +360,7 @@ public class TraccarPolicyInformationPoint {
         if (errorFlux != null) {
             return errorFlux;
         }
-        return devices(getTraccarConfig(ctx.variables()));
+        return devices(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.DEVICES_SCHEMA, docs = """
@@ -267,8 +377,7 @@ public class TraccarPolicyInformationPoint {
             ```
             <traccar.devices({
                               "baseUrl": "https://demo.traccar.org",
-                              "userName": "email@address.org",
-                              "password": "password"
+                              "pollingIntervalMs": 500
                             })>
             ```
 
@@ -294,7 +403,11 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> devices(ObjectValue traccarConfig) {
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/devices", traccarConfig);
+        return devices(traccarConfig, Value.EMPTY_OBJECT);
+    }
+
+    Flux<Value> devices(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/devices", traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Flux.just(settingsOrError);
         }
@@ -341,7 +454,7 @@ public class TraccarPolicyInformationPoint {
         if (errorFlux != null) {
             return errorFlux;
         }
-        return device(deviceEntityId, getTraccarConfig(ctx.variables()));
+        return device(deviceEntityId, getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
     }
 
     @Attribute(schema = TraccarSchemata.DEVICE_SCHEMA, docs = """
@@ -360,8 +473,7 @@ public class TraccarPolicyInformationPoint {
             ```
             "12345".<traccar.device({
                               "baseUrl": "https://demo.traccar.org",
-                              "userName": "email@address.org",
-                              "password": "password"
+                              "pollingIntervalMs": 500
                             })>
             ```
 
@@ -385,8 +497,12 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> device(TextValue deviceEntityId, ObjectValue traccarConfig) {
+        return device(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    }
+
+    Flux<Value> device(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
         val settingsOrError = requestSettingsFromTraccarConfig("/api/devices/%s".formatted(deviceEntityId.value()),
-                traccarConfig);
+                traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Flux.just(settingsOrError);
         }
@@ -421,7 +537,7 @@ public class TraccarPolicyInformationPoint {
         if (errorFlux != null) {
             return errorFlux;
         }
-        return geofences(getTraccarConfig(ctx.variables()));
+        return geofences(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.GEOFENCES_SCHEMA, docs = """
@@ -437,8 +553,7 @@ public class TraccarPolicyInformationPoint {
             ```
             <traccar.geofences({
                 "baseUrl": "https://demo.traccar.org",
-                "userName": "email@address.org",
-                "password": "password"
+                "pollingIntervalMs": 250
             })>
             ```
 
@@ -456,7 +571,11 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> geofences(ObjectValue traccarConfig) {
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/geofences", traccarConfig);
+        return geofences(traccarConfig, Value.EMPTY_OBJECT);
+    }
+
+    Flux<Value> geofences(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/geofences", traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Flux.just(settingsOrError);
         }
@@ -492,7 +611,7 @@ public class TraccarPolicyInformationPoint {
         if (errorFlux != null) {
             return errorFlux;
         }
-        return traccarGeofence(geofenceEntityId, getTraccarConfig(ctx.variables()));
+        return traccarGeofence(geofenceEntityId, getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
     }
 
     @Attribute(schema = TraccarSchemata.GEOFENCE_SCHEMA, docs = """
@@ -508,8 +627,7 @@ public class TraccarPolicyInformationPoint {
             ```
             "12345".<traccar.traccarGeofence({
                 "baseUrl": "https://demo.traccar.org",
-                "userName": "email@address.org",
-                "password": "password"
+                "pollingIntervalMs": 250
             })>
             ```
 
@@ -524,8 +642,12 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> traccarGeofence(TextValue geofenceEntityId, ObjectValue traccarConfig) {
+        return traccarGeofence(geofenceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    }
+
+    Flux<Value> traccarGeofence(TextValue geofenceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
         val settingsOrError = requestSettingsFromTraccarConfig("/api/geofences/%s".formatted(geofenceEntityId.value()),
-                traccarConfig);
+                traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Flux.just(settingsOrError);
         }
@@ -582,8 +704,7 @@ public class TraccarPolicyInformationPoint {
             ```
             "12345".<traccar.geofenceGeometry({
                 "baseUrl": "https://demo.traccar.org",
-                "userName": "email@address.org",
-                "password": "password"
+                "pollingIntervalMs": 250
             })>
             ```
 
@@ -604,8 +725,14 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig) {
-        return traccarGeofence(geofenceEntityId, traccarConfig).map(value -> value instanceof ErrorValue ? value
-                : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
+        return geofenceGeometry(geofenceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    }
+
+    Flux<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
+        return traccarGeofence(geofenceEntityId, traccarConfig, pdpSecrets)
+                .map(value -> value instanceof ErrorValue ? value
+                        : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value))
+                .distinct();
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -647,7 +774,7 @@ public class TraccarPolicyInformationPoint {
         if (errorFlux != null) {
             return errorFlux;
         }
-        return traccarPosition(deviceEntityId, getTraccarConfig(ctx.variables()));
+        return traccarPosition(deviceEntityId, getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -664,8 +791,7 @@ public class TraccarPolicyInformationPoint {
             ```
             "12345".<traccar.traccarPosition({
                 "baseUrl": "https://demo.traccar.org",
-                "userName": "email@address.org",
-                "password": "password"
+                "pollingIntervalMs": 250
             })>
             ```
 
@@ -690,8 +816,12 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> traccarPosition(TextValue deviceEntityId, ObjectValue traccarConfig) {
+        return traccarPosition(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    }
+
+    Flux<Value> traccarPosition(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
         val deviceId        = ValueJsonMarshaller.toJsonNode(deviceEntityId);
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/positions", traccarConfig,
+        val settingsOrError = requestSettingsFromTraccarConfig("/api/positions", traccarConfig, pdpSecrets,
                 Map.of("deviceId", deviceId));
         if (settingsOrError instanceof ErrorValue) {
             return Flux.just(settingsOrError);
@@ -747,8 +877,7 @@ public class TraccarPolicyInformationPoint {
             ```
             "12345".<traccar.position({
                 "baseUrl": "https://demo.traccar.org",
-                "userName": "email@address.org",
-                "password": "password"
+                "pollingIntervalMs": 250
             })>
             ```
 
@@ -761,34 +890,58 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return traccarPosition(deviceEntityId, traccarConfig).map(value -> value instanceof ErrorValue ? value
-                : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
+        return position(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
     }
 
-    private Value requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig) {
-        return requestSettingsFromTraccarConfig(path, traccarConfig, Map.of());
+    Flux<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
+        return traccarPosition(deviceEntityId, traccarConfig, pdpSecrets)
+                .map(value -> value instanceof ErrorValue ? value
+                        : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value))
+                .distinct();
     }
 
-    private Value requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig,
+    private Value requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
+        return requestSettingsFromTraccarConfig(path, traccarConfig, pdpSecrets, Map.of());
+    }
+
+    private Value requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig, ObjectValue pdpSecrets,
             Map<String, JsonNode> queryParameters) {
         val baseUrl = getRequiredProperty(ReactiveWebClient.BASE_URL, traccarConfig);
         if (baseUrl instanceof ErrorValue) {
             return baseUrl;
         }
 
-        val authHeaderOrError = createBasicAuthHeader(traccarConfig);
-        if (authHeaderOrError instanceof ErrorValue) {
-            return authHeaderOrError;
-        }
+        val traccarSecrets = resolveTraccarSecrets(pdpSecrets);
 
         val requestSettings = JSON.objectNode();
         requestSettings.set(ReactiveWebClient.BASE_URL, toJsonNode(baseUrl));
-        requestSettings.set(ReactiveWebClient.PATH, JSON.stringNode(path));
         requestSettings.set(ReactiveWebClient.ACCEPT_MEDIATYPE, JSON.stringNode(MediaType.APPLICATION_JSON_VALUE));
 
-        val headersWithBasicAuth = JSON.objectNode();
-        headersWithBasicAuth.set(HttpHeaders.AUTHORIZATION, toJsonNode(authHeaderOrError));
-        requestSettings.set(ReactiveWebClient.HEADERS, headersWithBasicAuth);
+        val effectiveQueryParams = JSON.objectNode();
+        for (val parameter : queryParameters.entrySet()) {
+            effectiveQueryParams.set(parameter.getKey(), parameter.getValue());
+        }
+
+        if (traccarSecrets != null && traccarSecrets.containsKey(SECRETS_TOKEN)) {
+            val token = ((TextValue) traccarSecrets.get(SECRETS_TOKEN)).value();
+            effectiveQueryParams.set(SECRETS_TOKEN, JSON.stringNode(token));
+            requestSettings.set(ReactiveWebClient.PATH, JSON.stringNode(path));
+        } else if (traccarSecrets != null && traccarSecrets.containsKey(SECRETS_USERNAME)) {
+            val authHeaderOrError = createBasicAuthHeader(traccarSecrets);
+            if (authHeaderOrError instanceof ErrorValue) {
+                return authHeaderOrError;
+            }
+            val headers = JSON.objectNode();
+            headers.set(HttpHeaders.AUTHORIZATION, toJsonNode(authHeaderOrError));
+            requestSettings.set(ReactiveWebClient.HEADERS, headers);
+            requestSettings.set(ReactiveWebClient.PATH, JSON.stringNode(path));
+        } else {
+            return Value.error(ERROR_TRACCAR_CREDENTIALS_MISSING);
+        }
+
+        if (!effectiveQueryParams.isEmpty()) {
+            requestSettings.set(ReactiveWebClient.URL_PARAMS, effectiveQueryParams);
+        }
 
         val config = ValueJsonMarshaller.toJsonNode(traccarConfig);
         if (config.has(ReactiveWebClient.POLLING_INTERVAL)) {
@@ -799,31 +952,33 @@ public class TraccarPolicyInformationPoint {
             requestSettings.set(ReactiveWebClient.REPEAT_TIMES, config.get(ReactiveWebClient.REPEAT_TIMES));
         }
 
-        if (!queryParameters.isEmpty()) {
-            val queryParams = JSON.objectNode();
-            for (val parameter : queryParameters.entrySet()) {
-                queryParams.set(parameter.getKey(), parameter.getValue());
-            }
-            requestSettings.set(ReactiveWebClient.URL_PARAMS, queryParams);
-        }
-
         return ValueJsonMarshaller.fromJsonNode(requestSettings);
     }
 
+    private static ObjectValue resolveTraccarSecrets(ObjectValue pdpSecrets) {
+        if (pdpSecrets == null || pdpSecrets.isEmpty()) {
+            return null;
+        }
+        val traccarSecretsValue = pdpSecrets.get(SECRETS_TRACCAR);
+        if (traccarSecretsValue instanceof ObjectValue traccarSecrets) {
+            return traccarSecrets;
+        }
+        return null;
+    }
+
     /**
-     * Creates a Basic Authentication header value from the traccar configuration.
+     * Creates a Basic Authentication header value from the traccar secrets.
      *
-     * @param traccarConfig the traccar configuration containing userName and
-     * password
+     * @param traccarSecrets the traccar secrets containing userName and password
      * @return the Base64-encoded Basic Auth header as TextValue, or ErrorValue if
      * required fields are missing
      */
-    public static Value createBasicAuthHeader(ObjectValue traccarConfig) {
-        val userName = getRequiredProperty("userName", traccarConfig);
+    public static Value createBasicAuthHeader(ObjectValue traccarSecrets) {
+        val userName = getRequiredProperty("userName", traccarSecrets);
         if (userName instanceof ErrorValue) {
             return userName;
         }
-        val password = getRequiredProperty("password", traccarConfig);
+        val password = getRequiredProperty("password", traccarSecrets);
         if (password instanceof ErrorValue) {
             return password;
         }

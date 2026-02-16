@@ -36,7 +36,8 @@ import reactor.test.publisher.TestPublisher;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Map;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.model.ObjectValue;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.extensions.mqtt.MqttTestUtility.*;
@@ -96,8 +97,8 @@ class SaplMqttClientConnectionIT {
                 }
                 """);
 
-        val configForUndefinedVal = Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig",
-                mqttPipConfigForUndefinedVal, "resource", Value.NULL, "subject", Value.NULL);
+        val configForUndefinedVal = buildContextFromVariables(
+                ObjectValue.builder().put("mqttPipConfig", mqttPipConfigForUndefinedVal).build());
 
         // WHEN
         val testSaplMqttClient  = new SaplMqttClient();
@@ -112,7 +113,7 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_noConfigIsSpecified_then_returnValueOfError() {
         // WHEN
-        val emptyPdpConfig      = Map.<String, Value>of();
+        val emptyPdpConfig      = buildContextFromVariables(Value.EMPTY_OBJECT);
         val testSaplMqttClient  = new SaplMqttClient();
         val saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
 
@@ -125,8 +126,8 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsShared_then_bothMessageFluxWorking() {
         // GIVEN
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables());
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildContext());
 
         // WHEN
         val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
@@ -148,8 +149,8 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsNotSharedAnymore_then_singleFluxWorking() {
         // GIVEN
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables())
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildContext())
                 .takeUntil(
                         message -> message instanceof TextValue textValue && "lastMessage".equals(textValue.value()));
 
@@ -177,8 +178,8 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsNotSharedAnymoreAndThenSharedAgain_then_bothMessageFluxWorking() {
         // GIVEN
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables())
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildContext())
                 .takeUntil(
                         message -> message instanceof TextValue textValue && "lastMessage".equals(textValue.value()));
         val testPublisher             = TestPublisher.create();
@@ -212,7 +213,7 @@ class SaplMqttClientConnectionIT {
         // WHEN
         val secondaryBroker     = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
         val mqttClient          = startClient();
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, buildVariables());
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, buildContext());
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -236,8 +237,8 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_brokerConnectionLostWhileSharingConnection_then_reconnectToBroker() {
         // GIVEN
-        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
-        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables());
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildContext());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildContext());
 
         // WHEN
         val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
@@ -279,9 +280,9 @@ class SaplMqttClientConnectionIT {
         val topicsSecondFlux = MAPPER.createArrayNode().add("topic2").add("topic3");
 
         val saplMqttMessageFluxFirst  = saplMqttClient
-                .buildSaplMqttMessageFlux(ValueJsonMarshaller.fromJsonNode(topicsFirstFlux), buildVariables());
+                .buildSaplMqttMessageFlux(ValueJsonMarshaller.fromJsonNode(topicsFirstFlux), buildContext());
         val saplMqttMessageFluxSecond = saplMqttClient
-                .buildSaplMqttMessageFlux(ValueJsonMarshaller.fromJsonNode(topicsSecondFlux), buildVariables())
+                .buildSaplMqttMessageFlux(ValueJsonMarshaller.fromJsonNode(topicsSecondFlux), buildContext())
                 .takeUntil(value -> value instanceof TextValue textValue && "message2".equals(textValue.value()));
 
         // WHEN
@@ -337,8 +338,8 @@ class SaplMqttClientConnectionIT {
                   } ]
                 }
                 """);
-        val configForUndefinedVal        = Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig",
-                mqttPipConfigForUndefinedVal, "resource", Value.NULL, "subject", Value.NULL);
+        val configForUndefinedVal        = buildContextFromVariables(
+                ObjectValue.builder().put("mqttPipConfig", mqttPipConfigForUndefinedVal).build());
 
         // WHEN
         val mqttClient          = startClient();

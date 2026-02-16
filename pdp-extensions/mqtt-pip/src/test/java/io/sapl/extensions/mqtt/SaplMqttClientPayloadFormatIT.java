@@ -83,7 +83,7 @@ class SaplMqttClientPayloadFormatIT {
         val jsonMessage = JSON_FACTORY.arrayNode().add("message1").add(JSON_FACTORY.objectNode().put("key", "value"));
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
@@ -104,7 +104,7 @@ class SaplMqttClientPayloadFormatIT {
                 .payload(jsonMessage.getBytes(StandardCharsets.UTF_8)).contentType("application/json").build();
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
@@ -121,7 +121,7 @@ class SaplMqttClientPayloadFormatIT {
         val message = "byteArray";
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
@@ -140,7 +140,7 @@ class SaplMqttClientPayloadFormatIT {
         val message = "byteArray";
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
@@ -158,7 +158,7 @@ class SaplMqttClientPayloadFormatIT {
         val message = "ßß";
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildContext())
                 .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN

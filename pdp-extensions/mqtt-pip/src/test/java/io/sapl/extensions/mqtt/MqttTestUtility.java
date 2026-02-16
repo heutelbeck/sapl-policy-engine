@@ -27,6 +27,8 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.configuration.service.InternalConfigurations;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import com.hivemq.migration.meta.PersistenceType;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -34,7 +36,6 @@ import lombok.val;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
@@ -109,9 +110,17 @@ class MqttTestUtility {
                 """);
     }
 
-    public static Map<String, Value> buildVariables() {
-        return Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig", defaultMqttPipConfig(),
-                "resource", Value.NULL, "subject", Value.NULL);
+    static AttributeAccessContext buildContext() {
+        return buildContext(Value.EMPTY_OBJECT);
+    }
+
+    static AttributeAccessContext buildContext(ObjectValue pdpSecrets) {
+        val variables = ObjectValue.builder().put("mqttPipConfig", defaultMqttPipConfig()).build();
+        return new AttributeAccessContext(variables, pdpSecrets, Value.EMPTY_OBJECT);
+    }
+
+    static AttributeAccessContext buildContextFromVariables(ObjectValue variables) {
+        return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
     public static Mqtt5Publish buildMqttPublishMessage(String topic, String payload, boolean retain) {

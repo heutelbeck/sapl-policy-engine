@@ -245,6 +245,11 @@
 				<artifactId>flexmark</artifactId>
 				<version>${flexmark.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>com.vladsch.flexmark</groupId>
+				<artifactId>flexmark-ext-tables</artifactId>
+				<version>${flexmark.version}</version>
+			</dependency>
 			<!-- Utility Libraries -->
             <dependency>
                 <groupId>commons-io</groupId>

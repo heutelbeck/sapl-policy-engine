@@ -23,6 +23,7 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -52,7 +53,6 @@ import reactor.core.publisher.Mono;
 import java.security.Key;
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.Map;
 
 @Configuration
 public class PlaygroundConfiguration {
@@ -124,7 +124,7 @@ public class PlaygroundConfiguration {
 
     public static class DummySaplMqttClient extends SaplMqttClient {
         @Override
-        public Flux<Value> buildSaplMqttMessageFlux(Value topic, Map<String, Value> variables, Value qos,
+        public Flux<Value> buildSaplMqttMessageFlux(Value topic, AttributeAccessContext ctx, Value qos,
                 Value mqttPipConfig) {
             return Flux.just(PIP_CALL_BLOCKED);
         }
