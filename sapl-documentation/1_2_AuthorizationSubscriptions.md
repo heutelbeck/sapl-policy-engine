@@ -18,8 +18,9 @@ An authorization subscription consists of these **required fields**:
 - **action**: What operation is being attempted (read, write, delete, etc.)
 - **resource**: What is being accessed (document, record, API resource, etc.)
 
-And this **optional field**:
+And these **optional fields**:
 - **environment**: Additional contextual information (time, location, IP address, etc.)
+- **secrets**: Sensitive data (API keys, tokens, credentials) needed by Policy Information Points
 
 ---
 
@@ -48,6 +49,35 @@ This authorization subscription expresses the intent of Dr. Alice, a doctor from
 
 The PEP constructs this JSON object from the application context and sends it to the PDP, which evaluates it against all applicable policies to produce an authorization decision.
 
+### The Secrets Field
+
+Policy Information Points (PIPs) often need credentials to access external data sources during policy evaluation. For example, a PIP may need an API key to query a patient database, or a token to call an external risk-scoring service. These credentials are sensitive and must be handled with care:
+
+- They must **never appear in policies** -- hardcoding credentials in policy text is a security risk and makes credential rotation impossible.
+- They must **never appear in logs or decision output** -- SAPL automatically redacts secrets from all serialization and logging.
+- They must be **available to PIPs at evaluation time** -- without credentials, PIPs cannot fetch the attributes policies need.
+
+The `secrets` field solves this by providing a **secure side-channel** for passing credentials to PIPs without exposing them in policies, logs, or authorization decisions.
+
+SAPL supports two complementary channels for providing secrets:
+
+**Subscription-level secrets** are sent by the PEP as part of each authorization subscription. This is useful when credentials are specific to the current request context, such as an OAuth token that the calling user already possesses:
+
+```json
+{
+  "subject":  "alice",
+  "action":   "read",
+  "resource": "patient_record",
+  "secrets": {
+    "oauth_token": "eyJhbGciOiJSUzI1..."
+  }
+}
+```
+
+**PDP-level secrets** are configured centrally in the PDP configuration (`pdp.json`). This is the right choice for infrastructure credentials shared across all evaluations, such as database connection strings or API keys for external services. PDP-level secrets are configured once and automatically available to all PIPs during evaluation.
+
+Both channels are available to PIPs via the `AttributeAccessContext`, and PIPs can use whichever is appropriate for their use case.
+
 ### Best Practice: Domain-Driven Authorization
 
 The authorization subscription above uses **business domain language**: `action: "read"` and `resource.type: "patient_record"`. This follows Domain-Driven Design principles - policies should speak your business's ubiquitous language, not implementation details like HTTP verbs or URLs.
@@ -55,7 +85,7 @@ The authorization subscription above uses **business domain language**: `action:
 In practice, a PEP in a REST API would translate infrastructure operations into domain concepts before requesting authorization:
 
 ```
-GET /api/patients/123  ->  {action: "read", resource: {type: "patient_record", patientId: 123}}
+GET /api/patients/123  becomes  {action: "read", resource: {type: "patient_record", patientId: 123}}
 ```
 
 This keeps policies independent of technology choices - the same policies work whether you use REST, GraphQL, gRPC, or direct database access.
@@ -64,7 +94,7 @@ This keeps policies independent of technology choices - the same policies work w
 
 While you can use **technical subscriptions** (`action: "HTTP:GET"`, `resource: "https://..."`) for rapid prototyping, **domain-driven subscriptions** are strongly recommended for production systems.
 
-**Domain-Driven Acces Control**
+**Domain-Driven Access Control**
 
 **Policy Coupling**: Technical subscriptions lead to technical policies. If your subscription uses `action: "HTTP:GET"`, your policies must check `action == "HTTP:GET"`. Change from REST to GraphQL? All policies break. Domain subscriptions decouple policies from infrastructure.
 
@@ -76,14 +106,14 @@ While you can use **technical subscriptions** (`action: "HTTP:GET"`, `resource: 
 
 **Example: Policy Evolution**
 
-Technical subscription -> Technical policy:
+Technical subscription leads to technical policy:
 ```sapl
-permit action =~ "^GET" & resource =~ "^https://medical\.org/api/patients/.*"
+permit action =~ "^GET" & resource =~ "^https://medical\.org/api/patients/.*";
 ```
 
 Domain subscription -> Domain policy:
 ```sapl
-permit action == "read" & resource.type == "patient_record"
+permit action == "read" & resource.type == "patient_record";
 ```
 
 Staying with the domain-driven variant typically will make communication with domain stakeholders, e.g., compliance officer, easier.

@@ -11,7 +11,7 @@ nav_order: 4
 
 ## Authorization Decisions
 
-The SAPL authorization decision in response to an authorization subscription is a JSON object. It contains the attribute `decision` as well as the optional attributes `resource`, `obligation`, and `advice`.
+The SAPL authorization decision in response to an authorization subscription is a JSON object. It contains the attribute `decision` as well as the optional attributes `resource`, `obligations`, and `advice`.
 
 For the introductory sample authorization subscription with the preceding policy, a SAPL authorization decision would look as follows:
 
@@ -53,8 +53,29 @@ The authorization decision may include additional attributes beyond `decision`:
 
 **`resource`**: Contains a transformed or filtered version of the requested resource when the policy includes a `transform` statement. This allows policies to redact sensitive information or modify the resource before it is returned.
 
-**`obligation`**: An array of tasks that the PEP **must** fulfill before granting or denying access. If the PEP cannot fulfill these obligations, access must not be granted even with a `PERMIT` decision. Examples include logging requirements or sending notifications.
+**`obligations`**: An array of tasks that the PEP **must** fulfill before granting or denying access. If the PEP cannot fulfill these obligations, access must not be granted even with a `PERMIT` decision. Examples include logging requirements or sending notifications.
 
 **`advice`**: An array of tasks that the PEP **should** perform, but their fulfillment is not mandatory for granting access. These are optional recommendations from policies.
+
+Here is an example of a decision with all optional attributes present. It corresponds to a policy that permits access but redacts the patient's SSN via a `transform` statement, requires audit logging via an `obligation`, and suggests notifying the data owner via `advice`:
+
+```json
+{
+  "decision": "PERMIT",
+  "resource": {
+    "type": "patient_record",
+    "patientId": 123,
+    "ssn": "XXX-XX-6789"
+  },
+  "obligations": [
+    { "type": "logAccess", "level": "audit" }
+  ],
+  "advice": [
+    { "type": "notifyDataOwner" }
+  ]
+}
+```
+
+The PEP receiving this decision must grant access (PERMIT), return the transformed `resource` (with the redacted SSN) instead of the original, execute the `logAccess` obligation (and deny access if it cannot), and optionally perform the `notifyDataOwner` advice.
 
 For more detailed information about authorization decisions, see [SAPL Authorization Decision](../3_3_SAPLAuthorizationDecision/).

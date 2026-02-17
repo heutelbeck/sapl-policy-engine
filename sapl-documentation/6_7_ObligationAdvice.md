@@ -15,5 +15,5 @@ On the two levels (PDP and policy set), collection of obligation and advice work
 
 - **Policy Set**: If the policy set evaluates to a certain decision (`PERMIT` or `DENY`), the obligation and advice from all contained policies evaluating to this decision are bundled as the obligation and advice of the policy set.
 
-  (For the combining algorithm `first-applicable`, not all policies might be evaluated. A value `PERMIT` or `DENY` is only assigned to evaluated policies. Thus, the policy set’s obligation and advice do only contain obligations and advice from evaluated policies.)
+  (For combining algorithms using the `first` voting mode, not all policies might be evaluated. A value `PERMIT` or `DENY` is only assigned to evaluated policies. Thus, the policy set’s obligation and advice do only contain obligations and advice from evaluated policies.)
 - **PDP**: If the final decision is `PERMIT` or `DENY`, the obligation and advice from all top-level policy documents evaluating to this final decision are collected as the final decision’s obligation and advice.

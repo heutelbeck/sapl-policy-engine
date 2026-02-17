@@ -29,7 +29,7 @@ Upon subscription, the PDP server will respond with an unbound stream of decisio
 - URL: `{baseURL}/decide-once`
 - Method: `POST`
 - Body: A valid JSON authorization subscription
-- Produces: A single authorization decisions
+- Produces: A single authorization decision
 
 ### Multi Decide
 

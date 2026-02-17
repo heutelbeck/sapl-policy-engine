@@ -160,7 +160,7 @@ The values from the authorization subscription are bound to `subject`, `action`,
 
 ### Permit and Deny Policies
 
-Policies declare their **entitlement** which indicates the type of vote cast by the policy, if it is applicable (i.e., all conditions are `true`).:
+Policies declare their **entitlement** which indicates the type of vote cast by the policy, if it is applicable (i.e., all conditions are `true`):
 
 ```sapl
 policy "allow doctors to read patient records"
@@ -186,7 +186,7 @@ Policy sets are collections of policies that share a common combining algorithm.
 * **Organizational convenience**: Organizations can define a set of policies that share a common combining algorithm and apply them to multiple applications.
 * **Combining of policies based on evaluation order**: For some scenarios, it can be beneficial to prioritize policies based on their evaluation order. Due to non-deterministic evaluation order, on PDP-level due to optimizations, this can only be done in policy sets.
 
-Following potential imports and chemas, a SAPL document as a policy set starts with the keyword `set` followed by a unique name (string).
+Following potential imports and schemas, a SAPL document as a policy set starts with the keyword `set` followed by a unique name (string).
 
 Then it contains:
 - An optional **target expression** (after `for`) for pre-filtering
@@ -223,6 +223,8 @@ Examples:
 - `priority deny or permit` - deny policies take priority, default permit
 - `priority permit or deny` - permit policies take priority, default deny
 - `unanimous or deny, errors propagate` - all must agree, propagate errors
+
+The optional `errors` clause controls how indeterminate votes (from evaluation errors) are handled: `propagate` includes them in the final decision, while `abstain` treats them as not applicable. If omitted, `abstain` is the default.
 
 For complete details on combining algorithms, see [Combining Algorithm](../6_5_CombiningAlgorithm/).
 

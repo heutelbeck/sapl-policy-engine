@@ -9,7 +9,7 @@ nav_order: 3
 
 ## SAPL Authorization Decision
 
-The SAPL authorization decision contains the attributes `decision`, `resource`, `obligation`, and `advice`.
+The SAPL authorization decision contains the attributes `decision`, `resource`, `obligations`, and `advice`.
 
 ### Decision
 
@@ -24,13 +24,13 @@ The `decision` tells the PEP whether to grant or deny access. Access should be g
 
 The PEP knows for which resource it requested access. Thus, there usually is no need to return this resource in the authorization decision object. However, SAPL policies may contain a `transform` statement describing how the resource needs to be altered before it is returned to the subject seeking permission. This can be used to remove or blacken certain parts of the resource document (e.g., a policy could allow doctors to view patient data but remove any bank account details as they can only be accessed by the accounting department). If a policy that evaluates to `PERMIT` contains a `transform` statement, the authorization decision attribute `resource` contains the transformed resource. Otherwise, there will not be a `resource` attribute in the authorization decision object.
 
-### Obligation
+### Obligations
 
-The value of `obligation` contains assignments that the PEP must fulfill before granting or denying access. As there can be multiple policies applicable to the authorization subscription with different obligations, the `obligation` value in the authorization decision object is an array containing a list of tasks. If the PEP is not able to fulfill these tasks, access must not be granted. The array items can be any JSON value (e.g., a string or an object). Consequently, the PEP must know how to identify and process the obligations contained in the policies. An `obligation` attribute is only included in the authorization decision object if there is at least one obligation.
+The value of `obligations` contains assignments that the PEP must fulfill before granting or denying access. As there can be multiple policies applicable to the authorization subscription with different obligations, the `obligations` value in the authorization decision object is an array containing a list of tasks. If the PEP is not able to fulfill these tasks, access must not be granted. The array items can be any JSON value (e.g., a string or an object). Consequently, the PEP must know how to identify and process the obligations contained in the policies. An `obligations` attribute is only included in the authorization decision object if there is at least one obligation.
 
 An authorization decision could, for example, contain the obligation to create a log entry.
 
-In case the obligation is contained in a `DENY` decision, the access must still be denied. An obligation in a `DENY` decision acts like `advice` because the unsuccessful handling of the obligation cannot change the overall decision outcome.
+In case the obligations are contained in a `DENY` decision, the access must still be denied. An obligation in a `DENY` decision acts like `advice` because the unsuccessful handling of the obligation cannot change the overall decision outcome.
 
 ### Advice
 

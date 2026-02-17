@@ -38,8 +38,7 @@ Consider a basic policy that checks attributes from the authorization subscripti
 ```sapl
 policy "compartmentalize read access by department"
 permit
-    resource.type == "patient_record" & action == "read"
-where
+    resource.type == "patient_record" & action == "read";
     subject.role == "doctor";
     resource.department == subject.department;
 ```
@@ -58,14 +57,13 @@ In natural language, a suitable policy could be *"Permit doctors to read data fr
  policy "doctors read patient data"
  permit
    action == "read" &
-   resource.type == "patient_record"
- where
+   resource.type == "patient_record";
    subject.username.<user.profile>.function == "doctor";
 ```
 
-In *line 4*, the target expression filters by action and resource type - fast checks that don't require external data.
+The first statement filters by action and resource type, fast checks that don't require external data.
 
-The policy assumes that the user's function is not provided in the authorization subscription but is stored in the user's profile. Accordingly, *line 6* accesses the attribute `user.profile` (using an attribute finder step `.<finder.name>`) to retrieve the profile of the user with the username provided in `subject.username`. The fetched profile is a JSON object with a property named `function`. The expression compares it to `"doctor"`.
+The policy assumes that the user's function is not provided in the authorization subscription but is stored in the user's profile. The second statement accesses the attribute `user.profile` (using an attribute finder step `.<finder.name>`) to retrieve the profile of the user with the username provided in `subject.username`. The fetched profile is a JSON object with a property named `function`. The expression compares it to `"doctor"`.
 
 ### Streaming Attributes
 
@@ -76,8 +74,7 @@ Consider access control based on work shifts:
 ```sapl
 policy "read patient records during business hours"
 permit
-    resource.type == "patient_record" & action == "read"
-where
+    resource.type == "patient_record" & action == "read";
     subject.role == "doctor";
     resource.department == subject.department;
     <time.localTimeIsBetween("08:00:00", "18:00:00")>;
@@ -94,8 +91,7 @@ PIPs can be composed for more sophisticated scenarios:
 ```sapl
 policy "doctors read records during assigned shift"
 permit
-    resource.type == "patient_record" & action == "read"
-where
+    resource.type == "patient_record" & action == "read";
     subject.role == "doctor";
     resource.department == subject.department;
     var currentDay = time.dayOfWeek(<time.now>);
@@ -133,17 +129,88 @@ This plugin architecture enables organizations to create sophisticated authoriza
 
 Implementation details for custom PIPs are covered in [Attribute Finders](../8_1_AttributeFinders/).
 
-### Target Expression vs. Body
+### Structuring Policy Conditions
 
-Attribute access using PIPs (expressions in angle brackets `<...>`) must be placed in the policy body (the `where` clause), not in the target expression. The reason is that the target expression is used for indexing policies efficiently and needs to be evaluated quickly. External attribute lookups may involve network calls or database queries, making them too slow for the target expression.
+All conditions after `permit` or `deny` are body statements. While there is no grammar-level distinction between them, it is good practice to put fast, local checks first and slower PIP-based lookups later. This helps the engine skip expensive external calls early when simple conditions already determine the outcome.
 
-**Target expression rules:**
-- Cannot contain PIP attribute lookups (`<finder.name>`)
-- Should be fast to evaluate for efficient policy indexing
-- Typically checks resource type and action
-- Both `&`/`|` and `&&`/`||` operators work identically
+**Recommended ordering:**
+1. **Fast local checks first**: Resource type, action, simple equality checks on subscription attributes. These evaluate instantly and can short-circuit the rest.
+2. **PIP-based lookups later**: Attribute finder expressions (`<finder.name>`) may involve network calls or database queries and should only run when the fast checks have already passed.
 
-**Body rules:**
-- Can access external attributes through PIPs
-- Can contain complex conditional logic
-- Can use streaming attributes that update over time
+Note that `&`/`|` and `&&`/`||` are at different precedence levels. `&&` and `||` bind less tightly than `&` and `|`, allowing you to group conditions without parentheses. In future releases, these operator pairs will also select between different asynchronous evaluation strategies.
+
+> **Policy sets** have a dedicated `FOR` clause that acts as a target expression for filtering which policies in the set are evaluated. See [Policy Sets](../5_5_SAPLPolicySet/) for details.
+
+### Functions vs. Attributes
+
+SAPL expressions can call both **functions** and **attributes**. They serve fundamentally different purposes:
+
+**Functions** are pure mappings. Given the same input, a function always returns the same output. They are synchronous, side-effect-free, and evaluated inline. Functions use the dot-call syntax familiar from most languages:
+
+```sapl
+time.dayOfWeek(<time.now>)
+filter.blacken(subject.creditCardNumber, 0, 12)
+```
+
+**Attributes** (accessed through PIPs) are fundamentally different. They represent external, potentially changing state. An attribute lookup may involve a network call, a database query, or a subscription to a live data stream. Attributes are:
+
+- **Asynchronous**: They may take time to resolve, involving I/O operations.
+- **Non-idempotent**: The same attribute may return different values at different times (the current time, a user's role after a promotion, a sensor reading).
+- **Subscription-based**: Attributes return reactive streams. The PDP subscribes to them, and the PIP pushes new values whenever the underlying data changes.
+
+This distinction is why attributes use a dedicated syntax (angle brackets `<...>`) rather than the function call syntax. The angle brackets signal to both the reader and the engine that this expression involves external I/O and may trigger ongoing subscriptions.
+
+### Attribute Finder Syntax
+
+SAPL provides two forms of attribute access:
+
+**Environment attributes** use angle brackets without a base value. They access global or contextual data:
+```sapl
+<time.now>
+<time.localTimeIsBetween("08:00", "18:00")>
+```
+
+**Entity attributes** use a dot followed by angle brackets, chaining from a base value. The value on the left is passed to the PIP as context:
+```sapl
+subject.username.<user.profile>
+"42".<traccar.position>
+```
+
+The **head attribute finder** syntax `|<finder.name>` applies an attribute finder to the result of the preceding expression in a pipeline-like fashion.
+
+#### Parameters
+
+Parameters are additional inputs passed to a PIP inside parentheses. They are positional and can be any SAPL expression, including literals, variables, or function results.
+
+What parameters mean depends on the PIP. Common uses include temporal boundaries, configuration objects, and behavior modifiers:
+
+```sapl
+<time.now(5000)>                              // update interval in milliseconds
+<time.localTimeIsBetween("09:00", "17:00")>   // start and end times
+<http.get(requestSettings)>                   // request configuration object
+topic.<mqtt.messages(1)>                      // QoS level
+```
+
+PIPs can be overloaded by parameter count. For example, `<time.now>` returns the current time with a default update interval, while `<time.now(5000)>` does the same with a 5-second interval.
+
+#### Options
+
+Options control the **stream infrastructure** that wraps every attribute lookup. They are specified in square brackets after the parameters and must be a JSON object:
+
+```sapl
+<http.get(request) [{ "initialTimeOutMs": 500, "retries": 5 }]>
+```
+
+Options are not passed to the PIP itself. Instead, they configure how the engine handles the reactive stream that the PIP returns. The available option fields are:
+
+| Option             | Default | Purpose                                                     |
+|--------------------|---------|-------------------------------------------------------------|
+| `initialTimeOutMs` | `3000`  | Timeout for the first value. Emits `undefined` if exceeded. |
+| `pollIntervalMs`   | `30000` | Re-subscription interval when the PIP stream completes.     |
+| `retries`          | `3`     | Retry attempts with exponential backoff on errors.          |
+| `backoffMs`        | `1000`  | Initial backoff delay between retries.                      |
+| `fresh`            | `false` | If `true`, bypasses the shared stream cache.                |
+
+Options follow a three-level priority chain. Policy-level options (in square brackets) override PDP-level defaults (configured in `pdp.json` under `variables.attributeFinderOptions`), which override the built-in defaults listed above. This allows operators to tune stream behavior globally without modifying policies, while individual policies can override when needed.
+
+See [Attribute Finders](../8_1_AttributeFinders/) for full details on implementing and using PIPs.

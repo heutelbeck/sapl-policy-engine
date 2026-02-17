@@ -12,11 +12,11 @@ Including the POM in the `dependencyManagement` section of a POM, the `version` 
 			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
-				<version>3.0.0</version>
+				<version>4.0.0-SNAPSHOT</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-		</dependencies>			
+		</dependencies>
 	</dependencyManagement>
 ```
 

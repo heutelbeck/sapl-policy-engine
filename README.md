@@ -69,7 +69,7 @@ To get started with integrating SAPL into your Java application, add the followi
 
 ```gradle
 dependencies {
-  implementation 'io.sapl:sapl-pdp:4.0.0-SNAPHOT'
+  implementation 'io.sapl:sapl-pdp:4.0.0-SNAPSHOT'
 }
 ```
 
@@ -176,7 +176,7 @@ repositories {
 }
 
 dependencies {
-  implementation 'io.sapl:{package}4.0.0-SNAPSHOT'
+  implementation 'io.sapl:{package}:4.0.0-SNAPSHOT'
 }
 ```
 

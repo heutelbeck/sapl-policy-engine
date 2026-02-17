@@ -26,8 +26,7 @@ First, here's what a SAPL policy looks like:
 ```sapl
 policy "compartmentalize read access by department"
 permit
-    resource.type == "patient_record" & action == "read"
-where
+    resource.type == "patient_record" & action == "read";
     subject.role == "doctor";
     resource.department == subject.department;
 ```
@@ -41,11 +40,11 @@ where
 > This is an advantage of ABAC over RBAC: instead of creating separate roles like "cardiologyDoctor", 
 > "radiologyDoctor", "neurologyDoctor" (and updating them with every new department), one policy handles all 
 > departments by comparing attributes. Add ten new departments - the policy needs no changes. 
-> Attributes are wither sent with the authorization question, or looked up dynamically. 
+> Attributes are either sent with the authorization question or looked up dynamically. 
 > In this example they come from the authorization question only.
 
 **Why SAPL?**
-- **Readable:** Looks like structured natural language
+- **Readable:** Looks like a structured natural language
 - **Declarative:** Says WHAT to permit, not HOW to enforce it
 - **Separated:** Authorization logic lives outside application code
 - **Flexible:** Update policies without redeploying applications
@@ -86,31 +85,26 @@ A typical scenario for the application of SAPL would be a subject (e.g., a user 
 
 In practice, the PEP and RAP are components of the system the user is currently interacting with. For example, some interaction by the user triggers a call to a domain-specific method or function which would then on behalf of the user access some resource and deliver the result. In this case the function is the RAP, and the code wrapping the function which is performing the access control logic is the PEP.
 
-```javascript
-estimateRiskForCustomer(customerId)
-{
+```java
+RiskAssessment estimateRiskForCustomer(UUID customerId) {
     // Here the policy enforcement point code starts
-    const subject = { // Determined from application context 
-        "userId": "johnDoe",
-        "department": "underwriting"
-    }; 
-    const action = "estimate customer risk";
-    const decision = pdp.decideOnce(subject, action, customerId);
-    
-    if(decision.decision != PERMIT) {
-        return AccessDeniedError;
-    }  
+    var subscription = AuthorizationSubscription.of("johnDoe", "estimate customer risk", customerId);
+    var decision = pdp.decideOnceBlocking(subscription);
+
+    if (decision.decision() != Decision.PERMIT) {
+        throw new AccessDeniedException();
+    }
     // Perform additional access-control logic here
     // (e.g., handle obligations, advice, transformations)
 
-    // Here the resource access point logic starts    
+    // Here the resource access point logic starts
     // Call database, perform risk assessment ...
     return riskAssessment;
     // Here the PEP ends. Note that a PEP typically wraps a RAP
 }
 ```
 
-Think of it this way: if your business function is like `function doSomething(input) -> result`, then a PEP wraps it to create `function doSomethingWithAuth(input) -> result or error`. The PEP checks authorization first, and only calls your original function if access is permitted.
+Think of it this way: if your business method is `RiskAssessment estimateRisk(UUID id)`, then a PEP wraps it to produce a method that checks authorization first and only calls the original if access is permitted.
 
 More formally:
 - Let `A` be the domain of input parameters (e.g., resource identifiers)
