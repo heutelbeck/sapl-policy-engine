@@ -7,46 +7,59 @@ grand_parent: SAPL Reference
 nav_order: 2
 ---
 
-## HTTP Server-Sent Events API
+## HTTP API
 
-A PDP to be used as a network service must implement some HTTP endpoints. All of them accept `POST` requests and `application/json`. They produce `application/x-ndjson` as [Server-Sent Events (SSE)](https://www.w3.org/TR/eventsource/). A PDP server must be accessed over encrypted TLS connections. All connections should be authenticated. The means of authentications are left open for the organization deploying the PDP to decide or to be defined by a specific server implementation. All endpoints should be located under a shared base URL, e.g., `[https://pdp.sapl.io/api/pdp/](https://pdp.sapl.io/api/pdp/)`.
+The SAPL PDP server exposes HTTP endpoints for authorization decisions. All endpoints accept `POST` requests with `application/json` request bodies. Streaming endpoints produce `application/x-ndjson` (Newline-Delimited JSON); one-shot endpoints produce `application/json`.
 
-A PEP which is a client to the SSE PDP API encountering connectivity issues or errors, must interpret this as an INDETERMINATE decision and thus deny access during this time of uncertainty and take appropriate steps to reconnect with the PDP, using a matching back-off strategy to not overload the PDP.
+All connections must use TLS. Authentication is required and configured per deployment (basic auth, API key, or OAuth2). All endpoints are located under a shared base URL, typically `https://<host>:<port>/api/pdp/`.
 
-A PEP must determine if it can enforce obligations before granting access. It must enforce obligation upon granting access at the point in time (e.g., before or after granting access) implied by the semantics of the obligation, and it should enforce any advice at their appropriate point in time when possible.
+### Error Handling
 
-Upon subscription, the PDP server will respond with an unbound stream of decisions. The client must close the connection to stop receiving decision events. A connection termination by the server is an error state and must be handled as discussed.
+A PEP encountering connectivity issues or errors with the PDP server must treat this as an `INDETERMINATE` decision and deny access. The PEP should reconnect using an exponential backoff strategy to avoid overloading the PDP.
 
-### Decide
+### Single Subscription Endpoints
+
+#### Decide (Streaming)
 
 - URL: `{baseURL}/decide`
-- Method: `POST`
-- Body: A valid JSON authorization subscription
-- Produces: A SSE stream of authorization decisions
+- Body: An authorization subscription JSON object
+- Produces: `application/x-ndjson` (streaming)
+- Behavior: Returns an initial decision, then pushes updated decisions whenever policies, attributes, or conditions change. The client must close the connection to stop receiving updates.
 
-### Decide Once
+#### Decide Once (One-Shot)
 
 - URL: `{baseURL}/decide-once`
-- Method: `POST`
-- Body: A valid JSON authorization subscription
-- Produces: A single authorization decision
+- Body: An authorization subscription JSON object
+- Produces: `application/json`
+- Behavior: Returns a single decision and closes the connection.
 
-### Multi Decide
+### Multi-Subscription Endpoints
+
+#### Multi Decide (Streaming Individual)
 
 - URL: `{baseURL}/multi-decide`
-- Method: `POST`
-- Body: A valid JSON multi subscription
-- Produces: A SSE stream of Single Authorization Decisions with Associated Subscription ID JSON Objects
+- Body: A multi-subscription JSON object
+- Produces: `application/x-ndjson` (streaming)
+- Behavior: Returns individual decisions as they change, each tagged with its subscription ID. See [Multi-Subscriptions](../3_5_Multi-Subscriptions/) for the response format.
 
-### Multi Decide All
+#### Multi Decide All (Streaming Batch)
 
 - URL: `{baseURL}/multi-decide-all`
-- Method: `POST`
-- Body: A valid JSON multi subscription
-- Produces: A SSE stream of Multi Decision JSON Objects
+- Body: A multi-subscription JSON object
+- Produces: `application/x-ndjson` (streaming)
+- Behavior: Returns all decisions as a single object whenever any decision changes.
+
+#### Multi Decide All Once (One-Shot Batch)
+
+- URL: `{baseURL}/multi-decide-all-once`
+- Body: A multi-subscription JSON object
+- Produces: `application/json`
+- Behavior: Returns all decisions as a single object and closes the connection.
+
+### Keep-Alive
+
+Streaming connections use periodic keep-alive events to detect stale connections. A PEP should treat a prolonged absence of any events (decisions or keep-alives) as a connection failure.
 
 ### Implementations
 
-The SAPL Policy engine comes with an implementations ready for deployment in an organization:
-
-- SAPL Node: This light PDP server implementation uses a configuration and policies stored on a file system. The server is available as a docker container. Documentation: <https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-node>
+The SAPL Policy Engine ships with **SAPL Node**, a standalone PDP server ready for deployment. SAPL Node supports filesystem directories, signed bundles, and remote bundle fetching as policy sources. It is available as a Docker container and as a native binary.

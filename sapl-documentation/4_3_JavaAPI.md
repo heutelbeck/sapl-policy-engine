@@ -9,128 +9,91 @@ nav_order: 3
 
 ## Java API
 
-The Java API is based on the reactive libraries of Project Reactor (<https://projectreactor.io/>). The API is defined in the `sapl-api` module:
+The Java API is based on Project Reactor (<https://projectreactor.io/>). It is defined in the `sapl-api` module:
 
 ```xml
-   <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-api</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
-   </dependency>
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-api</artifactId>
+    <version>4.0.0-SNAPSHOT</version>
+</dependency>
 ```
 
-The key interface is the `PolicyDecisionPoint` exposing methods matching the PDP server API:
+The central interface is `PolicyDecisionPoint`. It exposes the same authorization semantics as the HTTP API: single subscriptions (streaming and one-shot) and multi-subscriptions (streaming and batch). Only the streaming single-subscription method is abstract; all others have default implementations that PDP implementations may override with optimized evaluation paths.
 
-```java
-/**
- * The policy decision point is the component in the system, which will take an
- * authorization subscription, retrieve matching policies from the policy
- * retrieval point, evaluate the policies while potentially consulting external
- * resources (e.g., through attribute finders), and return a {@link Flux} of
- * authorization decision objects.
- *
- * This interface offers methods to hand over an authorization subscription to
- * the policy decision point, differing in the construction of the
- * underlying authorization subscription object.
- */
-public interface PolicyDecisionPoint {
-
-    /**
-     * Takes an authorization subscription object and returns a {@link Flux}
-     * emitting matching authorization decisions.
-     *
-     * @param authzSubscription the SAPL authorization subscription object
-     * @return a {@link Flux} emitting the authorization decisions for the given
-     *         authorization subscription. New authorization decisions are only
-     *         added to the stream if they are different from the preceding
-     *         authorization decision.
-     */
-    Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription);
-
-    /**
-     * Takes an authorization subscription object and returns a {@link Mono}
-     * emitting the first matching authorization decision.
-     *
-     * @param authzSubscription the SAPL authorization subscription object
-     * @return an authorization decisions for the given authorization subscription.
-     */
-    default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
-        return Mono.from(decide(authzSubscription));
-    }
-    
-    /**
-     * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
-     *
-     * @param multiAuthzSubscription the multi-subscription object containing the
-     *                               subjects, actions, resources, and environments
-     *                               of the authorization subscriptions to be
-     *                               evaluated by the PDP.
-     * @return a {@link Flux} emitting authorization decisions for the given
-     *         authorization subscriptions as soon as they are available. Related
-     *         authorization decisions and authorization subscriptions have the same
-     *         id.
-     */
-    Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription);
-
-    /**
-     * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
-     *
-     * @param multiAuthzSubscription the multi-subscription object containing the
-     *                               subjects, actions, resources, and environments
-     *                               of the authorization subscriptions to be
-     *                               evaluated by the PDP.
-     * @return a {@link Flux} emitting authorization decisions for the given
-     *         authorization subscriptions as soon as at least one authorization
-     *         decision for each authorization subscription is available.
-     */
-    Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription);
-
-}
-```
+| Method | Returns | Behavior |
+|--------|---------|----------|
+| `decide(AuthorizationSubscription)` | `Flux<AuthorizationDecision>` | Streaming. Returns a continuous stream of decisions that updates whenever policies, attributes, or conditions change. |
+| `decideOnce(AuthorizationSubscription)` | `Mono<AuthorizationDecision>` | One-shot reactive. Returns a single decision. |
+| `decideOnceBlocking(AuthorizationSubscription)` | `AuthorizationDecision` | One-shot synchronous. When no policy accesses external attributes, the PDP uses an optimized evaluation path that bypasses all reactive machinery. |
+| `decide(MultiAuthorizationSubscription)` | `Flux<IdentifiableAuthorizationDecision>` | Streaming individual. Each decision is tagged with the subscription ID for correlation. |
+| `decideAll(MultiAuthorizationSubscription)` | `Flux<MultiAuthorizationDecision>` | Streaming batch. Emits all decisions as a single object whenever any decision changes. |
 
 ### Embedded PDP (Non-Spring)
 
-For non-Spring applications, an embedded PDP can be used directly:
+For non-Spring JVM applications, an embedded PDP can be used directly:
 
 ```xml
-   <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-pdp</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
-   </dependency>
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-pdp</artifactId>
+    <version>4.0.0-SNAPSHOT</version>
+</dependency>
 ```
 
 ### Remote PDP Client (Non-Spring)
 
-For non-Spring applications connecting to a remote PDP server:
+For non-Spring JVM applications connecting to a SAPL Node or other remote PDP server:
 
 ```xml
-   <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-pdp-remote</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
-   </dependency>
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-pdp-remote</artifactId>
+    <version>4.0.0-SNAPSHOT</version>
+</dependency>
 ```
 
 ### Spring Boot Applications
 
-For Spring Boot applications, use the unified starter which includes the embedded PDP, remote PDP client, Spring Security integration, and all autoconfiguration:
+For Spring Boot applications, use the unified starter. It includes the embedded PDP, the remote PDP client, Spring Security integration, and all autoconfiguration:
 
 ```xml
-   <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-spring-boot-starter</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
-   </dependency>
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-spring-boot-starter</artifactId>
+    <version>4.0.0-SNAPSHOT</version>
+</dependency>
 ```
 
-By default, the embedded PDP is active. To use a remote PDP server instead, configure the following properties:
+By default, the embedded PDP is active. To connect to a remote PDP server instead, configure the remote PDP properties (prefix `io.sapl.pdp.remote`):
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Activates the remote PDP client and disables the embedded PDP. |
+| `type` | `String` | `"http"` | Connection protocol. Currently only `http` is supported. |
+| `host` | `String` | | Base URL of the remote PDP server (e.g., `https://pdp.example.com:8443`). |
+| `key` | `String` | | Client key for basic authentication. Requires `secret`. |
+| `secret` | `String` | | Client secret for basic authentication. Requires `key`. |
+| `apiKey` | `String` | | API key for API-key-based authentication. Mutually exclusive with `key`/`secret`. |
+| `ignoreCertificates` | `boolean` | `false` | Disables TLS certificate verification. For development only. |
+
+Exactly one authentication method must be configured: either `key` and `secret` together, or `apiKey` alone.
+
+Example using basic authentication:
 
 ```properties
 io.sapl.pdp.remote.enabled=true
-io.sapl.pdp.remote.host=https://your-pdp-server:8443
+io.sapl.pdp.remote.host=https://pdp.example.com:8443
 io.sapl.pdp.remote.key=your-client-key
 io.sapl.pdp.remote.secret=your-client-secret
+```
+
+Example using API key authentication:
+
+```properties
+io.sapl.pdp.remote.enabled=true
+io.sapl.pdp.remote.host=https://pdp.example.com:8443
+io.sapl.pdp.remote.apiKey=your-api-key
 ```
 
 #### Reducing Application Footprint
@@ -138,15 +101,15 @@ io.sapl.pdp.remote.secret=your-client-secret
 When using only a remote PDP, you can exclude the embedded PDP dependency to reduce the application size:
 
 ```xml
-   <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-spring-boot-starter</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
-      <exclusions>
-         <exclusion>
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-spring-boot-starter</artifactId>
+    <version>4.0.0-SNAPSHOT</version>
+    <exclusions>
+        <exclusion>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-pdp</artifactId>
-         </exclusion>
-      </exclusions>
-   </dependency>
+        </exclusion>
+    </exclusions>
+</dependency>
 ```

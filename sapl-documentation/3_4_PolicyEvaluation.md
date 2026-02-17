@@ -9,16 +9,42 @@ nav_order: 4
 
 ## Policy Evaluation
 
-To come to the final decision included in the authorization decision object, the PDP evaluates all existing policy sets and top-level policies (i.e., policies which are not part of a policy set) against the authorization subscription and combines the results. Each policy set and policy evaluates to `PERMIT`, `DENY`, `NOT_APPLICABLE`, or `INDETERMINATE` (see [below](#evaluation)). The PDP can be configured with a **combining algorithm** which determines how to deal with multiple results. E.g., if access should only be granted if at least one policy evaluates to `PERMIT` and should be denied. Otherwise, the algorithm `deny-unless-permit` could be used.
+The PDP evaluates all policy sets and top-level policies (policies not contained in a policy set) against the authorization subscription and combines the results. Each policy or policy set evaluates to one of four outcomes: `PERMIT`, `DENY`, `NOT_APPLICABLE`, or `INDETERMINATE`.
 
-Available combining algorithms for the PDP are:
+When multiple policies produce different outcomes, the **combining algorithm** determines the final decision. SAPL's combining algorithm model has three dimensions:
 
-- `deny-unless-permit`
-- `permit-unless-deny`
-- `only-one-applicable`
-- `deny-overrides`
-- `permit-overrides`
+- **Voting mode**: How individual policy votes are aggregated
+- **Default decision**: The decision when no policy casts a decisive vote (`PERMIT` or `DENY`)
+- **Error handling**: How `INDETERMINATE` votes (from evaluation errors) are treated
 
-The algorithm `first-applicable` is not available for the PDP since the PDP’s collection of policy sets and policies is an unordered set.
+### Configuring the Combining Algorithm
 
-The combining algorithms are described in more detail [later](#combining-algorithms).
+The PDP-level combining algorithm is configured in `pdp.json`:
+
+```json
+{
+  "algorithm": {
+    "votingMode": "PRIORITY_PERMIT",
+    "defaultDecision": "DENY",
+    "errorHandling": "ABSTAIN"
+  }
+}
+```
+
+Available voting modes at PDP level:
+
+| Voting Mode        | Behavior                                                                                          |
+|--------------------|---------------------------------------------------------------------------------------------------|
+| `PRIORITY_PERMIT`  | If any policy votes `PERMIT`, the result is `PERMIT`. Otherwise, the default decision applies.    |
+| `PRIORITY_DENY`    | If any policy votes `DENY`, the result is `DENY`. Otherwise, the default decision applies.        |
+| `UNANIMOUS`        | All decisive votes must agree. Any disagreement results in the default decision.                  |
+| `UNIQUE`           | Exactly one policy must be applicable. Zero or multiple applicable policies result in the default. |
+
+The `FIRST` voting mode evaluates policies in document order and uses the first applicable vote. Because the PDP's collection of policies is an unordered set, `FIRST` is only available within policy sets where document order is defined.
+
+Error handling options:
+
+- `PROPAGATE`: Errors produce an `INDETERMINATE` final decision
+- `ABSTAIN`: Errors are treated as `NOT_APPLICABLE` (the erroring policy abstains from voting)
+
+Within policy sets, the combining algorithm uses a natural language syntax: `priority permit or deny`, `unanimous or deny, errors propagate`, etc. See [Combining Algorithm](../6_5_CombiningAlgorithm/) for the complete reference.

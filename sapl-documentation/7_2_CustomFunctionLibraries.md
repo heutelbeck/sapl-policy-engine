@@ -9,27 +9,157 @@ nav_order: 150
 
 ## Custom Function Libraries
 
-For a more in-depth look at the process of creating a custom function library, please refer to the demo project. It provides a walkthrough of the entire process and contains extensive examples: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension> .
+The standard functions can be extended by custom function libraries. SAPL functions are pure data transformations. They must not perform IO operations or access external resources.
 
-The standard functions can be extended by custom functions. Function libraries available in SAPL documents are collected in the PDP’s function context. The embedded PDP provides an `AnnotationFunctionContext` where Java classes with annotations can be provided as function libraries:
+### Declaring a Function Library
 
-SAPL functions must not perform any IO operations. Functions are to be used as "immediate" data transformation functions.
+A class annotated with `@FunctionLibrary` is recognized as a function library:
 
-- To be recognized as a function library, a class must be annotated with `@FunctionLibrary`. The optional annotation attribute `name` contains the library’s name as it will be available in SAPL policies. The attribute value must be a string consisting of one or more identifiers separated by periods. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the library for documentation purposes.
+| Attribute              | Description                                              | Default          |
+|------------------------|----------------------------------------------------------|------------------|
+| `name`                 | Library name as used in SAPL policies (e.g., `"time"`)   | Java class name  |
+| `description`          | Short description for documentation                      | `""`             |
+| `libraryDocumentation` | Detailed documentation (supports Markdown)               | `""`             |
 
-  ```java
-  @FunctionLibrary(name = "sample.functions", description = "a sample library")
-  public class SampleFunctionLibrary {
-      ...
-  }
-  ```
-- The annotation `@Function` identifies a function in the library. An optional annotation attribute `name` can contain a function name. The attribute is a string containing an identifier. By default, the name of the Java function will be used. The annotation attribute `docs` can contain a string describing the function.
+```java
+@UtilityClass
+@FunctionLibrary(name = "sample.functions", description = "A sample function library")
+public class SampleFunctionLibrary {
+    ...
+}
+```
 
-  ```java
-  @Function(docs = "returns the length")
-  public static Val length(@Text Val parameter) {
-      ...
-  }
-  ```
+### Declaring Functions
 
-  Each parameter can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number`, and `@Text`. The annotations describe which types are allowed for the parameter (in the case of multiple annotations, each of these types is allowed).
+Methods annotated with `@Function` are exposed as SAPL functions:
+
+| Attribute      | Description                                           | Default          |
+|----------------|-------------------------------------------------------|------------------|
+| `name`         | Function name in SAPL (overrides Java method name)    | Method name      |
+| `docs`         | Function documentation                                | `""`             |
+| `schema`       | Inline JSON schema for the return value               | `""`             |
+| `pathToSchema` | Classpath path to a JSON schema file                  | `""`             |
+
+Function methods must be `static` and return `Value`. Parameters use `Value` subtypes directly for type safety:
+
+| SAPL Type | Java Parameter Type |
+|-----------|---------------------|
+| String    | `TextValue`         |
+| Number    | `NumberValue`       |
+| Boolean   | `BooleanValue`      |
+| Object    | `ObjectValue`       |
+| Array     | `ArrayValue`        |
+| Any       | `Value`             |
+
+The PDP validates parameter types before calling the function. If a policy passes a value of the wrong type, the function is not invoked and the expression evaluates to an error.
+
+**Single parameter:**
+
+```java
+@Function(docs = "Converts the string to lower case.")
+public static Value toLowerCase(TextValue str) {
+    return Value.of(str.value().toLowerCase());
+}
+```
+
+**Multiple parameters with mixed types:**
+
+```java
+@Function(docs = "Adds a number of days to a UTC timestamp.")
+public static Value plusDays(TextValue startTime, NumberValue days) {
+    try {
+        var instant = Instant.parse(startTime.value());
+        return Value.of(instant.plus(days.value().longValue(), ChronoUnit.DAYS).toString());
+    } catch (Exception e) {
+        return Value.error("Invalid temporal input.", e);
+    }
+}
+```
+
+**No parameters:**
+
+```java
+@Function(docs = "Returns a random float between 0.0 and 1.0.")
+public static Value randomFloat() {
+    return Value.of(SECURE_RANDOM.nextDouble());
+}
+```
+
+**Variable arguments:**
+
+```java
+@Function(docs = "Concatenates all strings.")
+public static Value concat(TextValue... strings) {
+    var result = new StringBuilder();
+    for (var str : strings) {
+        result.append(str.value());
+    }
+    return Value.of(result.toString());
+}
+```
+
+**Polymorphic input using generic `Value`:**
+
+```java
+@Function(docs = "Returns the length of a string, array, or object.")
+public static Value length(Value value) {
+    return switch (value) {
+        case TextValue text     -> Value.of(text.value().length());
+        case ArrayValue array   -> Value.of(array.size());
+        case ObjectValue object -> Value.of(object.size());
+        default                 -> Value.error("Argument must be a string, array, or object.");
+    };
+}
+```
+
+**Custom function name:**
+
+```java
+@Function(name = "toString", docs = "Converts any value to its string representation.")
+public static Value asString(Value value) {
+    // Exposed as "toString" in SAPL policies, but the Java method is named
+    // "asString" to avoid conflicts with Object.toString().
+    ...
+}
+```
+
+### Error Handling
+
+Functions must never throw exceptions. When an operation cannot succeed, return an error value using `Value.error()`:
+
+```java
+@Function(docs = "Parses a UTC timestamp.")
+public static Value parseUTC(TextValue input) {
+    try {
+        var instant = Instant.parse(input.value());
+        return Value.of(instant.toString());
+    } catch (DateTimeParseException e) {
+        return Value.error("Not a valid UTC timestamp: " + input.value(), e);
+    }
+}
+```
+
+An error value propagates through the policy evaluation and causes the enclosing condition to evaluate to `INDETERMINATE`.
+
+### Registering Custom Libraries
+
+Custom function libraries are registered with the PDP through the builder API:
+
+```java
+// Static library (utility class with static methods)
+var pdp = PolicyDecisionPointBuilder.builder()
+    .withDefaults()
+    .withFunctionLibrary(SampleFunctionLibrary.class)
+    .build();
+
+// Instantiated library (when the library needs constructor dependencies)
+var pdp = PolicyDecisionPointBuilder.builder()
+    .withDefaults()
+    .withFunctionLibraryInstance(new SampleFunctionLibrary(dependency))
+    .build();
+```
+
+In a Spring Boot application, any bean annotated with `@FunctionLibrary` is automatically discovered and registered with the PDP.
+
+{: .note }
+> Add the `-parameters` flag to the Java compiler to ensure that automatically generated documentation includes parameter names from the source code.

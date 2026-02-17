@@ -42,9 +42,8 @@ After importing, use the simple name directly:
 ```sapl
 policy "example"
 permit
-where
-  var dept = subject.<profile>.department;   // instead of subject.<user.profile>
-  blacken(resource.secret);                  // instead of filter.blacken
+    var dept = subject.<profile>.department;   // instead of subject.<user.profile>
+    blacken(resource.secret);                  // instead of filter.blacken
 ```
 
 #### Aliased Import
@@ -99,13 +98,12 @@ import user.roles
 
 policy "weekday-access"
 permit
-  action == "read"
-where
-  var day = dayOfWeek(<time.now>);
-  day in ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
-  "employee" in subject.<roles>;
+    action == "read";
+    var day = dayOfWeek(<time.now>);
+    day in ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
+    "employee" in subject.<roles>;
 obligation
-  "audit" : { "user": blacken(subject.id) }
+    "audit" : { "user": blacken(subject.id) }
 ```
 
 ### See Also

@@ -122,7 +122,19 @@ io.sapl.pdp.embedded:
       production: [prod-key]
 ```
 
-For development only, the 2-factor escape hatch disables signature verification:
+For individual tenants that should accept unsigned bundles without enabling the global escape hatch, use the `unsignedTenants` list:
+
+```yaml
+  bundleSecurity:
+    publicKeyPath: /path/to/key.pub
+    unsignedTenants:
+      - development
+      - staging
+```
+
+Tenants listed here may load unsigned bundles while all other tenants still require valid signatures.
+
+For development only, the 2-factor escape hatch disables signature verification globally:
 
 ```yaml
   bundleSecurity:
@@ -158,6 +170,10 @@ The node exposes three health states via Spring Boot Actuator:
 At startup, the node is DOWN. It transitions to UP per-pdpId as each bundle is
 successfully fetched. If the remote becomes unreachable after a successful fetch, the
 node continues serving the last-known bundle in DEGRADED state.
+
+### Size Limit
+
+Remote bundle responses are limited to 16 MB. Bundles exceeding this limit are rejected. This limit is enforced by the client and cannot be configured.
 
 ### Retry Behavior
 

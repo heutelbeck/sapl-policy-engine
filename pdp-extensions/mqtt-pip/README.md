@@ -32,7 +32,7 @@ If the pip subscribes to a topic at a mqtt broker and there is no message transm
 
 ### Connection loss
 
-In case the sapl mqtt pip loses the connection to the mqtt broker, it will automatically try to reconnect according to the reconnect strategy specified in the pdp configuration file. Normally, on connection loss the pip will also return a val of undefined, but it is possible to disable this functionality.
+In case the sapl mqtt pip loses the connection to the mqtt broker, it will automatically try to reconnect according to the reconnect strategy specified in the pdp configuration file. Normally, on connection loss the pip will also return an undefined value, but it is possible to disable this functionality.
 
 ## Config via pdp configuration file
 
@@ -41,7 +41,11 @@ A configuration can look like the following example:
 
 ```
 {
-    "algorithm": "DENY_UNLESS_PERMIT",
+    "algorithm": {
+        "votingMode": "PRIORITY_DENY",
+        "defaultDecision": "DENY",
+        "errorHandling": "PROPAGATE"
+    },
     "variables": {
         "mqttPipConfig": {
             "defaultResponse" : "undefined",
@@ -77,8 +81,8 @@ In the 'mqttPipConfig' object you can optionally set different values for enviro
 - ```defaultBrokerConfigName```: This attribute is used to choose which broker configuration is used per default when no configuration is set via the attribute finder and the ```brokerConfig"``` attribute is an array. Per default, a broker configuration named "default" is tried to be used.
 - ```defaultQos```: You can define the quality of service level used in case no quality of service level is specified as a parameter of an attribute finder. If nothing is stated the default quality of service level will be 0.
 - ```timeoutDuration```: When the timeout duration specified in milliseconds is reached the default response will be sent. If nothing is stated the default timeout duration will be 2000 milliseconds.
-- ```defaultResponse```: The default response can be specified with "undefined" or "error" so that the default response will be of Val error or of Val undefined. If nothing is specified it will be of Val undefined.
-- ```emitAtRetry```: Specifies a boolean value of whether an undefined val is returned from the attribute finder if the pip loses the connection to the mqtt broker or not. Per default, it is set to true.
+- ```defaultResponse```: The default response can be specified with "undefined" or "error" so that the default response will be an error value or an undefined value. If nothing is specified it will be undefined.
+- ```emitAtRetry```: Specifies a boolean value of whether an undefined value is returned from the attribute finder if the pip loses the connection to the mqtt broker or not. Per default, it is set to true.
 - ```errorRetryAttempts```: Specifies the maximum number of retry attempts on connection loss of the sapl mqtt pip to the mqtt broker. If nothing is specified the value will be set to 10000000.
 - ```minErrorRetryDelay```: When the sapl mqtt pip loses connection to the mqtt broker it will automatically try to reestablish the connection. With each retry attempt the duration between the retries gets exponentially prolonged. This parameter specifies the minimal interval in milliseconds and is set to 5000 milliseconds per default.
 - ```maxErrorRetryDelay```: When the sapl mqtt pip loses connection to the mqtt broker it will automatically try to reestablish the connection. With each retry attempt the duration between the retries gets exponentially prolonged. This parameter specifies the maximal interval in milliseconds and is set to 10000 milliseconds per default.

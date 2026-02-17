@@ -9,57 +9,67 @@ nav_order: 5
 
 ## Multi-Subscriptions
 
-SAPL allows for bundling multiple authorization subscriptions into one multi-subscription. A multi-subscription is a JSON object with the following structure:
+SAPL allows bundling multiple authorization subscriptions into a single multi-subscription. This is useful when a PEP needs to evaluate several authorization questions at once, for example when rendering a UI that shows multiple resources with different access levels.
 
-Multi-Subscriptions - JSON Structure
+### Multi-Subscription Format
 
-```json
-{
-  "subjects"                   : ["bs@simpsons.com", "ms@simpsons.com"],
-  "actions"                    : ["read"],
-  "resources"                  : ["file://example/med/record/patient/BartSimpson",
-                                  "file://example/med/record/patient/MaggieSimpson"],
-  "environments"               : [],
-
-  "authorizationSubscriptions" : {
-                                   "id-1" : { "subjectId": 0, "actionId": 0, "resourceId": 0 },
-                                   "id-2" : { "subjectId": 1, "actionId": 0, "resourceId": 1 }
-                                 }
-}
-```
-
-It contains distinct lists of all subjects, actions, resources, and environments referenced by the single authorization subscriptions being part of the multi-subscription. The authorization subscriptions themselves are stored in a map of subscription IDs pointing to an object defining an authorization subscription by providing indexes into the four lists mentioned before.
-
-The multi-subscription shown in the example above contains two authorization subscriptions. The user `bs@simpsons.com` wants to `read` the file `file://example/med/record/patient/BartSimpson`, and the user `ms@simpsons.com` wants to `read` the file `file://example/med/record/patient/MaggieSimpson`.
-
-The SAPL PDP processes all individual authorization subscriptions contained in the multi-subscription in parallel and returns the related authorization decisions as soon as they are available, or it collects all the authorization decisions of the individual authorization subscriptions and returns them as a multi-decision. In both cases, the authorization decisions are associated with the subscription IDs of the related authorization subscription. The following listings show the JSON structures of the two authorization decision types:
-
-Single Authorization Decision with Associated Subscription ID - JSON Structure
+A multi-subscription is a JSON object mapping subscription IDs to individual authorization subscriptions:
 
 ```json
 {
-"authorizationSubscriptionId" : "id-1",
-"authorizationDecision"       : {
-                "decision" : "PERMIT",
-                "resource" : { ... }
-        }
+  "read-patient-record": {
+    "subject": "alice",
+    "action": "read",
+    "resource": "patient_record"
+  },
+  "write-clinical-notes": {
+    "subject": "alice",
+    "action": "write",
+    "resource": "clinical_notes"
+  }
 }
-
 ```
 
-Multi-Decision - JSON Structure
+Each key is a unique subscription ID chosen by the PEP. Each value is a standard authorization subscription with `subject`, `action`, `resource`, and optionally `environment` and `secrets`.
+
+### Response Formats
+
+The PDP provides three endpoints for multi-subscriptions, each returning decisions in a different format suited to different use cases.
+
+#### Streaming Individual Decisions (`/api/pdp/multi-decide`)
+
+Returns individual decisions as they change. Each decision is associated with the subscription ID it belongs to:
 
 ```json
 {
-"authorizationDecisions" : {
-"id-1" : {
-            "decision" : "PERMIT",
-            "resource" : { ... }
-            },
-            "id-2" : {
-                      "decision" : "DENY"
-            }
-      }
+  "subscriptionId": "read-patient-record",
+  "decision": {
+    "decision": "PERMIT"
+  }
 }
-
 ```
+
+This format is efficient when only a few decisions change at a time, as the PDP only sends updates for subscriptions whose decisions actually changed.
+
+#### Streaming Batch Decisions (`/api/pdp/multi-decide-all`)
+
+Returns all decisions as a single object whenever any decision changes:
+
+```json
+{
+  "read-patient-record": {
+    "decision": "PERMIT"
+  },
+  "write-clinical-notes": {
+    "decision": "DENY"
+  }
+}
+```
+
+This format is simpler to process because each message contains the complete current state of all decisions.
+
+#### One-Shot Batch Decisions (`/api/pdp/multi-decide-all-once`)
+
+Returns a single batch response and completes. The format is identical to the streaming batch, but the connection closes after the first response. Use this for request-response scenarios where continuous updates are not needed.
+
+Decisions may include optional `resource`, `obligations`, and `advice` fields, as described in [SAPL Authorization Decision](../3_3_SAPLAuthorizationDecision/).

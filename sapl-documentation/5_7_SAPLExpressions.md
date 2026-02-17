@@ -19,7 +19,7 @@ SAPL is based on the **JavaScript Object Notation** or **JSON**, an [ECMA Standa
 
 - Primitive Types 
   - **Number**: A signed decimal number, e.g., `-1.9`. There is no distinction between integer and floating-point numbers. In case an integer is expected (e.g., for a numeric index), the decimal number is rounded to an integer number.
-  - **String**: A sequence of zero or more characters, written in double or single quotes, e.g., `"a string"` or `'a string'`.
+  - **String**: A sequence of zero or more characters, written in double quotes, e.g., `"a string"`.
   - **Boolean**: Either `true` or `false`.
   - **null**: Marks an empty value, `null`.
 - Structured Types 
@@ -50,9 +50,9 @@ Each of these basic expressions can contain one or more **selection steps** (e.g
 
 A basic value expression is the simplest type. The value is denoted in the corresponding JSON format.
 
-`true`, `false`, and `null` are value expressions as well as `"a string"`, `'a string'`, or any number (like `6` or `100.51`).
+`true`, `false`, `null`, and `undefined` are value expressions as well as `"a string"` or any number (like `6` or `100.51`).
 
-For denoting objects, the keys need to be strings, and the values can be any expression, e.g.
+For denoting objects, the keys can be strings or bare identifiers, and the values can be any expression, e.g.
 
 ```sapl
 {
@@ -86,7 +86,7 @@ library.a_function(subject.name, (environment.day_of_week + 1))
 
 Each function is available under its fully qualified name. The fully qualified name starts with the library name, consisting of one or more identifiers separated by periods `.` (e.g., `sapl.functions.simple`). The library name is followed by a period `.` and an identifier for the function name (e.g., `sapl.functions.simple.append`). Which function libraries are available depends on the configuration of the PDP.
 
-[Imports](#imports) at the beginning of a SAPL document can be used to make functions available under shorter names. If a function is imported via a basic import or a wildcard import, it is available under its function name (e.g., `append`). A library alias import provides an alternative library name (e.g., with the import statement `import sap.functions.simple as simple`, the append function would be available under `simple.append`.
+[Imports](../5_2_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
 
@@ -117,9 +117,11 @@ SAPL provides a collection of arithmetic, comparison, logical, string and filter
 
 Assuming `exp1` and `exp2` are expressions evaluating to numbers, the following operators can be applied. All of them evaluate to number.
 
+- `+exp1` (unary plus, no-op)
 - `-exp1` (negation)
 - `exp1 * exp2` (multiplication)
 - `exp1 / exp2` (division)
+- `exp1 % exp2` (modulo)
 - `exp1 + exp2` (addition)
 - `exp1 - exp2` (subtraction)
 
@@ -127,13 +129,13 @@ An expression can contain multiple arithmetic operators. The order in which they
 
 In case multiple operators are used without parentheses (e.g., `4 + 3 * 2`), the **operator precedence** determines how the expression is evaluated. Operators with higher precedence are evaluated first. The following precedence is assigned to arithmetic operators:
 
-- `-` (negation): precedence **4**
-- `*` (multiplication), `/` (division): precedence **2**
-- `+` (addition), `-` (subtraction): precedence **1**
+- `+` (unary plus), `-` (negation): precedence **10** (highest)
+- `*` (multiplication), `/` (division), `%` (modulo): precedence **9**
+- `+` (addition), `-` (subtraction): precedence **8**
 
 As `*` has a higher precedence than `+`, `4 + 3 * 2` would be evaluated as `4 + (3 * 2)`.
 
-Except for the negation, multiple operators with the same precedence (e.g., `5 - 2 + 1`) are **left-associative**, i.e., `5 - 2 + 1` is evaluated like `(5 - 2) + 1`. The negation is non-associative, i.e., `--1` needs to be replaced by `-(-1)`.
+Except for the unary operators, multiple operators with the same precedence (e.g., `5 - 2 + 1`) are **left-associative**, i.e., `5 - 2 + 1` is evaluated like `(5 - 2) + 1`. Unary operators are non-associative, i.e., `--1` needs to be replaced by `-(-1)`.
 
 ### Comparison Operators
 
@@ -144,13 +146,14 @@ Except for the negation, multiple operators with the same precedence (e.g., `5 -
    2. `exp1 > exp2` (`true` if `exp1` is greater than `exp2`)
    3. `exp1 <= exp2` (`true` if `exp2` is equal to or greater than `exp1`)
    4. `exp1 >= exp2` (`true` if `exp1` is equal to or greater than `exp2`)
-2. Equals
+2. Equals and Not Equals
 
-   Assuming `exp1` and `exp2` are expressions, the equals-operator can be used to compare the results:
+   Assuming `exp1` and `exp2` are expressions, the equals and not-equals operators can be used to compare the results:
 
-   `exp1 == exp2`
+   `exp1 == exp2` evaluates to `true` if the results are equal.
 
-   The expression evaluates to `true` if the result of evaluating `exp1` is equal to the result of evaluating `exp2`.
+   `exp1 != exp2` evaluates to `true` if the results are not equal.
+
 3. Regular Expression
 
    Assuming `exp1` and `exp2` are expressions evaluating to strings, the regular expression match operator can be used:
@@ -167,28 +170,54 @@ Except for the negation, multiple operators with the same precedence (e.g., `5 -
    The expression evaluates to `true` if the array `exp2` evaluates to contains the result of evaluating `exp1`. Otherwise, the expression evaluates to `false`.
 5. Precedence and Associativity
 
-   All comparison operators have precedence **3**. This is important for combining them with logical operators (see below).
+   Comparison operators (`<`, `>`, `<=`, `>=`, `in`) have precedence **7**. Equality operators (`==`, `!=`, `=~`) have precedence **6**. This is important for combining them with logical operators (see below).
 
-   `<`, `>`, `<=`, `>=`, `==`,`=~` and `in` are **non-associative**, i.e., an expression may not contain multiple comparison operators (like `3 < var < 5`). However, they can be combined with logical operators which have a different precedence (thus, the faulty example could be replaced by `3 < var && var < 5`).
+   All comparison and equality operators are **non-associative**, i.e., an expression may not contain multiple comparison operators (like `3 < var < 5`). However, they can be combined with logical operators which have a different precedence (thus, the faulty example could be replaced by `3 < var && var < 5`).
 
 ### Logical Operators
 
 Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the following operators can be applied. The new expression evaluates to `true` or `false`:
 
-- `!exp1` (negation), precedence **4**
-- `exp1 && exp2` or `exp1 & exp2` (logical AND), precedence **2**
-- `exp1 ^ exp2` (logical XOR), precedence **2**
-- `exp1 || exp2` or `exp1 | exp2` (logical OR), precedence **1**
+- `!exp1` (negation), precedence **10** (highest)
+- `exp1 & exp2` (AND), precedence **5**
+- `exp1 ^ exp2` (XOR), precedence **4**
+- `exp1 | exp2` (OR), precedence **3**
+- `exp1 && exp2` (AND), precedence **2**
+- `exp1 || exp2` (OR), precedence **1** (lowest)
 
-The `&` operator is an alias for `&&`, and `|` is an alias for `||`. Both forms produce identical behavior. The XOR operator (`^`) always evaluates both operands since both are needed to determine the result.
+SAPL provides two forms of AND (`&`, `&&`) and two forms of OR (`|`, `||`). Both forms of each operator use the same [cost-stratified short-circuit evaluation](#cost-stratified-short-circuit-evaluation). The **only current difference is precedence**: `&` and `|` bind tighter than `&&` and `||`. For example, `a && b | c` is parsed as `a && (b | c)`, not `(a && b) | c`.
 
-The operators are already listed in descending order of their **precedence**, i.e., `!` has the highest precedence followed by `&&`/`&`/`^` and `||`/`|`. The order of evaluation can be changed by using parentheses.
+This precedence difference allows policy authors to group conditions naturally without parentheses. For example:
 
-`&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
+```sapl
+(subject.role == "doctor" | subject.role == "nurse") && resource.type == "patient_record"
+```
+
+can be written without parentheses as:
+
+```sapl
+subject.role == "doctor" | subject.role == "nurse" && resource.type == "patient_record"
+```
+
+because `|` binds tighter than `&&`.
+
+The XOR operator (`^`) always evaluates both operands since both are needed to determine the result.
+
+`&&`, `||`, `&`, `|`, and `^` are left-associative. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
+
+#### Why Two Forms Exist
+
+The two AND/OR forms exist to support a future optimization for the streaming evaluation stratum. Currently, when an expression involves attribute finder subscriptions (the streaming stratum), the engine optimizes for **subscription and resource consumption**: it avoids subscribing to attribute finders whose values are not needed for the result. This is the behavior for both `&&`/`||` and `&`/`|`.
+
+In a future version, `&`/`|` will select an alternative evaluation strategy for the streaming stratum that optimizes for **latency**: eagerly subscribing to all attribute sources in parallel and returning the result as soon as it can be determined, at the cost of maintaining more concurrent subscriptions. The `&&`/`||` operators will retain the current resource-optimized strategy.
+
+This distinction does not affect the **semantics** of a policy. A policy using `&` produces the same authorization decisions as one using `&&` (given the same precedence grouping). The difference is purely in runtime behavior: how the engine manages subscriptions and how quickly it can deliver a result. Choosing between the two forms will never change whether access is granted or denied.
+
+Until the latency-optimized strategy is implemented, choosing between the two forms is purely a matter of precedence preference.
 
 #### Cost-Stratified Short-Circuit Evaluation
 
-For the lazy operators `&&` and `||`, SAPL uses **cost-stratified short-circuit evaluation**. SAPL organizes operands into cost strata (layers) and evaluates cheaper strata first. This optimization can skip evaluating expensive parts of an expression entirely when the result is already determined by a cheaper operand.
+All AND and OR operators (`&`, `&&`, `|`, `||`) use **cost-stratified short-circuit evaluation**. The compiler flattens chains of AND/OR operators into N-ary operations. For example, `a && b && c && d` is compiled into a single conjunction rather than a chain of nested binary operations. This enables the engine to sort all operands by cost stratum, regardless of how many there are. If any operand in a lower (cheaper) stratum short-circuits the result, all operands in higher (more expensive) strata are never evaluated and their subscriptions are never created.
 
 SAPL categorizes expressions into three strata based on their evaluation cost:
 
@@ -202,7 +231,7 @@ SAPL categorizes expressions into three strata based on their evaluation cost:
 
 2. **Within-strata ordering:** Within the same stratum, operands are evaluated strictly left-to-right as they appear in the source.
 
-3. **Short-circuit behavior:** When a short-circuit value is found (`false` for `&&`, `true` for `||`), evaluation stops and remaining operands are not evaluated.
+3. **Short-circuit behavior:** When a short-circuit value is found (`false` for AND, `true` for OR), evaluation stops and remaining operands are not evaluated.
 
 4. **Error propagation:** When an error occurs during evaluation, it propagates immediately. Lower strata errors propagate even if higher strata operands appear earlier in the source.
 
@@ -291,12 +320,12 @@ Structure of `object`
 
 | Expression                                                  | Returned Value                                                                                                                         | Explanation                                                                                                                                     |
 |-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `object.key`  <br>`object['key']`  <br>`object["key"]`      | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
+| `object.key`  <br>`object["key"]`                            | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
 | `object.array1[0]`                                          | `{ "key" : "value2" }`                                                                                                                 | **Index step**                                                                                                                                  |
 | `object.array2[-1]`                                         | `5`                                                                                                                                    | **Index step** with negative value n returns the n-th last element                                                                              |
 | `object.*`  <br>`object[*]`                                 | ["value1",<br>      [<br>        { "key" : "value2" },<br>        { "key" : "value3" }<br>      ],<br>      [ 1, 2, 3, 4, 5 ]<br>    ] | **Wildcard step** applied to an object, it returns an array with the value of each attribute - applied to an array, it returns the array itself |
 | `object.array2[0:-2:2]`                                     | `[ 1, 3 ]`                                                                                                                             | **Array slicing step** starting from first to second last element with a step size of two                                                       |
-| `object..key`  <br>`object..['key']`  <br>`object..["key"]` | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
+| `object..key`  <br>`object..["key"]`                         | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
 | `object..[0]`                                               | `[ { "key" : "value2" }, 1 ]`                                                                                                          | **Recursive descent step** looking for an array index                                                                                           |
 | `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index) - can also evaluate to an attribute name                                                   |
 | `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` references the current item, `#` its index/key - can also be applied to an object           |
@@ -309,12 +338,12 @@ Structure of `object`
 
 The basic access syntax is quite similar to accessing an object’s attributes in JavaScript or Java:
 
-- **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`,`resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource['another key']`).
+- **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource["another key"]`).
 - **Indices of an array** may be accessed by putting the index between square brackets (**index step**, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`\-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the array `array`.
 
 **Handling missing data:**
 
-- **Missing keys:** When a key step accesses an attribute that doesn't exist in an object, the result is `undefined`. This allows policies to gracefully handle optional attributes using conditional logic or the Elvis operator.
+- **Missing keys:** When a key step accesses an attribute that doesn't exist in an object, the result is `undefined`. This allows policies to gracefully handle optional attributes using conditional logic.
 - **Out-of-bounds indices:** When an index step accesses an array index that doesn't exist (either beyond the array length or more negative than the array allows), an error is returned. Unlike missing object keys, out-of-bounds array access is treated as a programming error since array lengths are typically known or should be checked beforehand.
 
 Multiple selection steps can be **chained**. The steps are evaluated from left to right. Each step is applied to the result returned from the previous step.
@@ -458,7 +487,7 @@ A standard attribute finder is called via the selection step `.<finder.name>`. W
 
 An attribute accessed this way is treated as a subscription. I.e., the PDP will subscribe to the data source, and whenever a new value is returned, the policy is reevaluated, and a new decision is calculated.
 
-The attribute finder receives the result of the previous selection as an argument and returns a JSON value. Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,…​)>`.
+The attribute finder receives the result of the previous selection as an argument and returns a JSON value. Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,...)>`. Additionally, an attribute finder may accept options in brackets: `.<finder.name[optionsExpression]>`. The options expression is evaluated and passed to the attribute finder alongside the regular parameters.
 
 Attribute finders may be nested: `subject.<finder.name2>.<finder.name(p1,action.<finder.name3>,…​)>`. Here, whenever the attributes with `name2` and `name3` all have an initial result, and whenever one of the results change, the attribute with name `name` is re-subscribed with the new input parameters.
 

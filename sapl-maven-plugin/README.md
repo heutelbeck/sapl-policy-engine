@@ -4,7 +4,7 @@ This module contains the source code of the SAPL Maven Plugin.
 
 This plugin allows you to measure the code coverage when testing your SAPL policies. It analyzes the coverage using different coverage criteria and generates reports in HTML format. It also allows for integrating coverage information in your SonarQube/SonarCloud analysis.
 
-For a detailed description of the usage and the available parameters for the SAPL Maven Plugin, consult the [SAPL Docs](https://sapl.io/docs/latest/9_9_CodeCoverageReportsviatheSAPLMavenPlugin/).
+For a detailed description of the usage and the available parameters for the SAPL Maven Plugin, consult the [SAPL Docs](https://sapl.io/docs/latest/9_10_Coverage/).
 
 ## Getting Started
 
@@ -36,4 +36,4 @@ The SAPL Maven Plugin can be invoked by calling the `verify` phase of the Maven 
 mvn verify
 ```
 
-For further configuration options of the SAPL Maven Plugin, consult the [SAPL documentation](https://sapl.io/docs/latest/9_9_CodeCoverageReportsviatheSAPLMavenPlugin/).
+For further configuration options of the SAPL Maven Plugin, consult the [SAPL documentation](https://sapl.io/docs/latest/9_10_Coverage/).

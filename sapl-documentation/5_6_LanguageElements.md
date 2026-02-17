@@ -38,7 +38,7 @@ A caret `^` before the identifier may be used to avoid a conflict with SAPL keyw
 
 ### Strings
 
-Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by single quotes `'` or double quotes `"`. Any enclosing quote character occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""`.
+Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by double quotes `"`. Any quote character occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""`.
 
 ### Comments
 

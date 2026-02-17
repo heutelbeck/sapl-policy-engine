@@ -9,7 +9,7 @@ nav_order: 5
 
 ## SAPL Policy
 
-This section describes the elements of a SAPL policy in more detail. A policy contains an entitlement (`permit` or `deny`) and can be evaluated against an authorization subscription. If the conditions in the target expression and in the body are fulfilled, the policy evaluates to its entitlement. Otherwise, it evaluates to `NOT_APPLICABLE` (if one of the conditions is not satisfied) or `INDETERMINATE` (if an error occurred).
+This section describes the elements of a SAPL policy in more detail. A policy contains an entitlement (`permit` or `deny`) and can be evaluated against an authorization subscription. If all conditions in the body are fulfilled, the policy evaluates to its entitlement. Otherwise, it evaluates to `NOT_APPLICABLE` (if one of the conditions is not satisfied) or `INDETERMINATE` (if an error occurred).
 
 A SAPL policy starts with the keyword `policy`.
 
@@ -19,58 +19,43 @@ The keyword `policy` is followed by the policy name. The name is a string *ident
 
 ### Entitlement
 
-SAPL expects an entitlement specification. This can either be `permit` or `deny`. The entitlement is the value to which the policy evaluates if the policy is applicable to the authorization subscription, i.e., if both the conditions in the policy’s target expression and in the policy’s body are satisfied.
+SAPL expects an entitlement specification. This can either be `permit` or `deny`. The entitlement is the value to which the policy evaluates if the policy is applicable to the authorization subscription, i.e., if all conditions in the body are satisfied.
 
 {: .note }
-> Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny`\-policy or whether there is just no permitting policy for a certain situation.
-
-### Target Expression
-
-After the entitlement, an **optional** target expression can be specified. This is a condition for applying the policy, hence an expression that must evaluate to either `true` or `false`. Which elements are allowed in SAPL expressions is described [below](#expressions).
-
-If the target expression evaluates to `true` for a certain authorization subscription, the policy *matches* this subscription. A missing target expression makes the policy match any subscription.
-
-A matching policy whose conditions in the body evaluate to `true` is called *applicable* to an authorization subscription and returns its entitlement. Both target expression and body define conditions that must be satisfied for the policy to be applicable. Although they seem to serve a similar purpose, there is an important difference: For an authorization subscription, the target expression of each top-level document is checked to select policies matching the subscription from a possibly large set of policy documents. Indexing mechanisms may be used to fulfill this task efficiently.
-
-Accordingly, there is one limitation regarding the elements allowed in the target:
-
-- [Attribute finder steps](#attribute-finders) that have access to environment variables and may contact external PIPs are not allowed in the target. Functions may be used because their output only depends on the arguments passed.
-
-Note: Both `&`/`|` and `&&`/`||` operators work identically in target expressions.
+> Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny`-policy or whether there is just no permitting policy for a certain situation.
 
 ### Body
 
-The policy body is **optional** and starts with the keyword `where`. It contains one or more statements, each of which must evaluate to `true` for the policy to apply to a certain authorization subscription. Accordingly, the body extends the condition in the target expression and further limits the policy’s applicability.
+The policy body is **optional** and follows the entitlement directly. It contains one or more statements, each of which must evaluate to `true` for the policy to apply to a certain authorization subscription.
 
 A statement within the body can either be a variable assignment which makes a variable available under a certain name (and always evaluates to `true`)
 
-Sample Variable Assignment
-
-```java
+```sapl
 var a_name = expression;
 ```
 
 or a condition, i.e., an expression that evaluates to `true` or `false`.
 
-Sample Condition
-
-```java
+```sapl
 a_name == "a_string";
 ```
 
 Each statement is concluded with a semicolon `;`.
 
-There are no restrictions on the syntax elements allowed in the policy body. Lazy evaluation is used for the conjunction of the statements - i.e., if one statement evaluates to `false`, the policy returns the decision `NOT_APPLICABLE`, even if future statements would cause an error.
+The body supports all SAPL expression elements, including attribute finder steps that access external PIPs. Lazy evaluation is used for the conjunction of the statements: if one statement evaluates to `false`, the policy returns the decision `NOT_APPLICABLE`, even if future statements would cause an error.
 
-If the body is missing (or does not contain any condition statement), the policy is applicable to any authorization subscription which the policy matches (i.e., for which the target expression evaluates to `true`).
+If the body is missing (or does not contain any condition statement), the policy is applicable to any authorization subscription.
+
+{: .info }
+> Policy sets use a separate `for` target expression to control applicability. Individual policies express all conditions in the body. See [SAPL Policy Set](../5_5_SAPLPolicySet/) for details.
 
 #### Variable Assignment
 
-A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression. The assignment can be followed by the optional keyword `schema` and one or more schema expressions separated by `,`. The schema expression(s) must evaluate to a valid JSON schema. The schema will only be used by the code completion while editing polices with a dedicated editor.
+A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression. The assignment can be followed by the optional keyword `schema` and one or more schema expressions separated by `,`. The schema expression(s) must evaluate to a valid JSON schema. The schema will only be used by the code completion while editing policies with a dedicated editor.
 
 After a variable assignment, the result of evaluating the expression can be used in later conditions within the same policy under the specified name. This is useful because it allows to execute time-consuming calculations or requests to external attribute stores only once, and the result can be used in multiple expressions. Additionally, it can make policies shorter and improve readability.
 
-The expression can use any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression.
+The expression can use any element of the SAPL expression language, including attribute finder steps.
 
 The value assignment statement always evaluates to `true`.
 
@@ -78,7 +63,7 @@ The value assignment statement always evaluates to `true`.
 
 A condition statement simply consists of an expression that must evaluate to `true` or `false`.
 
-The expression can use any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression. Conditions in the policy body are used to further limit the applicability of a policy.
+The expression can use any element of the SAPL expression language, including attribute finder steps. Conditions in the policy body limit the applicability of a policy.
 
 ### Obligation
 

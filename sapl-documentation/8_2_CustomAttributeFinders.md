@@ -9,99 +9,218 @@ nav_order: 250
 
 ## Custom Attribute Finders
 
-For a more in-depth look at the process of creating a custom PIP, please refer to the demo project. It provides a walkthrough of the entire process and contains extensive examples: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension> .
+A Policy Information Point (PIP) is a class that provides attribute finders to the PDP. Custom PIPs allow policies to access external data sources such as databases, APIs, or message brokers.
 
-**Attribute finders** are functions that potentially take a left-hand argument (i.e., the object of which the attribute is to be determined), a `Map` of variables defined in the current evaluation scope, and an optional list of incoming parameter streams.
+### Declaring a PIP
 
-In SAPL, a Policy Information Point is an instance of a class that supplies a set of such functions. To declare functions and classes to be attributes or PIPs, SAPL uses annotations. Each PIP class must be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext`, which takes arbitrary Java objects as PIPs. To be recognized as a PIP, the respective class must be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP’s name as it will be available in SAPL policies. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
+A class annotated with `@PolicyInformationPoint` is recognized as a PIP:
+
+| Attribute            | Description                                              | Default          |
+|----------------------|----------------------------------------------------------|------------------|
+| `name`               | PIP namespace as used in SAPL policies (e.g., `"user"`)  | Java class name  |
+| `description`        | Short description for documentation                      | `""`             |
+| `pipDocumentation`   | Detailed documentation (supports Markdown)               | `""`             |
 
 ```java
-@PolicyInformationPoint(name = "user", description = "This the documentation of the PIP")
-public class SampleUserPIP {
+@PolicyInformationPoint(name = "user", description = "User profile attributes")
+public class UserPIP {
     ...
 }
 ```
 
-The individual attributes supplied by the PIP are identified by adding the annotation `@Attribute`. An optional annotation attribute `name` can contain a name for the attribute. The attribute must be a string containing an identifier. By default, the name of the function will be used. The annotation attribute `docs` can contain a string describing the attribute.
+### Entity Attributes vs. Environment Attributes
 
-SAPL allows for attribute name overloading. This means that can be multiple implementations for resolving an attribute with one name. For example, you could implement, an environment attribute (`<some.attribute>`), a regular attribute (`"UTC".<some.attribute>`), both with parameters (`<some.attribute("UTC")>`, `"UTC.<some.attribute(5000)>`), and maybe even with a variable number of arguments (`<some.attribute>("a","b","c","d",123,4)`).
+SAPL distinguishes two kinds of attribute access:
 
-For an attribute of some other object, this object is called the left-hand parameter of the attribute. When writing a method implementing an attribute that takes a left-hand parameter, this parameter must be the first parameter of the method, and it must be of type `Val`:
+- **Entity attributes** are called on a value: `subject.cert.<x509.isValid>`. The left-hand value (`subject.cert`) is passed to the method as the first parameter. Use the `@Attribute` annotation.
+
+- **Environment attributes** are called without a left-hand value: `<time.now>`. Use the `@EnvironmentAttribute` annotation.
+
+A method can carry both `@Attribute` and `@EnvironmentAttribute` to support both calling conventions from a single implementation.
+
+### Declaring Attributes
+
+Both `@Attribute` and `@EnvironmentAttribute` support the same annotation attributes:
+
+| Attribute      | Description                                           | Default          |
+|----------------|-------------------------------------------------------|------------------|
+| `name`         | Attribute name in SAPL (overrides Java method name)   | Method name      |
+| `docs`         | Attribute documentation                               | `""`             |
+| `schema`       | Inline JSON schema for the return value               | `""`             |
+| `pathToSchema` | Classpath path to a JSON schema file                  | `""`             |
+
+### Return Types
+
+Attribute methods must return `Flux<Value>` or `Mono<Value>`. A `Mono<Value>` return is automatically converted to a `Flux<Value>` by the PDP.
+
+Use `Flux<Value>` when the attribute value can change over time (e.g., periodic sensor readings, message streams). Use `Mono<Value>` when the attribute is fetched once (e.g., a database lookup).
+
+### Parameter Order
+
+Attribute method parameters follow a fixed order:
+
+**For `@Attribute` (entity attributes):**
+
+| Position | Type | Description |
+|----------|------|-------------|
+| 1st | `Value` subtype | Entity (left-hand value from SAPL) |
+| 2nd (optional) | `AttributeAccessContext` | Variables and secrets |
+| Remaining | `Value` subtypes | Policy parameters (bracket arguments) |
+| Last (optional) | `Value[]` subtype | Variable arguments |
+
+**For `@EnvironmentAttribute`:**
+
+| Position | Type | Description |
+|----------|------|-------------|
+| 1st (optional) | `AttributeAccessContext` | Variables and secrets |
+| Remaining | `Value` subtypes | Policy parameters (bracket arguments) |
+| Last (optional) | `Value[]` subtype | Variable arguments |
+
+Policy parameters use concrete `Value` subtypes for type safety, following the same type mapping as [functions](../7_2_CustomFunctionLibraries#declaring-functions). The PDP validates parameter types before calling the method.
+
+### Examples
+
+**Environment attribute with no parameters:**
 
 ```java
-/* subject.<user.attribute> */
-@Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute) {
+/* <time.now> */
+@EnvironmentAttribute(docs = "Returns the current UTC time, updating periodically.")
+public Flux<Value> now() {
+    return Flux.interval(Duration.ofSeconds(1))
+        .map(i -> Value.of(Instant.now(clock).toString()));
+}
+```
+
+**Environment attribute with `AttributeAccessContext`:**
+
+```java
+/* <jwt.token> */
+@EnvironmentAttribute(docs = "Extracts a JWT from the subscription secrets.")
+public Flux<Value> token(AttributeAccessContext ctx) {
+    var secretsKey = resolveSecretsKey(ctx);
+    return tokenFromSecrets(secretsKey, ctx);
+}
+```
+
+The `AttributeAccessContext` provides access to:
+
+| Method                 | Description                                                      |
+|------------------------|------------------------------------------------------------------|
+| `variables()`          | PDP environment variables (from `pdp.json`)                      |
+| `pdpSecrets()`         | Operator-level secrets configured in `pdp.json`                  |
+| `subscriptionSecrets()`| Per-request secrets provided by the application                  |
+
+The context is injected automatically by the PDP and is invisible to policy authors.
+
+**Entity attribute:**
+
+```java
+/* subject.clientCertificate.<x509.isCurrentlyValid> */
+@Attribute(docs = "Checks if the certificate is currently valid.")
+public Flux<Value> isCurrentlyValid(TextValue certPem) {
+    try {
+        var certificate = CertificateUtils.parseCertificate(certPem.value());
+        var notBefore   = certificate.getNotBefore().toInstant();
+        var notAfter    = certificate.getNotAfter().toInstant();
+        return Flux.interval(Duration.ofMinutes(1))
+            .map(i -> Value.of(clock.instant().isAfter(notBefore)
+                            && clock.instant().isBefore(notAfter)));
+    } catch (CertificateException e) {
+        return Flux.just(Value.error("Invalid certificate.", e));
+    }
+}
+```
+
+The first parameter (`TextValue certPem`) receives the left-hand value from the SAPL expression.
+
+**Entity attribute with context and policy parameters:**
+
+```java
+/* "sensors/#".<mqtt.messages(1)> */
+@Attribute(name = "messages", docs = "Subscribes to MQTT messages on a topic.")
+public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
+    return mqttClient.subscribe(topic, ctx, qos);
+}
+```
+
+The entity (`topic`) is the left-hand value, `ctx` is injected, and `qos` is the bracket argument from the policy.
+
+**Dual annotation (works as both entity and environment attribute):**
+
+```java
+/* Environment: <http.get(requestSettings)> */
+/* Entity:      "https://api.example.com".<http.get(requestSettings)> */
+@Attribute
+@EnvironmentAttribute(docs = "Performs an HTTP GET request.")
+public Flux<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
+    return webClient.httpRequest(HttpMethod.GET, mergeHeaders(ctx, requestSettings));
+}
+```
+
+When both annotations are present, the method is registered for both calling conventions. The entity value, if present, is passed as the first policy parameter.
+
+**Variable arguments:**
+
+```java
+/* subject.<user.attribute("AA", "BB", "CC")> */
+@Attribute(name = "attribute", docs = "Accepts a variable number of arguments.")
+public Flux<Value> attribute(Value leftHand, AttributeAccessContext ctx, TextValue... params) {
     ...
 }
 ```
 
-Input parameters of the method may be annotated with type validation annotations (see module `sapl-extension-api`, package `io.sapl.api.validation`). When present, the policy engine validates the contents of the parameters before calling the method. Therefore, if present, the method does not need to perform additional type validation. The method will only be called if the left-hand parameter is a JSON Object in the example above. While different parameter types can be used to disambiguate overloaded methods in languages like Java, this is not possible in SAPL.
+If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over a variable arguments implementation.
 
-A typical use-case for attribute finder is retrieving attribute data from an external data source. If this is a network service like an API or database, the attribute finder usually must know the network address and credentials to authenticate with the service. Such data should never be hardcoded in the PIP. Also, developers should never store this data in policies. In SAPL, developers should store this information and further configuration data for PIPs in the environment variables. For the SAPL Server LT these variables are stored in the pdp.json configuration file, and for the SAPL Server CE they can be edited via the UI.
+### Attribute Name Overloading
 
-To access the environment variables, attribute finder methods can consume a Map<String,JsonNode>. The PDP will inject this map at runtime. The map contains all variables available in the current evaluation scope. This map must be the first parameter of the left-hand parameter, or it must be the first parameter for environment attributes. Note that attempting to overload an attribute name with and without variables as a parameter that accept the same number of other parameters will fail. The engine cannot disambiguate these two attributes at runtime.
+SAPL allows multiple implementations for the same attribute name with different signatures. For example, a PIP can provide:
+
+- `<user.profile>` (environment, no parameters)
+- `subject.<user.profile>` (entity)
+- `<user.profile("department")>` (environment with parameter)
+- `subject.<user.profile("department")>` (entity with parameter)
+
+The PDP disambiguates at runtime based on the calling convention and argument count.
+
+### Error Handling
+
+Attribute methods must never throw exceptions. Return error values using `Value.error()`:
 
 ```java
-/* subject.<user.attribute> definition would clash with last example if defined at the same time in the same PIP*/
-@Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,JsonNode> variables) {
-    ...
+@EnvironmentAttribute(docs = "Fetches data from an external API.")
+public Mono<Value> fetchData(AttributeAccessContext ctx, TextValue endpoint) {
+    return webClient.get(endpoint.value())
+        .map(Value::of)
+        .onErrorResume(e -> Mono.just(Value.error("API request failed.", e)));
 }
 ```
 
-To define environment attributes, i.e., attributes without left-hand parameters, the method definition explicitly does not define a `Val` parameter as its first parameter.
+An error value propagates through the policy evaluation and causes the enclosing condition to evaluate to `INDETERMINATE`.
+
+### Credential Management
+
+PIP methods frequently need credentials to access external services. These credentials should never be hardcoded or stored in policies.
+
+Use `AttributeAccessContext` to access secrets:
+
+- **`pdpSecrets()`** for operator-level credentials configured in `pdp.json` (e.g., database connection strings, API keys shared across all requests)
+- **`subscriptionSecrets()`** for per-request credentials provided by the application (e.g., the current user's OAuth token)
+- **`variables()`** for non-sensitive PDP configuration (e.g., service URLs, timeout settings)
+
+See [Authorization Subscriptions](../1_2_AuthorizationSubscriptions/) for details on the secrets field.
+
+### Registering Custom PIPs
+
+Custom PIPs are registered with the PDP through the builder API:
 
 ```java
-/* <user.attribute> */
-@Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute() {
-    ...
-}
+var pdp = PolicyDecisionPointBuilder.builder()
+    .withDefaults()
+    .withPolicyInformationPoint(new UserPIP(userService))
+    .build();
 ```
 
-Optionally, the environment attribute can consume variables:
+In a Spring Boot application, any bean annotated with `@PolicyInformationPoint` is automatically discovered and registered with the PDP.
 
-```java
-/* <user.attribute> definition would clash with last example if defined at the same time in the same PIP */
-@Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(Map<String,JsonNode> variables) {
-    ...
-}
-```
-
-A unique feature of SAPL is the possibility to parameterize attribute finders in polices. E.g., `subject.<employees.qualificationOfType("IT")>` could return all qualifications of the subject in the domain of `"IT"`. Syntactically, SAPL also allows for the concatenation (`subject.<pip1.attr1>.<pip2.attr2>`) and nesting of attribute (`subject.<pip1.attr1(resource.<pip2.attr2>,<pip3.attr3>)>`).
-
-Regardless of if the attribute is an environment attribute or not, the parameters in brackets are declared as parameters of the method with the type `Flux<Val>`.
-
-```java
-/* subject.<user.attribute("param1",123)> */
-@Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,JsonNode> variables, @Text Flux<Val> param1, @Number Flux<Val> param2) {
-    ...
-}
-```
-
-Additionally, using Java variable argument lists, it is possible to declare attributes with a variable number of attributes. If a method wants to use variable arguments, the method must not declare any other parameters besides the optional left-hand or variables parameters. If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over a variable arguments' implementation.
-
-```java
-/* subject.<user.attribute("AA","BB","CC")> */
-@Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,JsonNode> variables, @Text Flux<Val>... params) {
-    ...
-}
-```
-
-Alternatively defining the variable arguments can be defined as an array.
-
-```java
-/* <user.attribute("AA","BB","CC")> */
-@Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Text Flux<Val>[] params) {
-    ...
-}
-```
-
-The methods must not declare any further arguments.
-
-**Note**: Developers must add `-parameters` parameter to the compilation to ensure that the automatically generated documentation does contain the names of the parameters used in the methods.
+{: .note }
+> Add the `-parameters` flag to the Java compiler to ensure that automatically generated documentation includes parameter names from the source code.

@@ -126,6 +126,9 @@ This algorithm denies access unless a policy explicitly permits, and if any poli
 
 For PDP-level configuration, this is the recommended default. Deviations should be justified by specific application requirements.
 
+{: .info }
+> When no algorithm is configured in `pdp.json`, the PDP defaults to `priority deny or deny errors propagate`. This differs from the recommendation above in error handling: errors produce `INDETERMINATE` (visible to the PEP) rather than being silently absorbed into a deny. Both are fail-closed defaults. Configure an explicit algorithm in `pdp.json` to control this behavior.
+
 The following sections describe each voting style in detail, starting from the most restrictive and progressing to more permissive variants.
 
 ### `priority deny`
@@ -355,14 +358,13 @@ The first policy to return a result determines the outcome. If all policies abst
 
 1. Evaluate each policy in declaration order:
    - If it votes `PERMIT` or `DENY`, that is the result.
-   - If it votes `INDETERMINATE`, the error abstains and the result is `NOT_APPLICABLE`.
+   - If it votes `INDETERMINATE`, the error abstains (effectively `NOT_APPLICABLE`). Continue to the next policy.
    - If it votes `NOT_APPLICABLE`, continue to the next policy.
-2. If all policies vote `NOT_APPLICABLE`, the result is `DENY`.
+2. If no policy produces a `PERMIT` or `DENY` vote (including when errors abstain), the result is `DENY`.
 
 **Characteristics:**
 
-- Returns `NOT_APPLICABLE` when an error occurs (error abstains)
-- Errors short-circuit evaluation (later policies are not evaluated)
+- Abstained errors do not stop evaluation (later policies are still evaluated)
 - Order-dependent: earlier policies have higher priority
 
 **`first or abstain errors propagate`**

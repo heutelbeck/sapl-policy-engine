@@ -154,15 +154,16 @@ name and value are sent on every request. Common patterns:
 A minimal compatible server must:
 
 1. Serve `.saplbundle` ZIP files at `{baseUrl}/{pdpId}` with `200 OK`.
-2. Return `404` for unknown pdpIds.
-3. Optionally: support `If-None-Match` / `ETag` for conditional requests with `304`
+2. Keep bundle responses under 16 MB (the client rejects larger responses).
+3. Return `404` for unknown pdpIds.
+4. Optionally: support `If-None-Match` / `ETag` for conditional requests with `304`
    responses.
 
 For long-poll support, the server must additionally:
 
-4. Hold the connection open when the bundle has not changed.
-5. Respond with `200 OK` when the bundle changes during the hold.
-6. Respond with `304 Not Modified` when the hold timeout expires.
+5. Hold the connection open when the bundle has not changed.
+6. Respond with `200 OK` when the bundle changes during the hold.
+7. Respond with `304 Not Modified` when the hold timeout expires.
 
 Static file servers (Nginx, S3, CDN) inherently support the regular polling mode with
 ETag-based conditional requests.
