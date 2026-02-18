@@ -65,7 +65,7 @@ jobs:
 
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - name: Harden Runner

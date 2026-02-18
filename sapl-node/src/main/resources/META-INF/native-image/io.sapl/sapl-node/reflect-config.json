@@ -317,5 +317,10 @@
     "name": "io.sapl.attributes.libraries.JWTPolicyInformationPoint",
     "allDeclaredMethods": true,
     "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.attributes.libraries.X509PolicyInformationPoint",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
   }
 ]
