@@ -15,7 +15,7 @@ Attribute-Based Access Control (ABAC) is the established model for fine-grained 
 
 In traditional ABAC, the Policy Decision Point (PDP) evaluates a request against policies, consults external data sources if needed, and returns a decision. This works well when authorization is a gate - a single check at the start of an operation.
 
-But many real-world scenarios require authorization that persists beyond a single check. A doctor's shift ends while they are viewing a patient record. A device's safety certification expires during an active control session. A user's clearance is revoked while they are connected to a classified data stream. In these cases, the authorization decision must change when conditions change - without the application polling for updates or missing the transition entirely.
+But many real-world scenarios require authorization that persists beyond a single check. A trader exceeds their daily risk limit while placing orders on a trading platform. A device's safety certification expires during an active control session. A user's clearance is revoked while they are connected to a classified data stream. In these cases, the authorization decision must change when conditions change - without the application polling for updates or missing the transition entirely.
 
 **Attribute Stream-Based Access Control (ASBAC)** extends ABAC by treating attributes as streams rather than snapshots. When a policy accesses an external attribute, the engine subscribes to a live data stream. If the underlying data changes - a clock crosses a shift boundary, a certificate expires, a permission is revoked - the engine re-evaluates the policy and pushes an updated decision to the application automatically.
 

@@ -19,16 +19,20 @@ package io.sapl.node;
 
 import java.util.Set;
 
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 import io.sapl.node.cli.SaplNodeCli;
 import picocli.CommandLine;
 
 @EnableCaching
+@ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
 @SpringBootApplication(excludeName = { "io.sapl.spring.config.AuthorizationManagerConfiguration",
         "io.sapl.spring.config.ConstraintsHandlerAutoconfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration",
@@ -65,6 +69,17 @@ public class SaplNodeApplication {
             }
         }
         return false;
+    }
+
+    static class NativeResourceHints implements RuntimeHintsRegistrar {
+
+        @Override
+        public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+            hints.resources().registerPattern("banner.txt");
+            hints.resources().registerPattern("saplversion.properties");
+            hints.resources().registerPattern("git.properties");
+        }
+
     }
 
 }
