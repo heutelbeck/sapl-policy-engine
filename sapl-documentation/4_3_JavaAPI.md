@@ -2,9 +2,9 @@
 layout: default
 title: Java API
 #permalink: /reference/Java-API/
-parent: PDP APIs
+parent: Language SDKs and Clients
 grand_parent: SAPL Reference
-nav_order: 3
+nav_order: 651
 ---
 
 ## Java API
@@ -55,7 +55,7 @@ For non-Spring JVM applications connecting to a SAPL Node or other remote PDP se
 
 ### Spring Boot Applications
 
-For Spring Boot applications, use the unified starter. It includes the embedded PDP, the remote PDP client, Spring Security integration, and all autoconfiguration:
+For Spring Boot applications, use the unified starter. It includes the embedded PDP, the remote PDP client, Spring Security integration, and uses autoconfiguration to bootstrap the PDP:
 
 ```xml
 <dependency>

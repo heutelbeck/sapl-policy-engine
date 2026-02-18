@@ -4,7 +4,7 @@ title: PAP
 #permalink: /reference/pap/
 parent: Reference Architecture
 grand_parent: SAPL Reference
-nav_order: 4
+nav_order: 53
 ---
 
 ## Policy Administration Point (PAP)

@@ -4,11 +4,13 @@ title: Reference Architecture
 #permalink: Reference-Architecture
 has_children: true
 parent: SAPL Reference
-nav_order: 2
+nav_order: 50
 has_toc: false
 ---
 
 ## Reference Architecture
+
+> For a conceptual introduction to these components and their interactions, see [Introduction](../1_1_Introduction/).
 
 The architecture of the SAPL policy engine follows the terminology defined by [RFC2904 "AAA Authorization Framework"](https://tools.ietf.org/html/rfc2904).
 

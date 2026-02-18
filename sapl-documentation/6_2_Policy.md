@@ -4,10 +4,12 @@ title: Policy
 #permalink: /reference/Policy/
 parent: Authorization Subscription Evaluation
 grand_parent: SAPL Reference
-nav_order: 2
+nav_order: 401
 ---
 
 ## Policy
+
+> For policy syntax and structure, see [SAPL Policy](../5_4_SAPLPolicy/). For a tutorial introduction, see [Structure of a SAPL Policy](../1_3_Structure_of_a_SAPL-Policy/).
 
 Evaluating a policy against an authorization subscription means assigning a value of `NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT`, or `DENY` to it. The body conditions are evaluated as a conjunction (all must be true). The assigned value depends on the result:
 

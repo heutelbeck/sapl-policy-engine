@@ -4,7 +4,7 @@ title: Authorization Subscriptions
 #permalink: /reference/Authorization-Subscriptions/
 parent: Introduction
 grand_parent: SAPL Reference
-nav_order: 2
+nav_order: 11
 ---
 
 > **Introduction Series:** [1. Overview](../1_1_Introduction/) • **2. Subscriptions** • [3. Policy Structure](../1_3_Structure_of_a_SAPL-Policy/) • [4. Decisions](../1_4_AuthorizationDecisions/) • [5. Attributes](../1_5_AccessingAttributes/) • [6. Getting Started](../1_6_GettingStarted/)
@@ -53,9 +53,9 @@ The PEP constructs this JSON object from the application context and sends it to
 
 Policy Information Points (PIPs) often need credentials to access external data sources during policy evaluation. For example, a PIP may need an API key to query a patient database, or a token to call an external risk-scoring service. These credentials are sensitive and must be handled with care:
 
-- They must **never appear in policies** -- hardcoding credentials in policy text is a security risk and makes credential rotation impossible.
-- They must **never appear in logs or decision output** -- SAPL automatically redacts secrets from all serialization and logging.
-- They must be **available to PIPs at evaluation time** -- without credentials, PIPs cannot fetch the attributes policies need.
+- They must **never appear in policies** - hardcoding credentials in policy text is a security risk and makes credential rotation impossible.
+- They must **never appear in logs or decision output** - SAPL automatically redacts secrets from all serialization and logging.
+- They must be **available to PIPs at evaluation time** - without credentials, PIPs cannot fetch the attributes policies need.
 
 The `secrets` field solves this by providing a **secure side-channel** for passing credentials to PIPs without exposing them in policies, logs, or authorization decisions.
 

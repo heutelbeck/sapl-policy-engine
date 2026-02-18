@@ -4,10 +4,12 @@ title: Overview
 #permalink: /reference/Overview/
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 2
+nav_order: 101
 ---
 
 ## Overview
+
+> For a guided introduction to policy structure with worked examples, see [Structure of a SAPL Policy](../1_3_Structure_of_a_SAPL-Policy/).
 
 SAPL knows two types of documents: policy sets and policies. The decisions of the PDP are based on all documents published in the policy store of the PDP. A policy set contains an ordered set of connected policies.
 

@@ -4,10 +4,10 @@ title: Structure of a SAPL Policy
 #permalink: /reference/Structure-of-a-SAPL-Policy/
 parent: Introduction
 grand_parent: SAPL Reference
-nav_order: 3
+nav_order: 12
 ---
 
-> **Introduction Series:** [1. Overview](../1_1_Introduction/) | [2. Subscriptions](../1_2_AuthorizationSubscriptions/) | **3. Policy Structure** | [4. Decisions](../1_4_AuthorizationDecisions/) | [5. Attributes](../1_5_AccessingAttributes/) | [6. Getting Started](../1_6_GettingStarted/)
+> **Introduction Series:** [1. Overview](../1_1_Introduction/) • [2. Subscriptions](../1_2_AuthorizationSubscriptions/) • **3. Policy Structure** • [4. Decisions](../1_4_AuthorizationDecisions/) • [5. Attributes](../1_5_AccessingAttributes/) • [6. Getting Started](../1_6_GettingStarted/)
 
 ## What is a Policy?
 

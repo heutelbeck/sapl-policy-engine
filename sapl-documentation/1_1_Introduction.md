@@ -3,7 +3,7 @@ layout: default
 title: Introduction
 has_children: true
 parent: SAPL Reference
-nav_order: 1
+nav_order: 10
 has_toc: false
 ---
 
@@ -11,13 +11,9 @@ has_toc: false
 
 # SAPL - Streaming Attribute Policy Language
 
-Dominic Heutelbeck Version 4.0.0
-
 ## Introduction
 
-SAPL (Streaming Attribute Policy Language) describes a **domain-specific language (DSL)** for expressing access control policies. It supports both **request/response** based authorization and a **publish/subscribe** authorization protocol.
-The protocols are based on [JSON](http://json.org/) objects representing authorization subscriptions (or requests) and authorization decisions.
-Policies expressed in SAPL describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which is based on a data stream programming model. Therefore, the SAPL policy engine implements Attribute Stream-based Access Control (ASBAC), a superset of ABAC.
+SAPL (Streaming Attribute Policy Language) is a domain-specific language and authorization engine for expressing and evaluating access control policies. It supports both request/response and publish/subscribe authorization protocols, both based on JSON. For the design decisions and architectural context behind SAPL, see [Why SAPL?](../0_1_WhySAPL/).
 
 ### SAPL at a Glance
 
@@ -42,12 +38,6 @@ permit
 > departments by comparing attributes. Add ten new departments - the policy needs no changes. 
 > Attributes are either sent with the authorization question or looked up dynamically. 
 > In this example they come from the authorization question only.
-
-**Why SAPL?**
-- **Readable:** Looks like a structured natural language
-- **Declarative:** Says WHAT to permit, not HOW to enforce it
-- **Separated:** Authorization logic lives outside application code
-- **Flexible:** Update policies without redeploying applications
 
 > **Experiment hands-on:** Try modifying a policy in the [SAPL Playground](https://playground.sapl.io/) - no installation required.
 
@@ -166,18 +156,4 @@ The PEP doesn't need to know WHY a decision changed, only that it should update 
 This streaming model enables continuous authorization for long-running operations
 and allows policies to respond in real-time to changing conditions.
 
-### Comparison to Traditional Attribute-based Access Control (ABAC)
-
-There exist several proprietary platform-dependent or standardized languages, such as [XACML](http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html), for expressing policies. SAPL brings several advantages over these solutions:
-
-- **Universality**. SAPL offers a standard, generic, platform-independent language for expressing policies.
-- **Separation of Concerns**. Applying SAPL to a domain model is relieved from modeling many aspects of access control. SAPL favors configuration at runtime over implementation and re-deployment of applications.
-- **Modularity and Distribution**. SAPL allows managing policies in a modular fashion allowing the distribution of authoring responsibilities across teams.
-- **Expressiveness**. SAPL provides access control schemas beyond the capabilities of most other practical languages. It allows for attribute-based access control (ABAC), role-based access control (RBAC), forms of entity-based access control (EBAC), and parameterized attribute access and attribute streaming.
-- **Human Readability**. The SAPL syntax is designed from the ground up to be easily readable by humans. Basic SAPL is easy to pick up for getting started but offers enough expressiveness to address complex access control scenarios.
-- **Transformation and Filtering**. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number or hiding birthdays by assigning individuals into age groups).
-- SAPL supports **session and data stream-based applications** and offers low-latency authorization for interactive applications and data streams.
-- SAPL supports **JSON-driven APIs** and integrates easily with modern JSON-based APIs. The core data model of SAPL is JSON offering straightforward reasoning over such data and simple access to external attributes from RESTful JSON APIs.
-- SAPL supports **Multi-Subscriptions**. SAPL allows bundling multiple authorization subscriptions into one multi-subscription, thus further reducing connection time and latency.
-
-The following sections explain the basic concepts of SAPL policies and show how to integrate SAPL into a Java application easily. Afterward, this document explains the different parts of SAPL in more detail.
+For a detailed comparison of SAPL with other authorization engines and the design decisions behind it, see [Why SAPL?](../0_1_WhySAPL/). The following sections explain the basic concepts of SAPL policies, authorization decisions, attribute access, and how to get started with a running PDP.

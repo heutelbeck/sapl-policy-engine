@@ -3,10 +3,12 @@ layout: default
 title: Combining Algorithm
 parent: Authorization Subscription Evaluation
 grand_parent: SAPL Reference
-nav_order: 5
+nav_order: 404
 ---
 
 ## Combining Algorithm
+
+> For `pdp.json` configuration format including algorithm selection, see [Policy Evaluation](../3_4_PolicyEvaluation/).
 
 When evaluating an authorization subscription, multiple policies may vote differently. A combining algorithm defines how individual votes are combined.
 

@@ -4,7 +4,7 @@ title: Authorization Subscription Evaluation
 ##permalink: /reference/Authorization-Subscription-Evaluation/
 has_children: true
 parent: SAPL Reference
-nav_order: 6
+nav_order: 400
 has_toc: false
 ---
 

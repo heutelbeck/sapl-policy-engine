@@ -4,7 +4,7 @@ title: Accessing Attributes
 #permalink: /reference/Accessing-Attributes/
 parent: Introduction
 grand_parent: SAPL Reference
-nav_order: 5
+nav_order: 14
 ---
 
 > **Introduction Series:** [1. Overview](../1_1_Introduction/) • [2. Subscriptions](../1_2_AuthorizationSubscriptions/) • [3. Policy Structure](../1_3_Structure_of_a_SAPL-Policy/) • [4. Decisions](../1_4_AuthorizationDecisions/) • **5. Attributes** • [6. Getting Started](../1_6_GettingStarted/)
@@ -176,41 +176,6 @@ subject.username.<user.profile>
 "42".<traccar.position>
 ```
 
-The **head attribute finder** syntax `|<finder.name>` applies an attribute finder to the result of the preceding expression in a pipeline-like fashion.
+A **head attribute finder** syntax `|<finder.name>` is also available for pipeline-style chaining. Attribute finders also accept **parameters** in parentheses and **options** in square brackets that control the stream resilience pipeline (timeout, retry, polling).
 
-#### Parameters
-
-Parameters are additional inputs passed to a PIP inside parentheses. They are positional and can be any SAPL expression, including literals, variables, or function results.
-
-What parameters mean depends on the PIP. Common uses include temporal boundaries, configuration objects, and behavior modifiers:
-
-```sapl
-<time.now(5000)>                              // update interval in milliseconds
-<time.localTimeIsBetween("09:00", "17:00")>   // start and end times
-<http.get(requestSettings)>                   // request configuration object
-topic.<mqtt.messages(1)>                      // QoS level
-```
-
-PIPs can be overloaded by parameter count. For example, `<time.now>` returns the current time with a default update interval, while `<time.now(5000)>` does the same with a 5-second interval.
-
-#### Options
-
-Options control the **stream infrastructure** that wraps every attribute lookup. They are specified in square brackets after the parameters and must be a JSON object:
-
-```sapl
-<http.get(request) [{ "initialTimeOutMs": 500, "retries": 5 }]>
-```
-
-Options are not passed to the PIP itself. Instead, they configure how the engine handles the reactive stream that the PIP returns. The available option fields are:
-
-| Option             | Default | Purpose                                                     |
-|--------------------|---------|-------------------------------------------------------------|
-| `initialTimeOutMs` | `3000`  | Timeout for the first value. Emits `undefined` if exceeded. |
-| `pollIntervalMs`   | `30000` | Re-subscription interval when the PIP stream completes.     |
-| `retries`          | `3`     | Retry attempts with exponential backoff on errors.          |
-| `backoffMs`        | `1000`  | Initial backoff delay between retries.                      |
-| `fresh`            | `false` | If `true`, bypasses the shared stream cache.                |
-
-Options follow a three-level priority chain. Policy-level options (in square brackets) override PDP-level defaults (configured in `pdp.json` under `variables.attributeFinderOptions`), which override the built-in defaults listed above. This allows operators to tune stream behavior globally without modifying policies, while individual policies can override when needed.
-
-See [Attribute Finders](../8_1_AttributeFinders/) for full details on implementing and using PIPs.
+For the full syntax reference including parameters, options, and the priority chain, see [Attribute Finders](../8_1_AttributeFinders/). For how the engine manages attribute streams internally, see [Attribute Broker](../8_3_AttributeBroker/).

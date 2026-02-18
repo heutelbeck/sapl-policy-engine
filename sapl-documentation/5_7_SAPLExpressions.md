@@ -4,7 +4,7 @@ title: SAPL Expressions
 #permalink: /reference/SAPL-Expressions/
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 8
+nav_order: 107
 ---
 
 ## SAPL Expressions

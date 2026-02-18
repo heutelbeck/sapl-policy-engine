@@ -4,7 +4,7 @@ title: PEP
 #permalink: /reference/pep/
 parent: Reference Architecture
 grand_parent: SAPL Reference
-nav_order: 2
+nav_order: 51
 ---
 
 ## Policy Enforcement Point (PEP)

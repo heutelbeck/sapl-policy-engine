@@ -4,7 +4,7 @@ title: Schemas
 #permalink: /reference/Schemas/
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 4
+nav_order: 103
 ---
 
 ## Schemas for Authorization Subscriptions

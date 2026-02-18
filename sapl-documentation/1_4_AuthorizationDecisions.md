@@ -4,7 +4,7 @@ title: Authorization Decisions
 #permalink: /reference/Authorization-Decisions/
 parent: Introduction
 grand_parent: SAPL Reference
-nav_order: 4
+nav_order: 13
 ---
 
 > **Introduction Series:** [1. Overview](../1_1_Introduction/) • [2. Subscriptions](../1_2_AuthorizationSubscriptions/) • [3. Policy Structure](../1_3_Structure_of_a_SAPL-Policy/) • **4. Decisions** • [5. Attributes](../1_5_AccessingAttributes/) • [6. Getting Started](../1_6_GettingStarted/)

@@ -1,8 +1,9 @@
 ---
 layout: default
 title: Remote Bundle Configuration
-parent: SAPL Reference
-nav_order: 10
+parent: Remote Bundles
+grand_parent: SAPL Reference
+nav_order: 751
 ---
 
 ## Remote Bundle Configuration

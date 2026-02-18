@@ -2,9 +2,9 @@
 layout: default
 title: HTTP Server-Sent Events API
 #permalink: /reference/HTTP-Server-Sent-Events-API/
-parent: PDP APIs
+parent: Language SDKs and Clients
 grand_parent: SAPL Reference
-nav_order: 2
+nav_order: 652
 ---
 
 ## HTTP API

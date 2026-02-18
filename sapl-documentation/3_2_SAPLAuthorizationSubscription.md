@@ -4,7 +4,7 @@ title: SAPL Authorization Subscription
 #permalink: /reference/SAPL-Authorization-Subscription/
 parent: Publish/Subscribe Protocol
 grand_parent: SAPL Reference
-nav_order: 2
+nav_order: 801
 ---
 
 ## SAPL Authorization Subscription

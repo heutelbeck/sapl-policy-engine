@@ -4,7 +4,7 @@ title: Imports
 #permalink: /reference/Imports/
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 3
+nav_order: 102
 ---
 
 ## Imports
@@ -81,7 +81,6 @@ If you use a function or attribute finder without importing it or qualifying it 
 ```sapl
 policy "example"
 permit
-where
   blacken(data);   // Error: Unresolved reference 'blacken'
 ```
 

@@ -4,10 +4,12 @@ title: SAPL Authorization Decision
 #permalink: /reference/SAPL-Authorization-Decision/
 parent: Publish/Subscribe Protocol
 grand_parent: SAPL Reference
-nav_order: 3
+nav_order: 802
 ---
 
 ## SAPL Authorization Decision
+
+> For the rationale behind the four decision values and how they interact with PEP behavior, see [Authorization Decisions](../1_4_AuthorizationDecisions/).
 
 The SAPL authorization decision contains the attributes `decision`, `resource`, `obligations`, and `advice`.
 

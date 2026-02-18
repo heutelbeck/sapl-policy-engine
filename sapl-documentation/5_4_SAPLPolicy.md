@@ -4,10 +4,12 @@ title: SAPL Policy
 #permalink: /reference/SAPL-Policy/
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 5
+nav_order: 104
 ---
 
 ## SAPL Policy
+
+> For worked examples and a tutorial-style walkthrough, see [Structure of a SAPL Policy](../1_3_Structure_of_a_SAPL-Policy/).
 
 This section describes the elements of a SAPL policy in more detail. A policy contains an entitlement (`permit` or `deny`) and can be evaluated against an authorization subscription. If all conditions in the body are fulfilled, the policy evaluates to its entitlement. Otherwise, it evaluates to `NOT_APPLICABLE` (if one of the conditions is not satisfied) or `INDETERMINATE` (if an error occurred).
 

@@ -4,7 +4,7 @@ title: Publish/Subscribe Protocol
 #permalink: /reference/publish-subscribe-protocol/
 has_children: true
 parent: SAPL Reference
-nav_order: 3
+nav_order: 800
 has_toc: false
 ---
 

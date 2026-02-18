@@ -4,7 +4,7 @@ title: PDP
 #permalink: /reference/pdp/
 parent: Reference Architecture
 grand_parent: SAPL Reference
-nav_order: 3
+nav_order: 52
 ---
 
 ## Policy Decision Point (PDP)
