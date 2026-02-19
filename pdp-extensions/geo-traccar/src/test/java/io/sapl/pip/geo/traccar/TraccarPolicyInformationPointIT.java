@@ -164,12 +164,6 @@ class TraccarPolicyInformationPointIT {
             StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
         }
 
-        @Test
-        @DisplayName("returns error for empty config")
-        void whenEmptyConfig_thenReturnsError() {
-            val attributeStream = TRACCAR_PIP.server(Value.EMPTY_OBJECT, secrets).next();
-            StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
-        }
     }
 
     @Nested

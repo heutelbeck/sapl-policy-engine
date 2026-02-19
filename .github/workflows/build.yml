@@ -297,11 +297,6 @@ jobs:
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
             }]
 
-      - name: Install GPG Code Signing Key
-        run: |
-          cat <(echo -e "${{ secrets.GPG_PRIVATE_KEY }}") | gpg --batch --import
-          gpg --list-secret-keys --keyid-format LONG
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
@@ -420,11 +415,6 @@ jobs:
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
             }]
-
-      - name: Install GPG Code Signing Key
-        run: |
-          cat <(echo -e "${{ secrets.GPG_PRIVATE_KEY }}") | gpg --batch --import
-          gpg --list-secret-keys --keyid-format LONG
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
@@ -881,18 +871,24 @@ jobs:
 
       - name: Trigger CI Build of sapl-demos
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        env:
+          GHUB_USERNAME: ${{ secrets.GHUB_USERNAME }}
+          GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         with:
           timeout_minutes: 2
           max_attempts: 3
           retry_on: error
           command: |
-            curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+            curl -XPOST -u "$GHUB_USERNAME:$GHUB_ACCESS_TOKEN" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
 
       - name: Trigger CI Build of sapl-extensions
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        env:
+          GHUB_USERNAME: ${{ secrets.GHUB_USERNAME }}
+          GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         with:
           timeout_minutes: 2
           max_attempts: 3
           retry_on: error
           command: |
-            curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+            curl -XPOST -u "$GHUB_USERNAME:$GHUB_ACCESS_TOKEN" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'

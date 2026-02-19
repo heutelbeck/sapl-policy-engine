@@ -420,18 +420,18 @@ public class HttpPolicyInformationPoint {
         val policyHeaders       = extractPolicyHeaders(requestSettings);
         val pdpHeaders          = resolveHttpHeaders(ctx.pdpSecrets(), secretsKey);
 
-        if (subscriptionHeaders == null && policyHeaders == null && pdpHeaders == null) {
+        if (subscriptionHeaders.isEmpty() && policyHeaders.isEmpty() && pdpHeaders.isEmpty()) {
             return stripSecretsKey(requestSettings);
         }
 
         val merged = JSON.objectNode();
-        if (subscriptionHeaders != null) {
+        if (!subscriptionHeaders.isEmpty()) {
             merged.setAll((ObjectNode) toJsonNode(subscriptionHeaders));
         }
-        if (policyHeaders != null) {
+        if (!policyHeaders.isEmpty()) {
             merged.setAll((ObjectNode) toJsonNode(policyHeaders));
         }
-        if (pdpHeaders != null) {
+        if (!pdpHeaders.isEmpty()) {
             merged.setAll((ObjectNode) toJsonNode(pdpHeaders));
         }
 
@@ -447,24 +447,24 @@ public class HttpPolicyInformationPoint {
 
     private static ObjectValue resolveHttpHeaders(ObjectValue secrets, String secretsKey) {
         if (secrets == null || secrets.isEmpty()) {
-            return null;
+            return Value.EMPTY_OBJECT;
         }
         val httpValue = secrets.get(SECRETS_HTTP);
         if (!(httpValue instanceof ObjectValue httpObj)) {
-            return null;
+            return Value.EMPTY_OBJECT;
         }
 
         if (secretsKey != null) {
             val namedValue = httpObj.get(secretsKey);
             if (namedValue instanceof ObjectValue namedObj) {
                 val h = namedObj.get(SECRETS_HEADERS);
-                return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : null;
+                return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : Value.EMPTY_OBJECT;
             }
-            return null;
+            return Value.EMPTY_OBJECT;
         }
 
         val h = httpObj.get(SECRETS_HEADERS);
-        return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : null;
+        return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : Value.EMPTY_OBJECT;
     }
 
     private static String extractSecretsKey(ObjectValue requestSettings) {
@@ -477,10 +477,10 @@ public class HttpPolicyInformationPoint {
 
     private static ObjectValue extractPolicyHeaders(ObjectValue requestSettings) {
         if (!requestSettings.containsKey(ReactiveWebClient.HEADERS)) {
-            return null;
+            return Value.EMPTY_OBJECT;
         }
         val h = requestSettings.get(ReactiveWebClient.HEADERS);
-        return h instanceof ObjectValue obj && !obj.isEmpty() ? obj : null;
+        return h instanceof ObjectValue obj && !obj.isEmpty() ? obj : Value.EMPTY_OBJECT;
     }
 
     private static ObjectValue stripSecretsKey(ObjectValue requestSettings) {

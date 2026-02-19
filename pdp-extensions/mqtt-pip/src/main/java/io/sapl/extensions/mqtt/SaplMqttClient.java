@@ -315,22 +315,20 @@ public class SaplMqttClient implements Closeable {
 
     private Mqtt5SimpleAuth buildAuthn(JsonNode brokerConfig, ObjectValue pdpSecrets) {
         val mqttSecrets = resolveMqttSecrets(brokerConfig, pdpSecrets);
-        val username    = mqttSecrets != null && mqttSecrets.containsKey(ENVIRONMENT_USERNAME)
-                ? ((TextValue) mqttSecrets.get(ENVIRONMENT_USERNAME)).value()
-                : DEFAULT_USERNAME;
-        val password    = mqttSecrets != null && mqttSecrets.containsKey(SECRETS_PASSWORD)
-                ? ((TextValue) mqttSecrets.get(SECRETS_PASSWORD)).value().getBytes(StandardCharsets.UTF_8)
+        val username    = mqttSecrets.get(ENVIRONMENT_USERNAME) instanceof TextValue(var u) ? u : DEFAULT_USERNAME;
+        val password    = mqttSecrets.get(SECRETS_PASSWORD) instanceof TextValue(var p)
+                ? p.getBytes(StandardCharsets.UTF_8)
                 : DEFAULT_USERNAME.getBytes(StandardCharsets.UTF_8);
         return Mqtt5SimpleAuth.builder().username(username).password(password).build();
     }
 
     private static ObjectValue resolveMqttSecrets(JsonNode brokerConfig, ObjectValue pdpSecrets) {
         if (pdpSecrets == null || pdpSecrets.isEmpty()) {
-            return null;
+            return Value.EMPTY_OBJECT;
         }
         val mqttSecretsValue = pdpSecrets.get(SECRETS_MQTT);
         if (!(mqttSecretsValue instanceof ObjectValue mqttSecrets)) {
-            return null;
+            return Value.EMPTY_OBJECT;
         }
         if (brokerConfig != null && brokerConfig.has(ENVIRONMENT_BROKER_CONFIG_NAME)) {
             val brokerName      = brokerConfig.get(ENVIRONMENT_BROKER_CONFIG_NAME).asString();
@@ -342,7 +340,7 @@ public class SaplMqttClient implements Closeable {
         if (mqttSecrets.containsKey(ENVIRONMENT_USERNAME) || mqttSecrets.containsKey(SECRETS_PASSWORD)) {
             return mqttSecrets;
         }
-        return null;
+        return Value.EMPTY_OBJECT;
     }
 
     private void handleMessageFluxCancel(int brokerConfigHash, Value topic) {

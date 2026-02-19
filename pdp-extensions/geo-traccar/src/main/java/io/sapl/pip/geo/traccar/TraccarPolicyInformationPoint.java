@@ -922,11 +922,10 @@ public class TraccarPolicyInformationPoint {
             effectiveQueryParams.set(parameter.getKey(), parameter.getValue());
         }
 
-        if (traccarSecrets != null && traccarSecrets.containsKey(SECRETS_TOKEN)) {
-            val token = ((TextValue) traccarSecrets.get(SECRETS_TOKEN)).value();
+        if (traccarSecrets.get(SECRETS_TOKEN) instanceof TextValue(var token)) {
             effectiveQueryParams.set(SECRETS_TOKEN, JSON.stringNode(token));
             requestSettings.set(ReactiveWebClient.PATH, JSON.stringNode(path));
-        } else if (traccarSecrets != null && traccarSecrets.containsKey(SECRETS_USERNAME)) {
+        } else if (traccarSecrets.containsKey(SECRETS_USERNAME)) {
             val authHeaderOrError = createBasicAuthHeader(traccarSecrets);
             if (authHeaderOrError instanceof ErrorValue) {
                 return authHeaderOrError;
@@ -957,13 +956,13 @@ public class TraccarPolicyInformationPoint {
 
     private static ObjectValue resolveTraccarSecrets(ObjectValue pdpSecrets) {
         if (pdpSecrets == null || pdpSecrets.isEmpty()) {
-            return null;
+            return Value.EMPTY_OBJECT;
         }
         val traccarSecretsValue = pdpSecrets.get(SECRETS_TRACCAR);
         if (traccarSecretsValue instanceof ObjectValue traccarSecrets) {
             return traccarSecrets;
         }
-        return null;
+        return Value.EMPTY_OBJECT;
     }
 
     /**
@@ -974,11 +973,11 @@ public class TraccarPolicyInformationPoint {
      * required fields are missing
      */
     public static Value createBasicAuthHeader(ObjectValue traccarSecrets) {
-        val userName = getRequiredProperty("userName", traccarSecrets);
+        val userName = getRequiredProperty(SECRETS_USERNAME, traccarSecrets);
         if (userName instanceof ErrorValue) {
             return userName;
         }
-        val password = getRequiredProperty("password", traccarSecrets);
+        val password = getRequiredProperty(SECRETS_PASSWORD, traccarSecrets);
         if (password instanceof ErrorValue) {
             return password;
         }

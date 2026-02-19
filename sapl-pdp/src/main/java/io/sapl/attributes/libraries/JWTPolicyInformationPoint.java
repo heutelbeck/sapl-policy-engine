@@ -406,7 +406,7 @@ public class JWTPolicyInformationPoint {
         val maxTokenLifetimeSeconds = resolveMaxTokenLifetimeSeconds(ctx);
         return validateSignature(signedJwt, ctx).flatMapMany(isValid -> {
 
-            if (!isValid)
+            if (Boolean.FALSE.equals(isValid))
                 return Flux.just(ValidityState.UNTRUSTED);
 
             return validateTime(claims, clockSkewSeconds, maxTokenLifetimeSeconds);
@@ -467,51 +467,56 @@ public class JWTPolicyInformationPoint {
     }
 
     private Flux<ValidityState> validateTime(JWTClaimsSet claims, long clockSkewSeconds, long maxTokenLifetimeSeconds) {
-
         val notBefore      = claims.getNotBeforeTime();
         val expirationTime = claims.getExpirationTime();
         val now            = new Date();
         val skewMillis     = clockSkewSeconds * 1000L;
 
-        if (null != notBefore && null != expirationTime && notBefore.getTime() > expirationTime.getTime())
+        if (isNeverValid(notBefore, expirationTime, claims, now, maxTokenLifetimeSeconds))
             return Flux.just(ValidityState.NEVER_VALID);
+
+        val expWithSkew = null != expirationTime ? saturatingAdd(expirationTime.getTime(), skewMillis) : 0L;
+        val nbfWithSkew = null != notBefore ? notBefore.getTime() - skewMillis : 0L;
+
+        if (null != expirationTime && expWithSkew < now.getTime())
+            return Flux.just(ValidityState.EXPIRED);
+
+        return buildValidityTimeline(notBefore, expirationTime, now, nbfWithSkew, expWithSkew);
+    }
+
+    private static boolean isNeverValid(Date notBefore, Date expirationTime, JWTClaimsSet claims, Date now,
+            long maxTokenLifetimeSeconds) {
+        if (null != notBefore && null != expirationTime && notBefore.getTime() > expirationTime.getTime())
+            return true;
 
         if (maxTokenLifetimeSeconds > 0 && null != expirationTime) {
             val issueTime         = claims.getIssueTime();
             val referenceMillis   = null != issueTime ? issueTime.getTime() : now.getTime();
             val lifetimeMillis    = expirationTime.getTime() - referenceMillis;
             val maxLifetimeMillis = maxTokenLifetimeSeconds * 1000L;
-            if (lifetimeMillis > maxLifetimeMillis)
-                return Flux.just(ValidityState.NEVER_VALID);
+            return lifetimeMillis > maxLifetimeMillis;
         }
+        return false;
+    }
 
-        val expWithSkew = null != expirationTime ? saturatingAdd(expirationTime.getTime(), skewMillis) : 0L;
-        val nbfWithSkew = null != notBefore ? notBefore.getTime() - skewMillis : 0L;
-
-        if (null != expirationTime && expWithSkew < now.getTime()) {
-            return Flux.just(ValidityState.EXPIRED);
-        }
-
+    private static Flux<ValidityState> buildValidityTimeline(Date notBefore, Date expirationTime, Date now,
+            long nbfWithSkew, long expWithSkew) {
         if (null != notBefore && nbfWithSkew > now.getTime()) {
+            val nbfDelay = nbfWithSkew - now.getTime();
             if (null == expirationTime) {
-                val nbfDelay = nbfWithSkew - now.getTime();
                 return Flux.concat(Mono.just(ValidityState.IMMATURE),
                         Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbfDelay)));
-            } else {
-                val nbfDelay = nbfWithSkew - now.getTime();
-                val expDelay = expWithSkew - nbfWithSkew;
-                return Flux.concat(Mono.just(ValidityState.IMMATURE),
-                        Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbfDelay)),
-                        Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(expDelay)));
             }
+            val expDelay = expWithSkew - nbfWithSkew;
+            return Flux.concat(Mono.just(ValidityState.IMMATURE),
+                    Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbfDelay)),
+                    Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(expDelay)));
         }
 
-        if (null == expirationTime) {
+        if (null == expirationTime)
             return Flux.just(ValidityState.VALID);
-        } else {
-            return validThenExpiredAfterDelay(expWithSkew - now.getTime());
-        }
 
+        return validThenExpiredAfterDelay(expWithSkew - now.getTime());
     }
 
     private static Flux<ValidityState> validThenExpiredAfterDelay(long delayMillis) {
