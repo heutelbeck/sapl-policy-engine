@@ -122,8 +122,8 @@ class JwtSecretsAutoConfigurationTests {
                         var authentication = new JwtAuthenticationToken(TEST_JWT,
                                 AuthorityUtils.createAuthorityList("ROLE_USER"));
                         var secrets = injector.injectSecrets(authentication);
-                        assertThat(secrets).doesNotContainKey("jwt")
-                                .containsEntry("accessToken", Value.of(TEST_JWT.getTokenValue()));
+                        assertThat(secrets).doesNotContainKey("jwt").containsEntry("accessToken",
+                                Value.of(TEST_JWT.getTokenValue()));
                     });
         }
 
