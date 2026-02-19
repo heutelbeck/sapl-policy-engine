@@ -43,7 +43,7 @@ And these **optional fields**:
 }
 ```
 
-This authorization subscription expresses the intent of Dr. Alice, a doctor from the cardiology department, to read patient record #123, which belongs to the cardiology department. Notice how this subscription matches the policy from the previous section - it provides all the attributes the policy checks: `subject.role`, `subject.department`, `resource.type`, and `resource.department`. Also note that `patientId` is a number, not a string - subscriptions can use any JSON value type.
+This authorization subscription expresses the intent of Dr. Alice, a doctor from the cardiology department, to read patient record #123, which belongs to the cardiology department. Notice how each field provides attributes that policies can check: `subject.role`, `subject.department`, `resource.type`, and `resource.department`. Also note that `patientId` is a number, not a string - subscriptions can use any JSON value type.
 
 The PEP constructs this JSON object from the application context and sends it to the PDP, which evaluates it against all applicable policies to produce an authorization decision.
 
@@ -90,30 +90,23 @@ This keeps policies independent of technology choices - the same policies work w
 
 #### Quick Start vs. Production
 
-While you can use **technical subscriptions** (`action: "HTTP:GET"`, `resource: "https://..."`) for rapid prototyping, **domain-driven subscriptions** are strongly recommended for production systems.
+While you can use **technical subscriptions** (`action: "HTTP:GET"`, `resource: "https://..."`) for rapid prototyping, **domain-driven subscriptions** are strongly recommended for production systems. Domain-driven subscriptions offer several advantages:
 
-**Domain-Driven Access Control**
+- **Decoupled from infrastructure**: Technical subscriptions lead to technical policies. If your subscription uses `action: "HTTP:GET"`, your policies must check `action == "HTTP:GET"`. Change from REST to GraphQL? All policies break. Domain subscriptions decouple policies from infrastructure.
+- **Readable by non-technical stakeholders**: Domain policies like `action == "read"` can be reviewed by compliance officers and business analysts. Technical policies like `action =~ "^(GET|POST).*"` cannot.
+- **Testable as business rules**: Tests express business intent rather than technical details. Compare: "Can cardiologists read cardiology records?" vs. "Does GET /api/patients/123 with header X-Role:cardiologist return 200?"
+- **Technology-independent**: The same policies work across REST APIs, GraphQL endpoints, gRPC services, message queues, or direct database access. Migrate infrastructure without touching policies.
 
-**Policy Coupling**: Technical subscriptions lead to technical policies. If your subscription uses `action: "HTTP:GET"`, your policies must check `action == "HTTP:GET"`. Change from REST to GraphQL? All policies break. Domain subscriptions decouple policies from infrastructure.
+For example, compare these two equivalent policies:
 
-**Business Communication**: Domain policies like `action == "read"` can be reviewed by compliance officers and business analysts. Technical policies like `action =~ "^(GET|POST).*"` cannot. Domain language enables collaboration with non-technical stakeholders.
-
-**Testable Business Rules**: Tests express business intent rather than technical details. Compare: "Can cardiologists read cardiology records?" vs. "Does GET /api/patients/123 with header X-Role:cardiologist return 200?"
-
-**Technology Independence**: The same policies work across REST APIs, GraphQL endpoints, gRPC services, message queues, or direct database access. Migrate infrastructure without touching policies.
-
-**Example: Policy Evolution**
-
-Technical subscription leads to technical policy:
 ```sapl
+policy "allow GET on patient API"
 permit action =~ "^GET" & resource =~ "^https://medical\.org/api/patients/.*";
 ```
 
-Domain subscription -> Domain policy:
 ```sapl
+policy "allow reading patient records"
 permit action == "read" & resource.type == "patient_record";
 ```
 
-Staying with the domain-driven variant typically will make communication with domain stakeholders, e.g., compliance officer, easier.
-
-**Recommendation**: Use technical subscriptions for rapid prototyping and making first steps in SAPL, but migrate to domain-driven subscriptions before production deployment.
+The domain-driven variant communicates intent to domain stakeholders such as compliance officers. Use technical subscriptions for rapid prototyping but migrate to domain-driven subscriptions before production deployment.
