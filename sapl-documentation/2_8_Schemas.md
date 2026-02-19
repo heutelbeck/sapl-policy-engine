@@ -8,46 +8,93 @@ nav_order: 108
 
 ## Schemas for Authorization Subscriptions
 
-SAPL offers the possibility to predefine the structure of the elements of an authorization subscription using [JSON schema](https://json-schema.org/). Schemas used should follow the 2020-12 JSON Schema version. 
+SAPL allows predefined structure for authorization subscription elements using [JSON Schema](https://json-schema.org/) (2020-12 version). Schemas serve three purposes:
 
-There are a few use cases for defining schemas for authorization subscriptions. 
+- Defining the contract between PEP and PDP for the structure of authorization subscriptions
+- Enforcing that contract at evaluation time, making non-compliant subscriptions automatically inapplicable
+- Enabling richer code completion in SAPL editors based on the known structure
 
-* Policy authors and application developers should always agree on the exact contents of the authorization subscriptions. The authorization subscription is a JSON object. JSON schemas are a practical way of defining this contract between PEP and PDP and between the application development and administration teams. 
+### Schema Syntax
 
-* Provided well-defined schemas for the individual elements of the authorization subscription, i.e., subject, action, resource, and environment. The policy engine can validate the individual fields and ensure that the subscription fulfils the contract, i.e., the engine can assert and enforce the contract between PEP and PDP.
+Schema statements are declared after any [imports](2_7_Imports.md) and before the policy or policy set. Each schema targets one subscription element:
 
-* The SAPL policy authoring tools can use the schema definition to provide more meaningful code completion suggestions in editors for elements where they can infer the schema of a JSON value.
+```
+<subscription-element> schema <expression>
+<subscription-element> enforced schema <expression>
+```
 
-The schemas for the individual elements of the authorization subscription are defined independently of each other. Schemas follow the optional imports of the document.
+Where `<subscription-element>` is `subject`, `action`, `resource`, or `environment`, and `<expression>` is a SAPL expression evaluating to a JSON Schema object.
 
-A SAPL document defines a schema by stating the keyword of the subscription element (`subject`, `action`, `resource`, `environment`). Then, `schema` and an optional `enforced` keyword follow. After these keywords, a SAPL expression evaluating to a JSON object defines the schema itself. This expression must not contain any lazy boolean operators (`&&`, `||` use the eager versions `&` and `|`) or references to PIPs (i.e., attribute finder expressions `<attribute.name>`). Instead of repeating schemas in all policies, users can store schemas in environment variables and reference them via variables in the schema assignment. If the schema expression contains references to external schemas, the engine expects these schemas to be present in the environment variable `SCHEMAS`, an array containing the individual schemas. 
+**Enforced vs. non-enforced:** Without `enforced`, the schema is used only by SAPL editors for code completion. With `enforced`, the engine implicitly adds schema validation to the document's applicability check. If an explicit target expression is also present, both the explicit target and the schema validation must hold for the document to be applicable.
 
-Example schema definition for a subject enforced schema:
+**Multiple schemas:** A subscription element may have more than one schema statement. When enforcing, the element is valid if it satisfies at least one of the provided schemas.
 
-```json 
-{
-    "$id": "https://example.com/person.schema.json",
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Person",
+**Restrictions:** Schema expressions must not contain attribute finder expressions (`<attribute.name>`) since schemas are evaluated at compile time without access to external data sources.
+
+**External schema references:** If a schema uses `$ref` to reference other schemas, the engine resolves these from a PDP-level variable called `SCHEMAS`. This variable must be an array of JSON Schema objects, each with a `$id` field. PDP variables are configured in `pdp.json` and are not to be confused with the `environment` object in the authorization subscription.
+
+### Variable Schemas
+
+Schemas can also be attached to variable definitions for IDE support. These schemas are not enforced at runtime but enable code completion for the variable's value:
+
+```sapl
+var account = resource.account schema {
     "type": "object",
     "properties": {
-        "firstName": {
+        "balance": { "type": "number" },
+        "owner": { "type": "string" }
+    }
+};
+```
+
+Multiple schemas can be attached to a single variable, separated by commas:
+
+```sapl
+var data = resource.payload schema { "type": "object" }, { "type": "array" };
+```
+
+### Example
+
+The following policy uses an enforced schema to ensure that the subject contains the expected fields:
+
+```sapl
+subject enforced schema {
+    "type": "object",
+    "required": ["username", "role"],
+    "properties": {
+        "username": { "type": "string" },
+        "role": {
             "type": "string",
-            "description": "The person's first name."
-        },
-        "lastName": {
-            "type": "string",
-            "description": "The person's last name."
-        },
-        "age": {
-            "description": "Age in years which must be equal to or greater than zero.",
-            "type": "integer",
-            "minimum": 0
+            "enum": ["admin", "user", "guest"]
         }
     }
 }
+
+policy "admin access"
+permit
+    subject.role == "admin";
 ```
 
-If the `schema` definition does not contain the keyword `enforced`, the only consequence of the schema definition is that the SAPL editors can make code completion suggestions based on the schema. If the `enforced` keyword is present, validation of the engine implicitly adds the schema validation to the target expression of the document (i.e., to the `for` expression of a policy set or the target expression following the entitlement in a simple policy). 
+A compliant authorization subscription:
 
-Users can add more than one schema to each subscription keyword. When enforcing schemas, the implied validity check validates if the respective element is valid according to at least one of the provided schemas. If this is not the case, the document is not applicable, and the engine will not evaluate it. If an explicit target expression is present, both the explicit and the implicit target expression must be true for the document to be applicable.
+```json
+{
+    "subject": { "username": "alice", "role": "admin" },
+    "action": "read",
+    "resource": "dashboard"
+}
+```
+
+This subscription matches the schema (both required fields present, `role` is a valid enum value), so the policy is evaluated normally and returns `PERMIT`.
+
+A non-compliant authorization subscription:
+
+```json
+{
+    "subject": { "username": "bob" },
+    "action": "read",
+    "resource": "dashboard"
+}
+```
+
+This subscription fails schema validation (missing required field `role`), so the document is not applicable regardless of whether the policy body would match. The engine returns `NOT_APPLICABLE`.

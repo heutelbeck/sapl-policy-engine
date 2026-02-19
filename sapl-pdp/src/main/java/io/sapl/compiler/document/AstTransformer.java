@@ -365,9 +365,10 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public SchemaStatement visitSchemaStatement(SchemaStatementContext ctx) {
-        val element = toSubscriptionElement(ctx.subscriptionElement);
-        val schema  = expr(ctx.schemaExpression);
-        return new SchemaStatement(element, schema, fromContext(ctx));
+        val element  = toSubscriptionElement(ctx.subscriptionElement);
+        val enforced = ctx.enforced != null;
+        val schema   = expr(ctx.schemaExpression);
+        return new SchemaStatement(element, enforced, schema, fromContext(ctx));
     }
 
     @Override

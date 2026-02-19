@@ -101,6 +101,7 @@ varName
     | ABSTAIN
     | ERRORS
     | FIRST
+    | KW_OR
     | PRIORITY
     | PROPAGATE
     | STRICT
@@ -372,6 +373,7 @@ reservedId
     | ABSTAIN     # abstainId
     | ERRORS      # errorsId
     | FIRST       # firstId
+    | KW_OR       # orId
     | PRIORITY    # priorityId
     | PROPAGATE   # propagateId
     | STRICT      # strictId

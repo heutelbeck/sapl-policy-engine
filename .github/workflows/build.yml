@@ -17,12 +17,11 @@ name: Testing and Deployment
 
 on:
   workflow_dispatch:
-  create:
-    branches:
-      - '**'
   push:
     branches:
       - '**'
+    tags:
+      - 'v*'
     paths-ignore:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
@@ -44,46 +43,92 @@ permissions:
 
 env:
   NODE_VERSION: '22'
-  
+
 jobs:
-  build:
+
+  # ---------------------------------------------------------------------------
+  # Phase 1: Build and Test (parallel)
+  # ---------------------------------------------------------------------------
+
+  version-check:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      is_snapshot: ${{ steps.get-version.outputs.is_snapshot }}
+      is_tag: ${{ steps.check-ref.outputs.is_tag }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Extract Version
+        id: get-version
+        run: |
+          VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: Failed to extract version"
+            exit 1
+          fi
+          echo "Extracted version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then
+            echo "is_snapshot=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_snapshot=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check Ref Type
+        id: check-ref
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Clean up Local Repository before Caching
+        run: rm -rf ~/.m2/repository/io/sapl
+
+  test:
     strategy:
       matrix:
         java: [ '21', '25' ]
         os: [ubuntu-latest, windows-latest]
       fail-fast: false
-    name: Build (JDK ${{ matrix.java }} on ${{ matrix.os }})
+    name: Test (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     permissions:
-      checks:  write # for scacap/action-surefire-report to publish result as PR check
+      checks:  write
     timeout-minutes: 60
 
     env:
-      # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 21. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '25') }}
-      # PRs from Dependabot are treated the same as those from forks since secrets are not accessible
-      # for both (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
       IS_FORK: ${{ github.event.pull_request.head.repo.fork || (github.actor == 'dependabot[bot]') }}
 
     steps:
       - name: Harden Runner
-        # Currently not supported for windows and macOS
-        # (see: https://github.com/step-security/harden-runner/discussions/121).
         if: matrix.os == 'ubuntu-latest'
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Use shallow clone for fork PRs to reduce artifact size, full history for direct analysis
           fetch-depth: ${{ (env.IS_FORK == 'true') && 50 || 0 }}
 
-        # This Action will scan dependency manifest files that change as part of a Pull Request,
-        # surfacing known-vulnerable versions of the packages declared or updated in the PR.
-        # Once installed, if the workflow run is marked as required,
-        # PRs introducing known-vulnerable packages will be blocked from merging.
       - name: Dependency Review
         if: ${{ (env.RUN_ANALYSIS == 'true') && (github.event_name == 'pull_request') }}
         uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
@@ -122,7 +167,7 @@ jobs:
 
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
@@ -169,7 +214,7 @@ jobs:
         # request's number is needed.
       - name: Upload Artifact
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: pr_build
           path: |
@@ -200,32 +245,151 @@ jobs:
         uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
       - name: Clean up Local Repository before Caching
-        shell: bash # needed to run script on windows
+        shell: bash
         run: rm -rf ~/.m2/repository/io/sapl
 
-  deploy:
-    if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [build]
-    name: Publish Project Assets
+  build-docker:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: [version-check]
+    name: Build Docker Images
     runs-on: ubuntu-latest
-    outputs:
-      sapl-node-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
-      artifact-version: ${{ steps.get-version.outputs.VERSION }}
-      sapl-node-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
-      sapl-playground-docker-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
     permissions:
-      contents: read    # for checkout
-      packages: write   # for Docker registry push
+      contents: read
+      packages: write
     timeout-minutes: 60
-    
+
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+          server-id: central
+          server-username: NEXUS_USERNAME
+          server-password: NEXUS_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Configure Servers
+        uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+              "id": "central",
+              "username": "${{ secrets.NEXUS_USERNAME }}",
+              "password": "${{ secrets.NEXUS_PASSWORD }}"
+            }, {
+              "id": "github",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+            }]
+
+      - name: Install GPG Code Signing Key
+        run: |
+          cat <(echo -e "${{ secrets.GPG_PRIVATE_KEY }}") | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build All for Server
+        run: mvn -U -B clean install -DskipTests -Psign,production -T 1.5C
+        env:
+          MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Build SAPL Node Image
+        run: mvn -B spring-boot:build-image -pl sapl-node -DskipTests
+
+      - name: Build SAPL Playground Image
+        run: mvn -B spring-boot:build-image -pl sapl-playground -DskipTests -Pproduction
+
+      - name: Save SAPL Node Image
+        run: docker save ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }} | gzip > sapl-node-docker-image.tar.gz
+
+      - name: Save SAPL Playground Image
+        run: docker save ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }} | gzip > sapl-playground-docker-image.tar.gz
+
+      - name: Upload Docker Image Artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: docker-images
+          path: |
+            sapl-node-docker-image.tar.gz
+            sapl-playground-docker-image.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload SAPL Node JAR Artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: sapl-node-jars
+          if-no-files-found: error
+          path: |
+            sapl-node/target/sapl-node-*.jar
+            sapl-node/target/sapl-node-*.jar.asc
+            sapl-node/target/sapl-node-*.jar.sha1
+            sapl-node/target/sapl-node-*.jar.md5
+            sapl-node/target/site/io.*.spdx.json
+          retention-days: 1
+
+      - name: Clean up Local Repository before Caching
+        run: rm -rf ~/.m2/repository/io/sapl
+
+  build-native-node:
+    if: ${{ github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/build_native_node.yml
+    secrets: inherit
+
+  build-native-lsp:
+    if: ${{ github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/build_native_lsp.yml
+    secrets: inherit
+
+  # ---------------------------------------------------------------------------
+  # Phase 2: Publish (gated on all of Phase 1)
+  # ---------------------------------------------------------------------------
+
+  publish-maven:
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || needs.version-check.outputs.is_tag == 'true'
+        )
+      }}
+    name: Publish Maven Artifacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 60
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           lfs: true
           fetch-depth: 0
@@ -274,18 +438,52 @@ jobs:
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Build All for Server
-        run: mvn -U -B clean install -DskipTests -Psign,production -T 1.5C
-        env:
-          MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Clean up Local Repository before Caching
+        run: rm -rf ~/.m2/repository/io/sapl
 
-      - name: Build SAPL Node Image
-        run: mvn -B spring-boot:build-image -pl sapl-node -DskipTests
+  publish-docker:
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || needs.version-check.outputs.is_tag == 'true'
+        )
+      }}
+    name: Publish Docker Images
+    runs-on: ubuntu-latest
+    outputs:
+      sapl-node-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
+      sapl-node-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
+      sapl-playground-docker-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 30
 
-      - name: Build SAPL Playground Image
-        run: mvn -B spring-boot:build-image -pl sapl-playground -DskipTests -Pproduction
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
+      - name: Download Docker Image Artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: docker-images
+
+      - name: Download SAPL Node JAR Artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-node-jars
+          path: sapl-node/target
+
+      - name: Load SAPL Node Image
+        run: docker load < sapl-node-docker-image.tar.gz
+
+      - name: Load SAPL Playground Image
+        run: docker load < sapl-playground-docker-image.tar.gz
 
       - name: Log in to the Container Registry
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
@@ -294,24 +492,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
-      - name: Get Version
-        id: get-version
-        run: |
-          VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-          if [ -z "$VERSION" ]; then
-            echo "ERROR: Failed to extract version"
-            exit 1
-          fi
-          echo "Extracted version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
       - name: Push SAPL Node Image to ghcr.io
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: error
-          command: docker push ghcr.io/heutelbeck/sapl-node:${{ steps.get-version.outputs.VERSION }}
+          command: docker push ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}
 
       - name: Push Playground Image to ghcr.io
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
@@ -319,7 +506,322 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: error
-          command: docker push ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
+          command: docker push ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
+
+      - name: Get hashes of SAPL Node
+        id: get-server-lt-hash
+        env:
+          REGISTRY: ghcr.io
+          IMAGE: heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}
+        run: |
+          # Save the location of the maven output files for easier reference
+          ARTIFACT_PATTERN=sapl-node/target/sapl-node-*.jar
+
+          echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+          # Save the digest of the Docker image for later use
+          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          echo "Digest of container: $IMAGE_DIGEST"
+          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+
+      - name: Get hash of Playground
+        id: get-playground-hash
+        env:
+          REGISTRY: ghcr.io
+          IMAGE: heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
+        run: |
+          # Save the digest of the Docker image for later use
+          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          echo "Digest of container: $IMAGE_DIGEST"
+          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+
+  publish-native-node:
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || needs.version-check.outputs.is_tag == 'true'
+        )
+      }}
+    name: Publish Native SAPL Node
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-node-linux-amd64
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-node-windows-amd64
+          path: artifacts/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-node-macos-arm64
+          path: artifacts/macos
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          cp artifacts/linux/sapl-node release/sapl-node-linux-amd64
+          cp artifacts/windows/sapl-node.exe release/sapl-node-windows-amd64.exe
+          cp artifacts/macos/sapl-node release/sapl-node-macos-arm64
+          chmod +x release/sapl-node-linux-amd64
+          chmod +x release/sapl-node-macos-arm64
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum ./* > SHA256SUMS.txt
+
+      - name: Update snapshot release
+        if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        with:
+          tag_name: snapshot-node
+          name: Latest SAPL Node Snapshot
+          prerelease: true
+          body: |
+            ## Latest SAPL Node Development Snapshot
+
+            This is an automatically updated pre-release containing the latest native builds from the `master` branch.
+
+            **Warning:** This is a development snapshot and may be unstable.
+
+            ### Downloads
+            - `sapl-node-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
+            - `sapl-node-windows-amd64.exe` - Windows x86_64
+            - `sapl-node-macos-arm64` - macOS Apple Silicon (ARM64)
+
+            ### Verification
+            Verify downloads using `SHA256SUMS.txt`:
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            ### Usage
+            ```bash
+            # Make executable (Linux/macOS)
+            chmod +x sapl-node-*
+
+            # Run with default settings
+            ./sapl-node-linux-amd64
+
+            # Run with custom config
+            ./sapl-node-linux-amd64 --spring.config.location=file:./application.yml
+            ```
+
+            Built from commit: ${{ github.sha }}
+          files: release/*
+          fail_on_unmatched_files: true
+
+      - name: Create release
+        if: ${{ needs.version-check.outputs.is_tag == 'true' }}
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        with:
+          name: SAPL Node ${{ github.ref_name }}
+          body: |
+            ## SAPL Node ${{ github.ref_name }}
+
+            Native executables for the SAPL PDP Node server.
+
+            ### Downloads
+            - `sapl-node-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
+            - `sapl-node-windows-amd64.exe` - Windows x86_64
+            - `sapl-node-macos-arm64` - macOS Apple Silicon (ARM64)
+
+            ### Verification
+            Verify downloads using `SHA256SUMS.txt`:
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            ### Usage
+            ```bash
+            # Make executable (Linux/macOS)
+            chmod +x sapl-node-*
+
+            # Run with default settings
+            ./sapl-node-linux-amd64
+
+            # Run with custom config
+            ./sapl-node-linux-amd64 --spring.config.location=file:./application.yml
+
+            # Generate API key
+            ./sapl-node-linux-amd64 generate apikey
+            ```
+
+            ### Docker Alternative
+            For containerized deployments, use the Docker image:
+            ```bash
+            docker pull ghcr.io/heutelbeck/sapl-node:${{ github.ref_name }}
+            ```
+          files: release/*
+          fail_on_unmatched_files: true
+
+  publish-native-lsp:
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || needs.version-check.outputs.is_tag == 'true'
+        )
+      }}
+    name: Publish Native Language Server
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-language-server-linux-amd64
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-language-server-windows-amd64
+          path: artifacts/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-language-server-macos-arm64
+          path: artifacts/macos
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          cp artifacts/linux/sapl-language-server release/sapl-language-server-linux-amd64
+          cp artifacts/windows/sapl-language-server.exe release/sapl-language-server-windows-amd64.exe
+          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-arm64
+          chmod +x release/sapl-language-server-linux-amd64
+          chmod +x release/sapl-language-server-macos-arm64
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum ./* > SHA256SUMS.txt
+
+      - name: Update snapshot release
+        if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        with:
+          tag_name: snapshot
+          name: Latest Snapshot
+          prerelease: true
+          body: |
+            ## Latest Development Snapshot
+
+            This is an automatically updated pre-release containing the latest native builds from the `master` branch.
+
+            **Warning:** This is a development snapshot and may be unstable.
+
+            ### Downloads
+            - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
+            - `sapl-language-server-windows-amd64.exe` - Windows x86_64
+            - `sapl-language-server-macos-arm64` - macOS Apple Silicon (ARM64)
+
+            ### Verification
+            Verify downloads using `SHA256SUMS.txt`:
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            Built from commit: ${{ github.sha }}
+          files: release/*
+          fail_on_unmatched_files: true
+
+      - name: Create release
+        if: ${{ needs.version-check.outputs.is_tag == 'true' }}
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        with:
+          name: SAPL Language Server ${{ github.ref_name }}
+          body: |
+            ## SAPL Language Server ${{ github.ref_name }}
+
+            Native executables for the SAPL Language Server.
+
+            ### Downloads
+            - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
+            - `sapl-language-server-windows-amd64.exe` - Windows x86_64
+            - `sapl-language-server-macos-arm64` - macOS Apple Silicon (ARM64)
+
+            ### Verification
+            Verify downloads using `SHA256SUMS.txt`:
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            ### Usage
+            ```bash
+            # Make executable (Linux/macOS)
+            chmod +x sapl-language-server-*
+
+            # Run in stdio mode (default for IDE integration)
+            ./sapl-language-server-linux-amd64
+            ```
+          files: release/*
+          fail_on_unmatched_files: true
+
+  publish-docs:
+    needs: [test, version-check]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || needs.version-check.outputs.is_tag == 'true'
+        )
+      }}
+    name: Publish Documentation
+    uses: ./.github/workflows/build_documentation.yml
+    secrets: inherit
+
+  deploy-playground:
+    needs: [publish-docker, version-check]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || needs.version-check.outputs.is_tag == 'true'
+        )
+      }}
+    name: Deploy Playground
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
 
       - name: Deploy Playground to Server
         uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
@@ -328,7 +830,7 @@ jobs:
           username: ${{ secrets.PLAYGROUND_SERVER_USERNAME }}
           key: ${{ secrets.PLAYGROUND_SERVER_SSH_KEY }}
           script: |
-            docker pull ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
+            docker pull ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
             docker stop sapl-playground || true
             docker rm sapl-playground || true
             docker run -d \
@@ -336,11 +838,11 @@ jobs:
               --restart unless-stopped \
               -p 9003:8080 \
               -e SAPL_PLAYGROUND_BASEURL=https://playground.sapl.io \
-              ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
-            
+              ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
+
             echo "Verifying deployment..."
             sleep 10
-            
+
             # Verify container is running
             if ! docker ps | grep -q sapl-playground; then
               echo "ERROR: Container not running"
@@ -348,7 +850,7 @@ jobs:
               exit 1
             fi
             echo "[OK] Container is running"
-            
+
             # Verify users can access the playground
             echo "Checking public availability at https://playground.sapl.io ..."
             for i in {1..6}; do
@@ -359,50 +861,23 @@ jobs:
               echo "Attempt $i/6: Not ready yet, waiting 10s..."
               sleep 10
             done
-            
+
             echo "ERROR: Playground not publicly accessible after 60 seconds"
             docker logs sapl-playground --tail 50
             exit 1
 
-      - name: Get hashes of SAPL Node
-        id: get-server-lt-hash
-        env:
-          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          REGISTRY: ghcr.io
-          IMAGE: heutelbeck/sapl-node:${{ steps.get-version.outputs.VERSION }}
-        run: |
-          # Save the location of the maven output files for easier reference
-          ARTIFACT_PATTERN=sapl-node/target/sapl-node-*.jar
-          
-          echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
-          
-          # Save the digest of the Docker image for later use
-          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
-          echo "Digest of container: $IMAGE_DIGEST"
-          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+  trigger-downstream:
+    needs: [publish-maven]
+    if: ${{ github.ref == 'refs/heads/master' }}
+    name: Trigger Downstream Builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
-      - name: Get hash of Playground
-        id: get-playground-hash
-        env:
-          REGISTRY: ghcr.io
-          IMAGE: heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
-        run: |
-          # Save the digest of the Docker image for later use
-          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
-          echo "Digest of container: $IMAGE_DIGEST"
-          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
-
-      # Upload the sapl-node artifact and additional files
-      - name: Upload artifact and signature
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
-          if-no-files-found: error
-          path: |
-            sapl-node/target/sapl-node-*.jar
-            sapl-node/target/sapl-node-*.jar.asc
-            sapl-node/target/sapl-node-*.jar.sha1
-            sapl-node/target/sapl-node-*.jar.md5
-            sapl-node/target/site/io.*.spdx.json    
+          egress-policy: audit
 
       - name: Trigger CI Build of sapl-demos
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
@@ -421,6 +896,3 @@ jobs:
           retry_on: error
           command: |
             curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
-
-      - name: Clean up Local Repository before Caching
-        run: rm -rf ~/.m2/repository/io/sapl

@@ -8,7 +8,7 @@ nav_order: 107
 
 ## Imports
 
-SAPL provides access to functions and attribute finders organized in libraries. Library names typically consist of two segments separated by a period (e.g., `filter.blacken`, `time.now`). Within policies, you can reference these using their fully qualified names:
+SAPL provides access to functions and attribute finders organized in libraries. Within policies, you can reference these using their fully qualified names:
 
 ```sapl
 filter.blacken(resource.secret)
@@ -19,6 +19,8 @@ Import statements let you use shorter names, making policies easier to read and 
 
 ### Import Syntax
 
+Import statements must appear at the beginning of a SAPL document, before any [schema statements](2_8_Schemas.md) and the policy or policy set.
+
 Each import statement starts with the keyword `import` and must specify a fully qualified function or attribute finder name:
 
 ```
@@ -26,23 +28,25 @@ import <library>.<name>
 import <library>.<name> as <alias>
 ```
 
+All identifiers in an import statement -- library segments, function name, and alias -- follow the [identifier rules](2_6_Expressions.md#identifiers), including [reserved identifiers](2_6_Expressions.md#reserved-identifiers).
+
 #### Basic Import
 
 Import a function or attribute finder by its fully qualified name:
 
 ```sapl
 import filter.blacken
-import time.now
 import user.profile
 ```
 
 After importing, use the simple name directly:
 
 ```sapl
-policy "example"
+policy "show account"
 permit
-    var dept = subject.<profile>.department;   // instead of subject.<user.profile>
-    blacken(resource.secret);                  // instead of filter.blacken
+    subject.<profile>.role == "teller";
+transform
+    resource |- { @.cardNumber : blacken(4) }
 ```
 
 #### Aliased Import
@@ -80,6 +84,7 @@ If you use a function or attribute finder without importing it or qualifying it 
 ```sapl
 policy "example"
 permit
+obligation
   blacken(data);   // Error: Unresolved reference 'blacken'
 ```
 
@@ -101,10 +106,10 @@ permit
     day in ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
     "employee" in subject.<roles>;
 obligation
-    "audit" : { "user": blacken(subject.id) }
+    { "audit" : { "user": blacken(subject.id) } }
 ```
 
 ### See Also
 
-- [Functions](7_1_Functions.md) - Using functions
-- [Attribute Finders](8_1_AttributeFinders.md) - using attribute finders
+- [Functions](3_0_Functions.md) - Using functions
+- [Attribute Finders](4_0_AttributeFinders.md) - Using attribute finders

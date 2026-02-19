@@ -28,7 +28,7 @@ import io.sapl.ast.SchemaCondition;
 import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedSchemaValidator;
+import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedElementValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -72,15 +72,15 @@ class SchemaValidatorCompilerTests {
     }
 
     private static SchemaStatement enforcedSchema(SubscriptionElement element, Value schema) {
-        return new SchemaStatement(element, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
+        return new SchemaStatement(element, true, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
     }
 
     private static SchemaStatement enforcedVariableSchema(SubscriptionElement element, String variableName) {
-        return new SchemaStatement(element, new Identifier(variableName, TEST_LOCATION), TEST_LOCATION);
+        return new SchemaStatement(element, true, new Identifier(variableName, TEST_LOCATION), TEST_LOCATION);
     }
 
     private static SchemaStatement nonEnforcedSchema(SubscriptionElement element, Value schema) {
-        return new SchemaStatement(element, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
+        return new SchemaStatement(element, false, new Literal(schema, TEST_LOCATION), TEST_LOCATION);
     }
 
     /**
@@ -107,12 +107,12 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when only non-enforced schemas then returns CombinedSchemaValidator")
-        void whenOnlyNonEnforcedSchemasThenReturnsCombinedSchemaValidator() {
+        @DisplayName("when only non-enforced schemas then returns constant TRUE")
+        void whenOnlyNonEnforcedSchemasThenReturnsConstantTrue() {
             val schemas = List.of(nonEnforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     nonEnforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
-            assertThat(result).isInstanceOf(CombinedSchemaValidator.class);
+            assertThat(result).isEqualTo(Value.TRUE);
         }
 
         @Test
@@ -124,22 +124,22 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when multiple enforced schemas then returns CombinedSchemaValidator")
-        void whenMultipleEnforcedSchemasThenReturnsCombinedSchemaValidator() {
+        @DisplayName("when multiple enforced schemas for different elements then returns CombinedElementValidator")
+        void whenMultipleEnforcedSchemasForDifferentElementsThenReturnsCombinedElementValidator() {
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
-            assertThat(result).isInstanceOf(CombinedSchemaValidator.class);
+            assertThat(result).isInstanceOf(CombinedElementValidator.class);
         }
 
         @Test
-        @DisplayName("when mixed enforced and non-enforced then all are compiled into CombinedSchemaValidator")
-        void whenMixedEnforcedAndNonEnforcedThenAllCompiledIntoCombinedSchemaValidator() {
+        @DisplayName("when mixed enforced and non-enforced then only enforced are compiled")
+        void whenMixedEnforcedAndNonEnforcedThenOnlyEnforcedAreCompiled() {
             val schemas = List.of(nonEnforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
                     enforcedSchema(SubscriptionElement.ACTION, STRING_SCHEMA),
                     nonEnforcedSchema(SubscriptionElement.RESOURCE, STRING_SCHEMA));
             val result  = compileValidator(schemas, compilationContext());
-            assertThat(result).isInstanceOf(CombinedSchemaValidator.class);
+            assertThat(result).isInstanceOf(PrecompiledSchemaValidator.class);
         }
     }
 
@@ -302,8 +302,8 @@ class SchemaValidatorCompilerTests {
     }
 
     @Nested
-    @DisplayName("CombinedSchemaValidator")
-    class CombinedSchemaValidatorTests {
+    @DisplayName("CombinedElementValidator")
+    class CombinedElementValidatorTests {
 
         @Test
         @DisplayName("when all validators pass then returns TRUE")

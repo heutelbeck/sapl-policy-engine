@@ -8,7 +8,7 @@ nav_order: 105
 
 ## SAPL Policy Set
 
-While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. For evaluating an authorization subscription, the PDP evaluates existing policy sets. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable evaluating their policies, and combining multiple votes according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets vote either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
+While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. For evaluating an authorization subscription, the PDP evaluates existing policy sets. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable, evaluating their policies, and combining multiple votes according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets vote either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
 
 Policy sets are used to structure multiple policies and provide an order for the policies they contain. Hence, their policies can be evaluated one after another.
 
@@ -34,7 +34,7 @@ The policy sets' target expression is used to select matching policy sets from a
 
 ### Variable Assignments
 
-The target expression can be followed by any number of variable assignments. Variable assignments are used to make a value available in all subsequent policies under a certain name. An assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression.
+The target expression can be followed by any number of variable assignments. Variable assignments are used to make a value available in all later policies under a certain name. An assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression.
 
 Since variable assignments are only evaluated if the policy set's target matches, attribute finders may be used.
 

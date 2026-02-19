@@ -43,8 +43,10 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Compiles schema statements into pre-compiled PureOperators that validate
@@ -58,11 +60,9 @@ import java.util.List;
  * </ul>
  * <p>
  * Only schemas with {@code enforced = true} are compiled into the validator.
- * The validator returns:
- * <ul>
- * <li>{@code TRUE} if all enforced schemas pass validation</li>
- * <li>{@code FALSE} if any enforced schema fails validation</li>
- * </ul>
+ * Multiple schemas for the same subscription element use OR semantics
+ * (at least one must pass). Schemas for different elements use AND semantics
+ * (all elements must pass).
  * <p>
  * Pre-compilation provides significant performance benefits by parsing and
  * compiling the JSON schema once at compile time rather than on every
@@ -87,12 +87,25 @@ public class SchemaValidatorCompiler {
     }
 
     public static CompiledExpression compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
-        val registry   = buildSchemaRegistry(ctx);
-        val validators = schemas.stream().map(schema -> compileSchemaValidator(schema, ctx, registry)).toList();
-        if (validators.size() == 1) {
-            return validators.getFirst();
+        val enforced = schemas.stream().filter(SchemaStatement::enforced).toList();
+        if (enforced.isEmpty()) {
+            return Value.TRUE;
         }
-        return new CombinedSchemaValidator(validators);
+        val registry            = buildSchemaRegistry(ctx);
+        val validatorsByElement = enforced.stream().collect(Collectors.groupingBy(SchemaStatement::element,
+                Collectors.mapping(schema -> compileSchemaValidator(schema, ctx, registry), Collectors.toList())));
+        val elementValidators   = new ArrayList<PureOperator>();
+        for (val validators : validatorsByElement.values()) {
+            if (validators.size() == 1) {
+                elementValidators.add(validators.getFirst());
+            } else {
+                elementValidators.add(new ElementSchemaValidator(validators));
+            }
+        }
+        if (elementValidators.size() == 1) {
+            return elementValidators.getFirst();
+        }
+        return new CombinedElementValidator(elementValidators);
     }
 
     private static PrecompiledSchemaValidator compileSchemaValidator(SchemaStatement schema, CompilationContext ctx,
@@ -173,10 +186,43 @@ public class SchemaValidatorCompiler {
         }
     }
 
-    record CombinedSchemaValidator(List<PrecompiledSchemaValidator> validators) implements PureOperator {
+    /**
+     * OR semantics: at least one schema for the same subscription element must
+     * pass.
+     */
+    record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             for (val validator : validators) {
+                val result = validator.evaluate(ctx);
+                if (result instanceof ErrorValue) {
+                    return result;
+                }
+                if (Value.TRUE.equals(result)) {
+                    return Value.TRUE;
+                }
+            }
+            return Value.FALSE;
+        }
+
+        @Override
+        public SourceLocation location() {
+            return validators.getFirst().location();
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return true;
+        }
+    }
+
+    /**
+     * AND semantics: all element validators must pass.
+     */
+    record CombinedElementValidator(List<PureOperator> elementValidators) implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            for (val validator : elementValidators) {
                 val result = validator.evaluate(ctx);
                 if (result instanceof ErrorValue || Value.FALSE.equals(result)) {
                     return result;
@@ -187,7 +233,7 @@ public class SchemaValidatorCompiler {
 
         @Override
         public SourceLocation location() {
-            return validators.getFirst().location();
+            return elementValidators.getFirst().location();
         }
 
         @Override

@@ -14,9 +14,9 @@ Since JSON is the base data model, each expression evaluates to a JSON data type
 
 ### Identifiers
 
-Multiple elements in policies or policy sets require identifiers. For example, a variable assignment expects an identifier after the keyword `var` - the name under which the assigned value will be available.
+Multiple elements in policies or policy sets require identifiers. For example, object keys in dot notation, function name components, and variable names all use identifiers.
 
-An identifier only consists of alphanumeric characters, `_` and `$`, and must not start with a number.
+An identifier consists of alphanumeric characters, `_` and `$`, and must not start with a number.
 
 Valid Identifiers
 
@@ -35,7 +35,22 @@ a#name
 1name
 ```
 
-A caret `^` before the identifier may be used to avoid a conflict with SAPL keywords.
+#### Reserved Identifiers
+
+Certain SAPL keywords can also be used as identifiers in expression contexts such as dot notation key steps, object keys, and function name components. These reserved identifiers are:
+
+- The authorization subscription attributes: `subject`, `action`, `resource`, `environment`
+- The combining algorithm keywords: `abstain`, `errors`, `first`, `or`, `priority`, `propagate`, `strict`, `unanimous`, `unique`
+
+For example, `object.subject` uses `subject` as a key step, and `{priority: 5}` uses `priority` as an object key.
+
+#### Variable Names
+
+Variable names (after the `var` keyword) accept plain identifiers and the combining algorithm keywords listed above. All other keywords -- including the subscription attribute keywords (`subject`, `action`, `resource`, `environment`) and hard keywords like `permit`, `true`, `in`, etc. -- require the caret escape to be used as variable names (e.g., `var ^subject = ...`).
+
+#### Caret Escape
+
+A caret `^` before an identifier forces it to be treated as a plain identifier, even if it would otherwise match a keyword. This is needed for keywords that are not [reserved identifiers](#reserved-identifiers): `as`, `advice`, `deny`, `each`, `enforced`, `for`, `import`, `in`, `obligation`, `permit`, `policy`, `schema`, `set`, `transform`, `true`, `false`, `null`, `undefined`, `var`. For reserved identifiers, the caret is unnecessary in expression contexts but required when using subscription attribute keywords as variable names (see [Variable Names](#variable-names)).
 
 ### Strings
 
@@ -87,7 +102,7 @@ SAPL knows **basic expressions** and **operator expressions** (created from othe
 A **basic expression** is either a
 
 - **Value Expression**: a value explicitly defined in the corresponding JSON notation (e.g., `"a value"`)
-- **Identifier Expression**: the name of a variable or of an authorization subscription attribute (`subject`, `resource`, `action`, or `environment`)
+- **Identifier Expression**: any [identifier](#identifiers), typically the name of a variable or an authorization subscription attribute (`subject`, `resource`, `action`, or `environment`)
 - **Function Expression**: a function call (e.g., `simple.get_minimum(resource.array)`)
 - **Relative Expression**: `@` or `#`, which refer to context-dependent values (current element and its position)
 - **Grouped Expression**: any expression enclosed in parentheses, e.g., `(1 + 1)`
@@ -122,9 +137,9 @@ For arrays, the items can be any expression, e.g.
 
 ### Identifier Expressions
 
-A basic identifier expression consists of the name of a variable or the name of an authorization subscription attribute (i.e., `subject`, `resource`, `action`, or `environment`).
+A basic identifier expression consists of any [identifier](#identifiers), typically the name of a variable or an authorization subscription attribute (i.e., `subject`, `resource`, `action`, or `environment`). Any [reserved identifier](#reserved-identifiers) is also valid here.
 
-It evaluates to the variable or the attribute’s value.
+It evaluates to the variable’s or the subscription attribute’s value.
 
 ### Function Expressions
 
