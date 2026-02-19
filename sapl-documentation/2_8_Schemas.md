@@ -3,7 +3,7 @@ layout: default
 title: Schemas
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 107
+nav_order: 108
 ---
 
 ## Schemas for Authorization Subscriptions

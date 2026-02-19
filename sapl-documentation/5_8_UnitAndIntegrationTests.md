@@ -100,7 +100,7 @@ Integration tests require a combining algorithm. It can be specified in the `giv
 - first or abstain errors propagate
 ```
 
-See [Combining Algorithm](../2_10_CombiningAlgorithms/) for details on each algorithm.
+See [Combining Algorithm](../2_4_CombiningAlgorithms/) for details on each algorithm.
 
 ### Variables and Secrets
 

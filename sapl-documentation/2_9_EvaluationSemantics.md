@@ -3,7 +3,7 @@ layout: default
 title: Evaluation Semantics
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 111
+nav_order: 109
 ---
 
 ## Evaluation Semantics
@@ -23,7 +23,7 @@ Evaluating a policy against an authorization subscription means assigning a valu
 
 Conditions are evaluated lazily: if an earlier condition evaluates to `false`, later conditions are not evaluated and cannot produce errors.
 
-For policy syntax and structure, see [Policies](../2_4_Policies/).
+For policy syntax and structure, see [Policies](../2_3_PolicyStructure/).
 
 ### Policy Set Evaluation
 
@@ -35,4 +35,4 @@ A decision value (`NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` or `DENY`) can als
 | `true` (matching)      | care              | Result of the **Combining Algorithm** applied to the Policies |
 | *Error*                | don't care        | `INDETERMINATE`                                               |
 
-For policy set syntax and structure, see [Policy Sets](../2_5_PolicySets/). For how combining algorithms resolve multiple votes into a single decision, see [Combining Algorithms](../2_10_CombiningAlgorithms/).
+For policy set syntax and structure, see [Policy Sets](../2_5_PolicySets/). For how combining algorithms resolve multiple votes into a single decision, see [Combining Algorithms](../2_4_CombiningAlgorithms/).

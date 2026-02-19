@@ -3,14 +3,65 @@ layout: default
 title: Expressions
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 109
+nav_order: 106
 ---
 
 ## SAPL Expressions
 
-To ensure flexibility, various parts of a policy can be **expressions** that are evaluated at runtime. E.g., a policy’s target must be an expression evaluating to `true` or `false`. SAPL contains a uniform expression language that offers various useful features while still being easy to read and write.
+To ensure flexibility, various parts of a policy can be **expressions** that are evaluated at runtime. For example, a policy's target must be an expression evaluating to `true` or `false`. SAPL contains a uniform expression language that offers various useful features while still being easy to read and write.
 
-Since JSON is the base data model, each expression evaluates to a JSON data type. These data types and the expression syntax are described in this section.
+Since JSON is the base data model, each expression evaluates to a JSON data type. This section covers the lexical building blocks, data types, and expression syntax.
+
+### Identifiers
+
+Multiple elements in policies or policy sets require identifiers. For example, a variable assignment expects an identifier after the keyword `var` - the name under which the assigned value will be available.
+
+An identifier only consists of alphanumeric characters, `_` and `$`, and must not start with a number.
+
+Valid Identifiers
+
+```
+a_long_name
+aLongName
+$name
+_name
+name123
+```
+
+Invalid Identifiers
+
+```
+a#name
+1name
+```
+
+A caret `^` before the identifier may be used to avoid a conflict with SAPL keywords.
+
+### Strings
+
+Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by double quotes `"`. Any quote character occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""`.
+
+### Comments
+
+Comments are used to store information in a SAPL document which is only intended for human readers and has no meaning for the PDP. Comments are simply ignored when the PDP evaluates a document.
+
+SAPL supports single-line and multi-line comments. A single-line comment starts with `//` and ends at the end of the line, no matter which characters follow.
+
+Sample Single-Line Comment
+
+```
+policy "test" // a policy for testing
+```
+
+Multi-line comments start with `/*` and end with `*/`. Everything in between is ignored.
+
+Sample Multi-Line Comment
+
+```
+policy "test"
+/* A policy for testing.
+Remove before deployment! */
+```
 
 ### JSON Data Types
 
@@ -85,7 +136,7 @@ library.a_function(subject.name, (environment.day_of_week + 1))
 
 Each function is available under its fully qualified name. The fully qualified name starts with the library name, consisting of one or more identifiers separated by periods `.` (e.g., `sapl.functions.simple`). The library name is followed by a period `.` and an identifier for the function name (e.g., `sapl.functions.simple.append`). Which function libraries are available depends on the configuration of the PDP.
 
-[Imports](../2_6_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
+[Imports](../2_7_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
 

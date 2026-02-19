@@ -20,21 +20,11 @@ The keyword `set` is followed by the policy set name. The name is a string *iden
 
 ### Combining Algorithm
 
-The name is followed by a combining algorithm. This algorithm describes how to combine the votes from evaluating each policy to determine the policy set's vote.
-
-Example:
+The name is followed by a [combining algorithm](../2_4_CombiningAlgorithms/) that specifies how the policy set resolves its policies' votes. For example:
 
 ```
 set "example-policies" priority deny or deny
 ```
-
-The algorithm notation follows the pattern:
-
-```
-<voting> or <default> [errors <error-handling>]
-```
-
-See [Combining Algorithm](../2_10_CombiningAlgorithms/#combining-algorithm) for the full explanation of voting styles, defaults, error handling, and how constraints like obligations and resource transformations are merged.
 
 ### Target Expression
 
@@ -52,9 +42,9 @@ In case a policy within the policy set assigns a variable already assigned in th
 
 ### Policies
 
-Each policy set must contain one or more policies. [See above](../2_4_Policies/#sapl-policy) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
+Each policy set must contain one or more policies. [See above](../2_3_PolicyStructure/#sapl-policy) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
 
-In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see [Variable Assignments](../2_4_Policies/#variable-assignment)) are available within the policies but can be overwritten by a variable assignment within a particular policy.
+In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see [Variable Assignments](../2_3_PolicyStructure/#variable-assignment)) are available within the policies but can be overwritten by a variable assignment within a particular policy.
 
 ### Example: First Applicable Policy
 
