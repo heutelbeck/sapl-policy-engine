@@ -45,7 +45,7 @@ If everything worked, you should see a line like `Started SaplNodeApplication ..
 curl -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' http://localhost:8080/api/pdp/decide-once
 ```
 
-The server should return `{"decision":"INDETERMINATE"}`. This is expected. Without a `pdp.json` configuration file, the PDP has no combining algorithm defined and cannot produce a meaningful authorization decision. The `INDETERMINATE` response indicates that the PDP is running and accepting requests, but is not yet fully configured.
+The server should return `{"decision":"INDETERMINATE"}`. This is expected. Without a `pdp.json` configuration file, the PDP has no combining algorithm defined and cannot produce a meaningful authorization decision. The `INDETERMINATE` response indicates that the PDP is running and accepting requests, but is not yet fully configured. The health endpoint at `http://localhost:8080/actuator/health` will also report `DOWN` until a valid `pdp.json` is loaded.
 
 5. Define the PDP combining algorithm. SAPL Node requires an explicit combining algorithm configuration in a `pdp.json` file. Without it, the PDP will always return `INDETERMINATE`. Create a file `pdp.json` in the data folder (e.g., `~/sapl` or `C:\sapl`). Set its content to:
 ```json
