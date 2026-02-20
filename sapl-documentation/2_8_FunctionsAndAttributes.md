@@ -3,14 +3,14 @@ layout: default
 title: Functions and Attribute Finders
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 107
+nav_order: 108
 ---
 
 ## Functions and Attribute Finders
 
 SAPL expressions can call **functions** and access **attributes**. Both extend what policies can express beyond simple JSON manipulation, but they serve fundamentally different purposes and have different runtime characteristics. Understanding this distinction is essential for writing correct and efficient policies.
 
-For the expression syntax of function calls and attribute finder steps, see [Expressions](../2_6_Expressions/). This section covers the conceptual model: what functions and attributes are, why SAPL has both, and how streaming attributes enable continuous authorization.
+For the expression syntax of function calls and attribute finder steps, see [Expressions](../2_7_Expressions/). This section covers the conceptual model: what functions and attributes are, why SAPL has both, and how streaming attributes enable continuous authorization.
 
 ### Functions
 
@@ -23,7 +23,7 @@ Functions are pure computations. Given the same input arguments, a function alwa
 
 Because of these properties, functions can be used in **any part** of a SAPL document, including target expressions. The engine can safely evaluate them at any time without concern for ordering, external availability, or subscription lifecycle.
 
-Functions are organized in **function libraries**. Each library has a name consisting of one or more identifiers separated by periods (e.g., `simple.string` or `filter`). The fully qualified name of a function consists of the library name followed by a period and the function name (e.g., `simple.string.append`). [Imports](../2_8_Imports/) can shorten these names.
+Functions are organized in **function libraries**. Each library has a name consisting of one or more identifiers separated by periods (e.g., `simple.string` or `filter`). The fully qualified name of a function consists of the library name followed by a period and the function name (e.g., `simple.string.append`). [Imports](../2_9_Imports/) can shorten these names.
 
 SAPL ships with a standard set of function libraries. See [Functions](../3_0_Functions/) for the complete reference of built-in function libraries.
 
@@ -38,7 +38,7 @@ However, policies often require information that is not readily available to the
 - Current work schedules (managed by scheduling systems)
 - Real-time conditions (current time, system status, resource availability)
 
-**Policy Information Points (PIPs)** bridge this knowledge gap by fetching attributes from external sources on demand. In SAPL, PIPs are accessed through **attribute finders** - a dedicated syntax that signals external I/O and potential streaming behavior.
+**Policy Information Points (PIPs)** bridge this knowledge gap by fetching attributes from external sources on demand. In SAPL, PIPs are accessed through **attribute finders**, a dedicated syntax that signals external I/O and potential streaming behavior.
 
 Consider a policy that needs to check a user's role stored in an external user directory:
 
@@ -66,7 +66,7 @@ This distinction is why attributes use a dedicated syntax (angle brackets `<...>
 
 The authorization subscription provides a **snapshot** of what the PEP knows when making the request. Once sent, these attributes do not change unless the PEP creates a new subscription. This works well for stable data like usernames or resource identifiers, but many authorization decisions depend on **dynamic conditions** that change over time.
 
-Because the authorization protocol is based on the PDP pushing decisions to the PEP (not the PEP pushing updated attributes), **dynamic attributes must come from PIPs**. This is why time-based policies use `<time.now>` rather than expecting the PEP to include timestamps - the PDP needs to access time continuously, not just at subscription creation.
+Because the authorization protocol is based on the PDP pushing decisions to the PEP (not the PEP pushing updated attributes), **dynamic attributes must come from PIPs**. This is why time-based policies use `<time.now>` rather than expecting the PEP to include timestamps: the PDP needs to access time continuously, not just at subscription creation.
 
 PIPs enable both:
 
@@ -86,9 +86,9 @@ permit
     <time.localTimeIsBetween("08:00:00", "18:00:00")>;
 ```
 
-The `<time.localTimeIsBetween(...)>` attribute streams. When a doctor is granted access at 17:59, the PEP receives PERMIT and maintains the connection. At exactly 18:00:01, the PDP automatically pushes a new DENY decision - without any polling or manual refresh. The PEP can then terminate the session or deny further operations.
+The `<time.localTimeIsBetween(...)>` attribute streams. When a doctor is granted access at 17:59, the PEP receives PERMIT and maintains the connection. At exactly 18:00:01, the PDP automatically pushes a new DENY decision, without any polling or manual refresh. The PEP can then terminate the session or deny further operations.
 
-This is **Attribute Stream-based Access Control (ASBAC)** - policies respond to changing conditions in real-time.
+This is **Attribute Stream-based Access Control (ASBAC)**: policies respond to changing conditions in real-time.
 
 #### Composing Streaming Attributes
 
@@ -111,11 +111,11 @@ This policy:
 2. Uses that to fetch the doctor's shift schedule for today from a custom `schedules` PIP
 3. Checks if the current time is within the shift window
 
-All of these attributes stream - when the clock crosses a shift boundary, or when shift schedules are updated in the scheduling system, the PDP automatically sends new decisions to the PEP.
+All of these attributes stream. When the clock crosses a shift boundary, or when shift schedules are updated in the scheduling system, the PDP automatically sends new decisions to the PEP.
 
 > This example assumes a custom `schedules` PIP that provides shift information. See [Custom Attribute Finders](../6_6_CustomAttributeFinders/) for implementing custom PIPs.
 
-Traditional access control systems make one-time decisions. SAPL maintains continuous authorization that adapts to changing conditions - time passing, data updates, or policy changes - all without the PEP needing to re-request decisions.
+Traditional access control systems make one-time decisions. SAPL maintains continuous authorization that adapts to changing conditions (time passing, data updates, or policy changes), all without the PEP needing to re-request decisions.
 
 ### Built-in and Custom PIPs
 
@@ -140,13 +140,13 @@ While there is no grammar-level distinction between body statements, it is good 
 1. **Fast local checks first**: Resource type, action, simple equality checks on subscription attributes. These evaluate instantly and can short-circuit the rest.
 2. **PIP-based lookups later**: Attribute finder expressions may involve network calls or database queries and should only run when the fast checks have already passed.
 
-For details on how the engine optimizes evaluation order across cost strata, see [Evaluation Semantics](../2_10_EvaluationSemantics/).
+For details on how the engine optimizes evaluation order across cost strata, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 
-> **Policy sets** have a dedicated `FOR` clause that acts as a target expression for filtering which policies in the set are evaluated. See [Policy Sets](../2_5_PolicySets/) for details.
+> **Policy sets** have a dedicated `FOR` clause that acts as a target expression for filtering which policies in the set are evaluated. See [Policy Sets](../2_6_PolicySets/) for details.
 
 ### Attribute Finder Parameters and Options
 
-Attribute finders accept **parameters** in parentheses and **options** in square brackets. For the expression syntax, see the [attribute finder step](../2_6_Expressions/#attribute-finder-findername) in Expressions.
+Attribute finders accept **parameters** in parentheses and **options** in square brackets. For the expression syntax, see the [attribute finder step](../2_7_Expressions/#attribute-finder-findername) in Expressions.
 
 #### Parameters
 
@@ -186,7 +186,7 @@ Options are not passed to the PIP itself. Instead, they configure how the engine
 Options follow a three-level priority chain:
 
 1. **Policy-level options** (in square brackets in the policy expression) have the highest priority.
-2. **PDP-level defaults** (configured in the PDP settings under `variables.attributeFinderOptions`, see [SAPL Node](../7_1_SAPLNode/)) override built-in defaults.
+2. **PDP-level defaults** (configured in the PDP settings under `variables.attributeFinderOptions`, see [PDP Configuration](../2_2_PDPConfiguration/#variables)) override built-in defaults.
 3. **Built-in defaults** (listed in the table above) apply when no override is specified.
 
 This allows operators to tune stream behavior globally without modifying policies, while individual policies can override when needed.
@@ -202,7 +202,7 @@ The attribute broker mediates between policies and PIPs, managing stream lifecyc
 
 #### For PDP Operators
 
-- **Global option defaults:** Configure default attribute finder options under `variables.attributeFinderOptions` in the PDP settings to tune stream behavior across all policies without modifying them. See [SAPL Node](../7_1_SAPLNode/) for configuration details.
+- **Global option defaults:** Configure default attribute finder options under `variables.attributeFinderOptions` in the PDP settings to tune stream behavior across all policies without modifying them. See [PDP Configuration](../2_2_PDPConfiguration/#variables) for details.
 - **Grace period:** After the last subscriber disconnects, the broker keeps PIP connections alive for 3 seconds. This prevents unnecessary reconnections when policies are rapidly re-evaluated.
 - **Hot-swapping:** PIPs can be loaded and unloaded at runtime. Active streams automatically reconnect to newly loaded PIPs.
 

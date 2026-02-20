@@ -3,7 +3,7 @@ layout: default
 title: Policy Structure
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 103
+nav_order: 104
 ---
 
 
@@ -54,12 +54,12 @@ if all conditions evaluate to `true`. Then, and only then, the policy casts a vo
 
 Policies and policy sets are organized into documents. A document is managed as a text file with the `.sapl` extension.
 
-Each SAPL document contains exactly **one** policy or [policy set](../2_5_PolicySets/). A document cannot contain both, and it cannot contain more than one of either. Optionally, the policy or policy set can be preceded by:
+Each SAPL document contains exactly **one** policy or [policy set](../2_6_PolicySets/). A document cannot contain both, and it cannot contain more than one of either. Optionally, the policy or policy set can be preceded by:
 
-- **[Import statements](../2_8_Imports/)** for referencing functions and attribute finders from libraries
-- **[Schema statements](../2_9_Schemas/)** for validating authorization subscription elements
+- **[Import statements](../2_9_Imports/)** for referencing functions and attribute finders from libraries
+- **[Schema statements](../2_10_Schemas/)** for validating authorization subscription elements
 
-Imports and schemas must appear before the policy or policy set. The PDP loads all `.sapl` files from its configured policy source and evaluates the documents together using the configured [combining algorithm](../2_4_CombiningAlgorithms/).
+Imports and schemas must appear before the policy or policy set. The PDP loads all `.sapl` files from its configured policy source and evaluates the documents together using the configured [combining algorithm](../2_5_CombiningAlgorithms/).
 
 ## Policy Syntax
 
@@ -113,7 +113,7 @@ deny
     !<time.localTimeIsBetween("08:00:00", "18:00:00")>;
 ```
 
-The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute (covered in [Functions and Attribute Finders](../2_7_FunctionsAndAttributes/)).
+The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute (covered in [Functions and Attribute Finders](../2_8_FunctionsAndAttributes/)).
 
 ### Body
 
@@ -142,7 +142,7 @@ A variable assignment starts with the keyword `var`, followed by an identifier, 
 A variable assignment can optionally include the keyword `schema` followed by one or more JSON schema expressions separated by `,`. These schemas are used by policy editors for code completion and do not affect evaluation.
 
 {: .info }
-> Policy sets use a separate `for` target expression to control applicability. Individual policies express all conditions in the body. See [Policy Sets](../2_5_PolicySets/) for details.
+> Policy sets use a separate `for` target expression to control applicability. Individual policies express all conditions in the body. See [Policy Sets](../2_6_PolicySets/) for details.
 
 #### Policy Evaluation Result
 
@@ -155,7 +155,7 @@ Evaluating a policy against an authorization subscription means assigning a deci
 | Any produces an error      | `INDETERMINATE`                               |
 | No body present            | Policy's **Entitlement** (`PERMIT` or `DENY`) |
 
-Conditions are evaluated lazily: if an earlier condition evaluates to `false`, later conditions are not evaluated and cannot produce errors. For details on how the engine optimizes evaluation order across cost strata, see [Evaluation Semantics](../2_10_EvaluationSemantics/).
+Conditions are evaluated lazily: if an earlier condition evaluates to `false`, later conditions are not evaluated and cannot produce errors. For details on how the engine optimizes evaluation order across cost strata, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 
 **Automatic Optimization:** The SAPL compiler analyzes the body and identifies statements that do not use attribute finders (`<>` operator). These statements are automatically used for fast policy indexing, allowing the PDP to efficiently select relevant policies from large policy stores without evaluating external attributes.
 
@@ -165,7 +165,7 @@ An obligation expression consists of the keyword `obligation` followed by an exp
 
 A common use case is *break-the-glass* scenarios: in an emergency, a doctor may access records they normally cannot read, but this access must be logged to prevent abuse. Logging is a requirement for granting access and therefore must be expressed as an obligation.
 
-The PDP collects all obligations from applicable policies. Depending on the final decision, the obligations belonging to that decision are included in the authorization decision object. An obligation can be any JSON value - a string (like `"create_emergency_access_log"`), an object (like `{ "task": "create_log", "content": "emergency_access" }`), or any other type. The PEP must be implemented to process these obligations.
+The PDP collects all obligations from applicable policies. Depending on the final decision, the obligations belonging to that decision are included in the authorization decision object. An obligation can be any JSON value: a string (like `"create_emergency_access_log"`), an object (like `{ "task": "create_log", "content": "emergency_access" }`), or any other type. The PEP must be implemented to process these obligations.
 
 A policy can contain multiple obligation expressions. All obligations must appear before any advice.
 
@@ -190,6 +190,6 @@ transform resource |- { @.someValue : remove, @.anotherValue : filter.blacken }
 This removes the attribute `someValue` and blackens the value of `anotherValue`.
 
 It is not possible to combine transformation results from multiple policies. If more than one applicable policy evaluates to `PE                                              
-RMIT` and at least one contains a transformation, the combining algorithm will not return `PERMIT` (*transformation uncertainty*). See [Combining Algorithms](../2_4_CombiningAlgorithms/) for details.
+RMIT` and at least one contains a transformation, the combining algorithm will not return `PERMIT` (*transformation uncertainty*). See [Combining Algorithms](../2_5_CombiningAlgorithms/) for details.
 
-For organizing multiple policies with shared combining algorithms and target expressions, see [Policy Sets](../2_5_PolicySets/).
+For organizing multiple policies with shared combining algorithms and target expressions, see [Policy Sets](../2_6_PolicySets/).

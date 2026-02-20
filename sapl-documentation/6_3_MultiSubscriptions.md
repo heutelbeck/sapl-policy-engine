@@ -71,4 +71,4 @@ This format is simpler to process because each message contains the complete cur
 
 Returns a single batch response and completes. The format is identical to the streaming batch, but the connection closes after the first response. Use this for request-response scenarios where continuous updates are not needed.
 
-Decisions may include optional `resource`, `obligations`, and `advice` fields, as described in [SAPL Authorization Decision](../2_2_AuthorizationDecisions/).
+Decisions may include optional `resource`, `obligations`, and `advice` fields, as described in [SAPL Authorization Decision](../2_3_AuthorizationDecisions/).

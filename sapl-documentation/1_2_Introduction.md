@@ -38,11 +38,11 @@ permit
 > The comparison `resource.department == subject.department` works for any department without modification. 
 > This is an advantage of ABAC over RBAC: instead of creating separate roles like "cardiologyDoctor", 
 > "radiologyDoctor", "neurologyDoctor" (and updating them with every new department), one policy handles all 
-> departments by comparing attributes. Add ten new departments - the policy needs no changes. 
+> departments by comparing attributes. Add ten new departments and the policy needs no changes. 
 > Attributes are either sent with the authorization question or looked up dynamically. 
 > In this example they come from the authorization question only.
 
-> **Experiment hands-on:** Try modifying a policy in the [SAPL Playground](https://playground.sapl.io/) - no installation required.
+> **Experiment hands-on:** Try modifying a policy in the [SAPL Playground](https://playground.sapl.io/), no installation required.
 
 Now let's see how SAPL policies work in practice.
 

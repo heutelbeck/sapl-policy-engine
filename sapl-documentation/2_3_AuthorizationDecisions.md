@@ -3,7 +3,7 @@ layout: default
 title: Authorization Decisions
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 102
+nav_order: 103
 ---
 
 
@@ -52,7 +52,7 @@ The authorization decision may include additional attributes beyond `decision`:
 - **`obligations`**: An array of tasks that the PEP **must** fulfill before granting or denying access. If the PEP cannot fulfill these obligations, access must not be granted even with a `PERMIT` decision. Examples include logging requirements or sending notifications.
 - **`advice`**: An array of tasks that the PEP **should** perform, but their fulfillment is not mandatory for granting access. These are optional recommendations from policies.
 
-> **Note:** An obligation in a `DENY` decision effectively acts like advice - the unsuccessful handling of the obligation cannot change the overall decision outcome, since access is already denied.
+> **Note:** An obligation in a `DENY` decision effectively acts like advice because the unsuccessful handling of the obligation cannot change the overall decision outcome, since access is already denied.
 
 Here is an example of a decision with all optional attributes present. It corresponds to a policy that permits access but redacts the patient's SSN via a `transform` statement, requires audit logging via an `obligation`, and suggests notifying the data owner via `advice`:
 

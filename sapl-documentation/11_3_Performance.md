@@ -13,7 +13,7 @@ This section will document performance characteristics and optimization strategi
 ### Planned Topics
 
 - **Automatic indexing:** How the PDP indexes policies for fast matching and what policy structures optimize index effectiveness
-- **Policy structure impact:** How policy organization affects evaluation performance (cross-reference to [Evaluation Semantics](../2_10_EvaluationSemantics/) for cost-stratified evaluation)
+- **Policy structure impact:** How policy organization affects evaluation performance (cross-reference to [Evaluation Semantics](../2_11_EvaluationSemantics/) for cost-stratified evaluation)
 - **Profiling and benchmarking:** Tools and techniques for measuring PDP performance
 - **Scaling strategies:** Horizontal and vertical scaling considerations for SAPL Node deployments
 

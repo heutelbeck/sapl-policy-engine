@@ -3,7 +3,7 @@ layout: default
 title: Policy Sets
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 105
+nav_order: 106
 ---
 
 ## SAPL Policy Set
@@ -20,7 +20,7 @@ The keyword `set` is followed by the policy set name. The name is a string *iden
 
 ### Combining Algorithm
 
-The name is followed by a [combining algorithm](../2_4_CombiningAlgorithms/) that specifies how the policy set resolves its policies' votes. For example:
+The name is followed by a [combining algorithm](../2_5_CombiningAlgorithms/) that specifies how the policy set resolves its policies' votes. For example:
 
 ```
 set "example-policies" priority deny or deny
@@ -30,7 +30,7 @@ set "example-policies" priority deny or deny
 
 After the combining algorithm, an **optional** target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression that must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain authorization subscription, the policy set *matches* this subscription. In case the target expression is missing, the policy set matches any authorization subscription.
 
-The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no [attribute finder steps](../2_7_FunctionsAndAttributes/#attribute-finders-and-policy-information-points) allowed at this place.
+The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no [attribute finder steps](../2_8_FunctionsAndAttributes/#attribute-finders-and-policy-information-points) allowed at this place.
 
 ### Variable Assignments
 
@@ -42,7 +42,7 @@ In case a policy within the policy set assigns a variable already assigned in th
 
 ### Policies
 
-Each policy set must contain one or more policies. [See above](../2_3_PolicyStructure/#policy-syntax) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
+Each policy set must contain one or more policies. [See above](../2_4_PolicyStructure/#policy-syntax) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
 
 In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see [Variable Assignments](#variable-assignments) above) are available within the policies but can be overwritten by a variable assignment within a particular policy.
 
@@ -91,4 +91,4 @@ Evaluating a policy set against an authorization subscription means assigning a 
 | `true` (matching)      | care              | Result of the **Combining Algorithm** applied to the Policies |
 | *Error*                | don't care        | `INDETERMINATE`                                               |
 
-For how combining algorithms resolve multiple votes into a single decision, see [Combining Algorithms](../2_4_CombiningAlgorithms/).
+For how combining algorithms resolve multiple votes into a single decision, see [Combining Algorithms](../2_5_CombiningAlgorithms/).

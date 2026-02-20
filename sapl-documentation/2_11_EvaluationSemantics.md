@@ -3,14 +3,14 @@ layout: default
 title: Evaluation Semantics
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 110
+nav_order: 111
 ---
 
 ## Evaluation Semantics
 
 This section defines how the SAPL engine evaluates expressions, with particular attention to evaluation order, short-circuit behavior, and how cost strata interact with streaming attribute subscriptions.
 
-For how individual policies and policy sets map evaluation results to decision values (`PERMIT`, `DENY`, `NOT_APPLICABLE`, `INDETERMINATE`), see [Policy Structure](../2_3_PolicyStructure/#policy-evaluation-result) and [Policy Sets](../2_5_PolicySets/#policy-set-evaluation-result).
+For how individual policies and policy sets map evaluation results to decision values (`PERMIT`, `DENY`, `NOT_APPLICABLE`, `INDETERMINATE`), see [Policy Structure](../2_4_PolicyStructure/#policy-evaluation-result) and [Policy Sets](../2_6_PolicySets/#policy-set-evaluation-result).
 
 ### Cost-Stratified Short-Circuit Evaluation
 
@@ -20,9 +20,9 @@ All AND and OR operators (`&`, `&&`, `|`, `||`) use **cost-stratified short-circ
 
 SAPL categorizes expressions into three strata based on their evaluation cost:
 
-1. **Constants** (e.g., `true`, `false`, `1 + 2`) - Evaluated at compile time. This stratum also includes **PDP variables**: values configured by the operator in the PDP settings are known when policies are loaded and are automatically constant-folded into this stratum. A condition referencing a PDP variable (e.g., comparing against a configured tenant name or feature flag) is as cheap to evaluate as a literal `true` or `false`.
-2. **Pure expressions** (e.g., `subject.isActive`, `resource.type`) - Evaluated at runtime without external subscriptions. This includes the four authorization subscription fields (`subject`, `resource`, `action`, `environment`), which are only known when a concrete subscription arrives.
-3. **Streaming expressions** (e.g., `<pip.sensor>`, `subject.<geo.location>`) - Require asynchronous subscription to external data sources
+1. **Constants** (e.g., `true`, `false`, `1 + 2`): Evaluated at compile time. This stratum also includes **PDP variables**: values configured by the operator in the [PDP configuration](../2_2_PDPConfiguration/#variables) are known when policies are loaded and are automatically constant-folded into this stratum. A condition referencing a PDP variable (e.g., comparing against a configured tenant name or feature flag) is as cheap to evaluate as a literal `true` or `false`.
+2. **Pure expressions** (e.g., `subject.isActive`, `resource.type`): Evaluated at runtime without external subscriptions. This includes the four authorization subscription fields (`subject`, `resource`, `action`, `environment`), which are only known when a concrete subscription arrives.
+3. **Streaming expressions** (e.g., `<pip.sensor>`, `subject.<geo.location>`): Require asynchronous subscription to external data sources
 
 ### Evaluation Rules
 
@@ -60,7 +60,7 @@ If `subject.isAdmin` is `true`, the attribute finder `<pip.externalAuthCheck>` i
 
 Even though `<pip.sensor>` appears on the left, the constant `false` is evaluated first. The attribute stream is **never subscribed to**. This may be surprising if you expect strict left-to-right evaluation as in imperative programming languages.
 
-**Left-to-right within same stratum**
+**Left-to-right within the same stratum**
 
 ```sapl
 true || (1/0 > 0)
@@ -80,7 +80,7 @@ Again both are constants, but now the error-producing expression comes first. Th
 subject.isActive || (1/0 > 0)
 ```
 
-Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a constant (lower stratum). Constants are evaluated first, so the division by zero **produces an error** before `subject.isActive` is ever checked - even though `subject.isActive` appears first in the source. The pure expression cannot "rescue" the constant error.
+Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a constant (lower stratum). Constants are evaluated first, so the division by zero **produces an error** before `subject.isActive` is ever checked, even though `subject.isActive` appears first in the source. The pure expression cannot "rescue" the constant error.
 
 ### Implications for Policy Authors
 
@@ -92,6 +92,6 @@ Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a
 
 ### Body Condition Evaluation
 
-Each semicolon-terminated statement in a policy body is an operand of an implicit conjunction - the body is equivalent to connecting all its conditions with `&`. The compiler flattens them into a single N-ary AND operation, exactly like an explicit `a & b & c` expression. This means body conditions participate fully in cost-stratified short-circuit evaluation: all conditions are sorted by cost stratum, and if any condition in a cheaper stratum evaluates to `false`, conditions in more expensive strata are never evaluated and their subscriptions are never created.
+Each semicolon-terminated statement in a policy body is an operand of an implicit conjunction. The body is equivalent to connecting all its conditions with `&`. The compiler flattens them into a single N-ary AND operation, exactly like an explicit `a & b & c` expression. This means body conditions participate fully in cost-stratified short-circuit evaluation: all conditions are sorted by cost stratum, and if any condition in a cheaper stratum evaluates to `false`, conditions in more expensive strata are never evaluated and their subscriptions are never created.
 
-Combined with the [recommended condition ordering](../2_7_FunctionsAndAttributes/#structuring-policy-conditions) (fast local checks first, PIP lookups later), this ensures that expensive external calls are avoided whenever possible.
+Combined with the [recommended condition ordering](../2_8_FunctionsAndAttributes/#structuring-policy-conditions) (fast local checks first, PIP lookups later), this ensures that expensive external calls are avoided whenever possible.

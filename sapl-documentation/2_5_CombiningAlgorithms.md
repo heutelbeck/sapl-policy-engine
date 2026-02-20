@@ -3,7 +3,7 @@ layout: default
 title: Combining Algorithms
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 104
+nav_order: 105
 ---
 
 ## Combining Algorithms
@@ -13,7 +13,7 @@ When evaluating an authorization subscription, multiple policies may vote differ
 Combining algorithms apply at two levels:
 
 - **Policy set level**: A policy set contains multiple policies. The combining algorithm specified in the policy set determines the policy set's vote.
-- **PDP level**: The PDP evaluates multiple top-level policy documents (policies and policy sets). The PDP-level combining algorithm determines the authorization decision returned to the PEP. How this algorithm is configured depends on the deployment model; see [SAPL Node](../7_1_SAPLNode/) for details.
+- **PDP level**: The PDP evaluates multiple top-level policy documents (policies and policy sets). The PDP-level combining algorithm determines the authorization decision returned to the PEP. The PDP-level combining algorithm is part of the [PDP configuration](../2_2_PDPConfiguration/#combining-algorithm).
 
 ### Algorithm Notation
 
@@ -31,14 +31,14 @@ This reads naturally: "priority to deny, or permit by default." The notation sep
 
 **Voting style** determines how competing votes resolve:
 
-| Style              | Resolution                                                                         |
-|--------------------|------------------------------------------------------------------------------------|
-| `priority deny`    | Any deny wins over any number of permits                                           |
-| `priority permit`  | Any permit wins over any number of denies                                          |
-| `first`            | Policies are evaluated in order; the first non-abstain vote wins                   |
-| `unanimous`        | All applicable policies must agree on entitlement; constraints are merged          |
+| Style              | Resolution                                                                                      |
+|--------------------|-------------------------------------------------------------------------------------------------|
+| `priority deny`    | Any deny wins over any number of permits                                                        |
+| `priority permit`  | Any permit wins over any number of denies                                                       |
+| `first`            | Policies are evaluated in order; the first non-abstain vote wins                                |
+| `unanimous`        | All applicable policies must agree on entitlement; constraints are merged                       |
 | `unanimous strict` | All applicable policies must return equal decisions including obligations, advice, and resource |
-| `unique`           | Exactly one policy must match; multiple matches are a configuration error          |
+| `unique`           | Exactly one policy must match; multiple matches are a configuration error                       |
 
 **Default** determines the result when no policy votes:
 
@@ -101,7 +101,7 @@ priority deny or deny
 This denies access unless a policy explicitly permits, deny votes cannot be overridden, and missing policies result in denial. For PDP-level configuration, this is the recommended default. Deviations should be justified by specific application requirements.
 
 {: .warning }
-> The PDP-level combining algorithm is a mandatory configuration. Without one, the PDP returns `INDETERMINATE` for every subscription. See [SAPL Node](../7_1_SAPLNode/) for configuration details.
+> The PDP-level combining algorithm is a mandatory configuration. Without one, the PDP returns `INDETERMINATE` for every subscription. See [PDP Configuration](../2_2_PDPConfiguration/) for details.
 
 For other scenarios:
 
@@ -138,7 +138,7 @@ All applicable policies must agree on entitlement. If every applicable policy vo
 
 Transformation uncertainty applies: if all policies vote `PERMIT` but more than one includes a transformation, the unanimous permit cannot be returned.
 
-**`unanimous strict`** is a stricter variant. Instead of requiring agreement on entitlement and merging constraints, it requires all applicable policies to return *equal* decisions - same entitlement, same obligations, same advice, same resource transformation. No constraint merging occurs. If decisions differ in any way, it is treated as disagreement.
+**`unanimous strict`** is a stricter variant. Instead of requiring agreement on entitlement and merging constraints, it requires all applicable policies to return *equal* decisions: same entitlement, same obligations, same advice, same resource transformation. No constraint merging occurs. If decisions differ in any way, it is treated as disagreement.
 
 #### `unique`
 
@@ -176,10 +176,10 @@ SAPL 3.x used algorithm names inspired by XACML (for example, `deny-overrides`, 
 
 The old names created an unnecessary cognitive load in two ways.
 
-First, the leading word changed meaning between naming patterns. In `X-overrides`, the leading word is the **priority** (what wins). In `X-unless-Y`, the leading word is the **default** (what happens when nothing votes). This means `deny-overrides` and `deny-unless-permit` both start with "deny" but have opposite priorities. To find all algorithms where deny wins, you need `deny-overrides` (obvious) and `permit-unless-deny` (counterintuitive - it starts with "permit").
+First, the leading word changed meaning between naming patterns. In `X-overrides`, the leading word is the **priority** (what wins). In `X-unless-Y`, the leading word is the **default** (what happens when nothing votes). This means `deny-overrides` and `deny-unless-permit` both start with "deny" but have opposite priorities. To find all algorithms where deny wins, you need `deny-overrides` (obvious) and `permit-unless-deny` (counterintuitive, since it starts with "permit").
 
 Second, each name hides one or two of the three orthogonal concerns. `X-overrides` hides the default (`NOT_APPLICABLE`) and error behavior (`propagate`). `X-unless-Y` hides the error behavior (`abstain`) and disguises the priority as the subordinate clause.
 
 The composable notation eliminates both problems. `priority deny or permit` reads naturally: "priority to deny, or permit by default." `priority deny or abstain errors propagate` makes clear that errors are not swallowed.
 
-Beyond clarity, the composable notation gives policy authors more fine-grained control. The old fixed set of six algorithms left gaps - for example, there was no way to express "priority deny, but return NOT_APPLICABLE when no policy votes" or "unanimous agreement required." SAPL 4.0 closes these gaps with the `unanimous` and `unanimous strict` voting styles and by making all permutations of voting style, default, and error handling available.
+Beyond clarity, the composable notation gives policy authors more fine-grained control. The old fixed set of six algorithms left gaps. For example, there was no way to express "priority deny, but return NOT_APPLICABLE when no policy votes" or "unanimous agreement required." SAPL 4.0 closes these gaps with the `unanimous` and `unanimous strict` voting styles and by making all permutations of voting style, default, and error handling available.

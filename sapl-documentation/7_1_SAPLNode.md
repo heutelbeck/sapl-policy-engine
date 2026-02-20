@@ -22,7 +22,7 @@ SAPL provides three ways to deploy a PDP:
 
 - **Deployment formats:** Docker container, standalone JAR, GraalVM native image, cloud deployments
 - **CLI reference:** `bundle create`, `bundle sign`, `bundle verify`, `bundle inspect`, `bundle keygen`, `generate` commands
-- **Configuration reference:** All `application.yml` / `application.properties` settings, including `pdp.json` combining algorithm requirement. Document `variables.attributeFinderOptions` in `pdp.json` for global attribute finder stream defaults (`initialTimeOutMs`, `pollIntervalMs`, `retries`, `backoffMs`, `fresh`) and the three-level priority chain (policy-level options, PDP-level defaults, built-in defaults). The combining algorithm is mandatory and has no default - the PDP returns `INDETERMINATE` for every subscription without one. This is a deliberate secure-by-default choice: even a conservative default like `priority deny or deny` could silently produce wrong decisions if the configuration is accidentally deleted or missing. The algorithm choice must be explicit.
+- **Configuration reference:** All `application.yml` / `application.properties` settings for SAPL Node. For PDP configuration (combining algorithm, variables, secrets), see [PDP Configuration](../2_2_PDPConfiguration/). This section covers SAPL Node-specific deployment settings.
 - **Authentication:** Basic auth, API keys, OAuth2 client credentials; interaction with `allowNoAuth` and health detail visibility (`show-details: when-authorized`)
 - **Multi-tenant setup:** Running multiple tenants on a single SAPL Node instance
 - **Policy sources:** Filesystem directories, signed bundles, remote bundle fetching

@@ -43,7 +43,7 @@ And these **optional fields**:
 }
 ```
 
-This authorization subscription expresses the intent of Dr. Alice, a doctor from the cardiology department, to read patient record #123, which belongs to the cardiology department. Notice how each field provides attributes that policies can check: `subject.role`, `subject.department`, `resource.type`, and `resource.department`. Also note that `patientId` is a number, not a string - subscriptions can use any JSON value type.
+This authorization subscription expresses the intent of Dr. Alice, a doctor from the cardiology department, to read patient record #123, which belongs to the cardiology department. Notice how each field provides attributes that policies can check: `subject.role`, `subject.department`, `resource.type`, and `resource.department`. Also note that `patientId` is a number, not a string; subscriptions can use any JSON value type.
 
 The PEP constructs this JSON object from the application context and sends it to the PDP, which evaluates it against all applicable policies to produce an authorization decision.
 
@@ -72,13 +72,13 @@ SAPL supports two complementary channels for providing secrets:
 }
 ```
 
-**PDP-level secrets** are configured centrally in the PDP configuration (`pdp.json`). This is the right choice for infrastructure credentials shared across all evaluations, such as database connection strings or API keys for external services. PDP-level secrets are configured once and automatically available to all PIPs during evaluation.
+**PDP-level secrets** are configured centrally in the [PDP configuration](../2_2_PDPConfiguration/#secrets). This is the right choice for infrastructure credentials shared across all evaluations, such as database connection strings or API keys for external services. PDP-level secrets are configured once and automatically available to all PIPs during evaluation.
 
 Both channels are available to PIPs via the `AttributeAccessContext`, and PIPs can use whichever is appropriate for their use case.
 
 ### Best Practice: Domain-Driven Authorization
 
-The authorization subscription above uses **business domain language**: `action: "read"` and `resource.type: "patient_record"`. This follows Domain-Driven Design principles - policies should speak your business's ubiquitous language, not implementation details like HTTP verbs or URLs.
+The authorization subscription above uses **business domain language**: `action: "read"` and `resource.type: "patient_record"`. This follows Domain-Driven Design principles: policies should speak your business's ubiquitous language, not implementation details like HTTP verbs or URLs.
 
 In practice, a PEP in a REST API would translate infrastructure operations into domain concepts before requesting authorization:
 
@@ -86,7 +86,7 @@ In practice, a PEP in a REST API would translate infrastructure operations into 
 GET /api/patients/123  becomes  {action: "read", resource: {type: "patient_record", patientId: 123}}
 ```
 
-This keeps policies independent of technology choices - the same policies work whether you use REST, GraphQL, gRPC, or direct database access.
+This keeps policies independent of technology choices. The same policies work whether you use REST, GraphQL, gRPC, or direct database access.
 
 #### Quick Start vs. Production
 

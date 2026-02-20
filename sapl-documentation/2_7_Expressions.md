@@ -3,7 +3,7 @@ layout: default
 title: Expressions
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 106
+nav_order: 107
 ---
 
 ## SAPL Expressions
@@ -46,7 +46,7 @@ For example, `object.subject` uses `subject` as a key step, and `{priority: 5}` 
 
 #### Variable Names
 
-Variable names (after the `var` keyword) accept plain identifiers and the combining algorithm keywords listed above. All other keywords -- including the subscription attribute keywords (`subject`, `action`, `resource`, `environment`) and hard keywords like `permit`, `true`, `in`, etc. -- require the caret escape to be used as variable names (e.g., `var ^subject = ...`).
+Variable names (after the `var` keyword) accept plain identifiers and the combining algorithm keywords listed above. All other keywords (including the subscription attribute keywords `subject`, `action`, `resource`, `environment` and hard keywords like `permit`, `true`, `in`) require the caret escape to be used as variable names (e.g., `var ^subject = ...`).
 
 #### Caret Escape
 
@@ -151,13 +151,13 @@ library.a_function(subject.name, (environment.day_of_week + 1))
 
 Each function is available under its fully qualified name. The fully qualified name starts with the library name, consisting of one or more identifiers separated by periods `.` (e.g., `sapl.functions.simple`). The library name is followed by a period `.` and an identifier for the function name (e.g., `sapl.functions.simple.append`). Which function libraries are available depends on the configuration of the PDP.
 
-[Imports](../2_8_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
+[Imports](../2_9_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
 
 When evaluating a function expression, the expressions representing the function call arguments are evaluated first. Afterward, the results are passed to the function as arguments. The expression evaluates to the function's return value.
 
-For the conceptual model of functions (purity, determinism, target safety) and how they differ from attribute finders, see [Functions and Attribute Finders](../2_7_FunctionsAndAttributes/).
+For the conceptual model of functions (purity, determinism, target safety) and how they differ from attribute finders, see [Functions and Attribute Finders](../2_8_FunctionsAndAttributes/).
 
 ### Relative Expressions
 
@@ -166,7 +166,7 @@ SAPL provides two relative expressions: `@` (relative value) and `#` (relative l
 These can be used in contexts characterized by an implicit loop, where they dynamically evaluate based on the current iteration:
 
 - **`@` (relative value)**: References the current element's value
-- **`#` (relative location)**: References the current element's position - an index (number) for arrays, or a key (string) for objects
+- **`#` (relative location)**: References the current element's position, i.e., an index (number) for arrays, or a key (string) for objects
 
 Assuming the variable `array` contains an array with multiple numbers, the expression `array[?(@ > 10)]` can be used to return any element greater than 10. In this context, `@` evaluates to the array item for which the condition is currently checked, and `#` evaluates to its index.
 
@@ -252,7 +252,7 @@ Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the 
 - `exp1 && exp2` (AND), precedence **2**
 - `exp1 || exp2` (OR), precedence **1** (lowest)
 
-SAPL provides two forms of AND (`&`, `&&`) and two forms of OR (`|`, `||`). Both forms of each operator use the same [cost-stratified short-circuit evaluation](../2_10_EvaluationSemantics/#cost-stratified-short-circuit-evaluation). The **only current difference is precedence**: `&` and `|` bind tighter than `&&` and `||`. For example, `a && b | c` is parsed as `a && (b | c)`, not `(a && b) | c`.
+SAPL provides two forms of AND (`&`, `&&`) and two forms of OR (`|`, `||`). Both forms of each operator use the same [cost-stratified short-circuit evaluation](../2_11_EvaluationSemantics/#cost-stratified-short-circuit-evaluation). The **only current difference is precedence**: `&` and `|` bind tighter than `&&` and `||`. For example, `a && b | c` is parsed as `a && (b | c)`, not `(a && b) | c`.
 
 This precedence difference allows policy authors to group conditions naturally without parentheses. For example:
 
@@ -286,7 +286,7 @@ Until the latency-optimized strategy is implemented, choosing between the two fo
 
 All AND and OR operators (`&`, `&&`, `|`, `||`) use **cost-stratified short-circuit evaluation**. The engine categorizes operands into three cost strata (constants, pure expressions, streaming expressions) and evaluates cheaper strata first, regardless of operand position in the source. If a cheaper operand short-circuits the result, more expensive operands are never evaluated and their subscriptions are never created.
 
-For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_10_EvaluationSemantics/).
+For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 
 ### String Concatenation
 
@@ -324,12 +324,12 @@ Structure of `object`
 | `object.key`  <br>`object["key"]`                            | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
 | `object.array1[0]`                                          | `{ "key" : "value2" }`                                                                                                                 | **Index step**                                                                                                                                  |
 | `object.array2[-1]`                                         | `5`                                                                                                                                    | **Index step** with negative value n returns the n-th last element                                                                              |
-| `object.*`  <br>`object[*]`                                 | ["value1",<br>      [<br>        { "key" : "value2" },<br>        { "key" : "value3" }<br>      ],<br>      [ 1, 2, 3, 4, 5 ]<br>    ] | **Wildcard step** applied to an object, it returns an array with the value of each attribute - applied to an array, it returns the array itself |
+| `object.*`  <br>`object[*]`                                 | ["value1",<br>      [<br>        { "key" : "value2" },<br>        { "key" : "value3" }<br>      ],<br>      [ 1, 2, 3, 4, 5 ]<br>    ] | **Wildcard step** applied to an object, it returns an array with the value of each attribute. Applied to an array, it returns the array itself |
 | `object.array2[0:-2:2]`                                     | `[ 1, 3 ]`                                                                                                                             | **Array slicing step** starting from first to second last element with a step size of two                                                       |
 | `object..key`  <br>`object..["key"]`                         | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
 | `object..[0]`                                               | `[ { "key" : "value2" }, 1 ]`                                                                                                          | **Recursive descent step** looking for an array index                                                                                           |
-| `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index) - can also evaluate to an attribute name                                                   |
-| `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` references the current item, `#` its index/key - can also be applied to an object           |
+| `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index); can also evaluate to an attribute name                                                   |
+| `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` references the current item, `#` its index/key. Can also be applied to an object           |
 | `object.array2[2,3]`                                        | `[ 3 , 4 ]`                                                                                                                            | **Union step** for more than one array index                                                                                                    |
 | `object["key","array2"]`                                    | `[ "value1", [ 1, 2, 3, 4, 5 ] ]`                                                                                                      | **Union step** for more than one attribute                                                                                                      |
 
@@ -504,7 +504,7 @@ In some scenarios, it may not be the right thing to subscribe to attributes, but
 > action.patientid.<pip.hospital_units.by_patientid>.doctorid
 
 
-For the conceptual model of attribute finders, streaming, and the attribute broker, see [Functions and Attribute Finders](../2_7_FunctionsAndAttributes/).
+For the conceptual model of attribute finders, streaming, and the attribute broker, see [Functions and Attribute Finders](../2_8_FunctionsAndAttributes/).
 
 ## Filtering
 
@@ -664,7 +664,7 @@ Value :: Expression
 The `Expression` represents the replacement template. Within this expression, the relative expressions `@` and `#` can be used:
 
 - **`@` (relative value)**: References the current element being transformed
-- **`#` (relative location)**: References the current position - index for arrays, key for objects
+- **`#` (relative location)**: References the current position, i.e., index for arrays, key for objects
 
 **Subtemplate behavior:**
 
