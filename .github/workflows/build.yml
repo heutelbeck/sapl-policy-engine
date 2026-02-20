@@ -350,12 +350,10 @@ jobs:
   build-native-node:
     if: ${{ github.event_name != 'pull_request' }}
     uses: ./.github/workflows/build_native_node.yml
-    secrets: inherit
 
   build-native-lsp:
     if: ${{ github.event_name != 'pull_request' }}
     uses: ./.github/workflows/build_native_lsp.yml
-    secrets: inherit
 
   # ---------------------------------------------------------------------------
   # Phase 2: Publish (gated on all of Phase 1)
@@ -791,7 +789,8 @@ jobs:
       }}
     name: Publish Documentation
     uses: ./.github/workflows/build_documentation.yml
-    secrets: inherit
+    secrets:
+      GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
   deploy-playground:
     needs: [publish-docker, version-check]

@@ -18,6 +18,9 @@ name: Push documentation to sapl.io
 
 on:
   workflow_call:
+    secrets:
+      GHUB_ACCESS_TOKEN:
+        required: true
   workflow_dispatch:
 
 permissions:
