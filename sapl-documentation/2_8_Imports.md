@@ -3,7 +3,7 @@ layout: default
 title: Imports
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 107
+nav_order: 108
 ---
 
 ## Imports
@@ -19,7 +19,7 @@ Import statements let you use shorter names, making policies easier to read and 
 
 ### Import Syntax
 
-Import statements must appear at the beginning of a SAPL document, before any [schema statements](2_8_Schemas.md) and the policy or policy set.
+Import statements must appear at the beginning of a SAPL document, before any [schema statements](2_9_Schemas.md) and the policy or policy set.
 
 Each import statement starts with the keyword `import` and must specify a fully qualified function or attribute finder name:
 
@@ -111,5 +111,6 @@ obligation
 
 ### See Also
 
-- [Functions](3_0_Functions.md) - Using functions
-- [Attribute Finders](4_0_AttributeFinders.md) - Using attribute finders
+- [Functions and Attribute Finders](2_7_FunctionsAndAttributes.md) - Conceptual model
+- [Functions](3_0_Functions.md) - Built-in function library reference
+- [Attribute Finders](4_0_AttributeFinders.md) - Built-in PIP library reference

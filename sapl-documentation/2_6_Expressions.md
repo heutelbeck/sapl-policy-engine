@@ -151,11 +151,13 @@ library.a_function(subject.name, (environment.day_of_week + 1))
 
 Each function is available under its fully qualified name. The fully qualified name starts with the library name, consisting of one or more identifiers separated by periods `.` (e.g., `sapl.functions.simple`). The library name is followed by a period `.` and an identifier for the function name (e.g., `sapl.functions.simple.append`). Which function libraries are available depends on the configuration of the PDP.
 
-[Imports](../2_7_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
+[Imports](../2_8_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
 
-When evaluating a function expression, the expressions representing the function call arguments are evaluated first. Afterward, the results are passed to the function as arguments. The expression evaluates to the function’s return value.
+When evaluating a function expression, the expressions representing the function call arguments are evaluated first. Afterward, the results are passed to the function as arguments. The expression evaluates to the function's return value.
+
+For the conceptual model of functions (purity, determinism, target safety) and how they differ from attribute finders, see [Functions and Attribute Finders](../2_7_FunctionsAndAttributes/).
 
 ### Relative Expressions
 
@@ -250,7 +252,7 @@ Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the 
 - `exp1 && exp2` (AND), precedence **2**
 - `exp1 || exp2` (OR), precedence **1** (lowest)
 
-SAPL provides two forms of AND (`&`, `&&`) and two forms of OR (`|`, `||`). Both forms of each operator use the same [cost-stratified short-circuit evaluation](#cost-stratified-short-circuit-evaluation). The **only current difference is precedence**: `&` and `|` bind tighter than `&&` and `||`. For example, `a && b | c` is parsed as `a && (b | c)`, not `(a && b) | c`.
+SAPL provides two forms of AND (`&`, `&&`) and two forms of OR (`|`, `||`). Both forms of each operator use the same [cost-stratified short-circuit evaluation](../2_10_EvaluationSemantics/#cost-stratified-short-circuit-evaluation). The **only current difference is precedence**: `&` and `|` bind tighter than `&&` and `||`. For example, `a && b | c` is parsed as `a && (b | c)`, not `(a && b) | c`.
 
 This precedence difference allows policy authors to group conditions naturally without parentheses. For example:
 
@@ -282,75 +284,9 @@ Until the latency-optimized strategy is implemented, choosing between the two fo
 
 #### Cost-Stratified Short-Circuit Evaluation
 
-All AND and OR operators (`&`, `&&`, `|`, `||`) use **cost-stratified short-circuit evaluation**. The compiler flattens chains of AND/OR operators into N-ary operations. For example, `a && b && c && d` is compiled into a single conjunction rather than a chain of nested binary operations. This enables the engine to sort all operands by cost stratum, regardless of how many there are. If any operand in a lower (cheaper) stratum short-circuits the result, all operands in higher (more expensive) strata are never evaluated and their subscriptions are never created.
+All AND and OR operators (`&`, `&&`, `|`, `||`) use **cost-stratified short-circuit evaluation**. The engine categorizes operands into three cost strata (constants, pure expressions, streaming expressions) and evaluates cheaper strata first, regardless of operand position in the source. If a cheaper operand short-circuits the result, more expensive operands are never evaluated and their subscriptions are never created.
 
-SAPL categorizes expressions into three strata based on their evaluation cost:
-
-1. **Constants** (e.g., `true`, `false`, `1 + 2`) - Evaluated at compile time
-2. **Pure expressions** (e.g., `subject.isActive`, `resource.type`) - Evaluated at runtime without external subscriptions. This includes the four authorization subscription fields (`subject`, `resource`, `action`, `environment`) and any environment variables configured at the PDP level.
-3. **Streaming expressions** (e.g., `<pip.sensor>`, `subject.<geo.location>`) - Require asynchronous subscription to external data sources
-
-**Evaluation Rules:**
-
-1. **Cross-strata ordering:** Lower (cheaper) strata are always evaluated before higher (more expensive) strata, regardless of operand position in the source.
-
-2. **Within-strata ordering:** Within the same stratum, operands are evaluated strictly left-to-right as they appear in the source.
-
-3. **Short-circuit behavior:** When a short-circuit value is found (`false` for AND, `true` for OR), evaluation stops and remaining operands are not evaluated.
-
-4. **Error propagation:** When an error occurs during evaluation, it propagates immediately. Lower strata errors propagate even if higher strata operands appear earlier in the source.
-
-**Example: Constant short-circuits subscription access**
-
-```sapl
-subject.isActive && false
-```
-
-Since `false` is a constant (lower stratum) that determines the AND result, `subject.isActive` (higher stratum) is **never evaluated**. This is equivalent to just `false`.
-
-**Example: Subscription access short-circuits attribute finder**
-
-```sapl
-subject.isAdmin || <pip.externalAuthCheck>
-```
-
-If `subject.isAdmin` is `true`, the attribute finder `<pip.externalAuthCheck>` is **never subscribed to**. The external system is never contacted.
-
-**Example: Operand position does not matter for cross-strata**
-
-```sapl
-<pip.sensor> && false
-```
-
-Even though `<pip.sensor>` appears on the left, the constant `false` is evaluated first. The attribute stream is **never subscribed to**. This may be surprising if you expect strict left-to-right evaluation as in imperative programming languages.
-
-**Example: Left-to-right within same stratum**
-
-```sapl
-true || (1/0 > 0)
-```
-
-Both operands are constants (same stratum). Left-to-right order applies: `true` is evaluated first and short-circuits. The division by zero is **never evaluated**, so no error occurs.
-
-```sapl
-(1/0 > 0) || true
-```
-
-Again both are constants, but now the error-producing expression comes first. The division by zero **is evaluated** and produces an error, even though `true` would have short-circuited if reached.
-
-**Example: Lower strata errors propagate**
-
-```sapl
-subject.isActive || (1/0 > 0)
-```
-
-Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a constant (lower stratum). Constants are evaluated first, so the division by zero **produces an error** before `subject.isActive` is ever checked - even though `subject.isActive` appears first in the source. The pure expression cannot "rescue" the constant error.
-
-{: .info }
-**Why this matters for attribute finders:** Attribute finders subscribe to external data sources. Skipping their evaluation when unnecessary avoids unnecessary network calls, reduces latency, and prevents side effects from unused subscriptions. This is particularly valuable when combining quick checks with expensive external lookups.
-
-{: .warning }
-**Compile-time errors:** Constant expressions that produce errors (like `1/0`) are evaluated at compile time. These errors propagate regardless of whether a higher-stratum operand (appearing earlier in the source) might have short-circuited at runtime. To avoid this, ensure constant sub-expressions do not contain errors, or guard them with conditional logic.
+For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_10_EvaluationSemantics/).
 
 ### String Concatenation
 
@@ -568,7 +504,7 @@ In some scenarios, it may not be the right thing to subscribe to attributes, but
 > action.patientid.<pip.hospital_units.by_patientid>.doctorid
 
 
-Attribute finders are described in greater detail [below](#attribute-finders).
+For the conceptual model of attribute finders, streaming, and the attribute broker, see [Functions and Attribute Finders](../2_7_FunctionsAndAttributes/).
 
 ## Filtering
 

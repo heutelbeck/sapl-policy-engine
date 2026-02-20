@@ -30,7 +30,7 @@ set "example-policies" priority deny or deny
 
 After the combining algorithm, an **optional** target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression that must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain authorization subscription, the policy set *matches* this subscription. In case the target expression is missing, the policy set matches any authorization subscription.
 
-The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no [attribute finder steps](../4_0_AttributeFinders/#attribute-finders) allowed at this place.
+The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no [attribute finder steps](../2_7_FunctionsAndAttributes/#attribute-finders-and-policy-information-points) allowed at this place.
 
 ### Variable Assignments
 
@@ -42,9 +42,9 @@ In case a policy within the policy set assigns a variable already assigned in th
 
 ### Policies
 
-Each policy set must contain one or more policies. [See above](../2_3_PolicyStructure/#sapl-policy) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
+Each policy set must contain one or more policies. [See above](../2_3_PolicyStructure/#policy-syntax) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
 
-In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see [Variable Assignments](../2_3_PolicyStructure/#variable-assignment)) are available within the policies but can be overwritten by a variable assignment within a particular policy.
+In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see [Variable Assignments](#variable-assignments) above) are available within the policies but can be overwritten by a variable assignment within a particular policy.
 
 ### Example: First Applicable Policy
 
@@ -80,3 +80,15 @@ The policy order encodes business priority: "VIP status trumps blacklist status.
 | Normal user outside business hours     | `deny`   | No policy applies, default is `deny` |
 
 If the blacklist policy came first, VIPs on the blacklist would be denied. The `first or deny` algorithm lets organizations express "check these exceptions first" patterns that cannot be achieved with priority-based algorithms where all permits or all denies are grouped together.
+
+### Policy Set Evaluation Result
+
+Evaluating a policy set against an authorization subscription means assigning a decision value based on the target expression and the contained policies:
+
+| **Target Expression**  | **Policy Values** | **Policy Set Value**                                          |
+|:-----------------------|:------------------|:--------------------------------------------------------------|
+| `false` (not matching) | don't care        | `NOT_APPLICABLE`                                              |
+| `true` (matching)      | care              | Result of the **Combining Algorithm** applied to the Policies |
+| *Error*                | don't care        | `INDETERMINATE`                                               |
+
+For how combining algorithms resolve multiple votes into a single decision, see [Combining Algorithms](../2_4_CombiningAlgorithms/).

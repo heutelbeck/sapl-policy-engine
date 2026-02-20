@@ -3,7 +3,7 @@ layout: default
 title: Schemas
 parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 108
+nav_order: 109
 ---
 
 ## Schemas for Authorization Subscriptions
@@ -16,7 +16,7 @@ SAPL allows predefined structure for authorization subscription elements using [
 
 ### Schema Syntax
 
-Schema statements are declared after any [imports](2_7_Imports.md) and before the policy or policy set. Each schema targets one subscription element:
+Schema statements are declared after any [imports](2_8_Imports.md) and before the policy or policy set. Each schema targets one subscription element:
 
 ```
 <subscription-element> schema <expression>

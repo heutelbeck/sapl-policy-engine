@@ -9,10 +9,6 @@ has_toc: false
 
 ## Functions
 
-Functions can be used within SAPL expressions (basic function expressions). A function takes some inputs (called *arguments*) and returns an output value.
+SAPL ships with a set of standard function libraries. Functions are pure, synchronous computations that can be used in any SAPL expression, including target expressions. For the conceptual model, properties, and how functions differ from attribute finders, see [Functions and Attribute Finders](../2_7_FunctionsAndAttributes/).
 
-Functions are organized in function libraries. Each function library has a *name* consisting of one or more identifiers separated by periods `.` (e.g., `simple.string` or `filter`). The *fully qualified name* of a function consists of the library name followed by a period and the function name (e.g., `simple.string.append`).
-
-Functions can be used in any part of a SAPL document, especially in the target expression. Therefore, their output should only depend on the input arguments, and they should not access external resources. Functions do not have access to environment variables.
-
-SAPL ships with a standard function library providing some basic functions.
+The following pages document each built-in function library.

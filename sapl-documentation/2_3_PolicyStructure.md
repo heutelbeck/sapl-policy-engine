@@ -56,8 +56,8 @@ Policies and policy sets are organized into documents. A document is managed as 
 
 Each SAPL document contains exactly **one** policy or [policy set](../2_5_PolicySets/). A document cannot contain both, and it cannot contain more than one of either. Optionally, the policy or policy set can be preceded by:
 
-- **[Import statements](../2_7_Imports/)** for referencing functions and attribute finders from libraries
-- **[Schema statements](../2_8_Schemas/)** for validating authorization subscription elements
+- **[Import statements](../2_8_Imports/)** for referencing functions and attribute finders from libraries
+- **[Schema statements](../2_9_Schemas/)** for validating authorization subscription elements
 
 Imports and schemas must appear before the policy or policy set. The PDP loads all `.sapl` files from its configured policy source and evaluates the documents together using the configured [combining algorithm](../2_4_CombiningAlgorithms/).
 
@@ -113,7 +113,7 @@ deny
     !<time.localTimeIsBetween("08:00:00", "18:00:00")>;
 ```
 
-The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute (covered in [Attribute Finders](../4_0_AttributeFinders/)).
+The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute (covered in [Functions and Attribute Finders](../2_7_FunctionsAndAttributes/)).
 
 ### Body
 
@@ -144,7 +144,18 @@ A variable assignment can optionally include the keyword `schema` followed by on
 {: .info }
 > Policy sets use a separate `for` target expression to control applicability. Individual policies express all conditions in the body. See [Policy Sets](../2_5_PolicySets/) for details.
 
-For details on how conditions are evaluated, including short-circuit behavior and error handling, see [Evaluation Semantics](../2_9_EvaluationSemantics/).
+#### Policy Evaluation Result
+
+Evaluating a policy against an authorization subscription means assigning a decision value. The body conditions are evaluated as a conjunction (all must be true):
+
+| **Body Conditions**        | **Policy Value**                              |
+|:---------------------------|:----------------------------------------------|
+| All evaluate to `true`     | Policy's **Entitlement** (`PERMIT` or `DENY`) |
+| Any evaluates to `false`   | `NOT_APPLICABLE`                              |
+| Any produces an error      | `INDETERMINATE`                               |
+| No body present            | Policy's **Entitlement** (`PERMIT` or `DENY`) |
+
+Conditions are evaluated lazily: if an earlier condition evaluates to `false`, later conditions are not evaluated and cannot produce errors. For details on how the engine optimizes evaluation order across cost strata, see [Evaluation Semantics](../2_10_EvaluationSemantics/).
 
 **Automatic Optimization:** The SAPL compiler analyzes the body and identifies statements that do not use attribute finders (`<>` operator). These statements are automatically used for fast policy indexing, allowing the PDP to efficiently select relevant policies from large policy stores without evaluating external attributes.
 
