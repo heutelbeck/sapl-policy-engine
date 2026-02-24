@@ -40,7 +40,7 @@ Tests are organized into **requirements** that group related **scenarios**. Each
 - **given** sets up the test: which policy to load, which functions and attributes to mock.
 - **when** defines the authorization subscription: who is attempting what action on which resource.
 - **expect** declares the expected decision.
-
+        
 The DSL uses `expect` rather than `then` because policy evaluation is a pure computation. There are no side effects to observe. The PDP receives a subscription and produces a decision. `expect` expresses this declarative relationship directly.
 
 ### Runtime

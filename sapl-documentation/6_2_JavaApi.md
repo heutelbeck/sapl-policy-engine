@@ -20,13 +20,13 @@ The Java API is based on Project Reactor (<https://projectreactor.io/>). It is d
 
 The central interface is `PolicyDecisionPoint`. It exposes the same authorization semantics as the HTTP API: single subscriptions (streaming and one-shot) and multi-subscriptions (streaming and batch). Only the streaming single-subscription method is abstract; all others have default implementations that PDP implementations may override with optimized evaluation paths.
 
-| Method | Returns | Behavior |
-|--------|---------|----------|
-| `decide(AuthorizationSubscription)` | `Flux<AuthorizationDecision>` | Streaming. Returns a continuous stream of decisions that updates whenever policies, attributes, or conditions change. |
-| `decideOnce(AuthorizationSubscription)` | `Mono<AuthorizationDecision>` | One-shot reactive. Returns a single decision. |
-| `decideOnceBlocking(AuthorizationSubscription)` | `AuthorizationDecision` | One-shot synchronous. When no policy accesses external attributes, the PDP uses an optimized evaluation path that bypasses all reactive machinery. |
-| `decide(MultiAuthorizationSubscription)` | `Flux<IdentifiableAuthorizationDecision>` | Streaming individual. Each decision is tagged with the subscription ID for correlation. |
-| `decideAll(MultiAuthorizationSubscription)` | `Flux<MultiAuthorizationDecision>` | Streaming batch. Emits all decisions as a single object whenever any decision changes. |
+| Method                                          | Returns                                   | Behavior                                                                                                                                           |
+|-------------------------------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `decide(AuthorizationSubscription)`             | `Flux<AuthorizationDecision>`             | Streaming. Returns a continuous stream of decisions that updates whenever policies, attributes, or conditions change.                              |
+| `decideOnce(AuthorizationSubscription)`         | `Mono<AuthorizationDecision>`             | One-shot reactive. Returns a single decision.                                                                                                      |
+| `decideOnceBlocking(AuthorizationSubscription)` | `AuthorizationDecision`                   | One-shot synchronous. When no policy accesses external attributes, the PDP uses an optimized evaluation path that bypasses all reactive machinery. |
+| `decide(MultiAuthorizationSubscription)`        | `Flux<IdentifiableAuthorizationDecision>` | Streaming individual. Each decision is tagged with the subscription ID for correlation.                                                            |
+| `decideAll(MultiAuthorizationSubscription)`     | `Flux<MultiAuthorizationDecision>`        | Streaming batch. Emits all decisions as a single object whenever any decision changes.                                                             |
 
 ### Embedded PDP (Non-Spring)
 
@@ -66,15 +66,15 @@ For Spring Boot applications, use the unified starter. It includes the embedded 
 
 By default, the embedded PDP is active. To connect to a remote PDP server instead, configure the remote PDP properties (prefix `io.sapl.pdp.remote`):
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `enabled` | `boolean` | `false` | Activates the remote PDP client and disables the embedded PDP. |
-| `type` | `String` | `"http"` | Connection protocol. Currently only `http` is supported. |
-| `host` | `String` | | Base URL of the remote PDP server (e.g., `https://pdp.example.com:8443`). |
-| `key` | `String` | | Client key for basic authentication. Requires `secret`. |
-| `secret` | `String` | | Client secret for basic authentication. Requires `key`. |
-| `apiKey` | `String` | | API key for API-key-based authentication. Mutually exclusive with `key`/`secret`. |
-| `ignoreCertificates` | `boolean` | `false` | Disables TLS certificate verification. For development only. |
+| Property             | Type      | Default  | Description                                                                       |
+|----------------------|-----------|----------|-----------------------------------------------------------------------------------|
+| `enabled`            | `boolean` | `false`  | Activates the remote PDP client and disables the embedded PDP.                    |
+| `type`               | `String`  | `"http"` | Connection protocol. Currently only `http` is supported.                          |
+| `host`               | `String`  |          | Base URL of the remote PDP server (e.g., `https://pdp.example.com:8443`).         |
+| `key`                | `String`  |          | Client key for basic authentication. Requires `secret`.                           |
+| `secret`             | `String`  |          | Client secret for basic authentication. Requires `key`.                           |
+| `apiKey`             | `String`  |          | API key for API-key-based authentication. Mutually exclusive with `key`/`secret`. |
+| `ignoreCertificates` | `boolean` | `false`  | Disables TLS certificate verification. For development only.                      |
 
 Exactly one authentication method must be configured: either `key` and `secret` together, or `apiKey` alone.
 

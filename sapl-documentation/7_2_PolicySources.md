@@ -14,13 +14,13 @@ The PAP manages the policies in the policy store. How policies are authored, rev
 
 The PDP supports five policy source types, configured via `io.sapl.pdp.embedded.pdp-config-type`:
 
-| Source Type       | Description                                                                                            | Hot-Reload | Multi-Tenant |
-|-------------------|--------------------------------------------------------------------------------------------------------|------------|--------------|
-| `RESOURCES`       | Loads policies from the Java classpath (`src/main/resources/policies`). Fixed at build time.           | No         | No           |
+| Source Type       | Description                                                                                                        | Hot-Reload | Multi-Tenant |
+|-------------------|--------------------------------------------------------------------------------------------------------------------|------------|--------------|
+| `RESOURCES`       | Loads policies from the Java classpath (`src/main/resources/policies`). Fixed at build time.                       | No         | No           |
 | `DIRECTORY`       | Monitors a filesystem directory for `.sapl` files and `pdp.json`. Changes are detected and reloaded automatically. | Yes        | No           |
-| `MULTI_DIRECTORY` | Monitors subdirectories within a base directory. Each subdirectory name becomes a tenant ID.           | Yes        | Yes          |
-| `BUNDLES`         | Monitors a directory for `.saplbundle` files (signed ZIP archives). Each bundle filename becomes a tenant ID. | Yes        | Yes          |
-| `REMOTE_BUNDLES`  | Fetches `.saplbundle` files from a remote HTTP server using ETag-based polling or long-polling.        | Yes        | Yes          |
+| `MULTI_DIRECTORY` | Monitors subdirectories within a base directory. Each subdirectory name becomes a tenant ID.                       | Yes        | Yes          |
+| `BUNDLES`         | Monitors a directory for `.saplbundle` files (signed ZIP archives). Each bundle filename becomes a tenant ID.      | Yes        | Yes          |
+| `REMOTE_BUNDLES`  | Fetches `.saplbundle` files from a remote HTTP server using ETag-based polling or long-polling.                    | Yes        | Yes          |
 
 For the `RESOURCES` source, the policy store is part of the application build. Policies are authored alongside the application code and deployed together. This is suitable for applications where policies change infrequently and are tested as part of the build process.
 

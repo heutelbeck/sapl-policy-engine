@@ -4,10 +4,10 @@ A Language Server Protocol (LSP) implementation for SAPL policy files (`.sapl`) 
 
 ## Supported File Types
 
-| Extension | Language | Description |
-|-----------|----------|-------------|
-| `.sapl` | SAPL | Streaming Attribute Policy Language policy definitions |
-| `.sapltest` | SAPLTest | Test specifications for SAPL policies |
+| Extension | Language | Description                                       |
+|-----------|----------|---------------------------------------------------|
+| `.sapl` | SAPL | Streaming Attribute Policy Language policy definitions  |
+| `.sapltest` | SAPLTest | Test specifications for SAPL policies           |
 
 ## Features
 
@@ -82,10 +82,10 @@ The language server can be run either as a standalone JAR (requires Java 21+) or
 
 Pre-built native binaries are available from [GitHub Releases](https://github.com/heutelbeck/sapl-policy-engine/releases/tag/snapshot):
 
-| Platform | Binary |
-|----------|--------|
-| Linux x86_64 | `sapl-language-server-linux-amd64` |
-| macOS ARM64 | `sapl-language-server-macos-arm64` |
+| Platform | Binary                                         |
+|----------|------------------------------------------------|
+| Linux x86_64 | `sapl-language-server-linux-amd64`         |
+| macOS ARM64 | `sapl-language-server-macos-arm64`          |
 | Windows x86_64 | `sapl-language-server-windows-amd64.exe` |
 
 ### Standard I/O Mode (Default)

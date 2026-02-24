@@ -8,7 +8,7 @@ nav_order: 601
 
 ## HTTP API
 
-The SAPL PDP server exposes HTTP endpoints for authorization decisions. All endpoints accept `POST` requests with `application/json` request bodies. Streaming endpoints produce `application/x-ndjson` (Newline-Delimited JSON); one-shot endpoints produce `application/json`.
+The SAPL PDP server exposes HTTP endpoints for authorization decisions. All endpoints accept `POST` requests with `application/json` request bodies. Streaming endpoints produce `text/event-stream` (Server-Sent Events); one-shot endpoints produce `application/json`.
 
 All connections must use TLS. Authentication is required and configured per deployment (basic auth, API key, or OAuth2). All endpoints are located under a shared base URL, typically `https://<host>:<port>/api/pdp/`.
 
@@ -22,8 +22,8 @@ A PEP encountering connectivity issues or errors with the PDP server must treat 
 
 - URL: `{baseURL}/decide`
 - Body: An authorization subscription JSON object
-- Produces: `application/x-ndjson` (streaming)
-- Behavior: Returns an initial decision, then pushes updated decisions whenever policies, attributes, or conditions change. The client must close the connection to stop receiving updates.
+- Produces: `text/event-stream` (Server-Sent Events)
+- Behavior: Returns an initial decision, then pushes updated decisions whenever policies, attributes, or conditions change. Each decision is a JSON object in the `data` field of an SSE event. The server may send SSE comment events (`: keep-alive`) to keep the connection alive. The client must close the connection to stop receiving updates.
 
 #### Decide Once (One-Shot)
 
@@ -38,14 +38,14 @@ A PEP encountering connectivity issues or errors with the PDP server must treat 
 
 - URL: `{baseURL}/multi-decide`
 - Body: A multi-subscription JSON object
-- Produces: `application/x-ndjson` (streaming)
+- Produces: `text/event-stream` (Server-Sent Events)
 - Behavior: Returns individual decisions as they change, each tagged with its subscription ID. See [Multi-Subscriptions](../6_3_MultiSubscriptions/) for the response format.
 
 #### Multi Decide All (Streaming Batch)
 
 - URL: `{baseURL}/multi-decide-all`
 - Body: A multi-subscription JSON object
-- Produces: `application/x-ndjson` (streaming)
+- Produces: `text/event-stream` (Server-Sent Events)
 - Behavior: Returns all decisions as a single object whenever any decision changes.
 
 #### Multi Decide All Once (One-Shot Batch)
@@ -57,7 +57,7 @@ A PEP encountering connectivity issues or errors with the PDP server must treat 
 
 ### Keep-Alive
 
-Streaming connections use periodic keep-alive events to detect stale connections. A PEP should treat a prolonged absence of any events (decisions or keep-alives) as a connection failure.
+Streaming connections use periodic SSE comment events (`: keep-alive`) to prevent firewalls and proxies from closing idle connections. A PEP should treat a prolonged absence of any events (decisions or keep-alives) as a connection failure.
 
 ### Implementations
 

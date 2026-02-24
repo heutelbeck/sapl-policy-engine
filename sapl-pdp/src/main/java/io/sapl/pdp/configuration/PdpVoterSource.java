@@ -196,8 +196,10 @@ public class PdpVoterSource {
         val initialValue = Mono.fromSupplier(() -> getConfigRef(pdpId).get());
         val updates      = getUpdateSink(pdpId).asFlux();
 
-        // Concat initial value with updates, deduplicate consecutive identical values
-        return Flux.concat(initialValue, updates).distinctUntilChanged();
+        // Concat initial value with updates
+        // Note: here we cannot dedupe, because equals of CompiledPdpVoter is not
+        // meaningfully defined.
+        return Flux.concat(initialValue, updates);
     }
 
     /**

@@ -41,19 +41,19 @@ Bundles are addressed by convention: `{baseUrl}/{pdpId}`. The example above reso
 
 All properties live under `io.sapl.pdp.embedded.remoteBundles`:
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `baseUrl` | `String` | _(required)_ | Base URL of the bundle server. |
-| `pdpIds` | `List<String>` | _(required)_ | PDP identifiers to fetch bundles for. |
-| `mode` | `POLLING` or `LONG_POLL` | `POLLING` | Change detection mode. |
-| `pollInterval` | `Duration` | `30s` | Interval between polls (POLLING mode). |
-| `longPollTimeout` | `Duration` | `30s` | Server hold time (LONG_POLL mode). |
-| `authHeaderName` | `String` | _(none)_ | HTTP header name for authentication. |
-| `authHeaderValue` | `String` | _(none)_ | HTTP header value for authentication. |
-| `followRedirects` | `boolean` | `true` | Follow HTTP 3xx redirects. |
-| `pdpIdPollIntervals` | `Map<String, Duration>` | _(empty)_ | Per-pdpId poll interval overrides. |
-| `firstBackoff` | `Duration` | `500ms` | Initial backoff after a fetch failure. |
-| `maxBackoff` | `Duration` | `5s` | Maximum backoff after repeated failures. |
+| Property             | Type                     | Default      | Description                              |
+|----------------------|--------------------------|--------------|------------------------------------------|
+| `baseUrl`            | `String`                 | _(required)_ | Base URL of the bundle server.           |
+| `pdpIds`             | `List<String>`           | _(required)_ | PDP identifiers to fetch bundles for.    |
+| `mode`               | `POLLING` or `LONG_POLL` | `POLLING`    | Change detection mode.                   |
+| `pollInterval`       | `Duration`               | `30s`        | Interval between polls (POLLING mode).   |
+| `longPollTimeout`    | `Duration`               | `30s`        | Server hold time (LONG_POLL mode).       |
+| `authHeaderName`     | `String`                 | _(none)_     | HTTP header name for authentication.     |
+| `authHeaderValue`    | `String`                 | _(none)_     | HTTP header value for authentication.    |
+| `followRedirects`    | `boolean`                | `true`       | Follow HTTP 3xx redirects.               |
+| `pdpIdPollIntervals` | `Map<String, Duration>`  | _(empty)_    | Per-pdpId poll interval overrides.       |
+| `firstBackoff`       | `Duration`               | `500ms`      | Initial backoff after a fetch failure.   |
+| `maxBackoff`         | `Duration`               | `5s`         | Maximum backoff after repeated failures. |
 
 ### Change Detection
 

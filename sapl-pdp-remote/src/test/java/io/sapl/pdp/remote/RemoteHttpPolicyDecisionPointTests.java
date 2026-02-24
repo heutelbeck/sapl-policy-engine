@@ -149,12 +149,10 @@ class RemoteHttpPolicyDecisionPointTests {
             if (decision == null)
                 body.append("data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n");
             else {
-                /* "text/event-stream" */
                 body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
             }
         }
-        val response = new MockResponse()
-                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
+        val response = new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
                 .setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
         server.enqueue(response);
     }

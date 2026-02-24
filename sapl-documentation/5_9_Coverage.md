@@ -14,12 +14,12 @@ The SAPL Maven plugin integrates coverage into the build lifecycle. It collects 
 
 ### Coverage Metrics
 
-| Metric                     | Description                                                          |
-|----------------------------|----------------------------------------------------------------------|
-| Policy set hit ratio       | Percentage of policy sets that were evaluated during testing         |
-| Policy hit ratio           | Percentage of individual policies that were evaluated during testing |
+| Metric                     | Description                                                           |
+|----------------------------|-----------------------------------------------------------------------|
+| Policy set hit ratio       | Percentage of policy sets that were evaluated during testing          |
+| Policy hit ratio           | Percentage of individual policies that were evaluated during testing  |
 | Policy condition hit ratio | Percentage of condition branches that were exercised (true and false) |
-| Branch coverage            | Overall branch coverage across all policy documents                  |
+| Branch coverage            | Overall branch coverage across all policy documents                   |
 
 ### Maven Plugin Configuration
 
