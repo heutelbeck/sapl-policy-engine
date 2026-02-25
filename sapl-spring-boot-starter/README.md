@@ -300,6 +300,49 @@ public Document getDocument(Long id) { ... }
 
 However, some combinations are not allowed. You cannot mix SAPL annotations with Spring Security annotations like `@PreAuthorize`. You also cannot use `@EnforceTillDenied`, `@EnforceDropWhileDenied`, or `@EnforceRecoverableIfDenied` together with `@PreEnforce` or `@PostEnforce`.
 
+### Transaction Integration
+
+When a `@PreEnforce` or `@PostEnforce` method is also `@Transactional`, obligation handler failures must trigger a transaction rollback. Consider a service method that writes to the database and has an obligation that must be fulfilled on the return value:
+
+```java
+@Transactional
+@PreEnforce
+public Order createOrder(OrderRequest request) {
+    return orderRepository.save(new Order(request));
+}
+```
+
+If the PDP returns PERMIT with an obligation, and the obligation handler fails after the method has successfully saved the order, the correct behavior is to roll back the database transaction. The order should not persist if the obligation cannot be fulfilled.
+
+#### Automatic AOP Order Adjustment
+
+When you enable SAPL method security via `@EnableSaplMethodSecurity` or `@EnableReactiveSaplMethodSecurity`, the transaction interceptor order is automatically adjusted so that the transaction boundary wraps the SAPL enforcement interceptors. No manual configuration is required.
+
+This places the interceptors in the correct order from outermost to innermost:
+
+1. Spring Security `@PreAuthorize` (order 500) - fast deny, no transaction started
+2. `TransactionInterceptor` (order `Integer.MAX_VALUE - 3`) - begins the transaction
+3. SAPL streaming enforcement (order `Integer.MAX_VALUE - 2`)
+4. SAPL `@PreEnforce` (order `Integer.MAX_VALUE - 1`)
+5. SAPL `@PostEnforce` (order `Integer.MAX_VALUE`) - innermost
+6. The actual method executes
+
+When a SAPL obligation handler throws after the method returns, the exception propagates outward through the `TransactionInterceptor`, which rolls back the transaction.
+
+The automatic adjustment only applies when the transaction advisor still has Spring's default order (`Ordered.LOWEST_PRECEDENCE`). If you have explicitly configured a custom order via `@EnableTransactionManagement(order = ...)`, your setting is preserved.
+
+For reactive methods returning `Mono` or `Flux`, the constraint handlers are wired into the reactive pipeline. The `ReactiveTransactionManager` sees the error signal within the pipeline and rolls back automatically, independent of AOP interceptor ordering.
+
+#### Disabling Automatic Adjustment
+
+If the automatic reordering conflicts with your specific AOP interceptor ordering requirements, you can disable it:
+
+```properties
+io.sapl.method-security.adjust-transaction-order=false
+```
+
+With this property set, the transaction interceptor keeps its default order. Be aware that in blocking scenarios, this means obligation handler failures after a successful method call will not trigger a rollback, potentially leaving the database in an inconsistent state.
+
 ## HTTP Request Security
 
 Beyond method security, you can apply SAPL to the HTTP layer. This protects endpoints based on request attributes before any controller code runs.

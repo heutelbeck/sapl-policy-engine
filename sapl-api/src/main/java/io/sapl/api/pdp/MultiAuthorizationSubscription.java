@@ -26,6 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
@@ -92,12 +93,35 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId,
             @NonNull Value subject, @NonNull Value action, @NonNull Value resource, @NonNull Value environment) {
+        return addAuthorizationSubscription(subscriptionId, subject, action, resource, environment, Value.EMPTY_OBJECT);
+    }
+
+    /**
+     * Adds an authorization subscription with the given ID, constructed from
+     * individual Value components including secrets. Values must not be undefined
+     * or
+     * error values.
+     *
+     * @param subscriptionId unique identifier for this subscription
+     * @param subject the subject requesting access
+     * @param action the action being requested
+     * @param resource the resource being accessed
+     * @param environment contextual environment data
+     * @param secrets secrets needed for policy evaluation (never logged)
+     * @return this instance for method chaining
+     * @throws IllegalArgumentException if a subscription with the same ID already
+     * exists, or if any Value is undefined or an
+     * error
+     */
+    public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId,
+            @NonNull Value subject, @NonNull Value action, @NonNull Value resource, @NonNull Value environment,
+            @NonNull ObjectValue secrets) {
         validateValue(subject, "Subject");
         validateValue(action, "Action");
         validateValue(resource, "Resource");
         validateNotError(environment, "Environment");
         return addSubscription(subscriptionId,
-                new AuthorizationSubscription(subject, action, resource, environment, Value.EMPTY_OBJECT));
+                new AuthorizationSubscription(subject, action, resource, environment, secrets));
     }
 
     /**
@@ -175,8 +199,58 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource, Object environment, ObjectMapper mapper) {
+        return addAuthorizationSubscription(subscriptionId, subject, action, resource, environment, null, mapper);
+    }
+
+    /**
+     * Adds an authorization subscription with the given ID, constructed from
+     * arbitrary objects including environment and secrets. The objects are
+     * marshaled
+     * using a default ObjectMapper with Jdk8Module registered.
+     *
+     * @param subscriptionId unique identifier for this subscription
+     * @param subject an object describing the subject
+     * @param action an object describing the action
+     * @param resource an object describing the resource
+     * @param environment an object describing the environment (null becomes
+     * UNDEFINED)
+     * @param secrets an object describing secrets needed for policy evaluation
+     * (null
+     * becomes empty; never logged)
+     * @return this instance for method chaining
+     * @throws IllegalArgumentException if a subscription with the same ID already
+     * exists
+     */
+    public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
+            Object action, Object resource, Object environment, Object secrets) {
+        return addAuthorizationSubscription(subscriptionId, subject, action, resource, environment, secrets,
+                DEFAULT_MAPPER);
+    }
+
+    /**
+     * Adds an authorization subscription with the given ID, constructed from
+     * arbitrary objects including environment and secrets. The objects are
+     * marshaled
+     * using the supplied ObjectMapper.
+     *
+     * @param subscriptionId unique identifier for this subscription
+     * @param subject an object describing the subject
+     * @param action an object describing the action
+     * @param resource an object describing the resource
+     * @param environment an object describing the environment (null becomes
+     * UNDEFINED)
+     * @param secrets an object describing secrets needed for policy evaluation
+     * (null
+     * becomes empty; never logged)
+     * @param mapper the ObjectMapper to be used for marshaling
+     * @return this instance for method chaining
+     * @throws IllegalArgumentException if a subscription with the same ID already
+     * exists
+     */
+    public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
+            Object action, Object resource, Object environment, Object secrets, ObjectMapper mapper) {
         return addSubscription(subscriptionId,
-                AuthorizationSubscription.of(subject, action, resource, environment, null, mapper));
+                AuthorizationSubscription.of(subject, action, resource, environment, secrets, mapper));
     }
 
     private static void validateValue(Value value, String fieldName) {

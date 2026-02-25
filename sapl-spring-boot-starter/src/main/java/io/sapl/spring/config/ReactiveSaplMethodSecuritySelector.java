@@ -49,6 +49,7 @@ public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector
     private String[] getProxyImports() {
         List<String> result = new ArrayList<>();
         result.add(ReactiveSaplMethodSecurityConfiguration.class.getName());
+        result.add(SaplTransactionManagementConfiguration.class.getName());
         return result.toArray(new String[0]);
     }
 

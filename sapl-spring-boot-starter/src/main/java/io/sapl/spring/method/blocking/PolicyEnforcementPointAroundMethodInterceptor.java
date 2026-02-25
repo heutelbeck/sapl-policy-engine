@@ -58,7 +58,7 @@ public class PolicyEnforcementPointAroundMethodInterceptor
 
     public static PolicyEnforcementPointAroundMethodInterceptor reactive(MethodInterceptor policyEnforcementPoint) {
         return new PolicyEnforcementPointAroundMethodInterceptor(
-                SaplAuthorizationInterceptorsOrder.PRE_ENFORCE.getOrder(), policyEnforcementPoint);
+                SaplAuthorizationInterceptorsOrder.STREAMING.getOrder(), policyEnforcementPoint);
     }
 
     PolicyEnforcementPointAroundMethodInterceptor(int order, MethodInterceptor policyEnforcementPoint) {

@@ -77,9 +77,9 @@ class RemoteHttpPolicyDecisionPointTests {
         server.start();
         pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
                 .withHttpClient(HttpClient.create()).basicAuth("secret", "key").build();
-        pdp.setBackoffFactor(2);
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
+        pdp.setTimeoutMillis(5000);
     }
 
     @AfterEach
@@ -176,13 +176,13 @@ class RemoteHttpPolicyDecisionPointTests {
     void settersAndGetters() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
-        pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);
         pdpUnderTest.setMaxBackOffMillis(1001);
+        pdpUnderTest.setTimeoutMillis(997);
         assertThat(pdpUnderTest).satisfies(p -> {
-            assertThat(p.getBackoffFactor()).isEqualTo(999);
             assertThat(p.getFirstBackoffMillis()).isEqualTo(998);
             assertThat(p.getMaxBackOffMillis()).isEqualTo(1001);
+            assertThat(p.getTimeoutMillis()).isEqualTo(997);
         });
     }
 

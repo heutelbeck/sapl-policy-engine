@@ -35,7 +35,8 @@ class ReactiveSaplMethodSecuritySelectorTests {
     void when_AdviceModeProxy_thenRegistrarAndSaplConfigIncludedInSelectImports() {
         final var sut    = new ReactiveSaplMethodSecuritySelector();
         final var actual = sut.selectImports(AdviceMode.PROXY);
-        assertThat(actual).containsExactlyInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName());
+        assertThat(actual).containsExactlyInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName(),
+                SaplTransactionManagementConfiguration.class.getName());
     }
 
 }

@@ -18,12 +18,46 @@
 package io.sapl.spring.method.blocking;
 
 import lombok.Getter;
-import org.springframework.security.authorization.method.AuthorizationInterceptorsOrder;
 
+/**
+ * Ordering constants for SAPL method-level Policy Enforcement Point
+ * interceptors.
+ * <p>
+ * SAPL PEPs are placed at the innermost positions of the AOP interceptor chain
+ * (highest order values). This ensures that when combined with
+ * {@code @Transactional}, constraint handler failures after method execution
+ * propagate through the {@code TransactionInterceptor} and trigger a rollback.
+ * <p>
+ * From inner to outer:
+ * <ol>
+ * <li>{@link #POST_ENFORCE} ({@code Integer.MAX_VALUE}) - innermost</li>
+ * <li>{@link #PRE_ENFORCE} ({@code Integer.MAX_VALUE - 1})</li>
+ * <li>{@link #STREAMING} ({@code Integer.MAX_VALUE - 2})</li>
+ * <li>{@code TransactionInterceptor} - should be configured with order
+ * {@link #TRANSACTION_ORDER} ({@code Integer.MAX_VALUE - 3})</li>
+ * </ol>
+ * <p>
+ * All three enforcement types (pre, post, streaming) are mutually exclusive on
+ * any given method.
+ * <p>
+ * To configure the transaction interceptor order, use
+ * {@code @EnableTransactionManagement(order = SaplAuthorizationInterceptorsOrder.TRANSACTION_ORDER)}.
+ *
+ * @since 3.0.0
+ */
 @Getter
 public enum SaplAuthorizationInterceptorsOrder {
-    PRE_ENFORCE(AuthorizationInterceptorsOrder.PRE_AUTHORIZE.getOrder() - 50),
-    POST_ENFORCE(AuthorizationInterceptorsOrder.PRE_AUTHORIZE.getOrder() - 40);
+
+    POST_ENFORCE(Integer.MAX_VALUE),
+    PRE_ENFORCE(Integer.MAX_VALUE - 1),
+    STREAMING(Integer.MAX_VALUE - 2);
+
+    /**
+     * Recommended order for {@code TransactionInterceptor} when used with SAPL
+     * enforcement. This places the transaction boundary just outside the SAPL
+     * PEPs so that constraint handler failures trigger transaction rollback.
+     */
+    public static final int TRANSACTION_ORDER = Integer.MAX_VALUE - 3;
 
     private final int order;
 
