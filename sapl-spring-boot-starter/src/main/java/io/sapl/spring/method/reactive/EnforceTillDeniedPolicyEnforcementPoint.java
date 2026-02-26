@@ -17,21 +17,18 @@
  */
 package io.sapl.spring.method.reactive;
 
-import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.jspecify.annotations.NonNull;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import tools.jackson.core.JacksonException;
-
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,14 +52,15 @@ import static java.util.function.Predicate.not;
  * <p>
  * The PEP does not permit onErrorContinue() downstream.
  *
- * @param <T> type of the FLux contents
+ * @param <T> type of the Flux contents
  */
 @Slf4j
 public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private static final String ERROR_ACCESS_DENIED_BY_PDP                 = "Access Denied by PDP";
     private static final String ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE = "Operator may only be subscribed once.";
-    private static final String ERROR_REPLACING_STREAM_WITH_RESOURCE       = "Error replacing stream with resource. Ending Stream.";
+
+    private static final String WARN_FAILED_ONCANCEL_OBLIGATION = "Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. No information is leaked, however take actions to mitigate error.";
 
     private final Flux<AuthorizationDecision> decisions;
 
@@ -70,19 +68,19 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private final ConstraintEnforcementService constraintsService;
 
-    EnforcementSink<T> sink;
+    private EnforcementSink<T> sink;
 
     private final Class<T> clazz;
 
-    final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
+    private final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-    final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
+    private final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-    final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
+    private final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-    final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+    private final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-    final AtomicBoolean stopped = new AtomicBoolean(false);
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     private EnforceTillDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
             Flux<T> resourceAccessPoint,
@@ -105,13 +103,13 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     @Override
-    public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
+    public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
         if (sink != null)
             throw new IllegalStateException(ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE);
-        val context = subscriber.currentContext();
+        val context = actual.currentContext();
         sink                = new EnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
-        Flux.create(sink).subscribe(subscriber);
+        Flux.create(sink).subscribe(actual);
         decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
     }
 
@@ -133,17 +131,6 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
             sink.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
             disposeDecisionsAndResourceAccessPoint();
             return;
-        }
-
-        val resource = decision.resource();
-        if (!(resource instanceof UndefinedValue)) {
-            try {
-                sink.next(constraintsService.unmarshallResource(resource, clazz));
-            } catch (JacksonException | IllegalArgumentException e) {
-                sink.error(new AccessDeniedException(ERROR_REPLACING_STREAM_WITH_RESOURCE, e));
-            }
-            sink.complete();
-            disposeDecisionsAndResourceAccessPoint();
         }
 
         if (previousDecision == null)
@@ -216,8 +203,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         try {
             constraintHandler.get().handleOnCancelConstraints();
         } catch (Throwable t) {
-            log.warn("Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. "
-                    + "No information is leaked, however take actions to mitigate error.", t);
+            log.warn(WARN_FAILED_ONCANCEL_OBLIGATION, t);
         }
         disposeDecisionsAndResourceAccessPoint();
     }

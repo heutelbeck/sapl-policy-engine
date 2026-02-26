@@ -17,22 +17,17 @@
  */
 package io.sapl.spring.method.reactive;
 
-import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.jspecify.annotations.NonNull;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.util.context.ContextView;
-import tools.jackson.core.JacksonException;
-
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,7 +50,6 @@ import static java.util.function.Predicate.not;
  * @param <T> type of the Flux contents
  *
  */
-@Slf4j
 public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private static final String ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE = "Operator may only be subscribed once.";
@@ -70,15 +64,15 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private final Class<T> clazz;
 
-    final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
+    private final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-    final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
+    private final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-    final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
+    private final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-    final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+    private final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-    final AtomicBoolean stopped = new AtomicBoolean(false);
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     private EnforceDropWhileDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
             Flux<T> resourceAccessPoint,
@@ -102,7 +96,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
         if (sink != null)
             throw new IllegalStateException(ERROR_OPERATOR_MAY_ONLY_BE_SUBSCRIBED_ONCE);
-        ContextView context = actual.currentContext();
+        val context = actual.currentContext();
         sink                = new EnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
         Flux.create(sink).subscribe(actual);
@@ -130,15 +124,6 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         }
 
         latestDecision.set(implicitDecision);
-
-        val resource = implicitDecision.resource();
-        if (!(resource instanceof UndefinedValue)) {
-            try {
-                sink.next(constraintsService.unmarshallResource(resource, clazz));
-            } catch (JacksonException | IllegalArgumentException e) {
-                log.warn("Cannot unmarshall resource from decision: {}", resource, e);
-            }
-        }
 
         if (implicitDecision.decision() == Decision.PERMIT && dataSubscription.get() == null)
             dataSubscription.set(wrapResourceAccessPointAndSubscribe());
@@ -169,10 +154,6 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         val decision = latestDecision.get();
 
         if (decision.decision() != Decision.PERMIT)
-            return;
-
-        // drop elements while the last decision replaced data with resource
-        if (!(decision.resource() instanceof UndefinedValue))
             return;
 
         try {

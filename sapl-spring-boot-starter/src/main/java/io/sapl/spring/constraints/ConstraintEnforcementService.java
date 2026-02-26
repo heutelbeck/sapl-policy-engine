@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.constraints;
 
+import io.sapl.api.model.NullValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -31,8 +32,6 @@ import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider.Signal;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -69,13 +68,14 @@ import java.util.function.UnaryOperator;
 @Service
 public class ConstraintEnforcementService {
 
-    private static final String ERROR_CANNOT_MAP_RESOURCE        = "Cannot map resource %s to type %s";
-    private static final String ERROR_CONSUMER_OBLIGATION_FAILED = "Failed to execute obligation handler ";
-    private static final String ERROR_INVOCATION_TYPE_INVALID    = "MethodInvocation not ReflectiveMethodInvocation";
-    private static final String ERROR_MAPPING_OBLIGATION_FAILED  = "Failed to execute mapping obligation handler";
-    private static final String ERROR_REQUEST_OBLIGATION_FAILED  = "Failed to execute request obligation handler";
-    private static final String ERROR_RUNNABLE_OBLIGATION_FAILED = "Failed to execute runnable obligation handler";
-    private static final String ERROR_UNHANDLED_OBLIGATIONS      = "Access Denied by PEP. The PDP required at least one obligation to be enforced for which no handler is registered. Obligations that could not be handled: %s";
+    private static final String ERROR_CANNOT_MAP_RESOURCE               = "Cannot map resource %s to type %s";
+    private static final String ERROR_CONSUMER_OBLIGATION_FAILED        = "Failed to execute obligation handler ";
+    private static final String ERROR_INVOCATION_TYPE_INVALID           = "MethodInvocation not ReflectiveMethodInvocation";
+    private static final String ERROR_MAPPING_OBLIGATION_FAILED         = "Failed to execute mapping obligation handler";
+    private static final String ERROR_NULL_RESOURCE_IN_REACTIVE_CONTEXT = "Cannot replace resource with null in reactive context. Null cannot be emitted in Reactive Streams.";
+    private static final String ERROR_REQUEST_OBLIGATION_FAILED         = "Failed to execute request obligation handler";
+    private static final String ERROR_RUNNABLE_OBLIGATION_FAILED        = "Failed to execute runnable obligation handler";
+    private static final String ERROR_UNHANDLED_OBLIGATIONS             = "Access Denied by PEP. The PDP required at least one obligation to be enforced for which no handler is registered. Obligations that could not be handled: %s";
 
     private final List<ConsumerConstraintHandlerProvider<?>>           globalConsumerProviders;
     private final List<SubscriptionHandlerProvider>                    globalSubscriptionHandlerProviders;
@@ -147,8 +147,7 @@ public class ConstraintEnforcementService {
      */
     public <T> Flux<T> enforceConstraintsOfDecisionOnResourceAccessPoint(AuthorizationDecision decision,
             Flux<T> resourceAccessPoint, Class<T> clazz) {
-        var wrapped = resourceAccessPoint;
-        wrapped = replaceIfResourcePresent(wrapped, decision.resource(), clazz);
+        val wrapped = replaceIfResourcePresent(resourceAccessPoint, decision.resource(), clazz);
         try {
             return reactiveTypeBundleFor(decision, clazz).wrap(wrapped);
         } catch (AccessDeniedException e) {
@@ -171,6 +170,10 @@ public class ConstraintEnforcementService {
     public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision, Class<T> clazz,
             Value... ignoredObligations) {
 
+        if (decision.resource() instanceof NullValue) {
+            throw new AccessDeniedException(ERROR_NULL_RESOURCE_IN_REACTIVE_CONTEXT);
+        }
+
         val unhandledObligations = new HashSet<>(decision.obligations());
 
         // @formatter:off
@@ -187,7 +190,8 @@ public class ConstraintEnforcementService {
 				onErrorHandlers(decision, unhandledObligations),
 				mapErrorHandlers(decision, unhandledObligations),
 				filterConstraintHandlers(decision, unhandledObligations),
-				methodInvocationHandlers(decision, unhandledObligations));
+				methodInvocationHandlers(decision, unhandledObligations),
+				replaceHandler(decision.resource(), clazz));
 		// @formatter:on
 
         if (!unhandledObligations.isEmpty()) {
@@ -309,9 +313,9 @@ public class ConstraintEnforcementService {
 
     private Consumer<MethodInvocation> checkInvocationType(Consumer<ReflectiveMethodInvocation> handler) {
         return i -> {
-            if (!(i instanceof ReflectiveMethodInvocation))
+            if (!(i instanceof ReflectiveMethodInvocation reflective))
                 throw new IllegalArgumentException(ERROR_INVOCATION_TYPE_INVALID);
-            handler.accept((ReflectiveMethodInvocation) i);
+            handler.accept(reflective);
         };
     }
 
@@ -400,7 +404,7 @@ public class ConstraintEnforcementService {
         Collections.sort(prioritizedHandlers);
 
         for (val handler : prioritizedHandlers) {
-            handlers = mapBoth(handlers, wrapper.apply(handler.getHandler()));
+            handlers = mapBoth(handlers, wrapper.apply(handler.handler()));
         }
 
         return handlers;
@@ -415,12 +419,7 @@ public class ConstraintEnforcementService {
         return mapBoth(obligationHandlers, adviceHandlers);
     }
 
-    @Data
-    @AllArgsConstructor
-    private static class HandlerWithPriority<T> implements Comparable<HandlerWithPriority<T>> {
-        T   handler;
-        int priority;
-
+    private record HandlerWithPriority<T>(T handler, int priority) implements Comparable<HandlerWithPriority<T>> {
         @Override
         public int compareTo(@NonNull HandlerWithPriority<T> o) {
             return Integer.compare(o.priority, priority);
@@ -449,7 +448,7 @@ public class ConstraintEnforcementService {
         Collections.sort(prioritizedHandlers);
 
         for (val handler : prioritizedHandlers) {
-            handlers = mapBoth(handlers, wrapper.apply(handler.getHandler()));
+            handlers = mapBoth(handlers, wrapper.apply(handler.handler()));
         }
 
         return handlers;
@@ -726,6 +725,8 @@ public class ConstraintEnforcementService {
     public <T> Flux<T> replaceIfResourcePresent(Flux<T> resourceAccessPoint, Value resource, Class<T> clazz) {
         if (resource instanceof UndefinedValue)
             return resourceAccessPoint;
+        if (resource instanceof NullValue)
+            return Flux.error(new AccessDeniedException(ERROR_NULL_RESOURCE_IN_REACTIVE_CONTEXT));
         try {
             return Flux.just(unmarshallResource(resource, clazz));
         } catch (JacksonException | IllegalArgumentException e) {

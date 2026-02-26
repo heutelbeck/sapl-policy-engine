@@ -21,7 +21,7 @@ import reactor.core.publisher.FluxSink;
 
 import java.util.function.Consumer;
 
-public class EnforcementSink<T> implements Consumer<FluxSink<T>> {
+class EnforcementSink<T> implements Consumer<FluxSink<T>> {
 
     private FluxSink<T> fluxSink;
 

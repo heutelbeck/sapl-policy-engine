@@ -34,6 +34,7 @@ import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
@@ -59,23 +60,23 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+    private List<RunnableConstraintHandlerProvider> globalRunnableProviders;
 
-    List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+    private List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
 
-    List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+    private List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
 
-    List<RequestHandlerProvider> globalRequestHandlerProviders;
+    private List<RequestHandlerProvider> globalRequestHandlerProviders;
 
-    List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+    private List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
 
-    List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+    private List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
 
-    List<ErrorHandlerProvider> globalErrorHandlerProviders;
+    private List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
-    List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
+    private List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
 
-    List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
+    private List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 
     @BeforeAll
     static void beforeAll() {
@@ -105,6 +106,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_subscribingTwice_Fails() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
@@ -116,6 +118,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onlyOnePermit_thenAllSignalsGetThrough() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
@@ -126,17 +129,19 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
-    void when_permitWithResource_thenReplaceAndComplete() {
+    @Timeout(5)
+    void when_permitWithResource_thenAllElementsReplaced() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux
                 .just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(69)));
         final var data               = Flux.just(1, 2, 3);
         final var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
                 Integer.class);
-        StepVerifier.create(sut).expectNext(69).verifyComplete();
+        StepVerifier.create(sut).expectNext(69, 69, 69).verifyComplete();
     }
 
     @Test
+    @Timeout(5)
     void when_permitWithResource_typeMismatch_thenDenyAndComplete() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
@@ -148,6 +153,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_endlessPermits_thenAllSignalsGetThrough() {
         StepVerifier.withVirtualTime(this::scenario_when_endlessPermits_thenAllSignalsGetThrough)
                 .thenAwait(Duration.ofMillis(300L)).expectNext(1, 2, 3).verifyComplete();
@@ -162,6 +168,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onlyOneDeny_thenNoSignalsAndAccessDenied() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.DENY);
@@ -172,6 +179,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onlyOneDeny_thenNoSignalsAndAccessDeniedOnErrorContinueDoesNotLeakData() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.DENY);
@@ -182,6 +190,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_firstPermitThenDeny_thenSignalsPassThroughTillDenied() {
         StepVerifier.withVirtualTime(this::scenario_firstPermitThenDeny_thenSignalsPassThroughTillDenied)
                 .thenAwait(Duration.ofMillis(200L)).expectNext(1, 2).expectError(AccessDeniedException.class).verify();
@@ -196,6 +205,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_constraintsPresent_thenTheseAreHandledAndUpdated() {
         StepVerifier.withVirtualTime(this::scenario_when_constraintsPresent_thenTheseAreHandledAndUpdated)
                 .thenAwait(Duration.ofMillis(1000L))
@@ -230,6 +240,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_handlerMapsToNull_thenElementsAreDropped() {
         final var handler = new MappingConstraintHandlerProvider<Integer>() {
 
@@ -263,6 +274,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_handlerCancel_thenHandlerIsCalled() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -299,6 +311,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_error_thenErrorMappedAndPropagated() {
         final var handler = spy(new ErrorMappingConstraintHandlerProvider() {
 
@@ -336,6 +349,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onNextObligationFails_thenAccessDenied() {
         final var handler = spy(new ConsumerConstraintHandlerProvider<Integer>() {
 
@@ -371,6 +385,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onErrorObligationFails_thenAccessDenied() {
         final var handler = spy(new ErrorHandlerProvider() {
 
@@ -405,6 +420,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onSubscribeObligationFails_thenAccessDenied() {
         final var handler = spy(new SubscriptionHandlerProvider() {
 
@@ -435,6 +451,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onRequestObligationFails_thenAccessDenied() {
         final var handler = spy(new RequestHandlerProvider() {
             @Override
@@ -463,6 +480,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCompleteObligationFails_thenAccessDenied() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -499,6 +517,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onNextAdviceFails_thenAccessIsGranted() {
         final var handler = spy(new ConsumerConstraintHandlerProvider<Integer>() {
 
@@ -534,6 +553,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onErrorAdviceFails_thenOriginalErrorSignal() {
         final var handler = spy(new ErrorHandlerProvider() {
 
@@ -569,6 +589,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onSubscribeAdviceFails_thenAccessGranted() {
         final var handler = spy(new SubscriptionHandlerProvider() {
 
@@ -599,6 +620,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onRequestAdviceFails_thenAccessGranted() {
         final var handler = spy(new RequestHandlerProvider() {
             @Override
@@ -627,6 +649,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCancelAdviceFails_thenFluxIsJustComplete() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -661,6 +684,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCompleteAdviceFails_thenAccessGranted() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -696,6 +720,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onNextObligationFailsByMissing_thenAccessDenied() {
         final var decisions          = decisionFluxOnePermitWithObligation();
         final var constraintsService = buildConstraintHandlerService();
@@ -707,6 +732,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCancelObligationFails_thenFluxIsJustComplete() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -741,19 +767,19 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
         verify(handler, times(1)).run();
     }
 
-    public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
+    private Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
         final var obligation = Value.of(10000L);
         return Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED));
     }
 
-    public Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
+    private Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
         final var advice = Value.of(10000L);
         return Flux.just(
                 new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(advice), Value.UNDEFINED));
     }
 
-    public Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
+    private Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
         final var advicePlus10000 = Value.of(10000L);
         final var advicePlus50000 = Value.of(50000L);
 

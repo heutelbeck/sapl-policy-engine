@@ -19,6 +19,7 @@ package io.sapl.spring.constraints;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
@@ -54,6 +55,7 @@ public class ReactiveConstraintHandlerBundle<T> {
     private UnaryOperator<Throwable>   onErrorMapHandlers       = UnaryOperator.identity();
     private Predicate<Object>          filterPredicateHandlers  = FunctionUtil.all();
     private Consumer<MethodInvocation> methodInvocationHandlers = FunctionUtil.sink();
+    private UnaryOperator<T>           replaceResourceHandler   = UnaryOperator.identity();
     // @formatter:on
 
     /**
@@ -67,21 +69,18 @@ public class ReactiveConstraintHandlerBundle<T> {
 
     /**
      * Executes all onNext constraint handlers, potentially transforming the value.
+     * Execution order: replace resource, filter predicate, consumer, mapping.
      *
      * @param value a return value
-     * @return the return value after constraint handling
+     * @return the return value after constraint handling, or null if filtered out
      */
     public T handleAllOnNextConstraints(T value) {
-        handleOnNextConstraints(value);
-        return handleOnNextMapConstraints(value);
-    }
-
-    private T handleOnNextMapConstraints(T value) {
-        return onNextMapHandlers.apply(value);
-    }
-
-    private void handleOnNextConstraints(T value) {
-        doOnNextHandlers.accept(value);
+        val replaced = replaceResourceHandler.apply(value);
+        val filtered = filterPredicateHandlers.test(replaced) ? replaced : null;
+        if (filtered != null) {
+            doOnNextHandlers.accept(filtered);
+        }
+        return filtered != null ? onNextMapHandlers.apply(filtered) : null;
     }
 
     /**

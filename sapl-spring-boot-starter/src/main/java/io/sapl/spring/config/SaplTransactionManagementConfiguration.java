@@ -24,6 +24,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
@@ -58,6 +59,7 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  * @since 4.0.0
  */
 @Slf4j
+@ConditionalOnClass(name = "org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor")
 @Configuration(proxyBeanMethods = false)
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 class SaplTransactionManagementConfiguration {

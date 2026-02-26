@@ -59,28 +59,27 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@Timeout(5)
 class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+    private List<RunnableConstraintHandlerProvider> globalRunnableProviders;
 
-    List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+    private List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
 
-    List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+    private List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
 
-    List<RequestHandlerProvider> globalRequestHandlerProviders;
+    private List<RequestHandlerProvider> globalRequestHandlerProviders;
 
-    List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+    private List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
 
-    List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+    private List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
 
-    List<ErrorHandlerProvider> globalErrorHandlerProviders;
+    private List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
-    List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
+    private List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
 
-    List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
+    private List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 
     @BeforeAll
     static void beforeAll() {
@@ -110,6 +109,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_subscribingTwice_Fails() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
@@ -121,21 +121,23 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
-    void when_onlyOnePermitWithResource_thenOnlyResourceGetThrough() {
+    @Timeout(5)
+    void when_onlyOnePermitWithResource_thenAllElementsReplaced() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux
                 .just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(420)));
         final var data               = Flux.just(1, 2, 3);
         final var sut                = EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, data,
                 constraintsService, Integer.class);
-        StepVerifier.create(sut).expectNext(420).verifyComplete();
+        StepVerifier.create(sut).expectNext(420, 420, 420).verifyComplete();
     }
 
     @Test
+    @Timeout(5)
     void when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
         StepVerifier.withVirtualTime(
                 this::scenario_when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource)
-                .thenAwait(Duration.ofMillis(3000L)).expectNext(0, 1, 69, 4, 5, 6, 7, 8, 9).verifyComplete();
+                .thenAwait(Duration.ofMillis(3000L)).expectNext(0, 1, 69, 69, 4, 5, 6, 7, 8, 9).verifyComplete();
     }
 
     private Flux<Integer> scenario_when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
@@ -148,6 +150,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_permit_thenPermitWithResourceThenPermit_typeMismatch_thenSignalsDuringMismatchGetDroppedAfterRecovery() {
         final var errorConsumer = errorConsumer();
         StepVerifier.withVirtualTime(
@@ -170,6 +173,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onlyOnePermitWithResourceTypeMismatch_thenStaySubscribedForPotentialNewDecision() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
@@ -179,11 +183,12 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
                 constraintsService, Integer.class);
         final var errorConsumer      = errorConsumer();
         StepVerifier.withVirtualTime(() -> sut.onErrorContinue(errorConsumer)).expectSubscription()
-                .expectNoEvent(Duration.ofMillis(10L)).verifyTimeout(Duration.ofMillis(25L));
+                .expectNoEvent(Duration.ofMillis(10L)).thenCancel().verify();
         verify(errorConsumer, times(1)).accept(any(), any());
     }
 
     @Test
+    @Timeout(5)
     void when_onDecisionObligationsFails_followPermitNoObligation_thenSignalsStartAfterSecondPermit() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -222,6 +227,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onlyOnePermit_thenAllSignalsGetThrough() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
@@ -232,6 +238,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_endlessPermits_thenAllSignalsGetThrough() {
         StepVerifier.withVirtualTime(this::scenario_when_endlessPermits_thenAllSignalsGetThrough)
                 .thenAwait(Duration.ofMillis(300L)).expectNext(1, 2, 3).verifyComplete();
@@ -246,6 +253,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onlyOneDeny_thenNoSignalsAndAndStaysSubscribedForPotentialFollowingNewDecisions() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.DENY);
@@ -254,11 +262,12 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
                 constraintsService, Integer.class);
         final var errorConsumer      = errorConsumer();
         StepVerifier.withVirtualTime(() -> sut.onErrorContinue(errorConsumer)).expectSubscription()
-                .expectNoEvent(Duration.ofMillis(10L)).verifyTimeout(Duration.ofMillis(25L));
+                .expectNoEvent(Duration.ofMillis(10L)).thenCancel().verify();
         verify(errorConsumer, times(1)).accept(any(), any());
     }
 
     @Test
+    @Timeout(5)
     void when_subscribeWithNull_NullPointerException() {
         Flux<AuthorizationDecision>  decisions           = Flux.empty();
         Flux<String>                 resourceAccessPoint = Flux.empty();
@@ -271,6 +280,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onlyOneNotApplicable_thenNoSignalsAndAndStaysSubscribedForPotentialFollowingNewDecisions() {
         final var constraintsService = buildConstraintHandlerService();
         final var decisions          = Flux.just(AuthorizationDecision.NOT_APPLICABLE);
@@ -279,11 +289,12 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
                 constraintsService, Integer.class);
         final var errorConsumer      = errorConsumer();
         StepVerifier.withVirtualTime(() -> sut.onErrorContinue(errorConsumer)).expectSubscription()
-                .expectNoEvent(Duration.ofMillis(10L)).verifyTimeout(Duration.ofMillis(25L));
+                .expectNoEvent(Duration.ofMillis(10L)).thenCancel().verify();
         verify(errorConsumer, times(1)).accept(any(), any());
     }
 
     @Test
+    @Timeout(5)
     void when_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDropEvenIfOnErrorContinue() {
         final var errorConsumer = errorConsumer();
         StepVerifier
@@ -309,6 +320,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDropUntilNewPermit() {
         final var errorConsumer = errorConsumer();
         StepVerifier
@@ -331,6 +343,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_constraintsPresent_thenTheseAreHandledAndUpdated() {
         StepVerifier.withVirtualTime(this::scenario_when_constraintsPresent_thenTheseAreHandledAndUpdated)
                 .thenAwait(Duration.ofMillis(1000L))
@@ -365,6 +378,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_handlerMapsToNull_thenElementsAreDropped() {
         final var handler = new MappingConstraintHandlerProvider<Integer>() {
 
@@ -400,6 +414,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_handlerCancel_thenHandlerIsCalled() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -437,6 +452,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_error_thenErrorMappedAndPropagated() {
         final var handler = spy(new ErrorMappingConstraintHandlerProvider() {
 
@@ -474,6 +490,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onNextObligationFails_thenAccessDeniedAndMatchingElementIsDroppedErrorConsumerTriggeredDuringRecovery() {
         final var handler = spy(new ConsumerConstraintHandlerProvider<Integer>() {
 
@@ -511,6 +528,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onSubscribeObligationFails_thenAccessDeniedMessageMapped() {
         final var handler = spy(new ErrorMappingConstraintHandlerProvider() {
 
@@ -559,6 +577,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onErrorObligationFails_thenAccessDeniedAndCompleteAsWeCannotRecoverFromDownstreamErrorsAnyhow() {
         final var handler = spy(new ErrorHandlerProvider() {
 
@@ -593,6 +612,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_upstreamError_thenTerminateWithError() {
 
         final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
@@ -609,6 +629,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onSubscribeObligationFails_thenAllSignalsAreDropped() {
         final var handler = spy(new SubscriptionHandlerProvider() {
 
@@ -639,6 +660,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onSubscribeObligationFailsForFirstDecisionButSucceedsForSecond_thenAllSignalsSent() {
         final var handler = spy(new SubscriptionHandlerProvider() {
 
@@ -670,6 +692,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onRequestObligationFails_thenImplicitlyAccessDeniedAndMessagesDroppedAsNoNewPermitComesInStreamCompletesEmptyAfterOnErrorContinue() {
         final var handler = spy(new RequestHandlerProvider() {
             @Override
@@ -700,6 +723,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCancelObligationFails_thenFluxIsJustComplete() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -735,6 +759,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCompleteObligationFails_thenImplicitlyAccessDeniedButNothingHappensAsDenyHereOnlyDropsMessages() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -770,6 +795,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onNextAdviceFails_thenAccessIsGranted() {
         final var handler = spy(new ConsumerConstraintHandlerProvider<Integer>() {
 
@@ -805,6 +831,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onErrorAdviceFails_thenOriginalErrorSignal() {
         final var handler = spy(new ErrorHandlerProvider() {
 
@@ -840,6 +867,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onSubscribeAdviceFails_thenAccessGranted() {
         final var handler = spy(new SubscriptionHandlerProvider() {
 
@@ -870,6 +898,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onRequestAdviceFails_thenAccessGranted() {
         final var handler = spy(new RequestHandlerProvider() {
             @Override
@@ -898,6 +927,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCancelAdviceFails_thenFluxIsJustComplete() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -932,6 +962,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCompleteAdviceFails_thenAccessGranted() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -967,6 +998,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_obligationFailsByMissingHandler_thenAccessDeniedImplicitlyAndMessagesAreDroppedRecoverableByNewPermit() {
         final var decisions       = Flux.concat(decisionFluxOnePermitWithObligation(),
                 Flux.just(AuthorizationDecision.PERMIT));
@@ -981,6 +1013,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    @Timeout(5)
     void when_onCancelObligationFailsByMissing_thenFluxIsJustComplete() {
         final var handler = spy(new RunnableConstraintHandlerProvider() {
 
@@ -1015,19 +1048,19 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
         verify(handler, times(1)).run();
     }
 
-    public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
+    private Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
         final var obligation = Value.of(10000L);
         return Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED));
     }
 
-    public Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
+    private Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
         final var advice = Value.of(10000L);
         return Flux.just(
                 new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(advice), Value.UNDEFINED));
     }
 
-    public Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
+    private Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
         final var firstAdvice  = Value.of(10000L);
         final var secondAdvice = Value.of(50000L);
 

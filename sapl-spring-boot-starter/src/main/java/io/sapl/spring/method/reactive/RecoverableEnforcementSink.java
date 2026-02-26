@@ -21,7 +21,7 @@ import reactor.core.publisher.FluxSink;
 
 import java.util.function.Consumer;
 
-public class RecoverableEnforcementSink<T> implements Consumer<FluxSink<ProtectedPayload<T>>> {
+class RecoverableEnforcementSink<T> implements Consumer<FluxSink<ProtectedPayload<T>>> {
 
     private FluxSink<ProtectedPayload<T>> fluxSink;
 

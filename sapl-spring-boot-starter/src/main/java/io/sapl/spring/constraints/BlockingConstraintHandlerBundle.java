@@ -19,6 +19,7 @@ package io.sapl.spring.constraints;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 
 import java.lang.reflect.Array;
@@ -143,9 +144,10 @@ public class BlockingConstraintHandlerBundle<T> {
      */
     @SuppressWarnings("unchecked")
     public Object handleAllOnNextConstraints(Object value) {
-        final var newValue = handleFilterPredicateHandlers((T) value);
-        handleOnNextConstraints(newValue);
-        return handleOnNextMapConstraints(newValue);
+        val replaced = replaceResourceHandler.apply((T) value);
+        val filtered = handleFilterPredicateHandlers(replaced);
+        handleOnNextConstraints(filtered);
+        return onNextMapHandlers.apply(filtered);
     }
 
     @SuppressWarnings("unchecked")
@@ -169,11 +171,6 @@ public class BlockingConstraintHandlerBundle<T> {
             return (T) resultArray;
         }
         return filterPredicateHandlers.test(value) ? value : null;
-    }
-
-    private T handleOnNextMapConstraints(T value) {
-        final var mapped = onNextMapHandlers.apply(value);
-        return replaceResourceHandler.apply(mapped);
     }
 
     private void handleOnNextConstraints(T value) {
