@@ -76,9 +76,8 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-    private final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
-
-    private final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+    private final AtomicReference<EnforcementState<T>> state = new AtomicReference<>(
+            new EnforcementState<>(AuthorizationDecision.INDETERMINATE, new ReactiveConstraintHandlerBundle<>()));
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -115,47 +114,46 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     private void handleNextDecision(AuthorizationDecision decision) {
         if (decision.decision() == Decision.INDETERMINATE) {
             sink.error(new AccessDeniedException(ERROR_PDP_RETURNED_INDETERMINATE));
-            latestDecision.set(decision);
-            constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
+            state.set(new EnforcementState<>(decision,
+                    constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
         }
 
         if (decision.decision() == Decision.NOT_APPLICABLE) {
             sink.error(new AccessDeniedException(ERROR_PDP_RETURNED_NOT_APPLICABLE));
-            latestDecision.set(decision);
-            constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
+            state.set(new EnforcementState<>(decision,
+                    constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
         }
 
-        ReactiveConstraintHandlerBundle<T> newConstraintHandlerBundle;
+        ReactiveConstraintHandlerBundle<T> newBundle;
         try {
-            newConstraintHandlerBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
-            constraintHandler.set(newConstraintHandlerBundle);
+            newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
         } catch (AccessDeniedException e) {
             sink.error(new AccessDeniedException(ERROR_FAILED_TO_CONSTRUCT_CONSTRAINT_HANDLERS, e));
-            latestDecision.set(AuthorizationDecision.INDETERMINATE);
-            constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
+            state.set(new EnforcementState<>(AuthorizationDecision.INDETERMINATE,
+                    constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
         }
 
         try {
-            newConstraintHandlerBundle.handleOnDecisionConstraints();
+            newBundle.handleOnDecisionConstraints();
         } catch (AccessDeniedException e) {
             sink.error(new AccessDeniedException(ERROR_FAILED_TO_COMPLY_WITH_ONDECISION, e));
-            latestDecision.set(AuthorizationDecision.INDETERMINATE);
-            constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
+            state.set(new EnforcementState<>(AuthorizationDecision.INDETERMINATE,
+                    constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
         }
 
         if (decision.decision() == Decision.DENY) {
             sink.error(new AccessDeniedException(ERROR_PDP_DECIDED_TO_DENY_ACCESS));
-            latestDecision.set(decision);
+            state.set(new EnforcementState<>(decision, newBundle));
             return;
         }
 
         // decision == Decision.PERMIT from here on
 
-        latestDecision.set(decision);
+        state.set(new EnforcementState<>(decision, newBundle));
 
         dataSubscription
                 .updateAndGet(sub -> Objects.requireNonNullElseGet(sub, this::wrapResourceAccessPointAndSubscribe));
@@ -169,7 +167,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private void handleSubscribe(Subscription s) {
         try {
-            constraintHandler.get().handleOnSubscribeConstraints(s);
+            state.get().bundle().handleOnSubscribeConstraints(s);
         } catch (Exception t) {
             // This means that we handle it as if there was no decision yet.
             // We dispose of the resourceAccessPoint and remove the lastDecision
@@ -189,13 +187,13 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         if (stopped.get())
             return;
 
-        val decision = latestDecision.get();
+        val currentState = state.get();
 
-        if (decision.decision() != Decision.PERMIT)
+        if (currentState.decision().decision() != Decision.PERMIT)
             return;
 
         try {
-            val transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            val transformedValue = currentState.bundle().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
         } catch (Exception t) {
@@ -209,25 +207,25 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private void handleRequest(Long value) {
         try {
-            constraintHandler.get().handleOnRequestConstraints(value);
+            state.get().bundle().handleOnRequestConstraints(value);
         } catch (Exception t) {
             handleNextDecision(AuthorizationDecision.INDETERMINATE);
         }
     }
 
     private void handleOnTerminateConstraints() {
-        constraintHandler.get().handleOnTerminateConstraints();
+        state.get().bundle().handleOnTerminateConstraints();
     }
 
     private void handleAfterTerminateConstraints() {
-        constraintHandler.get().handleAfterTerminateConstraints();
+        state.get().bundle().handleAfterTerminateConstraints();
     }
 
     private void handleComplete() {
         if (stopped.get())
             return;
         try {
-            constraintHandler.get().handleOnCompleteConstraints();
+            state.get().bundle().handleOnCompleteConstraints();
         } catch (Exception t) {
             // NOOP stream is finished nothing more to protect.
         }
@@ -237,7 +235,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private void handleCancel() {
         try {
-            constraintHandler.get().handleOnCancelConstraints();
+            state.get().bundle().handleOnCancelConstraints();
         } catch (Exception t) {
             // NOOP stream is finished nothing more to protect.
         }
@@ -246,7 +244,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private void handleError(Throwable error) {
         try {
-            sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
+            sink.error(state.get().bundle().handleAllOnErrorConstraints(error));
         } catch (Exception t) {
             sink.error(t);
             handleNextDecision(AuthorizationDecision.INDETERMINATE);
@@ -259,7 +257,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             return payload;
 
         try {
-            return ProtectedPayload.withError(constraintHandler.get().handleAllOnErrorConstraints(payload.getError()));
+            return ProtectedPayload.withError(state.get().bundle().handleAllOnErrorConstraints(payload.getError()));
         } catch (Exception e) {
             return ProtectedPayload.withError(new AccessDeniedException(ERROR_CONSTRAINT_BASED_TRANSFORMATION, e));
         }

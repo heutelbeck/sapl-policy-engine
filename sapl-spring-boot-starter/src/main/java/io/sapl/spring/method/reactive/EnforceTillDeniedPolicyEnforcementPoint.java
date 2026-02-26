@@ -76,9 +76,8 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-    private final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
-
-    private final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+    private final AtomicReference<EnforcementState<T>> state = new AtomicReference<>(
+            new EnforcementState<>(null, new ReactiveConstraintHandlerBundle<>()));
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -114,18 +113,20 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     private void handleNextDecision(AuthorizationDecision decision) {
-        val                                previousDecision = latestDecision.getAndSet(decision);
+        val                                previousDecision = state.get().decision();
         ReactiveConstraintHandlerBundle<T> newBundle;
         try {
             newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
-            constraintHandler.set(newBundle);
         } catch (AccessDeniedException e) {
-            constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
+            state.set(new EnforcementState<>(decision,
+                    constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             sink.error(e);
             disposeDecisionsAndResourceAccessPoint();
             return;
         }
-        constraintHandler.get().handleOnDecisionConstraints();
+
+        state.set(new EnforcementState<>(decision, newBundle));
+        newBundle.handleOnDecisionConstraints();
 
         if (decision.decision() != Decision.PERMIT) {
             sink.error(new AccessDeniedException(ERROR_ACCESS_DENIED_BY_PDP));
@@ -145,7 +146,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private void handleSubscribe(Subscription s) {
         try {
-            constraintHandler.get().handleOnSubscribeConstraints(s);
+            state.get().bundle().handleOnSubscribeConstraints(s);
         } catch (Throwable t) {
             sink.error(t);
             disposeDecisionsAndResourceAccessPoint();
@@ -153,11 +154,11 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     private void handleOnTerminateConstraints() {
-        constraintHandler.get().handleOnTerminateConstraints();
+        state.get().bundle().handleOnTerminateConstraints();
     }
 
     private void handleAfterTerminateConstraints() {
-        constraintHandler.get().handleAfterTerminateConstraints();
+        state.get().bundle().handleAfterTerminateConstraints();
     }
 
     private void handleNext(T value) {
@@ -168,7 +169,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         if (stopped.get())
             return;
         try {
-            val transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            val transformedValue = state.get().bundle().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
         } catch (Throwable t) {
@@ -179,7 +180,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private void handleRequest(Long value) {
         try {
-            constraintHandler.get().handleOnRequestConstraints(value);
+            state.get().bundle().handleOnRequestConstraints(value);
         } catch (Throwable t) {
             sink.error(t);
             disposeDecisionsAndResourceAccessPoint();
@@ -190,7 +191,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         if (stopped.get())
             return;
         try {
-            constraintHandler.get().handleOnCompleteConstraints();
+            state.get().bundle().handleOnCompleteConstraints();
             sink.complete();
         } catch (Throwable t) {
             sink.error(t);
@@ -201,7 +202,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private void handleCancel() {
         try {
-            constraintHandler.get().handleOnCancelConstraints();
+            state.get().bundle().handleOnCancelConstraints();
         } catch (Throwable t) {
             log.warn(WARN_FAILED_ONCANCEL_OBLIGATION, t);
         }
@@ -210,7 +211,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private void handleError(Throwable error) {
         try {
-            sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
+            sink.error(state.get().bundle().handleAllOnErrorConstraints(error));
         } catch (Throwable t) {
             sink.error(t);
             disposeDecisionsAndResourceAccessPoint();
@@ -219,7 +220,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     private Throwable handleAccessDenied(Throwable error) {
         try {
-            return constraintHandler.get().handleAllOnErrorConstraints(error);
+            return state.get().bundle().handleAllOnErrorConstraints(error);
         } catch (Throwable t) {
             disposeDecisionsAndResourceAccessPoint();
             return t;

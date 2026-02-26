@@ -175,9 +175,51 @@ public class ConstraintEnforcementService {
         }
 
         val unhandledObligations = new HashSet<>(decision.obligations());
+        val bundle               = constructReactiveBundle(decision, clazz, unhandledObligations);
 
+        if (!unhandledObligations.isEmpty()) {
+            for (val unhandledObligation : unhandledObligations) {
+                if (Arrays.stream(ignoredObligations).filter(ignored -> ignored.equals(unhandledObligation)).findFirst()
+                        .isEmpty()) {
+                    throw missingHandlerError(unhandledObligations);
+                }
+            }
+        }
+
+        return bundle;
+    }
+
+    /**
+     * Builds a best-effort reactive constraint handler bundle for non-PERMIT
+     * decision paths. Unlike {@link #reactiveTypeBundleFor}, this method does not
+     * throw if some obligations have no registered handler. All handlers that CAN
+     * be constructed are included, ensuring registered audit and logging handlers
+     * still execute.
+     *
+     * @param <T> event type
+     * @param decision a decision
+     * @param clazz class of the event type
+     * @return a ReactiveConstraintHandlerBundle with all constructable handlers
+     */
+    public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBestEffortBundleFor(AuthorizationDecision decision,
+            Class<T> clazz) {
+
+        if (decision.resource() instanceof NullValue) {
+            return new ReactiveConstraintHandlerBundle<>();
+        }
+
+        try {
+            val unhandledObligations = new HashSet<>(decision.obligations());
+            return constructReactiveBundle(decision, clazz, unhandledObligations);
+        } catch (AccessDeniedException e) {
+            return new ReactiveConstraintHandlerBundle<>();
+        }
+    }
+
+    private <T> ReactiveConstraintHandlerBundle<T> constructReactiveBundle(AuthorizationDecision decision,
+            Class<T> clazz, HashSet<Value> unhandledObligations) {
         // @formatter:off
-		val bundle = new ReactiveConstraintHandlerBundle<>(
+		return new ReactiveConstraintHandlerBundle<>(
 				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.ON_CANCEL, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.ON_COMPLETE, decision, unhandledObligations),
@@ -193,17 +235,6 @@ public class ConstraintEnforcementService {
 				methodInvocationHandlers(decision, unhandledObligations),
 				replaceHandler(decision.resource(), clazz));
 		// @formatter:on
-
-        if (!unhandledObligations.isEmpty()) {
-            for (val unhandledObligation : unhandledObligations) {
-                if (Arrays.stream(ignoredObligations).filter(ignored -> ignored.equals(unhandledObligation)).findFirst()
-                        .isEmpty()) {
-                    throw missingHandlerError(unhandledObligations);
-                }
-            }
-        }
-
-        return bundle;
     }
 
     /**
