@@ -59,6 +59,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.nio.charset.StandardCharsets;
 import java.util.function.UnaryOperator;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -108,7 +109,7 @@ class TransactionalR2dbcEnforcementOptOutTests {
             initializer.setConnectionFactory(connectionFactory);
             initializer.setDatabasePopulator(new ResourceDatabasePopulator(new ByteArrayResource(
                     "CREATE TABLE IF NOT EXISTS \"test_entity\" (\"id\" BIGINT AUTO_INCREMENT PRIMARY KEY, \"name\" VARCHAR(255))"
-                            .getBytes())));
+                            .getBytes(StandardCharsets.UTF_8))));
             return initializer;
         }
     }

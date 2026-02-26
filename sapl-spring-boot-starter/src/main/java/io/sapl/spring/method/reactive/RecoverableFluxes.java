@@ -21,6 +21,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -151,23 +152,33 @@ public class RecoverableFluxes {
             val subscription = source.contextWrite(contextView).doOnNext(sink::next)
                     .onErrorContinue(RecoverableFluxes::isAccessStateSignal, (error, value) -> {
                         if (error instanceof AccessDeniedException ade) {
-                            if (onDenied != null) {
-                                onDenied.accept(ade);
-                            }
-                            if (deniedReplacement != null) {
-                                sink.next(deniedReplacement.get());
-                            }
+                            handleDenied(ade, onDenied, deniedReplacement, sink);
                         } else if (error instanceof AccessRecoveredException are) {
-                            if (onRecovered != null) {
-                                onRecovered.accept(are);
-                            }
-                            if (recoveredReplacement != null) {
-                                sink.next(recoveredReplacement.get());
-                            }
+                            handleRecovered(are, onRecovered, recoveredReplacement, sink);
                         }
                     }).doOnComplete(sink::complete).doOnError(sink::error).subscribe();
             sink.onDispose(subscription);
         }));
+    }
+
+    private static <T> void handleDenied(AccessDeniedException ade, Consumer<AccessDeniedException> onDenied,
+            Supplier<T> replacement, FluxSink<T> sink) {
+        if (onDenied != null) {
+            onDenied.accept(ade);
+        }
+        if (replacement != null) {
+            sink.next(replacement.get());
+        }
+    }
+
+    private static <T> void handleRecovered(AccessRecoveredException are,
+            Consumer<AccessRecoveredException> onRecovered, Supplier<T> replacement, FluxSink<T> sink) {
+        if (onRecovered != null) {
+            onRecovered.accept(are);
+        }
+        if (replacement != null) {
+            sink.next(replacement.get());
+        }
     }
 
     private static boolean isAccessStateSignal(Throwable error) {

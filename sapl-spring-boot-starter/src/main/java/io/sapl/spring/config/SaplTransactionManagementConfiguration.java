@@ -64,6 +64,10 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 class SaplTransactionManagementConfiguration {
 
+    private SaplTransactionManagementConfiguration() {
+        // infrastructure configuration, not instantiated directly
+    }
+
     private static final String PROPERTY_ADJUST_TRANSACTION_ORDER = "io.sapl.method-security.adjust-transaction-order";
 
     @Bean
