@@ -22,8 +22,10 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
@@ -34,7 +36,10 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -44,8 +49,10 @@ import reactor.test.StepVerifier;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RemoteHttpPolicyDecisionPointTests {
 
@@ -184,6 +191,91 @@ class RemoteHttpPolicyDecisionPointTests {
             assertThat(p.getMaxBackOffMillis()).isEqualTo(1001);
             assertThat(p.getTimeoutMillis()).isEqualTo(997);
         });
+    }
+
+    @Nested
+    @DisplayName("Authentication validation")
+    class AuthenticationValidation {
+
+        @Test
+        @DisplayName("Builder rejects both basic and API key authentication (REQ-AUTH-4)")
+        void whenDualAuthConfiguredThenThrows() {
+            assertThatThrownBy(() -> RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+                    .basicAuth("secret", "key").apiKey("my-api-key").build()).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("authentication method already defined");
+        }
+    }
+
+    @Nested
+    @DisplayName("Request-response behavior")
+    class RequestResponseBehavior {
+
+        @Test
+        @Timeout(5)
+        @DisplayName("decideOnce does not retry on failure (REQ-RR-3)")
+        void whenRequestResponseFailsThenNoRetry() {
+            server.enqueue(new MockResponse().setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value()));
+
+            val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+
+            StepVerifier.create(pdp.decideOnce(subscription)).expectNext(AuthorizationDecision.INDETERMINATE)
+                    .verifyComplete();
+
+            assertThat(server.getRequestCount()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("SSE stream handling")
+    class SseStreamHandling {
+
+        @Test
+        @Timeout(5)
+        @DisplayName("Oversized SSE data line triggers INDETERMINATE (REQ-SSE-5)")
+        void whenSseLineExceedsBufferLimitThenIndeterminate() {
+            val largeAdvice   = "x".repeat(512 * 1024);
+            val oversizedBody = "data: {\"decision\":\"PERMIT\",\"advice\":[\"" + largeAdvice + "\"]}\n\n";
+            server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
+                    .setResponseCode(HttpStatus.OK.value()).setBody(oversizedBody));
+
+            val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+
+            StepVerifier.create(pdp.decide(subscription))
+                    .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.INDETERMINATE))
+                    .thenCancel().verify();
+        }
+    }
+
+    @Nested
+    @DisplayName("Decision deduplication")
+    class DecisionDeduplication {
+
+        @Test
+        @Timeout(5)
+        @DisplayName("Deeply nested decisions with different leaf values are not deduplicated (REQ-DEDUP-2)")
+        void whenDeeplyNestedDecisionsThenTreatedAsDifferent() throws JacksonException {
+            val deepValue1 = createDeeplyNestedValue("value1", 20);
+            val deepValue2 = createDeeplyNestedValue("value2", 20);
+
+            val decision1 = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(deepValue1), Value.EMPTY_ARRAY,
+                    Value.UNDEFINED);
+            val decision2 = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(deepValue2), Value.EMPTY_ARRAY,
+                    Value.UNDEFINED);
+
+            prepareDecisions(new AuthorizationDecision[] { decision1, decision2 });
+
+            val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+
+            StepVerifier.create(pdp.decide(subscription)).expectNextCount(2).thenCancel().verify();
+        }
+
+        private Value createDeeplyNestedValue(String leafValue, int depth) {
+            Value current = Value.of(leafValue);
+            for (var i = 0; i < depth; i++) {
+                current = Value.ofObject(Map.of("level" + i, current));
+            }
+            return current;
+        }
     }
 
 }

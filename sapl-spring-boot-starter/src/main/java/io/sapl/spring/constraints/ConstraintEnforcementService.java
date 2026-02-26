@@ -686,8 +686,26 @@ public class ConstraintEnforcementService {
 
     private Runnable runBoth(Runnable a, Runnable b) {
         return () -> {
-            a.run();
-            b.run();
+            Throwable firstError = null;
+            try {
+                a.run();
+            } catch (Throwable t) {
+                firstError = t;
+            }
+            try {
+                b.run();
+            } catch (Throwable t) {
+                if (firstError == null)
+                    firstError = t;
+                else
+                    firstError.addSuppressed(t);
+            }
+            if (firstError != null) {
+                Exceptions.throwIfFatal(firstError);
+                if (firstError instanceof RuntimeException re)
+                    throw re;
+                throw new RuntimeException(firstError);
+            }
         };
     }
 

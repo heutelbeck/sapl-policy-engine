@@ -22,6 +22,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.MapFunction;
 import com.jayway.jsonpath.PathNotFoundException;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,6 +50,7 @@ public class ContentFilter {
     private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT = "Constraint enforcement failed. Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.";
     private static final String ERROR_CONVERTING_MODIFIED_OBJECT              = "Error converting modified object to original class type.";
     private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
+    private static final String ERROR_REGEX_UNSAFE                            = "Unsafe regex pattern rejected (potential ReDoS): ";
 
     private static final String DISCLOSE_LEFT                  = "discloseLeft";
     private static final String DISCLOSE_RIGHT                 = "discloseRight";
@@ -81,6 +83,11 @@ public class ContentFilter {
     private static final String ERROR_VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
     private static final String ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
     private static final int    BLACKEN_LENGTH_INVALID_VALUE   = -1;
+
+    private static final Pattern REDOS_ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*\\|[^)]*\\)[*+]");
+    private static final Pattern REDOS_NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
+    private static final Pattern REDOS_NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
+    private static final Pattern REDOS_NESTED_WILDCARDS       = Pattern.compile("\\([^)]*\\*[^)]*\\)[^)]*\\*");
 
     public static UnaryOperator<Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
         final var predicate      = predicateFromConditions(constraint, objectMapper);
@@ -230,7 +237,11 @@ public class ContentFilter {
         if (!condition.get(VALUE).isString())
             throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
-        final var regex = Pattern.compile(condition.get(VALUE).stringValue());
+        val patternText = condition.get(VALUE).stringValue();
+        if (isDangerousRegex(patternText))
+            throw new AccessConstraintViolationException(ERROR_REGEX_UNSAFE + patternText);
+
+        final var regex = Pattern.compile(patternText);
 
         return original -> {
             final var value = getValueAtPath(original, path, objectMapper);
@@ -506,5 +517,11 @@ public class ContentFilter {
             throw new AccessConstraintViolationException(String.format(ERROR_UNDEFINED_KEY_S, key));
 
         return action.get(key);
+    }
+
+    private static boolean isDangerousRegex(String pattern) {
+        return REDOS_NESTED_QUANTIFIERS.matcher(pattern).find() || REDOS_ALTERNATION_WITH_QUANT.matcher(pattern).find()
+                || REDOS_NESTED_WILDCARDS.matcher(pattern).find() || REDOS_NESTED_BOUNDED_QUANT.matcher(pattern).find()
+                || pattern.contains(".*.*") || pattern.contains(".+.+");
     }
 }

@@ -33,6 +33,8 @@ import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Subscription;
@@ -50,6 +52,7 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.UnaryOperator;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
@@ -788,6 +791,67 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
                         Value.UNDEFINED),
                 new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.ofArray(advicePlus50000),
                         Value.UNDEFINED));
+    }
+
+    @Nested
+    @DisplayName("Teardown")
+    class Teardown {
+
+        @Test
+        @Timeout(5)
+        @DisplayName("Double cancel does not throw (REQ-TEARDOWN-2)")
+        void whenCancelledTwiceThenIdempotent() {
+            final var constraintsService = buildConstraintHandlerService();
+            final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
+            final var data               = Flux.<Integer>never();
+            final var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data,
+                    constraintsService, Integer.class);
+            final var disposable         = sut.subscribe();
+            disposable.dispose();
+            assertThatCode(disposable::dispose).doesNotThrowAnyException();
+        }
+
+        @Test
+        @Timeout(5)
+        @DisplayName("Handler references cleared on deny transition (REQ-TEARDOWN-3)")
+        void whenDenyTransitionThenHandlerRefsCleared() {
+            final var handler = spy(new RunnableConstraintHandlerProvider() {
+
+                @Override
+                public boolean isResponsible(Value constraint) {
+                    return true;
+                }
+
+                @Override
+                public Signal getSignal() {
+                    return Signal.ON_DECISION;
+                }
+
+                @Override
+                public Runnable getHandler(Value constraint) {
+                    return this::run;
+                }
+
+                public void run() {
+                }
+
+            });
+            globalRunnableProviders.add(handler);
+
+            final var constraintsService   = buildConstraintHandlerService();
+            final var obligation           = Value.of(10000L);
+            final var permitWithObligation = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation),
+                    Value.EMPTY_ARRAY, Value.UNDEFINED);
+            final var decisions            = Flux.just(permitWithObligation, AuthorizationDecision.DENY);
+            final var data                 = Flux.<Integer>never();
+            final var sut                  = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data,
+                    constraintsService, Integer.class);
+
+            final var disposable = sut.subscribe();
+            disposable.dispose();
+
+            verify(handler, times(1)).run();
+        }
     }
 
 }

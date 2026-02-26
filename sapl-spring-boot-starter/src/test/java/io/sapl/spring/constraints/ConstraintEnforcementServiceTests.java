@@ -33,6 +33,7 @@ import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.reactivestreams.Subscription;
@@ -43,6 +44,7 @@ import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -50,6 +52,7 @@ import java.util.function.LongConsumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -1161,6 +1164,184 @@ class ConstraintEnforcementServiceTests {
         final var service  = buildConstraintHandlerService();
         final var decision = permitWithObligation();
         assertThatCode(() -> service.blockingPreEnforceBundleFor(decision, void.class)).doesNotThrowAnyException();
+    }
+
+    @Nested
+    @DisplayName("Obligation execution guarantees")
+    class ObligationExecutionGuarantees {
+
+        @Test
+        @DisplayName("All obligation handlers are attempted even when first fails (REQ-OBLIGATION-3)")
+        void whenMultipleObligationHandlersAndFirstFailsThenAllStillAttempted() {
+            final var failingHandler = spy(new RunnableConstraintHandlerProvider() {
+
+                                         @Override
+                                         public boolean isResponsible(Value constraint) {
+                                             return true;
+                                         }
+
+                                         @Override
+                                         public Signal getSignal() {
+                                             return Signal.ON_DECISION;
+                                         }
+
+                                         @Override
+                                         public Runnable getHandler(Value constraint) {
+                                             return this::run;
+                                         }
+
+                                         public void run() {
+                                             throw new RuntimeException("First handler fails");
+                                         }
+
+                                     });
+            final var secondHandler  = spy(new RunnableConstraintHandlerProvider() {
+
+                                         @Override
+                                         public boolean isResponsible(Value constraint) {
+                                             return true;
+                                         }
+
+                                         @Override
+                                         public Signal getSignal() {
+                                             return Signal.ON_DECISION;
+                                         }
+
+                                         @Override
+                                         public Runnable getHandler(Value constraint) {
+                                             return this::run;
+                                         }
+
+                                         public void run() {
+                                         }
+
+                                     });
+            globalRunnableProviders.add(failingHandler);
+            globalRunnableProviders.add(secondHandler);
+
+            final var service  = buildConstraintHandlerService();
+            final var decision = permitWithObligation();
+            final var bundle   = service.reactiveTypeBundleFor(decision, Integer.class);
+
+            try {
+                bundle.handleOnDecisionConstraints();
+            } catch (AccessDeniedException e) {
+                // Expected: obligation handler failure
+            }
+
+            verify(secondHandler, times(1)).run();
+        }
+    }
+
+    @Nested
+    @DisplayName("Handler execution order")
+    class HandlerExecutionOrder {
+
+        @Test
+        @DisplayName("OnNext order: filter before consumer before mapping (REQ-HANDLER-ORDER-1)")
+        void whenHandlerOrderThenFilterBeforeConsumerBeforeMapping() {
+            final var order = new ArrayList<String>();
+
+            final var filterHandler = spy(new FilterPredicateConstraintHandlerProvider() {
+
+                @Override
+                public boolean isResponsible(Value constraint) {
+                    return true;
+                }
+
+                @Override
+                public Predicate<Object> getHandler(Value constraint) {
+                    return o -> {
+                        order.add("filter");
+                        return true;
+                    };
+                }
+
+            });
+
+            final var consumerHandler = spy(new ConsumerConstraintHandlerProvider<Integer>() {
+
+                @Override
+                public boolean isResponsible(Value constraint) {
+                    return true;
+                }
+
+                @Override
+                public Class<Integer> getSupportedType() {
+                    return Integer.class;
+                }
+
+                @Override
+                public Consumer<Integer> getHandler(Value constraint) {
+                    return i -> order.add("consumer");
+                }
+
+                public void accept(Integer i) {
+                    order.add("consumer");
+                }
+
+            });
+
+            final var mappingHandler = spy(new MappingConstraintHandlerProvider<Integer>() {
+
+                @Override
+                public boolean isResponsible(Value constraint) {
+                    return true;
+                }
+
+                @Override
+                public Class<Integer> getSupportedType() {
+                    return Integer.class;
+                }
+
+                @Override
+                public UnaryOperator<Integer> getHandler(Value constraint) {
+                    return i -> {
+                        order.add("mapping");
+                        return i;
+                    };
+                }
+
+            });
+
+            globalFilterPredicateProviders.add(filterHandler);
+            globalConsumerProviders.add(consumerHandler);
+            globalMappingHandlerProviders.add(mappingHandler);
+
+            final var service  = buildConstraintHandlerService();
+            final var decision = permitWithObligation();
+            final var bundle   = service.reactiveTypeBundleFor(decision, Integer.class);
+
+            bundle.handleAllOnNextConstraints(42);
+
+            assertThat(order).containsExactly("filter", "consumer", "mapping");
+        }
+    }
+
+    @Nested
+    @DisplayName("Resource semantics")
+    class ResourceSemantics {
+
+        @Test
+        @DisplayName("Absent resource preserves original value (REQ-RESOURCE-2)")
+        void whenResourceAbsentThenOriginalValuePreserved() {
+            final var service = buildConstraintHandlerService();
+            final var data    = Flux.just(1, 2, 3);
+
+            final var result = service.replaceIfResourcePresent(data, Value.UNDEFINED, Integer.class);
+
+            StepVerifier.create(result).expectNext(1, 2, 3).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Null resource triggers access denied in reactive context (REQ-RESOURCE-2)")
+        void whenResourceIsNullThenAccessDenied() {
+            final var service = buildConstraintHandlerService();
+            final var data    = Flux.just(1, 2, 3);
+            final var result  = service.replaceIfResourcePresent(data, Value.NULL, Integer.class);
+
+            StepVerifier.create(result).expectError(AccessDeniedException.class).verify();
+        }
     }
 
 }

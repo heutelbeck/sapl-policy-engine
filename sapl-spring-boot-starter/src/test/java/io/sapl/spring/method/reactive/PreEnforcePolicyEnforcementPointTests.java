@@ -32,6 +32,8 @@ import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
@@ -46,6 +48,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -372,5 +375,46 @@ class PreEnforcePolicyEnforcementPointTests {
         final var mock = mock(ReflectiveMethodInvocation.class);
         when(mock.proceed()).thenReturn(Flux.just(1, 2, 3));
         return mock;
+    }
+
+    @Nested
+    @DisplayName("Error information leakage")
+    class ErrorInformationLeakage {
+
+        @Test
+        @DisplayName("Denied error message contains no policy internals (REQ-ERROR-2 / LOG-4)")
+        void whenDeniedThenErrorMessageContainsNoPolicyInternals() throws Throwable {
+            final var handler = new RunnableConstraintHandlerProvider() {
+
+                @Override
+                public boolean isResponsible(Value constraint) {
+                    return true;
+                }
+
+                @Override
+                public Signal getSignal() {
+                    return Signal.ON_DECISION;
+                }
+
+                @Override
+                public Runnable getHandler(Value constraint) {
+                    return () -> {};
+                }
+            };
+            globalRunnableProviders.add(handler);
+            final var constraintsService  = buildConstraintHandlerService();
+            final var obligations         = Value.ofArray(Value.of("sensitiveObligationName"));
+            final var decisions           = Flux
+                    .just(new AuthorizationDecision(Decision.DENY, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED));
+            final var resourceAccessPoint = resourceAccessPointInvocation();
+            final var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+                    resourceAccessPoint, Integer.class);
+
+            StepVerifier.create(sut).expectErrorSatisfies(error -> {
+                assertThat(error).isInstanceOf(AccessDeniedException.class).hasMessage("Access Denied by PDP")
+                        .hasMessageNotContaining("sensitiveObligationName").hasMessageNotContaining("handler")
+                        .hasMessageNotContaining("obligation").hasMessageNotContaining("policy");
+            }).verify();
+        }
     }
 }

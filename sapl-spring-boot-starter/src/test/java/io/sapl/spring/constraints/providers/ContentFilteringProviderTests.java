@@ -22,6 +22,8 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -1321,6 +1323,79 @@ class ContentFilteringProviderTests {
         final var handler    = sut.getHandler(constraint);
         final var original   = new Person("Bob", 32);
         assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(RuntimeException.class);
+    }
+
+    @Nested
+    @DisplayName("Security")
+    class Security {
+
+        @ParameterizedTest(name = "prototype pollution segment: {0}")
+        @MethodSource("prototypePollutionSegments")
+        @DisplayName("Paths containing prototype pollution segments are rejected (REQ-FILTER-SEC-1)")
+        void whenPathContainsPrototypePollutionSegmentThenRejected(String segment) throws JacksonException {
+            final var sut        = new ContentFilteringProvider(MAPPER);
+            final var constraint = toValue("""
+                    {
+                    	"type"    : "filterJsonContent",
+                    	"actions" : [
+                    		{
+                    			"type" : "delete",
+                    			"path" : "$.""" + segment + """
+                    "
+                    		}
+                    	]
+                    }
+                    """);
+            final var handler    = sut.getHandler(constraint);
+            final var original   = MAPPER.readTree("{\"name\": \"Alice\"}");
+            assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
+        }
+
+        static Stream<Arguments> prototypePollutionSegments() {
+            return Stream.of(arguments("__proto__"), arguments("constructor"), arguments("prototype"));
+        }
+
+        @Test
+        @DisplayName("Catastrophic backtracking regex pattern is rejected (REQ-FILTER-SEC-2)")
+        void whenRegexPatternIsCatastrophicBacktrackingThenRejected() throws JacksonException {
+            final var sut        = new ContentFilteringProvider(MAPPER);
+            final var constraint = toValue("""
+                    {
+                    	"type"       : "filterJsonContent",
+                    	"actions"    : [{ "type" : "delete", "path" : "$.key1" }],
+                    	"conditions" : [
+                    		{
+                    			"path"  : "$.key2",
+                    			"type"  : "=~",
+                    			"value" : "(a+)+b"
+                    		}
+                    	]
+                    }
+                    """);
+            assertThatThrownBy(() -> sut.getHandler(constraint)).isInstanceOf(AccessConstraintViolationException.class)
+                    .hasMessageContaining("Unsafe regex");
+        }
+
+        @Test
+        @DisplayName("Content filter does not mutate the original object (REQ-FILTER-SEC-3)")
+        void whenContentFilterAppliedThenOriginalNotMutated() throws JacksonException {
+            final var sut        = new ContentFilteringProvider(MAPPER);
+            final var constraint = toValue("""
+                    {
+                    	"type"    : "filterJsonContent",
+                    	"actions" : [
+                    		{
+                    			"type" : "delete",
+                    			"path" : "$.sensitive"
+                    		}
+                    	]
+                    }
+                    """);
+            final var handler    = sut.getHandler(constraint);
+            final var original   = MAPPER.readTree("{\"sensitive\": \"secret\", \"public\": \"data\"}");
+            handler.apply(original);
+            assertThat(original.has("sensitive")).as("Original object should not be mutated").isTrue();
+        }
     }
 
 }
