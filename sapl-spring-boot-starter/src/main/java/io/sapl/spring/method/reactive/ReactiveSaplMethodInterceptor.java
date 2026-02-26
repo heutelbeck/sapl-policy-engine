@@ -34,6 +34,7 @@ import lombok.val;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Publisher;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
@@ -109,10 +110,16 @@ public final class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private Flux<?> interceptWithEnforceRecoverableIfDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
-        val decisions           = preSubscriptionDecisions(invocation, attribute);
-        val resourceAccessPoint = (Flux) proceed(invocation);
+        val decisions            = preSubscriptionDecisions(invocation, attribute);
+        val resourceAccessPoint  = (Flux) proceed(invocation);
+        val signalAccessRecovery = resolveSignalAccessRecovery(invocation);
         return EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,
-                constraintHandlerService, attribute.genericsType());
+                constraintHandlerService, attribute.genericsType(), signalAccessRecovery);
+    }
+
+    private boolean resolveSignalAccessRecovery(MethodInvocation invocation) {
+        val annotation = AnnotationUtils.findAnnotation(invocation.getMethod(), EnforceRecoverableIfDenied.class);
+        return annotation != null && annotation.signalAccessRecovery();
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

@@ -62,6 +62,8 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     private static final String ERROR_PDP_RETURNED_INDETERMINATE              = "The PDP encountered an error during decision making and returned INDETERMINATE.";
     private static final String ERROR_PDP_RETURNED_NOT_APPLICABLE             = "The PDP has no applicable rules answering the authorization subscription and returned NOT_APPLICABLE.";
 
+    static final String ACCESS_RECOVERED = "PDP granted access after a previous deny.";
+
     private final Flux<AuthorizationDecision> decisions;
 
     private Flux<T> resourceAccessPoint;
@@ -81,20 +83,55 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
+    private final AtomicBoolean accessDeniedSignaled = new AtomicBoolean(false);
+
+    private final boolean signalAccessRecovery;
+
     private EnforceRecoverableIfDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
             Flux<T> resourceAccessPoint,
             ConstraintEnforcementService constraintsService,
-            Class<T> clazz) {
-        this.decisions           = decisions;
-        this.resourceAccessPoint = resourceAccessPoint;
-        this.constraintsService  = constraintsService;
-        this.clazz               = clazz;
+            Class<T> clazz,
+            boolean signalAccessRecovery) {
+        this.decisions            = decisions;
+        this.resourceAccessPoint  = resourceAccessPoint;
+        this.constraintsService   = constraintsService;
+        this.clazz                = clazz;
+        this.signalAccessRecovery = signalAccessRecovery;
     }
 
+    /**
+     * Creates a new recoverable enforcement point with silent recovery
+     * (no recovery signals).
+     *
+     * @param <V> the element type
+     * @param decisions the PDP decision stream
+     * @param resourceAccessPoint the source data stream
+     * @param constraintsService the constraint enforcement service
+     * @param clazz the generic type hint
+     * @return a Flux that enforces authorization decisions on the source stream
+     */
     public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
             ConstraintEnforcementService constraintsService, Class<V> clazz) {
+        return of(decisions, resourceAccessPoint, constraintsService, clazz, false);
+    }
+
+    /**
+     * Creates a new recoverable enforcement point wrapping the given resource
+     * access point.
+     *
+     * @param <V> the element type
+     * @param decisions the PDP decision stream
+     * @param resourceAccessPoint the source data stream
+     * @param constraintsService the constraint enforcement service
+     * @param clazz the generic type hint
+     * @param signalAccessRecovery whether to emit
+     * {@link AccessRecoveredException} on DENY-to-PERMIT transitions
+     * @return a Flux that enforces authorization decisions on the source stream
+     */
+    public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
+            ConstraintEnforcementService constraintsService, Class<V> clazz, boolean signalAccessRecovery) {
         val pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
-                constraintsService, clazz);
+                constraintsService, clazz, signalAccessRecovery);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints).map(pep::handleAccessDenied)
                 .doOnCancel(pep::handleCancel).onErrorStop().flatMap(ProtectedPayload::getPayload);
@@ -113,14 +150,14 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private void handleNextDecision(AuthorizationDecision decision) {
         if (decision.decision() == Decision.INDETERMINATE) {
-            sink.error(new AccessDeniedException(ERROR_PDP_RETURNED_INDETERMINATE));
+            signalAccessDenied(new AccessDeniedException(ERROR_PDP_RETURNED_INDETERMINATE));
             state.set(new EnforcementState<>(decision,
                     constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
         }
 
         if (decision.decision() == Decision.NOT_APPLICABLE) {
-            sink.error(new AccessDeniedException(ERROR_PDP_RETURNED_NOT_APPLICABLE));
+            signalAccessDenied(new AccessDeniedException(ERROR_PDP_RETURNED_NOT_APPLICABLE));
             state.set(new EnforcementState<>(decision,
                     constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
@@ -130,7 +167,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         try {
             newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
         } catch (AccessDeniedException e) {
-            sink.error(new AccessDeniedException(ERROR_FAILED_TO_CONSTRUCT_CONSTRAINT_HANDLERS, e));
+            signalAccessDenied(new AccessDeniedException(ERROR_FAILED_TO_CONSTRUCT_CONSTRAINT_HANDLERS, e));
             state.set(new EnforcementState<>(AuthorizationDecision.INDETERMINATE,
                     constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
@@ -139,24 +176,33 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         try {
             newBundle.handleOnDecisionConstraints();
         } catch (AccessDeniedException e) {
-            sink.error(new AccessDeniedException(ERROR_FAILED_TO_COMPLY_WITH_ONDECISION, e));
+            signalAccessDenied(new AccessDeniedException(ERROR_FAILED_TO_COMPLY_WITH_ONDECISION, e));
             state.set(new EnforcementState<>(AuthorizationDecision.INDETERMINATE,
                     constraintsService.reactiveTypeBestEffortBundleFor(decision, clazz)));
             return;
         }
 
         if (decision.decision() == Decision.DENY) {
-            sink.error(new AccessDeniedException(ERROR_PDP_DECIDED_TO_DENY_ACCESS));
+            signalAccessDenied(new AccessDeniedException(ERROR_PDP_DECIDED_TO_DENY_ACCESS));
             state.set(new EnforcementState<>(decision, newBundle));
             return;
         }
 
         // decision == Decision.PERMIT from here on
 
+        if (signalAccessRecovery && accessDeniedSignaled.compareAndSet(true, false)) {
+            sink.error(new AccessRecoveredException(ACCESS_RECOVERED));
+        }
+
         state.set(new EnforcementState<>(decision, newBundle));
 
         dataSubscription
                 .updateAndGet(sub -> Objects.requireNonNullElseGet(sub, this::wrapResourceAccessPointAndSubscribe));
+    }
+
+    private void signalAccessDenied(AccessDeniedException exception) {
+        accessDeniedSignaled.set(true);
+        sink.error(exception);
     }
 
     private Disposable wrapResourceAccessPointAndSubscribe() {
@@ -254,6 +300,9 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     private ProtectedPayload<T> handleAccessDenied(ProtectedPayload<T> payload) {
         if (payload.hasPayload())
+            return payload;
+
+        if (payload.getError() instanceof AccessRecoveredException)
             return payload;
 
         try {

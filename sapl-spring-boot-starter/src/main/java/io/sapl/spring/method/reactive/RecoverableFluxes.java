@@ -18,19 +18,21 @@
 package io.sapl.spring.method.reactive;
 
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.springframework.security.access.AccessDeniedException;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Utility class for handling recoverable access denied errors in reactive
+ * Utility class for handling recoverable access state signals in reactive
  * streams.
  * <p>
  * When using {@code @EnforceRecoverableIfDenied}, the PEP emits
- * {@link AccessDeniedException} errors that are designed to work with
+ * {@link AccessDeniedException} on deny and optionally
+ * {@link AccessRecoveredException} on recovery (when
+ * {@code signalAccessRecovery = true}). Both are delivered through
  * {@code onErrorContinue}. However, {@code onErrorContinue} only supports
  * side-effects and cannot emit replacement values.
  * <p>
@@ -41,51 +43,72 @@ import java.util.function.Supplier;
 public class RecoverableFluxes {
 
     /**
-     * Recovers from {@link AccessDeniedException} by dropping the error and
-     * continuing the subscription. Other errors are propagated.
+     * Recovers from {@link AccessDeniedException} and
+     * {@link AccessRecoveredException} by dropping the signal and continuing the
+     * subscription. Other errors are propagated.
      *
      * @param <T> the element type
-     * @param source the source flux with recoverable access denied errors
-     * @return a flux that drops access denied errors and continues
+     * @param source the source flux with recoverable access state signals
+     * @return a flux that drops access state signals and continues
      */
     public static <T> Flux<T> recover(Flux<T> source) {
-        return doRecover(source, null, null);
+        return doRecover(source, null, null, null, null);
     }
 
     /**
-     * Recovers from {@link AccessDeniedException} by executing a side-effect (e.g.,
-     * logging) and dropping the error. Other errors are propagated.
+     * Recovers from {@link AccessDeniedException} by executing a side-effect
+     * (e.g., logging) and dropping the error. {@link AccessRecoveredException}
+     * signals are silently dropped. Other errors are propagated.
      *
      * @param <T> the element type
-     * @param source the source flux with recoverable access denied errors
+     * @param source the source flux with recoverable access state signals
      * @param onDenied consumer for the access denied error (e.g., for logging)
      * @return a flux that handles access denied errors with the consumer and
      * continues
      */
     public static <T> Flux<T> recover(Flux<T> source, Consumer<AccessDeniedException> onDenied) {
-        return doRecover(source, onDenied, null);
+        return doRecover(source, onDenied, null, null, null);
     }
 
     /**
-     * Recovers from {@link AccessDeniedException} by emitting a replacement value.
+     * Recovers from {@link AccessDeniedException} and
+     * {@link AccessRecoveredException} by executing side-effects and dropping
+     * the signals. Other errors are propagated.
+     *
+     * @param <T> the element type
+     * @param source the source flux with recoverable access state signals
+     * @param onDenied consumer for the access denied signal (e.g., for logging)
+     * @param onRecovered consumer for the access recovered signal
+     * @return a flux that handles both access state signals and continues
+     */
+    public static <T> Flux<T> recover(Flux<T> source, Consumer<AccessDeniedException> onDenied,
+            Consumer<AccessRecoveredException> onRecovered) {
+        return doRecover(source, onDenied, null, onRecovered, null);
+    }
+
+    /**
+     * Recovers from {@link AccessDeniedException} by emitting a replacement
+     * value. {@link AccessRecoveredException} signals are silently dropped.
      * Other errors are propagated.
      *
      * @param <T> the element type
-     * @param source the source flux with recoverable access denied errors
+     * @param source the source flux with recoverable access state signals
      * @param replacement supplier for the replacement value to emit on access
      * denied
-     * @return a flux that emits replacement values instead of access denied errors
+     * @return a flux that emits replacement values instead of access denied
+     * errors
      */
     public static <T> Flux<T> recoverWith(Flux<T> source, Supplier<T> replacement) {
-        return doRecover(source, null, replacement);
+        return doRecover(source, null, replacement, null, null);
     }
 
     /**
-     * Recovers from {@link AccessDeniedException} by executing a side-effect and
-     * emitting a replacement value. Other errors are propagated.
+     * Recovers from {@link AccessDeniedException} by executing a side-effect
+     * and emitting a replacement value. {@link AccessRecoveredException} signals
+     * are silently dropped. Other errors are propagated.
      *
      * @param <T> the element type
-     * @param source the source flux with recoverable access denied errors
+     * @param source the source flux with recoverable access state signals
      * @param onDenied consumer for the access denied error (e.g., for logging)
      * @param replacement supplier for the replacement value to emit on access
      * denied
@@ -93,23 +116,62 @@ public class RecoverableFluxes {
      */
     public static <T> Flux<T> recoverWith(Flux<T> source, Consumer<AccessDeniedException> onDenied,
             Supplier<T> replacement) {
-        return doRecover(source, onDenied, replacement);
+        return doRecover(source, onDenied, replacement, null, null);
+    }
+
+    /**
+     * Recovers from both {@link AccessDeniedException} and
+     * {@link AccessRecoveredException} by executing side-effects and emitting
+     * replacement values. Other errors are propagated.
+     *
+     * @param <T> the element type
+     * @param source the source flux with recoverable access state signals
+     * @param onDenied consumer for the access denied signal (e.g., for logging)
+     * @param deniedReplacement supplier for the replacement value on access
+     * denied
+     * @param onRecovered consumer for the access recovered signal
+     * @param recoveredReplacement supplier for the replacement value on access
+     * recovered
+     * @return a flux that handles both signals with consumers and replacements
+     */
+    public static <T> Flux<T> recoverWith(Flux<T> source, Consumer<AccessDeniedException> onDenied,
+            Supplier<T> deniedReplacement, Consumer<AccessRecoveredException> onRecovered,
+            Supplier<T> recoveredReplacement) {
+        return doRecover(source, onDenied, deniedReplacement, onRecovered, recoveredReplacement);
     }
 
     private static <T> Flux<T> doRecover(Flux<T> source, Consumer<AccessDeniedException> onDenied,
-            Supplier<T> replacement) {
+            Supplier<T> deniedReplacement, Consumer<AccessRecoveredException> onRecovered,
+            Supplier<T> recoveredReplacement) {
+        // A single onErrorContinue is required because Reactor uses one context key
+        // (OnNextFailureStrategy.KEY_ON_NEXT_ERROR_STRATEGY) for all onErrorContinue
+        // handlers. Chaining multiple type-specific onErrorContinue calls causes the
+        // inner one to replace the outer, silently losing error handling for one type.
         return Flux.deferContextual(contextView -> Flux.create(sink -> {
-            Disposable subscription = source.contextWrite(contextView).doOnNext(sink::next)
-                    .onErrorContinue(AccessDeniedException.class, (error, value) -> {
-                        if (onDenied != null) {
-                            onDenied.accept((AccessDeniedException) error);
-                        }
-                        if (replacement != null) {
-                            sink.next(replacement.get());
+            val subscription = source.contextWrite(contextView).doOnNext(sink::next)
+                    .onErrorContinue(RecoverableFluxes::isAccessStateSignal, (error, value) -> {
+                        if (error instanceof AccessDeniedException ade) {
+                            if (onDenied != null) {
+                                onDenied.accept(ade);
+                            }
+                            if (deniedReplacement != null) {
+                                sink.next(deniedReplacement.get());
+                            }
+                        } else if (error instanceof AccessRecoveredException are) {
+                            if (onRecovered != null) {
+                                onRecovered.accept(are);
+                            }
+                            if (recoveredReplacement != null) {
+                                sink.next(recoveredReplacement.get());
+                            }
                         }
                     }).doOnComplete(sink::complete).doOnError(sink::error).subscribe();
             sink.onDispose(subscription);
         }));
+    }
+
+    private static boolean isAccessStateSignal(Throwable error) {
+        return error instanceof AccessDeniedException || error instanceof AccessRecoveredException;
     }
 
 }

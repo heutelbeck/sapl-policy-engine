@@ -101,4 +101,17 @@ public @interface EnforceRecoverableIfDenied {
      */
     Class<?> genericsType() default Object.class;
 
+    /**
+     * When enabled, the PEP emits an
+     * {@link io.sapl.spring.method.reactive.AccessRecoveredException} on each
+     * DENY-to-PERMIT transition. This allows subscribers to distinguish "access
+     * restored, source idle" from "still denied."
+     * <p>
+     * The signal is delivered through the same {@code onErrorContinue} mechanism
+     * used for {@code AccessDeniedException} on deny transitions.
+     *
+     * @return true to emit recovery signals, false (default) for silent recovery
+     */
+    boolean signalAccessRecovery() default false;
+
 }

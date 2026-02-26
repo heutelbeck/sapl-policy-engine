@@ -1,0 +1,9 @@
+set "r2dbc_result_constraint_handling"
+first or abstain errors propagate
+
+policy "permit_with_failing_mapping"
+permit
+    action == "findAllWithFailingMapping";
+obligation {
+    "type": "testFailingMapping"
+}

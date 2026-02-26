@@ -41,4 +41,8 @@ public interface UserIntegrationTestsRepository extends ReactiveCrudRepository<T
 
     @QueryEnforce(action = "'denyTest'")
     Flux<TestUser> findAllByAgeBefore(Integer age);
+
+    @Query("{'age': {'$gt': ?0}}")
+    @QueryEnforce(action = "'findAllWithFailingMapping'")
+    Flux<TestUser> findUsersByAgeWithFailingMapping(int age);
 }

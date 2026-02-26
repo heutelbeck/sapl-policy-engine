@@ -108,6 +108,10 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Setter
     @Getter
+    private long maxRetries = Long.MAX_VALUE;
+
+    @Setter
+    @Getter
     private int timeoutMillis = 5000;
 
     public RemoteHttpPolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext) {
@@ -131,8 +135,9 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
         val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(DECIDE, type, authzSubscription).doOnError(this::logStreamError)
-                        .concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(DECIDE, type, authzSubscription)
+                        .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
+                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error)))
                 .retryWhen(createRetrySpec()).distinctUntilChanged();
     }
@@ -149,8 +154,9 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
         val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription).doOnError(this::logStreamError)
-                        .concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription)
+                        .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
+                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE),
                         Flux.error(error)))
                 .retryWhen(createRetrySpec()).distinctUntilChanged();
@@ -160,8 +166,9 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
         val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription).doOnError(this::logStreamError)
-                        .concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
+                        .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
+                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(
                         error -> Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error)))
                 .retryWhen(createRetrySpec()).distinctUntilChanged();
@@ -174,7 +181,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     private Retry createRetrySpec() {
-        return Retry.backoff(Long.MAX_VALUE, Duration.ofMillis(firstBackoffMillis))
+        return Retry.backoff(maxRetries, Duration.ofMillis(firstBackoffMillis))
                 .maxBackoff(Duration.ofMillis(maxBackOffMillis)).doBeforeRetry(signal -> {
                     val attempt = signal.totalRetries() + 1;
                     if (attempt >= RETRY_ESCALATION_THRESHOLD) {

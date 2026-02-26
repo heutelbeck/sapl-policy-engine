@@ -48,6 +48,7 @@ import tools.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -413,12 +414,14 @@ class ReactiveSaplMethodInterceptorTests {
 
         try (MockedStatic<EnforceRecoverableIfDeniedPolicyEnforcementPoint> mockPEP = Mockito
                 .mockStatic(EnforceRecoverableIfDeniedPolicyEnforcementPoint.class)) {
-            mockPEP.when(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
+            mockPEP.when(
+                    () -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any(), anyBoolean()))
                     .thenReturn(expected);
             final var actual = defaultSut.invoke(invocation);
             assertThat(actual).isSameAs(expected);
             StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-            mockPEP.verify(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()),
+            mockPEP.verify(
+                    () -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any(), anyBoolean()),
                     times(1));
         }
     }

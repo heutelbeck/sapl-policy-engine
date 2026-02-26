@@ -35,6 +35,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
@@ -47,12 +51,15 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.UnaryOperator;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -1046,6 +1053,67 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 
         StepVerifier.create(sut.take(1)).expectNext(0).verifyComplete();
         verify(handler, times(1)).run();
+    }
+
+    @Test
+    @Timeout(5)
+    void when_firstPermitWithSignalAccessRecovery_thenNoRecoverySignalEmitted() {
+        final var constraintsService = buildConstraintHandlerService();
+        final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
+        final var data               = Flux.just(1, 2, 3);
+        final var sut                = EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, data,
+                constraintsService, Integer.class, true);
+        final var errorConsumer      = errorConsumer();
+        StepVerifier.create(sut.onErrorContinue(errorConsumer)).expectNext(1, 2, 3).verifyComplete();
+        verify(errorConsumer, times(0)).accept(any(), any());
+    }
+
+    @Timeout(5)
+    @MethodSource("nonPermitDecisions")
+    @ParameterizedTest(name = "nonPermit={1}")
+    void when_nonPermitThenPermitWithSignalAccessRecovery_thenRecoverySignalEmitted(AuthorizationDecision nonPermit,
+            String decisionName) {
+        final var errorConsumer = errorConsumer();
+        StepVerifier
+                .withVirtualTime(() -> scenarioWithRecoverySignal(Flux.just(nonPermit, AuthorizationDecision.PERMIT),
+                        errorConsumer))
+                .thenAwait(Duration.ofMillis(2000L)).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
+        verifyAccessDeniedThenRecovered(errorConsumer);
+    }
+
+    static Stream<Arguments> nonPermitDecisions() {
+        return Stream.of(arguments(AuthorizationDecision.DENY, "DENY"),
+                arguments(AuthorizationDecision.INDETERMINATE, "INDETERMINATE"),
+                arguments(AuthorizationDecision.NOT_APPLICABLE, "NOT_APPLICABLE"));
+    }
+
+    @Test
+    @Timeout(5)
+    void when_permitDenyPermitWithSignalAccessRecovery_thenRecoverySignalEmittedOnRecover() {
+        final var errorConsumer = errorConsumer();
+        StepVerifier
+                .withVirtualTime(() -> scenarioWithRecoverySignal(Flux.just(AuthorizationDecision.PERMIT,
+                        AuthorizationDecision.DENY, AuthorizationDecision.PERMIT), errorConsumer))
+                .thenAwait(Duration.ofMillis(2000L)).expectNext(0, 1, 4, 5, 6, 7, 8, 9).verifyComplete();
+        verifyAccessDeniedThenRecovered(errorConsumer);
+    }
+
+    private Flux<Integer> scenarioWithRecoverySignal(Flux<AuthorizationDecision> decisions,
+            BiConsumer<Throwable, Object> errorConsumer) {
+        final var constraintsService = buildConstraintHandlerService();
+        final var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(20L));
+        return EnforceRecoverableIfDeniedPolicyEnforcementPoint
+                .of(decisions.delayElements(Duration.ofMillis(50L)), data, constraintsService, Integer.class, true)
+                .onErrorContinue(errorConsumer);
+    }
+
+    private void verifyAccessDeniedThenRecovered(BiConsumer<Throwable, Object> errorConsumer) {
+        final var captor = ArgumentCaptor.forClass(Throwable.class);
+        verify(errorConsumer, times(2)).accept(captor.capture(), any());
+        assertThat(captor.getAllValues())
+                .hasExactlyElementsOfTypes(AccessDeniedException.class, AccessRecoveredException.class)
+                .satisfies(errors -> assertThat(errors.get(1))
+                        .hasMessage(EnforceRecoverableIfDeniedPolicyEnforcementPoint.ACCESS_RECOVERED));
     }
 
     private Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {

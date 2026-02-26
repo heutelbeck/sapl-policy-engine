@@ -41,4 +41,8 @@ public interface PersonIntegrationTestsRepository extends R2dbcRepository<Person
 
     @QueryEnforce(action = "'accessDenied'")
     Flux<Person> findAllByAgeBefore(int age);
+
+    @Query("SELECT * FROM person WHERE age > :age")
+    @QueryEnforce(action = "'findAllWithFailingMapping'")
+    Flux<Person> findPeopleByAgeWithFailingMapping(int age);
 }
