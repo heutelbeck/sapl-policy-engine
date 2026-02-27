@@ -704,7 +704,7 @@ public class ConstraintEnforcementService {
                 Exceptions.throwIfFatal(firstError);
                 if (firstError instanceof RuntimeException re)
                     throw re;
-                throw new RuntimeException(firstError);
+                throw new AccessDeniedException(ERROR_RUNNABLE_OBLIGATION_FAILED, firstError);
             }
         };
     }

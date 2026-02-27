@@ -1273,11 +1273,7 @@ class ConstraintEnforcementServiceTests {
 
                 @Override
                 public Consumer<Integer> getHandler(Value constraint) {
-                    return i -> order.add("consumer");
-                }
-
-                public void accept(Integer i) {
-                    order.add("consumer");
+                    return ignored -> order.add("consumer");
                 }
 
             });
