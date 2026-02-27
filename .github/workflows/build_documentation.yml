@@ -22,6 +22,11 @@ on:
       GHUB_ACCESS_TOKEN:
         required: true
   workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - 'sapl-documentation/**'
 
 permissions:
   contents: read
