@@ -57,7 +57,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
-import reactor.core.publisher.Flux;
 
 import java.util.function.UnaryOperator;
 
@@ -184,7 +183,7 @@ class TransactionalMongoBlockingEnforcementIT {
         var obligation = ObjectValue.builder().put("type", Value.of(FAIL_ON_RESULT_OBLIGATION)).build();
         var decision   = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
 
         assertThatThrownBy(() -> testService.create("test")).isInstanceOf(AccessDeniedException.class);
         assertThat(repository.count()).isZero();

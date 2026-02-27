@@ -33,6 +33,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
@@ -43,6 +44,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
     private final PdpVoterSource        pdpConfigurationSource;
     private final IdFactory             idFactory;
     private final Mono<String>          pdpIdExtractor;
+    private final Supplier<String>      blockingPdpIdSupplier;
     private final List<VoteInterceptor> interceptors;
 
     /**
@@ -55,7 +57,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
     public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
             Mono<String> pdpIdExtractor) {
-        this(pdpConfigurationSource, idFactory, pdpIdExtractor, List.of());
+        this(pdpConfigurationSource, idFactory, pdpIdExtractor, List.of(), () -> DEFAULT_PDP_ID);
     }
 
     /**
@@ -70,9 +72,27 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
             IdFactory idFactory,
             Mono<String> pdpIdExtractor,
             List<VoteInterceptor> interceptors) {
+        this(pdpConfigurationSource, idFactory, pdpIdExtractor, interceptors, () -> DEFAULT_PDP_ID);
+    }
+
+    /**
+     * Creates a PDP with vote interceptors and a blocking PDP ID supplier.
+     *
+     * @param pdpConfigurationSource the source of PDP configurations
+     * @param idFactory factory for generating subscription IDs
+     * @param pdpIdExtractor reactive extractor for the PDP identifier
+     * @param interceptors interceptors invoked on each vote, sorted by priority
+     * @param blockingPdpIdSupplier supplier for the PDP ID in blocking contexts
+     */
+    public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
+            IdFactory idFactory,
+            Mono<String> pdpIdExtractor,
+            List<VoteInterceptor> interceptors,
+            Supplier<String> blockingPdpIdSupplier) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.idFactory              = idFactory;
         this.pdpIdExtractor         = pdpIdExtractor;
+        this.blockingPdpIdSupplier  = blockingPdpIdSupplier;
         // Sort interceptors by priority (lower values execute first)
         this.interceptors = interceptors.stream().sorted().toList();
     }
@@ -132,9 +152,10 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      */
     public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription) {
         val subscriptionId   = idFactory.newRandom();
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(DEFAULT_PDP_ID);
+        val pdpId            = blockingPdpIdSupplier.get();
+        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
         if (pdpConfiguration.isEmpty()) {
-            return noConfigurationVote(DEFAULT_PDP_ID);
+            return noConfigurationVote(pdpId);
         }
         val timestampedVote = pdpConfiguration.get().voteOnce(authorizationSubscription, subscriptionId);
         invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);

@@ -48,7 +48,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import reactor.core.publisher.Flux;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -248,22 +247,22 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalled_then_pdpDecideIsInvoked() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         service.execute("test");
-        verify(pdp, times(1)).decide(any(AuthorizationSubscription.class));
+        verify(pdp, times(1)).decideOnceBlocking(any(AuthorizationSubscription.class));
     }
 
     @Test
     @WithMockUser()
     void when_testServiceCalledAndPdpPermits_then_pdpMethodReturnsNormally() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThat(service.execute("test")).isEqualTo("Argument: test");
     }
 
     @Test
     @WithMockUser()
     void when_testServiceCalledAndPdpDenies_then_pdpMethodThrowsAccessDenied() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.DENY);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -271,8 +270,8 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndPdpIndeterminate_then_pdpMethodThrowsAccessDenied() {
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class)))
+                .thenReturn(AuthorizationDecision.INDETERMINATE);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -280,8 +279,8 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndPdpNotApplicable_then_pdpMethodThrowsAccessDenied() {
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class)))
+                .thenReturn(AuthorizationDecision.NOT_APPLICABLE);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -289,7 +288,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndPdpReturnsEmptyStream_then_pdpMethodThrowsAccessDenied() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(null);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -297,7 +296,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndPdpReturnsNull_then_pdpMethodThrowsAccessDenied() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(null);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -306,7 +305,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableObligation_then_pdpMethodThrowsAccessDenied() {
         final var decision = permitWithObligations(Value.of(UNKNOWN_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -315,7 +314,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingObligation_then_pdpMethodThrowsAccessDenied() {
         final var decision = permitWithObligations(Value.of(FAILING_CONSTRAINT), Value.of(KNOWN_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -324,7 +323,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableAdvice_then_pdpMethodInvoked() {
         final var decision = permitWithAdvice(Value.of(UNKNOWN_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThat(service.execute("test")).isEqualTo("Argument: test");
     }
 
@@ -332,7 +331,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingAdvice_then_normalAccessGranted() {
         final var decision = permitWithAdvice(Value.of(FAILING_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThat(service.execute("test")).isEqualTo("Argument: test");
     }
 
@@ -340,7 +339,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
         final var decision = permitWithObligations(Value.of(KNOWN_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThat(service.execute("test")).isEqualTo("Argument: test");
         verify(constraintHandlerTwo).run();
         verify(constraintHandlerOne).run();
@@ -350,7 +349,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionDenyContainsEnforceableObligation_then_accessDeniedButConstraintsHandled() {
         final var decision = denyWithObligations(Value.of(KNOWN_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(constraintHandlerTwo).run();
         verify(constraintHandlerOne).run();
@@ -361,7 +360,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
         final var decision = permitWithAdvice(Value.of(KNOWN_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
         assertThat(service.execute("test")).isEqualTo("Argument: test");
         inOrder.verify(constraintHandlerOne).run();
@@ -374,7 +373,7 @@ class PreEnforcementConstraintsTests {
         final var knownConstraint = Value.of(KNOWN_CONSTRAINT);
         final var decision        = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(knownConstraint),
                 Value.ofArray(knownConstraint), Value.UNDEFINED);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThat(service.execute("test")).isEqualTo("Argument: test");
         verify(constraintHandlerOne, times(2)).run();
         verify(constraintHandlerTwo, times(2)).run();
@@ -384,7 +383,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableMethodInvocationManipulatingObligation_then_pdpMethodReturnsNormallyWithModifiedArgument() {
         final var decision = permitWithObligations(Value.of(SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThat(service.execute("test")).isEqualTo("Argument: replaced");
         verify(service, times(1)).execute("replaced");
     }
@@ -393,7 +392,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingMethodInvocationManipulatingObligation_then_accessDenied() {
         final var decision = permitWithObligations(Value.of(FAILING_METHOD_INVOCATION_CONSTRAINT));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThatThrownBy(() -> service.execute("test")).isInstanceOf(AccessDeniedException.class);
         verify(service, times(0)).execute(any());
     }
@@ -402,7 +401,7 @@ class PreEnforcementConstraintsTests {
     @WithMockUser()
     void when_testDecisionHasResource_then_replaced() {
         final var decision = permitWithResource(Value.of("replacement"));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
         assertThat(service.execute("test")).isEqualTo("replacement");
         verify(service, times(1)).execute(any());
     }

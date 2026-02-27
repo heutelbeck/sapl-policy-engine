@@ -52,7 +52,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         final var authentication = authenticationSupplier.get();
         final var requestValue   = fromJsonNode(mapper.valueToTree(request));
         final var subscription   = AuthorizationSubscription.of(authentication, requestValue, requestValue, mapper);
-        final var authzDecision  = pdp.decide(subscription).blockFirst();
+        final var authzDecision  = pdp.decideOnceBlocking(subscription);
 
         if (authzDecision == null || !(authzDecision.resource() instanceof UndefinedValue))
             return new AuthorizationDecision(false);

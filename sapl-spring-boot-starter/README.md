@@ -556,6 +556,42 @@ The full list of embedded PDP properties:
 
 For development, `RESOURCES` is convenient because policies are bundled in the JAR. For production with dynamic policy updates, use `DIRECTORY` and point to a directory that can be updated without redeployment. For multi-tenant deployments, use `MULTI_DIRECTORY` (one subdirectory per tenant) or `BUNDLES` (one .saplbundle file per tenant).
 
+#### Multi-Tenant PDP ID Routing
+
+By default, all embedded sources (`RESOURCES`, `DIRECTORY`) use pdpId `"default"` -- a single policy set shared by all requests. The `MULTI_DIRECTORY` and `BUNDLES` source types create one pdpId per subdirectory or bundle filename, enabling tenant-isolated policy sets.
+
+To route authorization requests to the correct tenant configuration, provide a PDP ID supplier bean:
+
+- **Blocking contexts** (`@PreEnforce`, `@PostEnforce`, `SaplAuthorizationManager`): provide a `BlockingPdpIdSupplier` bean. This is called synchronously on the servlet request thread.
+
+```java
+@Bean
+BlockingPdpIdSupplier blockingPdpIdSupplier() {
+    return () -> {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth instanceof TenantAwareToken tenantToken) {
+            return tenantToken.getTenantId();
+        }
+        return "default";
+    };
+}
+```
+
+- **Reactive contexts** (WebFlux, reactive method security): provide a `PdpIdExtractor` bean. This returns a `Mono<String>` resolved within the reactive pipeline.
+
+```java
+@Bean
+PdpIdExtractor pdpIdExtractor() {
+    return () -> ReactiveSecurityContextHolder.getContext()
+            .map(ctx -> ctx.getAuthentication())
+            .filter(auth -> auth instanceof TenantAwareToken)
+            .map(auth -> ((TenantAwareToken) auth).getTenantId())
+            .defaultIfEmpty("default");
+}
+```
+
+If neither bean is provided, all requests use pdpId `"default"`.
+
 ### Remote PDP
 
 The remote PDP connects to an external PDP server (like SAPL Node). Use this when policies are managed centrally or when multiple applications share the same policies.

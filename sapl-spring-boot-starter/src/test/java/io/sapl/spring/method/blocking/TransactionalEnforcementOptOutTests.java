@@ -52,7 +52,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
 
 import java.util.function.UnaryOperator;
 
@@ -164,7 +163,7 @@ class TransactionalEnforcementOptOutTests {
         var obligation = ObjectValue.builder().put("type", Value.of(FAIL_ON_RESULT_OBLIGATION)).build();
         var decision   = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(decision);
 
         assertThatThrownBy(() -> testService.create("test")).isInstanceOf(AccessDeniedException.class);
         assertThat(repository.count()).isOne();

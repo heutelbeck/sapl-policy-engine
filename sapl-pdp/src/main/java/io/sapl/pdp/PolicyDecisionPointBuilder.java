@@ -57,6 +57,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -172,6 +173,7 @@ public class PolicyDecisionPointBuilder {
 
     private Mono<String>                         pdpIdExtractor        = Mono
             .just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID);
+    private Supplier<String>                     blockingPdpIdSupplier = () -> DynamicPolicyDecisionPoint.DEFAULT_PDP_ID;
     private Function<PdpVoterSource, Disposable> sourceFactory;
     private final List<PDPConfiguration>         initialConfigurations = new ArrayList<>();
 
@@ -287,6 +289,26 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withPdpIdExtractor(Mono<String> pdpIdExtractor) {
         this.pdpIdExtractor = pdpIdExtractor;
+        return this;
+    }
+
+    /**
+     * Sets the blocking PDP ID supplier for multi-tenant routing in synchronous
+     * contexts.
+     * <p>
+     * The supplier is invoked for each blocking authorization decision
+     * ({@code decideOnceBlocking}) to determine which PDP configuration to use.
+     * If not set, always returns "default" as pdpId.
+     *
+     * @param blockingPdpIdSupplier
+     * a supplier that returns the PDP ID from the current thread context
+     *
+     * @return this builder
+     *
+     * @see io.sapl.api.pdp.BlockingPdpIdSupplier
+     */
+    public PolicyDecisionPointBuilder withBlockingPdpIdSupplier(Supplier<String> blockingPdpIdSupplier) {
+        this.blockingPdpIdSupplier = blockingPdpIdSupplier;
         return this;
     }
 
@@ -802,7 +824,7 @@ public class PolicyDecisionPointBuilder {
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
         val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
-                pdpIdExtractor, sortedInterceptors);
+                pdpIdExtractor, sortedInterceptors, blockingPdpIdSupplier);
 
         // Create default configuration from collected policies
         if (!policyDocuments.isEmpty()) {

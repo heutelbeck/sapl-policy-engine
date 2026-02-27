@@ -40,7 +40,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import reactor.core.publisher.Flux;
 
 import java.util.Optional;
 import java.util.function.UnaryOperator;
@@ -101,14 +100,14 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_errorDuringBundleConstruction_then_AccessDenied() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenThrow(new IllegalStateException("TEST FAILURE"));
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
     @WithMockUser()
     void when_bundleIsNull_then_AccessDenied() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -117,7 +116,7 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_AfterAndDecideIsPermit_then_ReturnOriginalReturnObject() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThat(testService.doSomething()).isEqualTo(ORIGINAL_RETURN_OBJECT);
     }
 
@@ -126,7 +125,7 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_AfterAndDecideIsDeny_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.DENY);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -135,8 +134,8 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_AfterBeforeAndDecideNotApplicable_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class)))
+                .thenReturn(AuthorizationDecision.NOT_APPLICABLE);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -145,8 +144,8 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_AfterAndDecideIsIndeterminate_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class)))
+                .thenReturn(AuthorizationDecision.INDETERMINATE);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -155,7 +154,7 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_AfterAndDecideIsEmpty_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(null);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -166,9 +165,8 @@ class PostEnforcePolicyEnforcementPointTests {
                 FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
                 UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                        Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(new AuthorizationDecision(
+                Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(CHANGED_RETURN_OBJECT)));
         assertThat(testService.doSomething()).isEqualTo(CHANGED_RETURN_OBJECT);
     }
 
@@ -180,9 +178,8 @@ class PostEnforcePolicyEnforcementPointTests {
                 UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                        Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(new AuthorizationDecision(
+                Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(CHANGED_RETURN_OBJECT)));
         assertThat(testService.doSomethingOptional()).isEqualTo(Optional.of(CHANGED_RETURN_OBJECT));
     }
 
@@ -191,7 +188,7 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptional_then_ReturnEmpty() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThat(testService.doSomethingOptionalEmpty()).isEmpty();
     }
 
@@ -205,9 +202,8 @@ class PostEnforcePolicyEnforcementPointTests {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         final var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
 
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                        Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(new AuthorizationDecision(
+                Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(CHANGED_RETURN_OBJECT)));
         assertThat(testService.doSomethingOptionalEmpty()).isEqualTo(expectedReturnObject);
     }
 

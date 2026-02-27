@@ -40,7 +40,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import reactor.core.publisher.Flux;
 
 import java.util.Optional;
 import java.util.function.UnaryOperator;
@@ -101,7 +100,7 @@ class PreEnforcePolicyEnforcementPointTests {
     void whenBeforeAndDecideDeny_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.DENY);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -110,7 +109,7 @@ class PreEnforcePolicyEnforcementPointTests {
     void whenBeforeAndDecideNull_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(null);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -118,7 +117,7 @@ class PreEnforcePolicyEnforcementPointTests {
     @WithMockUser()
     void whenBeforeAndDecidePermitButBundleNull_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(null);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -127,7 +126,7 @@ class PreEnforcePolicyEnforcementPointTests {
     void whenBeforeAndDecidePermit_thenReturnTrue() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThat(testService.doSomething()).isEqualTo(ORIGINAL_RETURN_OBJECT);
     }
 
@@ -139,7 +138,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }, FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
                 FunctionUtil.all(), FunctionUtil.sink(), UnaryOperator.identity());
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(mockBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(AuthorizationDecision.PERMIT);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -148,8 +147,8 @@ class PreEnforcePolicyEnforcementPointTests {
     void whenBeforeAndDecideNotApplicable_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class)))
+                .thenReturn(AuthorizationDecision.NOT_APPLICABLE);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -158,8 +157,8 @@ class PreEnforcePolicyEnforcementPointTests {
     void whenBeforeAndDecideIndeterminate_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class)))
+                .thenReturn(AuthorizationDecision.INDETERMINATE);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -168,7 +167,7 @@ class PreEnforcePolicyEnforcementPointTests {
     void whenBeforeAndDecideEmpty_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(null);
         assertThatThrownBy(() -> testService.doSomething()).isInstanceOf(AccessDeniedException.class);
     }
 
@@ -180,9 +179,8 @@ class PreEnforcePolicyEnforcementPointTests {
                 UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                        Value.of(CHANGED_RETURN_OBJECT))));
+        when(pdp.decideOnceBlocking(any(AuthorizationSubscription.class))).thenReturn(new AuthorizationDecision(
+                Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.of(CHANGED_RETURN_OBJECT)));
         assertThat(testService.doSomethingOptional()).isEqualTo(Optional.of(CHANGED_RETURN_OBJECT));
     }
 

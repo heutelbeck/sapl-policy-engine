@@ -431,6 +431,28 @@ class DynamicPolicyDecisionPointTests {
         assertThat(unsubscribedIds).hasSize(1).first().isEqualTo(subscribedIds.getFirst());
     }
 
+    @Test
+    @DisplayName("custom blocking PDP ID supplier routes to correct tenant configuration")
+    void whenCustomBlockingPdpIdSupplierThenVoteOnceUsesSuppliedPdpId() {
+        val tenantPdpId = "tenant-a";
+        val components  = PolicyDecisionPointBuilder.withoutDefaults().withBlockingPdpIdSupplier(() -> tenantPdpId)
+                .build();
+        val tenantPdp   = (DynamicPolicyDecisionPoint) components.pdp();
+        val voterSource = components.pdpVoterSource();
+
+        val tenantConfig = new io.sapl.api.pdp.PDPConfiguration(tenantPdpId,
+                "test-config-" + System.currentTimeMillis(), DENY_UNLESS_PERMIT, List.of("""
+                        policy "tenant-a permit"
+                        permit
+                        """), new io.sapl.api.pdp.PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+        voterSource.loadConfiguration(tenantConfig, false);
+
+        val subscription = subscription("user", "read", "data");
+        val decision     = tenantPdp.decideOnceBlocking(subscription);
+
+        assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
+    }
+
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
         pdpVoterSource.loadConfiguration(configuration(algorithm, policies), false);
     }

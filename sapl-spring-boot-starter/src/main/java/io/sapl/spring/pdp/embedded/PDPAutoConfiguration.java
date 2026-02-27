@@ -20,6 +20,7 @@ package io.sapl.spring.pdp.embedded;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
+import io.sapl.api.pdp.BlockingPdpIdSupplier;
 import io.sapl.api.pdp.PdpIdExtractor;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -104,7 +105,8 @@ public class PDPAutoConfiguration {
     PolicyDecisionPoint policyDecisionPoint(JsonMapper mapper, Clock clock,
             ObjectProvider<VoteInterceptor> interceptorProvider,
             ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
-            ObjectProvider<PdpIdExtractor> pdpIdExtractorProvider, ApplicationContext applicationContext,
+            ObjectProvider<PdpIdExtractor> pdpIdExtractorProvider,
+            ObjectProvider<BlockingPdpIdSupplier> blockingPdpIdSupplierProvider, ApplicationContext applicationContext,
             EmbeddedPDPProperties properties) {
 
         log.info("Deploying embedded Policy Decision Point. Source: {}, Path: {}", properties.getPdpConfigType(),
@@ -112,10 +114,16 @@ public class PDPAutoConfiguration {
 
         val builder = PolicyDecisionPointBuilder.withDefaults(mapper, clock);
 
-        // Configure PDP ID extractor for multi-tenant routing
+        // Configure PDP ID extractor for multi-tenant routing (reactive)
         pdpIdExtractorProvider.ifAvailable(extractor -> {
             log.debug("Registering custom PDP ID extractor: {}", extractor.getClass().getSimpleName());
             builder.withPdpIdExtractor(extractor.extract());
+        });
+
+        // Configure blocking PDP ID supplier for multi-tenant routing (synchronous)
+        blockingPdpIdSupplierProvider.ifAvailable(supplier -> {
+            log.debug("Registering custom blocking PDP ID supplier: {}", supplier.getClass().getSimpleName());
+            builder.withBlockingPdpIdSupplier(supplier::get);
         });
 
         // Collect static function library classes from providers

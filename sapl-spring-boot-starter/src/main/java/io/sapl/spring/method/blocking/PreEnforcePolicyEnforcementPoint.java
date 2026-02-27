@@ -55,7 +55,6 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private static final String ERROR_ACCESS_DENIED_ACTION_NOT_PERMITTED              = "Access Denied. Action not permitted.";
     private static final String ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL = "Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null";
     private static final String ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY         = "Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s";
-    private static final String ERROR_ACCESS_DENIED_PDP_RETURNED_NULL                 = "Access Denied by @PreEnforce PEP. PDP returned null. %s";
     private static final String ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT    = "An Authentication object was not found in the SecurityContext";
 
     private final Supplier<Authentication> authenticationSupplier = getAuthentication(
@@ -124,17 +123,10 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             SaplAttribute attribute) {
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscription(authenticationSupplier.get(), methodInvocation, attribute);
-
-        val authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
-        if (authzDecisions == null) {
-            throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_RETURNED_NULL, attribute));
-        }
-
-        val authzDecision = authzDecisions.blockFirst();
+        val authzDecision     = policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription);
         if (authzDecision == null) {
             throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY, attribute));
         }
-
         return authzDecision;
     }
 
