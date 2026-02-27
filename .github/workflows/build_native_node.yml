@@ -86,10 +86,10 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Build Dependencies
-        run: mvn -B install -pl sapl-node -am -DskipTests
+        run: mvn -B install -pl sapl-node -am -Dmaven.test.skip=true
 
       - name: Build Native Image
-        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -DskipTests
+        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -Dmaven.test.skip=true
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
