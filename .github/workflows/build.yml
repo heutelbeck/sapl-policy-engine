@@ -38,9 +38,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-
 env:
   NODE_VERSION: '22'
 
@@ -53,6 +50,8 @@ jobs:
   version-check:
     name: Check Version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.get-version.outputs.version }}
       is_snapshot: ${{ steps.get-version.outputs.is_snapshot }}
@@ -104,6 +103,8 @@ jobs:
   sonar-early:
     name: SonarCloud Early Feedback
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: ${{ !github.event.pull_request.head.repo.fork && github.actor != 'dependabot[bot]' }}
     timeout-minutes: 30
     steps:
@@ -162,7 +163,8 @@ jobs:
     name: Test (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     permissions:
-      checks:  write
+      contents: read
+      checks: write
     timeout-minutes: 60
 
     env:
@@ -398,10 +400,14 @@ jobs:
 
   build-native-node:
     if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      contents: read
     uses: ./.github/workflows/build_native_node.yml
 
   build-native-lsp:
     if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      contents: read
     uses: ./.github/workflows/build_native_lsp.yml
 
   # ---------------------------------------------------------------------------
@@ -837,6 +843,8 @@ jobs:
         )
       }}
     name: Publish Documentation
+    permissions:
+      contents: read
     uses: ./.github/workflows/build_documentation.yml
     secrets:
       GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
@@ -853,6 +861,8 @@ jobs:
       }}
     name: Deploy Playground
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 15
 
     steps:
@@ -909,6 +919,8 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' }}
     name: Trigger Downstream Builds
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 10
 
     steps:
