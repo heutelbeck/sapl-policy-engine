@@ -1,7 +1,7 @@
 ---
 layout: default
-title: SAPL Node
-parent: Deployment
+title: Deployment
+parent: SAPL Node
 grand_parent: SAPL Reference
 nav_order: 701
 ---

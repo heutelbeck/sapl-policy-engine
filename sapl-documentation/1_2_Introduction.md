@@ -84,4 +84,4 @@ In **one-shot mode**, the PEP sends the same authorization subscription but rece
 
 The same policies serve both modes. The PDP does not require separate policies for streaming and one-shot evaluation.
 
-For a detailed comparison of SAPL with other authorization engines and the design decisions behind it, see [Why SAPL?](../1_1_WhySAPL/). For PEP implementation patterns and framework integration, see [Spring Integration](../6_4_SpringIntegration/).
+For a detailed comparison of SAPL with other authorization engines and the design decisions behind it, see [Why SAPL?](../1_1_WhySAPL/). For PEP implementation patterns and framework integration, see [Spring Security](../6_4_SpringIntegration/).

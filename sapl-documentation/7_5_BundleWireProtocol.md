@@ -1,9 +1,9 @@
 ---
 layout: default
 title: Bundle Wire Protocol
-parent: Remote Bundles
+parent: SAPL Node
 grand_parent: SAPL Reference
-nav_order: 752
+nav_order: 705
 ---
 
 ## Remote Bundle Wire Protocol

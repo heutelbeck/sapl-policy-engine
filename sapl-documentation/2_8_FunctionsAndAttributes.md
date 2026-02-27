@@ -113,7 +113,7 @@ This policy:
 
 All of these attributes stream. When the clock crosses a shift boundary, or when shift schedules are updated in the scheduling system, the PDP automatically sends new decisions to the PEP.
 
-> This example assumes a custom `schedules` PIP that provides shift information. See [Custom Attribute Finders](../6_6_CustomAttributeFinders/) for implementing custom PIPs.
+> This example assumes a custom `schedules` PIP that provides shift information. See [Custom Attribute Finders](../8_3_CustomAttributeFinders/) for implementing custom PIPs.
 
 Traditional access control systems make one-time decisions. SAPL maintains continuous authorization that adapts to changing conditions (time passing, data updates, or policy changes), all without the PEP needing to re-request decisions.
 
@@ -129,7 +129,7 @@ SAPL includes a library of built-in PIPs for common authorization needs: time an
 - Real-time monitoring and metrics
 - Any database, API, or system relevant to authorization decisions
 
-Custom PIPs are implemented as plugins to the PDP, requiring no modifications to SAPL core. Implementation details are covered in [Custom Attribute Finders](../6_6_CustomAttributeFinders/).
+Custom PIPs are implemented as plugins to the PDP, requiring no modifications to SAPL core. Implementation details are covered in [Custom Attribute Finders](../8_3_CustomAttributeFinders/).
 
 ### Structuring Policy Conditions
 

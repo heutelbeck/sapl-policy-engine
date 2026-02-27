@@ -1,9 +1,9 @@
 ---
 layout: default
 title: Custom Attribute Finders
-parent: Integration
+parent: Extending SAPL
 grand_parent: SAPL Reference
-nav_order: 606
+nav_order: 803
 ---
 
 ## Custom Attribute Finders
@@ -75,7 +75,7 @@ Attribute method parameters follow a fixed order:
 | Remaining | `Value` subtypes | Policy parameters (bracket arguments) |
 | Last (optional) | `Value[]` subtype | Variable arguments |
 
-Policy parameters use concrete `Value` subtypes for type safety, following the same type mapping as [functions](../6_5_CustomFunctionLibraries#declaring-functions). The PDP validates parameter types before calling the method.
+Policy parameters use concrete `Value` subtypes for type safety, following the same type mapping as [functions](../8_2_CustomFunctionLibraries#declaring-functions). The PDP validates parameter types before calling the method.
 
 ### Examples
 

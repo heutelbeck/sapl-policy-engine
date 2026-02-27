@@ -1,9 +1,9 @@
 ---
 layout: default
 title: Policy Sources
-parent: Deployment
+parent: SAPL Node
 grand_parent: SAPL Reference
-nav_order: 702
+nav_order: 703
 ---
 
 ## Policy Administration Point (PAP)

@@ -1,9 +1,9 @@
 ---
 layout: default
 title: Custom Function Libraries
-parent: Integration
+parent: Extending SAPL
 grand_parent: SAPL Reference
-nav_order: 605
+nav_order: 802
 ---
 
 ## Custom Function Libraries

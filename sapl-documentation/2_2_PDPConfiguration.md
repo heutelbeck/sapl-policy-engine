@@ -65,4 +65,4 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 
 The `algorithm` object is mandatory; `variables` and `secrets` are optional.
 
-For deployment details, see [SAPL Node](../7_1_SAPLNode/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../8_2_BundleWireProtocol/).
+For deployment details, see [SAPL Node](../7_0_Deployment/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../7_5_BundleWireProtocol/).

@@ -1,12 +1,12 @@
 ---
 layout: default
-title: Spring Integration
+title: Spring Security
 parent: Integration
 grand_parent: SAPL Reference
 nav_order: 604
 ---
 
-## Spring Integration
+## Spring Security
 
 ### Policy Enforcement Points
 

@@ -1,8 +1,9 @@
 ---
 layout: default
 title: Security
-parent: SAPL Reference
-nav_order: 770
+parent: SAPL Node
+grand_parent: SAPL Reference
+nav_order: 706
 ---
 
 ## Security

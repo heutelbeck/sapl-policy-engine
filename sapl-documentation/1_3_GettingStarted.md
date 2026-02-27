@@ -35,7 +35,7 @@ chmod +x sapl-node-linux-amd64
 .\sapl-node-windows-amd64.exe --server.ssl.enabled=false --server.port=8080 --io.sapl.node.allowNoAuth=true --io.sapl.pdp.embedded.config-path=C:\sapl --io.sapl.pdp.embedded.policies-path=C:\sapl
 ```
 
-> **Warning:** This configuration disables TLS and authentication. Use it only for local experimentation. See [SAPL Node](../7_1_SAPLNode/) for secure production setup.
+> **Warning:** This configuration disables TLS and authentication. Use it only for local experimentation. See [SAPL Node](../7_0_Deployment/) for secure production setup.
 
 If everything worked, you should see a line like `Started SaplNodeApplication ...` in the output.
 

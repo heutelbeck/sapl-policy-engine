@@ -1,8 +1,9 @@
 ---
 layout: default
 title: Monitoring
-parent: SAPL Reference
-nav_order: 780
+parent: SAPL Node
+grand_parent: SAPL Reference
+nav_order: 707
 ---
 
 ## Monitoring and Observability
