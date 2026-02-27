@@ -84,10 +84,10 @@ public class ContentFilter {
     private static final String ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
     private static final int    BLACKEN_LENGTH_INVALID_VALUE   = -1;
 
-    private static final Pattern REDOS_ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*\\|[^)]*\\)[*+]");
+    private static final Pattern REDOS_ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*+\\|[^)]*+\\)[*+]");
     private static final Pattern REDOS_NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
     private static final Pattern REDOS_NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
-    private static final Pattern REDOS_NESTED_WILDCARDS       = Pattern.compile("\\([^)]*\\*[^)]*\\)[^)]*\\*");
+    private static final Pattern REDOS_NESTED_WILDCARDS       = Pattern.compile("\\([^)]*+\\*[^)]*+\\)[^)]*+\\*");
 
     public static UnaryOperator<Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
         final var predicate      = predicateFromConditions(constraint, objectMapper);

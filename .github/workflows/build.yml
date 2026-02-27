@@ -148,7 +148,7 @@ jobs:
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.projectKey=heutelbeck_sapl-policy-engine
           -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
-          -Dsonar.qualitygate.wait=false
+          -Dsonar.qualitygate.wait=true
           -Pproduction
 
       - name: Clean up Local Repository before Caching
