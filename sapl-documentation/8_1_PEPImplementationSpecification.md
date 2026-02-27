@@ -2,7 +2,6 @@
 layout: default
 title: PEP Implementation Specification
 parent: Extending SAPL
-grand_parent: SAPL Reference
 nav_order: 801
 ---
 

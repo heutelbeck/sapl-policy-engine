@@ -2,7 +2,6 @@
 layout: default
 title: Java API
 parent: Integration
-grand_parent: SAPL Reference
 nav_order: 602
 ---
 

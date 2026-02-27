@@ -1,7 +1,6 @@
 ---
 layout: default
 title: Integration
-parent: SAPL Reference
 nav_order: 600
 has_children: true
 has_toc: false

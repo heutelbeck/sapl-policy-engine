@@ -2,7 +2,6 @@
 layout: default
 title: Custom Function Libraries
 parent: Extending SAPL
-grand_parent: SAPL Reference
 nav_order: 802
 ---
 

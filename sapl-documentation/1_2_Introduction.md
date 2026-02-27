@@ -2,7 +2,6 @@
 layout: default
 title: Introduction
 has_children: true
-parent: SAPL Reference
 nav_order: 2
 has_toc: false
 ---

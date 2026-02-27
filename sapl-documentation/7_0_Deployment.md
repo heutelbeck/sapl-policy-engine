@@ -1,7 +1,6 @@
 ---
 layout: default
 title: SAPL Node
-parent: SAPL Reference
 nav_order: 700
 has_children: true
 has_toc: false

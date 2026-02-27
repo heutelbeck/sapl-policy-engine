@@ -2,7 +2,6 @@
 layout: default
 title: Functions and Attribute Finders
 parent: The SAPL Policy Language
-grand_parent: SAPL Reference
 nav_order: 108
 ---
 

@@ -2,7 +2,6 @@
 layout: default
 title: NestJS
 parent: Integration
-grand_parent: SAPL Reference
 nav_order: 605
 ---
 

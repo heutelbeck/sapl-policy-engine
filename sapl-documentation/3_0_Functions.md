@@ -2,7 +2,6 @@
 layout: default
 title: Functions
 has_children: true
-parent: SAPL Reference
 nav_order: 200
 has_toc: false
 ---

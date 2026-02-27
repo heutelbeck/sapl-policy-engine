@@ -2,7 +2,6 @@
 layout: default
 title: Migration Guide
 parent: Guides & Reference
-grand_parent: SAPL Reference
 nav_order: 940
 ---
 

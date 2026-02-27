@@ -2,7 +2,6 @@
 layout: default
 title: The SAPL Policy Language
 has_children: true
-parent: SAPL Reference
 nav_order: 100
 has_toc: false
 ---

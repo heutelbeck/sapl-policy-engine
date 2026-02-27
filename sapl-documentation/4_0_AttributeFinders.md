@@ -2,7 +2,6 @@
 layout: default
 title: Attribute Finders
 has_children: true
-parent: SAPL Reference
 nav_order: 250
 has_toc: false
 ---

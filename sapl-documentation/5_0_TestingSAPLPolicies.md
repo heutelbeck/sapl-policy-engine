@@ -2,7 +2,6 @@
 layout: default
 title: Testing SAPL Policies
 has_children: true
-parent: SAPL Reference
 nav_order: 300
 has_toc: false
 ---

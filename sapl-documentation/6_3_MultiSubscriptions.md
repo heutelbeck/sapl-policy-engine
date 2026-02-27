@@ -2,7 +2,6 @@
 layout: default
 title: Multi-Subscriptions
 parent: Integration
-grand_parent: SAPL Reference
 nav_order: 603
 ---
 

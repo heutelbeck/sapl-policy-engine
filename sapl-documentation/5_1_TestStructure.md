@@ -2,7 +2,6 @@
 layout: default
 title: Test Structure
 parent: Testing SAPL Policies
-grand_parent: SAPL Reference
 nav_order: 301
 ---
 

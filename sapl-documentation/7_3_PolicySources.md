@@ -2,7 +2,6 @@
 layout: default
 title: Policy Sources
 parent: SAPL Node
-grand_parent: SAPL Reference
 nav_order: 703
 ---
 

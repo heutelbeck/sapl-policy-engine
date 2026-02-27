@@ -2,7 +2,6 @@
 layout: default
 title: Use Case Guides
 parent: Guides & Reference
-grand_parent: SAPL Reference
 nav_order: 901
 ---
 

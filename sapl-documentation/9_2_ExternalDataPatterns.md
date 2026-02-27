@@ -2,7 +2,6 @@
 layout: default
 title: External Data Patterns
 parent: Guides & Reference
-grand_parent: SAPL Reference
 nav_order: 910
 ---
 

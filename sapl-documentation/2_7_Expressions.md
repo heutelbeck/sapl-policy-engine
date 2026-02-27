@@ -2,7 +2,6 @@
 layout: default
 title: Expressions
 parent: The SAPL Policy Language
-grand_parent: SAPL Reference
 nav_order: 107
 ---
 

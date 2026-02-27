@@ -1,7 +1,6 @@
 ---
 layout: default
 title: Guides & Reference
-parent: SAPL Reference
 nav_order: 900
 has_children: true
 has_toc: false

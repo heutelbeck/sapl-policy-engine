@@ -2,7 +2,6 @@
 layout: default
 title: Custom Attribute Finders
 parent: Extending SAPL
-grand_parent: SAPL Reference
 nav_order: 803
 ---
 

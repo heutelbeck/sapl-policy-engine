@@ -1,7 +1,6 @@
 ---
 layout: default
 title: Why SAPL?
-parent: SAPL Reference
 nav_order: 1
 ---
 

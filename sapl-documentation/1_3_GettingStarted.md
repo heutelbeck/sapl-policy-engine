@@ -2,7 +2,6 @@
 layout: default
 title: Getting Started
 parent: Introduction
-grand_parent: SAPL Reference
 nav_order: 3
 ---
 

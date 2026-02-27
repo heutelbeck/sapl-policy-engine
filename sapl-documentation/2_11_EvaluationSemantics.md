@@ -2,7 +2,6 @@
 layout: default
 title: Evaluation Semantics
 parent: The SAPL Policy Language
-grand_parent: SAPL Reference
 nav_order: 111
 ---
 

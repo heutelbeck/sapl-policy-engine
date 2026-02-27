@@ -2,7 +2,6 @@
 layout: default
 title: Errors & Troubleshooting
 parent: Guides & Reference
-grand_parent: SAPL Reference
 nav_order: 930
 ---
 

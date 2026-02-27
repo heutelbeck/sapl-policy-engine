@@ -2,7 +2,6 @@
 layout: default
 title: Configuration
 parent: SAPL Node
-grand_parent: SAPL Reference
 nav_order: 702
 ---
 

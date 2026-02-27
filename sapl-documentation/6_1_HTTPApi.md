@@ -2,7 +2,6 @@
 layout: default
 title: HTTP Server-Sent Events API
 parent: Integration
-grand_parent: SAPL Reference
 nav_order: 601
 ---
 

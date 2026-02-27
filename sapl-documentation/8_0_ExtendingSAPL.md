@@ -1,7 +1,6 @@
 ---
 layout: default
 title: Extending SAPL
-parent: SAPL Reference
 nav_order: 800
 has_children: true
 has_toc: false

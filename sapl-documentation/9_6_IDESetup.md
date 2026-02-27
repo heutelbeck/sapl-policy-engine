@@ -2,7 +2,6 @@
 layout: default
 title: IDE Setup
 parent: Guides & Reference
-grand_parent: SAPL Reference
 nav_order: 950
 ---
 

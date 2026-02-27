@@ -2,7 +2,6 @@
 layout: default
 title: Java Fixture API
 parent: Testing SAPL Policies
-grand_parent: SAPL Reference
 nav_order: 310
 ---
 
