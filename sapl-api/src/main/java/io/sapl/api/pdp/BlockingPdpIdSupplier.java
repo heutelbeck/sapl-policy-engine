@@ -25,8 +25,7 @@ package io.sapl.api.pdp;
  * configurations based on their identity. This interface allows applications to
  * provide custom logic for determining which PDP configuration to use in
  * blocking contexts such as {@code @PreEnforce}, {@code @PostEnforce}, and
- * {@link org.springframework.security.authorization.AuthorizationManager}
- * implementations.
+ * {@code AuthorizationManager} implementations.
  * <p>
  * For reactive (WebFlux) contexts, use {@link PdpIdExtractor} instead.
  * <p>
