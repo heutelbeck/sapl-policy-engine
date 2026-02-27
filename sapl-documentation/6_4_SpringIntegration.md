@@ -29,6 +29,8 @@ flowchart LR
 
 Your application sends an authorization subscription to the PDP, which evaluates its policies and returns a decision. If the decision carries constraints (obligations or advice), the constraint handler bundle executes the appropriate handlers before the result reaches the caller.
 
+A collection of working demo applications covering common integration scenarios is available at [sapl-demos](https://github.com/heutelbeck/sapl-demos).
+
 ## Quick Start
 
 Here's a complete example to show how the pieces fit together.

@@ -59,6 +59,8 @@ For a deeper introduction to SAPL's subscription model and policy language, see 
 npm install @sapl/nestjs @toss/nestjs-aop nestjs-cls
 ```
 
+A complete working demo with JWT authentication, constraint handlers, and streaming enforcement is available at [sapl-nestjs-demo](https://github.com/heutelbeck/sapl-nestjs-demo).
+
 ## Setup
 
 ### Direct Configuration (API Key)
