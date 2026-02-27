@@ -54,9 +54,21 @@ For a deeper introduction to SAPL's subscription model and policy language, see 
 
 ## Installation
 
+[![npm](https://img.shields.io/npm/v/@sapl/nestjs)](https://www.npmjs.com/package/@sapl/nestjs)
+
+Install the library and its required peer dependencies:
+
 ```bash
 npm install @sapl/nestjs @toss/nestjs-aop nestjs-cls
 ```
+
+If you use transactions and want obligation failures to trigger rollbacks, also install the transactional integration:
+
+```bash
+npm install @nestjs-cls/transactional
+```
+
+The library requires Node.js 20 or later, NestJS 11, and RxJS 7.
 
 A complete working demo with JWT authentication, constraint handlers, and streaming enforcement is available at [sapl-nestjs-demo](https://github.com/heutelbeck/sapl-nestjs-demo).
 
