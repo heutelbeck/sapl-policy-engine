@@ -3,7 +3,7 @@ layout: default
 title: Python Flask
 #permalink: /python-flask/
 has_children: false
-parent: SAPL Integrations
+parent: Integration
 nav_order: 607
 ---
 

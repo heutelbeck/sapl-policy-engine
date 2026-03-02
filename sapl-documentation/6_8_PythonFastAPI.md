@@ -3,7 +3,7 @@ layout: default
 title: Python FastAPI
 #permalink: /python-fastapi/
 has_children: false
-parent: SAPL Integrations
+parent: Integration
 nav_order: 608
 ---
 

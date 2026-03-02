@@ -17,5 +17,8 @@ SAPL provides multiple ways to connect applications to a Policy Decision Point (
 - **[Multi-Subscriptions](../6_3_MultiSubscriptions/):** Batching multiple authorization subscriptions into a single request for efficient bulk authorization.
 - **[Spring Security](../6_4_SpringIntegration/):** Integrating SAPL with Spring Security for annotation-driven and filter-based authorization.
 - **[NestJS](../6_5_NestJS/):** Guards and decorators for integrating SAPL authorization into NestJS applications.
+- **[Python Django](../6_6_PythonDjango/):** Integrating SAPL authorization into Django applications.
+- **[Python Flask](../6_7_PythonFlask/):** Integrating SAPL authorization into Flask applications.
+- **[Python FastAPI](../6_8_PythonFastAPI/):** Integrating SAPL authorization into FastAPI applications.
 
 All client interfaces expose the same authorization semantics: single subscriptions (streaming and one-shot) and multi-subscriptions (streaming and one-shot batch).

@@ -3,7 +3,7 @@ layout: default
 title: Python Django
 #permalink: /python-django/
 has_children: false
-parent: SAPL Integrations
+parent: Integration
 nav_order: 606
 ---
 
