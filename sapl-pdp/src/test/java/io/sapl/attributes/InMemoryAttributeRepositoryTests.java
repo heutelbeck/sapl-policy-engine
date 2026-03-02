@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -403,6 +404,76 @@ class InMemoryAttributeRepositoryTests {
 
         threads.forEach(Thread::start);
         assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(receivedValues).hasSize(subscriberCount).allMatch(v -> v.equals(souls));
+    }
+
+    @Test
+    void whenConcurrentStreamingSubscriptionsThenAllReceiveInitialAndUpdate() throws InterruptedException {
+        val souls           = Value.of(42);
+        val updatedSouls    = Value.of(99);
+        val subscriberCount = 50;
+        val initialLatch    = new CountDownLatch(subscriberCount);
+        val updateLatch     = new CountDownLatch(subscriberCount);
+        val initialValues   = new CopyOnWriteArrayList<Value>();
+        val updateValues    = new CopyOnWriteArrayList<Value>();
+        val disposables     = new CopyOnWriteArrayList<Disposable>();
+
+        repository.publishAttribute(Value.of(STORMBRINGER), STORMBRINGER_SOULS, souls).block();
+
+        val invocation = createInvocation(Value.of(STORMBRINGER), STORMBRINGER_SOULS);
+
+        val threads = IntStream.range(0, subscriberCount).mapToObj(i -> new Thread(() -> {
+            val counter    = new AtomicInteger(0);
+            val disposable = repository.invoke(invocation).subscribe(value -> {
+                               if (counter.getAndIncrement() == 0) {
+                                   initialValues.add(value);
+                                   initialLatch.countDown();
+                               } else {
+                                   updateValues.add(value);
+                                   updateLatch.countDown();
+                               }
+                           });
+            disposables.add(disposable);
+        })).toList();
+
+        threads.forEach(Thread::start);
+        assertThat(initialLatch.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(initialValues).hasSize(subscriberCount).allMatch(v -> v.equals(souls));
+
+        repository.publishAttribute(Value.of(STORMBRINGER), STORMBRINGER_SOULS, updatedSouls).block();
+
+        assertThat(updateLatch.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(updateValues).hasSize(subscriberCount).allMatch(v -> v.equals(updatedSouls));
+
+        disposables.forEach(Disposable::dispose);
+    }
+
+    @Test
+    void whenConcurrentBlockFirstThenAllReceiveCorrectValue() throws InterruptedException {
+        val souls           = Value.of(42);
+        val subscriberCount = 50;
+        val latch           = new CountDownLatch(subscriberCount);
+        val receivedValues  = new CopyOnWriteArrayList<Value>();
+        val errors          = new CopyOnWriteArrayList<Throwable>();
+
+        repository.publishAttribute(Value.of(STORMBRINGER), STORMBRINGER_SOULS, souls).block();
+
+        val invocation = createInvocation(Value.of(STORMBRINGER), STORMBRINGER_SOULS);
+
+        val threads = IntStream.range(0, subscriberCount).mapToObj(i -> new Thread(() -> {
+            try {
+                val value = repository.invoke(invocation).blockFirst();
+                receivedValues.add(value);
+            } catch (Exception e) {
+                errors.add(e);
+            } finally {
+                latch.countDown();
+            }
+        })).toList();
+
+        threads.forEach(Thread::start);
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(errors).isEmpty();
         assertThat(receivedValues).hasSize(subscriberCount).allMatch(v -> v.equals(souls));
     }
 

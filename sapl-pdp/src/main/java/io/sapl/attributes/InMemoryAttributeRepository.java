@@ -43,19 +43,16 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * In-memory implementation of AttributeRepository supporting reactive attribute
- * streaming with TTL-based expiration and
- * subscription management.
+ * streaming with TTL-based expiration.
  * <p>
  * Provides thread-safe attribute storage with automatic timeout handling.
- * Attributes can be published with optional TTL
- * and timeout strategies (REMOVE or BECOME_UNDEFINED). Subscribers receive the
- * current value immediately upon
+ * Attributes can be published with optional TTL and timeout strategies (REMOVE
+ * or BECOME_UNDEFINED). Subscribers receive the current value immediately upon
  * invocation, followed by updates as attributes are published or removed.
  * <p>
- * Uses Project Reactor for non-blocking operations. All subscriptions are
- * managed with replay(1).refCount(1) semantics,
- * ensuring late subscribers receive the last value and automatic cleanup occurs
- * when the last subscriber cancels.
+ * Each attribute key has a dedicated replay sink (limit 1) whose lifecycle is
+ * tied to the attribute, not to subscriber count. This eliminates notification
+ * gaps when subscribers cancel and re-subscribe concurrently.
  */
 @Slf4j
 public final class InMemoryAttributeRepository implements AttributeRepository {
@@ -67,12 +64,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     private static final String ERROR_TTL_MUST_NOT_BE_NEGATIVE       = "TTL must not be negative.";
     private static final String ERROR_VALUE_MUST_NOT_BE_NULL         = "Value must not be null.";
 
-    private final AttributeStorage                             storage;
-    private final Clock                                        clock;
-    private final ConcurrentHashMap<AttributeKey, Disposable>  scheduledTimeouts   = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<AttributeKey, SinkAndFlux> activeSubscriptions = new ConcurrentHashMap<>();
-
-    private record SinkAndFlux(Sinks.Many<Value> sink, Flux<Value> flux) {}
+    private final AttributeStorage                                   storage;
+    private final Clock                                              clock;
+    private final ConcurrentHashMap<AttributeKey, Disposable>        scheduledTimeouts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<AttributeKey, Sinks.Many<Value>> attributeSinks    = new ConcurrentHashMap<>();
 
     /**
      * Creates an attribute repository with default heap-based storage.
@@ -125,6 +120,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             val timeout = value.timeoutDeadline();
             if (timeout == null || timeout.equals(Instant.MAX)) {
                 permanentAttributes.incrementAndGet();
+                emitToSink(key, value.value());
                 return Mono.empty();
             } else {
                 if (timeout.isBefore(clock.instant())) {
@@ -133,6 +129,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                     return storage.remove(key);
                 } else {
                     scheduledAttributes.incrementAndGet();
+                    emitToSink(key, value.value());
                     scheduleTimeout(key, timeout, value.timeoutStrategy());
                     return Mono.empty();
                 }
@@ -225,7 +222,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                 if (ttl != null) {
                     scheduleTimeout(key, deadline, timeOutStrategy);
                 }
-                notifySubscribers(key, value);
+                emitToSink(key, value);
             }).doOnError(error -> log.error("Failed to publish attribute: {}", key, error));
         });
     }
@@ -291,7 +288,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             cancelScheduledTimeout(key);
             return storage.remove(key).doOnSuccess(v -> {
                 log.debug("Attribute removed successfully: {}", key);
-                notifySubscribers(key, ERROR_ATTRIBUTE_UNAVAILABLE);
+                emitToSink(key, ERROR_ATTRIBUTE_UNAVAILABLE);
             }).doOnError(error -> log.error("Failed to remove attribute: {}", key, error));
 
         }).then();
@@ -311,6 +308,18 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         if (timeout != null) {
             log.debug("Canceling scheduled timeout for key: {}", key);
             timeout.dispose();
+        }
+    }
+
+    private Sinks.Many<Value> getOrCreateSink(AttributeKey key) {
+        return attributeSinks.computeIfAbsent(key, k -> Sinks.many().replay().limit(1));
+    }
+
+    private void emitToSink(AttributeKey key, Value value) {
+        val sink       = getOrCreateSink(key);
+        val emitResult = sink.tryEmitNext(value);
+        if (emitResult.isFailure()) {
+            log.debug("Failed to emit value {} for key: {} - result: {}", value, key, emitResult);
         }
     }
 
@@ -340,7 +349,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         log.debug("Applying REMOVE strategy for timed-out attribute: {}", key);
         return storage.remove(key).doOnSuccess(v -> {
             log.debug("Timed-out attribute removed: {}", key);
-            notifySubscribers(key, ERROR_ATTRIBUTE_UNAVAILABLE);
+            emitToSink(key, ERROR_ATTRIBUTE_UNAVAILABLE);
         });
     }
 
@@ -351,21 +360,18 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
         return storage.put(key, undefinedAttribute).doOnSuccess(v -> {
             log.debug("Timed-out attribute set to UNDEFINED: {}", key);
-            notifySubscribers(key, Value.UNDEFINED);
+            emitToSink(key, Value.UNDEFINED);
         });
     }
 
     /**
      * Creates a reactive stream for an attribute that emits the current value
-     * followed by all future updates until the
-     * subscription is cancelled.
+     * followed by all future updates until the subscription is cancelled.
      * <p>
-     * On first subscription for a key, emits the current value from storage or
-     * ERROR_ATTRIBUTE_UNAVAILABLE if not present.
-     * Subsequent subscriptions share the same stream via replay(1).refCount(1)
-     * semantics.
-     * <p>
-     * The stream automatically cleans up when the last subscriber cancels.
+     * On first access for a key, creates a replay sink seeded with the current
+     * value from storage (or ERROR_ATTRIBUTE_UNAVAILABLE if not present). The sink
+     * lifecycle is tied to the attribute, not to subscriber count, so late
+     * subscribers always receive the latest value without notification gaps.
      *
      * @param invocation
      * the attribute invocation specifying entity, name, and arguments
@@ -375,84 +381,18 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
      */
     @Override
     public Flux<Value> invoke(AttributeFinderInvocation invocation) {
-        val key         = AttributeKey.of(invocation);
-        val sinkAndFlux = activeSubscriptions.compute(key, (k, sinkFlux) -> createOrReuseSinkAndFlux(key, sinkFlux));
-        return sinkAndFlux.flux;
-    }
-
-    /**
-     * Creates a new SinkAndFlux for an attribute key or reuses an existing one.
-     * <p>
-     * Implements replay(1).refCount(1) semantics for sharing subscriptions.
-     *
-     * @param key
-     * the attribute key
-     * @param existingSinkFlux
-     * the existing SinkAndFlux if present, null otherwise
-     *
-     * @return a SinkAndFlux for the attribute
-     */
-    private SinkAndFlux createOrReuseSinkAndFlux(AttributeKey key, SinkAndFlux existingSinkFlux) {
-        if (existingSinkFlux != null) {
-            return existingSinkFlux;
-        }
-
-        val sink = Sinks.many().multicast().<Value>onBackpressureBuffer();
-        val flux = storage.get(key).map(PersistedAttribute::value).defaultIfEmpty(ERROR_ATTRIBUTE_UNAVAILABLE)
-                .concatWith(sink.asFlux()).doOnCancel(() -> cleanupSubscription(key, sink)).replay(1).refCount(1);
-
-        return new SinkAndFlux(sink, flux);
-    }
-
-    /**
-     * Cleans up subscription state when the last subscriber cancels.
-     * <p>
-     * Removes the SinkAndFlux from active subscriptions if it matches the original
-     * sink.
-     *
-     * @param key
-     * the attribute key
-     * @param sink
-     * the sink that triggered cleanup
-     */
-    private void cleanupSubscription(AttributeKey key, Sinks.Many<Value> sink) {
-        log.debug("Last subscriber cancelled {}, cleanup triggered", key);
-        activeSubscriptions.compute(key, (k, sinkFlux) -> shouldRemoveSinkAndFlux(sinkFlux, sink));
-    }
-
-    /**
-     * Determines whether a SinkAndFlux should be removed during cleanup.
-     * <p>
-     * Returns null if the sink matches the original sink that triggered cleanup,
-     * indicating removal. Returns the
-     * existing SinkAndFlux if it represents a newer subscription.
-     *
-     * @param sinkFlux
-     * the current SinkAndFlux in the map
-     * @param originalSink
-     * the sink that triggered the cleanup
-     *
-     * @return null to remove, or the SinkAndFlux to retain
-     */
-    private SinkAndFlux shouldRemoveSinkAndFlux(SinkAndFlux sinkFlux, Sinks.Many<Value> originalSink) {
-        if (sinkFlux == null) {
-            return null;
-        }
-        if (sinkFlux.sink == originalSink) {
-            return null;
-        }
-        return sinkFlux;
-    }
-
-    private void notifySubscribers(AttributeKey key, Value value) {
-        val sinkAndFlux = activeSubscriptions.get(key);
-        if (sinkAndFlux != null) {
-            log.debug("Broadcasting value {} to subscribers for key: {}", value, key);
-            val emitResult = sinkAndFlux.sink.tryEmitNext(value);
-            if (emitResult.isFailure()) {
-                log.debug("Failed to emit value {} to subscriber for key: {} - result: {}", value, key, emitResult);
-            }
-        }
+        val key  = AttributeKey.of(invocation);
+        val sink = attributeSinks.computeIfAbsent(key, k -> {
+                     val newSink   = Sinks.many().replay().<Value>limit(1);
+                     val persisted = storage.get(k).block();
+                     if (persisted != null) {
+                         newSink.tryEmitNext(persisted.value());
+                     } else {
+                         newSink.tryEmitNext(ERROR_ATTRIBUTE_UNAVAILABLE);
+                     }
+                     return newSink;
+                 });
+        return sink.asFlux();
     }
 
 }
