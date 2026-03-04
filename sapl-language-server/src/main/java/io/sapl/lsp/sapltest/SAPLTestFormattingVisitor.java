@@ -656,10 +656,30 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             val type = hiddenToken.getType();
             if (type == SAPLTestLexer.ML_COMMENT || type == SAPLTestLexer.SL_COMMENT) {
                 emittedComments.add(hiddenToken);
-                sb.append(hiddenToken.getText().strip());
-                if (type == SAPLTestLexer.SL_COMMENT) {
+                if (type == SAPLTestLexer.ML_COMMENT) {
+                    sb.append(formatMultiLineComment(hiddenToken.getText()));
+                } else {
+                    sb.append(hiddenToken.getText().strip());
                     sb.append('\n');
                 }
+            }
+        }
+        return sb.toString();
+    }
+
+    private String formatMultiLineComment(String text) {
+        val lines = text.split("\n", -1);
+        if (lines.length == 1) {
+            return text.strip();
+        }
+        val sb = new StringBuilder(lines[0].stripLeading());
+        for (var i = 1; i < lines.length; i++) {
+            val stripped = lines[i].stripLeading();
+            sb.append('\n');
+            if (stripped.startsWith("*")) {
+                sb.append(' ').append(stripped);
+            } else {
+                sb.append(stripped);
             }
         }
         return sb.toString();

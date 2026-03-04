@@ -159,11 +159,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             Thread.currentThread().interrupt();
             log.debug("LSP server interrupted for session {}", session.getId());
         } catch (Exception e) {
-            if (!session.isOpen()) {
-                log.debug("LSP server stopped (session closed)");
-            } else {
-                log.error("LSP server error for session {}", session.getId(), e);
-            }
+            log.error("LSP server error for session {}", session.getId(), e);
         }
     }
 

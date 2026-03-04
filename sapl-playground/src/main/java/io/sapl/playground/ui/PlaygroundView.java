@@ -239,6 +239,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_EXAMPLES                   = "Examples";
     private static final String LABEL_FOLLOW_LATEST_DECISION     = "Follow Latest";
     private static final String LABEL_FORMAT_JSON                = "Format JSON";
+    private static final String LABEL_FORMAT_POLICY              = "Format Policy";
     private static final String LABEL_JSON                       = "JSON";
     private static final String LABEL_JSON_REPORT                = "JSON Report";
     private static final String LABEL_LOAD_EXAMPLE               = "Load Example";
@@ -292,6 +293,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String TOOLTIP_FOLLOW_LATEST_ACTIVE   = "Follow Latest active. New decisions are automatically selected and displayed.";
     private static final String TOOLTIP_FOLLOW_LATEST_INACTIVE = "Follow Latest inactive. Selection remains on manually selected decision.";
     private static final String TOOLTIP_FORMAT_JSON            = "Format JSON.";
+    private static final String TOOLTIP_FORMAT_POLICY          = "Format policy.";
     private static final String TOOLTIP_SCROLL_LOCK_ACTIVE     = "Scroll Lock active. Click to start automatically scrolling to last decision made.";
     private static final String TOOLTIP_SCROLL_LOCK_INACTIVE   = "Scroll Lock inactive. Click to stop automatically scrolling to last decision made.";
     private static final String TOOLTIP_START_SUBSCRIBING      = "Start subscribing with authorization subscription.";
@@ -1339,7 +1341,24 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val button = new Button(VaadinIcon.CURLY_BRACKETS.create());
         button.setAriaLabel(LABEL_FORMAT_JSON);
         button.setTooltipText(TOOLTIP_FORMAT_JSON);
+        button.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+        button.getStyle().set("transform", "scale(0.65)");
+        button.getStyle().set("transform-origin", "left center");
         button.addClickListener(event -> formatAction.run());
+        return button;
+    }
+
+    /*
+     * Creates format policy button.
+     */
+    private Button createFormatPolicyButton(SaplEditorLsp editor) {
+        val button = new Button(VaadinIcon.CURLY_BRACKETS.create());
+        button.setAriaLabel(LABEL_FORMAT_POLICY);
+        button.setTooltipText(TOOLTIP_FORMAT_POLICY);
+        button.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+        button.getStyle().set("transform", "scale(0.65)");
+        button.getStyle().set("transform-origin", "left center");
+        button.addClickListener(event -> editor.format());
         return button;
     }
 
@@ -1456,8 +1475,18 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         editorLayout.setSpacing(false);
         editorLayout.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_S);
 
-        validationDisplay.getStyle().set(CSS_MARGIN_TOP, CSS_VALUE_SPACE_XS);
-        editorLayout.add(editor, validationDisplay);
+        val formatButton = createFormatPolicyButton(editor);
+
+        val controlsLayout = new HorizontalLayout();
+        controlsLayout.setWidthFull();
+        controlsLayout.setPadding(false);
+        controlsLayout.setSpacing(true);
+        controlsLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        controlsLayout.getStyle().set(CSS_MARGIN_TOP, CSS_VALUE_SPACE_XS);
+        controlsLayout.add(formatButton, validationDisplay);
+        controlsLayout.setFlexGrow(1, validationDisplay);
+
+        editorLayout.add(editor, controlsLayout);
 
         val statusIcon = createIcon(VaadinIcon.QUESTION_CIRCLE, COLOR_ORANGE);
         statusIcon.setSize(CSS_VALUE_SIZE_0_875EM);

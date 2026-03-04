@@ -9,12 +9,13 @@
 import { LitElement, html, css } from 'lit';
 import { EditorView, basicSetup } from 'codemirror';
 import { EditorState, Compartment, StateField, StateEffect } from '@codemirror/state';
-import { keymap, Decoration } from '@codemirror/view';
-import { indentWithTab } from '@codemirror/commands';
+import { keymap, Decoration, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
+import { indentWithTab, defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { StreamLanguage, bracketMatching, foldService } from '@codemirror/language';
-import { linter, Diagnostic } from '@codemirror/lint';
-import { autocompletion, CompletionContext, closeBrackets, completionKeymap, snippet } from '@codemirror/autocomplete';
+import { StreamLanguage, bracketMatching, foldService, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { linter, Diagnostic, lintKeymap } from '@codemirror/lint';
+import { autocompletion, CompletionContext, closeBrackets, closeBracketsKeymap, completionKeymap, snippet } from '@codemirror/autocomplete';
+import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { MergeView } from '@codemirror/merge';
 import { unifiedMergeView } from '@codemirror/merge';
 import { marked } from 'marked';
@@ -51,8 +52,31 @@ const coverageField = StateField.define({
     provide: field => EditorView.decorations.from(field)
 });
 
-// Folding - compartment for LSP fold service (fold gutter is provided by basicSetup)
+// Folding - compartment, cached ranges from LSP, and fold service
 const foldingCompartment = new Compartment();
+
+const setFoldRangesEffect = StateEffect.define();
+
+const foldRangesField = StateField.define({
+    create: () => [],
+    update: (ranges, tr) => {
+        for (const effect of tr.effects) {
+            if (effect.is(setFoldRangesEffect)) return effect.value;
+        }
+        return ranges;
+    }
+});
+
+const lspFoldService = foldService.of((state, lineStart, lineEnd) => {
+    const ranges = state.field(foldRangesField, false);
+    if (!ranges) return null;
+    for (const r of ranges) {
+        if (r.from >= lineStart && r.from <= lineEnd) {
+            return { from: r.from, to: r.to };
+        }
+    }
+    return null;
+});
 
 // Simple SAPL syntax highlighting (fallback when LSP not ready)
 const saplLanguage = StreamLanguage.define({
@@ -460,7 +484,6 @@ class SaplEditorLsp extends LitElement {
     }
 
     firstUpdated() {
-        // Set initial attributes for CSS selectors
         this.setAttribute('data-theme', this.isDarkTheme ? 'dark' : 'light');
         this.setAttribute('data-readonly', this.isReadOnly ? 'true' : 'false');
         this._initEditor();
@@ -470,7 +493,6 @@ class SaplEditorLsp extends LitElement {
     }
 
     updated(changedProperties) {
-        // Handle dynamic wsUrl changes after initial render
         if (changedProperties.has('wsUrl') && this.wsUrl && !this._ws) {
             this._connectLsp();
         }
@@ -506,7 +528,20 @@ class SaplEditorLsp extends LitElement {
 
     _getBaseExtensions(withLinting = true) {
         const extensions = [
-            basicSetup,
+            lineNumbers(),
+            highlightActiveLineGutter(),
+            highlightSpecialChars(),
+            history(),
+            drawSelection(),
+            dropCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
+            rectangularSelection(),
+            crosshairCursor(),
+            highlightActiveLine(),
+            highlightSelectionMatches(),
+            keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...lintKeymap]),
             keymap.of([indentWithTab]),
             languageCompartment.of(this._getLanguageMode()),
             themeCompartment.of(this.isDarkTheme ? oneDark : []),
@@ -517,14 +552,11 @@ class SaplEditorLsp extends LitElement {
 
         if (withLinting) {
             extensions.push(linter(() => this._getLspDiagnostics()));
-            // Configure autocompletion - always active to support LSP trigger characters
-            // LSP trigger characters: '.', '<', '|' are handled in _getCompletions
             extensions.push(autocompletion({
                 override: [context => this._getCompletions(context)],
-                activateOnTyping: true,  // Always on to catch trigger characters
+                activateOnTyping: true,
                 activateOnTypingDelay: this.autocompleteTrigger === 'on_typing' ? this.autocompleteDelay : 50
             }));
-            // Add completion keymap for Ctrl+Space manual trigger
             extensions.push(keymap.of(completionKeymap));
         }
 
@@ -549,6 +581,7 @@ class SaplEditorLsp extends LitElement {
         const extensions = [
             ...this._getBaseExtensions(true),
             coverageField,
+            foldRangesField,
             foldingCompartment.of([]),
             EditorView.updateListener.of(update => {
                 if (update.docChanged && !this._isInternalUpdate) {
@@ -724,23 +757,15 @@ class SaplEditorLsp extends LitElement {
             this._ws = new WebSocket(this.wsUrl);
 
             this._ws.onopen = () => {
-                console.log('[SAPL LSP] Connected');
                 this._sendInitialize();
             };
 
             this._ws.onmessage = (event) => {
                 try {
-                    const dataSize = event.data?.length || 0;
-                    console.log('[SAPL LSP] Received message, size:', dataSize);
-                    if (dataSize > 10000) {
-                        console.log('[SAPL LSP] Large message preview:', event.data.substring(0, 200) + '...');
-                    }
                     const message = JSON.parse(event.data);
-                    console.log('[SAPL LSP] Parsed message, id:', message.id, 'method:', message.method,
-                                'hasResult:', 'result' in message, 'hasError:', 'error' in message);
                     this._handleLspMessage(message);
                 } catch (e) {
-                    console.error('[SAPL LSP] Failed to parse message:', e, 'data preview:', event.data?.substring(0, 500));
+                    console.error('[SAPL LSP] Failed to parse message:', e);
                 }
             };
 
@@ -749,7 +774,6 @@ class SaplEditorLsp extends LitElement {
             };
 
             this._ws.onclose = () => {
-                console.log('[SAPL LSP] Disconnected');
                 this._ws = null;
                 // Reject all pending requests
                 this._pendingRequests.forEach((pending, id) => {
@@ -795,7 +819,6 @@ class SaplEditorLsp extends LitElement {
             const timeoutId = setTimeout(() => {
                 if (this._pendingRequests.has(id)) {
                     this._pendingRequests.delete(id);
-                    console.warn(`[SAPL LSP] Request ${method} timed out after ${timeoutMs}ms`);
                     reject(new Error(`Request timed out: ${method}`));
                 }
             }, timeoutMs);
@@ -803,7 +826,6 @@ class SaplEditorLsp extends LitElement {
             this._pendingRequests.set(id, {
                 resolve: (result) => {
                     clearTimeout(timeoutId);
-                    console.log('[SAPL LSP] Request', id, method, 'resolved');
                     resolve(result);
                 },
                 reject: (error) => {
@@ -811,7 +833,6 @@ class SaplEditorLsp extends LitElement {
                     reject(error);
                 }
             });
-            console.log('[SAPL LSP] Sending request', id, method);
             this._ws.send(JSON.stringify(message));
         });
     }
@@ -873,8 +894,6 @@ class SaplEditorLsp extends LitElement {
 
             this._sendLspNotification('initialized', {});
             this._sendDidOpen();
-
-            console.log('[SAPL LSP] Initialized:', result.capabilities);
         } catch (e) {
             console.error('[SAPL LSP] Initialize failed:', e);
         }
@@ -968,9 +987,6 @@ class SaplEditorLsp extends LitElement {
         const dotMatch = context.matchBefore(/\.[\w]*$/);
         const wordMatch = context.matchBefore(/[\w]+$/);
 
-        // DEBUG: Log trigger detection
-        if (attrMatch) console.log('[SAPL] Attr trigger:', attrMatch.text);
-
         // Only request completions if:
         // 1. Explicit request (Ctrl+Space)
         // 2. Attribute trigger (< or |<)
@@ -1014,8 +1030,6 @@ class SaplEditorLsp extends LitElement {
                 defaultFrom = generalWordMatch ? generalWordMatch.from : context.pos;
             }
 
-            console.log('[SAPL] Completion result:', { defaultFrom, itemCount: items.length, pos: context.pos });
-
             return {
                 from: defaultFrom,
                 options: items.map(item => {
@@ -1033,7 +1047,6 @@ class SaplEditorLsp extends LitElement {
                             itemFrom = this._positionToOffset(te.range.start);
                             itemTo = this._positionToOffset(te.range.end);
                             applyText = te.newText || insertText;
-                            console.log('[SAPL] TextEdit for', item.label, ':', { itemFrom, itemTo, applyText });
                         }
                     }
 
@@ -1318,8 +1331,11 @@ class SaplEditorLsp extends LitElement {
 
     setFoldingEnabled(enabled) {
         this.foldingEnabled = enabled;
-        if (!enabled && this._editor) {
-            this._editor.dispatch({ effects: foldingCompartment.reconfigure([]) });
+        const ext = enabled
+            ? [foldGutter({ foldingChanged: update => update.transactions.some(tr => tr.effects.some(e => e.is(setFoldRangesEffect))) }), keymap.of(foldKeymap), lspFoldService]
+            : [];
+        if (this._editor) {
+            this._editor.dispatch({ effects: foldingCompartment.reconfigure(ext) });
         }
         if (enabled) {
             this._requestFoldRanges();
@@ -1338,17 +1354,7 @@ class SaplEditorLsp extends LitElement {
                 from: doc.line(r.startLine + 1).from,
                 to: doc.line(r.endLine + 1).to
             }));
-            const freshFoldService = foldService.of((state, lineStart, lineEnd) => {
-                for (const r of ranges) {
-                    if (r.from >= lineStart && r.from <= lineEnd) {
-                        return { from: r.from, to: r.to };
-                    }
-                }
-                return null;
-            });
-            this._editor.dispatch({
-                effects: foldingCompartment.reconfigure([freshFoldService])
-            });
+            this._editor.dispatch({ effects: setFoldRangesEffect.of(ranges) });
         } catch (e) {
             console.error('[SAPL LSP] Fold range request failed:', e);
         }
