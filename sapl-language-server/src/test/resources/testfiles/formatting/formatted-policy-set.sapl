@@ -1,0 +1,21 @@
+import filter.blacken
+import filter.replace
+
+set "PatientRepository"
+first or abstain errors propagate
+
+policy "doctor access to patient data"
+permit
+    "PatientRepository" in action.java.instanceof..simpleName;
+    action.java.name == "findById";
+    "ROLE_DOCTOR" in subject..authority || "ROLE_NURSE" in subject..authority;
+
+policy "administrator access"
+permit
+    "PatientRepository" in action.java.instanceof..simpleName;
+    action.java.name == "findById";
+    "ROLE_ADMIN" in subject..authority;
+obligation
+    { "type": "logAccess", "message": subject.name + " accessed patient data (id=" + resource.id + ")." }
+transform
+    resource |- { @.icd11Code : blacken(2, 0, "\u2588"), @.diagnosisText : blacken(0, 0, "\u2588") }

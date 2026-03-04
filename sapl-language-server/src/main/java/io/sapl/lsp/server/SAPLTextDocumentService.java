@@ -27,10 +27,28 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
+import org.eclipse.lsp4j.DocumentFormattingParams;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.DocumentSymbolParams;
+import org.eclipse.lsp4j.FoldingRange;
+import org.eclipse.lsp4j.FoldingRangeRequestParams;
+import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.HoverParams;
+import org.eclipse.lsp4j.PrepareRenameDefaultBehavior;
+import org.eclipse.lsp4j.PrepareRenameParams;
+import org.eclipse.lsp4j.PrepareRenameResult;
+import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.RenameParams;
+import org.eclipse.lsp4j.WorkspaceEdit;
+import org.eclipse.lsp4j.SelectionRange;
+import org.eclipse.lsp4j.SelectionRangeParams;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensParams;
+import org.eclipse.lsp4j.SymbolInformation;
+import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.jsonrpc.messages.Either3;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
@@ -120,6 +138,122 @@ public class SAPLTextDocumentService implements TextDocumentService {
             }
             var grammarSupport = documentManager.getGrammarSupportForUri(uri);
             return grammarSupport.provideSemanticTokens(document);
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
+        var uri = params.getTextDocument().getUri();
+        log.debug("Formatting requested for: {}", uri);
+
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideFormatting(document);
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(
+            DocumentSymbolParams params) {
+        var uri = params.getTextDocument().getUri();
+        log.debug("Document symbols requested for: {}", uri);
+
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideDocumentSymbols(document).stream()
+                    .map(Either::<SymbolInformation, DocumentSymbol>forRight).toList();
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
+        var uri = params.getTextDocument().getUri();
+        log.debug("Folding ranges requested for: {}", uri);
+
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideFoldingRanges(document);
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<SelectionRange>> selectionRange(SelectionRangeParams params) {
+        var uri = params.getTextDocument().getUri();
+        log.debug("Selection ranges requested for: {}", uri);
+
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideSelectionRanges(document, params.getPositions());
+        });
+    }
+
+    @Override
+    public CompletableFuture<Hover> hover(HoverParams params) {
+        var uri      = params.getTextDocument().getUri();
+        var position = params.getPosition();
+        log.debug("Hover requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
+
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return null;
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideHover(document, position, configurationManager);
+        });
+    }
+
+    @Override
+    public CompletableFuture<Either3<Range, PrepareRenameResult, PrepareRenameDefaultBehavior>> prepareRename(
+            PrepareRenameParams params) {
+        var uri      = params.getTextDocument().getUri();
+        var position = params.getPosition();
+        log.debug("Prepare rename requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
+
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return null;
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            var result         = grammarSupport.prepareRename(document, position);
+            if (result == null) {
+                return null;
+            }
+            return Either3.forSecond(result);
+        });
+    }
+
+    @Override
+    public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
+        var uri      = params.getTextDocument().getUri();
+        var position = params.getPosition();
+        var newName  = params.getNewName();
+        log.debug("Rename requested at {}:{} in {} to '{}'", position.getLine(), position.getCharacter(), uri, newName);
+
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return null;
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideRename(document, position, newName);
         });
     }
 

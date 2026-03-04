@@ -21,9 +21,16 @@ import java.util.List;
 
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.FoldingRange;
+import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.PrepareRenameResult;
+import org.eclipse.lsp4j.SelectionRange;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensLegend;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
 import io.sapl.lsp.core.GrammarSupport;
@@ -43,6 +50,10 @@ public class SAPLTestGrammarSupport implements GrammarSupport {
     private final SAPLTestSemanticTokensProvider semanticTokensProvider;
     private final SAPLTestCompletionProvider     completionProvider;
     private final SAPLTestDiagnosticsProvider    diagnosticsProvider;
+    private final SAPLTestFormattingProvider     formattingProvider;
+    private final SAPLTestDocumentSymbolProvider documentSymbolProvider;
+    private final SAPLTestFoldingRangeProvider   foldingRangeProvider;
+    private final SAPLTestSelectionRangeProvider selectionRangeProvider;
 
     /**
      * Creates a new SAPLTest grammar support instance.
@@ -51,6 +62,10 @@ public class SAPLTestGrammarSupport implements GrammarSupport {
         this.semanticTokensProvider = new SAPLTestSemanticTokensProvider();
         this.completionProvider     = new SAPLTestCompletionProvider();
         this.diagnosticsProvider    = new SAPLTestDiagnosticsProvider();
+        this.formattingProvider     = new SAPLTestFormattingProvider();
+        this.documentSymbolProvider = new SAPLTestDocumentSymbolProvider();
+        this.foldingRangeProvider   = new SAPLTestFoldingRangeProvider();
+        this.selectionRangeProvider = new SAPLTestSelectionRangeProvider();
     }
 
     @Override
@@ -93,6 +108,41 @@ public class SAPLTestGrammarSupport implements GrammarSupport {
     @Override
     public List<String> getCompletionTriggerCharacters() {
         return TRIGGER_CHARS;
+    }
+
+    @Override
+    public List<TextEdit> provideFormatting(ParsedDocument document) {
+        return formattingProvider.provideFormatting(document);
+    }
+
+    @Override
+    public List<DocumentSymbol> provideDocumentSymbols(ParsedDocument document) {
+        return documentSymbolProvider.provideDocumentSymbols(document);
+    }
+
+    @Override
+    public List<FoldingRange> provideFoldingRanges(ParsedDocument document) {
+        return foldingRangeProvider.provideFoldingRanges(document);
+    }
+
+    @Override
+    public List<SelectionRange> provideSelectionRanges(ParsedDocument document, List<Position> positions) {
+        return selectionRangeProvider.provideSelectionRanges(document, positions);
+    }
+
+    @Override
+    public Hover provideHover(ParsedDocument document, Position position, ConfigurationManager configurationManager) {
+        return null;
+    }
+
+    @Override
+    public PrepareRenameResult prepareRename(ParsedDocument document, Position position) {
+        return null;
+    }
+
+    @Override
+    public WorkspaceEdit provideRename(ParsedDocument document, Position position, String newName) {
+        return null;
     }
 
 }

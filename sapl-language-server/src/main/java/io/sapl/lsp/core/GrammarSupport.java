@@ -21,9 +21,16 @@ import java.util.List;
 
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.FoldingRange;
+import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.PrepareRenameResult;
+import org.eclipse.lsp4j.SelectionRange;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensLegend;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
 
@@ -97,5 +104,70 @@ public interface GrammarSupport {
      * @return list of trigger characters
      */
     List<String> getCompletionTriggerCharacters();
+
+    /**
+     * Provides formatting text edits for a parsed document.
+     * Returns an empty list if the document has parse errors.
+     *
+     * @param document the parsed document
+     * @return list of text edits to apply for formatting
+     */
+    List<TextEdit> provideFormatting(ParsedDocument document);
+
+    /**
+     * Provides document symbols for the outline view.
+     *
+     * @param document the parsed document
+     * @return list of document symbols
+     */
+    List<DocumentSymbol> provideDocumentSymbols(ParsedDocument document);
+
+    /**
+     * Provides folding ranges for collapsible regions.
+     *
+     * @param document the parsed document
+     * @return list of folding ranges
+     */
+    List<FoldingRange> provideFoldingRanges(ParsedDocument document);
+
+    /**
+     * Provides selection ranges for smart expand/shrink selection.
+     *
+     * @param document the parsed document
+     * @param positions the cursor positions
+     * @return list of selection ranges, one per position
+     */
+    List<SelectionRange> provideSelectionRanges(ParsedDocument document, List<Position> positions);
+
+    /**
+     * Provides hover information for a position in a document.
+     *
+     * @param document the parsed document
+     * @param position the cursor position
+     * @param configurationManager the configuration manager for documentation
+     * lookup
+     * @return hover information, or null if no hover is available
+     */
+    Hover provideHover(ParsedDocument document, Position position, ConfigurationManager configurationManager);
+
+    /**
+     * Prepares a rename operation at the given position.
+     *
+     * @param document the parsed document
+     * @param position the cursor position
+     * @return prepare rename result with the range and placeholder, or null if not
+     * renamable
+     */
+    PrepareRenameResult prepareRename(ParsedDocument document, Position position);
+
+    /**
+     * Provides rename edits for a variable at the given position.
+     *
+     * @param document the parsed document
+     * @param position the cursor position
+     * @param newName the new name for the variable
+     * @return workspace edit with all rename changes, or null if not renamable
+     */
+    WorkspaceEdit provideRename(ParsedDocument document, Position position, String newName);
 
 }

@@ -95,7 +95,7 @@
       "patterns": [
         {
           "name": "keyword.control.mock.sapltest",
-          "match": "\\b(function|attribute|maps|to|emits|stream|timing|of|is|called|error)\\b"
+          "match": "\\b(function|attribute|maps|to|emits|stream|of|is|called|error)\\b"
         }
       ]
     },
@@ -111,7 +111,7 @@
       "patterns": [
         {
           "name": "keyword.control.pdp.sapltest",
-          "match": "\\b(pdp|variables|secrets|configuration|pdp-configuration|combining-algorithm|document|documents|policy|set|policies)\\b"
+          "match": "\\b(variables|secrets|configuration|pdp-configuration|document|documents)\\b"
         }
       ]
     },
@@ -143,7 +143,7 @@
       "patterns": [
         {
           "name": "keyword.control.expect.sapltest",
-          "match": "\\b(for|wait|next|once|times)\\b"
+          "match": "\\b(next|once|times)\\b"
         }
       ]
     },

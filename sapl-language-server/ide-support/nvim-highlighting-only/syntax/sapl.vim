@@ -1,6 +1,6 @@
 " Vim syntax file for SAPL (Streaming Attribute Policy Language)
 "
-" Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+" Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 " SPDX-License-Identifier: Apache-2.0
 
 if exists("b:current_syntax")

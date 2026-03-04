@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
+import org.eclipse.lsp4j.RenameOptions;
 import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ServerInfo;
@@ -145,6 +146,26 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
         completionOptions.setTriggerCharacters(grammarRegistry.getAllCompletionTriggerCharacters());
         completionOptions.setResolveProvider(false);
         capabilities.setCompletionProvider(completionOptions);
+
+        // Document formatting
+        capabilities.setDocumentFormattingProvider(true);
+
+        // Document symbols for outline view
+        capabilities.setDocumentSymbolProvider(true);
+
+        // Folding ranges for collapsible regions
+        capabilities.setFoldingRangeProvider(true);
+
+        // Selection ranges for smart expand/shrink selection
+        capabilities.setSelectionRangeProvider(true);
+
+        // Hover for function and attribute documentation
+        capabilities.setHoverProvider(true);
+
+        // Rename support for variable definitions
+        var renameOptions = new RenameOptions();
+        renameOptions.setPrepareProvider(true);
+        capabilities.setRenameProvider(renameOptions);
 
         return capabilities;
     }

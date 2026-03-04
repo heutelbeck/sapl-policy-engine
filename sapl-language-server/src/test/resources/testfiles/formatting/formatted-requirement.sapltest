@@ -1,0 +1,16 @@
+requirement "Access Control" {
+
+    given
+        - document "my-policy"
+
+    scenario "user can read"
+        when "user" attempts "read" on "document"
+        expect permit;
+
+    scenario "guest denied"
+        given
+            - priority deny or deny errors propagate
+        when "guest" attempts "write" on "document"
+        expect deny;
+
+}
