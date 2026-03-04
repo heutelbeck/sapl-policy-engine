@@ -20,5 +20,7 @@ SAPL provides multiple ways to connect applications to a Policy Decision Point (
 - **[Python Django](../6_6_PythonDjango/):** Integrating SAPL authorization into Django applications.
 - **[Python Flask](../6_7_PythonFlask/):** Integrating SAPL authorization into Flask applications.
 - **[Python FastAPI](../6_8_PythonFastAPI/):** Integrating SAPL authorization into FastAPI applications.
+- **[Python Tornado](../6_9_PythonTornado/):** Integrating SAPL authorization into Tornado applications.
+- **[.NET](../6_10_DotNet/):** Attribute-driven policy enforcement for ASP.NET Core applications.
 
 All client interfaces expose the same authorization semantics: single subscriptions (streaming and one-shot) and multi-subscriptions (streaming and one-shot batch).
