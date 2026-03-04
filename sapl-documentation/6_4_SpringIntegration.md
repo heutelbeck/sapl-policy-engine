@@ -63,11 +63,7 @@ Here's a complete example to show how the pieces fit together.
 ```xml
 <dependency>
     <groupId>io.sapl</groupId>
-    <artifactId>sapl-spring-security</artifactId>
-</dependency>
-<dependency>
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-pdp</artifactId>
+    <artifactId>sapl-spring-boot-starter</artifactId>
 </dependency>
 ```
 
@@ -184,7 +180,7 @@ public Flux<Message> streamMessages() {
 }
 ```
 
-**@EnforceRecoverableIfDenied** sends an error during denied periods, letting subscribers decide whether to continue:
+**@EnforceRecoverableIfDenied** sends an `AccessDeniedException` during denied periods, letting subscribers decide whether to continue:
 
 ```java
 @EnforceRecoverableIfDenied
@@ -192,6 +188,65 @@ public Flux<Event> streamEvents() {
     return eventService.stream();
 }
 ```
+
+By default, recovery from DENY back to PERMIT is silent. Set `signalAccessRecovery = true` to emit an `AccessRecoveredException` on each DENY-to-PERMIT transition, allowing subscribers to distinguish "access restored" from "still denied":
+
+```java
+@EnforceRecoverableIfDenied(signalAccessRecovery = true)
+public Flux<Event> streamEvents() {
+    return eventService.stream();
+}
+```
+
+#### Handling Recovery with RecoverableFluxes
+
+`@EnforceRecoverableIfDenied` delivers deny and recovery signals via `onErrorContinue`, which only supports side-effects and cannot emit replacement values into the stream. The `RecoverableFluxes` utility bridges this gap.
+
+**Drop access signals and continue:**
+
+```java
+var events = recoverableService.streamEvents();
+RecoverableFluxes.recover(events);
+```
+
+**Log denied events as a side-effect:**
+
+```java
+RecoverableFluxes.recover(events, denied -> log.warn("Access denied: {}", denied.getMessage()));
+```
+
+**Emit a replacement value on denial:**
+
+```java
+RecoverableFluxes.recoverWith(events, () -> new Event("ACCESS_DENIED", "Waiting for access"));
+```
+
+**Handle both deny and recovery signals with side-effects and replacement values:**
+
+```java
+RecoverableFluxes.recoverWith(
+    events,
+    denied -> log.warn("Denied"),
+    () -> new Event("ACCESS_SUSPENDED", "Access suspended"),
+    recovered -> log.info("Recovered"),
+    () -> new Event("ACCESS_RESTORED", "Access restored")
+);
+```
+
+This requires `signalAccessRecovery = true` on the annotation. Without it, only `AccessDeniedException` is emitted; `AccessRecoveredException` is never produced.
+
+The API summary:
+
+| Method | Parameters | Behavior |
+|--------|-----------|----------|
+| `recover(source)` | Flux only | Drop all access signals, continue stream |
+| `recover(source, onDenied)` | + denied consumer | Side-effect on deny, drop signal |
+| `recover(source, onDenied, onRecovered)` | + both consumers | Side-effects on both transitions |
+| `recoverWith(source, replacement)` | + denied supplier | Emit replacement on deny |
+| `recoverWith(source, onDenied, replacement)` | + consumer + supplier | Side-effect and replacement on deny |
+| `recoverWith(source, onDenied, deniedReplacement, onRecovered, recoveredReplacement)` | Full | Side-effects and replacements for both |
+
+Non-access errors (e.g., `RuntimeException`) are always propagated normally regardless of which method is used.
 
 Use `@EnforceTillDenied` when denial should end the connection. Use `@EnforceDropWhileDenied` when the client shouldn't know events were skipped. Use `@EnforceRecoverableIfDenied` when the client needs to handle access changes gracefully.
 
@@ -335,6 +390,13 @@ subject = "@userService.getCurrentUserProfile()"
 
 // Build a custom object
 resource = "{ 'type': 'book', 'id': #id }"
+```
+
+All enforcement annotations also accept `genericsType` (default `Object.class`) to help the PEP resolve generic type parameters that are erased at runtime. Set this when your method returns a generic type like `Optional<Book>` and constraint handlers need the element type:
+
+```java
+@PreEnforce(action = "'read'", genericsType = Book.class)
+public Optional<Book> findBook(Long id) { ... }
 ```
 
 ### Combining Annotations
@@ -493,10 +555,10 @@ public class LogAccessHandler implements RunnableConstraintHandlerProvider {
     private static final Logger log = LoggerFactory.getLogger(LogAccessHandler.class);
 
     @Override
-    public boolean isResponsible(JsonNode constraint) {
-        return constraint != null
-            && constraint.has("type")
-            && "logAccess".equals(constraint.get("type").asText());
+    public boolean isResponsible(Value constraint) {
+        return constraint instanceof ObjectValue obj
+            && obj.get("type") instanceof TextValue(String type)
+            && "logAccess".equals(type);
     }
 
     @Override
@@ -505,18 +567,17 @@ public class LogAccessHandler implements RunnableConstraintHandlerProvider {
     }
 
     @Override
-    public Runnable getHandler(JsonNode constraint) {
-        String message = constraint.has("message")
-            ? constraint.get("message").asText()
-            : "Access logged";
+    public Runnable getHandler(Value constraint) {
+        var message = constraint instanceof ObjectValue obj
+            && obj.get("message") instanceof TextValue(String msg) ? msg : "Access logged";
         return () -> log.info(message);
     }
 }
 ```
 
-The `isResponsible` method checks if this handler should process a given constraint. The constraint is just a JSON object, so you define your own schema. The convention is to use a `type` field, but that's not required.
+The `isResponsible` method checks if this handler should process a given constraint. The constraint is a `Value` (typically an `ObjectValue` representing a JSON object), so you define your own schema. The convention is to use a `type` field, but that's not required.
 
-The `getSignal` method specifies when to run: `ON_DECISION`, `ON_EACH`, `ON_ERROR`, etc.
+The `getSignal` method specifies when to run: `ON_DECISION`, `ON_COMPLETE`, `ON_CANCEL`, `ON_TERMINATE`, or `AFTER_TERMINATE`.
 
 The `getHandler` method returns the actual logic to execute.
 
@@ -524,16 +585,17 @@ Spring auto-discovers handlers as beans. Just annotate with `@Component` and imp
 
 The provider interfaces cover different scenarios. Pick the one that matches what you need to do:
 
-| You want to...                                | Use this interface                         |
-|-----------------------------------------------|--------------------------------------------|
-| Log or notify when a decision arrives         | `RunnableConstraintHandlerProvider`        |
-| Inspect or record the return value            | `ConsumerConstraintHandlerProvider`        |
-| Transform the return value (redact, reshape)  | `MappingConstraintHandlerProvider`         |
-| Filter elements from a collection             | `FilterPredicateConstraintHandlerProvider` |
-| Modify method arguments before invocation     | `MethodInvocationConstraintHandlerProvider`|
-| Handle or transform exceptions                | `ErrorHandlerProvider`                     |
-| Hook into reactive subscription signals       | `SubscriptionHandlerProvider`              |
-| Act on the AuthorizationDecision itself       | `RequestHandlerProvider`                   |
+| You want to...                                | Use this interface                          |
+|-----------------------------------------------|---------------------------------------------|
+| Log or notify when a decision arrives         | `RunnableConstraintHandlerProvider`         |
+| Inspect or record the return value            | `ConsumerConstraintHandlerProvider`         |
+| Transform the return value (redact, reshape)  | `MappingConstraintHandlerProvider`          |
+| Filter elements from a collection             | `FilterPredicateConstraintHandlerProvider`  |
+| Modify method arguments before invocation     | `MethodInvocationConstraintHandlerProvider` |
+| Inspect or log exceptions (side-effect)       | `ErrorHandlerProvider`                      |
+| Transform exceptions                          | `ErrorMappingConstraintHandlerProvider`     |
+| Hook into reactive subscription signals       | `SubscriptionHandlerProvider`               |
+| Handle reactive backpressure requests         | `RequestHandlerProvider`                    |
 
 ## Query Manipulation
 
@@ -565,6 +627,8 @@ obligation {
 
 The query gets a WHERE clause appended, so users only see data they're allowed to see.
 
+`@QueryEnforce` accepts the same SpEL parameters as the other enforcement annotations (`subject`, `action`, `resource`, `environment`, `secrets`, `genericsType`). It also accepts `staticClasses` for referencing static helper methods in SpEL expressions.
+
 For complete documentation, see [MongoDB Query Manipulation](#mongodb-query-manipulation-constraint) and [R2DBC Query Manipulation](#r2dbc-query-manipulation-constraint).
 
 ## Configuration
@@ -579,7 +643,7 @@ The embedded PDP runs inside your application. Policies are loaded from bundled 
 # Enable the embedded PDP (required)
 io.sapl.pdp.embedded.enabled=true
 
-# Where to load policies from: RESOURCES, DIRECTORY, MULTI_DIRECTORY, or BUNDLES
+# Where to load policies from: RESOURCES, DIRECTORY, MULTI_DIRECTORY, BUNDLES, or REMOTE_BUNDLES
 io.sapl.pdp.embedded.pdp-config-type=RESOURCES
 
 # Path to policies (in resources or filesystem)
@@ -594,21 +658,57 @@ The full list of embedded PDP properties:
 | Property                                    | Default     | Description                                                                                                                                                                            |
 |---------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `io.sapl.pdp.embedded.enabled`              | `true`      | Enable or disable the embedded PDP                                                                                                                                                     |
-| `io.sapl.pdp.embedded.pdp-config-type`      | `RESOURCES` | `RESOURCES` loads from classpath, `DIRECTORY` loads from disk and watches for changes, `MULTI_DIRECTORY` for multi-tenant subdirectories, `BUNDLES` for multi-tenant .saplbundle files |
+| `io.sapl.pdp.embedded.pdp-config-type`      | `RESOURCES` | `RESOURCES` loads from classpath, `DIRECTORY` loads from disk and watches for changes, `MULTI_DIRECTORY` for multi-tenant subdirectories, `BUNDLES` for multi-tenant .saplbundle files, `REMOTE_BUNDLES` for fetching bundles from a remote server |
 | `io.sapl.pdp.embedded.policies-path`        | `/policies` | Directory containing `.sapl` policy files                                                                                                                                              |
 | `io.sapl.pdp.embedded.config-path`          | `/policies` | Directory containing `pdp.json` configuration                                                                                                                                          |
 | `io.sapl.pdp.embedded.index`                | `NAIVE`     | Index algorithm: `NAIVE` for small policy sets, `CANONICAL` for large ones                                                                                                             |
 | `io.sapl.pdp.embedded.print-trace`          | `false`     | Log full JSON evaluation trace (verbose, for debugging)                                                                                                                                |
 | `io.sapl.pdp.embedded.print-json-report`    | `false`     | Log JSON decision report                                                                                                                                                               |
 | `io.sapl.pdp.embedded.print-text-report`    | `false`     | Log human-readable decision report                                                                                                                                                     |
+| `io.sapl.pdp.embedded.print-subscription-events`   | `false` | Log subscription lifecycle events (new authorization subscriptions)                                                                                                              |
+| `io.sapl.pdp.embedded.print-unsubscription-events` | `false` | Log unsubscription lifecycle events (ended authorization subscriptions)                                                                                                          |
 | `io.sapl.pdp.embedded.pretty-print-reports` | `false`     | Format JSON in reports                                                                                                                                                                 |
 | `io.sapl.pdp.embedded.metrics-enabled`      | `false`     | Record PDP decision metrics for Prometheus via Micrometer                                                                                                                              |
 
-For development, `RESOURCES` is convenient because policies are bundled in the JAR. For production with dynamic policy updates, use `DIRECTORY` and point to a directory that can be updated without redeployment. For multi-tenant deployments, use `MULTI_DIRECTORY` (one subdirectory per tenant) or `BUNDLES` (one .saplbundle file per tenant).
+For development, `RESOURCES` is convenient because policies are bundled in the JAR. For production with dynamic policy updates, use `DIRECTORY` and point to a directory that can be updated without redeployment. For multi-tenant deployments, use `MULTI_DIRECTORY` (one subdirectory per tenant), `BUNDLES` (one .saplbundle file per tenant), or `REMOTE_BUNDLES` (fetch bundles from a remote server).
+
+#### Bundle Security
+
+When using `BUNDLES` or `REMOTE_BUNDLES`, bundle signature verification can be configured to ensure bundles have not been tampered with:
+
+| Property                                                      | Default | Description                                                                  |
+|---------------------------------------------------------------|---------|------------------------------------------------------------------------------|
+| `io.sapl.pdp.embedded.bundle-security.public-key-path`       |         | Path to Ed25519 public key file for signature verification                   |
+| `io.sapl.pdp.embedded.bundle-security.public-key`            |         | Base64-encoded Ed25519 public key (alternative to file path)                 |
+| `io.sapl.pdp.embedded.bundle-security.allow-unsigned`        | `false` | Allow unsigned bundles (requires `accept-risks=true`)                        |
+| `io.sapl.pdp.embedded.bundle-security.accept-risks`          | `false` | Explicit acceptance of security risks when loading unsigned bundles          |
+| `io.sapl.pdp.embedded.bundle-security.unsigned-tenants`      |         | List of tenant IDs that accept unsigned bundles without global flags         |
+| `io.sapl.pdp.embedded.bundle-security.keys.<key-id>`         |         | Named key catalogue mapping key IDs to Base64-encoded Ed25519 public keys   |
+| `io.sapl.pdp.embedded.bundle-security.tenants.<pdpId>`       |         | Per-tenant key binding mapping tenant IDs to lists of trusted key IDs       |
+
+If a public key is configured, all bundles must be signed. If no key is set, `allow-unsigned=true` and `accept-risks=true` must both be set to explicitly accept the risk. Per-tenant unsigned exceptions can be granted via `unsigned-tenants`.
+
+#### Remote Bundle Fetching
+
+When `pdp-config-type=REMOTE_BUNDLES`, bundles are fetched from a remote HTTP server. Change detection uses HTTP conditional requests (ETag / If-None-Match):
+
+| Property                                                         | Default  | Description                                                 |
+|------------------------------------------------------------------|----------|-------------------------------------------------------------|
+| `io.sapl.pdp.embedded.remote-bundles.base-url`                  |          | Base URL of the bundle server                               |
+| `io.sapl.pdp.embedded.remote-bundles.pdp-ids`                   |          | List of PDP identifiers to fetch bundles for                |
+| `io.sapl.pdp.embedded.remote-bundles.mode`                      | `POLLING`| `POLLING` for interval-based, `LONG_POLL` for long-poll     |
+| `io.sapl.pdp.embedded.remote-bundles.poll-interval`             | `30s`    | Default polling interval                                    |
+| `io.sapl.pdp.embedded.remote-bundles.long-poll-timeout`         | `30s`    | Server hold timeout for long-poll mode                      |
+| `io.sapl.pdp.embedded.remote-bundles.auth-header-name`          |          | HTTP header name for authentication (e.g., `Authorization`) |
+| `io.sapl.pdp.embedded.remote-bundles.auth-header-value`         |          | HTTP header value for authentication                        |
+| `io.sapl.pdp.embedded.remote-bundles.follow-redirects`          | `true`   | Follow HTTP 3xx redirects                                   |
+| `io.sapl.pdp.embedded.remote-bundles.pdp-id-poll-intervals.<id>`|          | Per-pdpId poll interval overrides                           |
+| `io.sapl.pdp.embedded.remote-bundles.first-backoff`             | `500ms`  | Initial backoff after a fetch failure                       |
+| `io.sapl.pdp.embedded.remote-bundles.max-backoff`               | `5s`     | Maximum backoff after repeated failures                     |
 
 #### Multi-Tenant PDP ID Routing
 
-By default, all embedded sources (`RESOURCES`, `DIRECTORY`) use pdpId `"default"` -- a single policy set shared by all requests. The `MULTI_DIRECTORY` and `BUNDLES` source types create one pdpId per subdirectory or bundle filename, enabling tenant-isolated policy sets.
+By default, all embedded sources (`RESOURCES`, `DIRECTORY`) use pdpId `"default"`, a single policy set shared by all requests. The `MULTI_DIRECTORY`, `BUNDLES`, and `REMOTE_BUNDLES` source types create one pdpId per subdirectory or bundle filename, enabling tenant-isolated policy sets.
 
 To route authorization requests to the correct tenant configuration, provide a PDP ID supplier bean:
 

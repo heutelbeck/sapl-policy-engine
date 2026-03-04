@@ -34,9 +34,9 @@ flowchart LR
 
 Three core concepts:
 
-1. **Authorization subscription** -- your app sends `{ subject, action, resource, environment }` to the PDP
-2. **PDP decision** -- the PDP evaluates policies and returns `PERMIT` or `DENY`, optionally with obligations, advice, or a replacement resource
-3. **Constraint handlers** -- registered handlers execute the policy's instructions (log, filter, transform, cap values, etc.)
+1. **Authorization subscription**: your app sends `{ subject, action, resource, environment }` to the PDP.
+2. **PDP decision**: the PDP evaluates policies and returns `PERMIT` or `DENY`, optionally with obligations, advice, or a replacement resource.
+3. **Constraint handlers**: registered handlers execute the policy's instructions (log, filter, transform, cap values, etc.).
 
 A PDP decision looks like this:
 
@@ -48,7 +48,7 @@ A PDP decision looks like this:
 }
 ```
 
-`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional -- `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the controller's return value entirely.
+`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional. `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the controller's return value entirely.
 
 For a deeper introduction to SAPL's subscription model and policy language, see the [SAPL documentation](https://sapl.io/docs/latest/).
 
@@ -107,7 +107,7 @@ export class AppModule {}
 export class AppModule {}
 ```
 
-`token` (API key or JWT) and `username`/`secret` (Basic Auth) are mutually exclusive -- configure one or the other. Providing both throws an error at startup.
+`token` (API key or JWT) and `username`/`secret` (Basic Auth) are mutually exclusive. Configure one or the other. Providing both throws an error at startup.
 
 ### Async Configuration
 
@@ -139,20 +139,20 @@ export class AppModule {}
 - `ClsModule` from `nestjs-cls` for request context propagation
 - Built-in `ContentFilteringProvider` and `ContentFilterPredicateProvider`
 
-The decorators work on any injectable class method -- controllers, services, repositories, etc. Methods without enforcement decorators are unaffected.
+The decorators work on any injectable class method (controllers, services, repositories, etc.). Methods without enforcement decorators are unaffected.
 
 ## Security
 
 ### Transport Security
 
-`@sapl/nestjs` requires HTTPS for PDP communication by default. Authorization decisions and potentially sensitive information are transmitted over this connection -- using unencrypted HTTP would expose this data to network-level attackers.
+`@sapl/nestjs` requires HTTPS for PDP communication by default. Authorization decisions and potentially sensitive information are transmitted over this connection. Using unencrypted HTTP would expose this data to network-level attackers.
 
 For local development without TLS, set `allowInsecureConnections: true`:
 
 ```typescript
 SaplModule.forRoot({
   baseUrl: 'http://localhost:8443',
-  allowInsecureConnections: true, // HTTP only -- never use in production
+  allowInsecureConnections: true, // HTTP only, never use in production
 }),
 ```
 
@@ -242,7 +242,7 @@ The `SubscriptionContext` provides:
 | `environment` | `{ ip, hostname }`                                                                |
 | `secrets`     | Not sent unless explicitly specified                                              |
 
-The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs for policy evaluation but that must not appear in logs. It is excluded from debug logging automatically. Use it when a policy needs to inspect credentials -- for example, passing a raw JWT so the PDP can read its claims:
+The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs for policy evaluation but that must not appear in logs. It is excluded from debug logging automatically. Use it when a policy needs to inspect credentials, for example passing a raw JWT so the PDP can read its claims:
 
 ```typescript
 @PreEnforce({
@@ -377,7 +377,7 @@ The `MethodInvocationContext` provides:
 | Field        | Type     | Description                                                   |
 | ------------ | -------- | ------------------------------------------------------------- |
 | `request`    | `any`    | The HTTP request object (from CLS)                            |
-| `args`       | `any[]`  | The method arguments -- handlers can mutate or replace entries |
+| `args`       | `any[]`  | The method arguments. Handlers can mutate or replace entries.  |
 | `methodName` | `string` | The intercepted method name                                   |
 | `className`  | `string` | The class containing the intercepted method                   |
 
@@ -606,13 +606,13 @@ export class HeartbeatService {
 
 All three streaming aspects:
 - Subscribe to `PdpService.decide()` which opens a streaming connection to the PDP
-- Identical consecutive decisions are deduplicated (`distinctUntilChanged` by deep equality) -- the PDP may resend the same decision periodically, and only actual changes trigger processing
+- Identical consecutive decisions are deduplicated (`distinctUntilChanged` by deep equality). The PDP may resend the same decision periodically, and only actual changes trigger processing.
 - On each PERMIT decision, build a `StreamingConstraintHandlerBundle` that applies constraint handlers to each data element
 - Hot-swap the constraint handler bundle when a new PERMIT decision arrives with different obligations
 - Run best-effort constraint handlers on DENY decisions
 - Clean up both the PDP subscription and source subscription on unsubscribe
 
-> **Note:** The source observable is subscribed only after the first PERMIT decision arrives from the PDP. For hot observables (WebSocket streams, event emitters), events emitted before the initial PERMIT are not buffered and will not be delivered. This is intentional -- data should not be buffered before authorization is confirmed.
+> **Note:** The source observable is subscribed only after the first PERMIT decision arrives from the PDP. For hot observables (WebSocket streams, event emitters), events emitted before the initial PERMIT are not buffered and will not be delivered. This is intentional; data should not be buffered before authorization is confirmed.
 
 ### Streaming Signals
 
@@ -710,7 +710,7 @@ Both streaming methods reconnect with exponential backoff on connection loss and
 
 ### Using nestjs-cls (Continuation-Local Storage) in Your Application
 
-CLS (Continuation-Local Storage) provides per-request context that follows the async call chain -- similar to thread-local storage in Java. `@sapl/nestjs` uses it internally to pass the HTTP request object from the middleware layer into the AOP aspects without requiring explicit parameter passing.
+CLS (Continuation-Local Storage) provides per-request context that follows the async call chain, similar to thread-local storage in Java. `@sapl/nestjs` uses it internally to pass the HTTP request object from the middleware layer into the AOP aspects without requiring explicit parameter passing.
 
 `SaplModule` manages `ClsModule` from `nestjs-cls` automatically. CLS middleware is mounted globally and the HTTP request is stored at the `CLS_REQ` key.
 
@@ -740,7 +740,7 @@ The `cls` options are merged into the default configuration (`{ global: true, mi
 
 When `@PreEnforce` and a database transaction coexist on a method, the transaction typically commits inside the method body. SAPL's post-method constraint handlers (`handleAllOnNextConstraints`) run after the method returns. If a constraint handler fails at that point, the transaction has already committed and cannot be rolled back.
 
-The same problem applies to `@PostEnforce` -- the method executes (and commits its transaction) before the PDP even makes its authorization decision. A subsequent DENY cannot undo committed database writes.
+The same problem applies to `@PostEnforce`. The method executes (and commits its transaction) before the PDP even makes its authorization decision. A subsequent DENY cannot undo committed database writes.
 
 #### The Solution
 
@@ -823,6 +823,24 @@ Methods that manage their own transaction via callback APIs (`prisma.$transactio
 #### Runtime Warning
 
 If `transactional: true` is set but `@nestjs-cls/transactional` is not installed or `ClsPluginTransactional` is not registered, `SaplTransactionAdapter` logs a warning at first request time and falls back to non-transactional execution.
+
+## Configuration Reference
+
+All options for `SaplModule.forRoot()` / `SaplModule.forRootAsync()`:
+
+| Option                       | Type                       | Default                                                  | Description                                                               |
+| ---------------------------- | -------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `baseUrl`                    | `string`                   | (required)                                               | Base URL of the SAPL PDP server                                           |
+| `token`                      | `string`                   | -                                                        | Bearer token (API key or JWT). Mutually exclusive with `username`/`secret` |
+| `username`                   | `string`                   | -                                                        | HTTP Basic Auth username. Requires `secret`.                              |
+| `secret`                     | `string`                   | -                                                        | HTTP Basic Auth password. Requires `username`.                            |
+| `timeout`                    | `number`                   | `5000`                                                   | PDP HTTP request timeout in ms                                            |
+| `streamingMaxRetries`        | `number`                   | unlimited                                                | Maximum reconnection attempts for streaming subscriptions                 |
+| `streamingRetryBaseDelay`    | `number`                   | `1000`                                                   | Initial delay in ms before first streaming reconnection                   |
+| `streamingRetryMaxDelay`     | `number`                   | `30000`                                                  | Maximum backoff delay in ms for streaming reconnection                    |
+| `allowInsecureConnections`   | `boolean`                  | `false`                                                  | Allow unencrypted HTTP connections to the PDP                             |
+| `cls`                        | `Partial<ClsModuleOptions>` | `{ global: true, middleware: { mount: true } }`          | Options merged into `ClsModule.forRoot()`                                 |
+| `transactional`              | `boolean`                  | `false`                                                  | Wrap enforcement in a database transaction via `@nestjs-cls/transactional` |
 
 ## Troubleshooting
 

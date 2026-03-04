@@ -19,9 +19,9 @@ SAPL is a policy language and Policy Decision Point (PDP) for attribute-based ac
 
 Three core concepts:
 
-1. **Authorization subscription** -- your app sends `{ subject, action, resource, environment }` to the PDP
-2. **PDP decision** -- the PDP evaluates policies and returns `PERMIT` or `DENY`, optionally with obligations, advice, or a replacement resource
-3. **Constraint handlers** -- registered handlers execute the policy's instructions (log, filter, transform, cap values, etc.)
+1. **Authorization subscription**: your app sends `{ subject, action, resource, environment }` to the PDP.
+2. **PDP decision**: the PDP evaluates policies and returns `PERMIT` or `DENY`, optionally with obligations, advice, or a replacement resource.
+3. **Constraint handlers**: registered handlers execute the policy's instructions (log, filter, transform, cap values, etc.).
 
 A PDP decision looks like this:
 
@@ -33,7 +33,7 @@ A PDP decision looks like this:
 }
 ```
 
-`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional -- `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the view's return value entirely.
+`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional. `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the view's return value entirely.
 
 For a deeper introduction to SAPL's subscription model and policy language, see the [SAPL documentation](https://sapl.io/docs/latest/).
 
@@ -74,7 +74,7 @@ SAPL_CONFIG = {
 }
 ```
 
-`token` (API key) and `username`/`password` (Basic Auth) are mutually exclusive -- configure one or the other.
+`token` (API key) and `username`/`password` (Basic Auth) are mutually exclusive. Configure one or the other.
 
 For local development without TLS:
 
@@ -147,7 +147,7 @@ from sapl_django import post_enforce
 
 @post_enforce(
     action="read",
-    resource=lambda request, return_value: {"type": "record", "data": return_value},
+    resource=lambda ctx: {"type": "record", "data": ctx.return_value},
 )
 async def get_record(request: HttpRequest, record_id: str) -> JsonResponse:
     return JsonResponse({"id": record_id, "value": "sensitive-data"})
@@ -181,24 +181,24 @@ Pass a string or dict directly:
 
 **Dynamic Values (Callables)**
 
-Pass a callable that receives `(request, return_value)` and returns the field value. The `return_value` is `None` for `@pre_enforce` and the actual return value for `@post_enforce`:
+Pass a callable that receives a `SubscriptionContext` and returns the field value. The context provides `request`, `return_value` (`None` for `@pre_enforce`), `params` (URL kwargs), `query` (query string), and `args` (resolved function arguments):
 
 ```python
 @pre_enforce(
-    subject=lambda request, rv: request.user.username,
-    resource=lambda request, rv: {"path": request.path, "method": request.method},
+    subject=lambda ctx: ctx.request.user.username,
+    resource=lambda ctx: {"path": ctx.request.path, "method": ctx.request.method},
 )
 ```
 
 **Secrets**
 
-The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs for policy evaluation but that must not appear in logs. It is excluded from debug logging automatically. Use it when a policy needs to inspect credentials -- for example, passing a raw JWT so the PDP can read its claims:
+The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs for policy evaluation but that must not appear in logs. It is excluded from debug logging automatically. Use it when a policy needs to inspect credentials, for example passing a raw JWT so the PDP can read its claims:
 
 ```python
 @pre_enforce(
     action="exportData",
-    resource=lambda request, rv: {"pilotId": request.resolver_match.kwargs.get("pilot_id")},
-    secrets=lambda request, rv: {"jwt": request.META.get("HTTP_AUTHORIZATION", "").split(" ")[-1]},
+    resource=lambda ctx: {"pilotId": ctx.params.get("pilot_id")},
+    secrets=lambda ctx: {"jwt": getattr(ctx.request, "sapl_token", None)} if ctx.request else None,
 )
 ```
 
@@ -347,7 +347,7 @@ With all handlers resolved, execution proceeds through the enforcement locations
 
 `@post_enforce` inverts the order. Your view runs first, regardless of the authorization outcome. Only after it returns does the PEP build the authorization subscription (now including the return value) and consult the PDP.
 
-This means the PDP can make decisions based on the actual data your view produced. For example, a policy might permit access to a record only if its classification level is below a threshold -- something that can only be checked after loading the record.
+This means the PDP can make decisions based on the actual data your view produced. For example, a policy might permit access to a record only if its classification level is below a threshold, something that can only be checked after loading the record.
 
 If the decision is not `PERMIT`, the PEP discards the return value and raises `PermissionDenied`.
 
@@ -422,8 +422,8 @@ The `MethodInvocationContext` provides:
 
 | Field           | Type              | Description                                                           |
 | --------------- | ----------------- | --------------------------------------------------------------------- |
-| `args`          | `list[Any]`       | Positional arguments -- handlers can mutate or replace entries         |
-| `kwargs`        | `dict[str, Any]`  | Keyword arguments -- handlers can add, modify, or remove keys         |
+| `args`          | `list[Any]`       | Positional arguments. Handlers can mutate or replace entries.          |
+| `kwargs`        | `dict[str, Any]`  | Keyword arguments. Handlers can add, modify, or remove keys.          |
 | `function_name` | `str`             | The intercepted view function name                                    |
 | `class_name`    | `str`             | Qualified class name (empty for plain functions)                      |
 | `request`       | `Any`             | The Django `HttpRequest`, or `None` for service-layer calls           |
@@ -557,43 +557,38 @@ When using the PDP client directly, you are responsible for checking the decisio
 
 ### Service Layer Enforcement
 
-For service methods that should not return HTTP responses directly, use `@service_pre_enforce` and `@service_post_enforce`. These decorators raise `AccessDeniedError` on denial instead of Django's `PermissionDenied`, letting the calling controller handle the error:
+The same `@pre_enforce` and `@post_enforce` decorators work at any layer, not just on Django views. When used on a service method without an `HttpRequest` parameter, the decorator automatically translates denial into Django's `PermissionDenied` exception, which the calling view can handle normally:
 
 ```python
-from sapl_django import service_pre_enforce, service_post_enforce
-from sapl_base.enforcement import AccessDeniedError
+from sapl_django import pre_enforce, post_enforce
 
 
-@service_pre_enforce(action="service:listPatients", resource="patients")
+@pre_enforce(action="listPatients", resource="patients")
 async def list_patients() -> list[dict]:
     return [dict(p) for p in PATIENTS]
 
 
-@service_post_enforce(
-    action="service:getPatientDetail",
-    resource=lambda request, return_value: {"type": "patientDetail", "data": return_value},
+@post_enforce(
+    action="getPatientDetail",
+    resource=lambda ctx: {"type": "patientDetail", "data": ctx.return_value},
 )
 async def get_patient_detail(patient_id: str) -> dict | None:
     return next((dict(p) for p in PATIENTS if p["id"] == patient_id), None)
 ```
 
-The calling view catches `AccessDeniedError` and converts it to an HTTP response:
+The calling view does not need any special error handling. `PermissionDenied` propagates through Django's normal exception handling and returns HTTP 403:
 
 ```python
 from django.http import HttpRequest, JsonResponse
-from sapl_base.enforcement import AccessDeniedError
 from . import patient_service
 
 
 async def get_patient_detail(request: HttpRequest, patient_id: str) -> JsonResponse:
-    try:
-        result = await patient_service.get_patient_detail(patient_id)
-        return JsonResponse(result)
-    except AccessDeniedError:
-        return JsonResponse({"error": "Access denied"}, status=403)
+    result = await patient_service.get_patient_detail(patient_id)
+    return JsonResponse(result)
 ```
 
-Service decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as the HTTP decorators. The `request` parameter is optional -- when omitted, subject defaults to `"anonymous"` and environment is empty.
+Service-layer decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as when used on views. When no `HttpRequest` is available, subject defaults to `"anonymous"` and environment is empty.
 
 ### Demo Application
 
@@ -601,9 +596,9 @@ A complete working demo is available at [sapl-python-demos/django_demo](https://
 
 - Manual PDP access (no decorators)
 - `@pre_enforce` and `@post_enforce` with content filtering
-- `@service_pre_enforce` and `@service_post_enforce` for service-layer enforcement
+- Service-layer enforcement using the same decorators on plain async functions
 - All 7 constraint handler types (runnable, consumer, mapping, filter predicate, method invocation, error handler, error mapping)
-- SSE streaming with all five enforcement patterns (till-denied, drop-while-denied, recoverable, terminated-by-callback, drop-with-callbacks)
+- SSE streaming with all three enforcement strategies (till-denied, drop-while-denied, recoverable-if-denied)
 - JWT-based ABAC with secrets
 
 ### Configuration Reference

@@ -19,9 +19,9 @@ SAPL is a policy language and Policy Decision Point (PDP) for attribute-based ac
 
 Three core concepts:
 
-1. **Authorization subscription** -- your app sends `{ subject, action, resource, environment }` to the PDP
-2. **PDP decision** -- the PDP evaluates policies and returns `PERMIT` or `DENY`, optionally with obligations, advice, or a replacement resource
-3. **Constraint handlers** -- registered handlers execute the policy's instructions (log, filter, transform, cap values, etc.)
+1. **Authorization subscription**: your app sends `{ subject, action, resource, environment }` to the PDP.
+2. **PDP decision**: the PDP evaluates policies and returns `PERMIT` or `DENY`, optionally with obligations, advice, or a replacement resource.
+3. **Constraint handlers**: registered handlers execute the policy's instructions (log, filter, transform, cap values, etc.).
 
 A PDP decision looks like this:
 
@@ -33,7 +33,7 @@ A PDP decision looks like this:
 }
 ```
 
-`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional -- `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the view's return value entirely.
+`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional. `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the view's return value entirely.
 
 For a deeper introduction to SAPL's subscription model and policy language, see the [SAPL documentation](https://sapl.io/docs/latest/).
 
@@ -76,7 +76,7 @@ app.config["SAPL_PASSWORD"] = "myPassword"
 sapl = SaplFlask(app)
 ```
 
-`SAPL_TOKEN` (API key) and `SAPL_USERNAME`/`SAPL_PASSWORD` (Basic Auth) are mutually exclusive -- configure one or the other.
+`SAPL_TOKEN` (API key) and `SAPL_USERNAME`/`SAPL_PASSWORD` (Basic Auth) are mutually exclusive. Configure one or the other.
 
 #### Application Factory Pattern
 
@@ -123,7 +123,7 @@ The extension registers itself as `app.extensions["sapl"]` and is automatically 
 
 ### Enforcement Decorators
 
-All decorators work on synchronous Flask view functions. The decorators internally bridge to async for PDP communication. The Flask request context is accessed via `flask.request` and `flask.g` -- no explicit `request` parameter is needed in decorator arguments.
+All decorators work on synchronous Flask view functions. The decorators internally bridge to async for PDP communication. The Flask request context is accessed via `flask.request` and `flask.g`, so no explicit `request` parameter is needed in decorator arguments.
 
 #### @pre_enforce
 
@@ -192,32 +192,26 @@ Pass a string or dict directly:
 
 **Dynamic Values (Callables)**
 
-Pass a zero-argument callable that accesses `flask.request` and `flask.g` from the request context:
+Pass a callable that receives a `SubscriptionContext` and returns the field value. The context provides `request`, `return_value` (`None` for `@pre_enforce`), `params` (view args), `query` (query string), and `args` (resolved function arguments):
 
 ```python
-from flask import request, g
-
-
 @pre_enforce(
-    subject=lambda: g.user if hasattr(g, "user") else "anonymous",
-    resource=lambda: {"path": request.path, "method": request.method},
+    subject=lambda ctx: getattr(ctx.request, "user", "anonymous") if ctx.request else "anonymous",
+    resource=lambda ctx: {"path": ctx.params, "method": ctx.request.method} if ctx.request else {},
 )
 ```
 
-Note that Flask subscription field callables take zero arguments (unlike Django and FastAPI, which receive the request object). Access the request via `flask.request` inside the callable.
+The `SubscriptionContext` is the same across all Python SAPL integrations, making subscription field callables portable between frameworks.
 
 **Secrets**
 
-The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs for policy evaluation but that must not appear in logs. It is excluded from debug logging automatically. Use it when a policy needs to inspect credentials -- for example, passing a raw JWT so the PDP can read its claims:
+The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs for policy evaluation but that must not appear in logs. It is excluded from debug logging automatically. Use it when a policy needs to inspect credentials, for example passing a raw JWT so the PDP can read its claims:
 
 ```python
-from flask import request
-
-
 @pre_enforce(
     action="exportData",
-    resource=lambda: {"pilotId": request.view_args.get("pilot_id")},
-    secrets=lambda: {"jwt": request.headers.get("Authorization", "").split(" ")[-1]},
+    resource=lambda ctx: {"pilotId": ctx.params.get("pilot_id")},
+    secrets=lambda ctx: {"jwt": g.token} if hasattr(g, "token") else None,
 )
 ```
 
@@ -368,7 +362,7 @@ With all handlers resolved, execution proceeds through the enforcement locations
 
 `@post_enforce` inverts the order. Your view runs first, regardless of the authorization outcome. Only after it returns does the PEP build the authorization subscription (now including the return value) and consult the PDP.
 
-This means the PDP can make decisions based on the actual data your view produced. For example, a policy might permit access to a record only if its classification level is below a threshold -- something that can only be checked after loading the record.
+This means the PDP can make decisions based on the actual data your view produced. For example, a policy might permit access to a record only if its classification level is below a threshold, something that can only be checked after loading the record.
 
 If the decision is not `PERMIT`, the PEP discards the return value and calls `abort(403)`.
 
@@ -445,8 +439,8 @@ The `MethodInvocationContext` provides:
 
 | Field           | Type              | Description                                                           |
 | --------------- | ----------------- | --------------------------------------------------------------------- |
-| `args`          | `list[Any]`       | Positional arguments -- handlers can mutate or replace entries         |
-| `kwargs`        | `dict[str, Any]`  | Keyword arguments -- handlers can add, modify, or remove keys         |
+| `args`          | `list[Any]`       | Positional arguments. Handlers can mutate or replace entries.          |
+| `kwargs`        | `dict[str, Any]`  | Keyword arguments. Handlers can add, modify, or remove keys.          |
 | `function_name` | `str`             | The intercepted view function name                                    |
 | `class_name`    | `str`             | Qualified class name (empty for plain functions)                      |
 | `request`       | `Any`             | The Flask request object, or `None` for service-layer calls           |
@@ -582,44 +576,39 @@ When using the PDP client directly, you are responsible for checking the decisio
 
 ### Service Layer Enforcement
 
-For service methods that should not return HTTP responses directly, use `@service_pre_enforce` and `@service_post_enforce`. These decorators raise `AccessDeniedError` on denial instead of calling `abort(403)`, letting the calling view handle the error:
+The same `@pre_enforce` and `@post_enforce` decorators work at any layer, not just on Flask views. When used on a service method outside of a Flask request context, the decorator automatically translates denial into `abort(403)` when a request context is available, or propagates the error normally otherwise:
 
 ```python
-from sapl_flask import service_pre_enforce, service_post_enforce
-from sapl_base.enforcement import AccessDeniedError
+from sapl_flask import pre_enforce, post_enforce
 
 
-@service_pre_enforce(action="service:listPatients", resource="patients")
+@pre_enforce(action="listPatients", resource="patients")
 def list_patients() -> list[dict]:
     return [dict(p) for p in PATIENTS]
 
 
-@service_post_enforce(
-    action="service:getPatientDetail",
-    resource=lambda: {"type": "patientDetail"},
+@post_enforce(
+    action="getPatientDetail",
+    resource=lambda ctx: {"type": "patientDetail", "data": ctx.return_value},
 )
 def get_patient_detail(patient_id: str) -> dict | None:
     return next((dict(p) for p in PATIENTS if p["id"] == patient_id), None)
 ```
 
-The calling view catches `AccessDeniedError` and converts it to an HTTP response:
+The calling view does not need any special error handling. The decorator handles denial automatically:
 
 ```python
 from flask import jsonify
-from sapl_base.enforcement import AccessDeniedError
 from services import patient_service
 
 
 @app.route("/services/patients/<patient_id>")
 def get_patient_detail(patient_id: str):
-    try:
-        result = patient_service.get_patient_detail(patient_id)
-        return jsonify(result)
-    except AccessDeniedError:
-        return jsonify({"error": "Access denied"}), 403
+    result = patient_service.get_patient_detail(patient_id)
+    return jsonify(result)
 ```
 
-Service decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as the HTTP decorators. The `request` parameter is not available in service-layer calls -- subject defaults to `"anonymous"` and environment is empty.
+Service-layer decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as when used on views. When no Flask request context is available, subject defaults to `"anonymous"` and environment is empty.
 
 ### Demo Application
 
@@ -627,9 +616,9 @@ A complete working demo is available at [sapl-python-demos/flask_demo](https://g
 
 - Manual PDP access (no decorators)
 - `@pre_enforce` and `@post_enforce` with content filtering
-- `@service_pre_enforce` and `@service_post_enforce` for service-layer enforcement
+- Service-layer enforcement using the same decorators on plain functions
 - All 7 constraint handler types (runnable, consumer, mapping, filter predicate, method invocation, error handler, error mapping)
-- SSE streaming with all five enforcement patterns (till-denied, drop-while-denied, recoverable, terminated-by-callback, drop-with-callbacks)
+- SSE streaming with all three enforcement strategies (till-denied, drop-while-denied, recoverable-if-denied)
 - JWT-based ABAC with secrets
 
 ### Configuration Reference
