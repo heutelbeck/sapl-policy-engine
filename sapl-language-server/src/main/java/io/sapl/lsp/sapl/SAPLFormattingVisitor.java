@@ -182,7 +182,7 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
     public String visitCombiningAlgorithm(CombiningAlgorithmContext ctx) {
         val sb         = new StringBuilder();
         val votingText = ctx.votingMode().getText();
-        if (votingText.equals("unanimousstrict")) {
+        if ("unanimousstrict".equals(votingText)) {
             sb.append("unanimous strict");
         } else {
             sb.append(votingText);

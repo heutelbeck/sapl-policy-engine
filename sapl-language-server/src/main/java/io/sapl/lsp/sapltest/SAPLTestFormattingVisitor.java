@@ -81,8 +81,10 @@ import lombok.val;
  */
 class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
-    private static final String INDENT2 = INDENT.repeat(2);
-    private static final String INDENT3 = INDENT.repeat(3);
+    private static final String ATTRIBUTE = "attribute ";
+    private static final String INDENT2   = INDENT.repeat(2);
+    private static final String INDENT3   = INDENT.repeat(3);
+    private static final String WHEN      = "when ";
 
     private final CommonTokenStream tokenStream;
     private final Set<Token>        emittedComments = new HashSet<>();
@@ -136,7 +138,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     public String visitCombiningAlgorithm(CombiningAlgorithmContext ctx) {
         val sb         = new StringBuilder();
         val votingText = ctx.votingMode().getText();
-        if (votingText.equals("unanimousstrict")) {
+        if ("unanimousstrict".equals(votingText)) {
             sb.append("unanimous strict");
         } else if (votingText.startsWith("priority")) {
             sb.append("priority ").append(votingText.substring(8));
@@ -366,7 +368,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     @Override
     public String visitAttributeMock(AttributeMockContext ctx) {
-        val sb = new StringBuilder("attribute ");
+        val sb = new StringBuilder(ATTRIBUTE);
         sb.append(ctx.mockId.getText()).append(' ');
         sb.append(visit(ctx.attributeReference()));
         if (ctx.initialValue != null) {
@@ -378,7 +380,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     private String formatWhenStep(WhenStepContext ctx) {
         val sub = ctx.authorizationSubscription();
         val sb  = new StringBuilder();
-        sb.append(INDENT2).append("when ");
+        sb.append(INDENT2).append(WHEN);
         sb.append(formatAuthorizationSubscription(sub));
         sb.append('\n');
         return sb.toString();
@@ -402,29 +404,37 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         sb.append(visit(ctx.resource));
 
         if (ctx.env != null) {
-            val envStr = " in " + (ctx.ENVIRONMENT() != null ? "environment " : "") + formatObjectValue(ctx.env, 0);
-            if (sb.length() + envStr.length() + INDENT2.length() + "when ".length() <= LINE_WIDTH) {
-                sb.append(envStr);
-            } else {
-                sb.append('\n').append(INDENT3).append("in ");
-                if (ctx.ENVIRONMENT() != null) {
-                    sb.append("environment ");
-                }
-                sb.append(formatObjectValue(ctx.env, 0));
-            }
+            appendEnvironmentClause(sb, ctx);
         }
 
         if (ctx.subscriptionSecrets != null) {
-            val secStr = " with secrets " + formatObjectValue(ctx.subscriptionSecrets, 0);
-            if (sb.length() + secStr.length() + INDENT2.length() + "when ".length() <= LINE_WIDTH) {
-                sb.append(secStr);
-            } else {
-                sb.append('\n').append(INDENT3).append("with secrets ")
-                        .append(formatObjectValue(ctx.subscriptionSecrets, 0));
-            }
+            appendSecretsClause(sb, ctx);
         }
 
         return sb.toString();
+    }
+
+    private void appendEnvironmentClause(StringBuilder sb, AuthorizationSubscriptionContext ctx) {
+        val envStr = " in " + (ctx.ENVIRONMENT() != null ? "environment " : "") + formatObjectValue(ctx.env, 0);
+        if (sb.length() + envStr.length() + INDENT2.length() + WHEN.length() <= LINE_WIDTH) {
+            sb.append(envStr);
+        } else {
+            sb.append('\n').append(INDENT3).append("in ");
+            if (ctx.ENVIRONMENT() != null) {
+                sb.append("environment ");
+            }
+            sb.append(formatObjectValue(ctx.env, 0));
+        }
+    }
+
+    private void appendSecretsClause(StringBuilder sb, AuthorizationSubscriptionContext ctx) {
+        val secStr = " with secrets " + formatObjectValue(ctx.subscriptionSecrets, 0);
+        if (sb.length() + secStr.length() + INDENT2.length() + WHEN.length() <= LINE_WIDTH) {
+            sb.append(secStr);
+        } else {
+            sb.append('\n').append(INDENT3).append("with secrets ")
+                    .append(formatObjectValue(ctx.subscriptionSecrets, 0));
+        }
     }
 
     private String formatExpectOrThenExpect(ExpectOrThenExpectContext ctx, VerifyBlockContext verifyCtx) {
@@ -448,45 +458,60 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     private String formatExpectation(io.sapl.test.grammar.antlr.SAPLTestParser.ExpectationContext ctx,
             boolean withSemicolon) {
-        val sb = new StringBuilder();
         if (ctx instanceof SingleExpectationContext singleCtx) {
-            sb.append(INDENT2).append("expect ");
-            sb.append(visitAuthorizationDecision(singleCtx.authorizationDecision()));
-            if (withSemicolon) {
+            return formatSingleExpectation(singleCtx, withSemicolon);
+        }
+        if (ctx instanceof MatcherExpectationContext matcherCtx) {
+            return formatMatcherExpectation(matcherCtx, withSemicolon);
+        }
+        if (ctx instanceof StreamExpectationContext streamCtx) {
+            return formatStreamExpectation(streamCtx, withSemicolon);
+        }
+        return "";
+    }
+
+    private String formatSingleExpectation(SingleExpectationContext ctx, boolean withSemicolon) {
+        val sb = new StringBuilder();
+        sb.append(INDENT2).append("expect ");
+        sb.append(visitAuthorizationDecision(ctx.authorizationDecision()));
+        if (withSemicolon) {
+            sb.append(';');
+        }
+        sb.append('\n');
+        return sb.toString();
+    }
+
+    private String formatMatcherExpectation(MatcherExpectationContext ctx, boolean withSemicolon) {
+        val sb       = new StringBuilder();
+        val matchers = ctx.matchers.stream().map(this::visit).collect(Collectors.toList());
+        val inline   = String.join(", ", matchers);
+        val fullLine = INDENT2 + "expect decision " + inline;
+        sb.append(INDENT2).append("expect decision ");
+        if (fullLine.length() + (withSemicolon ? 1 : 0) <= LINE_WIDTH) {
+            sb.append(inline);
+        } else {
+            sb.append(matchers.getFirst());
+            for (var i = 1; i < matchers.size(); i++) {
+                sb.append(",\n").append(INDENT3).append(matchers.get(i));
+            }
+        }
+        if (withSemicolon) {
+            sb.append(';');
+        }
+        sb.append('\n');
+        return sb.toString();
+    }
+
+    private String formatStreamExpectation(StreamExpectationContext ctx, boolean withSemicolon) {
+        val sb    = new StringBuilder();
+        val steps = ctx.expectStep();
+        sb.append(INDENT2).append("expect\n");
+        for (var i = 0; i < steps.size(); i++) {
+            sb.append(INDENT3).append("- ").append(visit(steps.get(i)));
+            if (withSemicolon && i == steps.size() - 1) {
                 sb.append(';');
             }
             sb.append('\n');
-        } else if (ctx instanceof MatcherExpectationContext matcherCtx) {
-            sb.append(INDENT2).append("expect decision ");
-            val matchers = matcherCtx.matchers.stream().map(this::visit).collect(Collectors.toList());
-            val inline   = String.join(", ", matchers);
-            val fullLine = INDENT2 + "expect decision " + inline;
-            if (fullLine.length() + (withSemicolon ? 1 : 0) <= LINE_WIDTH) {
-                sb.append(inline);
-                if (withSemicolon) {
-                    sb.append(';');
-                }
-                sb.append('\n');
-            } else {
-                sb.append(matchers.getFirst());
-                for (var i = 1; i < matchers.size(); i++) {
-                    sb.append(",\n").append(INDENT3).append(matchers.get(i));
-                }
-                if (withSemicolon) {
-                    sb.append(';');
-                }
-                sb.append('\n');
-            }
-        } else if (ctx instanceof StreamExpectationContext streamCtx) {
-            sb.append(INDENT2).append("expect\n");
-            val steps = streamCtx.expectStep();
-            for (var i = 0; i < steps.size(); i++) {
-                sb.append(INDENT3).append("- ").append(visit(steps.get(i)));
-                if (withSemicolon && i == steps.size() - 1) {
-                    sb.append(';');
-                }
-                sb.append('\n');
-            }
         }
         return sb.toString();
     }
@@ -502,7 +527,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     @Override
     public String visitAttributeEmitStep(AttributeEmitStepContext ctx) {
-        return "attribute " + ctx.mockId.getText() + " emits " + visit(ctx.emittedValue);
+        return ATTRIBUTE + ctx.mockId.getText() + " emits " + visit(ctx.emittedValue);
     }
 
     private String formatVerifyBlock(VerifyBlockContext ctx) {
@@ -532,7 +557,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     @Override
     public String visitAttributeVerification(AttributeVerificationContext ctx) {
-        val sb = new StringBuilder("attribute ");
+        val sb = new StringBuilder(ATTRIBUTE);
         sb.append(visit(ctx.attributeReference()));
         sb.append(" is called ").append(visit(ctx.timesCalled));
         return sb.toString();

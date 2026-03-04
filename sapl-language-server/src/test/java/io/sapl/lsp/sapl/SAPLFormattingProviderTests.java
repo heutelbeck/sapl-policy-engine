@@ -206,7 +206,8 @@ class SAPLFormattingProviderTests {
         @DisplayName("formatting formatted policy is idempotent")
         void whenFormattingAlreadyFormatted_thenUnchanged() throws IOException {
             var formatted = Files
-                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-policy-set.sapl"));
+                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-policy-set.sapl"))
+                    .replace("\r\n", "\n");
             var document  = new SAPLParsedDocument("test.sapl", formatted);
 
             var edits = provider.provideFormatting(document);
@@ -218,9 +219,11 @@ class SAPLFormattingProviderTests {
         @DisplayName("formatting unformatted produces expected output")
         void whenFormattingUnformatted_thenMatchesExpected() throws IOException {
             var unformatted = Files
-                    .readString(Path.of("src/test/resources/testfiles/formatting/unformatted-policy-set.sapl"));
+                    .readString(Path.of("src/test/resources/testfiles/formatting/unformatted-policy-set.sapl"))
+                    .replace("\r\n", "\n");
             var expected    = Files
-                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-policy-set.sapl"));
+                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-policy-set.sapl"))
+                    .replace("\r\n", "\n");
             var document    = new SAPLParsedDocument("test.sapl", unformatted);
 
             var edits = provider.provideFormatting(document);

@@ -12,7 +12,7 @@ import { EditorState, Compartment, StateField, StateEffect } from '@codemirror/s
 import { keymap, Decoration } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { StreamLanguage, bracketMatching } from '@codemirror/language';
+import { StreamLanguage, bracketMatching, foldGutter, foldKeymap, foldService } from '@codemirror/language';
 import { linter, Diagnostic } from '@codemirror/lint';
 import { autocompletion, CompletionContext, closeBrackets, completionKeymap, snippet } from '@codemirror/autocomplete';
 import { MergeView } from '@codemirror/merge';
@@ -49,6 +49,31 @@ const coverageField = StateField.define({
         return decorations.map(transaction.changes);
     },
     provide: field => EditorView.decorations.from(field)
+});
+
+// Folding - compartment, cached ranges from LSP, and fold service
+const foldingCompartment = new Compartment();
+
+const setFoldRangesEffect = StateEffect.define();
+
+const foldRangesField = StateField.define({
+    create: () => [],
+    update: (ranges, tr) => {
+        for (const effect of tr.effects) {
+            if (effect.is(setFoldRangesEffect)) return effect.value;
+        }
+        return ranges;
+    }
+});
+
+const lspFoldService = foldService.of((state, lineStart, lineEnd) => {
+    const ranges = state.field(foldRangesField);
+    for (const r of ranges) {
+        if (r.from >= lineStart && r.from <= lineEnd) {
+            return { from: r.from, to: r.to };
+        }
+    }
+    return null;
 });
 
 // Simple SAPL syntax highlighting (fallback when LSP not ready)
@@ -107,7 +132,8 @@ class SaplEditorLsp extends LitElement {
         collapseUnchanged: { type: Boolean },
         configurationId: { type: String },
         autocompleteTrigger: { type: String },  // 'manual' or 'on_typing'
-        autocompleteDelay: { type: Number }
+        autocompleteDelay: { type: Number },
+        foldingEnabled: { type: Boolean }
     };
 
     static styles = css`
@@ -407,6 +433,7 @@ class SaplEditorLsp extends LitElement {
         this.configurationId = null;
         this.autocompleteTrigger = 'manual';  // 'manual' (Ctrl+Space) or 'on_typing'
         this.autocompleteDelay = 300;
+        this.foldingEnabled = false;
 
         // Internal state
         this._editor = null;
@@ -544,6 +571,8 @@ class SaplEditorLsp extends LitElement {
         const extensions = [
             ...this._getBaseExtensions(true),
             coverageField,
+            foldRangesField,
+            foldingCompartment.of([]),
             EditorView.updateListener.of(update => {
                 if (update.docChanged && !this._isInternalUpdate) {
                     this._onDocumentChanged(update.state.doc.toString());
@@ -697,6 +726,11 @@ class SaplEditorLsp extends LitElement {
 
         // Notify LSP server of document change
         this._sendDidChange(newValue);
+
+        // Re-fetch fold ranges if folding is active
+        if (this.foldingEnabled) {
+            this._requestFoldRanges();
+        }
 
         // Notify Vaadin server
         if (this.$server?.onDocumentChanged) {
@@ -1283,6 +1317,59 @@ class SaplEditorLsp extends LitElement {
     }
 
     // Public API (called from Vaadin)
+
+    async format() {
+        if (!this._ws || this._ws.readyState !== WebSocket.OPEN || !this._editor) return;
+        try {
+            const result = await this._sendLspRequest('textDocument/formatting', {
+                textDocument: { uri: this._documentUri },
+                options: { tabSize: 4, insertSpaces: true }
+            });
+            if (!result || !this._editor) return;
+            const edits = Array.isArray(result) ? result : [];
+            // Apply edits in reverse order to preserve positions
+            for (let i = edits.length - 1; i >= 0; i--) {
+                const edit = edits[i];
+                const from = this._positionToOffset(edit.range.start);
+                const to = this._positionToOffset(edit.range.end);
+                this._editor.dispatch({ changes: { from, to, insert: edit.newText } });
+            }
+        } catch (e) {
+            console.error('[SAPL LSP] Format request failed:', e);
+        }
+    }
+
+    setFoldingEnabled(enabled) {
+        this.foldingEnabled = enabled;
+        const ext = enabled
+            ? [foldGutter(), keymap.of(foldKeymap), lspFoldService]
+            : [];
+        const effect = foldingCompartment.reconfigure(ext);
+        if (this._editor) {
+            this._editor.dispatch({ effects: effect });
+        }
+        if (enabled) {
+            this._requestFoldRanges();
+        }
+    }
+
+    async _requestFoldRanges() {
+        if (!this._ws || this._ws.readyState !== WebSocket.OPEN) return;
+        try {
+            const result = await this._sendLspRequest('textDocument/foldingRange', {
+                textDocument: { uri: this._documentUri }
+            });
+            if (!result || !this._editor) return;
+            const doc = this._editor.state.doc;
+            const ranges = result.map(r => ({
+                from: doc.line(r.startLine + 1).from,
+                to: doc.line(r.endLine + 1).to
+            }));
+            this._editor.dispatch({ effects: setFoldRangesEffect.of(ranges) });
+        } catch (e) {
+            console.error('[SAPL LSP] Fold range request failed:', e);
+        }
+    }
 
     setEditorDocument(element, doc) {
         if (this.document === doc) return;

@@ -78,13 +78,13 @@ class SAPLHoverProvider {
     }
 
     private Hover findFunctionHover(String qualifiedName, List<LibraryDocumentation> libraries) {
-        val parts = splitQualifiedName(qualifiedName);
-        if (parts == null) {
+        val name = splitQualifiedName(qualifiedName);
+        if (name == null) {
             return null;
         }
         for (val library : libraries) {
-            if (library.name().equals(parts[0])) {
-                val entry = library.findEntry(parts[1]);
+            if (library.name().equals(name.libraryName())) {
+                val entry = library.findEntry(name.entryName());
                 if (entry != null && entry.type() == EntryType.FUNCTION) {
                     return createHover(library, entry);
                 }
@@ -94,13 +94,13 @@ class SAPLHoverProvider {
     }
 
     private Hover findAttributeHover(String qualifiedName, List<LibraryDocumentation> libraries) {
-        val parts = splitQualifiedName(qualifiedName);
-        if (parts == null) {
+        val name = splitQualifiedName(qualifiedName);
+        if (name == null) {
             return null;
         }
         for (val library : libraries) {
-            if (library.name().equals(parts[0])) {
-                val entry = library.findEntry(parts[1]);
+            if (library.name().equals(name.libraryName())) {
+                val entry = library.findEntry(name.entryName());
                 if (entry != null) {
                     return createHover(library, entry);
                 }
@@ -130,12 +130,14 @@ class SAPLHoverProvider {
         return sb.toString();
     }
 
-    private String[] splitQualifiedName(String qualifiedName) {
+    private record QualifiedName(String libraryName, String entryName) {}
+
+    private QualifiedName splitQualifiedName(String qualifiedName) {
         val lastDot = qualifiedName.lastIndexOf('.');
         if (lastDot < 0) {
             return null;
         }
-        return new String[] { qualifiedName.substring(0, lastDot), qualifiedName.substring(lastDot + 1) };
+        return new QualifiedName(qualifiedName.substring(0, lastDot), qualifiedName.substring(lastDot + 1));
     }
 
     private void collectEnclosingNodes(ParseTree node, Position position, List<ParserRuleContext> chain) {

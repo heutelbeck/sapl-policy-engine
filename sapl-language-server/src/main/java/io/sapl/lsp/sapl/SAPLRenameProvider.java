@@ -131,25 +131,27 @@ class SAPLRenameProvider {
                 collectReferencesInTree(statement, targetName, edits, newName);
             }
         }
-        // Also check obligation/advice/transform expressions
         if (found) {
-            for (val obligation : policy.obligations) {
-                collectReferencesInTree(obligation, targetName, edits, newName);
-            }
-            for (val advice : policy.adviceExpressions) {
-                collectReferencesInTree(advice, targetName, edits, newName);
-            }
-            if (policy.transformation != null) {
-                collectReferencesInTree(policy.transformation, targetName, edits, newName);
-            }
+            collectReferencesInPolicyOutcome(policy, targetName, newName, edits);
+        }
+    }
+
+    private void collectReferencesInPolicyOutcome(PolicyContext policy, String targetName, String newName,
+            List<TextEdit> edits) {
+        for (val obligation : policy.obligations) {
+            collectReferencesInTree(obligation, targetName, edits, newName);
+        }
+        for (val advice : policy.adviceExpressions) {
+            collectReferencesInTree(advice, targetName, edits, newName);
+        }
+        if (policy.transformation != null) {
+            collectReferencesInTree(policy.transformation, targetName, edits, newName);
         }
     }
 
     private void collectReferencesInTree(ParseTree tree, String targetName, List<TextEdit> edits, String newName) {
-        if (tree instanceof BasicIdentifierContext basicId) {
-            if (basicId.saplId().getText().equals(targetName)) {
-                edits.add(new TextEdit(rangeOf(basicId.saplId()), newName));
-            }
+        if (tree instanceof BasicIdentifierContext basicId && basicId.saplId().getText().equals(targetName)) {
+            edits.add(new TextEdit(rangeOf(basicId.saplId()), newName));
         }
         if (tree instanceof ParserRuleContext ctx) {
             for (var i = 0; i < ctx.getChildCount(); i++) {

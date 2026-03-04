@@ -82,6 +82,7 @@ public class SaplEditorLsp extends Component implements HasSize {
     private static final String PROP_CONFIGURATION_ID     = "configurationId";
     private static final String PROP_AUTOCOMPLETE_TRIGGER = "autocompleteTrigger";
     private static final String PROP_AUTOCOMPLETE_DELAY   = "autocompleteDelay";
+    private static final String PROP_FOLDING_ENABLED      = "foldingEnabled";
 
     @Getter
     private String document;
@@ -421,6 +422,31 @@ public class SaplEditorLsp extends Component implements HasSize {
      */
     public void scrollToBottom() {
         getElement().callJsFunction("scrollToBottom");
+    }
+
+    /**
+     * Formats the document using the LSP formatting provider.
+     */
+    public void format() {
+        getElement().callJsFunction("format");
+    }
+
+    /**
+     * Enables or disables code folding with a gutter and keyboard shortcuts.
+     *
+     * @param enabled true to enable folding
+     */
+    public void setFoldingEnabled(boolean enabled) {
+        getElement().callJsFunction("setFoldingEnabled", enabled);
+    }
+
+    /**
+     * Returns whether code folding is enabled.
+     *
+     * @return true if folding is enabled
+     */
+    public boolean isFoldingEnabled() {
+        return getElement().getProperty(PROP_FOLDING_ENABLED, false);
     }
 
     /**

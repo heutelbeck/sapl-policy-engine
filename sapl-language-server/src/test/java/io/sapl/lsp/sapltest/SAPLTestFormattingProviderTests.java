@@ -136,7 +136,8 @@ class SAPLTestFormattingProviderTests {
         @DisplayName("formatting formatted sapltest is idempotent")
         void whenFormattingAlreadyFormatted_thenUnchanged() throws IOException {
             var formatted = Files
-                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-requirement.sapltest"));
+                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-requirement.sapltest"))
+                    .replace("\r\n", "\n");
             var document  = new SAPLTestParsedDocument("test.sapltest", formatted);
 
             var edits = provider.provideFormatting(document);
@@ -148,9 +149,11 @@ class SAPLTestFormattingProviderTests {
         @DisplayName("formatting unformatted produces expected output")
         void whenFormattingUnformatted_thenMatchesExpected() throws IOException {
             var unformatted = Files
-                    .readString(Path.of("src/test/resources/testfiles/formatting/unformatted-requirement.sapltest"));
+                    .readString(Path.of("src/test/resources/testfiles/formatting/unformatted-requirement.sapltest"))
+                    .replace("\r\n", "\n");
             var expected    = Files
-                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-requirement.sapltest"));
+                    .readString(Path.of("src/test/resources/testfiles/formatting/formatted-requirement.sapltest"))
+                    .replace("\r\n", "\n");
             var document    = new SAPLTestParsedDocument("test.sapltest", unformatted);
 
             var edits = provider.provideFormatting(document);
