@@ -101,6 +101,7 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
 
         val imports = ctx.importStatement();
         if (!imports.isEmpty()) {
+            appendComments(sb, imports.getFirst().getStart(), "");
             val sortedImports = imports.stream().map(this::visitImportStatement).sorted().collect(Collectors.toList());
             for (val imp : sortedImports) {
                 sb.append(imp).append('\n');
@@ -111,11 +112,13 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         val schemas = ctx.schemaStatement();
         if (!schemas.isEmpty()) {
             for (val schema : schemas) {
+                appendComments(sb, schema.getStart(), "");
                 sb.append(visitSchemaStatement(schema)).append('\n');
             }
             sb.append('\n');
         }
 
+        appendComments(sb, ctx.policyElement().getStart(), "");
         sb.append(visit(ctx.policyElement()));
 
         val result = sb.toString();
@@ -166,7 +169,10 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
 
         val varDefs = ctx.valueDefinition();
         for (val varDef : varDefs) {
-            sb.append('\n').append(INDENT).append(visitValueDefinition(varDef)).append(';');
+            sb.append('\n');
+            appendComments(sb, varDef.getStart(), INDENT);
+            appendIndented(sb, visitValueDefinition(varDef), INDENT);
+            sb.append(';');
         }
 
         val policies = ctx.policy();
@@ -492,10 +498,7 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
     private String formatPolicy(PolicyContext ctx) {
         val sb = new StringBuilder();
 
-        val comments = getCommentsBeforeToken(ctx.getStart());
-        if (!comments.isEmpty()) {
-            sb.append(comments).append('\n');
-        }
+        appendComments(sb, ctx.getStart(), "");
 
         sb.append("policy ").append(ctx.saplName.getText()).append('\n');
         sb.append(ctx.entitlement().getText());
@@ -506,18 +509,24 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         }
 
         for (val obligation : ctx.obligations) {
-            sb.append('\n').append("obligation").append('\n');
-            sb.append(INDENT).append(visit(obligation));
+            sb.append('\n');
+            appendComments(sb, obligation.getStart(), INDENT);
+            sb.append("obligation").append('\n');
+            appendIndented(sb, visit(obligation), INDENT);
         }
 
         for (val advice : ctx.adviceExpressions) {
-            sb.append('\n').append("advice").append('\n');
-            sb.append(INDENT).append(visit(advice));
+            sb.append('\n');
+            appendComments(sb, advice.getStart(), INDENT);
+            sb.append("advice").append('\n');
+            appendIndented(sb, visit(advice), INDENT);
         }
 
         if (ctx.transformation != null) {
-            sb.append('\n').append("transform").append('\n');
-            sb.append(INDENT).append(visit(ctx.transformation));
+            sb.append('\n');
+            appendComments(sb, ctx.transformation.getStart(), INDENT);
+            sb.append("transform").append('\n');
+            appendIndented(sb, visit(ctx.transformation), INDENT);
         }
 
         return sb.toString();
@@ -530,7 +539,9 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
             if (i > 0) {
                 sb.append('\n');
             }
-            sb.append(INDENT).append(visit(statements.get(i))).append(';');
+            appendComments(sb, statements.get(i).getStart(), INDENT);
+            appendIndented(sb, visit(statements.get(i)), INDENT);
+            sb.append(';');
         }
         return sb.toString();
     }
@@ -716,9 +727,8 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
             formattedPairs.add(pair.pairKey().getText() + ": " + visit(pair.pairValue));
         }
 
-        val inline = "{ " + String.join(", ", formattedPairs) + " }";
-        if (inline.length() + indent.length() <= LINE_WIDTH) {
-            return inline;
+        if (formattedPairs.size() == 1) {
+            return "{ " + formattedPairs.getFirst() + " }";
         }
 
         val sb = new StringBuilder("{\n");
@@ -761,6 +771,30 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         }
         sb.append(indent).append(']');
         return sb.toString();
+    }
+
+    private void appendComments(StringBuilder sb, Token token, String indent) {
+        val comments = getCommentsBeforeToken(token);
+        if (comments.isEmpty()) {
+            return;
+        }
+        for (val line : comments.split("\n", -1)) {
+            if (!line.isEmpty()) {
+                sb.append(indent).append(line).append('\n');
+            }
+        }
+    }
+
+    private void appendIndented(StringBuilder sb, String text, String indent) {
+        val lines = text.split("\n", -1);
+        for (var i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                sb.append('\n');
+            }
+            if (!lines[i].isEmpty()) {
+                sb.append(indent).append(lines[i]);
+            }
+        }
     }
 
     private String getCommentsBeforeToken(Token token) {

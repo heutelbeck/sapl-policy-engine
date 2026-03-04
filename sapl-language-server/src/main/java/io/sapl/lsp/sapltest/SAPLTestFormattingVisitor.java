@@ -101,6 +101,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             if (i > 0) {
                 sb.append('\n');
             }
+            appendComments(sb, requirements.get(i).getStart(), "");
             sb.append(visitRequirement(requirements.get(i)));
         }
         val result = sb.toString();
@@ -292,10 +293,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     private String formatScenario(ScenarioContext ctx) {
         val sb = new StringBuilder();
 
-        val comments = getCommentsBeforeToken(ctx.getStart());
-        if (!comments.isEmpty()) {
-            sb.append(INDENT).append(comments).append('\n');
-        }
+        appendComments(sb, ctx.getStart(), INDENT);
 
         sb.append(INDENT).append("scenario ").append(ctx.name.getText()).append('\n');
 
@@ -311,9 +309,11 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     private String formatGiven(GivenContext ctx, String indent) {
         val sb = new StringBuilder();
+        appendComments(sb, ctx.getStart(), indent);
         sb.append(indent).append("given\n");
         val innerIndent = indent + INDENT;
         for (val item : ctx.givenItem()) {
+            appendComments(sb, item.getStart(), innerIndent);
             sb.append(innerIndent).append("- ").append(formatGivenItem(item)).append('\n');
         }
         return sb.toString();
@@ -380,6 +380,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     private String formatWhenStep(WhenStepContext ctx) {
         val sub = ctx.authorizationSubscription();
         val sb  = new StringBuilder();
+        appendComments(sb, ctx.getStart(), INDENT2);
         sb.append(INDENT2).append(WHEN);
         sb.append(formatAuthorizationSubscription(sub));
         sb.append('\n');
@@ -440,16 +441,20 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     private String formatExpectOrThenExpect(ExpectOrThenExpectContext ctx, VerifyBlockContext verifyCtx) {
         val sb     = new StringBuilder();
         val isLast = ctx.thenExpect().isEmpty() && verifyCtx == null;
+        appendComments(sb, ctx.expectation().getStart(), INDENT2);
         sb.append(formatExpectation(ctx.expectation(), isLast && verifyCtx == null && ctx.thenExpect().isEmpty()));
 
         for (var i = 0; i < ctx.thenExpect().size(); i++) {
             val thenExpect = ctx.thenExpect().get(i);
+            appendComments(sb, thenExpect.thenBlock().getStart(), INDENT2);
             sb.append(formatThenBlock(thenExpect.thenBlock()));
-            val isLastExpect = i == ctx.thenExpect().size() - 1 && verifyCtx == null;
-            sb.append(formatExpectation(thenExpect.expectation(), isLastExpect));
+            appendComments(sb, thenExpect.expectation().getStart(), INDENT2);
+            sb.append(
+                    formatExpectation(thenExpect.expectation(), i == ctx.thenExpect().size() - 1 && verifyCtx == null));
         }
 
         if (verifyCtx != null) {
+            appendComments(sb, verifyCtx.getStart(), INDENT2);
             sb.append(formatVerifyBlock(verifyCtx));
         }
 
@@ -507,6 +512,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         val steps = ctx.expectStep();
         sb.append(INDENT2).append("expect\n");
         for (var i = 0; i < steps.size(); i++) {
+            appendComments(sb, steps.get(i).getStart(), INDENT3);
             sb.append(INDENT3).append("- ").append(visit(steps.get(i)));
             if (withSemicolon && i == steps.size() - 1) {
                 sb.append(';');
@@ -520,6 +526,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         val sb = new StringBuilder();
         sb.append(INDENT2).append("then\n");
         for (val step : ctx.thenStep()) {
+            appendComments(sb, step.getStart(), INDENT3);
             sb.append(INDENT3).append("- ").append(visit(step)).append('\n');
         }
         return sb.toString();
@@ -535,6 +542,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         sb.append(INDENT2).append("verify\n");
         val steps = ctx.verifyStep();
         for (var i = 0; i < steps.size(); i++) {
+            appendComments(sb, steps.get(i).getStart(), INDENT3);
             sb.append(INDENT3).append("- ").append(visit(steps.get(i)));
             if (i == steps.size() - 1) {
                 sb.append(';');
@@ -577,9 +585,8 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             formattedPairs.add(pair.key.getText() + ": " + visit(pair.pairValue));
         }
 
-        val inline = "{ " + String.join(", ", formattedPairs) + " }";
-        if (inline.length() + indent.length() <= LINE_WIDTH) {
-            return inline;
+        if (formattedPairs.size() == 1) {
+            return "{ " + formattedPairs.getFirst() + " }";
         }
 
         val sb = new StringBuilder("{\n");
@@ -622,6 +629,18 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         }
         sb.append(indent).append(']');
         return sb.toString();
+    }
+
+    private void appendComments(StringBuilder sb, Token token, String indent) {
+        val comments = getCommentsBeforeToken(token);
+        if (comments.isEmpty()) {
+            return;
+        }
+        for (val line : comments.split("\n", -1)) {
+            if (!line.isEmpty()) {
+                sb.append(indent).append(line).append('\n');
+            }
+        }
     }
 
     private String getCommentsBeforeToken(Token token) {

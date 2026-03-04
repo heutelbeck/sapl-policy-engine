@@ -12,7 +12,7 @@ import { EditorState, Compartment, StateField, StateEffect } from '@codemirror/s
 import { keymap, Decoration } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { StreamLanguage, bracketMatching, foldGutter, foldKeymap, foldService } from '@codemirror/language';
+import { StreamLanguage, bracketMatching, foldService } from '@codemirror/language';
 import { linter, Diagnostic } from '@codemirror/lint';
 import { autocompletion, CompletionContext, closeBrackets, completionKeymap, snippet } from '@codemirror/autocomplete';
 import { MergeView } from '@codemirror/merge';
@@ -51,30 +51,8 @@ const coverageField = StateField.define({
     provide: field => EditorView.decorations.from(field)
 });
 
-// Folding - compartment, cached ranges from LSP, and fold service
+// Folding - compartment for LSP fold service (fold gutter is provided by basicSetup)
 const foldingCompartment = new Compartment();
-
-const setFoldRangesEffect = StateEffect.define();
-
-const foldRangesField = StateField.define({
-    create: () => [],
-    update: (ranges, tr) => {
-        for (const effect of tr.effects) {
-            if (effect.is(setFoldRangesEffect)) return effect.value;
-        }
-        return ranges;
-    }
-});
-
-const lspFoldService = foldService.of((state, lineStart, lineEnd) => {
-    const ranges = state.field(foldRangesField);
-    for (const r of ranges) {
-        if (r.from >= lineStart && r.from <= lineEnd) {
-            return { from: r.from, to: r.to };
-        }
-    }
-    return null;
-});
 
 // Simple SAPL syntax highlighting (fallback when LSP not ready)
 const saplLanguage = StreamLanguage.define({
@@ -571,7 +549,6 @@ class SaplEditorLsp extends LitElement {
         const extensions = [
             ...this._getBaseExtensions(true),
             coverageField,
-            foldRangesField,
             foldingCompartment.of([]),
             EditorView.updateListener.of(update => {
                 if (update.docChanged && !this._isInternalUpdate) {
@@ -1341,12 +1318,8 @@ class SaplEditorLsp extends LitElement {
 
     setFoldingEnabled(enabled) {
         this.foldingEnabled = enabled;
-        const ext = enabled
-            ? [foldGutter(), keymap.of(foldKeymap), lspFoldService]
-            : [];
-        const effect = foldingCompartment.reconfigure(ext);
-        if (this._editor) {
-            this._editor.dispatch({ effects: effect });
+        if (!enabled && this._editor) {
+            this._editor.dispatch({ effects: foldingCompartment.reconfigure([]) });
         }
         if (enabled) {
             this._requestFoldRanges();
@@ -1365,7 +1338,17 @@ class SaplEditorLsp extends LitElement {
                 from: doc.line(r.startLine + 1).from,
                 to: doc.line(r.endLine + 1).to
             }));
-            this._editor.dispatch({ effects: setFoldRangesEffect.of(ranges) });
+            const freshFoldService = foldService.of((state, lineStart, lineEnd) => {
+                for (const r of ranges) {
+                    if (r.from >= lineStart && r.from <= lineEnd) {
+                        return { from: r.from, to: r.to };
+                    }
+                }
+                return null;
+            });
+            this._editor.dispatch({
+                effects: foldingCompartment.reconfigure([freshFoldService])
+            });
         } catch (e) {
             console.error('[SAPL LSP] Fold range request failed:', e);
         }
