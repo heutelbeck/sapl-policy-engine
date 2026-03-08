@@ -86,4 +86,4 @@ jobs:
           DEST_REPO: sapl-pages
           DEST_BRANCH: master
           DEST_FOLDER: documentation-md/${{ steps.get-version.outputs.version }}
-          DEST_PREDEPLOY_CLEANUP: "rm -rf docs/${{ steps.get-version.outputs.version }}/*"
+          DEST_PREDEPLOY_CLEANUP: "rm -rf documentation-md/${{ steps.get-version.outputs.version }}/*"
