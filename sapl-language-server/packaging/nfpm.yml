@@ -1,0 +1,24 @@
+# nfpm configuration for sapl-language-server DEB and RPM packages.
+#
+# The VERSION, ARCH, and BINARY environment variables are set by the CI
+# publish job. Run locally with:
+#
+#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl-language-server nfpm package --packager deb --target .
+#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl-language-server nfpm package --packager rpm --target .
+
+name: sapl-language-server
+version: ${VERSION}
+arch: ${ARCH}
+platform: linux
+maintainer: Dominic Heutelbeck <dominic@heutelbeck.com>
+description: SAPL Language Server for IDE integration
+vendor: SAPL
+homepage: https://github.com/heutelbeck/sapl-policy-engine
+license: Apache-2.0
+section: devel
+
+contents:
+  - src: ${BINARY}
+    dst: /usr/bin/sapl-language-server
+    file_info:
+      mode: 0755

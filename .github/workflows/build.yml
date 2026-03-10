@@ -27,18 +27,18 @@ on:
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
       - '**.md'
-      - 'nix/**'
-      - 'flake.nix'
-      - 'flake.lock'
+      - 'sapl-node/nix/**'
+      - 'sapl-node/flake.nix'
+      - 'sapl-node/flake.lock'
   pull_request:
     paths-ignore:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
       - '**.md'
-      - 'nix/**'
-      - 'flake.nix'
-      - 'flake.lock'
+      - 'sapl-node/nix/**'
+      - 'sapl-node/flake.nix'
+      - 'sapl-node/flake.lock'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -612,7 +612,9 @@ jobs:
           sparse-checkout: |
             LICENSE
             sapl-node/README.md
-            nix/hashes.json
+            sapl-node/nix/hashes.json
+            sapl-node/packaging
+            sapl-language-server/packaging
           sparse-checkout-cone-mode: false
 
       - name: Download Linux amd64 artifact
@@ -672,6 +674,20 @@ jobs:
           cp sapl-node/README.md staging/windows/
           cd staging/windows && zip -q "../../release/sapl-node-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
+      - name: Install nfpm
+        uses: goreleaser/nfpm@v2
+        with:
+          version: latest
+
+      - name: Build DEB and RPM packages
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          BINARY=artifacts/linux-amd64/sapl-node ARCH=amd64 nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl-node_${VERSION}_amd64.deb"
+          BINARY=artifacts/linux-amd64/sapl-node ARCH=amd64 nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-node-${VERSION}.x86_64.rpm"
+          BINARY=artifacts/linux-arm64/sapl-node ARCH=arm64 nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl-node_${VERSION}_arm64.deb"
+          BINARY=artifacts/linux-arm64/sapl-node ARCH=arm64 nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-node-${VERSION}.aarch64.rpm"
+
       - name: Generate checksums
         run: |
           cd release
@@ -700,6 +716,14 @@ jobs:
             | Windows x86_64 | `sapl-node-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
 
             Each archive contains the `sapl-node` binary, `LICENSE`, and `README.md`.
+
+            ### Linux Packages
+            | Format | x86_64 | ARM64 |
+            |--------|--------|-------|
+            | DEB | `sapl-node_${{ needs.version-check.outputs.version }}_amd64.deb` | `sapl-node_${{ needs.version-check.outputs.version }}_arm64.deb` |
+            | RPM | `sapl-node-${{ needs.version-check.outputs.version }}.x86_64.rpm` | `sapl-node-${{ needs.version-check.outputs.version }}.aarch64.rpm` |
+
+            Install with `sudo dpkg -i sapl-node_*.deb` or `sudo rpm -i sapl-node-*.rpm`. The package installs a systemd service, a default configuration at `/etc/sapl-node/application.yml`, and a `sapl-node` system user.
 
             ### Verification
             ```bash
@@ -736,6 +760,14 @@ jobs:
 
             Each archive contains the `sapl-node` binary, `LICENSE`, and `README.md`.
 
+            ### Linux Packages
+            | Format | x86_64 | ARM64 |
+            |--------|--------|-------|
+            | DEB | `sapl-node_${{ needs.version-check.outputs.version }}_amd64.deb` | `sapl-node_${{ needs.version-check.outputs.version }}_arm64.deb` |
+            | RPM | `sapl-node-${{ needs.version-check.outputs.version }}.x86_64.rpm` | `sapl-node-${{ needs.version-check.outputs.version }}.aarch64.rpm` |
+
+            Install with `sudo dpkg -i sapl-node_*.deb` or `sudo rpm -i sapl-node-*.rpm`. The package installs a systemd service, a default configuration at `/etc/sapl-node/application.yml`, and a `sapl-node` system user.
+
             ### Verification
             ```bash
             sha256sum -c SHA256SUMS.txt
@@ -764,13 +796,13 @@ jobs:
         run: |
           AMD64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-amd64.tar.gz" | base64 -w0)"
           ARM64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-arm64.tar.gz" | base64 -w0)"
-          printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > nix/hashes.json
+          printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > sapl-node/nix/hashes.json
 
       - name: Push updated hashes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add nix/hashes.json
+          git add sapl-node/nix/hashes.json
           if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
           git commit -m "nix: update sapl-node package hashes [skip ci]"
           git push origin HEAD:${{ github.ref_name }}
@@ -797,12 +829,13 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Check out (for LICENSE and README)
+      - name: Check out
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           sparse-checkout: |
             LICENSE
             sapl-language-server/README.md
+            sapl-language-server/packaging
           sparse-checkout-cone-mode: false
 
       - name: Download Linux amd64 artifact
@@ -862,6 +895,20 @@ jobs:
           cp sapl-language-server/README.md staging/windows/
           cd staging/windows && zip -q "../../release/sapl-language-server-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
+      - name: Install nfpm
+        uses: goreleaser/nfpm@v2
+        with:
+          version: latest
+
+      - name: Build DEB and RPM packages
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          BINARY=artifacts/linux-amd64/sapl-language-server ARCH=amd64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_amd64.deb"
+          BINARY=artifacts/linux-amd64/sapl-language-server ARCH=amd64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.x86_64.rpm"
+          BINARY=artifacts/linux-arm64/sapl-language-server ARCH=arm64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_arm64.deb"
+          BINARY=artifacts/linux-arm64/sapl-language-server ARCH=arm64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.aarch64.rpm"
+
       - name: Generate checksums
         run: |
           cd release
@@ -891,6 +938,14 @@ jobs:
 
             Each archive contains the `sapl-language-server` binary, `LICENSE`, and `README.md`.
 
+            ### Linux Packages
+            | Format | x86_64 | ARM64 |
+            |--------|--------|-------|
+            | DEB | `sapl-language-server_${{ needs.version-check.outputs.version }}_amd64.deb` | `sapl-language-server_${{ needs.version-check.outputs.version }}_arm64.deb` |
+            | RPM | `sapl-language-server-${{ needs.version-check.outputs.version }}.x86_64.rpm` | `sapl-language-server-${{ needs.version-check.outputs.version }}.aarch64.rpm` |
+
+            Install with `sudo dpkg -i sapl-language-server_*.deb` or `sudo rpm -i sapl-language-server-*.rpm`.
+
             ### Verification
             ```bash
             sha256sum -c SHA256SUMS.txt
@@ -919,6 +974,14 @@ jobs:
             | Windows x86_64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
 
             Each archive contains the `sapl-language-server` binary, `LICENSE`, and `README.md`.
+
+            ### Linux Packages
+            | Format | x86_64 | ARM64 |
+            |--------|--------|-------|
+            | DEB | `sapl-language-server_${{ needs.version-check.outputs.version }}_amd64.deb` | `sapl-language-server_${{ needs.version-check.outputs.version }}_arm64.deb` |
+            | RPM | `sapl-language-server-${{ needs.version-check.outputs.version }}.x86_64.rpm` | `sapl-language-server-${{ needs.version-check.outputs.version }}.aarch64.rpm` |
+
+            Install with `sudo dpkg -i sapl-language-server_*.deb` or `sudo rpm -i sapl-language-server-*.rpm`.
 
             ### Verification
             ```bash

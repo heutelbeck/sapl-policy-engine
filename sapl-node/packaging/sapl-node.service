@@ -1,0 +1,23 @@
+[Unit]
+Description=SAPL Node PDP Server
+After=network.target
+
+[Service]
+Type=simple
+User=sapl-node
+Group=sapl-node
+ExecStart=/usr/bin/sapl-node --spring.config.location=file:/etc/sapl-node/application.yml
+Restart=on-failure
+RestartSec=5s
+StateDirectory=sapl-node
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+PrivateTmp=true
+LimitCORE=0
+ReadWritePaths=/var/lib/sapl-node
+
+[Install]
+WantedBy=multi-user.target

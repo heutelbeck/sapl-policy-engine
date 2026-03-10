@@ -1,0 +1,43 @@
+# nfpm configuration for sapl-node DEB and RPM packages.
+#
+# The VERSION, ARCH, and BINARY environment variables are set by the CI
+# publish job. Run locally with:
+#
+#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl-node nfpm package --packager deb --target .
+#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl-node nfpm package --packager rpm --target .
+
+name: sapl-node
+version: ${VERSION}
+arch: ${ARCH}
+platform: linux
+maintainer: Dominic Heutelbeck <dominic@heutelbeck.com>
+description: SAPL Node PDP server and policy management CLI
+vendor: SAPL
+homepage: https://github.com/heutelbeck/sapl-policy-engine
+license: Apache-2.0
+section: admin
+
+contents:
+  - src: ${BINARY}
+    dst: /usr/bin/sapl-node
+    file_info:
+      mode: 0755
+
+  - src: sapl-node/packaging/sapl-node.service
+    dst: /usr/lib/systemd/system/sapl-node.service
+    type: config|noreplace
+
+  - src: sapl-node/packaging/default-config.yml
+    dst: /etc/sapl-node/application.yml
+    type: config|noreplace
+
+  - dst: /var/lib/sapl-node/policies
+    type: dir
+    file_info:
+      mode: 0750
+      owner: sapl-node
+      group: sapl-node
+
+scripts:
+  postinstall: sapl-node/packaging/postinstall.sh
+  preremove: sapl-node/packaging/preremove.sh

@@ -1,0 +1,47 @@
+# SAPL Node default configuration.
+#
+# This file is installed to /etc/sapl-node/application.yml and is
+# preserved across package upgrades (config|noreplace).
+#
+# See https://sapl.io for the full configuration reference.
+
+io.sapl:
+  pdp.embedded:
+    pdp-config-type: DIRECTORY
+    config-path: /var/lib/sapl-node/policies
+    policies-path: /var/lib/sapl-node/policies
+  node:
+    allowNoAuth: false
+    allowBasicAuth: false
+    allowApiKeyAuth: false
+    allowOauth2Auth: false
+
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    enabled-protocols:
+      - TLSv1.3
+      - TLSv1.2
+    protocol: TLSv1.3
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging.level:
+  "[io.sapl]": INFO
+  "[org.springframework]": INFO
+  "[io.micrometer.core.instrument.binder.jvm.JvmGcMetrics]": ERROR
