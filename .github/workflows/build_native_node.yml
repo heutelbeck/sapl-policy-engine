@@ -63,6 +63,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential musl-dev musl-tools
+          sudo ln -sf /usr/bin/musl-gcc /usr/local/bin/$(uname -m)-linux-musl-gcc
           # Get musl-compiled static zlib from Alpine's package manager
           docker run --rm -v /tmp/alpine-zlib:/out alpine:latest sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
           sudo cp /tmp/alpine-zlib/libz.a /usr/lib/$(uname -m)-linux-musl/
@@ -72,7 +73,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@22cc13fe88ef133134b3798e128fb208df55e1f5 # v1.2.3
+        uses: graalvm/setup-graalvm@54b4f5a65c1a84b2fdfdc2078fe43df32819e4b1 # v1.4.5
         with:
           java-version: '25'
           distribution: 'graalvm'

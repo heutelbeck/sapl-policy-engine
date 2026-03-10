@@ -773,11 +773,25 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Download Linux artifact
+      - name: Check out (for LICENSE and README)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: |
+            LICENSE
+            sapl-language-server/README.md
+          sparse-checkout-cone-mode: false
+
+      - name: Download Linux amd64 artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: sapl-language-server-linux-amd64
-          path: artifacts/linux
+          path: artifacts/linux-amd64
+
+      - name: Download Linux arm64 artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-language-server-linux-arm64
+          path: artifacts/linux-arm64
 
       - name: Download Windows artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -792,13 +806,37 @@ jobs:
           path: artifacts/macos
 
       - name: Prepare release assets
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
         run: |
-          mkdir -p release
-          cp artifacts/linux/sapl-language-server release/sapl-language-server-linux-amd64
-          cp artifacts/windows/sapl-language-server.exe release/sapl-language-server-windows-amd64.exe
-          cp artifacts/macos/sapl-language-server release/sapl-language-server-macos-arm64
-          chmod +x release/sapl-language-server-linux-amd64
-          chmod +x release/sapl-language-server-macos-arm64
+          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/macos staging/windows
+
+          # Linux amd64 (tar.gz)
+          cp artifacts/linux-amd64/sapl-language-server staging/linux-amd64/sapl-language-server
+          chmod +x staging/linux-amd64/sapl-language-server
+          cp LICENSE staging/linux-amd64/
+          cp sapl-language-server/README.md staging/linux-amd64/
+          tar -czf "release/sapl-language-server-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
+
+          # Linux arm64 (tar.gz)
+          cp artifacts/linux-arm64/sapl-language-server staging/linux-arm64/sapl-language-server
+          chmod +x staging/linux-arm64/sapl-language-server
+          cp LICENSE staging/linux-arm64/
+          cp sapl-language-server/README.md staging/linux-arm64/
+          tar -czf "release/sapl-language-server-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
+
+          # macOS (tar.gz)
+          cp artifacts/macos/sapl-language-server staging/macos/sapl-language-server
+          chmod +x staging/macos/sapl-language-server
+          cp LICENSE staging/macos/
+          cp sapl-language-server/README.md staging/macos/
+          tar -czf "release/sapl-language-server-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
+
+          # Windows (zip)
+          cp artifacts/windows/sapl-language-server.exe staging/windows/sapl-language-server.exe
+          cp LICENSE staging/windows/
+          cp sapl-language-server/README.md staging/windows/
+          cd staging/windows && zip -q "../../release/sapl-language-server-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
       - name: Generate checksums
         run: |
@@ -820,12 +858,16 @@ jobs:
             **Warning:** This is a development snapshot and may be unstable.
 
             ### Downloads
-            - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
-            - `sapl-language-server-windows-amd64.exe` - Windows x86_64
-            - `sapl-language-server-macos-arm64` - macOS Apple Silicon (ARM64)
+            | Platform | Archive |
+            |----------|---------|
+            | Linux x86_64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
+            | Linux ARM64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
+            | macOS ARM64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
+            | Windows x86_64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
+
+            Each archive contains the `sapl-language-server` binary, `LICENSE`, and `README.md`.
 
             ### Verification
-            Verify downloads using `SHA256SUMS.txt`:
             ```bash
             sha256sum -c SHA256SUMS.txt
             ```
@@ -845,23 +887,28 @@ jobs:
             Native executables for the SAPL Language Server.
 
             ### Downloads
-            - `sapl-language-server-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
-            - `sapl-language-server-windows-amd64.exe` - Windows x86_64
-            - `sapl-language-server-macos-arm64` - macOS Apple Silicon (ARM64)
+            | Platform | Archive |
+            |----------|---------|
+            | Linux x86_64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
+            | Linux ARM64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
+            | macOS ARM64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
+            | Windows x86_64 | `sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
+
+            Each archive contains the `sapl-language-server` binary, `LICENSE`, and `README.md`.
 
             ### Verification
-            Verify downloads using `SHA256SUMS.txt`:
             ```bash
             sha256sum -c SHA256SUMS.txt
             ```
 
             ### Usage
             ```bash
-            # Make executable (Linux/macOS)
-            chmod +x sapl-language-server-*
+            # Linux / macOS
+            tar xzf sapl-language-server-*-linux-amd64.tar.gz
+            ./sapl-language-server
 
-            # Run in stdio mode (default for IDE integration)
-            ./sapl-language-server-linux-amd64
+            # Windows (extract zip, then)
+            sapl-language-server.exe
             ```
           files: release/*
           fail_on_unmatched_files: true
