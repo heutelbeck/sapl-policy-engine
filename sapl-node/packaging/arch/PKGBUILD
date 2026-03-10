@@ -1,0 +1,39 @@
+# Maintainer: Dominic Heutelbeck <dominic@heutelbeck.com>
+#
+# Install from the repository:
+#   cd sapl-node/packaging/arch && makepkg -si
+#
+# Or from AUR (if published):
+#   yay -S sapl-node
+
+pkgname=sapl-node
+pkgver=4.0.0_SNAPSHOT
+pkgrel=1
+pkgdesc='SAPL Node PDP server and policy management CLI'
+arch=('x86_64' 'aarch64')
+url='https://github.com/heutelbeck/sapl-policy-engine'
+license=('Apache-2.0')
+depends=('glibc')
+install=sapl-node.install
+backup=('etc/sapl-node/application.yml')
+
+# Map makepkg arch names to release archive platform suffixes.
+_platform_x86_64='linux-amd64'
+_platform_aarch64='linux-arm64'
+
+# Release version used in archive filenames (dots not underscores).
+_relver="${pkgver//_/-}"
+
+source_x86_64=("${pkgname}-${pkgver}-x86_64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot-node/${pkgname}-${_relver}-${_platform_x86_64}.tar.gz")
+source_aarch64=("${pkgname}-${pkgver}-aarch64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot-node/${pkgname}-${_relver}-${_platform_aarch64}.tar.gz")
+
+# Update after each release. Compute with: sha256sum sapl-node-*.tar.gz
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+    install -Dm755 sapl-node "${pkgdir}/usr/bin/sapl-node"
+    install -Dm644 "${srcdir}/../sapl-node.service" "${pkgdir}/usr/lib/systemd/system/sapl-node.service"
+    install -Dm644 "${srcdir}/../default-config.yml" "${pkgdir}/etc/sapl-node/application.yml"
+    install -dm750 "${pkgdir}/var/lib/sapl-node/policies"
+}
