@@ -1198,39 +1198,15 @@ These changes may silently affect authorization outcomes:
 
 ---
 
-## Dependency Version Changes
-
-| Dependency | v3.0.0 | v4.0.0 |
-|------------|--------|--------|
-| JDK | 17 | **21** |
-| Spring Boot | 3.5.3 | **4.0.2** |
-| Jackson | 2.x (`com.fasterxml`) | **3.x (`tools.jackson`)** |
-| JUnit Jupiter | 5.11.3 | **6.0.2** |
-| Vaadin | 24.6.12 | **25.0.4** |
-| OkHttp | 4.12.0 | **5.3.2** |
-| Parser Technology | Xtext 2.37.0 / EMF / Guice | **ANTLR4 4.13.2** |
-| Lombok | 1.18.38 | 1.18.42 |
-| AssertJ | 3.26.3 | 3.27.7 |
-| json-schema-validator | 1.5.4 | **3.0.0** |
-| JaCoCo | 0.8.12 | 0.8.14 |
-| Nullness Annotations | reactor.util.annotation | **JSpecify 1.0.0** |
-| SBOM Format | SPDX | **CycloneDX** |
-
-**Added:** PicoCLI 4.7.7, classgraph, nimbus-jose-jwt 10.7, BouncyCastle 1.83, semver4j 6.0.0, ipaddress 5.5.1, Testcontainers 2.0.3
-
-**Removed:** Xtext/EMF/Guice, RSocket, Hamcrest matchers (spotify), reactor-extra, Infinispan, Tycho/Eclipse build
-
----
-
 ## Compatibility Matrix
 
-| Component | Minimum | Recommended | Maximum |
-|-----------|---------|-------------|---------|
-| JDK | 21 | 21 | 25 |
-| Spring Boot | 4.0.x | 4.0.2 | 4.0.x |
-| Vaadin | 25.x | 25.0.4 | 25.x |
-| Jackson | 3.x | (managed by Spring Boot) | 3.x |
-| JUnit | 6.x | 6.0.2 | 6.x |
+| Component   | Minimum  | Recommended              | Maximum  |
+|-------------|----------|--------------------------|----------|
+| JDK         | 21       | 21                       | 25       |
+| Spring Boot | 4.0.x    | 4.0.3                    | 4.0.x    |
+| Vaadin      | 25.x     | 25.0.6                   | 25.x     |
+| Jackson     | 3.x      | (managed by Spring Boot) | 3.x      |
+| JUnit       | 6.x      | 6.0.2                    | 6.x      |
 
 ---
 
