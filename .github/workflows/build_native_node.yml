@@ -63,7 +63,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential musl-dev musl-tools
-          sudo ln -sf /usr/bin/musl-gcc /usr/local/bin/$(uname -m)-linux-musl-gcc
+          # GraalVM hardcodes x86_64-linux-musl-gcc in HostedMuslLibC regardless of arch
+          sudo ln -sf /usr/bin/musl-gcc /usr/local/bin/x86_64-linux-musl-gcc
           # Get musl-compiled static zlib from Alpine's package manager
           docker run --rm -v /tmp/alpine-zlib:/out alpine:latest sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
           sudo cp /tmp/alpine-zlib/libz.a /usr/lib/$(uname -m)-linux-musl/
