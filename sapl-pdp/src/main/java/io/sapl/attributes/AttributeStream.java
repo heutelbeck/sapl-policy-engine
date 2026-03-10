@@ -31,6 +31,7 @@ import reactor.core.publisher.Sinks.Many;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -79,6 +80,7 @@ public final class AttributeStream {
     private final AtomicReference<Disposable>  currentPipSubscription          = new AtomicReference<>();
     private final AtomicReference<Disposable>  pipSnapshotAtGracePeriodStart   = new AtomicReference<>();
     private final AtomicReference<Flux<Value>> configuredAttributeFinderStream = new AtomicReference<>();
+    private final AtomicLong                   pipGeneration                   = new AtomicLong(0);
     private final Object                       connectionLock                  = new Object();
     private volatile boolean                   disconnected                    = false;
     private volatile boolean                   disconnectErrorAlreadyPublished = false;
@@ -345,10 +347,11 @@ public final class AttributeStream {
      * @return configured Flux that publishes to sink
      */
     private Flux<Value> configureAttributeFinderStream(AttributeFinder attributeFinder) {
+        val generation = pipGeneration.get();
         return attributeFinder.invoke(invocation).defaultIfEmpty(Value.UNDEFINED).transform(this::addInitialTimeout)
                 .transform(this::retryOnError).transform(this::pollOnComplete)
-                .onErrorResume(error -> Flux.just(Value.error(error.getMessage()))).filter(value -> !disconnected)
-                .doOnNext(this::publish);
+                .onErrorResume(error -> Flux.just(Value.error(error.getMessage())))
+                .filter(value -> !disconnected && pipGeneration.get() == generation).doOnNext(this::publish);
     }
 
     /**
@@ -382,6 +385,7 @@ public final class AttributeStream {
             disconnected                    = false;
             disconnectErrorAlreadyPublished = false;
 
+            pipGeneration.incrementAndGet();
             val newPipStream = configureAttributeFinderStream(policyInformationPoint);
             configuredAttributeFinderStream.set(newPipStream);
 
