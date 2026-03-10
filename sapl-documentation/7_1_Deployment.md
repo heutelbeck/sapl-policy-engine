@@ -29,7 +29,7 @@ Verify the installation:
 ./sapl-node --version
 ```
 
-### Your First SAPL Node
+### Quick Start
 
 This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP with curl.
 

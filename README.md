@@ -191,7 +191,7 @@ This project has adopted a [Code of Conduct](CODE_OF_CONDUCT.md), and it will be
 <!-- LICENSE -->
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE.md](./LICENSE.md) for more information.
+Distributed under the Apache 2.0 License. See [LICENSE](./LICENSE) for more information.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
