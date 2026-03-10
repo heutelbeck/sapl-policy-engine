@@ -35,11 +35,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import reactor.core.Exceptions;
 
 import java.util.Optional;
-import java.util.function.Supplier;
 
 /**
  * An {@link org.springframework.security.authorization.AuthorizationManager}
@@ -56,9 +54,6 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private static final String ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL = "Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null";
     private static final String ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY         = "Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s";
     private static final String ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT    = "An Authentication object was not found in the SecurityContext";
-
-    private final Supplier<Authentication> authenticationSupplier = getAuthentication(
-            SecurityContextHolder.getContextHolderStrategy());
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
@@ -122,7 +117,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(MethodInvocation methodInvocation,
             SaplAttribute attribute) {
         val authzSubscription = subscriptionBuilderProvider.getObject()
-                .constructAuthorizationSubscription(authenticationSupplier.get(), methodInvocation, attribute);
+                .constructAuthorizationSubscription(getAuthentication(), methodInvocation, attribute);
         val authzDecision     = policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription);
         if (authzDecision == null) {
             throw new AccessDeniedException(String.format(ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY, attribute));
@@ -130,15 +125,12 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         return authzDecision;
     }
 
-    private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
-        return () -> {
-            val authentication = strategy.getContext().getAuthentication();
-            if (authentication == null) {
-                throw new AuthenticationCredentialsNotFoundException(
-                        ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);
-            }
-            return authentication;
-        };
+    private static Authentication getAuthentication() {
+        val authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new AuthenticationCredentialsNotFoundException(ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);
+        }
+        return authentication;
     }
 
 }

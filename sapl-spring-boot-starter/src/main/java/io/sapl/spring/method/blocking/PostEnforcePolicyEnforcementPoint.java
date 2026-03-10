@@ -35,11 +35,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import reactor.core.Exceptions;
 
 import java.util.Optional;
-import java.util.function.Supplier;
 
 /**
  * Method post-invocation handling based on a SAPL policy decision point.
@@ -52,9 +50,6 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     private static final String ERROR_ACCESS_DENIED_CONSTRAINT_HANDLERS_RETURNED_NULL = "Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null";
     private static final String ERROR_ACCESS_DENIED_PDP_DECISION_STREAM_EMPTY         = "Access Denied by @PostEnforce PEP. PDP decision stream was empty. %s";
     private static final String ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT    = "An Authentication object was not found in the SecurityContext";
-
-    private final Supplier<Authentication> authentication = getAuthentication(
-            SecurityContextHolder.getContextHolderStrategy());
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
@@ -88,7 +83,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
         }
 
         val authzSubscription = subscriptionBuilderProvider.getObject()
-                .constructAuthorizationSubscriptionWithReturnObject(authentication.get(), methodInvocation,
+                .constructAuthorizationSubscriptionWithReturnObject(getAuthentication(), methodInvocation,
                         postEnforceAttribute, returnedObjectForAuthzSubscription);
 
         val authzDecision = policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription);
@@ -133,14 +128,11 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
         }
     }
 
-    private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
-        return () -> {
-            val authentication = strategy.getContext().getAuthentication();
-            if (authentication == null) {
-                throw new AuthenticationCredentialsNotFoundException(
-                        ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);
-            }
-            return authentication;
-        };
+    private static Authentication getAuthentication() {
+        val authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new AuthenticationCredentialsNotFoundException(ERROR_AUTHENTICATION_NOT_FOUND_IN_SECURITY_CONTEXT);
+        }
+        return authentication;
     }
 }
