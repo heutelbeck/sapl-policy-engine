@@ -675,7 +675,7 @@ jobs:
           cd staging/windows && zip -q "../../release/sapl-node-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
       - name: Install nfpm
-        uses: goreleaser/nfpm@v2
+        uses: goreleaser/nfpm@be6fd83eed6f241359ae3e7d340a13f197ae6463 # v2.45.0
         with:
           version: latest
 
@@ -896,7 +896,7 @@ jobs:
           cd staging/windows && zip -q "../../release/sapl-language-server-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
       - name: Install nfpm
-        uses: goreleaser/nfpm@v2
+        uses: goreleaser/nfpm@be6fd83eed6f241359ae3e7d340a13f197ae6463 # v2.45.0
         with:
           version: latest
 
