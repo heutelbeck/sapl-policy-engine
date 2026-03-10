@@ -600,11 +600,25 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Download Linux artifact
+      - name: Check out (for LICENSE and README)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: |
+            LICENSE
+            sapl-node/README.md
+          sparse-checkout-cone-mode: false
+
+      - name: Download Linux amd64 artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: sapl-node-linux-amd64
-          path: artifacts/linux
+          path: artifacts/linux-amd64
+
+      - name: Download Linux arm64 artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-node-linux-arm64
+          path: artifacts/linux-arm64
 
       - name: Download Windows artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -619,13 +633,37 @@ jobs:
           path: artifacts/macos
 
       - name: Prepare release assets
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
         run: |
-          mkdir -p release
-          cp artifacts/linux/sapl-node release/sapl-node-linux-amd64
-          cp artifacts/windows/sapl-node.exe release/sapl-node-windows-amd64.exe
-          cp artifacts/macos/sapl-node release/sapl-node-macos-arm64
-          chmod +x release/sapl-node-linux-amd64
-          chmod +x release/sapl-node-macos-arm64
+          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/macos staging/windows
+
+          # Linux amd64 (tar.gz)
+          cp artifacts/linux-amd64/sapl-node staging/linux-amd64/sapl-node
+          chmod +x staging/linux-amd64/sapl-node
+          cp LICENSE staging/linux-amd64/
+          cp sapl-node/README.md staging/linux-amd64/
+          tar -czf "release/sapl-node-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
+
+          # Linux arm64 (tar.gz)
+          cp artifacts/linux-arm64/sapl-node staging/linux-arm64/sapl-node
+          chmod +x staging/linux-arm64/sapl-node
+          cp LICENSE staging/linux-arm64/
+          cp sapl-node/README.md staging/linux-arm64/
+          tar -czf "release/sapl-node-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
+
+          # macOS (tar.gz)
+          cp artifacts/macos/sapl-node staging/macos/sapl-node
+          chmod +x staging/macos/sapl-node
+          cp LICENSE staging/macos/
+          cp sapl-node/README.md staging/macos/
+          tar -czf "release/sapl-node-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
+
+          # Windows (zip)
+          cp artifacts/windows/sapl-node.exe staging/windows/sapl-node.exe
+          cp LICENSE staging/windows/
+          cp sapl-node/README.md staging/windows/
+          cd staging/windows && zip -q "../../release/sapl-node-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
       - name: Generate checksums
         run: |
@@ -647,26 +685,24 @@ jobs:
             **Warning:** This is a development snapshot and may be unstable.
 
             ### Downloads
-            - `sapl-node-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
-            - `sapl-node-windows-amd64.exe` - Windows x86_64
-            - `sapl-node-macos-arm64` - macOS Apple Silicon (ARM64)
+            | Platform | Archive |
+            |----------|---------|
+            | Linux x86_64 | `sapl-node-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
+            | Linux ARM64 | `sapl-node-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
+            | macOS ARM64 | `sapl-node-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
+            | Windows x86_64 | `sapl-node-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
+
+            Each archive contains the `sapl-node` binary, `LICENSE`, and `README.md`.
 
             ### Verification
-            Verify downloads using `SHA256SUMS.txt`:
             ```bash
             sha256sum -c SHA256SUMS.txt
             ```
 
             ### Usage
             ```bash
-            # Make executable (Linux/macOS)
-            chmod +x sapl-node-*
-
-            # Run with default settings
-            ./sapl-node-linux-amd64
-
-            # Run with custom config
-            ./sapl-node-linux-amd64 --spring.config.location=file:./application.yml
+            tar xzf sapl-node-*-linux-amd64.tar.gz
+            ./sapl-node --version
             ```
 
             Built from commit: ${{ github.sha }}
@@ -684,33 +720,31 @@ jobs:
             Native executables for the SAPL PDP Node server.
 
             ### Downloads
-            - `sapl-node-linux-amd64` - Linux x86_64 (static musl, works on any distro including NixOS)
-            - `sapl-node-windows-amd64.exe` - Windows x86_64
-            - `sapl-node-macos-arm64` - macOS Apple Silicon (ARM64)
+            | Platform | Archive |
+            |----------|---------|
+            | Linux x86_64 | `sapl-node-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
+            | Linux ARM64 | `sapl-node-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
+            | macOS ARM64 | `sapl-node-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
+            | Windows x86_64 | `sapl-node-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
+
+            Each archive contains the `sapl-node` binary, `LICENSE`, and `README.md`.
 
             ### Verification
-            Verify downloads using `SHA256SUMS.txt`:
             ```bash
             sha256sum -c SHA256SUMS.txt
             ```
 
             ### Usage
             ```bash
-            # Make executable (Linux/macOS)
-            chmod +x sapl-node-*
+            # Linux / macOS
+            tar xzf sapl-node-*-linux-amd64.tar.gz
+            ./sapl-node --version
 
-            # Run with default settings
-            ./sapl-node-linux-amd64
-
-            # Run with custom config
-            ./sapl-node-linux-amd64 --spring.config.location=file:./application.yml
-
-            # Generate API key
-            ./sapl-node-linux-amd64 generate apikey
+            # Windows (extract zip, then)
+            sapl-node.exe --version
             ```
 
             ### Docker Alternative
-            For containerized deployments, use the Docker image:
             ```bash
             docker pull ghcr.io/heutelbeck/sapl-node:${{ github.ref_name }}
             ```

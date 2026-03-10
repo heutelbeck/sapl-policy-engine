@@ -30,6 +30,10 @@ jobs:
             artifact-name: sapl-node-linux-amd64
             executable: sapl-node
             profile: native-linux
+          - os: ubuntu-24.04-arm
+            artifact-name: sapl-node-linux-arm64
+            executable: sapl-node
+            profile: native-linux
           - os: windows-latest
             artifact-name: sapl-node-windows-amd64
             executable: sapl-node.exe
@@ -46,7 +50,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
@@ -55,13 +59,13 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install Native Build Tools (Linux)
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential musl-dev musl-tools
           # Get musl-compiled static zlib from Alpine's package manager
           docker run --rm -v /tmp/alpine-zlib:/out alpine:latest sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
-          sudo cp /tmp/alpine-zlib/libz.a /usr/lib/x86_64-linux-musl/
+          sudo cp /tmp/alpine-zlib/libz.a /usr/lib/$(uname -m)-linux-musl/
 
       - name: Setup Visual Studio Build Tools (Windows)
         if: matrix.os == 'windows-latest'
