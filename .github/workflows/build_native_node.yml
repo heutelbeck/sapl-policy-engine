@@ -33,7 +33,7 @@ jobs:
           - os: ubuntu-24.04-arm
             artifact-name: sapl-node-linux-arm64
             executable: sapl-node
-            profile: native-linux
+            profile: native-linux-arm
           - os: windows-latest
             artifact-name: sapl-node-windows-amd64
             executable: sapl-node.exe

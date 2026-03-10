@@ -329,5 +329,41 @@
 				</plugins>
 			</build>
 		</profile>
+		<!-- Profile for building static native image without musl (Linux ARM64) -->
+		<profile>
+			<id>native-linux-arm</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
+						<version>0.10.6</version>
+						<extensions>true</extensions>
+						<executions>
+							<execution>
+								<id>build-native</id>
+								<goals>
+									<goal>compile-no-fork</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+						<configuration>
+							<mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+							<imageName>sapl-language-server</imageName>
+							<buildArgs>
+								<buildArg>--no-fallback</buildArg>
+								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
+								<buildArg>--enable-url-protocols=http,https</buildArg>
+								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+								<buildArg>-march=compatibility</buildArg>
+								<buildArg>--static-nolibc</buildArg>
+							</buildArgs>
+							<quickBuild>false</quickBuild>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 </project>

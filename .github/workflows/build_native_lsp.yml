@@ -33,7 +33,7 @@ jobs:
           - os: ubuntu-24.04-arm
             artifact-name: sapl-language-server-linux-arm64
             executable: sapl-language-server
-            profile: native-linux
+            profile: native-linux-arm
           - os: windows-latest
             artifact-name: sapl-language-server-windows-amd64
             executable: sapl-language-server.exe
