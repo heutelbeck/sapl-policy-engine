@@ -674,10 +674,13 @@ jobs:
           cp sapl-node/README.md staging/windows/
           cd staging/windows && zip -q "../../release/sapl-node-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
+      # Install nfpm directly instead of using goreleaser/nfpm action.
+      # The action (goreleaser/nfpm@v2) fails with broken symlinks in its
+      # testdata directory during checkout. Revisit periodically to check
+      # if this is fixed upstream: https://github.com/goreleaser/nfpm
       - name: Install nfpm
-        uses: goreleaser/nfpm@be6fd83eed6f241359ae3e7d340a13f197ae6463 # v2.45.0
-        with:
-          version: latest
+        run: |
+          curl -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin nfpm
 
       - name: Build DEB and RPM packages
         env:
@@ -895,10 +898,13 @@ jobs:
           cp sapl-language-server/README.md staging/windows/
           cd staging/windows && zip -q "../../release/sapl-language-server-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
+      # Install nfpm directly instead of using goreleaser/nfpm action.
+      # The action (goreleaser/nfpm@v2) fails with broken symlinks in its
+      # testdata directory during checkout. Revisit periodically to check
+      # if this is fixed upstream: https://github.com/goreleaser/nfpm
       - name: Install nfpm
-        uses: goreleaser/nfpm@be6fd83eed6f241359ae3e7d340a13f197ae6463 # v2.45.0
-        with:
-          version: latest
+        run: |
+          curl -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin nfpm
 
       - name: Build DEB and RPM packages
         env:
