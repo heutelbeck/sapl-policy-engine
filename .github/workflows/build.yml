@@ -791,10 +791,11 @@ jobs:
       - name: Update Nix package hashes
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
+          GH_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         run: |
           AMD64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-amd64.tar.gz" | base64 -w0)"
           ARM64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-arm64.tar.gz" | base64 -w0)"
-          git clone --depth 1 "https://x-access-token:${{ secrets.GHUB_ACCESS_TOKEN }}@github.com/heutelbeck/sapl-nix.git" sapl-nix
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/heutelbeck/sapl-nix.git" sapl-nix
           printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > sapl-nix/nix/hashes.json
           cd sapl-nix
           git config user.name "github-actions[bot]"
