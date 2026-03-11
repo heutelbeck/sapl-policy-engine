@@ -385,6 +385,8 @@
 								<buildArg>-march=compatibility</buildArg>
 								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
 								<buildArg>-J-Xmx5g</buildArg>
+								<buildArg>-J-XX:+UseSerialGC</buildArg>
+								<buildArg>-H:NumberOfThreads=2</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
 						</configuration>
