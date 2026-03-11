@@ -384,6 +384,7 @@
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
 								<buildArg>-march=compatibility</buildArg>
 								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+								<buildArg>-J-Xmx5g</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
 						</configuration>
@@ -442,6 +443,7 @@
 								<buildArg>--static</buildArg>
 								<buildArg>--libc=musl</buildArg>
 								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+								<buildArg>-J-Xmx14g</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
 						</configuration>
@@ -499,6 +501,7 @@
 								<buildArg>-march=compatibility</buildArg>
 								<buildArg>--static-nolibc</buildArg>
 								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+								<buildArg>-J-Xmx14g</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
 						</configuration>
