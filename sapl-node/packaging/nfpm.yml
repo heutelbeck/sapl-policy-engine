@@ -38,6 +38,7 @@ section: admin
 contents:
   - src: ${BINARY}
     dst: /usr/bin/sapl-node
+    expand: true
     file_info:
       mode: 0755
 

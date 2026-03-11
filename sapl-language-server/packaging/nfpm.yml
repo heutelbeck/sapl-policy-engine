@@ -38,5 +38,6 @@ section: devel
 contents:
   - src: ${BINARY}
     dst: /usr/bin/sapl-language-server
+    expand: true
     file_info:
       mode: 0755
