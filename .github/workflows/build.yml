@@ -680,7 +680,7 @@ jobs:
       # if this is fixed upstream: https://github.com/goreleaser/nfpm
       - name: Install nfpm
         run: |
-          curl -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin nfpm
+          curl --proto '=https' -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin nfpm
 
       - name: Build DEB and RPM packages
         env:
@@ -904,7 +904,7 @@ jobs:
       # if this is fixed upstream: https://github.com/goreleaser/nfpm
       - name: Install nfpm
         run: |
-          curl -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin nfpm
+          curl --proto '=https' -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin nfpm
 
       - name: Build DEB and RPM packages
         env:
