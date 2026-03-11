@@ -27,18 +27,12 @@ on:
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
       - '**.md'
-      - 'sapl-node/nix/**'
-      - 'sapl-node/flake.nix'
-      - 'sapl-node/flake.lock'
   pull_request:
     paths-ignore:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
       - '**.md'
-      - 'sapl-node/nix/**'
-      - 'sapl-node/flake.nix'
-      - 'sapl-node/flake.lock'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -612,7 +606,6 @@ jobs:
           sparse-checkout: |
             LICENSE
             sapl-node/README.md
-            sapl-node/nix/hashes.json
             sapl-node/packaging
             sapl-language-server/packaging
           sparse-checkout-cone-mode: false
@@ -794,23 +787,6 @@ jobs:
             ```
           files: release/*
           fail_on_unmatched_files: true
-
-      - name: Update Nix package hashes
-        env:
-          VERSION: ${{ needs.version-check.outputs.version }}
-        run: |
-          AMD64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-amd64.tar.gz" | base64 -w0)"
-          ARM64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-arm64.tar.gz" | base64 -w0)"
-          printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > sapl-node/nix/hashes.json
-
-      - name: Push updated hashes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add sapl-node/nix/hashes.json
-          if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
-          git commit -m "nix: update sapl-node package hashes [skip ci]"
-          git push origin HEAD:${{ github.ref_name }}
 
   publish-native-lsp:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker]

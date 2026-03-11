@@ -10,7 +10,7 @@ has_toc: false
 
 This section covers deploying and operating the SAPL Node standalone PDP server.
 
-- **[Getting Started](../7_1_Deployment/):** Download the binary, set up a working node, deploy a policy, and query the PDP. Includes the CLI reference for bundle and credential management.
+- **[Getting Started](../7_1_GettingStarted/):** Download the binary, set up a working node, deploy a policy, and query the PDP. Includes the CLI reference for bundle and credential management.
 - **[Configuration](../7_2_Configuration/):** Application properties, Spring profiles, and CLI overrides for SAPL Node runtime settings.
 - **[Policy Sources](../7_3_PolicySources/):** Configuring where the PDP loads policies from.
 - **[Remote Bundles](../7_4_RemoteBundles/):** Fetching policy bundles from a remote HTTP server.
