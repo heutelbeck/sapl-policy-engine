@@ -788,6 +788,22 @@ jobs:
           files: release/*
           fail_on_unmatched_files: true
 
+      - name: Update Nix package hashes
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          AMD64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-amd64.tar.gz" | base64 -w0)"
+          ARM64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-node-${VERSION}-linux-arm64.tar.gz" | base64 -w0)"
+          git clone --depth 1 "https://x-access-token:${{ secrets.GHUB_ACCESS_TOKEN }}@github.com/heutelbeck/sapl-nix.git" sapl-nix
+          printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > sapl-nix/nix/hashes.json
+          cd sapl-nix
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nix/hashes.json
+          if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
+          git commit -m "update sapl-node package hashes for ${VERSION}"
+          git push
+
   publish-native-lsp:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
     if: >-
