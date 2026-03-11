@@ -686,10 +686,12 @@ jobs:
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
         run: |
-          BINARY=artifacts/linux-amd64/sapl-node ARCH=amd64 nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl-node_${VERSION}_amd64.deb"
-          BINARY=artifacts/linux-amd64/sapl-node ARCH=amd64 nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-node-${VERSION}.x86_64.rpm"
-          BINARY=artifacts/linux-arm64/sapl-node ARCH=arm64 nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl-node_${VERSION}_arm64.deb"
-          BINARY=artifacts/linux-arm64/sapl-node ARCH=arm64 nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-node-${VERSION}.aarch64.rpm"
+          export BINARY=artifacts/linux-amd64/sapl-node ARCH=amd64
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl-node_${VERSION}_amd64.deb"
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-node-${VERSION}.x86_64.rpm"
+          export BINARY=artifacts/linux-arm64/sapl-node ARCH=arm64
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl-node_${VERSION}_arm64.deb"
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-node-${VERSION}.aarch64.rpm"
 
       - name: Generate checksums
         run: |
@@ -910,10 +912,12 @@ jobs:
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
         run: |
-          BINARY=artifacts/linux-amd64/sapl-language-server ARCH=amd64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_amd64.deb"
-          BINARY=artifacts/linux-amd64/sapl-language-server ARCH=amd64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.x86_64.rpm"
-          BINARY=artifacts/linux-arm64/sapl-language-server ARCH=arm64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_arm64.deb"
-          BINARY=artifacts/linux-arm64/sapl-language-server ARCH=arm64 nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.aarch64.rpm"
+          export BINARY=artifacts/linux-amd64/sapl-language-server ARCH=amd64
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_amd64.deb"
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.x86_64.rpm"
+          export BINARY=artifacts/linux-arm64/sapl-language-server ARCH=arm64
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_arm64.deb"
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.aarch64.rpm"
 
       - name: Generate checksums
         run: |
