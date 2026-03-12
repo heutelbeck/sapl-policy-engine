@@ -79,5 +79,6 @@ contents:
       group: sapl-node
 
 scripts:
+  preinstall: sapl-node/packaging/preinstall.sh
   postinstall: sapl-node/packaging/postinstall.sh
   preremove: sapl-node/packaging/preremove.sh
