@@ -23,6 +23,10 @@ services:
     command: start-dev --import-realm
     ports:
       - "8080:8080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
@@ -76,18 +80,8 @@ services:
       # Policy Configuration
       - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
 
-      # Health check: thc calls /actuator/health (200=UP, 503=DOWN)
-      - THC_PATH=/actuator/health
-      - THC_PORT=8443
-
       # Logging
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
-    healthcheck:
-      test: ["CMD", "/layers/paketo-buildpacks_health-checker/thc/bin/thc"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     depends_on:
       keycloak:
         condition: service_healthy

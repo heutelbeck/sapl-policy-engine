@@ -63,16 +63,6 @@ services:
       # Override Paketo's MaxDirectMemorySize (default 10M is too low for Netty)
       - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
 
-      # Health check: thc calls /actuator/health (200=UP, 503=DOWN)
-      - THC_PATH=/actuator/health
-      - THC_PORT=8080
-
       # Logging
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
-    healthcheck:
-      test: ["CMD", "/layers/paketo-buildpacks_health-checker/thc/bin/thc"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     restart: unless-stopped
