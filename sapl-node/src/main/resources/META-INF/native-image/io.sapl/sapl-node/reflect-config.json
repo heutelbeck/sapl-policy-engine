@@ -322,5 +322,19 @@
     "name": "io.sapl.attributes.libraries.X509PolicyInformationPoint",
     "allDeclaredMethods": true,
     "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.pdp.configuration.bundle.BundleManifest",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.pdp.configuration.bundle.BundleManifest$Signature",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
   }
 ]
