@@ -1125,7 +1125,7 @@ public class SaplTestFixture {
     }
 
     private static BundleSecurityPolicy noSignatureVerification() {
-        return BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
+        return BundleSecurityPolicy.builder().disableSignatureVerification().build();
     }
 
     /**

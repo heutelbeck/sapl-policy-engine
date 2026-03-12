@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration;
 
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ObjectValue;
@@ -106,23 +107,31 @@ public class PDPConfigurationLoader {
     private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED       = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED      = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
-    private static final String ERROR_PDP_JSON_MISSING_ALGORITHM      = "pdp.json must contain an 'algorithm' field with votingMode, defaultDecision, and errorHandling.";
-    private static final String ERROR_PDP_JSON_REQUIRED               = "pdp.json is required but not found at '%s'.";
     private static final String ERROR_SHA256_NOT_AVAILABLE            = "SHA-256 algorithm not available.";
-    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM      = "Total size of SAPL documents exceeds maximum of %d MB.";
+
+    private static final String WARN_PDP_JSON_MISSING_ALGORITHM  = "pdp.json does not contain an 'algorithm' field. Using default: {}.";
+    private static final String WARN_PDP_JSON_NOT_FOUND          = "pdp.json not found at '{}'. Using defaults: algorithm={}, configurationId=default.";
+    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM = "Total size of SAPL documents exceeds maximum of %d MB.";
 
     private static final JsonMapper MAPPER = createMapper();
 
     private static JsonMapper createMapper() {
-        return JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+        return JsonMapper.builder().enable(JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_YAML_COMMENTS)
+                .addModule(new SaplJacksonModule()).build();
     }
 
     /**
      * Loads a PDP configuration from a directory path.
      * <p>
-     * Requires pdp.json to be present with an {@code algorithm} field.
-     * If pdp.json contains a {@code configurationId}, it is used. Otherwise, an ID
-     * is auto-generated in the format:
+     * If pdp.json is present, its {@code algorithm} and optional
+     * {@code configurationId} are used. If pdp.json is absent, safe defaults
+     * are applied ({@link CombiningAlgorithm#DEFAULT}, configurationId "default").
+     * If pdp.json is present but has no {@code algorithm} field, the default
+     * algorithm is used with a warning.
+     * </p>
+     * <p>
+     * When no explicit {@code configurationId} is provided, an ID is
+     * auto-generated in the format:
      * {@code dir:<path>@<timestamp>@sha256:<hash>}
      * </p>
      *
@@ -274,7 +283,8 @@ public class PDPConfigurationLoader {
 
     private static PdpJsonContent loadPdpJson(Path pdpJsonPath) {
         if (!Files.exists(pdpJsonPath)) {
-            throw new PDPConfigurationException(ERROR_PDP_JSON_REQUIRED.formatted(pdpJsonPath));
+            log.warn(WARN_PDP_JSON_NOT_FOUND, pdpJsonPath, CombiningAlgorithm.DEFAULT.toCanonicalString());
+            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, "default", Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
         try {
             val content = Files.readString(pdpJsonPath, StandardCharsets.UTF_8);
@@ -291,14 +301,17 @@ public class PDPConfigurationLoader {
         try {
             val node = MAPPER.readTree(content);
 
+            CombiningAlgorithm algorithm;
             if (!node.has("algorithm")) {
-                throw new PDPConfigurationException(ERROR_PDP_JSON_MISSING_ALGORITHM);
+                log.warn(WARN_PDP_JSON_MISSING_ALGORITHM, CombiningAlgorithm.DEFAULT.toCanonicalString());
+                algorithm = CombiningAlgorithm.DEFAULT;
+            } else {
+                val algorithmNode = node.get("algorithm");
+                if (algorithmNode.has("votingMode") && "FIRST".equals(algorithmNode.path("votingMode").asString())) {
+                    throw new PDPConfigurationException(ERROR_PDP_JSON_FIRST_NOT_ALLOWED);
+                }
+                algorithm = MAPPER.treeToValue(algorithmNode, CombiningAlgorithm.class);
             }
-            val algorithmNode = node.get("algorithm");
-            if (algorithmNode.has("votingMode") && "FIRST".equals(algorithmNode.path("votingMode").asString())) {
-                throw new PDPConfigurationException(ERROR_PDP_JSON_FIRST_NOT_ALLOWED);
-            }
-            val algorithm = MAPPER.treeToValue(algorithmNode, CombiningAlgorithm.class);
 
             String configurationId = null;
             if (node.has("configurationId")) {

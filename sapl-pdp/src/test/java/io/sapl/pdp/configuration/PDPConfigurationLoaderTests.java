@@ -51,9 +51,13 @@ class PDPConfigurationLoaderTests {
     Path tempDir;
 
     @Test
-    void whenLoadingFromDirectoryWithoutPdpJsonThenThrowsException() {
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdp.json is required");
+    void whenLoadingFromDirectoryWithoutPdpJsonThenUsesDefaults() {
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
+
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
+        assertThat(config.configurationId()).isEqualTo("default");
+        assertThat(config.data().variables()).isEmpty();
+        assertThat(config.data().secrets()).isEmpty();
     }
 
     @Test
@@ -226,12 +230,12 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingFromContentWithMissingAlgorithmThenThrowsException() {
+    void whenLoadingFromContentWithMissingAlgorithmThenUsesDefault() {
         val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
 
-        assertThatThrownBy(
-                () -> PDPConfigurationLoader.loadFromContent("{}", saplDocuments, "test-pdp", "/test/policies"))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("algorithm");
+        val config = PDPConfigurationLoader.loadFromContent("{}", saplDocuments, "test-pdp", "/test/policies");
+
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
     }
 
     @Test
@@ -249,12 +253,13 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    void whenLoadingFromContentWithOnlyVariablesThenThrowsForMissingAlgorithm() {
-        val emptyMap = Map.<String, String>of();
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromContent("""
+    void whenLoadingFromContentWithOnlyVariablesThenUsesDefaultAlgorithm() {
+        val config = PDPConfigurationLoader.loadFromContent("""
                 { "variables": { "realm": "arkham" } }
-                """, emptyMap, "test-pdp", "/policies/arkham")).isInstanceOf(PDPConfigurationException.class)
-                .hasMessageContaining("algorithm");
+                """, Map.of(), "test-pdp", "/policies/arkham");
+
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
+        assertThat(config.data().variables()).containsEntry("realm", Value.of("arkham"));
     }
 
     @Test
@@ -315,6 +320,43 @@ class PDPConfigurationLoaderTests {
 
         assertThat(config.data().variables()).containsKey("nullValue").containsEntry("realValue", Value.of("test"))
                 .containsKey("roles").containsKey("permissions");
+    }
+
+    @Test
+    void whenLoadingPdpJsonWithJavaCommentsThenParsesSuccessfully() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {
+                  // This is a line comment
+                  "algorithm": {
+                    "votingMode": "PRIORITY_DENY", /* inline comment */
+                    "defaultDecision": "DENY",
+                    "errorHandling": "PROPAGATE"
+                  }
+                }
+                """);
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
+    }
+
+    @Test
+    void whenLoadingPdpJsonWithYamlCommentsThenParsesSuccessfully() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {
+                  # YAML-style comment
+                  "algorithm": {
+                    "votingMode": "PRIORITY_PERMIT",
+                    "defaultDecision": "PERMIT",
+                    "errorHandling": "ABSTAIN"
+                  }
+                }
+                """);
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.combiningAlgorithm()).isEqualTo(
+                new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
     }
 
     private void writePdpJson(Path directory) throws IOException {

@@ -698,7 +698,7 @@ class SchemaProposalsGeneratorTests {
         for (var variable : variables) {
             schemasArray.add(ValueJsonMarshaller.json(variable));
         }
-        variablesMap.put("SCHEMAS", schemasArray.build());
+        variablesMap.put("schemas", schemasArray.build());
         var actualProposals = SchemaProposalsGenerator.getCodeTemplates("", schemaJson, variablesMap);
         assertThat(actualProposals).containsExactlyInAnyOrder(expectedProposals);
     }

@@ -88,8 +88,7 @@ class RemoteBundlePDPConfigurationSourceTests {
         val generator = KeyPairGenerator.getInstance("Ed25519");
         elderKeyPair = generator.generateKeyPair();
 
-        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
-                .build();
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
         signedPolicy      = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
     }
 

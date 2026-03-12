@@ -224,16 +224,15 @@ public class PDPAutoConfiguration {
                     .withUnsignedTenants(unsignedTenants).build();
         }
 
-        if (securityProps.isAllowUnsigned() && securityProps.isAcceptRisks()) {
-            return BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
-                    .withUnsignedTenants(unsignedTenants).build();
+        if (securityProps.isAllowUnsigned()) {
+            return BundleSecurityPolicy.builder().disableSignatureVerification().withUnsignedTenants(unsignedTenants)
+                    .build();
         }
 
         throw new IllegalStateException("Bundle security not configured. Either provide a public key via "
                 + "bundle-security.public-key-path or bundle-security.public-key, "
                 + "or configure bundle-security.keys with tenant bindings, "
-                + "or explicitly disable verification by setting both "
-                + "bundle-security.allow-unsigned=true and bundle-security.accept-risks=true");
+                + "or explicitly disable verification by setting bundle-security.allow-unsigned=true");
     }
 
     private PublicKey loadPublicKey(BundleSecurityProperties securityProps) {

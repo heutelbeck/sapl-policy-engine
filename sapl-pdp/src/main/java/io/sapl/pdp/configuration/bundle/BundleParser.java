@@ -107,12 +107,11 @@ import java.util.zip.ZipInputStream;
  *
  * }</pre>
  *
- * <h3>Development Only (Requires Explicit Risk Acceptance)</h3>
+ * <h3>Development Only</h3>
  *
  * <pre>{@code
- * // DANGER: Only for isolated development environments
- * BundleSecurityPolicy policy = BundleSecurityPolicy.builder().disableSignatureVerification()
- *         .acceptUnsignedBundleRisks().build();
+ * // Only for isolated development environments
+ * BundleSecurityPolicy policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
  *
  * PDPConfiguration security = BundleParser.parse(bundlePath, "dev", "local", policy);
  * }</pre>

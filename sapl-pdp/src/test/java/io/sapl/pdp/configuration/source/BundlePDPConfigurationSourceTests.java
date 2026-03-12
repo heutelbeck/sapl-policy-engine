@@ -87,8 +87,7 @@ class BundlePDPConfigurationSourceTests {
         val generator = KeyPairGenerator.getInstance("Ed25519");
         elderKeyPair = generator.generateKeyPair();
 
-        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
-                .build();
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
         signedPolicy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
     }
@@ -663,11 +662,17 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSecurityPolicyDisabledWithoutRiskAcceptanceThenThrowsException() {
-        val invalidPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+    void whenSecurityPolicyDisabledThenValidateSucceeds() throws IOException {
+        val unsignedBundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                .withPolicy("test.sapl", "policy \"test\" permit true").build();
+        Files.write(tempDir.resolve("test.saplbundle"), unsignedBundle);
 
-        assertThatThrownBy(() -> new BundlePDPConfigurationSource(tempDir, invalidPolicy, pdpVoterSource))
-                .isInstanceOf(BundleSignatureException.class).hasMessageContaining("risk acceptance");
+        val configs        = captureConfigurations();
+        val unsignedPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+
+        source = new BundlePDPConfigurationSource(tempDir, unsignedPolicy, pdpVoterSource);
+
+        assertThat(configs).hasSize(1);
     }
 
     @Test

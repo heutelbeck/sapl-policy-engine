@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-BASE_URL="${1:-https://localhost:8443}"
+BASE_URL="${1:-http://localhost:8443}"
 ENDPOINT="${BASE_URL}/api/pdp/decide"
 
 echo "=== SAPL Node Multi-Tenant Test ==="

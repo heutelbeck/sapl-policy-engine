@@ -69,7 +69,6 @@ class BundleSecurityPolicyTests {
 
         assertThat(policy.signatureRequired()).isTrue();
         assertThat(policy.publicKey()).isEqualTo(elderKeyPair.getPublic());
-        assertThat(policy.unsignedBundleRiskAccepted()).isFalse();
     }
 
     @Test
@@ -79,31 +78,10 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenDisablingSignatureWithoutAcceptingRisksThenBuildSucceedsButValidateFails() {
+    void whenDisablingSignatureVerificationThenValidateSucceeds() {
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
         assertThat(policy.signatureRequired()).isFalse();
-        assertThat(policy.unsignedBundleRiskAccepted()).isFalse();
-
-        assertThatThrownBy(policy::validate).isInstanceOf(BundleSignatureException.class)
-                .hasMessageContaining("disabled without risk acceptance");
-    }
-
-    @Test
-    void whenDisablingSignatureAndAcceptingRisksThenValidateSucceeds() {
-        val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
-
-        assertThat(policy.signatureRequired()).isFalse();
-        assertThat(policy.unsignedBundleRiskAccepted()).isTrue();
-
-        policy.validate();
-    }
-
-    @Test
-    void whenAcceptingRisksWithoutDisablingSignatureThenValidateSucceeds() {
-        val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).acceptUnsignedBundleRisks().build();
-
-        assertThat(policy.signatureRequired()).isTrue();
 
         policy.validate();
     }
@@ -127,26 +105,15 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenParsingUnsignedBundleWithDisabledVerificationAndAcceptedRisksThenSucceeds() {
-        val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
-                .withPolicy("public-access.sapl", "policy \"public\" permit true").build();
-
-        val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
-
-        val config = BundleParser.parse(bundle, "test-pdp", policy);
-
-        assertThat(config.pdpId()).isEqualTo("test-pdp");
-    }
-
-    @Test
-    void whenParsingUnsignedBundleWithDisabledVerificationButNoAcceptedRisksThenThrowsException() {
+    void whenParsingUnsignedBundleWithDisabledVerificationThenSucceeds() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
                 .withPolicy("public-access.sapl", "policy \"public\" permit true").build();
 
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
-        assertThatThrownBy(() -> BundleParser.parse(bundle, "test-pdp", policy))
-                .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not been accepted");
+        val config = BundleParser.parse(bundle, "test-pdp", policy);
+
+        assertThat(config.pdpId()).isEqualTo("test-pdp");
     }
 
     @Test
@@ -185,16 +152,8 @@ class BundleSecurityPolicyTests {
     }
 
     @Test
-    void whenCheckUnsignedBundleAllowedWithDisabledVerificationButNoRiskAcceptanceThenThrows() {
+    void whenCheckUnsignedBundleAllowedWithDisabledVerificationThenSucceeds() {
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
-
-        assertThatThrownBy(() -> policy.checkUnsignedBundleAllowed("test-bundle"))
-                .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not been accepted");
-    }
-
-    @Test
-    void whenCheckUnsignedBundleAllowedWithFullOptOutThenSucceeds() {
-        val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks().build();
 
         policy.checkUnsignedBundleAllowed("test-bundle");
     }
@@ -204,18 +163,6 @@ class BundleSecurityPolicyTests {
         val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
 
         policy.validate();
-    }
-
-    @Test
-    void whenAcceptUnsignedBundleRisksBooleanThenSetsCorrectly() {
-        val policyAccepted = BundleSecurityPolicy.builder().disableSignatureVerification()
-                .acceptUnsignedBundleRisks(true).build();
-
-        val policyNotAccepted = BundleSecurityPolicy.builder().disableSignatureVerification()
-                .acceptUnsignedBundleRisks(false).build();
-
-        assertThat(policyAccepted.unsignedBundleRiskAccepted()).isTrue();
-        assertThat(policyNotAccepted.unsignedBundleRiskAccepted()).isFalse();
     }
 
     @ParameterizedTest(name = "{0}")
@@ -424,8 +371,7 @@ class BundleSecurityPolicyTests {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                     .withPolicy("global.sapl", "policy \"global\" permit true").build();
 
-            val policy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
-                    .build();
+            val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
             val config = BundleParser.parse(bundle, "any-unlisted-tenant", policy);
 

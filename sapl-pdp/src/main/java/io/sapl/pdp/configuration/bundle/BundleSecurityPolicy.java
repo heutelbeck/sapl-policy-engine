@@ -29,10 +29,7 @@ import java.util.Set;
  * Security policy for bundle signature verification.
  * <p>
  * This class enforces a <b>secure-by-default</b> approach to bundle loading.
- * Signature verification is mandatory unless
- * explicitly disabled with explicit risk acceptance. This two-factor opt-out
- * ensures operator understand the security
- * implications of loading unsigned bundles.
+ * Signature verification is mandatory unless explicitly disabled.
  * </p>
  * <h2>Security Model</h2>
  * <p>
@@ -64,13 +61,11 @@ import java.util.Set;
  *
  * }</pre>
  *
- * <h3>Development Only (Requires Explicit Risk Acceptance)</h3>
+ * <h3>Development Only</h3>
  *
  * <pre>{@code
- * // DANGER: Only for development environments
- * // Both flags must be explicitly set
- * BundleSecurityPolicy policy = BundleSecurityPolicy.builder().disableSignatureVerification()
- *         .acceptUnsignedBundleRisks().build();
+ * // Only for development environments
+ * BundleSecurityPolicy policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
  * }</pre>
  *
  * <h2>Integration with Spring</h2>
@@ -87,16 +82,13 @@ import java.util.Set;
  *     public class BundleSecurityConfig {
  *
  *         &#64;Bean
- *         public BundleSecurityPolicy bundleSecurityPolicy(BundleSecurityProperties props,
- *                 AcceptedRisksProperties risks) {
+ *         public BundleSecurityPolicy bundleSecurityPolicy(BundleSecurityProperties props) {
  *
  *             if (props.isSignatureVerificationEnabled()) {
  *                 return BundleSecurityPolicy.builder(props.getPublicKey()).build();
  *             }
  *
- *             // Signature disabled - require risk acceptance
- *             return BundleSecurityPolicy.builder().disableSignatureVerification()
- *                     .acceptUnsignedBundleRisks(risks.isUnsignedBundles()).build();
+ *             return BundleSecurityPolicy.builder().disableSignatureVerification().build();
  *         }
  *     }
  * }
@@ -109,21 +101,18 @@ import java.util.Set;
 @RequiredArgsConstructor
 public final class BundleSecurityPolicy {
 
-    private static final Set<String> ED25519_ALGORITHM_NAMES                          = Set.of("Ed25519", "EdDSA");
-    private static final String      ERROR_BUNDLE_NOT_SIGNED_REQUIRED                 = "Bundle '%s' is not signed but signature verification is required.";
-    private static final String      ERROR_BUNDLE_NOT_SIGNED_RISK_NOT_ACCEPTED        = "Bundle '%s' is not signed and unsigned bundle risks have not been accepted.";
-    private static final String      ERROR_KEY_ID_NOT_IN_CATALOGUE                    = "Key '%s' referenced by tenant '%s' is not in the key catalogue.";
-    private static final String      ERROR_KEY_ID_NOT_TRUSTED_FOR_TENANT              = "Key '%s' is not trusted for tenant '%s'. Trusted keys: %s.";
-    private static final String      ERROR_NO_PUBLIC_KEY_FOR_TENANT                   = "No public key available for tenant '%s' with key id '%s'. Configure a key catalogue with tenant bindings or a global public key.";
-    private static final String      ERROR_NO_PUBLIC_KEY_FOR_VERIFICATION             = "Bundle signature verification is required but no public key was provided.";
-    private static final String      ERROR_PUBLIC_KEY_MUST_BE_ED25519                 = "Public key must be Ed25519, got: %s.";
-    private static final String      ERROR_PUBLIC_KEY_MUST_NOT_BE_NULL                = "Public key must not be null.";
-    private static final String      ERROR_SIGNATURE_DISABLED_WITHOUT_RISK_ACCEPTANCE = "Bundle signature verification disabled without risk acceptance. Set the appropriate configuration to accept unsigned bundle risks.";
-    private static final String      ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY              = "Signature verification requires a public key or a key catalogue. Use builder(publicKey), withKeyCatalogue(), or disable signature verification.";
+    private static final Set<String> ED25519_ALGORITHM_NAMES              = Set.of("Ed25519", "EdDSA");
+    private static final String      ERROR_BUNDLE_NOT_SIGNED_REQUIRED     = "Bundle '%s' is not signed but signature verification is required.";
+    private static final String      ERROR_KEY_ID_NOT_IN_CATALOGUE        = "Key '%s' referenced by tenant '%s' is not in the key catalogue.";
+    private static final String      ERROR_KEY_ID_NOT_TRUSTED_FOR_TENANT  = "Key '%s' is not trusted for tenant '%s'. Trusted keys: %s.";
+    private static final String      ERROR_NO_PUBLIC_KEY_FOR_TENANT       = "No public key available for tenant '%s' with key id '%s'. Configure a key catalogue with tenant bindings or a global public key.";
+    private static final String      ERROR_NO_PUBLIC_KEY_FOR_VERIFICATION = "Bundle signature verification is required but no public key was provided.";
+    private static final String      ERROR_PUBLIC_KEY_MUST_BE_ED25519     = "Public key must be Ed25519, got: %s.";
+    private static final String      ERROR_PUBLIC_KEY_MUST_NOT_BE_NULL    = "Public key must not be null.";
+    private static final String      ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY  = "Signature verification requires a public key or a key catalogue. Use builder(publicKey), withKeyCatalogue(), or disable signature verification.";
 
     private final PublicKey                publicKey;
     private final boolean                  signatureRequired;
-    private final boolean                  unsignedBundleRiskAccepted;
     private final Set<String>              unsignedTenants;
     private final Map<String, PublicKey>   keyCatalogue;
     private final Map<String, Set<String>> tenantTrust;
@@ -156,8 +145,7 @@ public final class BundleSecurityPolicy {
      * <li>Per-tenant key configuration via {@link Builder#withKeyCatalogue(Map)}
      * and {@link Builder#withTenantTrust(Map)} without a global fallback key.</li>
      * <li>Explicitly disabling signature verification in development environments
-     * by calling both {@link Builder#disableSignatureVerification()} and
-     * {@link Builder#acceptUnsignedBundleRisks()}.</li>
+     * by calling {@link Builder#disableSignatureVerification()}.</li>
      * </ol>
      *
      * @return builder for policy configuration
@@ -183,16 +171,6 @@ public final class BundleSecurityPolicy {
      */
     public boolean signatureRequired() {
         return signatureRequired;
-    }
-
-    /**
-     * Returns whether the operator has accepted the risks of loading unsigned
-     * bundles.
-     *
-     * @return true if unsigned bundle risks are accepted
-     */
-    public boolean unsignedBundleRiskAccepted() {
-        return unsignedBundleRiskAccepted;
     }
 
     /**
@@ -235,7 +213,7 @@ public final class BundleSecurityPolicy {
      * </p>
      *
      * @throws BundleSignatureException
-     * if the policy is invalid (e.g., signature disabled without risk acceptance)
+     * if the policy is invalid (e.g., signature required but no key provided)
      */
     public void validate() {
         if (signatureRequired) {
@@ -251,26 +229,12 @@ public final class BundleSecurityPolicy {
             return;
         }
 
-        // Signature not required - this is a security risk
-        if (!unsignedBundleRiskAccepted) {
-            log.error("""
-                    SECURITY VIOLATION: Bundle signature verification is disabled but the associated \
-                    risks have not been accepted. The application will refuse to load bundles until \
-                    either signature verification is enabled OR the risks are explicitly accepted. \
-                    To accept risks, ensure both conditions are met in configuration: \
-                    (1) signature verification disabled, AND \
-                    (2) unsigned bundle risks accepted.""");
-            throw new BundleSignatureException(ERROR_SIGNATURE_DISABLED_WITHOUT_RISK_ACCEPTANCE);
-        }
-
-        // Risk accepted - log warning for audit trail
         log.warn("""
                 SECURITY WARNING: Bundle signature verification is DISABLED. \
-                The server administrator has explicitly accepted the following risks: \
-                (1) Bundles may be loaded from untrusted sources. \
-                (2) Bundles may have been tampered with in transit or at rest. \
-                (3) Malicious policies could bypass access control, cause denial of service, \
-                    or lead to data exfiltration. \
+                Bundles may be loaded from untrusted sources. \
+                Bundles may have been tampered with in transit or at rest. \
+                Malicious policies could bypass access control, cause denial of service, \
+                or lead to data exfiltration. \
                 This configuration should ONLY be used in isolated development environments.""");
     }
 
@@ -296,10 +260,6 @@ public final class BundleSecurityPolicy {
 
         if (signatureRequired) {
             throw new BundleSignatureException(ERROR_BUNDLE_NOT_SIGNED_REQUIRED.formatted(bundleIdentifier));
-        }
-
-        if (!unsignedBundleRiskAccepted) {
-            throw new BundleSignatureException(ERROR_BUNDLE_NOT_SIGNED_RISK_NOT_ACCEPTED.formatted(bundleIdentifier));
         }
 
         log.warn("SECURITY: Loading unsigned bundle '{}'. Policy integrity and authenticity are NOT verified.",
@@ -345,11 +305,10 @@ public final class BundleSecurityPolicy {
     public static final class Builder {
 
         private final PublicKey          publicKey;
-        private boolean                  signatureRequired          = true;
-        private boolean                  unsignedBundleRiskAccepted = false;
-        private Set<String>              unsignedTenants            = Set.of();
-        private Map<String, PublicKey>   keyCatalogue               = Map.of();
-        private Map<String, Set<String>> tenantTrust                = Map.of();
+        private boolean                  signatureRequired = true;
+        private Set<String>              unsignedTenants   = Set.of();
+        private Map<String, PublicKey>   keyCatalogue      = Map.of();
+        private Map<String, Set<String>> tenantTrust       = Map.of();
 
         private Builder(PublicKey publicKey) {
             this.publicKey = publicKey;
@@ -358,7 +317,7 @@ public final class BundleSecurityPolicy {
         /**
          * Disables signature verification.
          * <p>
-         * <b>DANGER:</b> This allows loading of unsigned bundles, which means:
+         * <b>WARNING:</b> This allows loading of unsigned bundles, which means:
          * </p>
          * <ul>
          * <li>Bundle origin cannot be verified</li>
@@ -366,46 +325,13 @@ public final class BundleSecurityPolicy {
          * <li>Malicious policies may be loaded</li>
          * </ul>
          * <p>
-         * You must also call {@link #acceptUnsignedBundleRisks()} to build a valid
-         * policy with this setting.
+         * This configuration should only be used in isolated development environments.
          * </p>
          *
          * @return this builder
          */
         public Builder disableSignatureVerification() {
             this.signatureRequired = false;
-            return this;
-        }
-
-        /**
-         * Explicitly accepts the risks of loading unsigned bundles.
-         * <p>
-         * This is a required second factor when disabling signature verification. It
-         * creates an explicit audit trail
-         * showing the operator understood and accepted the security implications.
-         * </p>
-         *
-         * @return this builder
-         */
-        public Builder acceptUnsignedBundleRisks() {
-            this.unsignedBundleRiskAccepted = true;
-            return this;
-        }
-
-        /**
-         * Sets whether unsigned bundle risks are accepted.
-         * <p>
-         * This method is useful when the acceptance flag comes from external
-         * configuration (e.g., Spring properties).
-         * </p>
-         *
-         * @param accepted
-         * true if risks are accepted
-         *
-         * @return this builder
-         */
-        public Builder acceptUnsignedBundleRisks(boolean accepted) {
-            this.unsignedBundleRiskAccepted = accepted;
             return this;
         }
 
@@ -440,8 +366,7 @@ public final class BundleSecurityPolicy {
          * Sets the tenants for which unsigned bundles are accepted.
          * <p>
          * Tenants listed here may load unsigned bundles without requiring the global
-         * {@link #disableSignatureVerification()} and
-         * {@link #acceptUnsignedBundleRisks()} flags. This allows per-tenant
+         * {@link #disableSignatureVerification()} flag. This allows per-tenant
          * granularity: staging may use unsigned bundles during development while
          * production must always be signed.
          * </p>
@@ -461,8 +386,7 @@ public final class BundleSecurityPolicy {
          * <p>
          * The resulting policy is validated to ensure consistent configuration. If
          * signature verification is enabled, a
-         * public key must have been provided. If signature verification is disabled,
-         * risks must be explicitly accepted.
+         * public key or key catalogue must have been provided.
          * </p>
          *
          * @return the configured security policy
@@ -475,8 +399,7 @@ public final class BundleSecurityPolicy {
                 throw new IllegalStateException(ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY);
             }
 
-            return new BundleSecurityPolicy(publicKey, signatureRequired, unsignedBundleRiskAccepted, unsignedTenants,
-                    keyCatalogue, tenantTrust);
+            return new BundleSecurityPolicy(publicKey, signatureRequired, unsignedTenants, keyCatalogue, tenantTrust);
         }
     }
 

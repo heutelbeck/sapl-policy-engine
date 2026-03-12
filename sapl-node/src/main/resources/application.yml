@@ -1,3 +1,18 @@
+#
+# SAPL Node Configuration
+#
+# This file configures the SAPL Node with safe, functional defaults.
+# The node starts on localhost:8443 without TLS and without authentication,
+# serving deny-by-default decisions. Drop .sapl files in the current
+# directory to start making authorization decisions.
+#
+# Security progression:
+#   Level 0: Out of the box (localhost, no TLS, no auth, deny-by-default)
+#   Level 1: Add authentication (API key or basic auth)
+#   Level 2: Add TLS (bind to 0.0.0.0 or specific interface)
+#   Level 3: Production hardening (TLS + auth + metrics + bundle signing)
+#
+
 spring:
   application.name: sapl-node
   cache:
@@ -7,26 +22,20 @@ spring:
     cache-names:
       - ApiKeyCache
       - buckets
-bucket4j:
-  enabled: false
-  filters:
-    - id: filter1
-      cache-name: buckets
-      filter-method: webflux
-      url: .*
-      http-content-type: application/json;charset=UTF-8
-      filter-order: 1
-      rate-limits:
-        - bandwidths:
-            - capacity: 10000
-              time: 1
-              unit: seconds
-  cache-to-use: caffeine
+
+# --- Server ---
 
 server:
+  address: 127.0.0.1
   port: 8443
   ssl:
-    enabled: true
+    enabled: false
+    # Uncomment and configure to enable TLS:
+    # key-store-type: PKCS12
+    # key-store: file:/path/to/keystore.p12
+    # key-store-password: changeme
+    # key-password: changeme
+    # key-alias: sapl-node
     ciphers:
       - TLS_AES_128_GCM_SHA256
       - TLS_AES_256_GCM_SHA384
@@ -50,6 +59,154 @@ server:
       - TLSv1.3
       - TLSv1.2
     protocol: TLSv1.3
+
+# --- Client Authentication ---
+#
+# The node supports four authentication modes. Multiple can be enabled
+# simultaneously. With no authentication required (allowNoAuth: true),
+# the node is functional out of the box on localhost.
+#
+# WARNING: Enable authentication before exposing the node to a network.
+
+io.sapl:
+  node:
+    allowNoAuth: true
+    allowBasicAuth: false
+    allowApiKeyAuth: false
+    allowOauth2Auth: false
+
+    # PDP ID routing (multi-tenant)
+    # rejectOnMissingPdpId: false
+    # defaultPdpId: "default"
+
+    # OAuth2 settings (only relevant if allowOauth2Auth is true)
+    # oauth:
+    #   pdpIdClaim: "sapl_pdp_id"
+
+    # User entries for Basic Auth and API Key authentication.
+    # Each user is associated with a pdpId for multi-tenant routing.
+    #
+    # Generate credentials:
+    #   sapl-node generate --basic --id "my-client" --pdp-id "production"
+    #   sapl-node generate --api-key --id "my-client" --pdp-id "staging"
+    #
+    # users:
+    #   - id: "my-basic-client"
+    #     pdpId: "default"
+    #     basic:
+    #       username: "my-username"
+    #       secret: "$argon2id$..."
+    #
+    #   - id: "my-apikey-client"
+    #     pdpId: "default"
+    #     apiKey: "$argon2id$..."
+
+  # --- PDP Policy Source ---
+  #
+  # pdp-config-type options:
+  #   DIRECTORY        - Monitor a directory for pdp.json and *.sapl files
+  #   MULTI_DIRECTORY  - Subdirectories as tenants (subdir name = pdpId)
+  #   RESOURCES        - Load from classpath (fixed, no runtime updates)
+  #   BUNDLES          - Monitor directory for .saplbundle files
+  #   REMOTE_BUNDLES   - Fetch .saplbundle files from HTTP server
+
+  pdp.embedded:
+    enabled: true
+    pdp-config-type: DIRECTORY
+    config-path: .
+    policies-path: .
+    metrics-enabled: true
+
+    # --- Decision Reporting ---
+    # print-trace: false
+    # print-json-report: false
+    # print-text-report: false
+    # pretty-print-reports: false
+    # print-subscription-events: false
+    # print-unsubscription-events: false
+
+    # --- Bundle Security ---
+    #
+    # Required when pdp-config-type is BUNDLES or REMOTE_BUNDLES.
+    #
+    # bundle-security:
+    #   # Option 1: Global public key (all bundles verified with this key)
+    #   public-key-path: /path/to/ed25519-public-key.pem
+    #
+    #   # Option 2: Per-tenant key catalogue
+    #   keys:
+    #     prod-key-2025: "MCowBQYDK2VwAyEA..."
+    #     staging-key: "MCowBQYDK2VwAyEA..."
+    #   tenants:
+    #     production:
+    #       - "prod-key-2025"
+    #     staging:
+    #       - "staging-key"
+    #
+    #   # Option 3: Allow unsigned bundles (development only)
+    #   allowUnsigned: true
+    #   unsignedTenants:
+    #     - "development"
+
+    # --- Remote Bundles ---
+    #
+    # Required when pdp-config-type is REMOTE_BUNDLES.
+    #
+    # remote-bundles:
+    #   base-url: https://pap.example.com/bundles
+    #   pdp-ids:
+    #     - default
+    #   mode: POLLING
+    #   poll-interval: 30s
+    #   # long-poll-timeout: 30s
+    #   # auth-header-name: Authorization
+    #   # auth-header-value: "Bearer <token>"
+    #   # follow-redirects: true
+
+# --- OAuth2 Resource Server ---
+#
+# Required when allowOauth2Auth is true.
+#
+# spring.security.oauth2:
+#   resourceserver:
+#     jwt.issuer-uri: https://your-auth-server/realms/your-realm
+
+# --- Side-Loading Extensions ---
+#
+# Add function libraries and PIPs from external JARs.
+# Beans in sub-packages of io.sapl.server or with matching
+# Spring auto-configuration will be loaded at startup.
+#
+# loader.path: /path/to/lib
+
+# --- Keep-Alive ---
+#
+# Interval in seconds between keep-alive frames on idle connections.
+# Prevents firewalls from dropping inactive TCP connections.
+# Default 0 disables keep-alive.
+#
+# io.sapl.node.keep-alive: 15
+
+# --- Rate Limiting ---
+
+bucket4j:
+  enabled: false
+  filters:
+    - id: filter1
+      cache-name: buckets
+      filter-method: webflux
+      url: .*
+      http-content-type: application/json;charset=UTF-8
+      filter-order: 1
+      rate-limits:
+        - bandwidths:
+            - capacity: 10000
+              time: 1
+              unit: seconds
+  cache-to-use: caffeine
+
+# --- Actuator Endpoints ---
+
 management:
   endpoint:
     health:
@@ -65,19 +222,11 @@ management:
       enabled: true
     readinessstate:
       enabled: true
-io.sapl:
-  pdp.embedded:
-    enabled: true
-    pdp-config-type: DIRECTORY
-    metrics-enabled: true
-  node:
-    allowNoAuth: false
-    allowBasicAuth: false
-    allowApiKeyAuth: false
-    allowOauth2Auth: false
+
+# --- Logging ---
+
 logging.level:
   "[io.sapl]": INFO
   "[org.springframework]": INFO
-  # GraalVM native images do not expose GC MXBean notifications.
-  # Suppress the unavoidable warning in native mode (no-op on HotSpot).
+  # Suppress unavoidable warning in GraalVM native images (no-op on HotSpot)
   "[io.micrometer.core.instrument.binder.jvm.JvmGcMetrics]": ERROR

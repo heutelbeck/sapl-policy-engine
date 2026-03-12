@@ -136,7 +136,7 @@ public class SchemaValidatorCompiler {
     }
 
     private static SchemaRegistry buildSchemaRegistry(CompilationContext ctx) {
-        val schemasValue = ctx.getData().variables().get("SCHEMAS");
+        val schemasValue = ctx.getData().variables().get("schemas");
         if (!(schemasValue instanceof ArrayValue schemas)) {
             return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
         }

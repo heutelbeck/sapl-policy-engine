@@ -423,7 +423,6 @@ io.sapl.pdp.embedded.bundle-security:
 
   # Option 3: Allow unsigned bundles (development only)
   allowUnsigned: true
-  acceptRisks: true
   unsignedTenants:
     - "development"
 ```

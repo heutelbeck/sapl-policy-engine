@@ -64,8 +64,7 @@ class BundleParserTests {
 
     @BeforeAll
     static void setupSecurityPolicy() {
-        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
-                .build();
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
     }
 
     @Test

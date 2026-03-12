@@ -16,7 +16,7 @@ Tests SAPL Node without authentication (for development/testing environments).
 
 ```bash
 ./test-no-auth.sh                        # Default: http://localhost:8443
-./test-no-auth.sh https://localhost:8443 # Custom URL
+./test-no-auth.sh http://localhost:8443  # Custom URL
 ```
 
 ### test-basic-auth.sh
@@ -47,8 +47,8 @@ Tests streaming subscriptions that receive live policy updates.
 
 ```bash
 ./test-streaming.sh noauth
-./test-streaming.sh basic "username:password" https://localhost:8443
-./test-streaming.sh apikey "sapl_..." https://localhost:8443
+./test-streaming.sh basic "username:password" http://localhost:8443
+./test-streaming.sh apikey "sapl_..." http://localhost:8443
 ```
 
 **Tip:** Run this script and then modify a policy file. You should see the updated decision streamed to your terminal.
@@ -123,7 +123,7 @@ The scripts use `-k` flag to skip SSL verification for self-signed certificates.
 
 Verify SAPL Node is running and listening on the expected port:
 ```bash
-curl -k https://localhost:8443/actuator/health
+curl http://localhost:8443/actuator/health
 ```
 
 ### Authentication Failures

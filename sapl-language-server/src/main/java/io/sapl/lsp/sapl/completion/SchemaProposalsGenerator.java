@@ -115,7 +115,7 @@ public class SchemaProposalsGenerator {
     }
 
     private static void loadSchemasFromVariables(Map<String, Value> variables, Map<String, JsonNode> definitions) {
-        var schemaArray = variables.getOrDefault("SCHEMAS", Value.EMPTY_ARRAY);
+        var schemaArray = variables.getOrDefault("schemas", Value.EMPTY_ARRAY);
         if (!(schemaArray instanceof ArrayValue actualArray)) {
             return;
         }

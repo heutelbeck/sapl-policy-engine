@@ -482,7 +482,7 @@ class SchemaValidatorCompilerTests {
         void whenSchemaRefResolvesViaSchemasVariableThenCompilesSuccessfully() {
             val addressSchema = (ObjectValue) obj("$id", Value.of("https://example.com/address"), "type",
                     Value.of("object"), "properties", obj("city", obj("type", Value.of("string"))));
-            val variables     = (ObjectValue) obj("SCHEMAS", array(addressSchema));
+            val variables     = (ObjectValue) obj("schemas", array(addressSchema));
             val mainSchema    = (ObjectValue) obj("type", Value.of("object"), "properties",
                     obj("shipping", obj("$ref", Value.of("https://example.com/address"))));
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, mainSchema));

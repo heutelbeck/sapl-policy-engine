@@ -30,7 +30,7 @@ Where `<subscription-element>` is `subject`, `action`, `resource`, or `environme
 
 **Restrictions:** Schema expressions must not contain attribute finder expressions (`<attribute.name>`) since schemas are evaluated at compile time without access to external data sources.
 
-**External schema references:** If a schema uses `$ref` to reference other schemas, the engine resolves these from a PDP-level variable called `SCHEMAS`. This variable must be an array of JSON Schema objects, each with a `$id` field. PDP variables are part of the [PDP configuration](../2_2_PDPConfiguration/#variables) and are not to be confused with the `environment` object in the authorization subscription.
+**External schema references:** If a schema uses `$ref` to reference other schemas, the engine resolves these from a PDP-level variable called `schemas`. This variable must be an array of JSON Schema objects, each with a `$id` field. PDP variables are part of the [PDP configuration](../2_2_PDPConfiguration/#variables) and are not to be confused with the `environment` object in the authorization subscription.
 
 ### Variable Schemas
 

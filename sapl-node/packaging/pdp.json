@@ -1,0 +1,77 @@
+{
+  // Combining algorithm: how multiple policy decisions are merged.
+  //
+  // votingMode:
+  //   PRIORITY_DENY    - deny wins over permit (recommended default)
+  //   PRIORITY_PERMIT  - permit wins over deny
+  //   UNANIMOUS        - all policies must agree
+  //   UNANIMOUS_STRICT - all policies must agree, no abstentions
+  //   UNIQUE           - exactly one policy must match
+  //
+  // defaultDecision:
+  //   DENY    - deny when no policy matches (recommended)
+  //   PERMIT  - permit when no policy matches
+  //   ABSTAIN - abstain when no policy matches
+  //
+  // errorHandling:
+  //   PROPAGATE - errors propagate to the final decision
+  //   ABSTAIN   - errors are treated as abstain
+  "algorithm": {
+    "votingMode": "PRIORITY_DENY",
+    "defaultDecision": "DENY",
+    "errorHandling": "PROPAGATE"
+  }
+
+  // Variables available to all policies as top-level SAPL identifiers.
+  // "variables": {
+  //   "environment": "production",
+  //   "maxRetries": 3,
+  //
+  //   // Default options for attribute finder lookups (<pip.attr[OPTIONS]>).
+  //   // Policy-level options override these; these override built-in defaults.
+  //   // Built-in defaults: initialTimeOutMs=3000, pollIntervalMs=30000,
+  //   //                    backoffMs=1000, retries=3, fresh=false
+  //   "attributeFinderOptions": {
+  //     "initialTimeOutMs": 5000,
+  //     "pollIntervalMs": 30000,
+  //     "backoffMs": 1000,
+  //     "retries": 3,
+  //     "fresh": false
+  //   },
+  //
+  //   // JWT PIP configuration (attribute: <jwt.token>)
+  //   "jwt": {
+  //     "secretsKey": "jwt",
+  //     "clockSkewSeconds": 30,
+  //     "maxTokenLifetimeSeconds": 3600
+  //   },
+  //
+  //   // Schema registry for $ref resolution in enforced schemas.
+  //   // Each entry must have a "$id" field. Policies reference these
+  //   // via $ref in their schema declarations.
+  //   "schemas": [
+  //     {
+  //       "$id": "https://example.com/address",
+  //       "type": "object",
+  //       "properties": {
+  //         "city": { "type": "string" },
+  //         "zip": { "type": "string" }
+  //       }
+  //     }
+  //   ]
+  // }
+
+  // Secrets available to policies via the secrets PIP.
+  // Credentials for HTTP PIP requests are configured under "http".
+  // "secrets": {
+  //   "http": {
+  //     "weather-api": {
+  //       "headers": { "X-API-Key": "sk-example-key-replace-me" }
+  //     },
+  //     "internal-api": {
+  //       "headers": { "Authorization": "Bearer replace-with-token" }
+  //     }
+  //   },
+  //   "jwt": "replace-with-jwt-signing-secret"
+  // }
+}

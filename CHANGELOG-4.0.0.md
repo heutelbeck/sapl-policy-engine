@@ -760,7 +760,6 @@ io.sapl.pdp.embedded:
       hospital-b: ["prod-key"]
     unsigned-tenants: ["staging"]            # staging bundles may be unsigned
     allow-unsigned: false                    # global default: signatures required
-    accept-risks: false                     # must be true alongside allow-unsigned
 ```
 
 **`REMOTE_BUNDLES` example:**

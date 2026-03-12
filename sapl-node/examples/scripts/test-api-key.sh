@@ -20,7 +20,7 @@
 set -euo pipefail
 
 API_KEY="${1:-}"
-BASE_URL="${2:-https://localhost:8443}"
+BASE_URL="${2:-http://localhost:8443}"
 ENDPOINT="${BASE_URL}/api/pdp/decide"
 
 if [[ -z "${API_KEY}" ]]; then

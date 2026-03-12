@@ -16,32 +16,87 @@
 # limitations under the License.
 #
 
-# SAPL Node default configuration.
+# SAPL Node package configuration.
 #
 # This file is installed to /etc/sapl-node/application.yml and is
 # preserved across package upgrades (config|noreplace).
 #
-# See https://sapl.io for the full configuration reference.
+# The systemd service uses --spring.config.location=file:/etc/sapl-node/application.yml
+# which fully replaces the JAR-embedded defaults. Only this file is loaded.
+#
+# See the main application.yml in the source tree for all available options.
+
+spring:
+  application.name: sapl-node
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h,recordStats
+    cache-names:
+      - ApiKeyCache
+      - buckets
+
+server:
+  address: 127.0.0.1
+  port: 8443
+  ssl:
+    enabled: false
+    # key-store-type: PKCS12
+    # key-store: file:/etc/sapl-node/keystore.p12
+    # key-store-password: changeme
+    # key-password: changeme
+    # key-alias: sapl-node
+    ciphers:
+      - TLS_AES_128_GCM_SHA256
+      - TLS_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+    enabled-protocols:
+      - TLSv1.3
+      - TLSv1.2
+    protocol: TLSv1.3
 
 io.sapl:
   pdp.embedded:
     pdp-config-type: DIRECTORY
     config-path: /var/lib/sapl-node/policies
     policies-path: /var/lib/sapl-node/policies
+    metrics-enabled: true
   node:
-    allowNoAuth: false
+    allowNoAuth: true
     allowBasicAuth: false
     allowApiKeyAuth: false
     allowOauth2Auth: false
 
-server:
-  port: 8443
-  ssl:
-    enabled: true
-    enabled-protocols:
-      - TLSv1.3
-      - TLSv1.2
-    protocol: TLSv1.3
+bucket4j:
+  enabled: false
+  filters:
+    - id: filter1
+      cache-name: buckets
+      filter-method: webflux
+      url: .*
+      http-content-type: application/json;charset=UTF-8
+      filter-order: 1
+      rate-limits:
+        - bandwidths:
+            - capacity: 10000
+              time: 1
+              unit: seconds
+  cache-to-use: caffeine
 
 management:
   endpoint:

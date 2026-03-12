@@ -78,8 +78,7 @@ class BundleBuilderTests {
         val rsaKeyPair = rsaGenerator.generateKeyPair();
         rsaPrivate = rsaKeyPair.getPrivate();
 
-        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
-                .build();
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
         signedPolicy = BundleSecurityPolicy.builder(cultKeyPair.getPublic()).build();
     }

@@ -680,13 +680,12 @@ When using `BUNDLES` or `REMOTE_BUNDLES`, bundle signature verification can be c
 |---------------------------------------------------------------|---------|------------------------------------------------------------------------------|
 | `io.sapl.pdp.embedded.bundle-security.public-key-path`       |         | Path to Ed25519 public key file for signature verification                   |
 | `io.sapl.pdp.embedded.bundle-security.public-key`            |         | Base64-encoded Ed25519 public key (alternative to file path)                 |
-| `io.sapl.pdp.embedded.bundle-security.allow-unsigned`        | `false` | Allow unsigned bundles (requires `accept-risks=true`)                        |
-| `io.sapl.pdp.embedded.bundle-security.accept-risks`          | `false` | Explicit acceptance of security risks when loading unsigned bundles          |
-| `io.sapl.pdp.embedded.bundle-security.unsigned-tenants`      |         | List of tenant IDs that accept unsigned bundles without global flags         |
+| `io.sapl.pdp.embedded.bundle-security.allow-unsigned`        | `false` | Allow unsigned bundles (development only)                                    |
+| `io.sapl.pdp.embedded.bundle-security.unsigned-tenants`      |         | List of tenant IDs that accept unsigned bundles without the global flag      |
 | `io.sapl.pdp.embedded.bundle-security.keys.<key-id>`         |         | Named key catalogue mapping key IDs to Base64-encoded Ed25519 public keys   |
 | `io.sapl.pdp.embedded.bundle-security.tenants.<pdpId>`       |         | Per-tenant key binding mapping tenant IDs to lists of trusted key IDs       |
 
-If a public key is configured, all bundles must be signed. If no key is set, `allow-unsigned=true` and `accept-risks=true` must both be set to explicitly accept the risk. Per-tenant unsigned exceptions can be granted via `unsigned-tenants`.
+If a public key is configured, all bundles must be signed. If no key is set, `allow-unsigned=true` must be set to explicitly accept unsigned bundles. Per-tenant unsigned exceptions can be granted via `unsigned-tenants`.
 
 #### Remote Bundle Fetching
 

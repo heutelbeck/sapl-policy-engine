@@ -117,12 +117,10 @@ class RemoteBundleAutoConfigurationTests {
         @Test
         @DisplayName("bundle security properties bind for unsigned escape hatch")
         void whenUnsignedEscapeHatchConfiguredThenPropertiesBind() {
-            propertiesRunner.withPropertyValues(PREFIX + "bundleSecurity.allowUnsigned=true",
-                    PREFIX + "bundleSecurity.acceptRisks=true").run(context -> {
-                        val security = context.getBean(EmbeddedPDPProperties.class).getBundleSecurity();
-                        assertThat(security.isAllowUnsigned()).isTrue();
-                        assertThat(security.isAcceptRisks()).isTrue();
-                    });
+            propertiesRunner.withPropertyValues(PREFIX + "bundleSecurity.allowUnsigned=true").run(context -> {
+                val security = context.getBean(EmbeddedPDPProperties.class).getBundleSecurity();
+                assertThat(security.isAllowUnsigned()).isTrue();
+            });
         }
 
     }
@@ -134,10 +132,11 @@ class RemoteBundleAutoConfigurationTests {
         @Test
         @DisplayName("REMOTE_BUNDLES with valid config creates PDP")
         void whenRemoteBundlesWithValidConfigThenPdpCreated() {
-            autoConfigRunner.withPropertyValues(PREFIX + "pdpConfigType=REMOTE_BUNDLES",
-                    PREFIX + "remoteBundles.baseUrl=http://localhost:1/bundles",
-                    PREFIX + "remoteBundles.pdpIds[0]=default", PREFIX + "bundleSecurity.allowUnsigned=true",
-                    PREFIX + "bundleSecurity.acceptRisks=true").run(context -> {
+            autoConfigRunner
+                    .withPropertyValues(PREFIX + "pdpConfigType=REMOTE_BUNDLES",
+                            PREFIX + "remoteBundles.baseUrl=http://localhost:1/bundles",
+                            PREFIX + "remoteBundles.pdpIds[0]=default", PREFIX + "bundleSecurity.allowUnsigned=true")
+                    .run(context -> {
                         assertThat(context).hasNotFailed().hasSingleBean(DynamicPolicyDecisionPoint.class);
                     });
         }

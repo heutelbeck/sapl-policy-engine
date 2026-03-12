@@ -169,8 +169,7 @@ public class EmbeddedPDPProperties {
      * Behavior:
      * <ul>
      * <li>If publicKeyPath or publicKey is set: signature verification enabled</li>
-     * <li>If no key and allowUnsigned=true AND acceptRisks=true: unsigned bundles
-     * accepted</li>
+     * <li>If no key and allowUnsigned=true: unsigned bundles accepted</li>
      * <li>Otherwise: startup fails with clear error</li>
      * </ul>
      */
@@ -193,28 +192,17 @@ public class EmbeddedPDPProperties {
         /**
          * Disable signature verification for bundles.
          * <p>
-         * WARNING: Requires acceptRisks to also be true.
+         * WARNING: Disabling signature verification allows loading of unsigned
+         * bundles from potentially untrusted sources. Only use in isolated
+         * development environments.
          */
         private boolean allowUnsigned = false;
-
-        /**
-         * Explicit acceptance of security risks when loading unsigned bundles.
-         * <p>
-         * Setting this to true acknowledges:
-         * <ul>
-         * <li>Bundles may originate from untrusted sources</li>
-         * <li>Bundles may have been tampered with</li>
-         * <li>Malicious policies could bypass access control</li>
-         * </ul>
-         * Both allowUnsigned AND acceptRisks must be true to disable verification.
-         */
-        private boolean acceptRisks = false;
 
         /**
          * List of tenant identifiers for which unsigned bundles are accepted.
          * <p>
          * Tenants listed here may load unsigned bundles without requiring the
-         * global allowUnsigned + acceptRisks flags. This enables per-tenant
+         * global allowUnsigned flag. This enables per-tenant
          * granularity: staging may use unsigned bundles during development while
          * production must always be signed.
          * <p>

@@ -50,6 +50,14 @@ contents:
     dst: /etc/sapl-node/application.yml
     type: config|noreplace
 
+  - src: sapl-node/packaging/pdp.json
+    dst: /var/lib/sapl-node/policies/pdp.json
+    type: config|noreplace
+    file_info:
+      mode: 0640
+      owner: sapl-node
+      group: sapl-node
+
   - dst: /var/lib/sapl-node/policies
     type: dir
     file_info:

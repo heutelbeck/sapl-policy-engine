@@ -139,7 +139,6 @@ For development only, the 2-factor escape hatch disables signature verification 
 ```yaml
   bundleSecurity:
     allowUnsigned: true
-    acceptRisks: true
 ```
 
 ### Per-pdpId Poll Interval

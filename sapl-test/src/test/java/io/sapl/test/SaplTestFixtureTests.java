@@ -98,8 +98,7 @@ class SaplTestFixtureTests {
     }
 
     static Stream<Arguments> singleModeDisallowedOperations() {
-        var securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
-                .build();
+        var securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
         return Stream.of(
                 arguments("withCombiningAlgorithm",
                         (Consumer<SaplTestFixture>) f -> f
