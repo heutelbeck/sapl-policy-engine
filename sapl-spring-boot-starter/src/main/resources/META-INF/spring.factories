@@ -1,0 +1,2 @@
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+  io.sapl.spring.pdp.embedded.BundleSecurityFailureAnalyzer

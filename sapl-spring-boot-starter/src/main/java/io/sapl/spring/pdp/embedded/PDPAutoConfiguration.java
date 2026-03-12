@@ -188,12 +188,12 @@ public class PDPAutoConfiguration {
         }
         case BUNDLES         -> {
             log.info("Loading policies from bundles: {}", resolvedPath);
-            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity());
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), resolvedPath);
             builder.withBundleDirectorySource(path, securityPolicy);
         }
         case REMOTE_BUNDLES  -> {
             val props          = properties.getRemoteBundles();
-            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity());
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), resolvedPath);
             log.info("Loading policies from remote bundles: {}", props.getBaseUrl());
             val sourceConfig = new RemoteBundleSourceConfig(props.getBaseUrl(), props.getPdpIds(),
                     RemoteBundleSourceConfig.FetchMode.valueOf(props.getMode().name()), props.getPollInterval(),
@@ -210,7 +210,7 @@ public class PDPAutoConfiguration {
         }
     }
 
-    private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps) {
+    private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {
         val publicKey       = loadPublicKey(securityProps);
         val keyCatalogue    = buildKeyCatalogue(securityProps.getKeys());
         val tenantTrust     = buildTenantTrust(securityProps.getTenants());
@@ -229,11 +229,7 @@ public class PDPAutoConfiguration {
                     .build();
         }
 
-        throw new IllegalStateException("Bundle security not configured. "
-                + "To enable signature verification, set bundle-security.public-key-path to your Ed25519 public key. "
-                + "To create a keypair: sapl-node bundle keygen -o signing. "
-                + "To opt out of verification: set bundle-security.allow-unsigned=true. "
-                + "See /var/lib/sapl-node/README for the full setup workflow.");
+        throw new BundleSecurityNotConfiguredException(policiesPath);
     }
 
     private PublicKey loadPublicKey(BundleSecurityProperties securityProps) {

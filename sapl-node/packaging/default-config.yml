@@ -156,7 +156,7 @@ io.sapl:
     # The node will not start until one of these options is configured.
     # Generate a keypair: sapl-node bundle keygen -o /etc/sapl-node/signing
     #
-    bundle-security:
+    # bundle-security:
       # Option 1: Global public key (recommended)
       # All bundles must be signed with the corresponding private key.
       # public-key-path: /etc/sapl-node/signing.pub
