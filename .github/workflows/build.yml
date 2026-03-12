@@ -399,10 +399,13 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   build-native-node:
+    needs: [version-check]
     if: ${{ github.event_name != 'pull_request' }}
     permissions:
       contents: read
     uses: ./.github/workflows/build_native_node.yml
+    with:
+      include-macos: ${{ needs.version-check.outputs.is_tag == 'true' }}
 
   build-native-lsp:
     if: ${{ github.event_name != 'pull_request' }}
@@ -629,6 +632,7 @@ jobs:
           path: artifacts/windows
 
       - name: Download macOS artifact
+        continue-on-error: true
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: sapl-node-macos-arm64
@@ -654,18 +658,22 @@ jobs:
           cp sapl-node/README.md staging/linux-arm64/
           tar -czf "release/sapl-node-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
 
-          # macOS (tar.gz)
-          cp artifacts/macos/sapl-node staging/macos/sapl-node
-          chmod +x staging/macos/sapl-node
-          cp LICENSE staging/macos/
-          cp sapl-node/README.md staging/macos/
-          tar -czf "release/sapl-node-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
-
           # Windows (zip)
           cp artifacts/windows/sapl-node.exe staging/windows/sapl-node.exe
           cp LICENSE staging/windows/
           cp sapl-node/README.md staging/windows/
           cd staging/windows && zip -q "../../release/sapl-node-${VERSION}-windows-amd64.zip" ./* && cd ../..
+
+          # macOS (tar.gz) - only available on tag builds
+          if [ -f artifacts/macos/sapl-node ]; then
+            cp artifacts/macos/sapl-node staging/macos/sapl-node
+            chmod +x staging/macos/sapl-node
+            cp LICENSE staging/macos/
+            cp sapl-node/README.md staging/macos/
+            tar -czf "release/sapl-node-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
+          else
+            echo "::notice::macOS artifact not available (built on tag releases only)"
+          fi
 
       # Install nfpm directly instead of using goreleaser/nfpm action.
       # The action (goreleaser/nfpm@v2) fails with broken symlinks in its
@@ -710,10 +718,10 @@ jobs:
             |----------|---------|
             | Linux x86_64 | `sapl-node-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
             | Linux ARM64 | `sapl-node-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
-            | macOS ARM64 | `sapl-node-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
             | Windows x86_64 | `sapl-node-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
 
             Each archive contains the `sapl-node` binary, `LICENSE`, and `README.md`.
+            macOS builds are included in tagged releases only.
 
             ### Linux Packages
             | Format | x86_64 | ARM64 |

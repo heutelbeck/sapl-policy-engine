@@ -19,6 +19,11 @@ name: Build Native SAPL Node
 
 on:
   workflow_call:
+    inputs:
+      include-macos:
+        description: Build the macOS native image (slow, ~60 min on free runner)
+        type: boolean
+        default: false
   workflow_dispatch:
 
 jobs:
@@ -46,6 +51,7 @@ jobs:
 
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    if: matrix.os != 'macos-latest' || inputs.include-macos
     timeout-minutes: 120
 
     steps:
