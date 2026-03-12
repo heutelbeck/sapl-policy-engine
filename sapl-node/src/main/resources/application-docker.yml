@@ -1,4 +1,5 @@
 io.sapl:
   pdp.embedded:
+    pdp-config-type: BUNDLES
     config-path: /pdp/data
     policies-path: /pdp/data

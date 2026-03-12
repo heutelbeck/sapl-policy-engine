@@ -16,7 +16,8 @@
 # limitations under the License.
 #
 
-# SAPL Node package configuration.
+#
+# SAPL Node Package Configuration
 #
 # This file is installed to /etc/sapl-node/application.yml and is
 # preserved across package upgrades (config|noreplace).
@@ -24,7 +25,15 @@
 # The systemd service uses --spring.config.location=file:/etc/sapl-node/application.yml
 # which fully replaces the JAR-embedded defaults. Only this file is loaded.
 #
-# See the main application.yml in the source tree for all available options.
+# The node will not start until bundle security is configured.
+# See /var/lib/sapl-node/README for the quick start workflow.
+#
+# Security progression:
+#   Level 0: Configure public key (or allow-unsigned to opt out)
+#   Level 1: Enable auth, generate credentials
+#   Level 2: Enable TLS, bind to 0.0.0.0
+#   Level 3: TLS + auth + signed bundles + metrics (production)
+#
 
 spring:
   application.name: sapl-node
@@ -36,11 +45,14 @@ spring:
       - ApiKeyCache
       - buckets
 
+# --- Server ---
+
 server:
   address: 127.0.0.1
   port: 8443
   ssl:
     enabled: false
+    # Uncomment and configure to enable TLS:
     # key-store-type: PKCS12
     # key-store: file:/etc/sapl-node/keystore.p12
     # key-store-password: changeme
@@ -70,17 +82,141 @@ server:
       - TLSv1.2
     protocol: TLSv1.3
 
+# --- Client Authentication ---
+#
+# The node supports four authentication modes. Multiple can be enabled
+# simultaneously. With no authentication required (allowNoAuth: true),
+# the node is functional out of the box on localhost.
+#
+# WARNING: Enable authentication before exposing the node to a network.
+
 io.sapl:
-  pdp.embedded:
-    pdp-config-type: DIRECTORY
-    config-path: /var/lib/sapl-node/policies
-    policies-path: /var/lib/sapl-node/policies
-    metrics-enabled: true
   node:
     allowNoAuth: true
     allowBasicAuth: false
     allowApiKeyAuth: false
     allowOauth2Auth: false
+
+    # PDP ID routing (multi-tenant)
+    # rejectOnMissingPdpId: false
+    # defaultPdpId: "default"
+
+    # OAuth2 settings (only relevant if allowOauth2Auth is true)
+    # oauth:
+    #   pdpIdClaim: "sapl_pdp_id"
+
+    # User entries for Basic Auth and API Key authentication.
+    # Each user is associated with a pdpId for multi-tenant routing.
+    #
+    # Generate credentials:
+    #   sapl-node generate basic --id "my-client" --pdp-id "production"
+    #   sapl-node generate apikey --id "my-client" --pdp-id "staging"
+    #
+    # users:
+    #   - id: "my-basic-client"
+    #     pdpId: "default"
+    #     basic:
+    #       username: "my-username"
+    #       secret: "$argon2id$..."
+    #
+    #   - id: "my-apikey-client"
+    #     pdpId: "default"
+    #     apiKey: "$argon2id$..."
+
+  # --- PDP Policy Source ---
+  #
+  # This package defaults to BUNDLES mode. The PDP loads .saplbundle
+  # files from /var/lib/sapl-node/. Bundles provide atomic policy
+  # updates with optional Ed25519 signature verification.
+  #
+  # pdp-config-type options:
+  #   BUNDLES          - Monitor directory for .saplbundle files (package default)
+  #   DIRECTORY        - Monitor a directory for pdp.json and *.sapl files
+  #   MULTI_DIRECTORY  - Subdirectories as tenants (subdir name = pdpId)
+  #   RESOURCES        - Load from classpath (fixed, no runtime updates)
+  #   REMOTE_BUNDLES   - Fetch .saplbundle files from HTTP server
+
+  pdp.embedded:
+    enabled: true
+    pdp-config-type: BUNDLES
+    config-path: /var/lib/sapl-node
+    policies-path: /var/lib/sapl-node
+    metrics-enabled: true
+
+    # --- Decision Reporting ---
+    # print-trace: false
+    # print-json-report: false
+    # print-text-report: false
+    # pretty-print-reports: false
+    # print-subscription-events: false
+    # print-unsubscription-events: false
+
+    # --- Bundle Security ---
+    #
+    # The node will not start until one of these options is configured.
+    # Generate a keypair: sapl-node bundle keygen -o /etc/sapl-node/signing
+    #
+    bundle-security:
+      # Option 1: Global public key (recommended)
+      # All bundles must be signed with the corresponding private key.
+      # public-key-path: /etc/sapl-node/signing.pub
+
+      # Option 2: Per-tenant key catalogue
+      # keys:
+      #   prod-key-2025: "MCowBQYDK2VwAyEA..."
+      #   staging-key: "MCowBQYDK2VwAyEA..."
+      # tenants:
+      #   production:
+      #     - "prod-key-2025"
+      #   staging:
+      #     - "staging-key"
+
+      # Option 3: Allow unsigned bundles (development/evaluation only)
+      # The node logs a warning on every startup when this is enabled.
+      # allow-unsigned: true
+      # unsigned-tenants:
+      #   - "development"
+
+    # --- Remote Bundles ---
+    #
+    # Required when pdp-config-type is REMOTE_BUNDLES.
+    #
+    # remote-bundles:
+    #   base-url: https://pap.example.com/bundles
+    #   pdp-ids:
+    #     - default
+    #   mode: POLLING
+    #   poll-interval: 30s
+    #   # long-poll-timeout: 30s
+    #   # auth-header-name: Authorization
+    #   # auth-header-value: "Bearer <token>"
+    #   # follow-redirects: true
+
+# --- OAuth2 Resource Server ---
+#
+# Required when allowOauth2Auth is true.
+#
+# spring.security.oauth2:
+#   resourceserver:
+#     jwt.issuer-uri: https://your-auth-server/realms/your-realm
+
+# --- Side-Loading Extensions ---
+#
+# Add function libraries and PIPs from external JARs.
+# Beans in sub-packages of io.sapl.server or with matching
+# Spring auto-configuration will be loaded at startup.
+#
+# loader.path: /path/to/lib
+
+# --- Keep-Alive ---
+#
+# Interval in seconds between keep-alive frames on idle connections.
+# Prevents firewalls from dropping inactive TCP connections.
+# Default 0 disables keep-alive.
+#
+# io.sapl.node.keep-alive: 15
+
+# --- Rate Limiting ---
 
 bucket4j:
   enabled: false
@@ -98,6 +234,8 @@ bucket4j:
               unit: seconds
   cache-to-use: caffeine
 
+# --- Actuator Endpoints ---
+
 management:
   endpoint:
     health:
@@ -113,6 +251,8 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+
+# --- Logging ---
 
 logging.level:
   "[io.sapl]": INFO

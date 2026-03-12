@@ -31,44 +31,15 @@ Verify the installation:
 
 ### Quick Start
 
-This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP with curl.
+This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP with curl. No configuration files are needed. The built-in defaults work out of the box: no TLS, no authentication, policies loaded from the current directory.
 
-Create a working directory with the required structure:
+Create a working directory and a policy file:
 
 ```shell
-mkdir -p my-node/config my-node/policies
+mkdir my-node
 ```
 
-Create `my-node/config/application.yml`. This disables TLS and authentication for a quick local test:
-
-```yaml
-io.sapl:
-  pdp.embedded:
-    config-path: policies
-    policies-path: policies
-  node:
-    allowNoAuth: true
-
-server:
-  port: 8080
-  ssl:
-    enabled: false
-```
-
-Create `my-node/policies/pdp.json`. This tells the PDP which combining algorithm to use when multiple policies apply:
-
-```json
-{
-  "algorithm": {
-    "votingMode": "PRIORITY_PERMIT",
-    "defaultDecision": "DENY",
-    "errorHandling": "ABSTAIN"
-  },
-  "variables": {}
-}
-```
-
-Create `my-node/policies/tick.sapl`. This policy uses the built in time PIP to grant access only when the current second is divisible by 5:
+Create `my-node/tick.sapl`. This policy uses the built in time PIP to grant access only when the current second is divisible by 5:
 
 ```
 policy "tick"
@@ -84,10 +55,12 @@ Start the server:
 cd my-node && ./sapl-node
 ```
 
+The node starts on `localhost:8443` with no TLS and no authentication required. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
+
 In a separate terminal, request a one shot decision:
 
 ```shell
-curl -s http://localhost:8080/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
+curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
 The response is a single JSON object. Depending on the current second, the decision is either `PERMIT` or `NOT_APPLICABLE`.
@@ -95,7 +68,7 @@ The response is a single JSON object. Depending on the current second, the decis
 Now try the streaming endpoint. This is where SAPL shows its strength. The PDP holds the connection open and pushes a new decision every time the policy evaluation result changes:
 
 ```shell
-curl -N http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
+curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
 Watch the output. Every few seconds, the decision flips between `PERMIT` and `NOT_APPLICABLE` as the current time crosses a multiple of five. The application does not need to poll. The PDP pushes changes as they happen.
@@ -107,53 +80,132 @@ Try editing `tick.sapl` while the streaming curl is running. Change `% 5` to `% 
 While the server is running, you can also check its operational state. The health endpoint shows whether policies loaded successfully:
 
 ```shell
-curl -s http://localhost:8080/actuator/health | python3 -m json.tool
+curl -s http://localhost:8443/actuator/health | jq .
 ```
 
 You should see `"status": "UP"` with a `pdps` detail block showing the state `LOADED`, the active combining algorithm, and the number of loaded documents. If a policy has a syntax error, the state changes to `ERROR` and the health status drops to `DOWN`.
 
-The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allowNoAuth` is enabled):
+The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allowNoAuth` is enabled by default):
 
 ```shell
-curl -s http://localhost:8080/actuator/info | python3 -m json.tool
+curl -s http://localhost:8443/actuator/info | jq .
 ```
 
 For Prometheus metrics, Kubernetes probes, and decision logging, see [Monitoring](../7_7_Monitoring/).
 
 ### Directory Layout
 
-The working directory you just created follows the standard layout:
+The minimal working directory is simply the binary and your policy files:
 
 ```
 my-node/
   sapl-node
-  config/
-    application.yml
-  policies/
-    pdp.json
-    tick.sapl
+  tick.sapl
 ```
 
-The server looks for `config/application.yml` on startup. The `config-path` and `policies-path` properties point to the policy directory. For bundle based deployments, the policies directory holds `.saplbundle` files instead of raw `.sapl` files. See [Policy Sources](../7_3_PolicySources/) for the different source types and [Configuration](../7_2_Configuration/) for the full property reference.
+For more complex setups, add a `pdp.json` to configure the combining algorithm and a `config/application.yml` to override defaults:
+
+```
+my-node/
+  sapl-node
+  pdp.json          (optional)
+  tick.sapl
+  config/
+    application.yml  (optional, overrides built-in defaults)
+```
+
+Spring Boot automatically loads `config/application.yml` on startup. The `config-path` and `policies-path` properties default to `.` (the working directory). For bundle based deployments, the working directory holds `.saplbundle` files instead of raw `.sapl` files. See [Policy Sources](../7_3_PolicySources/) for the different source types and [Configuration](../7_2_Configuration/) for the full property reference.
+
+### Installing with DEB or RPM
+
+Download the package for your distribution from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases).
+
+```shell
+sudo dpkg -i sapl-node_4.0.0_amd64.deb
+```
+
+Or for RPM-based distributions:
+
+```shell
+sudo rpm -i sapl-node-4.0.0.x86_64.rpm
+```
+
+The package installs the binary to `/usr/bin/sapl-node`, the configuration to `/etc/sapl-node/application.yml`, a systemd service, and example policies in `/var/lib/sapl-node/example/`.
+
+The service is configured in `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
+
+To deploy your first bundle using the included example policies:
+
+```shell
+sudo sapl-node bundle keygen -o /etc/sapl-node/signing
+sudo sapl-node bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+```
+
+Configure the public key in `/etc/sapl-node/application.yml`:
+
+```yaml
+io.sapl.pdp.embedded:
+  bundle-security:
+    public-key-path: /etc/sapl-node/signing.pub
+```
+
+Start or restart the service:
+
+```shell
+sudo systemctl enable --now sapl-node
+```
+
+Verify:
+
+```shell
+curl -s http://localhost:8443/actuator/health | jq .
+```
+
+You should see `"status": "UP"`. The PDP watches `/var/lib/sapl-node/` for bundle changes and reloads automatically.
+
+Replace the example policies with your own by creating `.sapl` files in a directory and rebuilding the bundle. See `/var/lib/sapl-node/README` for the full workflow.
 
 ### Running with Docker
 
 For container deployments, the server runs inside Docker while you use the local `sapl-node` binary for CLI operations like bundle creation and credential generation.
 
-The container image is `ghcr.io/heutelbeck/sapl-node`. Mount your policies directory into the container and configure the server via environment variables:
+The container image is `ghcr.io/heutelbeck/sapl-node`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
+
+To get started with signed bundles:
 
 ```shell
-docker run -p 8080:8080 -v ./policies:/pdp/data:ro -e SERVER_SSL_ENABLED=false -e SERVER_PORT=8080 -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_NODE_ALLOWNOAUTH=true -e IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+mkdir policies
+echo 'policy "allow-all" permit' > policies/allow-all.sapl
+sapl-node bundle keygen -o signing
+sapl-node bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem
 ```
 
-The `-v ./policies:/pdp/data:ro` flag maps your local `policies/` directory into the container at `/pdp/data`. The `:ro` suffix makes the mount read only, which is good practice since the server only reads policies.
+Run the container, mounting the bundles directory and the public key:
+
+```shell
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+```
+
+For development or evaluation without signing, disable signature verification:
+
+```shell
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+```
+
+To use raw `.sapl` files instead of bundles (for learning or demos), override the policy source type:
+
+```shell
+docker run -p 8443:8443 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+```
+
+The `SERVER_ADDRESS=0.0.0.0` override is required so Docker's port mapping can reach the server. The default `127.0.0.1` only accepts connections from within the container.
 
 Environment variables follow Spring Boot's naming convention: dots become underscores, camelCase becomes uppercase. For example, `io.sapl.node.allowBasicAuth` becomes `IO_SAPL_NODE_ALLOWBASICAUTH`. See [Configuration](../7_2_Configuration/) for all available properties.
 
 You can also mount a full `application.yml` instead of using individual environment variables:
 
 ```shell
-docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./policies:/pdp/data:ro ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
 ```
 
 ### CLI Reference
@@ -162,16 +214,18 @@ The `sapl-node` binary doubles as a CLI tool. These commands run locally without
 
 #### bundle create
 
-Creates a `.saplbundle` archive from a directory of `.sapl` files and a `pdp.json`.
+Creates a `.saplbundle` archive from a directory of `.sapl` files and an optional `pdp.json`. If a signing key is provided, the bundle is signed in the same step.
 
 ```
-sapl-node bundle create -i <dir> -o <file>
+sapl-node bundle create -i <dir> -o <file> [-k <key>]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `-i`, `--input` | Input directory containing policies. |
 | `-o`, `--output` | Output `.saplbundle` file. |
+| `-k`, `--key` | Ed25519 private key file (PEM format) for signing. Optional. |
+| `--key-id` | Key identifier for rotation support. Defaults to `"default"`. |
 
 #### bundle sign
 

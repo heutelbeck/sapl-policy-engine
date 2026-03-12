@@ -1,0 +1,78 @@
+SAPL Node - Getting Started
+===========================
+
+This directory (/var/lib/sapl-node) is where the PDP looks for
+.saplbundle files. The node is configured in BUNDLES mode with
+signature verification enabled by default.
+
+The node will not start until bundle security is configured.
+You must either provide a signing key or explicitly allow unsigned
+bundles before the service can run.
+
+
+Quick Start (signed bundles)
+----------------------------
+
+1. Generate a signing keypair (one-time):
+
+   sapl-node bundle keygen -o /etc/sapl-node/signing
+
+   This creates signing.pem (private key) and signing.pub (public key).
+   Keep the private key secure. The public key goes into the config.
+
+2. Build and sign a bundle from the example policies:
+
+   sapl-node bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+
+3. Configure the public key in /etc/sapl-node/application.yml:
+
+   io.sapl.pdp.embedded:
+     bundle-security:
+       public-key-path: /etc/sapl-node/signing.pub
+
+4. Restart the service:
+
+   sudo systemctl restart sapl-node
+
+5. Verify:
+
+   curl -s http://localhost:8443/actuator/health | jq .
+
+   You should see "status": "UP".
+
+The PDP watches this directory for changes. When you deploy a new
+bundle, the PDP reloads automatically without a restart.
+
+
+Writing Your Own Policies
+-------------------------
+
+Replace the example with your own policies:
+
+1. Create a directory with your .sapl files and optional pdp.json
+2. Build and sign: sapl-node bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+3. The PDP reloads automatically
+
+See /var/lib/sapl-node/example/ for a starting point.
+
+
+Disabling Signature Verification
+---------------------------------
+
+For development or evaluation, you can opt out of signature
+verification. Add to /etc/sapl-node/application.yml:
+
+   io.sapl.pdp.embedded:
+     bundle-security:
+       allowUnsigned: true
+
+The node logs a warning on every startup when signature verification
+is disabled. Do not use this setting in production.
+
+
+Documentation
+-------------
+
+Full documentation: https://sapl.io/docs
+Configuration reference: https://sapl.io/docs/node/configuration
+Security guide: https://sapl.io/docs/node/security

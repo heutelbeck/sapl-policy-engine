@@ -77,7 +77,8 @@ services:
       # Spring Security OAuth2 Resource Server Configuration
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://keycloak:8080/realms/sapl-demo
 
-      # Policy Configuration
+      # Policy Configuration (DIRECTORY for this demo, Docker default is BUNDLES)
+      - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY
       - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
 
       # Logging

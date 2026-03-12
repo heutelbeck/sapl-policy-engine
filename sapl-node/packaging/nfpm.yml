@@ -50,18 +50,31 @@ contents:
     dst: /etc/sapl-node/application.yml
     type: config|noreplace
 
-  - src: sapl-node/packaging/pdp.json
-    dst: /var/lib/sapl-node/policies/pdp.json
-    type: config|noreplace
-    file_info:
-      mode: 0640
-      owner: sapl-node
-      group: sapl-node
-
-  - dst: /var/lib/sapl-node/policies
+  - dst: /var/lib/sapl-node
     type: dir
     file_info:
       mode: 0750
+      owner: sapl-node
+      group: sapl-node
+
+  - src: sapl-node/packaging/README
+    dst: /var/lib/sapl-node/README
+    file_info:
+      mode: 0644
+      owner: sapl-node
+      group: sapl-node
+
+  - src: sapl-node/packaging/example/pdp.json
+    dst: /var/lib/sapl-node/example/pdp.json
+    file_info:
+      mode: 0644
+      owner: sapl-node
+      group: sapl-node
+
+  - src: sapl-node/packaging/example/deny-all.sapl
+    dst: /var/lib/sapl-node/example/deny-all.sapl
+    file_info:
+      mode: 0644
       owner: sapl-node
       group: sapl-node
 

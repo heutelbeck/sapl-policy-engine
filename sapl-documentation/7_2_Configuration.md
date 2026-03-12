@@ -13,7 +13,9 @@ For policy level configuration such as the combining algorithm, variables, and s
 
 ### Configuration File Location
 
-Place an `application.yml` in a `config/` directory next to the JAR. Spring Boot loads this file automatically on startup.
+SAPL Node ships with a self-documenting `application.yml` built into the JAR. The defaults are functional out of the box: no TLS, no authentication required, policies loaded from the current directory.
+
+To override defaults, place an `application.yml` in a `config/` directory next to the JAR. Spring Boot loads this file automatically on startup, and its values take precedence over the built-in defaults.
 
 To use a different location, pass the path as a startup argument:
 
@@ -32,11 +34,11 @@ All properties live under the prefix `io.sapl.pdp.embedded`:
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `enabled` | `boolean` | `true` | Enables the embedded PDP auto configuration. |
-| `pdp-config-type` | `PDPDataSource` | `RESOURCES` | Policy source type. One of `RESOURCES`, `DIRECTORY`, `MULTI_DIRECTORY`, `BUNDLES`, or `REMOTE_BUNDLES`. See [Policy Sources](../7_3_PolicySources/). |
+| `pdp-config-type` | `PDPDataSource` | `RESOURCES` | Policy source type. One of `RESOURCES`, `DIRECTORY`, `MULTI_DIRECTORY`, `BUNDLES`, or `REMOTE_BUNDLES`. SAPL Node overrides this to `DIRECTORY` (binary) or `BUNDLES` (packages, Docker). See [Policy Sources](../7_3_PolicySources/). |
 | `index` | `IndexType` | `NAIVE` | Indexing algorithm. `NAIVE` for small policy sets, `CANONICAL` for large collections with faster retrieval at the cost of slower index updates. |
-| `config-path` | `String` | `/policies` | Path to `pdp.json`. For `RESOURCES`, this is relative to the classpath root. For filesystem sources, it is an absolute or relative filesystem path. |
-| `policies-path` | `String` | `/policies` | Path to `.sapl` files or bundles. Same path resolution rules as `config-path`. |
-| `metrics-enabled` | `boolean` | `false` | Records PDP decision metrics for Prometheus via Micrometer. See [Monitoring](../7_7_Monitoring/). |
+| `config-path` | `String` | `.` | Path to `pdp.json`. For `RESOURCES`, this is relative to the classpath root. For filesystem sources, it is an absolute or relative filesystem path. The SAPL Node default is `.` (current directory). Package installations override this to `/var/lib/sapl-node`. |
+| `policies-path` | `String` | `.` | Path to `.sapl` files or bundles. Same path resolution rules as `config-path`. The SAPL Node default is `.` (current directory). |
+| `metrics-enabled` | `boolean` | `true` | Records PDP decision metrics for Prometheus via Micrometer. See [Monitoring](../7_7_Monitoring/). |
 | `print-trace` | `boolean` | `false` | Logs the full JSON evaluation trace on each decision. |
 | `print-json-report` | `boolean` | `false` | Logs the JSON evaluation report on each decision. |
 | `print-text-report` | `boolean` | `false` | Logs a human readable text evaluation report on each decision. |
@@ -52,8 +54,8 @@ All properties live under the prefix `io.sapl.node`:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `allowNoAuth` | `boolean` | `false` | Permits unauthenticated requests. |
-| `allowBasicAuth` | `boolean` | `true` | Enables HTTP Basic authentication. |
+| `allowNoAuth` | `boolean` | `true` | Permits unauthenticated requests. Enabled by default for zero-configuration development. Disable in production or when a gateway handles authentication. |
+| `allowBasicAuth` | `boolean` | `false` | Enables HTTP Basic authentication. |
 | `allowApiKeyAuth` | `boolean` | `false` | Enables API key authentication via Bearer tokens. |
 | `allowOauth2Auth` | `boolean` | `false` | Enables OAuth2/JWT authentication. |
 | `rejectOnMissingPdpId` | `boolean` | `false` | Rejects users at startup if their `pdpId` is not set. When `false`, missing values default to `defaultPdpId`. |
@@ -91,26 +93,55 @@ java -jar sapl-node-4.0.0-SNAPSHOT.jar --spring.profiles.active=docker
 
 Place a `application-docker.yml` in the config directory. Properties in the profile file override the defaults from `application.yml`. This is useful for toggling TLS, authentication modes, or log levels between development and production environments.
 
-### Minimal Configuration
+### Default Configuration
 
-This configuration runs a single directory PDP on plain HTTP with no authentication. It is suitable for local development and testing only.
+SAPL Node works out of the box with no configuration file. The built-in defaults run a single-directory PDP on plain HTTP at `localhost:8443` with no authentication required. Place `.sapl` files in the working directory and start the server. The PDP monitors the directory and reloads on changes.
+
+The `pdp.json` file is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
+
+The effective defaults are:
 
 ```yaml
 io.sapl:
   pdp.embedded:
+    pdp-config-type: DIRECTORY
     config-path: .
     policies-path: .
+    metrics-enabled: true
   node:
     allowNoAuth: true
 
 server:
-  address: localhost
-  port: 8080
+  address: 127.0.0.1
+  port: 8443
   ssl:
     enabled: false
 ```
 
-Place `.sapl` files and `pdp.json` in the working directory. The PDP monitors the directory and reloads on changes.
+The server binds to `127.0.0.1` (localhost only). This is safe for development. For container or network deployments, set `server.address: 0.0.0.0`.
+
+### Package and Docker Defaults
+
+Linux packages (DEB/RPM) and the Docker image default to `BUNDLES` mode with signature verification enabled. This is the secure production default. The node will not start until bundle security is configured: either provide a public key for signature verification or explicitly set `bundle-security.allow-unsigned: true`.
+
+To deploy your first bundle:
+
+```shell
+sapl-node bundle keygen -o signing
+sapl-node bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k signing.pem
+```
+
+Then configure the public key in `application.yml`:
+
+```yaml
+io.sapl.pdp.embedded:
+  bundle-security:
+    public-key-path: /etc/sapl-node/signing.pub
+```
+
+The PDP detects the new bundle automatically and begins serving decisions.
+
+To opt out of signature verification during evaluation, set `bundle-security.allow-unsigned: true` (or the equivalent `allowUnsigned: true`). The node logs a warning on every startup when signature verification is disabled.
 
 ### Production Configuration
 
@@ -123,7 +154,7 @@ io.sapl:
     policies-path: /opt/sapl/bundles
     metrics-enabled: true
     bundle-security:
-      publicKeyPath: /opt/sapl/keys/signing.pub
+      public-key-path: /opt/sapl/keys/signing.pub
 
   node:
     allowApiKeyAuth: true

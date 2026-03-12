@@ -81,6 +81,24 @@ public final class BundlePDPConfigurationSource implements Disposable {
     private static final String ERROR_PATH_IS_NOT_DIRECTORY        = "Bundle path is not a directory.";
     private static final String ERROR_SECURITY_POLICY_NULL         = "Security policy must not be null.";
 
+    private static final String WARN_NO_BUNDLES_SIGNED   = """
+            No policy bundles found in '{}'. \
+            The PDP is running but cannot make authorization decisions. \
+            Health status: DOWN. All decisions: INDETERMINATE. \
+            To deploy policies, generate a keypair and create a signed bundle: \
+            sapl-node bundle keygen -o signing && \
+            sapl-node bundle create -i <policy-dir> -o {}/default.saplbundle -k signing.pem \
+            Then configure the public key in application.yml: \
+            io.sapl.pdp.embedded.bundle-security.public-key-path=signing.pub""";
+    private static final String WARN_NO_BUNDLES_UNSIGNED = """
+            No policy bundles found in '{}'. \
+            The PDP is running but cannot make authorization decisions. \
+            Health status: DOWN. All decisions: INDETERMINATE. \
+            To deploy policies, create a bundle: \
+            sapl-node bundle create -i <policy-dir> -o {}/default.saplbundle \
+            Signature verification is disabled. \
+            For production, enable signing with: sapl-node bundle keygen -o signing""";
+
     private final Path                  directoryPath;
     private final BundleSecurityPolicy  securityPolicy;
     private final PdpVoterSource        pdpVoterSource;
@@ -148,6 +166,9 @@ public final class BundlePDPConfigurationSource implements Disposable {
             }
 
             log.info("Loaded {} bundle configurations.", bundles.size());
+            if (bundles.isEmpty()) {
+                logNoBundlesGuidance();
+            }
         } catch (Exception e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_LOAD_BUNDLES, e);
         }
@@ -183,6 +204,14 @@ public final class BundlePDPConfigurationSource implements Disposable {
         }
         val fileName = fileNamePath.toString();
         return fileName.substring(0, fileName.length() - BUNDLE_EXTENSION.length());
+    }
+
+    private void logNoBundlesGuidance() {
+        if (securityPolicy.signatureRequired()) {
+            log.warn(WARN_NO_BUNDLES_SIGNED, directoryPath, directoryPath);
+        } else {
+            log.warn(WARN_NO_BUNDLES_UNSIGNED, directoryPath, directoryPath);
+        }
     }
 
     private void startFileMonitor() {

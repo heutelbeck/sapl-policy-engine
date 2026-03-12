@@ -9,9 +9,38 @@ nav_order: 706
 
 This section covers securing the SAPL Node HTTP API: authentication, TLS, and interface binding. For bundle signing and signature verification, see [Policy Sources](../7_3_PolicySources/) and [Remote Bundles](../7_4_RemoteBundles/).
 
+### Default Security Posture
+
+SAPL Node defaults differ by deployment context. The binary is optimized for a quick development start. Packages and Docker are optimized for production safety.
+
+**Binary (development):** Binds to `127.0.0.1`, no TLS, no authentication, `DIRECTORY` mode. Drop `.sapl` files in the working directory and start evaluating policies immediately.
+
+**Packages and Docker (production):** `BUNDLES` mode with signature verification enabled. The node starts and accepts connections, but reports health `DOWN` and returns `INDETERMINATE` for all decisions until a signed bundle is deployed. This ensures the operator completes the bundle workflow before the node serves authorization decisions.
+
+In both contexts, authorization requests without matching policies are denied.
+
+**Binary (development)** security progression:
+
+| Level | What to configure | Use case |
+|-------|-------------------|----------|
+| 0 | Nothing | Local development, learning, CI |
+| 1 | Enable auth, generate credentials | Multi-service on same host |
+| 2 | Enable TLS, bind to `0.0.0.0` | Network-exposed service |
+
+**Packages and Docker (production)** security progression:
+
+| Level | What to configure | Use case |
+|-------|-------------------|----------|
+| 0 | Configure public key (or allow-unsigned to opt out) | First start |
+| 1 | Enable auth, generate credentials | Multi-service on same host, trusted network |
+| 2 | Enable TLS, bind to `0.0.0.0` | Network-exposed service |
+| 3 | TLS, auth, signed bundles, metrics | Production |
+
 ### Authentication
 
 SAPL Node supports four authentication modes. Each mode is controlled by a boolean property under `io.sapl.node`. Multiple modes can be active at the same time. When all four modes are disabled, every request is rejected.
+
+By default, `allowNoAuth` is enabled so the node is functional out of the box for development. For production, disable `allowNoAuth` and enable one or more credential-based modes.
 
 A request is authenticated if it matches any enabled mode. The first successful match determines the client identity and PDP routing. The `pdpId` from the matched credential entry selects which tenant's policies evaluate the request.
 
@@ -112,7 +141,7 @@ For OAuth2, the PDP identifier is extracted from the JWT claim specified by `oau
 
 ### TLS
 
-SAPL Node ships with TLS enabled by default on port 8443. Configure a keystore to provide the server certificate:
+TLS is disabled by default so the node starts without a certificate. To enable TLS, configure a keystore:
 
 ```yaml
 server:
@@ -156,34 +185,20 @@ server:
 
 TLSv1.3 is preferred. TLSv1.2 is included for compatibility with older clients. All listed cipher suites use AES with GCM or CBC mode and require forward secrecy via ECDHE or DHE key exchange.
 
-To disable TLS for development, set `server.ssl.enabled: false` and change the port:
-
-```yaml
-server:
-  port: 8080
-  ssl:
-    enabled: false
-```
-
 ### Interface Binding
 
 The `server.address` property controls which network interface the node listens on.
 
-For sidecar deployments behind a reverse proxy, bind to localhost only:
+The default is `127.0.0.1` (localhost only). This means the node is not reachable from the network out of the box, which is appropriate for local development.
 
-```yaml
-server:
-  address: 127.0.0.1
-```
-
-For container deployments or direct network access, bind to all interfaces:
+For container deployments, bind to all interfaces so Docker port mapping works:
 
 ```yaml
 server:
   address: 0.0.0.0
 ```
 
-The default configuration does not set `server.address`, which lets Spring Boot bind to all interfaces.
+In Docker Compose examples, this is set via `SERVER_ADDRESS=0.0.0.0`.
 
 ### Hardened Configuration Example
 
@@ -196,7 +211,7 @@ io.sapl:
     policies-path: /opt/sapl/bundles
     metrics-enabled: true
     bundle-security:
-      publicKeyPath: /opt/sapl/keys/signing.pub
+      public-key-path: /opt/sapl/keys/signing.pub
 
   node:
     allowNoAuth: false

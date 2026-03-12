@@ -229,10 +229,11 @@ public class PDPAutoConfiguration {
                     .build();
         }
 
-        throw new IllegalStateException("Bundle security not configured. Either provide a public key via "
-                + "bundle-security.public-key-path or bundle-security.public-key, "
-                + "or configure bundle-security.keys with tenant bindings, "
-                + "or explicitly disable verification by setting bundle-security.allow-unsigned=true");
+        throw new IllegalStateException("Bundle security not configured. "
+                + "To enable signature verification, set bundle-security.public-key-path to your Ed25519 public key. "
+                + "To create a keypair: sapl-node bundle keygen -o signing. "
+                + "To opt out of verification: set bundle-security.allow-unsigned=true. "
+                + "See /var/lib/sapl-node/README for the full setup workflow.");
     }
 
     private PublicKey loadPublicKey(BundleSecurityProperties securityProps) {

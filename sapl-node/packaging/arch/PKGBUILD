@@ -35,5 +35,8 @@ package() {
     install -Dm755 sapl-node "${pkgdir}/usr/bin/sapl-node"
     install -Dm644 "${srcdir}/../sapl-node.service" "${pkgdir}/usr/lib/systemd/system/sapl-node.service"
     install -Dm644 "${srcdir}/../default-config.yml" "${pkgdir}/etc/sapl-node/application.yml"
-    install -dm750 "${pkgdir}/var/lib/sapl-node/policies"
+    install -dm750 "${pkgdir}/var/lib/sapl-node"
+    install -Dm644 "${srcdir}/../README" "${pkgdir}/var/lib/sapl-node/README"
+    install -Dm644 "${srcdir}/../example/pdp.json" "${pkgdir}/var/lib/sapl-node/example/pdp.json"
+    install -Dm644 "${srcdir}/../example/deny-all.sapl" "${pkgdir}/var/lib/sapl-node/example/deny-all.sapl"
 }
