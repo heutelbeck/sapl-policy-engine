@@ -51,7 +51,7 @@ jobs:
 
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    if: matrix.os != 'macos-latest' || inputs.include-macos
+    if: ${{ matrix.os != 'macos-latest' || inputs.include-macos }}
     timeout-minutes: 120
 
     steps:
