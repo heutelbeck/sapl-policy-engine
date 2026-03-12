@@ -43,15 +43,10 @@ jobs:
             artifact-name: sapl-node-windows-amd64
             executable: sapl-node.exe
             profile: native
-          - os: macos-latest
-            artifact-name: sapl-node-macos-arm64
-            executable: sapl-node
-            profile: native
       fail-fast: false
 
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    if: ${{ matrix.os != 'macos-latest' || inputs.include-macos }}
     timeout-minutes: 120
 
     steps:
@@ -110,6 +105,54 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}
           path: sapl-node/target/${{ matrix.executable }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean up Local Repository before Caching
+        shell: bash
+        run: rm -rf ~/.m2/repository/io/sapl
+
+  build-native-macos:
+    if: inputs.include-macos
+    name: Build (macos-latest)
+    runs-on: macos-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@54b4f5a65c1a84b2fdfdc2078fe43df32819e4b1 # v1.4.5
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Cache Maven packages
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-native-node-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-native-node-
+            ${{ runner.os }}-maven-native-
+            ${{ runner.os }}-maven-
+
+      - name: Build Dependencies
+        shell: bash
+        run: mvn -B install -pl sapl-node -am -Dmaven.test.skip=true
+
+      - name: Build Native Image
+        shell: bash
+        run: mvn -B package -pl sapl-node -Pnative -Dmaven.test.skip=true
+
+      - name: Upload Native Executable
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: sapl-node-macos-arm64
+          path: sapl-node/target/sapl-node
           if-no-files-found: error
           retention-days: 7
 
