@@ -269,7 +269,6 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
                 .withEnv("IO_SAPL_PDP_EMBEDDED_REMOTEBUNDLES_FIRSTBACKOFF", "200ms")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_REMOTEBUNDLES_MAXBACKOFF", "1s")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED", "true")
-                .withEnv("IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ACCEPTRISKS", "true")
                 .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true").withEnv("SERVER_SSL_ENABLED", "false");
     }
 

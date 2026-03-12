@@ -17,7 +17,6 @@
  */
 package io.sapl.node.it.examples;
 
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.Timeout;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.MountableFile;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -38,115 +36,31 @@ import lombok.val;
 import reactor.test.StepVerifier;
 
 /**
- * Smoke tests for the default development configuration
- * ({@code config/application.yml}).
+ * Smoke tests for the out-of-the-box default configuration.
  * <p>
- * Validates that the out-of-the-box configuration shipped with the sapl-node
- * module works correctly when run via {@code mvn spring-boot:run}. Tests basic
- * auth and API key auth with the documented demo credentials. The policies-path
- * and config-path are overridden because the config's {@code ~/sapl} does not
- * exist in the container.
+ * Validates that the default application.yml shipped inside the sapl-node image
+ * works correctly: no TLS, no authentication required (allowNoAuth: true),
+ * DIRECTORY policy source. Policies are mounted from test resources.
  */
 @Testcontainers
 @DisplayName("Default Config Smoke Tests")
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
 class DefaultConfigExampleIT extends BaseIntegrationTest {
 
-    private static final Path CONFIG_FILE = Path.of("config/application.yml").toAbsolutePath();
-
-    private static final String BASIC_USERNAME = "xwuUaRD65G";
-    private static final String BASIC_SECRET   = "3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_";
-    private static final String API_KEY_1      = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
-    private static final String API_KEY_2      = "sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f";
-
     private GenericContainer<?> createDefaultConfigContainer() {
         return createSaplNodeContainer()
-                .withCopyFileToContainer(MountableFile.forHostPath(CONFIG_FILE), "/pdp/config/application.yml")
                 .withClasspathResourceMapping("it/policies/single-pdp", "/pdp/data/", BindMode.READ_ONLY)
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
-                .withEnv("IO_SAPL_PDP_EMBEDDED_CONFIGPATH", "/pdp/data").withEnv("SERVER_PORT", "8443")
-                .withEnv("SERVER_ADDRESS", "0.0.0.0");
+                .withEnv("IO_SAPL_PDP_EMBEDDED_CONFIGPATH", "/pdp/data").withEnv("SERVER_SSL_ENABLED", "false");
     }
 
     @Nested
-    @DisplayName("Basic Authentication")
-    class BasicAuthTests {
-
-        @Test
-        @DisplayName("basic auth with demo credentials permits matching request")
-        void whenBasicAuthWithDemoCredentialsThenPermit() {
-            try (val container = createDefaultConfigContainer()) {
-                container.start();
-
-                val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .basicAuth(BASIC_USERNAME, BASIC_SECRET).build();
-                val subscription = AuthorizationSubscription.of("Willi", "eat", "apple");
-
-                StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
-                        .verify(Duration.ofSeconds(30));
-            }
-        }
-
-        @Test
-        @DisplayName("basic auth with demo credentials denies non-matching request")
-        void whenBasicAuthNonMatchingRequestThenDeny() {
-            try (val container = createDefaultConfigContainer()) {
-                container.start();
-
-                val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .basicAuth(BASIC_USERNAME, BASIC_SECRET).build();
-                val subscription = AuthorizationSubscription.of("user", "delete", "secret");
-
-                StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
-                        .verify(Duration.ofSeconds(30));
-            }
-        }
-
-    }
-
-    @Nested
-    @DisplayName("API Key Authentication")
-    class ApiKeyAuthTests {
-
-        @Test
-        @DisplayName("API key 1 permits matching request")
-        void whenApiKey1MatchingRequestThenPermit() {
-            try (val container = createDefaultConfigContainer()) {
-                container.start();
-
-                val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .apiKey(API_KEY_1).build();
-                val subscription = AuthorizationSubscription.of("Willi", "eat", "apple");
-
-                StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
-                        .verify(Duration.ofSeconds(30));
-            }
-        }
-
-        @Test
-        @DisplayName("API key 2 permits matching request")
-        void whenApiKey2MatchingRequestThenPermit() {
-            try (val container = createDefaultConfigContainer()) {
-                container.start();
-
-                val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .apiKey(API_KEY_2).build();
-                val subscription = AuthorizationSubscription.of("Willi", "eat", "apple");
-
-                StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
-                        .verify(Duration.ofSeconds(30));
-            }
-        }
-
-    }
-
-    @Nested
-    @DisplayName("No Authentication")
+    @DisplayName("No Authentication (default)")
     class NoAuthTests {
 
         @Test
-        @DisplayName("no auth is rejected (allowNoAuth is false in default config)")
-        void whenNoAuthThenIndeterminate() {
+        @DisplayName("unauthenticated request is permitted when policy matches")
+        void whenNoAuthAndPolicyMatchesThenPermit() {
             try (val container = createDefaultConfigContainer()) {
                 container.start();
 
@@ -154,8 +68,23 @@ class DefaultConfigExampleIT extends BaseIntegrationTest {
                         .build();
                 val subscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 
-                StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.INDETERMINATE)
-                        .thenCancel().verify(Duration.ofSeconds(30));
+                StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
+                        .verify(Duration.ofSeconds(30));
+            }
+        }
+
+        @Test
+        @DisplayName("unauthenticated request is denied when policy does not match")
+        void whenNoAuthAndPolicyDoesNotMatchThenDeny() {
+            try (val container = createDefaultConfigContainer()) {
+                container.start();
+
+                val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
+                        .build();
+                val subscription = AuthorizationSubscription.of("user", "delete", "secret");
+
+                StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
+                        .verify(Duration.ofSeconds(30));
             }
         }
 

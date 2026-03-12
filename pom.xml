@@ -558,6 +558,7 @@
 								<exclude>.npmrc</exclude>
 								<exclude>**/*.pem</exclude>
 								<exclude>**/*.saplbundle</exclude>
+								<exclude>**/PKGBUILD</exclude>
 							</excludes>
 						</licenseSet>
 					</licenseSets>
@@ -574,6 +575,8 @@
 						<target>XML_STYLE</target>
 						<g4>SLASHSTAR_STYLE</g4>
 						<sapltest>SLASHSTAR_STYLE</sapltest>
+						<service>SCRIPT_STYLE</service>
+						<install>SCRIPT_STYLE</install>
 					</mapping>
 				</configuration>
 				<executions>

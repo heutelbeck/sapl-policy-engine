@@ -97,7 +97,7 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
 
             try (val container = createSaplNodeContainer()
                     .withFileSystemBind(policiesDir.toString(), "/pdp/data/", BindMode.READ_WRITE)
-                    .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
+                    .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data").withEnv("SERVER_SSL_ENABLED", "true")
                     .withEnv("SERVER_SSL_KEYSTORETYPE", "PKCS12")
                     .withEnv("SERVER_SSL_KEYSTORE", "/pdp/data/keystore.p12")
                     .withEnv("SERVER_SSL_KEYSTOREPASSWORD", "changeme").withEnv("SERVER_SSL_KEYPASSWORD", "changeme")
@@ -140,7 +140,7 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
 
             try (val container = createSaplNodeContainer()
                     .withFileSystemBind(policiesDir.toString(), "/pdp/data/", BindMode.READ_WRITE)
-                    .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
+                    .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data").withEnv("SERVER_SSL_ENABLED", "true")
                     .withEnv("SERVER_SSL_KEYSTORETYPE", "PKCS12")
                     .withEnv("SERVER_SSL_KEYSTORE", "/pdp/data/keystore.p12")
                     .withEnv("SERVER_SSL_KEYSTOREPASSWORD", "changeme").withEnv("SERVER_SSL_KEYPASSWORD", "changeme")

@@ -240,6 +240,10 @@
 					</excludes>
 					<image>
 						<builder>paketobuildpacks/builder-jammy-tiny</builder>
+						<buildpacks>
+							<buildpack>urn:cnb:builder:paketo-buildpacks/java</buildpack>
+							<buildpack>docker.io/paketobuildpacks/health-checker</buildpack>
+						</buildpacks>
 						<name>
 							${docker-registry-url}/${project.artifactId}:${project.version}</name>
 						<createdDate>now</createdDate>
@@ -259,6 +263,7 @@
 						</launchCache>
 						<applicationDirectory>/pdp</applicationDirectory>
 						<env>
+							<BP_HEALTH_CHECKER_ENABLED>true</BP_HEALTH_CHECKER_ENABLED>
 							<BP_JVM_JLINK_ENABLED>false</BP_JVM_JLINK_ENABLED>
 							<BPE_SPRING_PROFILES_ACTIVE>docker</BPE_SPRING_PROFILES_ACTIVE>
 							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>

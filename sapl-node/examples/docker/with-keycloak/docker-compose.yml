@@ -44,10 +44,18 @@ services:
       - "8443:8443"
     volumes:
       - ./policies:/pdp/data:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       # SSL/Port/Memory
       - SERVER_SSL_ENABLED=false
       - SERVER_PORT=8443
+      # Binding to 0.0.0.0 is required inside Docker for the port mapping to work.
       - SERVER_ADDRESS=0.0.0.0
       - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
 
@@ -68,11 +76,19 @@ services:
       # Policy Configuration
       - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
 
+      # Health check: thc calls /actuator/health (200=UP, 503=DOWN)
+      - THC_PATH=/actuator/health
+      - THC_PORT=8443
+
       # Logging
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
+    healthcheck:
+      test: ["CMD", "/layers/paketo-buildpacks_health-checker/thc/bin/thc"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
       keycloak:
         condition: service_healthy
-    # Paketo buildpack images have no curl/wget. Check health from the host:
-    #   curl http://localhost:8443/actuator/health
     restart: unless-stopped

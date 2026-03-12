@@ -24,6 +24,13 @@ services:
       - "8080:8080"
     volumes:
       - ./policies:/pdp/data:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       # Authentication Configuration
       - IO_SAPL_NODE_ALLOWNOAUTH=false
@@ -53,12 +60,22 @@ services:
       # - SERVER_SSL_KEYPASSWORD=changeme
       - SERVER_SSL_ENABLED=false
       - SERVER_PORT=8080
+      # Binding to 0.0.0.0 is required inside Docker for the port mapping to work.
+      # The host-side port binding (-p) controls external exposure.
       - SERVER_ADDRESS=0.0.0.0
       # Override Paketo's MaxDirectMemorySize (default 10M is too low for Netty)
       - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
 
+      # Health check: thc calls /actuator/health (200=UP, 503=DOWN)
+      - THC_PATH=/actuator/health
+      - THC_PORT=8080
+
       # Logging (verbose for demonstration)
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
-    # Paketo buildpack images have no curl/wget. Check health from the host:
-    #   curl http://localhost:8080/actuator/health
+    healthcheck:
+      test: ["CMD", "/layers/paketo-buildpacks_health-checker/thc/bin/thc"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped

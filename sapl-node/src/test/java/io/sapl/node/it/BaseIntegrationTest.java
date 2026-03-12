@@ -58,7 +58,7 @@ public abstract class BaseIntegrationTest {
      */
     protected GenericContainer<?> createSaplNodeContainer() {
         return new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_IMAGE)).withImagePullPolicy(NEVER_PULL)
-                .withExposedPorts(SAPL_SERVER_PORT)
+                .withExposedPorts(SAPL_SERVER_PORT).withEnv("SERVER_ADDRESS", "0.0.0.0")
                 .waitingFor(Wait.forLogMessage(STARTUP_LOG_PATTERN, 1).withStartupTimeout(CONTAINER_STARTUP));
     }
 
@@ -70,8 +70,8 @@ public abstract class BaseIntegrationTest {
      */
     protected GenericContainer<?> createSaplNodeContainerWithTls(String policiesPath) {
         return createSaplNodeContainer().withClasspathResourceMapping(policiesPath, "/pdp/data/", BindMode.READ_ONLY)
-                .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data").withEnv("SERVER_SSL_KEYSTORETYPE", "PKCS12")
-                .withEnv("SERVER_SSL_KEYSTORE", "/pdp/data/keystore.p12")
+                .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data").withEnv("SERVER_SSL_ENABLED", "true")
+                .withEnv("SERVER_SSL_KEYSTORETYPE", "PKCS12").withEnv("SERVER_SSL_KEYSTORE", "/pdp/data/keystore.p12")
                 .withEnv("SERVER_SSL_KEYSTOREPASSWORD", "changeme").withEnv("SERVER_SSL_KEYPASSWORD", "changeme")
                 .withEnv("SERVER_SSL_KEYALIAS", "netty");
     }
