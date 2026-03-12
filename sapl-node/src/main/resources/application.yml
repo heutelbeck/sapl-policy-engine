@@ -87,8 +87,8 @@ io.sapl:
     # Each user is associated with a pdpId for multi-tenant routing.
     #
     # Generate credentials:
-    #   sapl-node generate --basic --id "my-client" --pdp-id "production"
-    #   sapl-node generate --api-key --id "my-client" --pdp-id "staging"
+    #   sapl-node generate basic --id "my-client" --pdp-id "production"
+    #   sapl-node generate apikey --id "my-client" --pdp-id "staging"
     #
     # users:
     #   - id: "my-basic-client"
