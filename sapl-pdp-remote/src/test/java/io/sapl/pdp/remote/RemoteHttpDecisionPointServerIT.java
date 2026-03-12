@@ -74,6 +74,7 @@ class RemoteHttpDecisionPointServerIT {
         // @formatter:off
                 val container = baseContainer.withImagePullPolicy(NEVER_PULL)
                         .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
+                        .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                         .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")
                         .withEnv("SERVER_SSL_ENABLED", "false")
                         .withEnv("SERVER_ADDRESS", "0.0.0.0")
@@ -111,6 +112,7 @@ class RemoteHttpDecisionPointServerIT {
                 .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_PORT)
                 .waitingFor(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1).withStartupTimeout(Duration.ofMinutes(2)))
+                .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
                 .withEnv("SERVER_ADDRESS", "0.0.0.0")
                 .withEnv("SERVER_SSL_ENABLED", "true")

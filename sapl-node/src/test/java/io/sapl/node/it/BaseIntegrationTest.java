@@ -59,6 +59,7 @@ public abstract class BaseIntegrationTest {
     protected GenericContainer<?> createSaplNodeContainer() {
         return new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_IMAGE)).withImagePullPolicy(NEVER_PULL)
                 .withExposedPorts(SAPL_SERVER_PORT).withEnv("SERVER_ADDRESS", "0.0.0.0")
+                .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                 .waitingFor(Wait.forLogMessage(STARTUP_LOG_PATTERN, 1).withStartupTimeout(CONTAINER_STARTUP));
     }
 
