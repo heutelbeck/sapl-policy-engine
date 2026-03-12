@@ -40,6 +40,7 @@ class SaplNodeDockerTests {
     static void pdpPaths(DynamicPropertyRegistry registry) throws IOException {
         var dir = Path.of(System.getProperty("java.io.tmpdir"), "sapl-test");
         Files.createDirectories(dir);
+        registry.add("io.sapl.pdp.embedded.pdp-config-type", () -> "DIRECTORY");
         registry.add("io.sapl.pdp.embedded.config-path", dir::toString);
         registry.add("io.sapl.pdp.embedded.policies-path", dir::toString);
     }
