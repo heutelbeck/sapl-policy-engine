@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class SaplJwtAuthenticationConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
-    private static final String                       ERROR_MISSING_PDP_ID_CLAIM = "JWT token missing required claim: %s";
+    private static final String                       ERROR_MISSING_PDP_ID_CLAIM = "JWT token missing required claim: %s.";
     private static final List<SimpleGrantedAuthority> PDP_CLIENT_AUTHORITIES     = List
             .of(new SimpleGrantedAuthority("ROLE_PDP_CLIENT"));
 

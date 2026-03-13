@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 import org.springframework.boot.Banner;
@@ -56,26 +57,31 @@ import tools.jackson.databind.json.JsonMapper;
  * </ul>
  * <p>
  * Subscription input is either named flags ({@code -s}, {@code -a},
- * {@code -r}) or a JSON file ({@code -f}). When running in a non-interactive
- * environment without explicit input, stdin is read as JSON.
+ * {@code -r}) or a JSON file ({@code -f}). Use {@code -f -} to read
+ * subscription JSON from stdin.
  */
 @Command(name = "decide-once", description = "Evaluate a single authorization decision", mixinStandardHelpOptions = true)
 class DecideOnceCommand implements Callable<Integer> {
 
+    private static final String CONFIG_TYPE_BUNDLES   = "BUNDLES";
+    private static final String CONFIG_TYPE_DIRECTORY = "DIRECTORY";
+    private static final Path   STDIN_MARKER          = Path.of("-");
+
     private static final String ERROR_BOTH_POLICY_TYPES_FOUND      = "Error: Found both .sapl and .saplbundle files in %s. Use --dir or --bundle explicitly.";
-    private static final String ERROR_BUNDLE_NOT_FOUND             = "Error: Bundle file not found: %s";
+    private static final String ERROR_BUNDLE_NOT_FOUND             = "Error: Bundle file not found: %s.";
     private static final String ERROR_BUNDLE_VERIFICATION_REQUIRED = "Error: Bundle signature verification required. Provide --public-key <file>, place public-key.pem in ~/.sapl/, or use --no-verify.";
-    private static final String ERROR_DIRECTORY_NOT_FOUND          = "Error: Policy directory not found: %s";
-    private static final String ERROR_EVALUATION_FAILED            = "Error: Evaluation failed: ";
-    private static final String ERROR_INVALID_JSON_VALUE           = "Error: Invalid JSON value: ";
+    private static final String ERROR_DIRECTORY_NOT_FOUND          = "Error: Policy directory not found: %s.";
+    private static final String ERROR_EVALUATION_FAILED            = "Error: Evaluation failed: %s.";
+    private static final String ERROR_INVALID_JSON_VALUE           = "Error: Invalid JSON value: %s.";
     private static final String ERROR_NO_POLICIES_FOUND            = "Error: No policies found. Use --dir, --bundle, or create ~/.sapl/ with policy files.";
-    private static final String ERROR_PUBLIC_KEY_NOT_FOUND         = "Error: Public key file not found: %s";
-    private static final String ERROR_READING_SUBSCRIPTION_FILE    = "Error: Failed to read subscription file: ";
+    private static final String ERROR_PUBLIC_KEY_NOT_FOUND         = "Error: Public key file not found: %s.";
+    private static final String ERROR_READING_STDIN                = "Error: Failed to read subscription from stdin: %s.";
+    private static final String ERROR_READING_SUBSCRIPTION_FILE    = "Error: Failed to read subscription file: %s.";
     private static final String ERROR_SAPL_HOME_NOT_FOUND          = "Error: ~/.sapl/ directory not found. Use --dir or --bundle to specify policy location.";
     private static final String ERROR_SECRETS_NOT_OBJECT           = "Error: --secrets value must be a JSON object.";
-    private static final String ERROR_SUBSCRIPTION_FILE_NOT_FOUND  = "Error: Subscription file not found: %s";
-    private static final String ERROR_SUBSCRIPTION_INVALID_JSON    = "Error: Invalid JSON in subscription: ";
-    private static final String ERROR_SUBSCRIPTION_REQUIRED        = "Error: No subscription provided. Use -s/-a/-r flags, -f <file>, or pipe JSON to stdin.";
+    private static final String ERROR_SUBSCRIPTION_FILE_NOT_FOUND  = "Error: Subscription file not found: %s.";
+    private static final String ERROR_SUBSCRIPTION_INVALID_JSON    = "Error: Invalid JSON in subscription: %s.";
+    private static final String ERROR_SUBSCRIPTION_REQUIRED        = "Error: No subscription provided. Use -s/-a/-r flags or -f <file> (-f - for stdin).";
 
     @Spec
     private CommandSpec spec;
@@ -98,7 +104,7 @@ class DecideOnceCommand implements Callable<Integer> {
     @Option(names = "--text-report", description = "Print text evaluation report to stderr")
     boolean textReport;
 
-    Path saplHomeOverride;
+    private Path saplHomeOverride;
 
     static class PolicySource {
 
@@ -151,6 +157,10 @@ class DecideOnceCommand implements Callable<Integer> {
 
     private record ResolvedPolicy(String configType, String path, String publicKeyPath, boolean allowUnsigned) {}
 
+    void setSaplHomeOverride(Path path) {
+        this.saplHomeOverride = path;
+    }
+
     @Override
     public Integer call() {
         val err = spec.commandLine().getErr();
@@ -182,7 +192,7 @@ class DecideOnceCommand implements Callable<Integer> {
             err.println(e.getMessage());
             return 1;
         } catch (RuntimeException e) {
-            err.println(ERROR_EVALUATION_FAILED + e.getMessage());
+            err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
             return 1;
         }
     }
@@ -225,16 +235,6 @@ class DecideOnceCommand implements Callable<Integer> {
         if (subscriptionInput != null) {
             return buildSubscription(mapper);
         }
-        if (System.console() == null) {
-            try {
-                val input = new String(System.in.readAllBytes(), StandardCharsets.UTF_8).trim();
-                if (!input.isEmpty()) {
-                    return deserializeSubscription(mapper, input);
-                }
-            } catch (IOException ignored) {
-                // stdin not readable, fall through to error
-            }
-        }
         throw new IllegalArgumentException(ERROR_SUBSCRIPTION_REQUIRED);
     }
 
@@ -250,6 +250,9 @@ class DecideOnceCommand implements Callable<Integer> {
 
     private AuthorizationSubscription buildFileSubscription(JsonMapper mapper) {
         val file = subscriptionInput.file;
+        if (STDIN_MARKER.equals(file)) {
+            return readSubscriptionFromStdin(mapper);
+        }
         if (!Files.isRegularFile(file)) {
             throw new IllegalArgumentException(ERROR_SUBSCRIPTION_FILE_NOT_FOUND.formatted(file));
         }
@@ -257,7 +260,16 @@ class DecideOnceCommand implements Callable<Integer> {
             val content = Files.readString(file);
             return deserializeSubscription(mapper, content);
         } catch (IOException e) {
-            throw new IllegalArgumentException(ERROR_READING_SUBSCRIPTION_FILE + e.getMessage(), e);
+            throw new IllegalArgumentException(ERROR_READING_SUBSCRIPTION_FILE.formatted(e.getMessage()), e);
+        }
+    }
+
+    private static AuthorizationSubscription readSubscriptionFromStdin(JsonMapper mapper) {
+        try {
+            val content = new String(System.in.readAllBytes(), StandardCharsets.UTF_8).trim();
+            return deserializeSubscription(mapper, content);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(ERROR_READING_STDIN.formatted(e.getMessage()), e);
         }
     }
 
@@ -265,7 +277,7 @@ class DecideOnceCommand implements Callable<Integer> {
         try {
             return mapper.readTree(value);
         } catch (JacksonException e) {
-            throw new IllegalArgumentException(ERROR_INVALID_JSON_VALUE + value, e);
+            throw new IllegalArgumentException(ERROR_INVALID_JSON_VALUE.formatted(value), e);
         }
     }
 
@@ -281,7 +293,7 @@ class DecideOnceCommand implements Callable<Integer> {
         try {
             return mapper.readValue(json, AuthorizationSubscription.class);
         } catch (JacksonException e) {
-            throw new IllegalArgumentException(ERROR_SUBSCRIPTION_INVALID_JSON + e.getMessage(), e);
+            throw new IllegalArgumentException(ERROR_SUBSCRIPTION_INVALID_JSON.formatted(e.getMessage()), e);
         }
     }
 
@@ -302,7 +314,7 @@ class DecideOnceCommand implements Callable<Integer> {
             return null;
         }
         val path = policySource.dir.toAbsolutePath().toString();
-        return new ResolvedPolicy("DIRECTORY", path, null, false);
+        return new ResolvedPolicy(CONFIG_TYPE_DIRECTORY, path, null, false);
     }
 
     private ResolvedPolicy resolveBundleSource() {
@@ -311,7 +323,9 @@ class DecideOnceCommand implements Callable<Integer> {
             err.println(ERROR_BUNDLE_NOT_FOUND.formatted(policySource.bundle));
             return null;
         }
-        val path = policySource.bundle.toAbsolutePath().getParent().toString();
+        val path = Objects
+                .requireNonNull(policySource.bundle.toAbsolutePath().getParent(), "Bundle file has no parent directory")
+                .toString();
         return resolveBundleVerification(path);
     }
 
@@ -342,7 +356,7 @@ class DecideOnceCommand implements Callable<Integer> {
             val path = saplHome.toAbsolutePath().toString();
 
             if (hasSaplFiles) {
-                return new ResolvedPolicy("DIRECTORY", path, null, false);
+                return new ResolvedPolicy(CONFIG_TYPE_DIRECTORY, path, null, false);
             }
 
             return resolveBundleVerification(path);
@@ -360,18 +374,19 @@ class DecideOnceCommand implements Callable<Integer> {
                 err.println(ERROR_PUBLIC_KEY_NOT_FOUND.formatted(bundleVerification.publicKey));
                 return null;
             }
-            return new ResolvedPolicy("BUNDLES", path, bundleVerification.publicKey.toAbsolutePath().toString(), false);
+            return new ResolvedPolicy(CONFIG_TYPE_BUNDLES, path,
+                    bundleVerification.publicKey.toAbsolutePath().toString(), false);
         }
 
         if (bundleVerification != null && bundleVerification.noVerify) {
-            return new ResolvedPolicy("BUNDLES", path, null, true);
+            return new ResolvedPolicy(CONFIG_TYPE_BUNDLES, path, null, true);
         }
 
         val saplHome = resolveSaplHome();
         if (Files.isDirectory(saplHome)) {
             val defaultKey = saplHome.resolve("public-key.pem");
             if (Files.isRegularFile(defaultKey)) {
-                return new ResolvedPolicy("BUNDLES", path, defaultKey.toAbsolutePath().toString(), false);
+                return new ResolvedPolicy(CONFIG_TYPE_BUNDLES, path, defaultKey.toAbsolutePath().toString(), false);
             }
         }
 

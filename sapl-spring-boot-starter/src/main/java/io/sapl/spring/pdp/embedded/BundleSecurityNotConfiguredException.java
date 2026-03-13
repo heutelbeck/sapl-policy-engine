@@ -18,7 +18,8 @@
 package io.sapl.spring.pdp.embedded;
 
 import java.io.Serial;
-import java.nio.file.Path;
+
+import io.sapl.api.SaplVersion;
 
 /**
  * Thrown when the PDP is configured for BUNDLES or REMOTE_BUNDLES mode but no
@@ -29,16 +30,16 @@ import java.nio.file.Path;
 class BundleSecurityNotConfiguredException extends RuntimeException {
 
     @Serial
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    private final Path policiesPath;
+    private final String policiesPath;
 
-    BundleSecurityNotConfiguredException(Path policiesPath) {
+    BundleSecurityNotConfiguredException(String policiesPath) {
         super("Bundle security not configured");
         this.policiesPath = policiesPath;
     }
 
-    Path getPoliciesPath() {
+    String getPoliciesPath() {
         return policiesPath;
     }
 

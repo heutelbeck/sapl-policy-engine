@@ -65,19 +65,19 @@ class BundleCommand {
     private static final String PEM_PUBLIC_KEY_BEGIN  = "-----BEGIN PUBLIC KEY-----";
     private static final String PEM_PUBLIC_KEY_END    = "-----END PUBLIC KEY-----";
 
-    private static final String ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: ";
-    private static final String ERROR_BUNDLE_NOT_SIGNED   = "Error: Bundle is not signed (no manifest found)";
-    private static final String ERROR_CREATING_BUNDLE     = "Error creating bundle: ";
-    private static final String ERROR_FILE_ALREADY_EXISTS = "Error: File already exists: ";
-    private static final String ERROR_GENERATING_KEYPAIR  = "Error generating keypair: ";
-    private static final String ERROR_INSPECTING_BUNDLE   = "Error inspecting bundle: ";
-    private static final String ERROR_KEY_NOT_FOUND       = "Error: Key file not found: ";
-    private static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: ";
-    private static final String ERROR_NOT_A_DIRECTORY     = "Error: Input path is not a directory: ";
-    private static final String ERROR_SIGNING_BUNDLE      = "Error signing bundle: ";
-    private static final String ERROR_VERIFICATION_FAILED = "Verification FAILED: ";
-    private static final String ERROR_VERIFYING_BUNDLE    = "Error verifying bundle: ";
-    private static final String HINT_USE_FORCE            = "Use --force to overwrite";
+    private static final String ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: %s.";
+    private static final String ERROR_BUNDLE_NOT_SIGNED   = "Error: Bundle is not signed (no manifest found).";
+    private static final String ERROR_CREATING_BUNDLE     = "Error creating bundle: %s.";
+    private static final String ERROR_FILE_ALREADY_EXISTS = "Error: File already exists: %s.";
+    private static final String ERROR_GENERATING_KEYPAIR  = "Error generating keypair: %s.";
+    private static final String ERROR_INSPECTING_BUNDLE   = "Error inspecting bundle: %s.";
+    private static final String ERROR_KEY_NOT_FOUND       = "Error: Key file not found: %s.";
+    private static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: %s.";
+    private static final String ERROR_NOT_A_DIRECTORY     = "Error: Input path is not a directory: %s.";
+    private static final String ERROR_SIGNING_BUNDLE      = "Error signing bundle: %s.";
+    private static final String ERROR_VERIFICATION_FAILED = "Verification FAILED: %s.";
+    private static final String ERROR_VERIFYING_BUNDLE    = "Error verifying bundle: %s.";
+    private static final String HINT_USE_FORCE            = "Use --force to overwrite.";
 
     @Command(name = "create", description = "Create a policy bundle from a directory", mixinStandardHelpOptions = true)
     static class Create implements Callable<Integer> {
@@ -103,12 +103,12 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.isDirectory(inputDir)) {
-                err.println(ERROR_NOT_A_DIRECTORY + inputDir);
+                err.println(ERROR_NOT_A_DIRECTORY.formatted(inputDir));
                 return 1;
             }
 
             if (keyFile != null && !Files.exists(keyFile)) {
-                err.println(ERROR_KEY_NOT_FOUND + keyFile);
+                err.println(ERROR_KEY_NOT_FOUND.formatted(keyFile));
                 return 1;
             }
 
@@ -131,7 +131,7 @@ class BundleCommand {
                 }
 
                 if (policies == 0) {
-                    err.println(ERROR_NO_POLICIES_FOUND + inputDir);
+                    err.println(ERROR_NO_POLICIES_FOUND.formatted(inputDir));
                     return 1;
                 }
 
@@ -150,7 +150,7 @@ class BundleCommand {
                 return 0;
 
             } catch (IOException | GeneralSecurityException e) {
-                err.println(ERROR_CREATING_BUNDLE + e.getMessage());
+                err.println(ERROR_CREATING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
         }
@@ -181,12 +181,12 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.exists(bundleFile)) {
-                err.println(ERROR_BUNDLE_NOT_FOUND + bundleFile);
+                err.println(ERROR_BUNDLE_NOT_FOUND.formatted(bundleFile));
                 return 1;
             }
 
             if (!Files.exists(keyFile)) {
-                err.println(ERROR_KEY_NOT_FOUND + keyFile);
+                err.println(ERROR_KEY_NOT_FOUND.formatted(keyFile));
                 return 1;
             }
 
@@ -217,7 +217,7 @@ class BundleCommand {
                 return 0;
 
             } catch (IOException | GeneralSecurityException e) {
-                err.println(ERROR_SIGNING_BUNDLE + e.getMessage());
+                err.println(ERROR_SIGNING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
         }
@@ -242,12 +242,12 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.exists(bundleFile)) {
-                err.println(ERROR_BUNDLE_NOT_FOUND + bundleFile);
+                err.println(ERROR_BUNDLE_NOT_FOUND.formatted(bundleFile));
                 return 1;
             }
 
             if (!Files.exists(keyFile)) {
-                err.println(ERROR_KEY_NOT_FOUND + keyFile);
+                err.println(ERROR_KEY_NOT_FOUND.formatted(keyFile));
                 return 1;
             }
 
@@ -272,10 +272,10 @@ class BundleCommand {
                 return 0;
 
             } catch (BundleSignatureException e) {
-                err.println(ERROR_VERIFICATION_FAILED + e.getMessage());
+                err.println(ERROR_VERIFICATION_FAILED.formatted(e.getMessage()));
                 return 1;
             } catch (IOException | GeneralSecurityException e) {
-                err.println(ERROR_VERIFYING_BUNDLE + e.getMessage());
+                err.println(ERROR_VERIFYING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
         }
@@ -297,7 +297,7 @@ class BundleCommand {
             val err = spec.commandLine().getErr();
 
             if (!Files.exists(bundleFile)) {
-                err.println(ERROR_BUNDLE_NOT_FOUND + bundleFile);
+                err.println(ERROR_BUNDLE_NOT_FOUND.formatted(bundleFile));
                 return 1;
             }
 
@@ -345,7 +345,7 @@ class BundleCommand {
                 return 0;
 
             } catch (IOException e) {
-                err.println(ERROR_INSPECTING_BUNDLE + e.getMessage());
+                err.println(ERROR_INSPECTING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
         }
@@ -373,13 +373,13 @@ class BundleCommand {
             val publicKey  = outputPrefix.resolveSibling(outputPrefix.getFileName() + ".pub");
 
             if (!force && Files.exists(privateKey)) {
-                err.println(ERROR_FILE_ALREADY_EXISTS + privateKey);
+                err.println(ERROR_FILE_ALREADY_EXISTS.formatted(privateKey));
                 err.println(HINT_USE_FORCE);
                 return 1;
             }
 
             if (!force && Files.exists(publicKey)) {
-                err.println(ERROR_FILE_ALREADY_EXISTS + publicKey);
+                err.println(ERROR_FILE_ALREADY_EXISTS.formatted(publicKey));
                 err.println(HINT_USE_FORCE);
                 return 1;
             }
@@ -401,7 +401,7 @@ class BundleCommand {
                 return 0;
 
             } catch (IOException | GeneralSecurityException e) {
-                err.println(ERROR_GENERATING_KEYPAIR + e.getMessage());
+                err.println(ERROR_GENERATING_KEYPAIR.formatted(e.getMessage()));
                 return 1;
             }
         }

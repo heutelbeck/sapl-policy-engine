@@ -32,7 +32,7 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "io.sapl.node")
 public class SaplNodeProperties {
 
-    private static final String ERROR_MISSING_PDP_ID = "User '%s' has no pdpId configured and rejectOnMissingPdpId is enabled";
+    private static final String ERROR_MISSING_PDP_ID = "User '%s' has no pdpId configured and rejectOnMissingPdpId is enabled.";
     private static final String ERROR_SHORT_API_KEY  = "Detected short API key in configuration. API key must be at least %d characters long.";
 
     // Authentication methods

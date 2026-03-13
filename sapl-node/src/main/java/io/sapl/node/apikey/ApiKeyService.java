@@ -42,7 +42,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class ApiKeyService {
 
-    private static final String ERROR_API_KEY_NOT_AUTHORIZED = "ApiKey not authorized";
+    private static final String ERROR_API_KEY_NOT_AUTHORIZED = "ApiKey not authorized.";
 
     static final String HEADER            = "Authorization";
     static final String HEADER_PREFIX     = "Bearer ";

@@ -21,9 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -119,6 +122,14 @@ class DecideOnceCommandTests {
         }
 
         @Test
+        @DisplayName("-f - sets stdin marker path")
+        void whenFileDash_thenStdinMarkerPath() {
+            val cmd = new DecideOnceCommand();
+            new CommandLine(cmd).parseArgs("-f", "-");
+            assertThat(cmd.subscriptionInput.file).isEqualTo(Path.of("-"));
+        }
+
+        @Test
         @DisplayName("--trace sets trace flag")
         void whenTraceFlag_thenTraceIsTrue() {
             val cmd = new DecideOnceCommand();
@@ -192,6 +203,7 @@ class DecideOnceCommandTests {
             case "trace"       -> cmd.trace = true;
             case "json-report" -> cmd.jsonReport = true;
             case "text-report" -> cmd.textReport = true;
+            default            -> throw new IllegalArgumentException("Unknown flag: " + flagName);
             }
             val args = cmd.buildSpringArgs("DIRECTORY", "/tmp", null, false);
             assertThat(args).contains(expectedProperty, "--logging.level.[io.sapl.pdp.interceptors]=INFO");
@@ -332,6 +344,37 @@ class DecideOnceCommandTests {
             val cmd = commandWithFileInput(file);
             assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Invalid JSON");
+        }
+
+        @Test
+        @DisplayName("-f - reads subscription from stdin")
+        void whenStdinMarker_thenReadsFromStdin() {
+            val json       = "{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"document\"}";
+            val originalIn = System.in;
+            try {
+                System.setIn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+                val cmd          = commandWithFileInput(Path.of("-"));
+                val subscription = cmd.buildSubscription(MAPPER);
+                val output       = MAPPER.writeValueAsString(subscription);
+                assertThat(output).contains("\"subject\":\"alice\"", "\"action\":\"read\"",
+                        "\"resource\":\"document\"");
+            } finally {
+                System.setIn(originalIn);
+            }
+        }
+
+        @Test
+        @DisplayName("-f - with invalid JSON from stdin throws IllegalArgumentException")
+        void whenStdinInvalidJson_thenThrowsIllegalArgument() {
+            val originalIn = System.in;
+            try {
+                System.setIn(new ByteArrayInputStream("not json".getBytes(StandardCharsets.UTF_8)));
+                val cmd = commandWithFileInput(Path.of("-"));
+                assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("Invalid JSON");
+            } finally {
+                System.setIn(originalIn);
+            }
         }
 
     }

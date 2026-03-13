@@ -34,7 +34,7 @@ public record SaplUser(String id, String pdpId) implements Serializable {
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String DEFAULT_PDP_ID = "default";
-    private static final String ERROR_ID_NULL_OR_BLANK = "User id must not be null or blank";
+    private static final String ERROR_ID_NULL_OR_BLANK = "User id must not be null or blank.";
 
     /**
      * Creates a SaplUser with the given id and pdpId.

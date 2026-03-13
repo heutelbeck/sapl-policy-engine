@@ -19,9 +19,12 @@ package io.sapl.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -44,7 +47,7 @@ class DecideOnceIntegrationTests {
     void captureStdout() {
         originalOut = System.out;
         capturedOut = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(capturedOut));
+        System.setOut(new PrintStream(capturedOut, true, StandardCharsets.UTF_8));
     }
 
     @AfterEach
@@ -68,7 +71,7 @@ class DecideOnceIntegrationTests {
                     "\"alice\"", "-a", "\"read\"", "-r", "\"document\"" });
 
             assertThat(exitCode).isZero();
-            assertThat(capturedOut.toString().trim()).isEqualTo("{\"decision\":\"PERMIT\"}");
+            assertThat(capturedOut.toString(StandardCharsets.UTF_8).trim()).isEqualTo("{\"decision\":\"PERMIT\"}");
         }
 
         @Test
@@ -80,7 +83,7 @@ class DecideOnceIntegrationTests {
                     "\"alice\"", "-a", "\"read\"", "-r", "\"document\"" });
 
             assertThat(exitCode).isZero();
-            assertThat(capturedOut.toString().trim()).contains("\"decision\":");
+            assertThat(capturedOut.toString(StandardCharsets.UTF_8).trim()).contains("\"decision\":");
         }
 
         @Test
@@ -92,7 +95,7 @@ class DecideOnceIntegrationTests {
                     "{\"name\":\"alice\"}", "-a", "\"read\"", "-r", "\"document\"" });
 
             assertThat(exitCode).isZero();
-            assertThat(capturedOut.toString().trim()).isEqualTo("{\"decision\":\"PERMIT\"}");
+            assertThat(capturedOut.toString(StandardCharsets.UTF_8).trim()).isEqualTo("{\"decision\":\"PERMIT\"}");
         }
     }
 
@@ -115,7 +118,41 @@ class DecideOnceIntegrationTests {
                     new String[] { "decide-once", "--dir", policyDir.toString(), "-f", subscriptionFile.toString() });
 
             assertThat(exitCode).isZero();
-            assertThat(capturedOut.toString().trim()).isEqualTo("{\"decision\":\"PERMIT\"}");
+            assertThat(capturedOut.toString(StandardCharsets.UTF_8).trim()).isEqualTo("{\"decision\":\"PERMIT\"}");
+        }
+    }
+
+    @Nested
+    @DisplayName("directory mode with stdin input")
+    class DirectoryWithStdinInputTests {
+
+        @TempDir
+        Path policyDir;
+
+        private InputStream originalIn;
+
+        @BeforeEach
+        void captureStdin() {
+            originalIn = System.in;
+        }
+
+        @AfterEach
+        void restoreStdin() {
+            System.setIn(originalIn);
+        }
+
+        @Test
+        @DisplayName("-f - reads subscription from stdin")
+        void whenStdinInput_thenCorrectDecision() throws IOException {
+            Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
+            val json = "{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"document\"}";
+            System.setIn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+
+            val exitCode = SaplNodeApplication
+                    .run(new String[] { "decide-once", "--dir", policyDir.toString(), "-f", "-" });
+
+            assertThat(exitCode).isZero();
+            assertThat(capturedOut.toString(StandardCharsets.UTF_8).trim()).isEqualTo("{\"decision\":\"PERMIT\"}");
         }
     }
 

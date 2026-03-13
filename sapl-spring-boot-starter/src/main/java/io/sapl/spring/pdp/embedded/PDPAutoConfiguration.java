@@ -229,7 +229,7 @@ public class PDPAutoConfiguration {
                     .build();
         }
 
-        throw new BundleSecurityNotConfiguredException(policiesPath);
+        throw new BundleSecurityNotConfiguredException(policiesPath.toString());
     }
 
     private PublicKey loadPublicKey(BundleSecurityProperties securityProps) {
