@@ -33,6 +33,7 @@ Create `~/sapl-node/policies/pdp.json`:
 
 ```json
 {
+  "configurationId": "quickstart-v1",
   "algorithm": {
     "votingMode": "PRIORITY_PERMIT",
     "defaultDecision": "DENY",
@@ -133,6 +134,7 @@ Signature:
 
 Configuration (pdp.json):
   {
+    "configurationId": "quickstart-v1",
     "algorithm": {
       "votingMode": "PRIORITY_PERMIT",
       "defaultDecision": "DENY",
@@ -556,6 +558,7 @@ When signed, the manifest contains Ed25519 signatures over SHA-256 hashes of all
 
 ```json
 {
+  "configurationId": "my-app-v1",
   "algorithm": {
     "votingMode": "PRIORITY_PERMIT",
     "defaultDecision": "DENY",
@@ -565,9 +568,11 @@ When signed, the manifest contains Ed25519 signatures over SHA-256 hashes of all
 }
 ```
 
-Voting modes: `PRIORITY_PERMIT`, `PRIORITY_DENY`, `ONLY_ONE_APPLICABLE`, `DENY_OVERRIDES`, `PERMIT_OVERRIDES`.
+The `configurationId` is required for bundles. It appears in health endpoints and decision logs, enabling operators to correlate decisions with the exact policy version that produced them. For directory sources, it is optional and auto-generated when absent.
 
-Default decision: `PERMIT` or `DENY`.
+Voting modes: `PRIORITY_DENY`, `PRIORITY_PERMIT`, `UNANIMOUS`, `UNANIMOUS_STRICT`, `UNIQUE`.
+
+Default decision: `PERMIT`, `DENY`, or `ABSTAIN`.
 
 Error handling: `PROPAGATE` or `ABSTAIN`.
 

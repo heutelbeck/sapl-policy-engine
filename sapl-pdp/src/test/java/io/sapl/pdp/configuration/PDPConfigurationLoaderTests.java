@@ -192,7 +192,7 @@ class PDPConfigurationLoaderTests {
                 """);
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(PDPConfigurationException.class);
     }
 
     @Test
