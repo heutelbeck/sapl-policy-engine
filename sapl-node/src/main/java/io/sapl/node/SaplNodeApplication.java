@@ -21,15 +21,21 @@ import java.util.Set;
 
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.node.cli.DecideOnceRunner;
 import io.sapl.node.cli.SaplNodeCli;
+import lombok.val;
 import picocli.CommandLine;
+import tools.jackson.databind.json.JsonMapper;
 
 @EnableCaching
 @ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
@@ -42,11 +48,12 @@ import picocli.CommandLine;
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
-    private static final Set<String> CLI_ONLY_ARGS = Set.of("--help", "-h", "--version", "-V", "bundle", "generate");
+    private static final Set<String> CLI_ONLY_ARGS   = Set.of("--help", "-h", "--version", "-V", "bundle", "generate");
+    private static final Set<String> SPRING_CLI_ARGS = Set.of("decide-once");
 
     public static void main(String[] args) {
-        int exitCode = run(args);
-        if (exitCode != 0 || isCliOnlyCommand(args)) {
+        val exitCode = run(args);
+        if (exitCode != 0 || isCliOnlyCommand(args) || isSpringCliCommand(args)) {
             System.exit(exitCode);
         }
     }
@@ -58,13 +65,42 @@ public class SaplNodeApplication {
         if (isCliOnlyCommand(args)) {
             return new CommandLine(new SaplNodeCli()).execute(args);
         }
+        if (isSpringCliCommand(args)) {
+            return runSpringCli(args);
+        }
         SpringApplication.run(SaplNodeApplication.class, args);
         return 0;
+    }
+
+    private static int runSpringCli(String[] args) {
+        try {
+            val app = new SpringApplication(SaplNodeApplication.class);
+            app.setWebApplicationType(WebApplicationType.NONE);
+            app.setBannerMode(Banner.Mode.OFF);
+            app.setAdditionalProfiles("cli");
+            try (var context = app.run(args)) {
+                val pdp    = context.getBean(PolicyDecisionPoint.class);
+                val mapper = context.getBean(JsonMapper.class);
+                new DecideOnceRunner(pdp, mapper).run(args);
+                return SpringApplication.exit(context);
+            }
+        } catch (RuntimeException e) {
+            return 1;
+        }
     }
 
     private static boolean isCliOnlyCommand(String[] args) {
         for (var arg : args) {
             if (CLI_ONLY_ARGS.contains(arg)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSpringCliCommand(String[] args) {
+        for (var arg : args) {
+            if (SPRING_CLI_ARGS.contains(arg)) {
                 return true;
             }
         }
@@ -78,6 +114,8 @@ public class SaplNodeApplication {
             hints.resources().registerPattern("banner.txt");
             hints.resources().registerPattern("saplversion.properties");
             hints.resources().registerPattern("git.properties");
+            hints.resources().registerPattern("ch/qos/logback/core/logback-core-version.properties");
+            hints.resources().registerPattern("ch/qos/logback/classic/logback-classic-version.properties");
         }
 
     }

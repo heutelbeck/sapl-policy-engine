@@ -23,6 +23,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -58,6 +59,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Configuration
+@Profile("!cli")
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {

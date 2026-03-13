@@ -1,0 +1,6 @@
+logging.level:
+  root: ERROR
+  "[io.sapl]": ERROR
+  "[org.springframework]": ERROR
+  "[io.micrometer]": ERROR
+  "[ch.qos.logback]": ERROR
