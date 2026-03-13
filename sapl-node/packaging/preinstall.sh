@@ -18,9 +18,9 @@
 #
 
 set -e
-if ! getent group sapl-node >/dev/null 2>&1; then
-    groupadd --system sapl-node
+if ! getent group sapl >/dev/null 2>&1; then
+    groupadd --system sapl
 fi
-if ! getent passwd sapl-node >/dev/null 2>&1; then
-    useradd --system --gid sapl-node --home-dir /var/lib/sapl-node --shell /usr/sbin/nologin --no-create-home sapl-node
+if ! getent passwd sapl >/dev/null 2>&1; then
+    useradd --system --gid sapl --home-dir /var/lib/sapl --shell /usr/sbin/nologin --no-create-home sapl
 fi

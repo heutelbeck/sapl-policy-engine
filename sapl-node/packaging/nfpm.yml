@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-# nfpm configuration for sapl-node DEB and RPM packages.
+# nfpm configuration for SAPL Node DEB and RPM packages.
 #
 # The VERSION, ARCH, and BINARY environment variables are set by the CI
 # publish job. Run locally with:
@@ -24,7 +24,7 @@
 #   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl nfpm package --packager deb --target .
 #   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl nfpm package --packager rpm --target .
 
-name: sapl-node
+name: sapl
 version: ${VERSION}
 arch: ${ARCH}
 platform: linux
@@ -42,41 +42,41 @@ contents:
     file_info:
       mode: 0755
 
-  - src: sapl-node/packaging/sapl-node.service
-    dst: /usr/lib/systemd/system/sapl-node.service
+  - src: sapl-node/packaging/sapl.service
+    dst: /usr/lib/systemd/system/sapl.service
     type: config|noreplace
 
   - src: sapl-node/packaging/default-config.yml
-    dst: /etc/sapl-node/application.yml
+    dst: /etc/sapl/application.yml
     type: config|noreplace
 
-  - dst: /var/lib/sapl-node
+  - dst: /var/lib/sapl
     type: dir
     file_info:
       mode: 0750
-      owner: sapl-node
-      group: sapl-node
+      owner: sapl
+      group: sapl
 
   - src: sapl-node/packaging/README
-    dst: /var/lib/sapl-node/README
+    dst: /var/lib/sapl/README
     file_info:
       mode: 0644
-      owner: sapl-node
-      group: sapl-node
+      owner: sapl
+      group: sapl
 
   - src: sapl-node/packaging/example/pdp.json
-    dst: /var/lib/sapl-node/example/pdp.json
+    dst: /var/lib/sapl/example/pdp.json
     file_info:
       mode: 0644
-      owner: sapl-node
-      group: sapl-node
+      owner: sapl
+      group: sapl
 
   - src: sapl-node/packaging/example/deny-all.sapl
-    dst: /var/lib/sapl-node/example/deny-all.sapl
+    dst: /var/lib/sapl/example/deny-all.sapl
     file_info:
       mode: 0644
-      owner: sapl-node
-      group: sapl-node
+      owner: sapl
+      group: sapl
 
 scripts:
   preinstall: sapl-node/packaging/preinstall.sh

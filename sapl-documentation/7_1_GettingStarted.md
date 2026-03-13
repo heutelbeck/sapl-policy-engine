@@ -121,38 +121,38 @@ Spring Boot automatically loads `config/application.yml` on startup. The `config
 Download the package for your distribution from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases).
 
 ```shell
-sudo dpkg -i sapl-node_4.0.0_amd64.deb
+sudo dpkg -i sapl_4.0.0_amd64.deb
 ```
 
 Or for RPM-based distributions:
 
 ```shell
-sudo rpm -i sapl-node-4.0.0.x86_64.rpm
+sudo rpm -i sapl-4.0.0.x86_64.rpm
 ```
 
-The package installs the binary to `/usr/bin/sapl`, the configuration to `/etc/sapl-node/application.yml`, a systemd service, and example policies in `/var/lib/sapl-node/example/`.
+The package installs the binary to `/usr/bin/sapl`, the configuration to `/etc/sapl/application.yml`, a systemd service, and example policies in `/var/lib/sapl/example/`.
 
 The service is configured in `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
 To deploy your first bundle using the included example policies:
 
 ```shell
-sudo sapl bundle keygen -o /etc/sapl-node/signing
-sudo sapl bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+sudo sapl bundle keygen -o /etc/sapl/signing
+sudo sapl bundle create -i /var/lib/sapl/example -o /var/lib/sapl/default.saplbundle -k /etc/sapl/signing.pem
 ```
 
-Configure the public key in `/etc/sapl-node/application.yml`:
+Configure the public key in `/etc/sapl/application.yml`:
 
 ```yaml
 io.sapl.pdp.embedded:
   bundle-security:
-    public-key-path: /etc/sapl-node/signing.pub
+    public-key-path: /etc/sapl/signing.pub
 ```
 
 Start or restart the service:
 
 ```shell
-sudo systemctl enable --now sapl-node
+sudo systemctl enable --now sapl
 ```
 
 Verify:
@@ -161,9 +161,9 @@ Verify:
 curl -s http://localhost:8443/actuator/health | jq .
 ```
 
-You should see `"status": "UP"`. The PDP watches `/var/lib/sapl-node/` for bundle changes and reloads automatically.
+You should see `"status": "UP"`. The PDP watches `/var/lib/sapl/` for bundle changes and reloads automatically.
 
-Replace the example policies with your own by creating `.sapl` files in a directory and rebuilding the bundle. See `/var/lib/sapl-node/README` for the full workflow.
+Replace the example policies with your own by creating `.sapl` files in a directory and rebuilding the bundle. See `/var/lib/sapl/README` for the full workflow.
 
 ### Running with Docker
 

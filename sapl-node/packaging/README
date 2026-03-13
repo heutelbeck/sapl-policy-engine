@@ -1,7 +1,7 @@
 SAPL Node - Getting Started
 ===========================
 
-This directory (/var/lib/sapl-node) is where the PDP looks for
+This directory (/var/lib/sapl) is where the PDP looks for
 .saplbundle files. The node is configured in BUNDLES mode with
 signature verification enabled by default.
 
@@ -13,32 +13,32 @@ bundles before the service can run.
 Quick Start (signed bundles)
 ----------------------------
 
-All commands that read or write /var/lib/sapl-node/ or /etc/sapl-node/
-require sudo. The data directory is only accessible to the sapl-node
+All commands that read or write /var/lib/sapl/ or /etc/sapl/
+require sudo. The data directory is only accessible to the sapl
 service account to protect policy confidentiality.
 
 1. Generate a signing keypair (one-time):
 
-   sudo sapl bundle keygen -o /etc/sapl-node/signing
+   sudo sapl bundle keygen -o /etc/sapl/signing
 
    This creates signing.pem (private key) and signing.pub (public key).
    Keep the private key secure. The public key goes into the config.
 
 2. Build and sign a bundle from the example policies:
 
-   sudo sapl bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+   sudo sapl bundle create -i /var/lib/sapl/example -o /var/lib/sapl/default.saplbundle -k /etc/sapl/signing.pem
 
-3. Configure the public key in /etc/sapl-node/application.yml.
+3. Configure the public key in /etc/sapl/application.yml.
    Uncomment both the "bundle-security:" line AND the
    "public-key-path:" line beneath it:
 
    io.sapl.pdp.embedded:
      bundle-security:
-       public-key-path: /etc/sapl-node/signing.pub
+       public-key-path: /etc/sapl/signing.pub
 
 4. Restart the service:
 
-   sudo systemctl restart sapl-node
+   sudo systemctl restart sapl
 
 5. Verify:
 
@@ -68,17 +68,17 @@ Replace the example with your own policies:
      }
    }
 
-2. Build and sign: sapl bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+2. Build and sign: sapl bundle create -i ./my-policies -o /var/lib/sapl/default.saplbundle -k /etc/sapl/signing.pem
 3. The PDP reloads automatically
 
-See /var/lib/sapl-node/example/ for a starting point.
+See /var/lib/sapl/example/ for a starting point.
 
 
 Disabling Signature Verification
 ---------------------------------
 
 For development or evaluation, you can opt out of signature
-verification. Add to /etc/sapl-node/application.yml:
+verification. Add to /etc/sapl/application.yml:
 
    io.sapl.pdp.embedded:
      bundle-security:

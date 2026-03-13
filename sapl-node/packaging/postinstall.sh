@@ -18,5 +18,5 @@
 #
 
 set -e
-chown -R sapl-node:sapl-node /var/lib/sapl-node
+chown -R sapl:sapl /var/lib/sapl
 systemctl daemon-reload

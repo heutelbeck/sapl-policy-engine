@@ -26,10 +26,10 @@ The following walkthrough uses the CLI tools to set up a working SAPL Node from 
 Create a directory for your policies:
 
 ```shell
-mkdir -p ~/sapl-node/policies
+mkdir -p ~/sapl/policies
 ```
 
-Create `~/sapl-node/policies/pdp.json`:
+Create `~/sapl/policies/pdp.json`:
 
 ```json
 {
@@ -43,7 +43,7 @@ Create `~/sapl-node/policies/pdp.json`:
 }
 ```
 
-Create `~/sapl-node/policies/permit-read.sapl`:
+Create `~/sapl/policies/permit-read.sapl`:
 
 ```
 policy "permit-read"
@@ -54,30 +54,30 @@ permit
 ### 2. Create a Policy Bundle
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar bundle create \
-  -i ~/sapl-node/policies \
-  -o ~/sapl-node/policies/default.saplbundle
+sapl bundle create \
+  -i ~/sapl/policies \
+  -o ~/sapl/policies/default.saplbundle
 ```
 
 Output:
 
 ```
-Created bundle: /home/user/sapl-node/policies/default.saplbundle (1 policies)
+Created bundle: /home/user/sapl/policies/default.saplbundle (1 policies)
 ```
 
 ### 3. Generate Signing Keys
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar bundle keygen \
-  -o ~/sapl-node/signing-key
+sapl bundle keygen \
+  -o ~/sapl/signing-key
 ```
 
 Output:
 
 ```
 Generated Ed25519 keypair:
-  Private key: /home/user/sapl-node/signing-key.pem
-  Public key:  /home/user/sapl-node/signing-key.pub
+  Private key: /home/user/sapl/signing-key.pem
+  Public key:  /home/user/sapl/signing-key.pub
 ```
 
 Keep the private key secure. The server uses the public key to verify bundles.
@@ -85,24 +85,24 @@ Keep the private key secure. The server uses the public key to verify bundles.
 ### 4. Sign the Bundle
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar bundle sign \
-  -b ~/sapl-node/policies/default.saplbundle \
-  -k ~/sapl-node/signing-key.pem \
+sapl bundle sign \
+  -b ~/sapl/policies/default.saplbundle \
+  -k ~/sapl/signing-key.pem \
   --key-id prod-2026
 ```
 
 Output:
 
 ```
-Signed bundle: /home/user/sapl-node/policies/default.saplbundle (key-id: prod-2026)
+Signed bundle: /home/user/sapl/policies/default.saplbundle (key-id: prod-2026)
 ```
 
 ### 5. Verify the Bundle
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar bundle verify \
-  -b ~/sapl-node/policies/default.saplbundle \
-  -k ~/sapl-node/signing-key.pub
+sapl bundle verify \
+  -b ~/sapl/policies/default.saplbundle \
+  -k ~/sapl/signing-key.pub
 ```
 
 Output:
@@ -117,8 +117,8 @@ Verification successful
 ### 6. Inspect a Bundle
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar bundle inspect \
-  -b ~/sapl-node/policies/default.saplbundle
+sapl bundle inspect \
+  -b ~/sapl/policies/default.saplbundle
 ```
 
 Output:
@@ -152,7 +152,7 @@ Policies:
 Generate an API key for a client application:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar generate apikey \
+sapl generate apikey \
   --id my-client --pdp-id default
 ```
 
@@ -187,7 +187,7 @@ curl -H 'Authorization: Bearer sapl_t18oOMEJp8_...' \
 Or generate Basic Auth credentials:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar generate basic \
+sapl generate basic \
   --id my-client --pdp-id default
 ```
 
@@ -218,7 +218,7 @@ Place your `.saplbundle` file in the `bundles/` directory. The filename without 
 Start the server:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar
+sapl
 ```
 
 The server loads all bundles from the `bundles/` directory and watches for changes. When you replace a bundle file, the server reloads it automatically.
@@ -238,7 +238,7 @@ Commands:
 Check the version:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar --version
+sapl --version
 ```
 
 ### bundle create
@@ -460,8 +460,8 @@ spec:
   template:
     spec:
       containers:
-        - name: sapl-node
-          image: sapl-node:4.0.0
+        - name: sapl
+          image: ghcr.io/heutelbeck/sapl-node:4.0.0
           ports:
             - containerPort: 8080
           livenessProbe:
@@ -513,13 +513,13 @@ When `metrics-enabled` is `false` (the default in embedded mode), no metrics are
 
 ```yaml
 scrape_configs:
-  - job_name: sapl-node
+  - job_name: sapl
     metrics_path: /actuator/prometheus
     basic_auth:
       username: prometheus
       password: secret
     static_configs:
-      - targets: ['sapl-node:8080']
+      - targets: ['sapl:8080']
 ```
 
 ### Info Endpoint

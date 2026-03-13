@@ -17,24 +17,24 @@
 #
 
 pre_install() {
-    if ! getent group sapl-node >/dev/null 2>&1; then
-        groupadd --system sapl-node
+    if ! getent group sapl >/dev/null 2>&1; then
+        groupadd --system sapl
     fi
-    if ! getent passwd sapl-node >/dev/null 2>&1; then
-        useradd --system --gid sapl-node --home-dir /var/lib/sapl-node --shell /usr/sbin/nologin --no-create-home sapl-node
+    if ! getent passwd sapl >/dev/null 2>&1; then
+        useradd --system --gid sapl --home-dir /var/lib/sapl --shell /usr/sbin/nologin --no-create-home sapl
     fi
 }
 
 post_install() {
-    chown -R sapl-node:sapl-node /var/lib/sapl-node
+    chown -R sapl:sapl /var/lib/sapl
     systemctl daemon-reload
 }
 
 pre_remove() {
-    if systemctl is-active --quiet sapl-node; then
-        systemctl stop sapl-node
+    if systemctl is-active --quiet sapl; then
+        systemctl stop sapl
     fi
-    systemctl disable sapl-node 2>/dev/null || true
+    systemctl disable sapl 2>/dev/null || true
 }
 
 post_remove() {

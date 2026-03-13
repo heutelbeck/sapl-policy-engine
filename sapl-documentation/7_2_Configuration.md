@@ -20,7 +20,7 @@ To override defaults, place an `application.yml` in a `config/` directory next t
 To use a different location, pass the path as a startup argument:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar --spring.config.location=file:/etc/sapl/application.yml
+sapl --spring.config.location=file:/etc/sapl/application.yml
 ```
 
 In containerized deployments, every property can be set via environment variables. Spring Boot converts property names to uppercase with underscores replacing dots and camelCase boundaries. For example, `io.sapl.pdp.embedded.pdp-config-type` becomes `IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE`.
@@ -36,7 +36,7 @@ All properties live under the prefix `io.sapl.pdp.embedded`:
 | `enabled` | `boolean` | `true` | Enables the embedded PDP auto configuration. |
 | `pdp-config-type` | `PDPDataSource` | `RESOURCES` | Policy source type. One of `RESOURCES`, `DIRECTORY`, `MULTI_DIRECTORY`, `BUNDLES`, or `REMOTE_BUNDLES`. SAPL Node overrides this to `DIRECTORY` (binary) or `BUNDLES` (packages, Docker). See [Policy Sources](../7_3_PolicySources/). |
 | `index` | `IndexType` | `NAIVE` | Indexing algorithm. `NAIVE` for small policy sets, `CANONICAL` for large collections with faster retrieval at the cost of slower index updates. |
-| `config-path` | `String` | `.` | Path to `pdp.json`. For `RESOURCES`, this is relative to the classpath root. For filesystem sources, it is an absolute or relative filesystem path. The SAPL Node default is `.` (current directory). Package installations override this to `/var/lib/sapl-node`. |
+| `config-path` | `String` | `.` | Path to `pdp.json`. For `RESOURCES`, this is relative to the classpath root. For filesystem sources, it is an absolute or relative filesystem path. The SAPL Node default is `.` (current directory). Package installations override this to `/var/lib/sapl`. |
 | `policies-path` | `String` | `.` | Path to `.sapl` files or bundles. Same path resolution rules as `config-path`. The SAPL Node default is `.` (current directory). |
 | `metrics-enabled` | `boolean` | `true` | Records PDP decision metrics for Prometheus via Micrometer. See [Monitoring](../7_7_Monitoring/). |
 | `print-trace` | `boolean` | `false` | Logs the full JSON evaluation trace on each decision. |
@@ -74,7 +74,7 @@ See [Security](../7_6_Security/) for details on each authentication mode and cre
 Any property can be passed as a command line argument using Spring Boot's `--property=value` syntax:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar --io.sapl.pdp.embedded.pdp-config-type=BUNDLES --io.sapl.pdp.embedded.policies-path=/opt/bundles
+sapl --io.sapl.pdp.embedded.pdp-config-type=BUNDLES --io.sapl.pdp.embedded.policies-path=/opt/bundles
 ```
 
 In Docker, set the equivalent environment variable:
@@ -88,7 +88,7 @@ docker run -e IO_SAPL_NODE_ALLOWNOAUTH=true ghcr.io/heutelbeck/sapl-node:4.0.0-S
 Spring profiles allow environment specific configuration overrides. Activate a profile at startup:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar --spring.profiles.active=docker
+sapl --spring.profiles.active=docker
 ```
 
 Place a `application-docker.yml` in the config directory. Properties in the profile file override the defaults from `application.yml`. This is useful for toggling TLS, authentication modes, or log levels between development and production environments.
@@ -128,7 +128,7 @@ To deploy your first bundle:
 
 ```shell
 sapl bundle keygen -o signing
-sapl bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k signing.pem
+sapl bundle create -i ./my-policies -o /var/lib/sapl/default.saplbundle -k signing.pem
 ```
 
 Then configure the public key in `application.yml`:
@@ -136,7 +136,7 @@ Then configure the public key in `application.yml`:
 ```yaml
 io.sapl.pdp.embedded:
   bundle-security:
-    public-key-path: /etc/sapl-node/signing.pub
+    public-key-path: /etc/sapl/signing.pub
 ```
 
 The PDP detects the new bundle automatically and begins serving decisions.
@@ -172,4 +172,4 @@ server:
     key-store-type: PKCS12
 ```
 
-Generate the API key hash with `java -jar sapl-node-4.0.0-SNAPSHOT.jar generate apikey --id service-a --pdp-id default`. The command prints the Argon2 encoded value for the configuration and the plaintext key for the client. See [Deployment](../7_1_Deployment/) for the full CLI reference.
+Generate the API key hash with `sapl generate apikey --id service-a --pdp-id default`. The command prints the Argon2 encoded value for the configuration and the plaintext key for the client. See [Getting Started](../7_1_GettingStarted/) for the full CLI reference.

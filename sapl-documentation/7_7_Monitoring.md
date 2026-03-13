@@ -100,8 +100,8 @@ spec:
   template:
     spec:
       containers:
-        - name: sapl-node
-          image: sapl-node:4.0.0
+        - name: sapl
+          image: ghcr.io/heutelbeck/sapl-node:4.0.0
           ports:
             - containerPort: 8080
           livenessProbe:
@@ -155,13 +155,13 @@ Configure Prometheus to scrape the metrics endpoint:
 
 ```yaml
 scrape_configs:
-  - job_name: sapl-node
+  - job_name: sapl
     metrics_path: /actuator/prometheus
     basic_auth:
       username: prometheus
       password: secret
     static_configs:
-      - targets: ['sapl-node:8080']
+      - targets: ['sapl:8080']
 ```
 
 The prometheus endpoint requires authentication. Use a dedicated service account with Basic Auth or API key credentials. See [Security](../7_6_Security/) for credential generation.

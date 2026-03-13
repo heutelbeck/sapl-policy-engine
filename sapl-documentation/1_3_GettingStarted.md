@@ -46,9 +46,9 @@ cd my-pdp && ./sapl
 cd my-pdp; .\sapl.exe
 ```
 
-The server starts on `localhost:8443` with no TLS and no authentication. No configuration files are needed. The PDP loads all `.sapl` files from the current directory and watches for changes.
+The server starts on `localhost:8443`. By default, it binds to `127.0.0.1` only, does not accept external connections, and runs without TLS and authentication. No configuration files are needed. The PDP loads all `.sapl` files from the current directory and watches for changes.
 
-> **Warning:** This setup has no TLS and no authentication. Use it only for local experimentation. See [SAPL Node](../7_0_SaplNode/) for production setup.
+> **Note:** Since the server only listens on localhost, the lack of TLS and authentication is safe for local development. For network-accessible deployments, see [SAPL Node](../7_0_SaplNode/) to configure TLS, authentication, and signed policy bundles.
 
 4. In a separate terminal, send an authorization request:
 
@@ -64,7 +64,7 @@ Try a request that does not match:
 curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"cuddy","action":"use","resource":"MRT"}'
 ```
 
-This returns `{"decision":"NOT_APPLICABLE"}`. No policy matches subject `cuddy`, so the default combining algorithm produces `NOT_APPLICABLE`, which is mapped to `DENY` by the default decision.
+This returns `{"decision":"DENY"}`. No policy matches subject `cuddy`, so the default combining algorithm applies its default decision: `DENY`.
 
 5. Now try the streaming endpoint. This is where SAPL differs from traditional authorization systems. The PDP holds the connection open and pushes a new decision whenever the evaluation result changes:
 
@@ -72,7 +72,7 @@ This returns `{"decision":"NOT_APPLICABLE"}`. No policy matches subject `cuddy`,
 curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}'
 ```
 
-The server returns `{"decision":"PERMIT"}` and keeps the connection open. Now edit `allow-mrt.sapl` while the curl is running: change `"housemd"` to `"cuddy"` and save. The PDP detects the change, recompiles the policy, and immediately pushes `{"decision":"NOT_APPLICABLE"}` on the same connection. Change it back and `PERMIT` returns. No restart, no polling.
+The server returns `{"decision":"PERMIT"}` and keeps the connection open. Now edit `allow-mrt.sapl` while the curl is running: change `"housemd"` to `"cuddy"` and save. The PDP detects the change, recompiles the policy, and immediately pushes `{"decision":"DENY"}` on the same connection. Change it back and `PERMIT` returns. No restart, no polling.
 
 Press `Ctrl+C` to stop the stream.
 
@@ -92,7 +92,7 @@ Start a streaming subscription:
 curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
-Watch the decision flip between `PERMIT` and `NOT_APPLICABLE` every five seconds. The application does not poll. The PDP pushes changes as they happen.
+Watch the decision flip between `PERMIT` and `DENY` every five seconds. The application does not poll. The PDP pushes changes as they happen.
 
 **Next Steps**
 

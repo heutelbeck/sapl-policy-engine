@@ -22,12 +22,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=sapl-node
-Group=sapl-node
-ExecStart=/usr/bin/sapl --spring.config.location=file:/etc/sapl-node/application.yml
+User=sapl
+Group=sapl
+ExecStart=/usr/bin/sapl --spring.config.location=file:/etc/sapl/application.yml
 Restart=on-failure
 RestartSec=5s
-StateDirectory=sapl-node
+StateDirectory=sapl
 
 NoNewPrivileges=true
 ProtectSystem=strict
@@ -35,7 +35,7 @@ ProtectHome=true
 PrivateDevices=true
 PrivateTmp=true
 LimitCORE=0
-ReadWritePaths=/var/lib/sapl-node
+ReadWritePaths=/var/lib/sapl
 
 [Install]
 WantedBy=multi-user.target

@@ -19,14 +19,14 @@
 #
 # SAPL Node Package Configuration
 #
-# This file is installed to /etc/sapl-node/application.yml and is
+# This file is installed to /etc/sapl/application.yml and is
 # preserved across package upgrades (config|noreplace).
 #
-# The systemd service uses --spring.config.location=file:/etc/sapl-node/application.yml
+# The systemd service uses --spring.config.location=file:/etc/sapl/application.yml
 # which fully replaces the JAR-embedded defaults. Only this file is loaded.
 #
 # The node will not start until bundle security is configured.
-# See /var/lib/sapl-node/README for the quick start workflow.
+# See /var/lib/sapl/README for the quick start workflow.
 #
 # Security progression:
 #   Level 0: Configure public key (or allow-unsigned to opt out)
@@ -36,7 +36,7 @@
 #
 
 spring:
-  application.name: sapl-node
+  application.name: sapl
   cache:
     type: caffeine
     caffeine:
@@ -54,10 +54,10 @@ server:
     enabled: false
     # Uncomment and configure to enable TLS:
     # key-store-type: PKCS12
-    # key-store: file:/etc/sapl-node/keystore.p12
+    # key-store: file:/etc/sapl/keystore.p12
     # key-store-password: changeme
     # key-password: changeme
-    # key-alias: sapl-node
+    # key-alias: sapl
     ciphers:
       - TLS_AES_128_GCM_SHA256
       - TLS_AES_256_GCM_SHA384
@@ -109,8 +109,8 @@ io.sapl:
     # Each user is associated with a pdpId for multi-tenant routing.
     #
     # Generate credentials:
-    #   sapl-node generate basic --id "my-client" --pdp-id "production"
-    #   sapl-node generate apikey --id "my-client" --pdp-id "staging"
+    #   sapl generate basic --id "my-client" --pdp-id "production"
+    #   sapl generate apikey --id "my-client" --pdp-id "staging"
     #
     # users:
     #   - id: "my-basic-client"
@@ -126,7 +126,7 @@ io.sapl:
   # --- PDP Policy Source ---
   #
   # This package defaults to BUNDLES mode. The PDP loads .saplbundle
-  # files from /var/lib/sapl-node/. Bundles provide atomic policy
+  # files from /var/lib/sapl/. Bundles provide atomic policy
   # updates with optional Ed25519 signature verification.
   #
   # pdp-config-type options:
@@ -139,8 +139,8 @@ io.sapl:
   pdp.embedded:
     enabled: true
     pdp-config-type: BUNDLES
-    config-path: /var/lib/sapl-node
-    policies-path: /var/lib/sapl-node
+    config-path: /var/lib/sapl
+    policies-path: /var/lib/sapl
     metrics-enabled: true
 
     # --- Decision Reporting ---
@@ -154,12 +154,12 @@ io.sapl:
     # --- Bundle Security ---
     #
     # The node will not start until one of these options is configured.
-    # Generate a keypair: sapl-node bundle keygen -o /etc/sapl-node/signing
+    # Generate a keypair: sapl bundle keygen -o /etc/sapl/signing
     #
     # bundle-security:
       # Option 1: Global public key (recommended)
       # All bundles must be signed with the corresponding private key.
-      # public-key-path: /etc/sapl-node/signing.pub
+      # public-key-path: /etc/sapl/signing.pub
 
       # Option 2: Per-tenant key catalogue
       # keys:

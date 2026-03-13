@@ -18,7 +18,7 @@
 #
 
 set -e
-if systemctl is-active --quiet sapl-node; then
-    systemctl stop sapl-node
+if systemctl is-active --quiet sapl; then
+    systemctl stop sapl
 fi
-systemctl disable sapl-node 2>/dev/null || true
+systemctl disable sapl 2>/dev/null || true

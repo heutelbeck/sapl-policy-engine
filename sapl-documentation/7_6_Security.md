@@ -74,7 +74,7 @@ io.sapl.node:
 The `secret` field contains the Argon2 encoded password. Generate credentials with the CLI:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar generate basic --id service-a --pdp-id default
+sapl generate basic --id service-a --pdp-id default
 ```
 
 The command prints the plaintext password and the YAML configuration block. Store the plaintext securely. Only the encoded value goes into `application.yml`.
@@ -95,7 +95,7 @@ io.sapl.node:
 Generate a key with the CLI:
 
 ```shell
-java -jar sapl-node-4.0.0-SNAPSHOT.jar generate apikey --id service-b --pdp-id production
+sapl generate apikey --id service-b --pdp-id production
 ```
 
 The command prints the plaintext API key and the Argon2 encoded hash. The plaintext key is shown once and cannot be recovered from the hash.
@@ -257,4 +257,4 @@ logging.level:
   "[org.springframework]": INFO
 ```
 
-Generate API keys with `java -jar sapl-node-4.0.0-SNAPSHOT.jar generate apikey --id service-a --pdp-id default`. For the full property reference, see [Configuration](../7_2_Configuration/). For health checks and Kubernetes probes, see [Monitoring](../7_7_Monitoring/).
+Generate API keys with `sapl generate apikey --id service-a --pdp-id default`. For the full property reference, see [Configuration](../7_2_Configuration/). For health checks and Kubernetes probes, see [Monitoring](../7_7_Monitoring/).
