@@ -12,9 +12,7 @@ The PDP evaluates policies against authorization subscriptions. Its runtime beha
 
 ### Combining Algorithm
 
-The combining algorithm is the only mandatory configuration element. It determines how votes from multiple matching policies resolve into a single authorization decision. Without a combining algorithm, the PDP returns `INDETERMINATE` for every subscription.
-
-There is no default combining algorithm, not even a safe one. This is deliberate: if a default were silently applied and the configuration were accidentally deleted or corrupted, the PDP could produce decisions that appear correct but are not. By requiring explicit configuration, the PDP fails visibly when it is misconfigured rather than silently making wrong decisions.
+The combining algorithm determines how votes from multiple matching policies resolve into a single authorization decision. When no algorithm is configured, the PDP uses a default of `PRIORITY_DENY` with `DENY` default decision and `PROPAGATE` error handling. This default is deliberately restrictive: it denies by default and propagates errors so that misconfigurations fail visibly rather than silently granting access.
 
 For a detailed explanation of each algorithm and guidance on choosing one, see [Combining Algorithms](../2_5_CombiningAlgorithms/).
 
@@ -63,7 +61,7 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 }
 ```
 
-The `algorithm` object is mandatory; `variables` and `secrets` are optional.
+The `algorithm` object is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY`, `DENY`, `PROPAGATE`). The `variables` and `secrets` sections are also optional.
 
 The `configurationId` is a version identifier for the configuration. It appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact policy set that produced them. For bundles, this field is **required**. For directory and resource sources, it is optional and auto-generated from the source path and content hash when absent.
 

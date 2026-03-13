@@ -116,8 +116,7 @@ The response body for `200 OK` is a `.saplbundle` file: a ZIP archive containing
 - **`pdp.json`** (required): PDP configuration including combining algorithm and
   a `configurationId` field that uniquely identifies this configuration version.
 - **`*.sapl`** files: SAPL policy documents.
-- **`MANIFEST.json`** (if signed): Cryptographic manifest with content hashes.
-- **`MANIFEST.json.sig`** (if signed): Ed25519 signature of the manifest.
+- **`.sapl-manifest.json`** (if signed): Cryptographic manifest with SHA-256 content hashes and Ed25519 signature.
 
 See the SAPL bundle documentation for the full archive format specification.
 
