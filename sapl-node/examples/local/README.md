@@ -67,15 +67,15 @@ Changes to any tenant's files are picked up automatically.
 multidirectory/
   config/application.yml
   tenants/
-    default/             -- pdpId: "default"
+    default/             -- pdp-id: "default"
       pdp.json           -- PRIORITY_DENY, default DENY, errors ABSTAIN
       permitall.sapl     -- permits everything
-    production/          -- pdpId: "production"
+    production/          -- pdp-id: "production"
       pdp.json           -- PRIORITY_DENY, default DENY, errors PROPAGATE
       admin-access.sapl  -- permit when subject=="admin"
       read-access.sapl   -- permit when action=="read"
       strict-policy.sapl -- deny when action=="delete"
-    staging/             -- pdpId: "staging"
+    staging/             -- pdp-id: "staging"
       pdp.json           -- PRIORITY_PERMIT, default DENY, errors PROPAGATE
       permissive-policy.sapl       -- permit (currently: permit false -- inactive)
       deny-delete-prod-data.sapl   -- deny delete on production-data
@@ -89,8 +89,8 @@ java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar
 ```
 
 **Tenant routing** uses client-to-tenant binding in `application.yml`. Each authenticated
-client is bound to a specific pdpId. Unauthenticated requests fall back to
-`defaultPdpId: "default"`.
+client is bound to a specific pdp-id. Unauthenticated requests fall back to
+`default-pdp-id: "default"`.
 
 **Test:**
 
@@ -282,7 +282,7 @@ All setups accept three authentication methods:
 
 | Method  | Credentials                                          | Tenant                                         |
 |---------|------------------------------------------------------|------------------------------------------------|
-| No auth | (none)                                               | Routes to `defaultPdpId` ("default")           |
+| No auth | (none)                                               | Routes to `default-pdp-id` ("default")         |
 | Basic   | `xwuUaRD65G` / `3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_`    | default                                        |
 | API key | `sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j`   | default (single) or production (multi/bundles) |
 | API key | `sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f`   | default (single) or staging (multi/bundles)    |

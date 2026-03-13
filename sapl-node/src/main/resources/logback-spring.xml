@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logback configuration for server mode (Spring Boot).
+
+  Spring Boot prefers logback-spring.xml over logback.xml.
+  This file defines the base appender and root level.
+  Individual logger levels are controlled via logging.level.*
+  properties in application.yml, which override the root level
+  set here.
+-->
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

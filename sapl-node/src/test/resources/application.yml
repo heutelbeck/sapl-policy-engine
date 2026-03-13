@@ -58,29 +58,29 @@
 #            (depending on your policies) leading to unaothorized
 #            access to your organizations' data.
 #  
-# This option is controlled by the property io.sapl.node.allowNoAuth
+# This option is controlled by the property io.sapl.node.allow-no-auth
 # which can be set to True or False.
 #
 io.sapl:
   node:
-    allowNoAuth: false
-    allowBasicAuth: true
-    allowApiKeyAuth: false
-    allowOauth2Auth: false
+    allow-no-auth: false
+    allow-basic-auth: true
+    allow-api-key-auth: false
+    allow-oauth2-auth: false
 
     # Global PDP ID settings
-    rejectOnMissingPdpId: false
-    defaultPdpId: "default"
+    reject-on-missing-pdp-id: false
+    default-pdp-id: "default"
 
     # OAuth2 configuration
     oauth:
-      pdpIdClaim: "sapl_pdp_id"
+      pdp-id-claim: "sapl_pdp_id"
 
     # User entries with their credentials and PDP routing
     # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
     users:
       - id: "test-client"
-        pdpId: "default"
+        pdp-id: "default"
         basic:
           username: "xwuUaRD65G"
           # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_

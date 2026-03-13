@@ -78,6 +78,13 @@ contents:
       owner: sapl
       group: sapl
 
+  - src: sapl-node/packaging/example/deny-write.sapl
+    dst: /var/lib/sapl/example/deny-write.sapl
+    file_info:
+      mode: 0644
+      owner: sapl
+      group: sapl
+
 scripts:
   preinstall: sapl-node/packaging/preinstall.sh
   postinstall: sapl-node/packaging/postinstall.sh

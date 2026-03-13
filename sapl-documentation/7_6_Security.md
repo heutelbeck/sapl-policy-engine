@@ -40,19 +40,19 @@ In both contexts, authorization requests without matching policies are denied.
 
 SAPL Node supports four authentication modes. Each mode is controlled by a boolean property under `io.sapl.node`. Multiple modes can be active at the same time. When all four modes are disabled, every request is rejected.
 
-By default, `allowNoAuth` is enabled so the node is functional out of the box for development. For production, disable `allowNoAuth` and enable one or more credential-based modes.
+By default, `allow-no-auth` is enabled so the node is functional out of the box for development. For production, disable `allow-no-auth` and enable one or more credential-based modes.
 
-A request is authenticated if it matches any enabled mode. The first successful match determines the client identity and PDP routing. The `pdpId` from the matched credential entry selects which tenant's policies evaluate the request.
+A request is authenticated if it matches any enabled mode. The first successful match determines the client identity and PDP routing. The `pdp-id` from the matched credential entry selects which tenant's policies evaluate the request.
 
 ### Unauthenticated Access
 
 ```yaml
 io.sapl.node:
-  allowNoAuth: true
-  defaultPdpId: "default"
+  allow-no-auth: true
+  default-pdp-id: "default"
 ```
 
-When `allowNoAuth` is `true`, requests without credentials are accepted and routed to the `defaultPdpId`. This is intended for development environments or deployments where an API gateway or service mesh handles authentication before requests reach the node.
+When `allow-no-auth` is `true`, requests without credentials are accepted and routed to the `default-pdp-id`. This is intended for development environments or deployments where an API gateway or service mesh handles authentication before requests reach the node.
 
 Do not enable unauthenticated access in production without a gateway in front of the node. Any client that can reach the HTTP port can submit authorization subscriptions and receive decisions.
 
@@ -62,10 +62,10 @@ Enable Basic Auth and define users in the `users` list:
 
 ```yaml
 io.sapl.node:
-  allowBasicAuth: true
+  allow-basic-auth: true
   users:
     - id: "service-a"
-      pdpId: "default"
+      pdp-id: "default"
       basic:
         username: "xwuUaRD65G"
         secret: "$argon2id$v=19$m=16384,t=2,p=1$..."
@@ -85,11 +85,11 @@ API keys are sent as Bearer tokens in the `Authorization` header. The client sen
 
 ```yaml
 io.sapl.node:
-  allowApiKeyAuth: true
+  allow-api-key-auth: true
   users:
     - id: "service-b"
-      pdpId: "production"
-      apiKey: "$argon2id$v=19$m=16384,t=2,p=1$..."
+      pdp-id: "production"
+      api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 ```
 
 Generate a key with the CLI:
@@ -106,9 +106,9 @@ SAPL Node can validate JWT tokens using Spring Security's resource server suppor
 
 ```yaml
 io.sapl.node:
-  allowOauth2Auth: true
+  allow-oauth2-auth: true
   oauth:
-    pdpIdClaim: "sapl_pdp_id"
+    pdp-id-claim: "sapl_pdp_id"
 
 spring.security.oauth2:
   resourceserver:
@@ -116,28 +116,28 @@ spring.security.oauth2:
       issuer-uri: https://auth.example.com/realm
 ```
 
-The node fetches the JWKS endpoint from the issuer URI and validates token signatures automatically. The `pdpIdClaim` property specifies which JWT claim contains the PDP identifier for tenant routing. If the claim is absent, the `defaultPdpId` is used.
+The node fetches the JWKS endpoint from the issuer URI and validates token signatures automatically. The `pdp-id-claim` property specifies which JWT claim contains the PDP identifier for tenant routing. If the claim is absent, the `default-pdp-id` is used.
 
 ### Multi Tenant Routing
 
-Every credential entry includes a `pdpId` that routes the client to a specific tenant's policies. For `MULTI_DIRECTORY` sources, the `pdpId` maps to a subdirectory name. For `BUNDLES` sources, it maps to a bundle filename without the `.saplbundle` extension.
+Every credential entry includes a `pdp-id` that routes the client to a specific tenant's policies. For `MULTI_DIRECTORY` sources, the `pdp-id` maps to a subdirectory name. For `BUNDLES` sources, it maps to a bundle filename without the `.saplbundle` extension.
 
 ```yaml
 io.sapl.node:
-  defaultPdpId: "default"
-  rejectOnMissingPdpId: false
+  default-pdp-id: "default"
+  reject-on-missing-pdp-id: false
   users:
     - id: "prod-client"
-      pdpId: "production"
-      apiKey: "$argon2id$..."
+      pdp-id: "production"
+      api-key: "$argon2id$..."
     - id: "staging-client"
-      pdpId: "staging"
-      apiKey: "$argon2id$..."
+      pdp-id: "staging"
+      api-key: "$argon2id$..."
 ```
 
-When `rejectOnMissingPdpId` is `false`, any user entry without a `pdpId` is automatically assigned the `defaultPdpId`. When set to `true`, the node fails at startup if any user entry lacks a `pdpId`.
+When `reject-on-missing-pdp-id` is `false`, any user entry without a `pdp-id` is automatically assigned the `default-pdp-id`. When set to `true`, the node fails at startup if any user entry lacks a `pdp-id`.
 
-For OAuth2, the PDP identifier is extracted from the JWT claim specified by `oauth.pdpIdClaim`. If the claim is missing and `rejectOnMissingPdpId` is `false`, the token is routed to `defaultPdpId`.
+For OAuth2, the PDP identifier is extracted from the JWT claim specified by `oauth.pdp-id-claim`. If the claim is missing and `reject-on-missing-pdp-id` is `false`, the token is routed to `default-pdp-id`.
 
 ### TLS
 
@@ -214,14 +214,14 @@ io.sapl:
       public-key-path: /opt/sapl/keys/signing.pub
 
   node:
-    allowNoAuth: false
-    allowBasicAuth: false
-    allowApiKeyAuth: true
-    allowOauth2Auth: false
+    allow-no-auth: false
+    allow-basic-auth: false
+    allow-api-key-auth: true
+    allow-oauth2-auth: false
     users:
       - id: "service-a"
-        pdpId: "default"
-        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$..."
+        pdp-id: "default"
+        api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 
 server:
   address: 0.0.0.0

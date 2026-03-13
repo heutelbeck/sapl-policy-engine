@@ -92,7 +92,7 @@ The Keycloak realm is pre-configured with these users:
 |----------|----------|-------------------|
 | production-user | production123 | production |
 | staging-user | staging123 | staging |
-| default-user | default123 | (none - uses defaultPdpId) |
+| default-user | default123 | (none - uses default-pdp-id) |
 
 > **Note:** In the default single-directory configuration, all users resolve to the
 > same "default" PDP and policies. The `sapl_pdp_id` claims on `production-user` and
@@ -142,7 +142,7 @@ multi-tenant directory routing with OAuth2:
 Configure what happens when the JWT lacks the `sapl_pdp_id` claim:
 
 - `IO_SAPL_NODE_REJECTONMISSINGPDPID=true`: Return 401 Unauthorized
-- `IO_SAPL_NODE_REJECTONMISSINGPDPID=false`: Use `defaultPdpId`
+- `IO_SAPL_NODE_REJECTONMISSINGPDPID=false`: Use `default-pdp-id`
 
 ## Keycloak Administration
 

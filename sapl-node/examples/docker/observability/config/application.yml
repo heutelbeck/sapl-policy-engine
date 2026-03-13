@@ -27,12 +27,12 @@ io.sapl:
     metrics-enabled: true
     print-text-report: true
   node:
-    allowNoAuth: true
-    allowBasicAuth: false
-    allowApiKeyAuth: false
-    allowOauth2Auth: false
-    rejectOnMissingPdpId: false
-    defaultPdpId: "default"
+    allow-no-auth: true
+    allow-basic-auth: false
+    allow-api-key-auth: false
+    allow-oauth2-auth: false
+    reject-on-missing-pdp-id: false
+    default-pdp-id: "default"
 
 server:
   port: 8080

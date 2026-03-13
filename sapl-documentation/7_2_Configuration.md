@@ -54,18 +54,18 @@ All properties live under the prefix `io.sapl.node`:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `allowNoAuth` | `boolean` | `true` | Permits unauthenticated requests. Enabled by default for zero-configuration development. Disable in production or when a gateway handles authentication. |
-| `allowBasicAuth` | `boolean` | `false` | Enables HTTP Basic authentication. |
-| `allowApiKeyAuth` | `boolean` | `false` | Enables API key authentication via Bearer tokens. |
-| `allowOauth2Auth` | `boolean` | `false` | Enables OAuth2/JWT authentication. |
-| `rejectOnMissingPdpId` | `boolean` | `false` | Rejects users at startup if their `pdpId` is not set. When `false`, missing values default to `defaultPdpId`. |
-| `defaultPdpId` | `String` | `"default"` | Fallback PDP identifier for users without an explicit `pdpId`. |
+| `allow-no-auth` | `boolean` | `true` | Permits unauthenticated requests. Enabled by default for zero-configuration development. Disable in production or when a gateway handles authentication. |
+| `allow-basic-auth` | `boolean` | `false` | Enables HTTP Basic authentication. |
+| `allow-api-key-auth` | `boolean` | `false` | Enables API key authentication via Bearer tokens. |
+| `allow-oauth2-auth` | `boolean` | `false` | Enables OAuth2/JWT authentication. |
+| `reject-on-missing-pdp-id` | `boolean` | `false` | Rejects users at startup if their `pdp-id` is not set. When `false`, missing values default to `default-pdp-id`. |
+| `default-pdp-id` | `String` | `"default"` | Fallback PDP identifier for users without an explicit `pdp-id`. |
 | `users[].id` | `String` | | Client identifier for logging and diagnostics. |
-| `users[].pdpId` | `String` | | PDP identifier that routes this client to a specific tenant's policies. |
+| `users[].pdp-id` | `String` | | PDP identifier that routes this client to a specific tenant's policies. |
 | `users[].basic.username` | `String` | | Username for HTTP Basic authentication. |
 | `users[].basic.secret` | `String` | | Argon2 encoded password for HTTP Basic authentication. |
-| `users[].apiKey` | `String` | | Argon2 encoded API key. The client sends the plaintext key as a Bearer token in the `Authorization` header. |
-| `oauth.pdpIdClaim` | `String` | `"sapl_pdp_id"` | JWT claim name used to extract the PDP identifier for tenant routing. |
+| `users[].api-key` | `String` | | Argon2 encoded API key. The client sends the plaintext key as a Bearer token in the `Authorization` header. |
+| `oauth.pdp-id-claim` | `String` | `"sapl_pdp_id"` | JWT claim name used to extract the PDP identifier for tenant routing. |
 
 See [Security](../7_6_Security/) for details on each authentication mode and credential generation.
 
@@ -80,7 +80,7 @@ sapl --io.sapl.pdp.embedded.pdp-config-type=BUNDLES --io.sapl.pdp.embedded.polic
 In Docker, set the equivalent environment variable:
 
 ```shell
-docker run -e IO_SAPL_NODE_ALLOWNOAUTH=true ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+docker run -e IO_SAPL_NODE_ALLOWNOAUTH=true ghcr.io/heutelbeck/sapl-node:4.0.0
 ```
 
 ### Spring Profiles
@@ -109,7 +109,7 @@ io.sapl:
     policies-path: .
     metrics-enabled: true
   node:
-    allowNoAuth: true
+    allow-no-auth: true
 
 server:
   address: 127.0.0.1
@@ -141,7 +141,7 @@ io.sapl.pdp.embedded:
 
 The PDP detects the new bundle automatically and begins serving decisions.
 
-To opt out of signature verification during evaluation, set `bundle-security.allow-unsigned: true` (or the equivalent `allowUnsigned: true`). The node logs a warning on every startup when signature verification is disabled.
+To opt out of signature verification during evaluation, set `bundle-security.allow-unsigned: true`. The node logs a warning on every startup when signature verification is disabled.
 
 ### Production Configuration
 
@@ -157,11 +157,11 @@ io.sapl:
       public-key-path: /opt/sapl/keys/signing.pub
 
   node:
-    allowApiKeyAuth: true
+    allow-api-key-auth: true
     users:
       - id: "service-a"
-        pdpId: "default"
-        apiKey: "$argon2id$v=19$m=16384,t=2,p=1$..."
+        pdp-id: "default"
+        api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 
 server:
   port: 8443

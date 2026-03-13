@@ -85,7 +85,7 @@ curl -s http://localhost:8443/actuator/health | jq .
 
 You should see `"status": "UP"` with a `pdps` detail block showing the state `LOADED`, the active combining algorithm, and the number of loaded documents. If a policy has a syntax error, the state changes to `ERROR` and the health status drops to `DOWN`.
 
-The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allowNoAuth` is enabled by default):
+The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allow-no-auth` is enabled by default):
 
 ```shell
 curl -s http://localhost:8443/actuator/info | jq .
@@ -201,7 +201,7 @@ docker run -p 8443:8443 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e 
 
 The `SERVER_ADDRESS=0.0.0.0` override is required so Docker's port mapping can reach the server. The default `127.0.0.1` only accepts connections from within the container.
 
-Environment variables follow Spring Boot's naming convention: dots become underscores, camelCase becomes uppercase. For example, `io.sapl.node.allowBasicAuth` becomes `IO_SAPL_NODE_ALLOWBASICAUTH`. See [Configuration](../7_2_Configuration/) for all available properties.
+Environment variables follow Spring Boot's naming convention: dots become underscores, camelCase becomes uppercase. For example, `io.sapl.node.allow-basic-auth` becomes `IO_SAPL_NODE_ALLOWBASICAUTH`. See [Configuration](../7_2_Configuration/) for all available properties.
 
 You can also mount a full `application.yml` instead of using individual environment variables:
 

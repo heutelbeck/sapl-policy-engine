@@ -23,11 +23,11 @@ Set the PDP configuration type to `REMOTE_BUNDLES`:
 
 ```yaml
 io.sapl.pdp.embedded:
-  pdpConfigType: REMOTE_BUNDLES
+  pdp-config-type: REMOTE_BUNDLES
 
-  remoteBundles:
-    baseUrl: https://pap.example.com/bundles
-    pdpIds:
+  remote-bundles:
+    base-url: https://pap.example.com/bundles
+    pdp-ids:
       - production
       - staging
 ```
@@ -38,21 +38,21 @@ Bundles are addressed by convention: `{baseUrl}/{pdpId}`. The example above reso
 
 ### Configuration Reference
 
-All properties live under `io.sapl.pdp.embedded.remoteBundles`:
+All properties live under `io.sapl.pdp.embedded.remote-bundles`:
 
-| Property             | Type                     | Default      | Description                              |
-|----------------------|--------------------------|--------------|------------------------------------------|
-| `baseUrl`            | `String`                 | _(required)_ | Base URL of the bundle server.           |
-| `pdpIds`             | `List<String>`           | _(required)_ | PDP identifiers to fetch bundles for.    |
-| `mode`               | `POLLING` or `LONG_POLL` | `POLLING`    | Change detection mode.                   |
-| `pollInterval`       | `Duration`               | `30s`        | Interval between polls (POLLING mode).   |
-| `longPollTimeout`    | `Duration`               | `30s`        | Server hold time (LONG_POLL mode).       |
-| `authHeaderName`     | `String`                 | _(none)_     | HTTP header name for authentication.     |
-| `authHeaderValue`    | `String`                 | _(none)_     | HTTP header value for authentication.    |
-| `followRedirects`    | `boolean`                | `true`       | Follow HTTP 3xx redirects.               |
-| `pdpIdPollIntervals` | `Map<String, Duration>`  | _(empty)_    | Per-pdpId poll interval overrides.       |
-| `firstBackoff`       | `Duration`               | `500ms`      | Initial backoff after a fetch failure.   |
-| `maxBackoff`         | `Duration`               | `5s`         | Maximum backoff after repeated failures. |
+| Property               | Type                     | Default      | Description                              |
+|------------------------|--------------------------|--------------|------------------------------------------|
+| `base-url`             | `String`                 | _(required)_ | Base URL of the bundle server.           |
+| `pdp-ids`              | `List<String>`           | _(required)_ | PDP identifiers to fetch bundles for.    |
+| `mode`                 | `POLLING` or `LONG_POLL` | `POLLING`    | Change detection mode.                   |
+| `poll-interval`        | `Duration`               | `30s`        | Interval between polls (POLLING mode).   |
+| `long-poll-timeout`    | `Duration`               | `30s`        | Server hold time (LONG_POLL mode).       |
+| `auth-header-name`     | `String`                 | _(none)_     | HTTP header name for authentication.     |
+| `auth-header-value`    | `String`                 | _(none)_     | HTTP header value for authentication.    |
+| `follow-redirects`     | `boolean`                | `true`       | Follow HTTP 3xx redirects.               |
+| `pdp-id-poll-intervals`| `Map<String, Duration>`  | _(empty)_    | Per-pdpId poll interval overrides.       |
+| `first-backoff`        | `Duration`               | `500ms`      | Initial backoff after a fetch failure.   |
+| `max-backoff`          | `Duration`               | `5s`         | Maximum backoff after repeated failures. |
 
 ### Change Detection
 
@@ -64,9 +64,9 @@ requests (`If-None-Match` with ETag) avoid redundant downloads. The server respo
 
 ```yaml
 io.sapl.pdp.embedded:
-  remoteBundles:
+  remote-bundles:
     mode: POLLING
-    pollInterval: 30s
+    poll-interval: 30s
 ```
 
 #### Long-Poll (requires server support)
@@ -78,9 +78,9 @@ node reconnects immediately.
 
 ```yaml
 io.sapl.pdp.embedded:
-  remoteBundles:
+  remote-bundles:
     mode: LONG_POLL
-    longPollTimeout: 30s
+    long-poll-timeout: 30s
 ```
 
 If the server does not support long-polling (responds immediately with 304), the
@@ -92,28 +92,28 @@ The node sends a configurable HTTP header on every request:
 
 ```yaml
 io.sapl.pdp.embedded:
-  remoteBundles:
-    authHeaderName: Authorization
-    authHeaderValue: Bearer eyJhbGciOiJSUz...
+  remote-bundles:
+    auth-header-name: Authorization
+    auth-header-value: Bearer eyJhbGciOiJSUz...
 ```
 
 This covers OAuth2 bearer tokens, static API keys, and custom authentication headers.
-Both `authHeaderName` and `authHeaderValue` must be provided together or both omitted.
+Both `auth-header-name` and `auth-header-value` must be provided together or both omitted.
 
 ### Bundle Security
 
 Remote bundles use the same signature verification as local bundles via the shared
-`bundleSecurity` configuration block. Signatures are mandatory by default for remote
+`bundle-security` configuration block. Signatures are mandatory by default for remote
 bundles.
 
 ```yaml
 io.sapl.pdp.embedded:
-  pdpConfigType: REMOTE_BUNDLES
+  pdp-config-type: REMOTE_BUNDLES
 
-  bundleSecurity:
-    publicKeyPath: /path/to/key.pub
+  bundle-security:
+    public-key-path: /path/to/key.pub
     # OR
-    publicKey: MCowBQYDK2VwAyEA...
+    public-key: MCowBQYDK2VwAyEA...
 
     # Per-tenant key bindings (optional)
     keys:
@@ -122,12 +122,12 @@ io.sapl.pdp.embedded:
       production: [prod-key]
 ```
 
-For individual tenants that should accept unsigned bundles without enabling the global escape hatch, use the `unsignedTenants` list:
+For individual tenants that should accept unsigned bundles without enabling the global escape hatch, use the `unsigned-tenants` list:
 
 ```yaml
-  bundleSecurity:
-    publicKeyPath: /path/to/key.pub
-    unsignedTenants:
+  bundle-security:
+    public-key-path: /path/to/key.pub
+    unsigned-tenants:
       - development
       - staging
 ```
@@ -137,19 +137,19 @@ Tenants listed here may load unsigned bundles while all other tenants still requ
 For development only, the 2-factor escape hatch disables signature verification globally:
 
 ```yaml
-  bundleSecurity:
-    allowUnsigned: true
+  bundle-security:
+    allow-unsigned: true
 ```
 
 ### Per-pdpId Poll Interval
 
-Each pdpId inherits the global `pollInterval` unless overridden:
+Each pdpId inherits the global `poll-interval` unless overridden:
 
 ```yaml
 io.sapl.pdp.embedded:
-  remoteBundles:
-    pollInterval: 60s
-    pdpIdPollIntervals:
+  remote-bundles:
+    poll-interval: 60s
+    pdp-id-poll-intervals:
       staging: 10s    # Override for staging
 ```
 
@@ -177,7 +177,7 @@ Remote bundle responses are limited to 16 MB. Bundles exceeding this limit are r
 ### Retry Behavior
 
 On fetch failure, the node retries with exponential backoff (with jitter). The backoff
-starts at `firstBackoff` and caps at `maxBackoff`. After recovery, the backoff resets
+starts at `first-backoff` and caps at `max-backoff`. After recovery, the backoff resets
 to the initial value.
 
 ### Graceful Shutdown

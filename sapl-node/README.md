@@ -169,11 +169,11 @@ Key:     sapl_t18oOMEJp8_YN9QHFlgsbZ88lK82HyeoQbEAQU55vHV
 Configuration (application.yml):
 --------------------------------
 io.sapl.node:
-  allowApiKeyAuth: true
+  allow-api-key-auth: true
   users:
     - id: "my-client"
-      pdpId: "default"
-      apiKey: "$argon2id$v=19$m=16384,t=2,p=1$..."
+      pdp-id: "default"
+      api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 
 Usage (curl):
 -------------
@@ -203,8 +203,8 @@ io.sapl:
     pdp-config-type: BUNDLES
     policies-path: bundles
   node:
-    allowNoAuth: true
-    defaultPdpId: "default"
+    allow-no-auth: true
+    default-pdp-id: "default"
 
 server:
   address: localhost
@@ -353,11 +353,11 @@ SAPL Node supports four authentication modes. Enable one or more in `application
 
 ```yaml
 io.sapl.node:
-  allowNoAuth: false       # allow unauthenticated requests
-  allowBasicAuth: true     # HTTP Basic authentication
-  allowApiKeyAuth: false   # Bearer token API keys
-  allowOauth2Auth: false   # OAuth2/JWT tokens
-  defaultPdpId: "default"  # PDP ID for unauthenticated requests
+  allow-no-auth: false       # allow unauthenticated requests
+  allow-basic-auth: true     # HTTP Basic authentication
+  allow-api-key-auth: false  # Bearer token API keys
+  allow-oauth2-auth: false   # OAuth2/JWT tokens
+  default-pdp-id: "default"  # PDP ID for unauthenticated requests
 ```
 
 **Client credentials** are defined in the `users` list. Use the `generate` CLI commands to create Argon2-encoded secrets:
@@ -366,22 +366,22 @@ io.sapl.node:
 io.sapl.node:
   users:
     - id: "my-client"
-      pdpId: "default"
+      pdp-id: "default"
       basic:
         username: "my-client"
         secret: "$argon2id$v=19$m=16384,t=2,p=1$..."
-      apiKey: "$argon2id$v=19$m=16384,t=2,p=1$..."
+      api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 ```
 
-The `pdpId` field routes the client to a specific tenant's policies. For single-tenant deployments, use `"default"`.
+The `pdp-id` field routes the client to a specific tenant's policies. For single-tenant deployments, use `"default"`.
 
 **OAuth2/JWT** requires Spring Security's resource server configuration:
 
 ```yaml
 io.sapl.node:
-  allowOauth2Auth: true
+  allow-oauth2-auth: true
   oauth:
-    pdpIdClaim: "sapl_pdp_id"   # JWT claim for tenant routing
+    pdp-id-claim: "sapl_pdp_id"   # JWT claim for tenant routing
 
 spring.security.oauth2:
   resourceserver:
@@ -410,8 +410,8 @@ Bundles can be signed with Ed25519 keys. Configure verification in `bundle-secur
 ```yaml
 io.sapl.pdp.embedded.bundle-security:
   # Option 1: Global public key (verifies all bundles)
-  publicKeyPath: "/etc/sapl/public.key"
-  # or inline: publicKey: "MCowBQYDK2VwAyEA..."
+  public-key-path: "/etc/sapl/public.key"
+  # or inline: public-key: "MCowBQYDK2VwAyEA..."
 
   # Option 2: Per-tenant key catalogue
   keys:
@@ -424,8 +424,8 @@ io.sapl.pdp.embedded.bundle-security:
       - "staging-key"
 
   # Option 3: Allow unsigned bundles (development only)
-  allowUnsigned: true
-  unsignedTenants:
+  allow-unsigned: true
+  unsigned-tenants:
     - "development"
 ```
 

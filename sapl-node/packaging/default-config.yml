@@ -52,7 +52,10 @@ server:
   port: 8443
   ssl:
     enabled: false
-    # Uncomment and configure to enable TLS:
+    # Uncomment and configure to enable TLS.
+    # The keystore file must be readable by the sapl service user:
+    #   sudo chown root:sapl /etc/sapl/keystore.p12
+    #   sudo chmod 640 /etc/sapl/keystore.p12
     # key-store-type: PKCS12
     # key-store: file:/etc/sapl/keystore.p12
     # key-store-password: changeme
@@ -85,28 +88,28 @@ server:
 # --- Client Authentication ---
 #
 # The node supports four authentication modes. Multiple can be enabled
-# simultaneously. With no authentication required (allowNoAuth: true),
+# simultaneously. With no authentication required (allow-no-auth: true),
 # the node is functional out of the box on localhost.
 #
 # WARNING: Enable authentication before exposing the node to a network.
 
 io.sapl:
   node:
-    allowNoAuth: true
-    allowBasicAuth: false
-    allowApiKeyAuth: false
-    allowOauth2Auth: false
+    allow-no-auth: true
+    allow-basic-auth: false
+    allow-api-key-auth: false
+    allow-oauth2-auth: false
 
     # PDP ID routing (multi-tenant)
-    # rejectOnMissingPdpId: false
-    # defaultPdpId: "default"
+    # reject-on-missing-pdp-id: false
+    # default-pdp-id: "default"
 
-    # OAuth2 settings (only relevant if allowOauth2Auth is true)
+    # OAuth2 settings (only relevant if allow-oauth2-auth is true)
     # oauth:
-    #   pdpIdClaim: "sapl_pdp_id"
+    #   pdp-id-claim: "sapl_pdp_id"
 
     # User entries for Basic Auth and API Key authentication.
-    # Each user is associated with a pdpId for multi-tenant routing.
+    # Each user is associated with a pdp-id for multi-tenant routing.
     #
     # Generate credentials:
     #   sapl generate basic --id "my-client" --pdp-id "production"
@@ -114,14 +117,14 @@ io.sapl:
     #
     # users:
     #   - id: "my-basic-client"
-    #     pdpId: "default"
+    #     pdp-id: "default"
     #     basic:
     #       username: "my-username"
     #       secret: "$argon2id$..."
     #
     #   - id: "my-apikey-client"
-    #     pdpId: "default"
-    #     apiKey: "$argon2id$..."
+    #     pdp-id: "default"
+    #     api-key: "$argon2id$..."
 
   # --- PDP Policy Source ---
   #
@@ -132,7 +135,7 @@ io.sapl:
   # pdp-config-type options:
   #   BUNDLES          - Monitor directory for .saplbundle files (package default)
   #   DIRECTORY        - Monitor a directory for pdp.json and *.sapl files
-  #   MULTI_DIRECTORY  - Subdirectories as tenants (subdir name = pdpId)
+  #   MULTI_DIRECTORY  - Subdirectories as tenants (subdir name = pdp-id)
   #   RESOURCES        - Load from classpath (fixed, no runtime updates)
   #   REMOTE_BUNDLES   - Fetch .saplbundle files from HTTP server
 
@@ -194,7 +197,7 @@ io.sapl:
 
 # --- OAuth2 Resource Server ---
 #
-# Required when allowOauth2Auth is true.
+# Required when allow-oauth2-auth is true.
 #
 # spring.security.oauth2:
 #   resourceserver:
