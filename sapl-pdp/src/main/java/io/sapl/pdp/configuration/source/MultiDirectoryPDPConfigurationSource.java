@@ -46,16 +46,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>
  * /policies/
- * ├── pdp.json              (optional - default PDP, if includeRootFiles=true)
- * ├── main-policy.sapl      (optional - default PDP, if includeRootFiles=true)
- * ├── production/
- * │   ├── pdp.json
- * │   └── strict-access.sapl
- * ├── staging/
- * │   ├── pdp.json
- * │   └── relaxed-access.sapl
- * └── development/
- *     └── permissive.sapl
+ *   pdp.json              (optional - default PDP, if includeRootFiles=true)
+ *   main-policy.sapl      (optional - default PDP, if includeRootFiles=true)
+ *   production/
+ *     pdp.json
+ *     strict-access.sapl
+ *   staging/
+ *     pdp.json
+ *     relaxed-access.sapl
+ *   development/
+ *     permissive.sapl
  * </pre>
  * <p>
  * This source delegates to {@link DirectoryPDPConfigurationSource} for each

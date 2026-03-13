@@ -54,11 +54,11 @@ import java.util.zip.ZipInputStream;
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- * +-- .sapl-manifest.json  (signature and file hashes)
- * +-- pdp.json             (optional configuration)
- * +-- access-control.sapl
- * +-- audit.sapl
- * +-- logging.sapl
+ *   .sapl-manifest.json  (signature and file hashes)
+ *   pdp.json             (optional configuration)
+ *   access-control.sapl
+ *   audit.sapl
+ *   logging.sapl
  * </pre>
  * <p>
  * Subdirectories inside bundles are ignored. Only root-level files are

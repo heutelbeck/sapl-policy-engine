@@ -45,9 +45,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>
  * /policies/
- * |-- pdp.json        (required - combining algorithm and configurationId)
- * |-- access.sapl
- * \-- audit.sapl
+ *   pdp.json        (required - combining algorithm and configurationId)
+ *   access.sapl
+ *   audit.sapl
  * </pre>
  *
  * <h2>Configuration ID</h2>

@@ -49,9 +49,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>
  * /bundles/
- * ├── production.saplbundle     # pdpId = "production"
- * ├── staging.saplbundle        # pdpId = "staging"
- * └── development.saplbundle    # pdpId = "development"
+ *   production.saplbundle     # pdpId = "production"
+ *   staging.saplbundle        # pdpId = "staging"
+ *   development.saplbundle    # pdpId = "development"
  * </pre>
  *
  * <h2>Security Model</h2>

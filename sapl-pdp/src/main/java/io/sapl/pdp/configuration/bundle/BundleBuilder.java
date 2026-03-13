@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
@@ -30,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PrivateKey;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -49,10 +51,10 @@ import java.util.zip.ZipOutputStream;
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- * ├── pdp.json           (required, must contain configurationId)
- * ├── access-control.sapl
- * ├── audit.sapl
- * └── logging.sapl
+ *   pdp.json           (required, must contain configurationId)
+ *   access-control.sapl
+ *   audit.sapl
+ *   logging.sapl
  * </pre>
  *
  * <h2>Usage Examples</h2>
@@ -113,6 +115,7 @@ public final class BundleBuilder {
     private static final String ERROR_FAILED_TO_CREATE_BUNDLE     = "Failed to create bundle.";
     private static final String ERROR_FAILED_TO_WRITE_BUNDLE      = "Failed to write bundle to path: %s.";
     private static final String ERROR_POLICY_FILENAME_NULL_EMPTY  = "Policy filename must not be null or empty.";
+    private static final String ERROR_POLICY_SYNTAX_ERRORS        = "Bundle contains policies with syntax errors:%n%s";
     private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519 = "Private key must be Ed25519, got: %s.";
     private static final String ERROR_PRIVATE_KEY_NULL            = "Private key must not be null.";
 
@@ -364,6 +367,7 @@ public final class BundleBuilder {
      */
     public void writeTo(OutputStream outputStream) {
         validatePdpJson();
+        validatePolicies();
         try (val zipStream = new ZipOutputStream(outputStream)) {
             // Collect all files for potential signing
             val allFiles = new TreeMap<String, String>();
@@ -408,6 +412,19 @@ public final class BundleBuilder {
             throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_PDP_JSON);
         }
         PDPConfigurationLoader.loadFromBundle(pdpJson, Map.of(), "build-validation");
+    }
+
+    private void validatePolicies() {
+        val errors = new ArrayList<String>();
+        for (val entry : policies.entrySet()) {
+            val document = DocumentCompiler.parseDocument(entry.getValue());
+            if (document.isInvalid()) {
+                errors.add("  %s: %s".formatted(entry.getKey(), document.errors()));
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new PDPConfigurationException(ERROR_POLICY_SYNTAX_ERRORS.formatted(String.join("\n", errors)));
+        }
     }
 
     private static String algorithmToJson(CombiningAlgorithm algorithm) {

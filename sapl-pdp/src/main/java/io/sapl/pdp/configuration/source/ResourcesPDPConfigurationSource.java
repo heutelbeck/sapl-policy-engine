@@ -43,9 +43,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>
  * /policies/
- * ├── pdp.json
- * ├── access.sapl
- * └── audit.sapl
+ *   pdp.json
+ *   access.sapl
+ *   audit.sapl
  * </pre>
  *
  * Result: pdpId = "default"
@@ -54,12 +54,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>
  * /policies/
- * ├── production/
- * │   ├── pdp.json
- * │   └── strict.sapl
- * └── development/
- *     ├── pdp.json
- *     └── permissive.sapl
+ *   production/
+ *     pdp.json
+ *     strict.sapl
+ *   development/
+ *     pdp.json
+ *     permissive.sapl
  * </pre>
  *
  * <p>
