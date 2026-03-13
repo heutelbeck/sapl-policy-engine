@@ -108,13 +108,13 @@ class RemoteBundlePDPConfigurationSourceTests {
 
     private byte[] createUnsignedBundle() {
         return BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES).withPolicy("test.sapl", """
-                policy "test-policy" permit true
+                policy "test-policy" permit true;
                 """).build();
     }
 
     private byte[] createSignedBundle() {
         return BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES).withPolicy("test.sapl", """
-                policy "test-policy" permit true
+                policy "test-policy" permit true;
                 """).signWith(elderKeyPair.getPrivate(), "test-key").build();
     }
 
@@ -640,7 +640,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             val tenantKeyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
             val bundle        = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
                     .withPolicy("test.sapl", """
-                            policy "test-policy" permit true
+                            policy "test-policy" permit true;
                             """).signWith(tenantKeyPair.getPrivate(), "tenant-key").build();
 
             val tenantPolicy = BundleSecurityPolicy.builder()
@@ -762,7 +762,7 @@ class RemoteBundlePDPConfigurationSourceTests {
         void whenLargeBundleThenLoadedSuccessfully() {
             val builder = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES);
             for (int i = 0; i < 100; i++) {
-                builder.withPolicy("policy-" + i + ".sapl", "policy \"policy-" + i + "\" permit true\n");
+                builder.withPolicy("policy-" + i + ".sapl", "policy \"policy-" + i + "\" permit true;\n");
             }
             val largeBundle = builder.build();
 

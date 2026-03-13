@@ -96,7 +96,7 @@ class BundleSecurityPolicyTests {
     @Test
     void whenParsingUnsignedBundleWithRequiredSignatureThenThrowsException() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                .withPolicy("cultist-access.sapl", "policy \"cultist\" permit subject.initiated == true").build();
+                .withPolicy("cultist-access.sapl", "policy \"cultist\" permit subject.initiated == true;").build();
 
         val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
 
@@ -107,7 +107,7 @@ class BundleSecurityPolicyTests {
     @Test
     void whenParsingUnsignedBundleWithDisabledVerificationThenSucceeds() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
-                .withPolicy("public-access.sapl", "policy \"public\" permit true").build();
+                .withPolicy("public-access.sapl", "policy \"public\" permit true;").build();
 
         val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
@@ -119,7 +119,7 @@ class BundleSecurityPolicyTests {
     @Test
     void whenParsingSignedBundleWithValidKeyThenSucceeds() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
-                .withPolicy("necronomicon.sapl", "policy \"tome\" deny subject.sanity < 50")
+                .withPolicy("necronomicon.sapl", "policy \"tome\" deny subject.sanity < 50;")
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
 
         val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build();
@@ -132,7 +132,7 @@ class BundleSecurityPolicyTests {
     @Test
     void whenParsingSignedBundleWithWrongKeyThenThrowsException() {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(ONLY_ONE_APPLICABLE)
-                .withPolicy("ritual.sapl", "policy \"ritual\" permit action.type == \"summon\"")
+                .withPolicy("ritual.sapl", "policy \"ritual\" permit action.type == \"summon\";")
                 .signWith(elderKeyPair.getPrivate(), "elder-key").build();
 
         val wrongKeyPair = generateEd25519KeyPair();
@@ -285,7 +285,7 @@ class BundleSecurityPolicyTests {
                     .build();
 
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                    .withPolicy("test.sapl", "policy \"test\" permit true")
+                    .withPolicy("test.sapl", "policy \"test\" permit true;")
                     .signWith(stagingKeyPair.getPrivate(), "staging-key").build();
 
             assertThatThrownBy(() -> BundleParser.parse(bundle, "production", policy))
@@ -303,7 +303,7 @@ class BundleSecurityPolicyTests {
                     .build();
 
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                    .withPolicy("test.sapl", "policy \"test\" permit true")
+                    .withPolicy("test.sapl", "policy \"test\" permit true;")
                     .signWith(elderKeyPair.getPrivate(), "prod-key").build();
 
             val config = BundleParser.parse(bundle, "production", policy);
@@ -330,7 +330,7 @@ class BundleSecurityPolicyTests {
         @DisplayName("unsigned bundle accepted for tenant in unsigned-tenants list")
         void whenTenantInUnsignedListThenUnsignedBundleAccepted() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                    .withPolicy("dev-policy.sapl", "policy \"dev\" permit true").build();
+                    .withPolicy("dev-policy.sapl", "policy \"dev\" permit true;").build();
 
             val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic())
                     .withUnsignedTenants(Set.of("development")).build();
@@ -344,7 +344,7 @@ class BundleSecurityPolicyTests {
         @DisplayName("unsigned bundle rejected for tenant not in unsigned-tenants list")
         void whenTenantNotInUnsignedListThenUnsignedBundleRejected() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                    .withPolicy("prod-policy.sapl", "policy \"prod\" deny true").build();
+                    .withPolicy("prod-policy.sapl", "policy \"prod\" deny true;").build();
 
             val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic())
                     .withUnsignedTenants(Set.of("development")).build();
@@ -357,7 +357,7 @@ class BundleSecurityPolicyTests {
         @DisplayName("empty unsigned-tenants list rejects all unsigned bundles")
         void whenEmptyUnsignedListThenAllUnsignedRejected() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(PERMIT_OVERRIDES)
-                    .withPolicy("test.sapl", "policy \"test\" permit true").build();
+                    .withPolicy("test.sapl", "policy \"test\" permit true;").build();
 
             val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withUnsignedTenants(Set.of()).build();
 
@@ -369,7 +369,7 @@ class BundleSecurityPolicyTests {
         @DisplayName("global unsigned override still works alongside unsigned-tenants")
         void whenGlobalUnsignedEnabledThenOverridesPerTenant() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                    .withPolicy("global.sapl", "policy \"global\" permit true").build();
+                    .withPolicy("global.sapl", "policy \"global\" permit true;").build();
 
             val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
 
@@ -382,7 +382,7 @@ class BundleSecurityPolicyTests {
         @DisplayName("signed bundle still works for tenant in unsigned-tenants list")
         void whenTenantInUnsignedListThenSignedBundleStillAccepted() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_UNLESS_PERMIT)
-                    .withPolicy("signed-dev.sapl", "policy \"dev\" permit true")
+                    .withPolicy("signed-dev.sapl", "policy \"dev\" permit true;")
                     .signWith(elderKeyPair.getPrivate(), "dev-key").build();
 
             val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic())
@@ -399,7 +399,7 @@ class BundleSecurityPolicyTests {
             val policy = BundleSecurityPolicy.builder(elderKeyPair.getPublic()).withUnsignedTenants(null).build();
 
             val bundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                    .withPolicy("test.sapl", "policy \"test\" permit true").build();
+                    .withPolicy("test.sapl", "policy \"test\" permit true;").build();
 
             assertThatThrownBy(() -> BundleParser.parse(bundle, "any-tenant", policy))
                     .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not signed");
