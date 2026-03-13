@@ -41,6 +41,7 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 
 ```json
 {
+  "configurationId": "my-app-v1",
   "algorithm": {
     "votingMode": "PRIORITY_DENY",
     "defaultDecision": "DENY",
@@ -63,5 +64,7 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 ```
 
 The `algorithm` object is mandatory; `variables` and `secrets` are optional.
+
+The `configurationId` is a version identifier for the configuration. It appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact policy set that produced them. For bundles, this field is **required**. For directory and resource sources, it is optional and auto-generated from the source path and content hash when absent.
 
 For deployment details, see [SAPL Node](../7_0_Deployment/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../7_5_BundleWireProtocol/).

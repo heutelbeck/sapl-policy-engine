@@ -49,7 +49,19 @@ Writing Your Own Policies
 
 Replace the example with your own policies:
 
-1. Create a directory with your .sapl files and optional pdp.json
+1. Create a directory with your .sapl files and a pdp.json.
+   The pdp.json must contain a "configurationId" field that
+   uniquely identifies this configuration version. Example:
+
+   {
+     "configurationId": "my-app-v1",
+     "algorithm": {
+       "votingMode": "PRIORITY_DENY",
+       "defaultDecision": "DENY",
+       "errorHandling": "PROPAGATE"
+     }
+   }
+
 2. Build and sign: sapl-node bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
 3. The PDP reloads automatically
 

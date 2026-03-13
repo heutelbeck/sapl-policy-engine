@@ -26,6 +26,8 @@ import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 
+import java.util.Arrays;
+
 import lombok.val;
 
 /**
@@ -55,6 +57,7 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
     private static final String ERROR_ERROR_HANDLING_REQUIRED   = "CombiningAlgorithm requires errorHandling field.";
     private static final String ERROR_EXPECTED_START_OBJECT     = "Expected START_OBJECT for CombiningAlgorithm.";
     private static final String ERROR_FIRST_NOT_ALLOWED         = "FIRST is not allowed as combining algorithm voting mode at PDP level. It implies an ordering that is not present here.";
+    private static final String ERROR_INVALID_ENUM_VALUE        = "Invalid value '%s' for field '%s'. Valid values: %s.";
     private static final String ERROR_VOTING_MODE_REQUIRED      = "CombiningAlgorithm requires votingMode field.";
 
     @Override
@@ -72,9 +75,11 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
             parser.nextToken();
 
             switch (fieldName) {
-            case "votingMode"      -> votingMode = VotingMode.valueOf(parser.getString());
-            case "defaultDecision" -> defaultDecision = DefaultDecision.valueOf(parser.getString());
-            case "errorHandling"   -> errorHandling = ErrorHandling.valueOf(parser.getString());
+            case "votingMode"      -> votingMode = parseEnum(context, parser.getString(), fieldName, VotingMode.class);
+            case "defaultDecision" ->
+                defaultDecision = parseEnum(context, parser.getString(), fieldName, DefaultDecision.class);
+            case "errorHandling"   ->
+                errorHandling = parseEnum(context, parser.getString(), fieldName, ErrorHandling.class);
             default                -> { /* ignore unknown fields */ }
             }
         }
@@ -93,5 +98,15 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
         }
 
         return new CombiningAlgorithm(votingMode, defaultDecision, errorHandling);
+    }
+
+    private static <E extends Enum<E>> E parseEnum(DeserializationContext context, String value, String fieldName,
+            Class<E> enumType) {
+        try {
+            return Enum.valueOf(enumType, value);
+        } catch (IllegalArgumentException e) {
+            return context.reportInputMismatch(CombiningAlgorithm.class,
+                    ERROR_INVALID_ENUM_VALUE.formatted(value, fieldName, Arrays.toString(enumType.getEnumConstants())));
+        }
     }
 }

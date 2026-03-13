@@ -214,7 +214,7 @@ The `sapl-node` binary doubles as a CLI tool. These commands run locally without
 
 #### bundle create
 
-Creates a `.saplbundle` archive from a directory of `.sapl` files and an optional `pdp.json`. If a signing key is provided, the bundle is signed in the same step.
+Creates a `.saplbundle` archive from a directory of `.sapl` files and a `pdp.json`. The `pdp.json` must contain a `configurationId` field. If a signing key is provided, the bundle is signed in the same step.
 
 ```
 sapl-node bundle create -i <dir> -o <file> [-k <key>]

@@ -1,4 +1,5 @@
 {
+  "configurationId": "v1",
   "algorithm": {
     "votingMode": "PRIORITY_DENY",
     "defaultDecision": "DENY",

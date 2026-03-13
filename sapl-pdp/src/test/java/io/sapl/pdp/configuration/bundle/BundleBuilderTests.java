@@ -46,7 +46,6 @@ import java.security.PrivateKey;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -57,6 +56,10 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("BundleBuilder")
 class BundleBuilderTests {
+
+    private static final String VALID_PDP_JSON = """
+            { "configurationId": "test", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+            """;
 
     @TempDir
     Path tempDir;
@@ -84,23 +87,54 @@ class BundleBuilderTests {
     }
 
     @Test
-    void whenBuildingEmptyBundleThenCreatesValidZip() throws IOException {
-        val bundle = BundleBuilder.create().build();
+    void whenBuildingWithoutPdpJsonThenThrowsException() {
+        val builder = BundleBuilder.create();
 
-        assertThat(bundle).isNotEmpty();
-        assertThat(extractEntryNames(bundle)).isEmpty();
+        assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("missing pdp.json");
     }
 
     @Test
     void whenAddingPdpJsonThenBundleContainsPdpJson() throws IOException {
         val pdpJsonContent = """
-                { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                { "configurationId": "test-v1", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
                 """;
         val bundle         = BundleBuilder.create().withPdpJson(pdpJsonContent).build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).containsKey("pdp.json");
-        assertThat(entries.get("pdp.json")).contains("PRIORITY_DENY");
+        assertThat(entries).containsKey("pdp.json").extractingByKey("pdp.json").asString().contains("PRIORITY_DENY");
+    }
+
+    @Test
+    void whenAddingPdpJsonWithoutConfigurationIdThenThrowsException() {
+        val pdpJsonContent = """
+                { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                """;
+        val builder        = BundleBuilder.create().withPdpJson(pdpJsonContent);
+
+        assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("configurationId");
+    }
+
+    @Test
+    void whenAddingPdpJsonWithBlankConfigurationIdThenThrowsException() {
+        val pdpJsonContent = """
+                { "configurationId": "   ", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                """;
+        val builder        = BundleBuilder.create().withPdpJson(pdpJsonContent);
+
+        assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("configurationId");
+    }
+
+    @Test
+    void whenAddingPdpJsonWithInvalidAlgorithmThenThrowsException() {
+        val pdpJsonContent = """
+                { "configurationId": "test", "algorithm": { "votingMode": "NONSENSE", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                """;
+        val builder        = BundleBuilder.create().withPdpJson(pdpJsonContent);
+
+        assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -110,8 +144,7 @@ class BundleBuilderTests {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(algorithm).build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).containsKey("pdp.json");
-        assertThat(entries.get("pdp.json")).contains(expectedContent);
+        assertThat(entries).containsKey("pdp.json").extractingByKey("pdp.json").asString().contains(expectedContent);
     }
 
     static Stream<Arguments> algorithmCases() {
@@ -125,9 +158,16 @@ class BundleBuilderTests {
                         new CombiningAlgorithm(VotingMode.UNANIMOUS, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE),
                         "UNANIMOUS"),
                 arguments(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN),
-                        "UNIQUE"),
-                arguments(new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.PERMIT, ErrorHandling.PROPAGATE),
-                        "FIRST"));
+                        "UNIQUE"));
+    }
+
+    @Test
+    void whenBuildingWithFirstAlgorithmThenThrowsException() {
+        val algorithm = new CombiningAlgorithm(VotingMode.FIRST, DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);
+        val builder   = BundleBuilder.create().withCombiningAlgorithm(algorithm);
+
+        assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("FIRST is not allowed");
     }
 
     @Test
@@ -136,17 +176,19 @@ class BundleBuilderTests {
                 policy "elder-access"
                 permit subject.cultRank == "elder"
                 """;
-        val bundle        = BundleBuilder.create().withPolicy("access.sapl", policyContent).build();
+        val bundle        = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicy("access.sapl", policyContent)
+                .build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).containsKey("access.sapl");
-        assertThat(entries.get("access.sapl")).contains("elder-access");
+        assertThat(entries).containsKey("access.sapl").extractingByKey("access.sapl").asString()
+                .contains("elder-access");
     }
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "ritual", "ritual.sapl" })
     void whenAddingPolicyWithOrWithoutExtensionThenExtensionIsNormalized(String filename) throws IOException {
-        val bundle = BundleBuilder.create().withPolicy(filename, "policy \"ritual\" permit true").build();
+        val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                .withPolicy(filename, "policy \"ritual\" permit true").build();
 
         val entries = extractEntries(bundle);
         assertThat(entries).containsKey("ritual.sapl");
@@ -154,13 +196,14 @@ class BundleBuilderTests {
 
     @Test
     void whenAddingMultiplePoliciesThenBundleContainsAll() throws IOException {
-        val bundle = BundleBuilder.create().withPolicy("forbidden-tome.sapl", "policy \"tome\" deny true")
+        val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                .withPolicy("forbidden-tome.sapl", "policy \"tome\" deny true")
                 .withPolicy("altar-access.sapl", "policy \"altar\" permit subject.initiated == true")
                 .withPolicy("deep-one-greeting.sapl", "policy \"greeting\" permit resource.location == \"Innsmouth\"")
                 .build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).hasSize(3).containsKeys("forbidden-tome.sapl", "altar-access.sapl",
+        assertThat(entries).hasSize(4).containsKeys("pdp.json", "forbidden-tome.sapl", "altar-access.sapl",
                 "deep-one-greeting.sapl");
     }
 
@@ -170,10 +213,10 @@ class BundleBuilderTests {
         policies.put("shoggoth-containment.sapl", "policy \"containment\" deny subject.sanity < 20");
         policies.put("mi-go-trade.sapl", "policy \"trade\" permit resource.type == \"brain_cylinder\"");
 
-        val bundle = BundleBuilder.create().withPolicies(policies).build();
+        val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicies(policies).build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).hasSize(2).containsKeys("shoggoth-containment.sapl", "mi-go-trade.sapl");
+        assertThat(entries).hasSize(3).containsKeys("pdp.json", "shoggoth-containment.sapl", "mi-go-trade.sapl");
     }
 
     @Test
@@ -236,18 +279,18 @@ class BundleBuilderTests {
 
     @Test
     void whenAddingPolicyWithNullContentThenEmptyPolicyIsAdded() throws IOException {
-        val bundle = BundleBuilder.create().withPolicy("empty.sapl", null).build();
+        val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicy("empty.sapl", null).build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).containsKey("empty.sapl");
-        assertThat(entries.get("empty.sapl")).isEmpty();
+        assertThat(entries).containsKey("empty.sapl").extractingByKey("empty.sapl").asString().isEmpty();
     }
 
     @Test
     void whenWritingToInvalidPathThenThrowsException() {
         val invalidPath = tempDir.resolve("non-existent-dir/bundle.saplbundle");
 
-        val builder = BundleBuilder.create().withPolicy("test.sapl", "policy \"test\" permit true");
+        val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicy("test.sapl",
+                "policy \"test\" permit true");
 
         assertThatThrownBy(() -> builder.writeTo(invalidPath)).isInstanceOf(PDPConfigurationException.class)
                 .hasMessageContaining("Failed to write bundle");
@@ -262,9 +305,8 @@ class BundleBuilderTests {
         val bundle = BundleBuilder.create().withConfiguration(CombiningAlgorithm.DEFAULT, variables).build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).containsKey("pdp.json");
-        assertThat(entries.get("pdp.json")).contains("PRIORITY_DENY").contains("variables").contains("maxSanity")
-                .contains("cultName");
+        assertThat(entries).containsKey("pdp.json").extractingByKey("pdp.json").asString().contains("PRIORITY_DENY")
+                .contains("variables").contains("maxSanity").contains("cultName");
     }
 
     @Test
@@ -282,10 +324,12 @@ class BundleBuilderTests {
 
         val config = BundleParser.parse(bundle, "arkham-pdp", developmentPolicy);
 
-        assertThat(config.pdpId()).isEqualTo("arkham-pdp");
-        assertThat(config.configurationId()).startsWith("bundle-");
-        assertThat(config.combiningAlgorithm()).isEqualTo(algorithm);
-        assertThat(config.saplDocuments()).hasSize(1).first().asString().contains("arkham-asylum");
+        assertThat(config).satisfies(c -> {
+            assertThat(c.pdpId()).isEqualTo("arkham-pdp");
+            assertThat(c.configurationId()).startsWith("bundle-");
+            assertThat(c.combiningAlgorithm()).isEqualTo(algorithm);
+            assertThat(c.saplDocuments()).hasSize(1).first().asString().contains("arkham-asylum");
+        });
     }
 
     @Test
@@ -303,7 +347,7 @@ class BundleBuilderTests {
         val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                 .withPdpJson(
                         """
-                                { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
+                                { "configurationId": "override", "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
                                 """)
                 .build();
 
@@ -313,12 +357,13 @@ class BundleBuilderTests {
 
     @Test
     void whenAddingSamePolicyTwiceThenLastContentWins() throws IOException {
-        val bundle = BundleBuilder.create().withPolicy("duplicate.sapl", "policy \"first\" permit true")
+        val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                .withPolicy("duplicate.sapl", "policy \"first\" permit true")
                 .withPolicy("duplicate.sapl", "policy \"second\" deny true").build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries).containsKey("duplicate.sapl");
-        assertThat(entries.get("duplicate.sapl")).contains("second");
+        assertThat(entries).containsKey("duplicate.sapl").extractingByKey("duplicate.sapl").asString()
+                .contains("second");
     }
 
     @Test
@@ -344,10 +389,13 @@ class BundleBuilderTests {
         val manifestJson = entries.get(BundleManifest.MANIFEST_FILENAME);
         val manifest     = BundleManifest.fromJson(manifestJson);
 
-        assertThat(manifest.signature()).isNotNull();
-        assertThat(manifest.signature().algorithm()).isEqualTo("Ed25519");
-        assertThat(manifest.signature().keyId()).isEqualTo("dagon-key");
-        assertThat(manifest.files()).hasSize(2);
+        assertThat(manifest).satisfies(m -> {
+            assertThat(m.signature()).isNotNull().satisfies(sig -> {
+                assertThat(sig.algorithm()).isEqualTo("Ed25519");
+                assertThat(sig.keyId()).isEqualTo("dagon-key");
+            });
+            assertThat(m.files()).hasSize(2);
+        });
     }
 
     @Test
@@ -368,7 +416,8 @@ class BundleBuilderTests {
 
     @Test
     void whenSigningWithNullKeyIdThenDefaultKeyIdIsUsed() throws IOException {
-        val bundle = BundleBuilder.create().withPolicy("default-key.sapl", "policy \"default\" permit true")
+        val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                .withPolicy("default-key.sapl", "policy \"default\" permit true")
                 .signWith(cultKeyPair.getPrivate(), null).build();
 
         val entries      = extractEntries(bundle);
@@ -398,8 +447,10 @@ class BundleBuilderTests {
 
         val config = BundleParser.parse(bundle, "cult-pdp", signedPolicy);
 
-        assertThat(config.pdpId()).isEqualTo("cult-pdp");
-        assertThat(config.combiningAlgorithm()).isEqualTo(algorithm);
+        assertThat(config).satisfies(c -> {
+            assertThat(c.pdpId()).isEqualTo("cult-pdp");
+            assertThat(c.combiningAlgorithm()).isEqualTo(algorithm);
+        });
     }
 
     @Test
@@ -425,10 +476,6 @@ class BundleBuilderTests {
             }
         }
         return entries;
-    }
-
-    private Set<String> extractEntryNames(byte[] bundle) throws IOException {
-        return extractEntries(bundle).keySet();
     }
 
     private KeyPair generateEd25519KeyPair() {

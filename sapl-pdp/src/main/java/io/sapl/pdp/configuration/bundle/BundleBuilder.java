@@ -18,8 +18,9 @@
 package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PDPConfigurationLoader;
+import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
 import lombok.val;
 
 import java.io.ByteArrayOutputStream;
@@ -39,8 +40,8 @@ import java.util.zip.ZipOutputStream;
 /**
  * Builder for creating SAPL bundle files (.saplbundle).
  * <p>
- * A SAPL bundle is a ZIP archive containing policy documents and an optional
- * pdp.json configuration file. This builder
+ * A SAPL bundle is a ZIP archive containing policy documents and a required
+ * pdp.json configuration file with a {@code configurationId}. This builder
  * provides a fluent API to construct bundles programmatically, serving as the
  * inverse of {@link BundleParser}.
  * </p>
@@ -48,7 +49,7 @@ import java.util.zip.ZipOutputStream;
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- * ├── pdp.json           (optional configuration)
+ * ├── pdp.json           (required, must contain configurationId)
  * ├── access-control.sapl
  * ├── audit.sapl
  * └── logging.sapl
@@ -108,6 +109,7 @@ public final class BundleBuilder {
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
 
+    private static final String ERROR_BUNDLE_MISSING_PDP_JSON     = "Bundle is missing pdp.json. Bundles require a pdp.json with a 'configurationId' field.";
     private static final String ERROR_FAILED_TO_CREATE_BUNDLE     = "Failed to create bundle.";
     private static final String ERROR_FAILED_TO_WRITE_BUNDLE      = "Failed to write bundle to path: %s.";
     private static final String ERROR_POLICY_FILENAME_NULL_EMPTY  = "Policy filename must not be null or empty.";
@@ -361,13 +363,12 @@ public final class BundleBuilder {
      * if bundle creation fails
      */
     public void writeTo(OutputStream outputStream) {
+        validatePdpJson();
         try (val zipStream = new ZipOutputStream(outputStream)) {
             // Collect all files for potential signing
             val allFiles = new TreeMap<String, String>();
 
-            if (pdpJson != null) {
-                allFiles.put(PDP_JSON, pdpJson);
-            }
+            allFiles.put(PDP_JSON, pdpJson);
 
             allFiles.putAll(policies);
 
@@ -400,6 +401,13 @@ public final class BundleBuilder {
         zipStream.putNextEntry(entry);
         zipStream.write(content.getBytes(StandardCharsets.UTF_8));
         zipStream.closeEntry();
+    }
+
+    private void validatePdpJson() {
+        if (pdpJson == null || pdpJson.isBlank()) {
+            throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_PDP_JSON);
+        }
+        PDPConfigurationLoader.loadFromBundle(pdpJson, Map.of(), "build-validation");
     }
 
     private static String algorithmToJson(CombiningAlgorithm algorithm) {

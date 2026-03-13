@@ -114,7 +114,7 @@ retrying. After the server recovers, the client resumes normal operation.
 The response body for `200 OK` is a `.saplbundle` file: a ZIP archive containing:
 
 - **`pdp.json`** (required): PDP configuration including combining algorithm and
-  configuration ID.
+  a `configurationId` field that uniquely identifies this configuration version.
 - **`*.sapl`** files: SAPL policy documents.
 - **`MANIFEST.json`** (if signed): Cryptographic manifest with content hashes.
 - **`MANIFEST.json.sig`** (if signed): Ed25519 signature of the manifest.
