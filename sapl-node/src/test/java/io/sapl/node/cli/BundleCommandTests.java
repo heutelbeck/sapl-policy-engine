@@ -50,8 +50,9 @@ class BundleCommandTests {
 
     private static final String TEST_PDP_JSON = """
             {
+              "configurationId": "test-v1",
               "algorithm": {
-                "votingMode": "DENY_UNLESS_PERMIT",
+                "votingMode": "PRIORITY_DENY",
                 "defaultDecision": "DENY",
                 "errorHandling": "ABSTAIN"
               }
@@ -99,6 +100,7 @@ class BundleCommandTests {
             val outputFile = tempDir.resolve("test.saplbundle");
 
             Files.createDirectory(inputDir);
+            Files.writeString(inputDir.resolve("pdp.json"), TEST_PDP_JSON);
             Files.writeString(inputDir.resolve("policy1.sapl"), TEST_POLICY);
             Files.writeString(inputDir.resolve("policy2.sapl"), TEST_POLICY);
             Files.writeString(inputDir.resolve("policy3.sapl"), TEST_POLICY);
