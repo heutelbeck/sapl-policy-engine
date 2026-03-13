@@ -21,21 +21,16 @@ import java.util.Set;
 
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
-import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.node.cli.DecideOnceRunner;
 import io.sapl.node.cli.SaplNodeCli;
 import lombok.val;
 import picocli.CommandLine;
-import tools.jackson.databind.json.JsonMapper;
 
 @EnableCaching
 @ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
@@ -48,12 +43,12 @@ import tools.jackson.databind.json.JsonMapper;
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
-    private static final Set<String> CLI_ONLY_ARGS   = Set.of("--help", "-h", "--version", "-V", "bundle", "generate");
-    private static final Set<String> SPRING_CLI_ARGS = Set.of("decide-once");
+    private static final Set<String> PICOCLI_COMMANDS = Set.of("--help", "-h", "--version", "-V", "bundle", "generate",
+            "decide-once");
 
     public static void main(String[] args) {
         val exitCode = run(args);
-        if (exitCode != 0 || isCliOnlyCommand(args) || isSpringCliCommand(args)) {
+        if (exitCode != 0 || isPicocliCommand(args)) {
             System.exit(exitCode);
         }
     }
@@ -62,49 +57,15 @@ public class SaplNodeApplication {
      * Runs the application and returns an exit code. Testable entry point.
      */
     static int run(String[] args) {
-        if (isCliOnlyCommand(args)) {
+        if (isPicocliCommand(args)) {
             return new CommandLine(new SaplNodeCli()).execute(args);
-        }
-        if (isSpringCliCommand(args)) {
-            return runSpringCli(args);
         }
         SpringApplication.run(SaplNodeApplication.class, args);
         return 0;
     }
 
-    private static int runSpringCli(String[] args) {
-        try {
-            val app = new SpringApplication(SaplNodeApplication.class);
-            app.setWebApplicationType(WebApplicationType.NONE);
-            app.setBannerMode(Banner.Mode.OFF);
-            app.setAdditionalProfiles("cli");
-            try (var context = app.run(args)) {
-                val pdp    = context.getBean(PolicyDecisionPoint.class);
-                val mapper = context.getBean(JsonMapper.class);
-                new DecideOnceRunner(pdp, mapper).run(args);
-                return SpringApplication.exit(context);
-            }
-        } catch (RuntimeException e) {
-            return 1;
-        }
-    }
-
-    private static boolean isCliOnlyCommand(String[] args) {
-        for (var arg : args) {
-            if (CLI_ONLY_ARGS.contains(arg)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isSpringCliCommand(String[] args) {
-        for (var arg : args) {
-            if (SPRING_CLI_ARGS.contains(arg)) {
-                return true;
-            }
-        }
-        return false;
+    private static boolean isPicocliCommand(String[] args) {
+        return args.length > 0 && PICOCLI_COMMANDS.contains(args[0]);
     }
 
     static class NativeResourceHints implements RuntimeHintsRegistrar {

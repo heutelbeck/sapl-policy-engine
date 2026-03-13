@@ -69,6 +69,7 @@ class SaplNodeCliTests {
             assertThat(exitCode).isZero();
             assertThat(out.toString()).satisfies(output -> {
                 assertThat(output).contains("bundle");
+                assertThat(output).contains("decide-once");
                 assertThat(output).contains("generate");
             });
         }
