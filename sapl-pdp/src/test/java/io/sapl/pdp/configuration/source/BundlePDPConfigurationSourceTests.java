@@ -664,7 +664,7 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenSecurityPolicyDisabledThenValidateSucceeds() throws IOException {
         val unsignedBundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                .withPolicy("test.sapl", "policy \"test\" permit true").build();
+                .withPolicy("test.sapl", "policy \"test\" permit true;").build();
         Files.write(tempDir.resolve("test.saplbundle"), unsignedBundle);
 
         val configs        = captureConfigurations();
@@ -678,7 +678,7 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenLoadingSignedBundleWithCorrectKeyThenSucceeds() throws IOException {
         val signedBundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
-                .withPolicy("signed.sapl", "policy \"signed\" permit true")
+                .withPolicy("signed.sapl", "policy \"signed\" permit true;")
                 .signWith(elderKeyPair.getPrivate(), "test-key").build();
 
         Files.write(tempDir.resolve("signed.saplbundle"), signedBundle);
