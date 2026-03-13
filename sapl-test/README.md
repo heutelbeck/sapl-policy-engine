@@ -625,11 +625,20 @@ Defines one actual TestCase in a [Requirement](#Requirement). The Name of the Te
 
 #### CombiningAlgorithm
 
-* `deny-overrides`
-* `permit-overrides`
-* `only-one-applicable`
-* `deny-unless-permit`
-* `permit-unless-deny`
+Uses the same natural-language syntax as SAPL 4.0 policy sets. The general form is:
+
+> `<votingMode> or <defaultDecision> [errors <errorHandling>]`
+
+Voting modes: `first`, `priority deny`, `priority permit`, `unanimous`, `unanimous strict`, `unique`
+
+Default decisions: `deny`, `permit`, `abstain`
+
+Error handling (optional): `errors propagate`, `errors abstain`
+
+Examples:
+* `priority deny or deny errors propagate`
+* `priority permit or abstain`
+* `unique or deny`
 
 #### FunctionParameters
 

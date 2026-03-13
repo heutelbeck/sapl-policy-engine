@@ -42,8 +42,9 @@ import java.util.TreeMap;
  *
  * <pre>{@code
  * // Prepare file contents
- * Map<String, String> files = Map.of("pdp.json", "{ \"algorithm\": \"DENY_OVERRIDES\" }", "policy.sapl",
- *         "policy \"test\" permit true");
+ * Map<String, String> files = Map.of("pdp.json",
+ *         "{ \"algorithm\": { \"votingMode\": \"PRIORITY_DENY\", \"defaultDecision\": \"DENY\", \"errorHandling\": \"PROPAGATE\" } }",
+ *         "policy.sapl", "policy \"test\" permit true");
  *
  * // Sign with Ed25519 private key
  * BundleManifest manifest = BundleSigner.sign(files, privateKey, "my-key-id");

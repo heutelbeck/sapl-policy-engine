@@ -47,14 +47,14 @@ Example health response with one loaded and one stale PDP:
           "default": {
             "state": "LOADED",
             "configurationId": "v42",
-            "combiningAlgorithm": "PRIORITY_PERMIT",
+            "combiningAlgorithm": "PRIORITY_PERMIT:DENY:ABSTAIN",
             "documentCount": 12,
             "lastSuccessfulLoad": "2026-03-10T08:15:30Z"
           },
           "staging": {
             "state": "STALE",
             "configurationId": "v5",
-            "combiningAlgorithm": "DENY_OVERRIDES",
+            "combiningAlgorithm": "PRIORITY_DENY:DENY:PROPAGATE",
             "documentCount": 3,
             "lastSuccessfulLoad": "2026-03-10T07:00:00Z",
             "lastFailedLoad": "2026-03-10T08:10:00Z",

@@ -21,20 +21,20 @@ SAPL Node is a lightweight, headless PDP server. Native binaries are available f
 
 1. Download the SAPL Node binary for your platform from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases).
 2. Create a folder for policies and configuration. For this tutorial, we use `~/sapl` on Linux/macOS or `C:\sapl` on Windows.
-3. Start SAPL Node with TLS and authentication disabled for local experimentation:
+3. Start SAPL Node pointing at the data folder. TLS and authentication are disabled by default for the native binary, so no extra flags are needed:
 
 **Linux/macOS:**
 ```bash
 chmod +x sapl-node-linux-amd64
-./sapl-node-linux-amd64 --server.ssl.enabled=false --server.port=8080 --io.sapl.node.allowNoAuth=true --io.sapl.pdp.embedded.config-path=~/sapl --io.sapl.pdp.embedded.policies-path=~/sapl
+./sapl-node-linux-amd64 --server.port=8080 --io.sapl.pdp.embedded.config-path=~/sapl --io.sapl.pdp.embedded.policies-path=~/sapl
 ```
 
 **Windows (PowerShell):**
 ```powershell
-.\sapl-node-windows-amd64.exe --server.ssl.enabled=false --server.port=8080 --io.sapl.node.allowNoAuth=true --io.sapl.pdp.embedded.config-path=C:\sapl --io.sapl.pdp.embedded.policies-path=C:\sapl
+.\sapl-node-windows-amd64.exe --server.port=8080 --io.sapl.pdp.embedded.config-path=C:\sapl --io.sapl.pdp.embedded.policies-path=C:\sapl
 ```
 
-> **Warning:** This configuration disables TLS and authentication. Use it only for local experimentation. See [SAPL Node](../7_0_Deployment/) for secure production setup.
+> **Warning:** This configuration has no TLS and no authentication. Use it only for local experimentation. See [SAPL Node](../7_0_Deployment/) for secure production setup.
 
 If everything worked, you should see a line like `Started SaplNodeApplication ...` in the output.
 
@@ -44,9 +44,9 @@ If everything worked, you should see a line like `Started SaplNodeApplication ..
 curl -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' http://localhost:8080/api/pdp/decide-once
 ```
 
-The server should return `{"decision":"INDETERMINATE"}`. This is expected. Without a `pdp.json` configuration file, the PDP has no combining algorithm defined and cannot produce a meaningful authorization decision. The `INDETERMINATE` response indicates that the PDP is running and accepting requests, but is not yet fully configured. The health endpoint at `http://localhost:8080/actuator/health` will also report `DOWN` until a valid `pdp.json` is loaded.
+The server should return `{"decision":"DENY"}`. This is expected. Without any policies loaded, the default combining algorithm (`PRIORITY_DENY` with a default decision of `DENY`) produces `DENY` for every request. The health endpoint at `http://localhost:8080/actuator/health` will report `UP`.
 
-5. Define the PDP combining algorithm. SAPL Node requires an explicit combining algorithm configuration in a `pdp.json` file. Without it, the PDP will always return `INDETERMINATE`. Create a file `pdp.json` in the data folder (e.g., `~/sapl` or `C:\sapl`). Set its content to:
+5. Optionally, customize the combining algorithm. Without a `pdp.json` file, the PDP uses `PRIORITY_DENY` with a default decision of `DENY` and error propagation. To change this, create a file `pdp.json` in the data folder (e.g., `~/sapl` or `C:\sapl`). Set its content to:
 ```json
 {
 	"algorithm": {
@@ -57,7 +57,7 @@ The server should return `{"decision":"INDETERMINATE"}`. This is expected. Witho
 	"variables": {}
 }
 ```
-This instructs the server to evaluate policies by priority (highest priority first), return `DENY` when no policy issues a `PERMIT`, and abstain from errors (treat them as not applicable). It also sets up an empty object to store environment variables in the future.
+This instructs the server to evaluate policies by priority (highest priority first), return `DENY` when no policy issues a `PERMIT`, and abstain from errors (treat them as not applicable). It also sets up an empty object to store environment variables in the future. The PDP watches this file and reloads automatically when it changes.
 
 6. Send the same request as before to the server:
 
@@ -65,7 +65,7 @@ This instructs the server to evaluate policies by priority (highest priority fir
 curl -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' http://localhost:8080/api/pdp/decide-once
 ```
 
-The request should now return `{"decision":"DENY"}`, as expected.
+The request should still return `{"decision":"DENY"}`. No policies match, so the default decision applies regardless of the combining algorithm.
 
 7. Now define a first policy. You can add arbitrary policies to the same folder where `pdp.json` is stored. Files with SAPL policies and policy set, i.e., SAPL documents, must end with the file extension `.sapl`. The SAPL Node monitors the folder for changes to files and automatically loads, reloads, and unloads the respective `pdp.json` or `*.sapl` files. Create the file `housemd_mrt.sapl`:
 

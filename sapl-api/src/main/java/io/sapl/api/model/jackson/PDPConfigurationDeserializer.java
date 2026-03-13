@@ -36,9 +36,9 @@ import lombok.val;
 /**
  * Jackson deserializer for PDPConfiguration.
  * <p>
- * Deserializes JSON to PDPConfiguration. The combining algorithm supports both
- * uppercase with underscores
- * (DENY_OVERRIDES) and kebab-case (deny-overrides) formats for flexibility.
+ * Deserializes JSON to PDPConfiguration. The combining algorithm is
+ * deserialized as a structured object with votingMode, defaultDecision, and
+ * errorHandling fields via {@link CombiningAlgorithmDeserializer}.
  * <p>
  * Required fields:
  * <ul>
