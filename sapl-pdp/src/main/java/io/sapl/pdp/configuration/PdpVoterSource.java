@@ -151,8 +151,7 @@ public class PdpVoterSource {
 
         val now = clock.instant();
         getStatusRef(pdpConfiguration.pdpId()).set(new PdpStatus(PdpState.LOADED, pdpConfiguration.configurationId(),
-                pdpConfiguration.combiningAlgorithm().toCanonicalString(), pdpConfiguration.saplDocuments().size(), now,
-                null, null));
+                pdpConfiguration.combiningAlgorithm(), pdpConfiguration.saplDocuments().size(), now, null, null));
     }
 
     /**

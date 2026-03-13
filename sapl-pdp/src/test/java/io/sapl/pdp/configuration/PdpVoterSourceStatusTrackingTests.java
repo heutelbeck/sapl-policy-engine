@@ -95,7 +95,7 @@ class PdpVoterSourceStatusTrackingTests {
             assertThat(status).isPresent().hasValueSatisfying(s -> {
                 assertThat(s.state()).isEqualTo(PdpState.LOADED);
                 assertThat(s.configurationId()).isEqualTo("config-1");
-                assertThat(s.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT.toCanonicalString());
+                assertThat(s.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
                 assertThat(s.documentCount()).isEqualTo(1);
                 assertThat(s.lastSuccessfulLoad()).isEqualTo(FIXED_TIME);
                 assertThat(s.lastFailedLoad()).isNull();
@@ -165,7 +165,7 @@ class PdpVoterSourceStatusTrackingTests {
             assertThat(status).isPresent().hasValueSatisfying(s -> {
                 assertThat(s.state()).isEqualTo(PdpState.STALE);
                 assertThat(s.configurationId()).isEqualTo("config-1");
-                assertThat(s.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT.toCanonicalString());
+                assertThat(s.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
                 assertThat(s.documentCount()).isEqualTo(1);
                 assertThat(s.lastSuccessfulLoad()).isEqualTo(loadTime);
                 assertThat(s.lastFailedLoad()).isEqualTo(loadTime);

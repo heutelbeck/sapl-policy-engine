@@ -24,15 +24,15 @@ _platform_aarch64='linux-arm64'
 # Release version used in archive filenames (dots not underscores).
 _relver="${pkgver//_/-}"
 
-source_x86_64=("${pkgname}-${pkgver}-x86_64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot-node/${pkgname}-${_relver}-${_platform_x86_64}.tar.gz")
-source_aarch64=("${pkgname}-${pkgver}-aarch64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot-node/${pkgname}-${_relver}-${_platform_aarch64}.tar.gz")
+source_x86_64=("sapl-${pkgver}-x86_64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot-node/sapl-${_relver}-${_platform_x86_64}.tar.gz")
+source_aarch64=("sapl-${pkgver}-aarch64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot-node/sapl-${_relver}-${_platform_aarch64}.tar.gz")
 
-# Update after each release. Compute with: sha256sum sapl-node-*.tar.gz
+# Update after each release. Compute with: sha256sum sapl-*.tar.gz
 sha256sums_x86_64=('SKIP')
 sha256sums_aarch64=('SKIP')
 
 package() {
-    install -Dm755 sapl-node "${pkgdir}/usr/bin/sapl-node"
+    install -Dm755 sapl "${pkgdir}/usr/bin/sapl"
     install -Dm644 "${srcdir}/../sapl-node.service" "${pkgdir}/usr/lib/systemd/system/sapl-node.service"
     install -Dm644 "${srcdir}/../default-config.yml" "${pkgdir}/etc/sapl-node/application.yml"
     install -dm750 "${pkgdir}/var/lib/sapl-node"

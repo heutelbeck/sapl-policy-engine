@@ -21,8 +21,8 @@
 # The VERSION, ARCH, and BINARY environment variables are set by the CI
 # publish job. Run locally with:
 #
-#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl-node nfpm package --packager deb --target .
-#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl-node nfpm package --packager rpm --target .
+#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl nfpm package --packager deb --target .
+#   VERSION=4.0.0 ARCH=amd64 BINARY=./sapl nfpm package --packager rpm --target .
 
 name: sapl-node
 version: ${VERSION}
@@ -37,7 +37,7 @@ section: admin
 
 contents:
   - src: ${BINARY}
-    dst: /usr/bin/sapl-node
+    dst: /usr/bin/sapl
     expand: true
     file_info:
       mode: 0755

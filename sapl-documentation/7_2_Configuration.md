@@ -127,8 +127,8 @@ Linux packages (DEB/RPM) and the Docker image default to `BUNDLES` mode with sig
 To deploy your first bundle:
 
 ```shell
-sapl-node bundle keygen -o signing
-sapl-node bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k signing.pem
+sapl bundle keygen -o signing
+sapl bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k signing.pem
 ```
 
 Then configure the public key in `application.yml`:

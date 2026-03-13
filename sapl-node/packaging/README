@@ -19,14 +19,14 @@ service account to protect policy confidentiality.
 
 1. Generate a signing keypair (one-time):
 
-   sudo sapl-node bundle keygen -o /etc/sapl-node/signing
+   sudo sapl bundle keygen -o /etc/sapl-node/signing
 
    This creates signing.pem (private key) and signing.pub (public key).
    Keep the private key secure. The public key goes into the config.
 
 2. Build and sign a bundle from the example policies:
 
-   sudo sapl-node bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+   sudo sapl bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
 
 3. Configure the public key in /etc/sapl-node/application.yml.
    Uncomment both the "bundle-security:" line AND the
@@ -68,7 +68,7 @@ Replace the example with your own policies:
      }
    }
 
-2. Build and sign: sapl-node bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+2. Build and sign: sapl bundle create -i ./my-policies -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
 3. The PDP reloads automatically
 
 See /var/lib/sapl-node/example/ for a starting point.

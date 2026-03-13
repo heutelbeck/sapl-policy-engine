@@ -21,6 +21,8 @@ import java.time.Instant;
 
 import org.jspecify.annotations.Nullable;
 
+import io.sapl.api.pdp.CombiningAlgorithm;
+
 /**
  * Immutable snapshot of a PDP's operational status, including configuration
  * metadata and load history.
@@ -28,8 +30,7 @@ import org.jspecify.annotations.Nullable;
  * @param state the current operational state
  * @param configurationId identifier of the active configuration, or null if
  * ERROR
- * @param combiningAlgorithm canonical string of the combining algorithm, or
- * null if ERROR
+ * @param combiningAlgorithm the combining algorithm in use, or null if ERROR
  * @param documentCount number of SAPL documents in the active configuration
  * @param lastSuccessfulLoad timestamp of the last successful configuration
  * load, or null if never loaded
@@ -41,7 +42,7 @@ import org.jspecify.annotations.Nullable;
 public record PdpStatus(
         PdpState state,
         @Nullable String configurationId,
-        @Nullable String combiningAlgorithm,
+        @Nullable CombiningAlgorithm combiningAlgorithm,
         int documentCount,
         @Nullable Instant lastSuccessfulLoad,
         @Nullable Instant lastFailedLoad,

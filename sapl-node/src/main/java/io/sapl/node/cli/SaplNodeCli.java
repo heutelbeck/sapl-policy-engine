@@ -33,7 +33,7 @@ import picocli.CommandLine.IVersionProvider;
  * started).
  * Subcommands like 'bundle' are handled by picocli within the Spring context.
  */
-@Command(name = "sapl-node", description = "SAPL Policy Decision Point Server", mixinStandardHelpOptions = true, versionProvider = SaplNodeCli.VersionProvider.class, subcommands = {
+@Command(name = "sapl", description = "SAPL Policy Decision Point Server", mixinStandardHelpOptions = true, versionProvider = SaplNodeCli.VersionProvider.class, subcommands = {
         BundleCommand.class, GenerateCredentialsCommand.class })
 public class SaplNodeCli implements Callable<Integer> {
 

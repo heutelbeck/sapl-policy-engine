@@ -27,7 +27,7 @@ The health endpoint returns detail fields for each PDP instance:
 |-------|-------------|
 | `state` | Current operational state (`LOADED`, `STALE`, or `ERROR`). |
 | `configurationId` | Identifier of the active configuration. Absent in `ERROR` state. |
-| `combiningAlgorithm` | Canonical name of the combining algorithm in use. Absent in `ERROR` state. |
+| `combiningAlgorithm` | The combining algorithm in use, with `votingMode`, `defaultDecision`, and `errorHandling` fields. Absent in `ERROR` state. |
 | `documentCount` | Number of SAPL documents in the active configuration. |
 | `lastSuccessfulLoad` | Timestamp of the last successful configuration load. |
 | `lastFailedLoad` | Timestamp of the last failed configuration load. Absent if no failure occurred. |
@@ -47,14 +47,22 @@ Example health response with one loaded and one stale PDP:
           "default": {
             "state": "LOADED",
             "configurationId": "v42",
-            "combiningAlgorithm": "PRIORITY_PERMIT:DENY:ABSTAIN",
+            "combiningAlgorithm": {
+              "votingMode": "PRIORITY_PERMIT",
+              "defaultDecision": "DENY",
+              "errorHandling": "ABSTAIN"
+            },
             "documentCount": 12,
             "lastSuccessfulLoad": "2026-03-10T08:15:30Z"
           },
           "staging": {
             "state": "STALE",
             "configurationId": "v5",
-            "combiningAlgorithm": "PRIORITY_DENY:DENY:PROPAGATE",
+            "combiningAlgorithm": {
+              "votingMode": "PRIORITY_DENY",
+              "defaultDecision": "DENY",
+              "errorHandling": "PROPAGATE"
+            },
             "documentCount": 3,
             "lastSuccessfulLoad": "2026-03-10T07:00:00Z",
             "lastFailedLoad": "2026-03-10T08:10:00Z",

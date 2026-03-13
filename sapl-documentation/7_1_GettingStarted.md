@@ -16,17 +16,17 @@ Download the archive for your platform from the [releases page](https://github.c
 On Linux or macOS, extract the archive:
 
 ```shell
-tar xzf sapl-node-*-linux-amd64.tar.gz
+tar xzf sapl-*-linux-amd64.tar.gz
 ```
 
 On Windows, extract the `.zip` file using Explorer or any archive tool.
 
-Each archive contains the `sapl-node` binary (ready to run, no runtime dependencies), the `LICENSE`, and a `README.md`. Place the binary somewhere on your `PATH` or in the directory where you plan to run the server.
+Each archive contains the `sapl` binary (ready to run, no runtime dependencies), the `LICENSE`, and a `README.md`. Place the binary somewhere on your `PATH` or in the directory where you plan to run the server.
 
 Verify the installation:
 
 ```shell
-./sapl-node --version
+./sapl --version
 ```
 
 ### Quick Start
@@ -52,7 +52,7 @@ The `<time.now>` attribute is a stream. It emits the current UTC timestamp once 
 Start the server:
 
 ```shell
-cd my-node && ./sapl-node
+cd my-node && ./sapl
 ```
 
 The node starts on `localhost:8443` with no TLS and no authentication required. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
@@ -99,7 +99,7 @@ The minimal working directory is simply the binary and your policy files:
 
 ```
 my-node/
-  sapl-node
+  sapl
   tick.sapl
 ```
 
@@ -107,7 +107,7 @@ For more complex setups, add a `pdp.json` to configure the combining algorithm a
 
 ```
 my-node/
-  sapl-node
+  sapl
   pdp.json          (optional)
   tick.sapl
   config/
@@ -130,15 +130,15 @@ Or for RPM-based distributions:
 sudo rpm -i sapl-node-4.0.0.x86_64.rpm
 ```
 
-The package installs the binary to `/usr/bin/sapl-node`, the configuration to `/etc/sapl-node/application.yml`, a systemd service, and example policies in `/var/lib/sapl-node/example/`.
+The package installs the binary to `/usr/bin/sapl`, the configuration to `/etc/sapl-node/application.yml`, a systemd service, and example policies in `/var/lib/sapl-node/example/`.
 
 The service is configured in `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
 To deploy your first bundle using the included example policies:
 
 ```shell
-sudo sapl-node bundle keygen -o /etc/sapl-node/signing
-sudo sapl-node bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
+sudo sapl bundle keygen -o /etc/sapl-node/signing
+sudo sapl bundle create -i /var/lib/sapl-node/example -o /var/lib/sapl-node/default.saplbundle -k /etc/sapl-node/signing.pem
 ```
 
 Configure the public key in `/etc/sapl-node/application.yml`:
@@ -167,7 +167,7 @@ Replace the example policies with your own by creating `.sapl` files in a direct
 
 ### Running with Docker
 
-For container deployments, the server runs inside Docker while you use the local `sapl-node` binary for CLI operations like bundle creation and credential generation.
+For container deployments, the server runs inside Docker while you use the local `sapl` binary for CLI operations like bundle creation and credential generation.
 
 The container image is `ghcr.io/heutelbeck/sapl-node`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
@@ -177,8 +177,8 @@ To get started with signed bundles:
 mkdir policies
 echo '{"configurationId":"v1","algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"}}' > policies/pdp.json
 echo 'policy "allow-all" permit' > policies/allow-all.sapl
-sapl-node bundle keygen -o signing
-sapl-node bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem
+sapl bundle keygen -o signing
+sapl bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem
 ```
 
 Run the container, mounting the bundles directory and the public key:
@@ -211,29 +211,29 @@ docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e 
 
 ### CLI Reference
 
-The `sapl-node` binary doubles as a CLI tool. These commands run locally without starting the server. Use them to manage bundles and generate credentials for your `application.yml`.
+The `sapl` binary doubles as a CLI tool. These commands run locally without starting the server. Use them to manage bundles and generate credentials for your `application.yml`.
 
 #### bundle create
 
 Creates a `.saplbundle` archive from a directory of `.sapl` files and a `pdp.json`. The `pdp.json` must contain a `configurationId` field. If a signing key is provided, the bundle is signed in the same step.
 
 ```
-sapl-node bundle create -i <dir> -o <file> [-k <key>]
+sapl bundle create -i <dir> -o <file> [-k <key>]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `-i`, `--input` | Input directory containing policies. |
-| `-o`, `--output` | Output `.saplbundle` file. |
-| `-k`, `--key` | Ed25519 private key file (PEM format) for signing. Optional. |
-| `--key-id` | Key identifier for rotation support. Defaults to `"default"`. |
+| Option           | Description                                                   |
+|------------------|---------------------------------------------------------------|
+| `-i`, `--input`  | Input directory containing policies.                          |
+| `-o`, `--output` | Output `.saplbundle` file.                                    |
+| `-k`, `--key`    | Ed25519 private key file (PEM format) for signing. Optional.  |
+| `--key-id`       | Key identifier for rotation support. Defaults to `"default"`. |
 
 #### bundle sign
 
 Signs a bundle with an Ed25519 private key. Overwrites the input bundle unless `-o` is specified.
 
 ```
-sapl-node bundle sign -b <file> -k <key> [options]
+sapl bundle sign -b <file> -k <key> [options]
 ```
 
 | Option | Description |
@@ -248,7 +248,7 @@ sapl-node bundle sign -b <file> -k <key> [options]
 Verifies a signed bundle against an Ed25519 public key. Returns exit code 0 on success and 1 on failure.
 
 ```
-sapl-node bundle verify -b <file> -k <key> [options]
+sapl bundle verify -b <file> -k <key> [options]
 ```
 
 | Option | Description |
@@ -262,7 +262,7 @@ sapl-node bundle verify -b <file> -k <key> [options]
 Displays bundle contents, signature status, configuration, and policy list.
 
 ```
-sapl-node bundle inspect -b <file>
+sapl bundle inspect -b <file>
 ```
 
 | Option | Description |
@@ -274,7 +274,7 @@ sapl-node bundle inspect -b <file>
 Generates an Ed25519 keypair for bundle signing.
 
 ```
-sapl-node bundle keygen -o <prefix> [options]
+sapl bundle keygen -o <prefix> [options]
 ```
 
 | Option | Description |
@@ -287,7 +287,7 @@ sapl-node bundle keygen -o <prefix> [options]
 Generates Basic Auth credentials. Prints the plaintext password and a ready to paste YAML block for `application.yml`.
 
 ```
-sapl-node generate basic --id <id> --pdp-id <pdpId>
+sapl generate basic --id <id> --pdp-id <pdpId>
 ```
 
 | Option | Description |
@@ -300,7 +300,7 @@ sapl-node generate basic --id <id> --pdp-id <pdpId>
 Generates an API key. Prints the plaintext key and a ready to paste YAML block for `application.yml`.
 
 ```
-sapl-node generate apikey --id <id> --pdp-id <pdpId>
+sapl generate apikey --id <id> --pdp-id <pdpId>
 ```
 
 | Option | Description |

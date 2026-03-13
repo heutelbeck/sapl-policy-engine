@@ -32,16 +32,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact-name: sapl-node-linux-amd64
-            executable: sapl-node
+            artifact-name: sapl-linux-amd64
+            executable: sapl
             profile: native-linux
           - os: ubuntu-24.04-arm
-            artifact-name: sapl-node-linux-arm64
-            executable: sapl-node
+            artifact-name: sapl-linux-arm64
+            executable: sapl
             profile: native-linux-arm
           - os: windows-latest
-            artifact-name: sapl-node-windows-amd64
-            executable: sapl-node.exe
+            artifact-name: sapl-windows-amd64
+            executable: sapl.exe
             profile: native
       fail-fast: false
 
@@ -151,8 +151,8 @@ jobs:
       - name: Upload Native Executable
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: sapl-node-macos-arm64
-          path: sapl-node/target/sapl-node
+          name: sapl-macos-arm64
+          path: sapl-node/target/sapl
           if-no-files-found: error
           retention-days: 7
 

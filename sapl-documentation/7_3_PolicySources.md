@@ -29,6 +29,6 @@ For `REMOTE_BUNDLES`, the PDP periodically fetches bundles from an HTTP server. 
 
 ### Bundle Security
 
-The `BUNDLES` and `REMOTE_BUNDLES` source types support Ed25519 signature verification. Bundles can be signed with `sapl-node bundle sign` and verified against a configured public key or per-tenant key catalogue. By default, signature verification is mandatory. Unsigned bundles are only accepted in development environments with an explicit opt-in (`allow-unsigned: true`).
+The `BUNDLES` and `REMOTE_BUNDLES` source types support Ed25519 signature verification. Bundles can be signed with `sapl bundle sign` and verified against a configured public key or per-tenant key catalogue. By default, signature verification is mandatory. Unsigned bundles are only accepted in development environments with an explicit opt-in (`allow-unsigned: true`).
 
 See [Getting Started](../1_3_GettingStarted/) for a quickstart with the `DIRECTORY` source, and the SAPL Node documentation for bundle management and remote bundle configuration.

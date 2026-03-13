@@ -228,7 +228,7 @@ The server loads all bundles from the `bundles/` directory and watches for chang
 SAPL Node includes CLI tools that run without starting the server.
 
 ```
-sapl-node [COMMAND]
+sapl [COMMAND]
 
 Commands:
   bundle    Policy bundle operations
@@ -246,7 +246,7 @@ java -jar sapl-node-4.0.0-SNAPSHOT.jar --version
 Create a policy bundle from a directory containing `.sapl` files and a `pdp.json`.
 
 ```
-sapl-node bundle create -i <dir> -o <file>
+sapl bundle create -i <dir> -o <file>
 
 Options:
   -i, --input   Input directory containing policies
@@ -258,7 +258,7 @@ Options:
 Sign a bundle with an Ed25519 private key. Overwrites the input bundle unless `-o` is specified.
 
 ```
-sapl-node bundle sign -b <file> -k <key> [options]
+sapl bundle sign -b <file> -k <key> [options]
 
 Options:
   -b, --bundle   Bundle file to sign
@@ -272,7 +272,7 @@ Options:
 Verify a signed bundle against an Ed25519 public key. Exit code 0 on success, 1 on failure.
 
 ```
-sapl-node bundle verify -b <file> -k <key> [options]
+sapl bundle verify -b <file> -k <key> [options]
 
 Options:
   -b, --bundle          Bundle file to verify
@@ -285,7 +285,7 @@ Options:
 Display bundle contents, signature status, configuration, and policy list.
 
 ```
-sapl-node bundle inspect -b <file>
+sapl bundle inspect -b <file>
 
 Options:
   -b, --bundle  Bundle file to inspect
@@ -296,7 +296,7 @@ Options:
 Generate an Ed25519 keypair for bundle signing.
 
 ```
-sapl-node bundle keygen -o <prefix> [options]
+sapl bundle keygen -o <prefix> [options]
 
 Options:
   -o, --output  Output prefix (creates <prefix>.pem and <prefix>.pub)
@@ -308,7 +308,7 @@ Options:
 Generate Basic Auth credentials with Argon2-encoded password.
 
 ```
-sapl-node generate basic --id <id> --pdp-id <pdpId>
+sapl generate basic --id <id> --pdp-id <pdpId>
 
 Options:
   -i, --id       Client identifier
@@ -320,7 +320,7 @@ Options:
 Generate an API key with Argon2-encoded hash.
 
 ```
-sapl-node generate apikey --id <id> --pdp-id <pdpId>
+sapl generate apikey --id <id> --pdp-id <pdpId>
 
 Options:
   -i, --id       Client identifier

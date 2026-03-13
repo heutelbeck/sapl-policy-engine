@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
@@ -50,7 +51,7 @@ class PdpHealthIndicatorTests {
         @DisplayName("then health is UP")
         void thenHealthIsUp() {
             when(pdpVoterSource.getAllPdpStatuses()).thenReturn(Map.of("default", new PdpStatus(PdpState.LOADED,
-                    "config-1", "PRIORITY_DENY:DENY:PROPAGATE", 3, Instant.parse("2026-02-13T12:00:00Z"), null, null)));
+                    "config-1", CombiningAlgorithm.DEFAULT, 3, Instant.parse("2026-02-13T12:00:00Z"), null, null)));
 
             val indicator = new PdpHealthIndicator(pdpVoterSource);
             val health    = indicator.health();
@@ -87,7 +88,7 @@ class PdpHealthIndicatorTests {
         @DisplayName("then health is UP with warning")
         void thenHealthIsUpWithWarning() {
             when(pdpVoterSource.getAllPdpStatuses()).thenReturn(Map.of("tenant1",
-                    new PdpStatus(PdpState.STALE, "old-config", "PRIORITY_DENY:DENY:PROPAGATE", 2,
+                    new PdpStatus(PdpState.STALE, "old-config", CombiningAlgorithm.DEFAULT, 2,
                             Instant.parse("2026-02-13T11:00:00Z"), Instant.parse("2026-02-13T12:05:00Z"),
                             "parse error")));
 
@@ -125,9 +126,9 @@ class PdpHealthIndicatorTests {
         @DisplayName("then health is UP with warning")
         void thenHealthIsUpWithWarning() {
             when(pdpVoterSource.getAllPdpStatuses()).thenReturn(Map.of("default",
-                    new PdpStatus(PdpState.LOADED, "config-1", "PRIORITY_DENY:DENY:PROPAGATE", 3,
+                    new PdpStatus(PdpState.LOADED, "config-1", CombiningAlgorithm.DEFAULT, 3,
                             Instant.parse("2026-02-13T12:00:00Z"), null, null),
-                    "tenant1", new PdpStatus(PdpState.STALE, "old-config", "PRIORITY_DENY:DENY:PROPAGATE", 2,
+                    "tenant1", new PdpStatus(PdpState.STALE, "old-config", CombiningAlgorithm.DEFAULT, 2,
                             Instant.parse("2026-02-13T11:00:00Z"), Instant.parse("2026-02-13T12:05:00Z"), "error")));
 
             val indicator = new PdpHealthIndicator(pdpVoterSource);
@@ -148,7 +149,7 @@ class PdpHealthIndicatorTests {
         @DisplayName("then LOADED PDP contains expected fields")
         void thenLoadedPdpContainsExpectedFields() {
             when(pdpVoterSource.getAllPdpStatuses()).thenReturn(Map.of("default", new PdpStatus(PdpState.LOADED,
-                    "config-1", "PRIORITY_DENY:DENY:PROPAGATE", 3, Instant.parse("2026-02-13T12:00:00Z"), null, null)));
+                    "config-1", CombiningAlgorithm.DEFAULT, 3, Instant.parse("2026-02-13T12:00:00Z"), null, null)));
 
             val indicator = new PdpHealthIndicator(pdpVoterSource);
             val health    = indicator.health();
@@ -156,9 +157,9 @@ class PdpHealthIndicatorTests {
             val detail    = pdps.get("default");
 
             assertThat(detail).containsEntry("state", "LOADED").containsEntry("configurationId", "config-1")
-                    .containsEntry("combiningAlgorithm", "PRIORITY_DENY:DENY:PROPAGATE")
-                    .containsEntry("documentCount", 3).containsEntry("lastSuccessfulLoad", "2026-02-13T12:00:00Z")
-                    .doesNotContainKey("lastFailedLoad").doesNotContainKey("lastError");
+                    .containsEntry("combiningAlgorithm", CombiningAlgorithm.DEFAULT).containsEntry("documentCount", 3)
+                    .containsEntry("lastSuccessfulLoad", "2026-02-13T12:00:00Z").doesNotContainKey("lastFailedLoad")
+                    .doesNotContainKey("lastError");
         }
 
         @Test
@@ -166,7 +167,7 @@ class PdpHealthIndicatorTests {
         @DisplayName("then STALE PDP contains error fields")
         void thenStalePdpContainsErrorFields() {
             when(pdpVoterSource.getAllPdpStatuses()).thenReturn(Map.of("tenant1",
-                    new PdpStatus(PdpState.STALE, "old-config", "PRIORITY_DENY:DENY:PROPAGATE", 2,
+                    new PdpStatus(PdpState.STALE, "old-config", CombiningAlgorithm.DEFAULT, 2,
                             Instant.parse("2026-02-13T11:00:00Z"), Instant.parse("2026-02-13T12:05:00Z"),
                             "parse error at line 5")));
 
