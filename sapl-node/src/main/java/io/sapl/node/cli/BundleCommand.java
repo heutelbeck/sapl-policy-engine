@@ -22,21 +22,21 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
+
+import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleManifest;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
@@ -59,11 +59,6 @@ class BundleCommand {
 
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
-
-    private static final String PEM_PRIVATE_KEY_BEGIN = "-----BEGIN PRIVATE KEY-----";
-    private static final String PEM_PRIVATE_KEY_END   = "-----END PRIVATE KEY-----";
-    private static final String PEM_PUBLIC_KEY_BEGIN  = "-----BEGIN PUBLIC KEY-----";
-    private static final String PEM_PUBLIC_KEY_END    = "-----END PUBLIC KEY-----";
 
     static final String         ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: %s.";
     private static final String ERROR_BUNDLE_NOT_SIGNED   = "Error: Bundle is not signed (no manifest found).";
@@ -385,15 +380,11 @@ class BundleCommand {
             }
 
             try {
-                val keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
+                val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_ED25519);
                 val keyPair          = keyPairGenerator.generateKeyPair();
 
-                val privatePem = encodePem(keyPair.getPrivate().getEncoded(), PEM_PRIVATE_KEY_BEGIN,
-                        PEM_PRIVATE_KEY_END);
-                val publicPem  = encodePem(keyPair.getPublic().getEncoded(), PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
-
-                Files.writeString(privateKey, privatePem);
-                Files.writeString(publicKey, publicPem);
+                PemUtils.writeKeyToFile(privateKey, keyPair.getPrivate());
+                PemUtils.writeKeyToFile(publicKey, keyPair.getPublic());
 
                 out.println("Generated Ed25519 keypair:");
                 out.printf("  Private key: %s%n", privateKey);
@@ -406,11 +397,6 @@ class BundleCommand {
             }
         }
 
-    }
-
-    private static String encodePem(byte[] keyBytes, String beginMarker, String endMarker) {
-        val encoded = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8)).encodeToString(keyBytes);
-        return beginMarker + "\n" + encoded + "\n" + endMarker + "\n";
     }
 
     private static Map<String, String> extractBundleContents(Path bundlePath) throws IOException {
@@ -430,24 +416,13 @@ class BundleCommand {
     }
 
     private static PrivateKey loadEd25519PrivateKey(Path keyFile) throws IOException, GeneralSecurityException {
-        val keyBytes = loadPemKeyBytes(keyFile, PEM_PRIVATE_KEY_BEGIN, PEM_PRIVATE_KEY_END);
-        return (PrivateKey) loadKey(new PKCS8EncodedKeySpec(keyBytes), true);
+        val keyBytes = PemUtils.decodePemFromFile(keyFile);
+        return KeyFactory.getInstance(ALGORITHM_ED25519).generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     }
 
     private static PublicKey loadEd25519PublicKey(Path keyFile) throws IOException, GeneralSecurityException {
-        val keyBytes = loadPemKeyBytes(keyFile, PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
-        return (PublicKey) loadKey(new X509EncodedKeySpec(keyBytes), false);
-    }
-
-    private static byte[] loadPemKeyBytes(Path keyFile, String beginMarker, String endMarker) throws IOException {
-        val pemContent = Files.readString(keyFile).trim();
-        val base64Key  = pemContent.replace(beginMarker, "").replace(endMarker, "").replaceAll("\\s", "");
-        return Base64.getDecoder().decode(base64Key);
-    }
-
-    private static Key loadKey(KeySpec keySpec, boolean isPrivate) throws GeneralSecurityException {
-        val keyFactory = KeyFactory.getInstance("Ed25519");
-        return isPrivate ? keyFactory.generatePrivate(keySpec) : keyFactory.generatePublic(keySpec);
+        val keyBytes = PemUtils.decodePemFromFile(keyFile);
+        return KeyFactory.getInstance(ALGORITHM_ED25519).generatePublic(new X509EncodedKeySpec(keyBytes));
     }
 
 }

@@ -20,19 +20,11 @@ package io.sapl.functions.libraries.crypto;
 import lombok.experimental.UtilityClass;
 
 /**
- * Constants used across cryptographic utility classes for consistent PEM
- * handling, algorithm naming, and error
- * messaging.
+ * Constants used across cryptographic utility classes for algorithm naming and
+ * error messaging.
  */
 @UtilityClass
 public class CryptoConstants {
-
-    public static final String PEM_PUBLIC_KEY_BEGIN  = "-----BEGIN PUBLIC KEY-----";
-    public static final String PEM_PUBLIC_KEY_END    = "-----END PUBLIC KEY-----";
-    public static final String PEM_CERTIFICATE_BEGIN = "-----BEGIN CERTIFICATE-----";
-    public static final String PEM_CERTIFICATE_END   = "-----END CERTIFICATE-----";
-    public static final String PEM_PRIVATE_KEY_BEGIN = "-----BEGIN PRIVATE KEY-----";
-    public static final String PEM_PRIVATE_KEY_END   = "-----END PRIVATE KEY-----";
 
     public static final String ALGORITHM_RSA   = "RSA";
     public static final String ALGORITHM_EC    = "EC";

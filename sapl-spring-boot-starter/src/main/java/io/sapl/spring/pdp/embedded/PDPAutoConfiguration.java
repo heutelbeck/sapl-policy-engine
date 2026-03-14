@@ -17,12 +17,15 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
+
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
 import io.sapl.api.pdp.BlockingPdpIdSupplier;
 import io.sapl.api.pdp.PdpIdExtractor;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.VoteInterceptor;
@@ -244,11 +247,9 @@ public class PDPAutoConfiguration {
 
     private PublicKey loadPublicKeyFromFile(String keyPath) {
         try {
-            val path       = Path.of(keyPath);
-            val keyBytes   = Files.readAllBytes(path);
-            val keyContent = new String(keyBytes, java.nio.charset.StandardCharsets.UTF_8).trim();
-            return parsePublicKey(keyContent);
-        } catch (IOException e) {
+            val keyBytes = PemUtils.decodePemFromFile(Path.of(keyPath));
+            return buildEd25519PublicKey(keyBytes);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new IllegalStateException("Failed to read public key from: " + keyPath, e);
         }
     }
@@ -259,15 +260,21 @@ public class PDPAutoConfiguration {
 
     private PublicKey parsePublicKey(String keyContent) {
         try {
-            val cleanKey   = keyContent.replace("-----BEGIN PUBLIC KEY-----", "")
-                    .replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
-            val keyBytes   = Base64.getDecoder().decode(cleanKey);
-            val keySpec    = new X509EncodedKeySpec(keyBytes);
-            val keyFactory = KeyFactory.getInstance("Ed25519");
-            return keyFactory.generatePublic(keySpec);
+            byte[] keyBytes;
+            if (keyContent.contains("BEGIN")) {
+                keyBytes = PemUtils.decodePem(keyContent);
+            } else {
+                keyBytes = Base64.getDecoder().decode(keyContent.replaceAll("\\s", ""));
+            }
+            return buildEd25519PublicKey(keyBytes);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new IllegalStateException("Failed to parse Ed25519 public key", e);
         }
+    }
+
+    private static PublicKey buildEd25519PublicKey(byte[] keyBytes)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        return KeyFactory.getInstance(ALGORITHM_ED25519).generatePublic(new X509EncodedKeySpec(keyBytes));
     }
 
     private Map<String, PublicKey> buildKeyCatalogue(Map<String, String> keysConfig) {
