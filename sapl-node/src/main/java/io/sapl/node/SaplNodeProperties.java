@@ -32,6 +32,8 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "io.sapl.node")
 public class SaplNodeProperties {
 
+    public static final String DEFAULT_PDP_ID = "default";
+
     private static final String ERROR_MISSING_PDP_ID = "User '%s' has no pdpId configured and rejectOnMissingPdpId is enabled.";
     private static final String ERROR_SHORT_API_KEY  = "Detected short API key in configuration. API key must be at least %d characters long.";
 
@@ -43,7 +45,7 @@ public class SaplNodeProperties {
 
     // Global PDP ID settings (applies to all auth methods)
     private boolean rejectOnMissingPdpId = false;
-    private String  defaultPdpId         = "default";
+    private String  defaultPdpId         = DEFAULT_PDP_ID;
 
     // User entries with unified credentials
     private List<UserEntry> users = new ArrayList<>();

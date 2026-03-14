@@ -17,6 +17,8 @@
  */
 package io.sapl.node.cli;
 
+import java.util.concurrent.CountDownLatch;
+
 import org.springframework.boot.SpringApplication;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
@@ -25,11 +27,12 @@ import picocli.CommandLine.Command;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Evaluates a single authorization subscription against local policies and
- * prints the decision as JSON to stdout.
+ * Streams authorization decisions as NDJSON to stdout. Each policy change emits
+ * a new decision line. Runs until interrupted (Ctrl+C) or the policy stream
+ * completes.
  */
-@Command(name = "decide-once", description = "Evaluate a single authorization decision", mixinStandardHelpOptions = true)
-class DecideOnceCommand extends AbstractPdpCommand {
+@Command(name = "decide", description = "Stream authorization decisions as NDJSON", mixinStandardHelpOptions = true)
+class DecideCommand extends AbstractPdpCommand {
 
     @Override
     public Integer call() {
@@ -43,16 +46,31 @@ class DecideOnceCommand extends AbstractPdpCommand {
 
         val springArgs = buildSpringArgs(resolved);
 
-        try (val context = bootHeadlessContext(springArgs)) {
-            val pdp          = context.getBean(PolicyDecisionPoint.class);
-            val mapper       = context.getBean(JsonMapper.class);
-            val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
-            val decision     = pdp.decideOnceBlocking(subscription);
-            out.println(mapper.writeValueAsString(decision));
-            return SpringApplication.exit(context);
+        try {
+            val context = bootHeadlessContext(springArgs);
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> SpringApplication.exit(context)));
+
+            val pdp    = context.getBean(PolicyDecisionPoint.class);
+            val mapper = context.getBean(JsonMapper.class);
+            val sub    = SubscriptionResolver.resolve(subscriptionInput, mapper);
+            val latch  = new CountDownLatch(1);
+
+            pdp.decide(sub).doOnNext(decision -> {
+                out.println(mapper.writeValueAsString(decision));
+                out.flush();
+            }).doOnError(e -> {
+                err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
+                latch.countDown();
+            }).doOnComplete(latch::countDown).subscribe();
+
+            latch.await();
+            return 0;
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
             return 1;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return 0;
         } catch (RuntimeException e) {
             err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
             return 1;

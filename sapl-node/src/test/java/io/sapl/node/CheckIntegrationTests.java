@@ -35,8 +35,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import lombok.val;
 
-@DisplayName("decide-once integration")
-class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
+@DisplayName("check integration")
+class CheckIntegrationTests extends AbstractCliIntegrationTests {
 
     @Nested
     @DisplayName("directory mode with named flags")
@@ -46,40 +46,39 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
         Path policyDir;
 
         @Test
-        @DisplayName("permit-all policy outputs PERMIT JSON")
-        void whenPermitPolicy_thenPermitJson() throws IOException {
+        @DisplayName("permit-all policy exits with code 0")
+        void whenPermitPolicy_thenExitZero() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
 
-            val exitCode = SaplNodeApplication.run(new String[] { "decide-once", "--dir", policyDir.toString(), "-s",
+            val exitCode = SaplNodeApplication.run(new String[] { "check", "--dir", policyDir.toString(), "-s",
                     "\"alice\"", "-a", "\"read\"", "-r", "\"document\"" });
 
             assertThat(exitCode).isZero();
-            assertThat(capturedOutput()).isEqualTo("{\"decision\":\"PERMIT\"}");
         }
 
         @Test
-        @DisplayName("non-matching policy produces decision output")
-        void whenNoPolicyMatches_thenOutputContainsDecision() throws IOException {
+        @DisplayName("non-matching policy exits with non-zero code")
+        void whenNoPolicyMatches_thenNonZeroExit() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"restricted\" permit subject == \"admin\";");
 
-            val exitCode = SaplNodeApplication.run(new String[] { "decide-once", "--dir", policyDir.toString(), "-s",
+            val exitCode = SaplNodeApplication.run(new String[] { "check", "--dir", policyDir.toString(), "-s",
                     "\"alice\"", "-a", "\"read\"", "-r", "\"document\"" });
 
-            assertThat(exitCode).isZero();
-            assertThat(capturedOutput()).contains("\"decision\":");
+            assertThat(exitCode).isNotZero();
         }
 
         @Test
-        @DisplayName("JSON object subject is accessible in policy conditions")
-        void whenJsonObjectSubject_thenPolicyMatchesFields() throws IOException {
-            Files.writeString(policyDir.resolve("test.sapl"), "policy \"by-name\" permit subject.name == \"alice\";");
+        @DisplayName("policy with obligation exits with code 4")
+        void whenPolicyWithObligation_thenExitCode4() throws IOException {
+            Files.writeString(policyDir.resolve("test.sapl"),
+                    "policy \"with-obligation\" permit obligation \"log-access\"");
 
-            val exitCode = SaplNodeApplication.run(new String[] { "decide-once", "--dir", policyDir.toString(), "-s",
-                    "{\"name\":\"alice\"}", "-a", "\"read\"", "-r", "\"document\"" });
+            val exitCode = SaplNodeApplication.run(new String[] { "check", "--dir", policyDir.toString(), "-s",
+                    "\"alice\"", "-a", "\"read\"", "-r", "\"document\"" });
 
-            assertThat(exitCode).isZero();
-            assertThat(capturedOutput()).isEqualTo("{\"decision\":\"PERMIT\"}");
+            assertThat(exitCode).isEqualTo(4);
         }
+
     }
 
     @Nested
@@ -90,18 +89,18 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
         Path policyDir;
 
         @Test
-        @DisplayName("subscription from JSON file produces correct decision")
-        void whenSubscriptionFile_thenCorrectDecision() throws IOException {
+        @DisplayName("subscription from JSON file produces correct exit code")
+        void whenSubscriptionFile_thenCorrectExitCode() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
             val subscriptionFile = policyDir.resolve("request.json");
             Files.writeString(subscriptionFile, SUBSCRIPTION_JSON);
 
-            val exitCode = SaplNodeApplication.run(
-                    new String[] { "decide-once", "--dir", policyDir.toString(), "-f", subscriptionFile.toString() });
+            val exitCode = SaplNodeApplication
+                    .run(new String[] { "check", "--dir", policyDir.toString(), "-f", subscriptionFile.toString() });
 
             assertThat(exitCode).isZero();
-            assertThat(capturedOutput()).isEqualTo("{\"decision\":\"PERMIT\"}");
         }
+
     }
 
     @Nested
@@ -125,16 +124,15 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("-f - reads subscription from stdin")
-        void whenStdinInput_thenCorrectDecision() throws IOException {
+        void whenStdinInput_thenCorrectExitCode() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
             System.setIn(new ByteArrayInputStream(SUBSCRIPTION_JSON.getBytes(StandardCharsets.UTF_8)));
 
-            val exitCode = SaplNodeApplication
-                    .run(new String[] { "decide-once", "--dir", policyDir.toString(), "-f", "-" });
+            val exitCode = SaplNodeApplication.run(new String[] { "check", "--dir", policyDir.toString(), "-f", "-" });
 
             assertThat(exitCode).isZero();
-            assertThat(capturedOutput()).isEqualTo("{\"decision\":\"PERMIT\"}");
         }
+
     }
 
 }

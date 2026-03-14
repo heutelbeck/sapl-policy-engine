@@ -19,6 +19,7 @@ package io.sapl.node;
 
 import java.util.Set;
 
+import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.boot.SpringApplication;
@@ -43,12 +44,11 @@ import picocli.CommandLine;
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
-    private static final Set<String> PICOCLI_COMMANDS = Set.of("--help", "-h", "--version", "-V", "bundle", "generate",
-            "decide-once");
+    private static final Set<String> HELP_FLAGS = Set.of("--help", "-h", "--version", "-V");
 
     public static void main(String[] args) {
         val exitCode = run(args);
-        if (exitCode != 0 || isPicocliCommand(args)) {
+        if (exitCode != 0 || isCliInvocation(args)) {
             System.exit(exitCode);
         }
     }
@@ -57,18 +57,31 @@ public class SaplNodeApplication {
      * Runs the application and returns an exit code. Testable entry point.
      */
     static int run(String[] args) {
-        if (isPicocliCommand(args)) {
+        if (isCliInvocation(args)) {
             return new CommandLine(new SaplNodeCli()).execute(args);
         }
         SpringApplication.run(SaplNodeApplication.class, args);
         return 0;
     }
 
-    private static boolean isPicocliCommand(String[] args) {
-        return args.length > 0 && PICOCLI_COMMANDS.contains(args[0]);
+    private static boolean isCliInvocation(String[] args) {
+        if (args.length == 0) {
+            return false;
+        }
+        if (HELP_FLAGS.contains(args[0])) {
+            return true;
+        }
+        return new CommandLine(new SaplNodeCli()).getSubcommands().containsKey(args[0]);
     }
 
     static class NativeResourceHints implements RuntimeHintsRegistrar {
+
+        private static final String CLI_PACKAGE = "io.sapl.node.cli.";
+
+        private static final String[] PICOCLI_REFLECTION_CLASSES = { CLI_PACKAGE + "AbstractPdpCommand",
+                CLI_PACKAGE + "BundleVerificationOptions", CLI_PACKAGE + "CheckCommand", CLI_PACKAGE + "DecideCommand",
+                CLI_PACKAGE + "DecideOnceCommand", CLI_PACKAGE + "NamedSubscriptionOptions",
+                CLI_PACKAGE + "PolicySourceOptions", CLI_PACKAGE + "SubscriptionInputOptions" };
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
@@ -77,6 +90,11 @@ public class SaplNodeApplication {
             hints.resources().registerPattern("git.properties");
             hints.resources().registerPattern("ch/qos/logback/core/logback-core-version.properties");
             hints.resources().registerPattern("ch/qos/logback/classic/logback-classic-version.properties");
+
+            for (val className : PICOCLI_REFLECTION_CLASSES) {
+                hints.reflection().registerTypeIfPresent(classLoader, className,
+                        MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.ACCESS_DECLARED_FIELDS);
+            }
         }
 
     }

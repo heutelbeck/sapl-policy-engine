@@ -50,32 +50,33 @@ public class SecretGenerator {
         return encoder.encode(secret);
     }
 
+    private static final CharacterData SPECIAL_CHARACTERS = new CharacterData() {
+        @Override
+        public String getErrorCode() {
+            return "ERR_SPECIAL";
+        }
+
+        @Override
+        public String getCharacters() {
+            return "$-_.+!*'(),";
+        }
+    };
+
+    private static Rule[] baseRules() {
+        return new Rule[] { new CharacterRule(EnglishCharacterData.LowerCase, 2),
+                new CharacterRule(EnglishCharacterData.UpperCase, 2),
+                new CharacterRule(EnglishCharacterData.Digit, 2) };
+    }
+
     private static String generateKey(int length) {
-        val passwordGenerator = new PasswordGenerator();
-        val lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        val upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        val digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        val rules             = new Rule[] { lowerCaseRule, upperCaseRule, digitRule };
-        return passwordGenerator.generatePassword(length, rules);
+        return new PasswordGenerator().generatePassword(length, baseRules());
     }
 
     private static String generatePassword(int length) {
-        val passwordGenerator = new PasswordGenerator();
-        val lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        val upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        val digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        val splCharRule       = new CharacterRule(new CharacterData() {
-                                  @Override
-                                  public String getErrorCode() {
-                                      return "ERR_SPECIAL";
-                                  }
-
-                                  @Override
-                                  public String getCharacters() {
-                                      return "$-_.+!*'(),";
-                                  }
-                              }, 2);
-        val rules             = new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule };
-        return passwordGenerator.generatePassword(length, rules);
+        val base  = baseRules();
+        val rules = new Rule[base.length + 1];
+        rules[0] = new CharacterRule(SPECIAL_CHARACTERS, 2);
+        System.arraycopy(base, 0, rules, 1, base.length);
+        return new PasswordGenerator().generatePassword(length, rules);
     }
 }

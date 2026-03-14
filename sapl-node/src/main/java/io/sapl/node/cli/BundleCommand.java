@@ -65,7 +65,7 @@ class BundleCommand {
     private static final String PEM_PUBLIC_KEY_BEGIN  = "-----BEGIN PUBLIC KEY-----";
     private static final String PEM_PUBLIC_KEY_END    = "-----END PUBLIC KEY-----";
 
-    private static final String ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: %s.";
+    static final String         ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: %s.";
     private static final String ERROR_BUNDLE_NOT_SIGNED   = "Error: Bundle is not signed (no manifest found).";
     private static final String ERROR_CREATING_BUNDLE     = "Error creating bundle: %s.";
     private static final String ERROR_FILE_ALREADY_EXISTS = "Error: File already exists: %s.";

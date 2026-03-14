@@ -64,7 +64,9 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private static final String ERROR_JWT_ISSUER_REQUIRED       = "If JWT authentication is active, a token issuer must be supplied. Please set: 'spring.security.oauth2.resourceserver.jwt.issuer-uri'.";
+    private static final String JWT_ISSUER_URI_PROPERTY         = "spring.security.oauth2.resourceserver.jwt.issuer-uri";
+    private static final String ERROR_JWT_ISSUER_REQUIRED       = "If JWT authentication is active, a token issuer must be supplied. Please set: '"
+            + JWT_ISSUER_URI_PROPERTY + "'.";
     private static final String ERROR_NO_AUTH_MECHANISM_DEFINED = "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated requests, this has to be explicitly activated.";
     private static final String ERROR_NO_BASIC_AUTH_USERS       = "Basic authentication is enabled but no users with Basic credentials are configured. Please add users under 'io.sapl.node.users' with 'basic' credentials.";
     private static final String WARN_NO_API_KEYS                = "API key authentication is enabled but no users with API keys are configured. Please add users under 'io.sapl.node.users' with 'apiKey' credentials.";
@@ -73,7 +75,7 @@ public class SecurityConfiguration {
     private final SaplNodeProperties pdpProperties;
     private final UserLookupService  userLookupService;
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}")
+    @Value("${" + JWT_ISSUER_URI_PROPERTY + ":#{null}}")
     private String jwtIssuerURI;
 
     @Bean

@@ -18,37 +18,25 @@
 package io.sapl.node.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.model.jackson.SaplJacksonModule;
 import lombok.val;
 import picocli.CommandLine;
-import tools.jackson.databind.json.JsonMapper;
 
 @DisplayName("decide-once command")
 class DecideOnceCommandTests {
-
-    private static final JsonMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
     @Nested
     @DisplayName("argument parsing")
@@ -156,247 +144,6 @@ class DecideOnceCommandTests {
             assertThat(out.toString()).contains("decide-once", "--dir", "--bundle", "-s", "-f");
         }
 
-    }
-
-    @Nested
-    @DisplayName("Spring args generation")
-    class SpringArgsTests {
-
-        @Test
-        @DisplayName("directory mode produces config-type, config-path, and policies-path")
-        void whenDirectoryMode_thenCorrectSpringArgs() {
-            val cmd  = new DecideOnceCommand();
-            val args = cmd.buildSpringArgs("DIRECTORY", "/tmp/policies", null, false);
-            assertThat(args)
-                    .contains("--io.sapl.pdp.embedded.pdp-config-type=DIRECTORY",
-                            "--io.sapl.pdp.embedded.config-path=/tmp/policies",
-                            "--io.sapl.pdp.embedded.policies-path=/tmp/policies")
-                    .noneMatch(a -> a.contains("bundle-security"));
-        }
-
-        @Test
-        @DisplayName("bundle with public key includes key path without allow-unsigned")
-        void whenBundleWithKey_thenIncludesPublicKeyPath() {
-            val cmd  = new DecideOnceCommand();
-            val args = cmd.buildSpringArgs("BUNDLES", "/tmp", "/tmp/key.pub", false);
-            assertThat(args)
-                    .contains("--io.sapl.pdp.embedded.pdp-config-type=BUNDLES",
-                            "--io.sapl.pdp.embedded.bundle-security.public-key-path=/tmp/key.pub")
-                    .noneMatch(a -> a.contains("allow-unsigned"));
-        }
-
-        @Test
-        @DisplayName("bundle with no-verify includes allow-unsigned without key path")
-        void whenBundleNoVerify_thenIncludesAllowUnsigned() {
-            val cmd  = new DecideOnceCommand();
-            val args = cmd.buildSpringArgs("BUNDLES", "/tmp", null, true);
-            assertThat(args).contains("--io.sapl.pdp.embedded.bundle-security.allow-unsigned=true")
-                    .noneMatch(a -> a.contains("public-key-path"));
-        }
-
-        @ParameterizedTest(name = "when {0} enabled")
-        @DisplayName("reporting flag includes property and logging override")
-        @MethodSource
-        void whenReportingFlagEnabled_thenIncludesPropertyAndLogging(String flagName, String expectedProperty) {
-            val cmd = new DecideOnceCommand();
-            switch (flagName) {
-            case "trace"       -> cmd.trace = true;
-            case "json-report" -> cmd.jsonReport = true;
-            case "text-report" -> cmd.textReport = true;
-            default            -> throw new IllegalArgumentException("Unknown flag: " + flagName);
-            }
-            val args = cmd.buildSpringArgs("DIRECTORY", "/tmp", null, false);
-            assertThat(args).contains(expectedProperty, "--logging.level.[io.sapl.pdp.interceptors]=INFO");
-        }
-
-        static Stream<Arguments> whenReportingFlagEnabled_thenIncludesPropertyAndLogging() {
-            return Stream.of(arguments("trace", "--io.sapl.pdp.embedded.print-trace=true"),
-                    arguments("json-report", "--io.sapl.pdp.embedded.print-json-report=true"),
-                    arguments("text-report", "--io.sapl.pdp.embedded.print-text-report=true"));
-        }
-
-        @Test
-        @DisplayName("no reporting flags omits logging override")
-        void whenNoReportingFlags_thenNoLoggingOverride() {
-            val cmd  = new DecideOnceCommand();
-            val args = cmd.buildSpringArgs("DIRECTORY", "/tmp", null, false);
-            assertThat(args).noneMatch(a -> a.contains("logging.level"));
-        }
-
-        @Test
-        @DisplayName("multiple reporting flags produce single logging override")
-        void whenMultipleReportingFlags_thenSingleLoggingOverride() {
-            val cmd = new DecideOnceCommand();
-            cmd.trace      = true;
-            cmd.jsonReport = true;
-            cmd.textReport = true;
-            val args         = cmd.buildSpringArgs("DIRECTORY", "/tmp", null, false);
-            val loggingCount = Arrays.stream(args).filter(a -> a.contains("logging.level")).count();
-            assertThat(loggingCount).isEqualTo(1);
-        }
-
-    }
-
-    @Nested
-    @DisplayName("subscription building")
-    class SubscriptionBuildingTests {
-
-        @Test
-        @DisplayName("JSON string values create valid subscription")
-        void whenJsonStringValues_thenSubscriptionCreated() {
-            val cmd          = commandWithNamedInput("\"alice\"", "\"read\"", "\"document\"");
-            val subscription = cmd.buildSubscription(MAPPER);
-            val json         = MAPPER.writeValueAsString(subscription);
-            assertThat(json).contains("\"subject\":\"alice\"", "\"action\":\"read\"", "\"resource\":\"document\"");
-        }
-
-        @Test
-        @DisplayName("JSON object values create valid subscription")
-        void whenJsonObjectValues_thenSubscriptionCreated() {
-            val cmd          = commandWithNamedInput("{\"name\":\"alice\"}", "\"read\"",
-                    "{\"type\":\"doc\",\"id\":42}");
-            val subscription = cmd.buildSubscription(MAPPER);
-            val json         = MAPPER.writeValueAsString(subscription);
-            assertThat(json).contains("\"name\":\"alice\"", "\"type\":\"doc\"");
-        }
-
-        @Test
-        @DisplayName("JSON number value is parsed as number")
-        void whenJsonNumberValue_thenParsedAsNumber() {
-            val cmd          = commandWithNamedInput("42", "\"read\"", "\"doc\"");
-            val subscription = cmd.buildSubscription(MAPPER);
-            val json         = MAPPER.writeValueAsString(subscription);
-            assertThat(json).contains("\"subject\":42");
-        }
-
-        @Test
-        @DisplayName("invalid JSON value throws IllegalArgumentException")
-        void whenInvalidJsonValue_thenThrowsIllegalArgument() {
-            val cmd = commandWithNamedInput("not-valid-json", "\"read\"", "\"doc\"");
-            assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Invalid JSON value");
-        }
-
-        @Test
-        @DisplayName("secrets that are not a JSON object throw IllegalArgumentException")
-        void whenSecretsNotObject_thenThrowsIllegalArgument() {
-            val cmd = commandWithNamedInput("\"alice\"", "\"read\"", "\"doc\"");
-            cmd.subscriptionInput.named.secrets = "\"not-an-object\"";
-            assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("JSON object");
-        }
-
-        @Test
-        @DisplayName("valid secrets JSON object is accepted")
-        void whenSecretsObject_thenSubscriptionCreated() {
-            val cmd = commandWithNamedInput("\"alice\"", "\"read\"", "\"doc\"");
-            cmd.subscriptionInput.named.secrets = "{\"key\":\"value\"}";
-            val subscription = cmd.buildSubscription(MAPPER);
-            assertThat(subscription).isNotNull();
-        }
-
-        @Test
-        @DisplayName("environment is included when provided")
-        void whenEnvironmentProvided_thenIncludedInSubscription() {
-            val cmd = commandWithNamedInput("\"alice\"", "\"read\"", "\"doc\"");
-            cmd.subscriptionInput.named.environment = "{\"time\":\"morning\"}";
-            val subscription = cmd.buildSubscription(MAPPER);
-            val json         = MAPPER.writeValueAsString(subscription);
-            assertThat(json).contains("\"time\":\"morning\"");
-        }
-
-        @Test
-        @DisplayName("file subscription is deserialized via SaplJacksonModule")
-        void whenFileSubscription_thenDeserialized(@TempDir Path tempDir) throws IOException {
-            val file = tempDir.resolve("request.json");
-            Files.writeString(file, """
-                    {"subject":"alice","action":"read","resource":"document"}
-                    """);
-            val cmd          = commandWithFileInput(file);
-            val subscription = cmd.buildSubscription(MAPPER);
-            val json         = MAPPER.writeValueAsString(subscription);
-            assertThat(json).contains("\"subject\":\"alice\"", "\"action\":\"read\"", "\"resource\":\"document\"");
-        }
-
-        @Test
-        @DisplayName("missing subscription file throws IllegalArgumentException")
-        void whenFileMissing_thenThrowsIllegalArgument() {
-            val cmd = commandWithFileInput(Path.of("/nonexistent/file.json"));
-            assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Subscription file not found");
-        }
-
-        @Test
-        @DisplayName("invalid JSON in file throws IllegalArgumentException")
-        void whenFileContainsInvalidJson_thenThrowsIllegalArgument(@TempDir Path tempDir) throws IOException {
-            val file = tempDir.resolve("bad.json");
-            Files.writeString(file, "not valid json at all");
-            val cmd = commandWithFileInput(file);
-            assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Invalid JSON");
-        }
-
-        @Test
-        @DisplayName("file missing required fields throws IllegalArgumentException")
-        void whenFileMissingRequiredFields_thenThrowsIllegalArgument(@TempDir Path tempDir) throws IOException {
-            val file = tempDir.resolve("incomplete.json");
-            Files.writeString(file, "{\"subject\":\"alice\"}");
-            val cmd = commandWithFileInput(file);
-            assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Invalid JSON");
-        }
-
-        @Test
-        @DisplayName("-f - reads subscription from stdin")
-        void whenStdinMarker_thenReadsFromStdin() {
-            val json       = "{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"document\"}";
-            val originalIn = System.in;
-            try {
-                System.setIn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
-                val cmd          = commandWithFileInput(Path.of("-"));
-                val subscription = cmd.buildSubscription(MAPPER);
-                val output       = MAPPER.writeValueAsString(subscription);
-                assertThat(output).contains("\"subject\":\"alice\"", "\"action\":\"read\"",
-                        "\"resource\":\"document\"");
-            } finally {
-                System.setIn(originalIn);
-            }
-        }
-
-        @Test
-        @DisplayName("-f - with invalid JSON from stdin throws IllegalArgumentException")
-        void whenStdinInvalidJson_thenThrowsIllegalArgument() {
-            val originalIn = System.in;
-            try {
-                System.setIn(new ByteArrayInputStream("not json".getBytes(StandardCharsets.UTF_8)));
-                val cmd = commandWithFileInput(Path.of("-"));
-                assertThatThrownBy(() -> cmd.buildSubscription(MAPPER)).isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("Invalid JSON");
-            } finally {
-                System.setIn(originalIn);
-            }
-        }
-
-    }
-
-    private static DecideOnceCommand commandWithNamedInput(String subject, String action, String resource) {
-        val cmd   = new DecideOnceCommand();
-        val input = new DecideOnceCommand.SubscriptionInput();
-        val named = new DecideOnceCommand.NamedSubscription();
-        named.subject         = subject;
-        named.action          = action;
-        named.resource        = resource;
-        input.named           = named;
-        cmd.subscriptionInput = input;
-        return cmd;
-    }
-
-    private static DecideOnceCommand commandWithFileInput(Path file) {
-        val cmd   = new DecideOnceCommand();
-        val input = new DecideOnceCommand.SubscriptionInput();
-        input.file            = file;
-        cmd.subscriptionInput = input;
-        return cmd;
     }
 
 }

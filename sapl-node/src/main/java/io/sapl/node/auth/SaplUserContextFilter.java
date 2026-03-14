@@ -17,6 +17,8 @@
  */
 package io.sapl.node.auth;
 
+import static io.sapl.node.SaplNodeProperties.DEFAULT_PDP_ID;
+
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -45,8 +47,6 @@ public class SaplUserContextFilter implements WebFilter {
      * Context key for the PDP ID.
      */
     public static final String PDP_ID_KEY = "sapl.pdp.id";
-
-    private static final String DEFAULT_PDP_ID = "default";
 
     private final SaplReactiveUserDetailsService userDetailsService;
 
