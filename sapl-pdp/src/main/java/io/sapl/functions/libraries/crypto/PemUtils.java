@@ -22,6 +22,7 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ERROR_INVALID_B
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Key;
@@ -148,7 +149,7 @@ public class PemUtils {
         try (val stringWriter = new StringWriter(); val pemWriter = new PemWriter(stringWriter)) {
             pemWriter.writeObject(new PemObject(type, derBytes));
             pemWriter.flush();
-            return stringWriter.toString();
+            return stringWriter.toString().replace("\r\n", "\n");
         } catch (IOException e) {
             throw new CryptoException(ERROR_PEM_ENCODING_FAILED.formatted(e.getMessage()), e);
         }
@@ -178,9 +179,12 @@ public class PemUtils {
      * if the file cannot be written
      */
     public static void writeKeyToFile(Path file, Key key) throws IOException {
-        try (val writer = new JcaPEMWriter(Files.newBufferedWriter(file))) {
-            writer.writeObject(key);
+        val stringWriter = new StringWriter();
+        try (val pemWriter = new JcaPEMWriter(stringWriter)) {
+            pemWriter.writeObject(key);
         }
+        val pem = stringWriter.toString().replace("\r\n", "\n");
+        Files.write(file, pem.getBytes(StandardCharsets.UTF_8));
     }
 
     private static byte[] decodeBase64(String content, String context) {

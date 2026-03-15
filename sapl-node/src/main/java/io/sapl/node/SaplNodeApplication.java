@@ -35,6 +35,8 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
+import static org.slf4j.Logger.ROOT_LOGGER_NAME;
+
 import io.sapl.node.cli.SaplNodeCli;
 import lombok.val;
 import org.slf4j.LoggerFactory;
@@ -93,7 +95,7 @@ public class SaplNodeApplication {
         appender.setEncoder(encoder);
         appender.start();
 
-        val root = context.getLogger(Logger.ROOT_LOGGER_NAME);
+        val root = context.getLogger(ROOT_LOGGER_NAME);
         root.setLevel(Level.ERROR);
         root.addAppender(appender);
     }
