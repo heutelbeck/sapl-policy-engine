@@ -99,11 +99,11 @@ jobs:
 
       - name: Build Dependencies
         shell: bash
-        run: mvn -B install -pl sapl-node -am -Dmaven.test.skip=true
+        run: mvn -B install -pl sapl-node -am -DskipTests
 
       - name: Build Native Image
         shell: bash
-        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -Dmaven.test.skip=true
+        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -147,11 +147,11 @@ jobs:
 
       - name: Build Dependencies
         shell: bash
-        run: mvn -B install -pl sapl-node -am -Dmaven.test.skip=true
+        run: mvn -B install -pl sapl-node -am -DskipTests
 
       - name: Build Native Image
         shell: bash
-        run: mvn -B package -pl sapl-node -Pnative -Dmaven.test.skip=true
+        run: mvn -B package -pl sapl-node -Pnative -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
