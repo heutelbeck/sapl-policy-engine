@@ -37,21 +37,16 @@ import picocli.CommandLine.Spec;
 @Command(
     name = "decide-once",
     mixinStandardHelpOptions = true,
+    header = "Evaluate a single authorization decision and print the result as JSON.",
     description = { """
-        Evaluate a single authorization decision and print the result as JSON.
+        Evaluates the authorization subscription against policies once and
+        prints the full decision to stdout as a JSON object containing the
+        decision (PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE), any
+        obligations, advice, and resource transformations.
 
-        Evaluates the authorization subscription against policies once and prints
-        the full authorization decision to stdout. The output is a JSON object
-        containing the decision (PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE),
-        any obligations, advice, and resource transformations.
-
-        The subscription can be provided via named flags (-s, -a, -r) or a JSON
-        file (-f). Named flag values must be valid JSON (strings must be
-        quoted, e.g., '"alice"'). Use -f - to read from stdin.
-
-        By default, policies are loaded from the current directory. Use --dir for
-        a specific directory, --bundle for a bundle file, or --remote to
-        query a running PDP server.
+        By default, policies are loaded from the current directory. Use
+        --dir for a different directory, --bundle for a bundle file, or
+        --remote to query a running PDP server.
         """ },
     exitCodeListHeading = "%nExit Codes:%n",
     exitCodeList = {
@@ -60,13 +55,19 @@ import picocli.CommandLine.Spec;
     },
     footerHeading = "%nExamples:%n",
     footer = { """
+          # Evaluate using local policies
           sapl decide-once --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
 
+          # Read subscription from a JSON file
           sapl decide-once -f request.json --bundle policies.saplbundle
 
+          # Read subscription from stdin
           echo '{"subject":"alice","action":"read","resource":"doc"}' | sapl decide-once -f -
 
-          sapl decide-once --remote --token $SAPL_TOKEN -s '{"role":"admin"}' -a '"write"' -r '"config"'
+          # Query a remote PDP server with a complex subject
+          sapl decide-once --remote --token $SAPL_BEARER_TOKEN -s '{"role":"admin"}' -a '"write"' -r '"config"'
+
+        See Also: sapl-check(1), sapl-decide(1)
         """ }
 )
 // @formatter:on

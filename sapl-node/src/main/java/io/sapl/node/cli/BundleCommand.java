@@ -56,12 +56,11 @@ import picocli.CommandLine.Spec;
 @Command(
     name = "bundle",
     mixinStandardHelpOptions = true,
+    header = "Manage policy bundles for deployment.",
     description = { """
-        Policy bundle operations.
-
         Bundles package SAPL policies and PDP configuration into a single
-        file for deployment. They can be cryptographically signed with
-        Ed25519 keys for integrity verification.
+        .saplbundle file. They can be cryptographically signed with
+        Ed25519 keys for integrity verification at load time.
         """ },
     subcommands = {
         BundleCommand.Create.class, BundleCommand.Sign.class,
@@ -93,16 +92,14 @@ class BundleCommand {
     @Command(
         name = "create",
         mixinStandardHelpOptions = true,
+        header = "Create a policy bundle from a directory.",
         description = { """
-            Create a policy bundle from a directory.
+            Packages all .sapl policy files and pdp.json from the input
+            directory into a .saplbundle file. Policies are validated for
+            correct SAPL syntax during creation.
 
-            Packages all .sapl policy files and pdp.json from the input directory
-            into a .saplbundle file. Policies are validated for correct SAPL
-            syntax during creation.
-
-            Optionally signs the bundle during creation when a private key is
-            provided. This is equivalent to creating an unsigned bundle and
-            then running 'sapl bundle sign' separately.
+            Optionally signs the bundle when a private key is provided.
+            This is equivalent to creating then running 'sapl bundle sign'.
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
@@ -111,9 +108,13 @@ class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
+              # Create an unsigned bundle
               sapl bundle create -i ./policies -o policies.saplbundle
 
+              # Create and sign in one step
               sapl bundle create -i ./policies -o policies.saplbundle -k signing.pem --key-id prod-2026
+
+            See Also: sapl-bundle-sign(1), sapl-bundle-keygen(1)
             """ }
     )
     // @formatter:on
@@ -198,16 +199,15 @@ class BundleCommand {
     @Command(
         name = "sign",
         mixinStandardHelpOptions = true,
+        header = "Sign a policy bundle with an Ed25519 private key.",
         description = { """
-            Sign a policy bundle with an Ed25519 private key.
+            Creates a manifest containing SHA-256 hashes of all files in
+            the bundle and signs it with the provided Ed25519 private key.
+            The signature enables the PDP server to verify bundle integrity
+            and authenticity at load time.
 
-            Creates a manifest containing SHA-256 hashes of all files in the
-            bundle and signs it with the provided Ed25519 private key. The
-            signature enables the PDP server to verify bundle integrity and
-            authenticity at load time.
-
-            By default, the input bundle is overwritten with the signed version.
-            Use -o to write to a different file.
+            By default, the input bundle is overwritten with the signed
+            version. Use -o to write to a different file.
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
@@ -216,9 +216,13 @@ class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
+              # Sign a bundle (overwrites the original)
               sapl bundle sign -b policies.saplbundle -k signing.pem
 
+              # Sign and write to a new file
               sapl bundle sign -b policies.saplbundle -k signing.pem -o signed.saplbundle --key-id prod-2026
+
+            See Also: sapl-bundle-keygen(1), sapl-bundle-verify(1)
             """ }
     )
     // @formatter:on
@@ -292,12 +296,11 @@ class BundleCommand {
     @Command(
         name = "verify",
         mixinStandardHelpOptions = true,
+        header = "Verify a signed policy bundle against an Ed25519 public key.",
         description = { """
-            Verify a signed policy bundle against an Ed25519 public key.
-
-            Validates the bundle's Ed25519 signature and checks SHA-256 hashes
-            of all files against the manifest. Reports the key ID, creation
-            timestamp, and number of verified files on success.
+            Validates the bundle's Ed25519 signature and checks SHA-256
+            hashes of all files against the manifest. Reports the key ID,
+            creation timestamp, and number of verified files on success.
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
@@ -306,7 +309,10 @@ class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
+              # Verify a signed bundle
               sapl bundle verify -b policies.saplbundle -k signing.pub
+
+            See Also: sapl-bundle-sign(1), sapl-bundle-inspect(1)
             """ }
     )
     // @formatter:on
@@ -371,12 +377,11 @@ class BundleCommand {
     @Command(
         name = "inspect",
         mixinStandardHelpOptions = true,
+        header = "Show bundle contents and metadata.",
         description = { """
-            Show bundle contents and metadata.
-
-            Displays the signature status, PDP configuration (pdp.json), and
-            a list of all policies with their sizes. Useful for auditing
-            bundles before deployment.
+            Displays the signature status, PDP configuration (pdp.json),
+            and a list of all policies with their sizes. Useful for
+            auditing bundles before deployment.
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
@@ -385,7 +390,10 @@ class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
+              # Show bundle contents and signature status
               sapl bundle inspect -b policies.saplbundle
+
+            See Also: sapl-bundle-verify(1)
             """ }
     )
     // @formatter:on
@@ -462,13 +470,12 @@ class BundleCommand {
     @Command(
         name = "keygen",
         mixinStandardHelpOptions = true,
+        header = "Generate an Ed25519 keypair for bundle signing.",
         description = { """
-            Generate an Ed25519 keypair for bundle signing.
-
-            Creates a PKCS#8 PEM-encoded private key (<prefix>.pem) and an
-            X.509 PEM-encoded public key (<prefix>.pub). The private key
-            is used with 'sapl bundle sign' or 'sapl bundle create -k'.
-            The public key is configured on the PDP server to verify
+            Creates a PKCS#8 PEM-encoded private key (<prefix>.pem) and
+            an X.509 PEM-encoded public key (<prefix>.pub). The private
+            key is used with 'sapl bundle sign' or 'sapl bundle create
+            -k'. The public key is configured on the PDP server to verify
             bundle signatures.
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
@@ -478,9 +485,13 @@ class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
+              # Generate a new signing keypair
               sapl bundle keygen -o signing-key
 
+              # Overwrite existing key files
               sapl bundle keygen -o signing-key --force
+
+            See Also: sapl-bundle-sign(1), sapl-bundle-create(1)
             """ }
     )
     // @formatter:on

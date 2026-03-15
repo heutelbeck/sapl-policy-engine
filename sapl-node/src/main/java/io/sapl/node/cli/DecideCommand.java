@@ -39,23 +39,18 @@ import picocli.CommandLine.Spec;
 @Command(
     name = "decide",
     mixinStandardHelpOptions = true,
+    header = "Stream authorization decisions as NDJSON.",
     description = { """
-        Subscribe to authorization decisions and stream updates as NDJSON.
-
-        Subscribes to the policy decision point and prints each decision as a
-        JSON line to stdout (Newline Delimited JSON). When policies change,
+        Subscribes to the policy decision point and prints each decision as
+        a JSON line to stdout (Newline Delimited JSON). When policies change,
         attributes update, or the subscription context evolves, a new
         decision line is emitted automatically.
 
         Runs until interrupted (Ctrl+C) or the decision stream completes.
 
-        The subscription can be provided via named flags (-s, -a, -r) or a JSON
-        file (-f). Named flag values must be valid JSON (strings must be
-        quoted, e.g., '"alice"'). Use -f - to read from stdin.
-
-        By default, policies are loaded from the current directory. Use --dir for
-        a specific directory, --bundle for a bundle file, or --remote to
-        query a running PDP server.
+        By default, policies are loaded from the current directory. Use
+        --dir for a different directory, --bundle for a bundle file, or
+        --remote to query a running PDP server.
         """ },
     exitCodeListHeading = "%nExit Codes:%n",
     exitCodeList = {
@@ -64,9 +59,16 @@ import picocli.CommandLine.Spec;
     },
     footerHeading = "%nExamples:%n",
     footer = { """
+          # Stream decisions using local policies (Ctrl+C to stop)
           sapl decide --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
 
-          sapl decide --remote --token $SAPL_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
+          # Stream from a remote PDP server
+          sapl decide --remote --token $SAPL_BEARER_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
+
+          # Read subscription from a JSON file
+          sapl decide -f request.json --bundle policies.saplbundle
+
+        See Also: sapl-decide-once(1), sapl-check(1)
         """ }
 )
 // @formatter:on

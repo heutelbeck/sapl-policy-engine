@@ -25,7 +25,7 @@ class RemoteConnectionOptions {
     @Option(names = "--remote", required = true, description = "Connect to a remote PDP server instead of evaluating locally")
     boolean remote;
 
-    @Option(names = "--url", description = "Remote PDP URL (default: ${DEFAULT-VALUE})", defaultValue = "http://localhost:8443")
+    @Option(names = "--url", description = "Remote PDP URL (default: ${DEFAULT-VALUE}, env: SAPL_URL)", defaultValue = "http://localhost:8443")
     String url;
 
     @ArgGroup(exclusive = true)
@@ -36,10 +36,10 @@ class RemoteConnectionOptions {
 
     static class AuthOptions {
 
-        @Option(names = "--basic-auth", description = "HTTP Basic credentials in user:password format")
+        @Option(names = "--basic-auth", description = "HTTP Basic credentials as user:password (env: SAPL_BASIC_AUTH)")
         String basicAuth;
 
-        @Option(names = "--token", description = "Bearer token for authentication (API key or JWT)")
+        @Option(names = "--token", description = "Bearer token for API key or JWT (env: SAPL_BEARER_TOKEN)")
         String token;
 
     }

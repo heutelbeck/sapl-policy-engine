@@ -33,12 +33,11 @@ import picocli.CommandLine.Command;
 @Command(
     name = "server",
     mixinStandardHelpOptions = true,
+    header = "Start the PDP server (default when no subcommand is given).",
     description = { """
-        Start the PDP server (default when no command is given).
-
-        Launches the SAPL Policy Decision Point as an HTTP server. Clients send
-        authorization subscriptions via the HTTP API and receive decisions
-        as JSON responses or Server-Sent Event streams.
+        Launches the SAPL Policy Decision Point as an HTTP server. Clients
+        send authorization subscriptions via the HTTP API and receive
+        decisions as JSON responses or Server-Sent Event streams.
 
         The server is configured via application.yml. Place it in a config/
         subdirectory of the working directory, or specify a custom location
@@ -53,13 +52,23 @@ import picocli.CommandLine.Command;
         authentication (no-auth, basic, API key, OAuth2), TLS, and
         observability (health endpoints, Prometheus metrics).
         """ },
+    exitCodeListHeading = "%nExit Codes:%n",
+    exitCodeList = {
+        " 0:Clean shutdown",
+        " 1:Startup or runtime error"
+    },
     footerHeading = "%nExamples:%n",
     footer = { """
+          # Start with default settings
           sapl server
 
+          # Start on a custom port
           sapl server --server.port=9090
 
+          # Use a custom configuration file
           sapl server --spring.config.location=file:/etc/sapl/application.yml
+
+        See Also: sapl-generate-basic(1), sapl-generate-apikey(1)
         """ }
 )
 // @formatter:on

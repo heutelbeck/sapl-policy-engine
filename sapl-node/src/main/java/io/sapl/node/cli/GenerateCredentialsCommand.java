@@ -37,11 +37,11 @@ import picocli.CommandLine.Spec;
 @Command(
     name = "generate",
     mixinStandardHelpOptions = true,
+    header = "Generate authentication credentials for PDP server clients.",
     description = { """
-        Generate authentication credentials for PDP server clients.
-
         Creates credentials with Argon2id-encoded hashes and outputs
         ready-to-use configuration snippets for application.yml.
+        Credentials can use HTTP Basic Auth or API key (Bearer token).
         """ },
     subcommands = {
         GenerateCredentialsCommand.BasicCredentials.class,
@@ -55,21 +55,29 @@ class GenerateCredentialsCommand {
     @Command(
         name = "basic",
         mixinStandardHelpOptions = true,
+        header = "Generate HTTP Basic Auth credentials with Argon2id-encoded password.",
         description = { """
-            Generate HTTP Basic Auth credentials with Argon2id-encoded password.
+            Creates a random username and password, encodes the password
+            with Argon2id, and prints the credentials along with an
+            application.yml configuration snippet and a curl usage example.
 
-            Creates a random username and password, encodes the password with
-            Argon2id, and prints the credentials along with an application.yml
-            configuration snippet and a curl usage example.
-
-            Store the plaintext password securely. Only the Argon2id hash goes
-            into server configuration.
+            Store the plaintext password securely. Only the Argon2id hash
+            goes into server configuration.
             """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Credentials generated successfully",
+            " 1:Error during generation"
+        },
         footerHeading = "%nExamples:%n",
         footer = { """
+              # Generate random credentials
               sapl generate basic
 
+              # Generate with custom ID and PDP routing
               sapl generate basic --id my-client --pdp-id production
+
+            See Also: sapl-generate-apikey(1), sapl-server(1)
             """ }
     )
     // @formatter:on
@@ -132,20 +140,29 @@ class GenerateCredentialsCommand {
     @Command(
         name = "apikey",
         mixinStandardHelpOptions = true,
+        header = "Generate a Bearer token API key with Argon2id-encoded hash.",
         description = { """
-            Generate a Bearer token API key with Argon2id-encoded hash.
-
-            Creates an API key with the format sapl_<random> and encodes it
-            with Argon2id. Prints the key along with an application.yml
+            Creates an API key with the format sapl_<random> and encodes
+            it with Argon2id. Prints the key along with an application.yml
             configuration snippet and a curl usage example.
 
-            The API key is used as a Bearer token in the Authorization header.
+            The API key is used as a Bearer token in the Authorization
+            header.
             """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:API key generated successfully",
+            " 1:Error during generation"
+        },
         footerHeading = "%nExamples:%n",
         footer = { """
+              # Generate a random API key
               sapl generate apikey
 
+              # Generate with custom ID and PDP routing
               sapl generate apikey --id my-service --pdp-id production
+
+            See Also: sapl-generate-basic(1), sapl-server(1)
             """ }
     )
     // @formatter:on

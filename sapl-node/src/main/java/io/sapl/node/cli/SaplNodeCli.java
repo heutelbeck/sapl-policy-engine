@@ -38,12 +38,36 @@ import picocli.CommandLine.IVersionProvider;
     name = "sapl",
     mixinStandardHelpOptions = true,
     versionProvider = SaplNodeCli.VersionProvider.class,
+    header = "SAPL Node PDP server and policy CLI.",
     description = { """
-        SAPL Policy Decision Point Server and authorization policy toolkit.
-
         Without a subcommand, starts the PDP server on localhost:8443.
         Use subcommands to evaluate policies, manage bundles, and
         generate credentials without starting the server.
+
+        Policy Sources:
+          The check, decide, and decide-once commands load policies from
+          one of three sources. By default, .sapl files and pdp.json are
+          read from the current directory. Use --dir to specify a different
+          directory, --bundle to load a .saplbundle file, or --remote to
+          query a running PDP server.
+
+        Authorization Subscriptions:
+          An authorization subscription asks "may subject perform action
+          on resource?" Each component is a JSON value. Strings must be
+          double-quoted inside single quotes: -s '"alice"' (not -s alice).
+          Provide the subscription via named flags (-s, -a, -r) or as a
+          JSON file (-f). Use -f - to read from stdin.
+
+        Environment Variables:
+          SAPL_URL            Remote PDP URL (overridden by --url)
+          SAPL_BASIC_AUTH     Basic auth as user:password (overridden by --basic-auth)
+          SAPL_BEARER_TOKEN   Bearer token for API key/JWT (overridden by --token)
+
+        Files:
+          *.sapl              SAPL policy files
+          pdp.json            PDP configuration (combining algorithm, variables)
+          *.saplbundle        Policy bundle archive (ZIP with policies and manifest)
+          application.yml     Server configuration (in config/ or working directory)
         """ },
     subcommands = {
         ServerCommand.class, BundleCommand.class, CheckCommand.class,

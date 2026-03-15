@@ -49,20 +49,16 @@ import picocli.CommandLine.Spec;
 @Command(
     name = "check",
     mixinStandardHelpOptions = true,
+    header = "Evaluate authorization and exit with a decision code.",
     description = { """
-        Check authorization and encode the result as a process exit code.
+        Evaluates a single authorization subscription against policies and
+        exits with a code that encodes the decision. No output is written
+        to stdout, making this command ideal for shell scripts and CI/CD
+        pipelines.
 
-        Evaluates a single authorization subscription against policies and exits
-        with a code that encodes the decision. No output is written to stdout,
-        making this command ideal for shell scripts and CI/CD pipelines.
-
-        The subscription can be provided via named flags (-s, -a, -r) or a JSON
-        file (-f). Named flag values must be valid JSON (strings must be
-        quoted, e.g., '"alice"'). Use -f - to read from stdin.
-
-        By default, policies are loaded from the current directory. Use --dir for
-        a specific directory, --bundle for a bundle file, or --remote to
-        query a running PDP server.
+        By default, policies are loaded from the current directory. Use
+        --dir for a different directory, --bundle for a bundle file, or
+        --remote to query a running PDP server.
         """ },
     exitCodeListHeading = "%nExit Codes:%n",
     exitCodeList = {
@@ -74,13 +70,19 @@ import picocli.CommandLine.Spec;
     },
     footerHeading = "%nExamples:%n",
     footer = { """
+          # Check using local policies
           sapl check --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
 
-          if sapl check --bundle prod.saplbundle -s '"ci"' -a '"deploy"' -r '"prod"'; then echo "Permitted"; fi
+          # Use as a CI/CD gate (exit 0 means PERMIT)
+          if sapl check --bundle policies.saplbundle -s '"ci"' -a '"deploy"' -r '"prod"'; then echo "Permitted"; fi
 
+          # Read subscription from stdin
           echo '{"subject":"alice","action":"read","resource":"doc"}' | sapl check -f -
 
-          sapl check --remote --url https://pdp.example.com --token $SAPL_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
+          # Query a remote PDP server
+          sapl check --remote --url https://pdp.example.com --token $SAPL_BEARER_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
+
+        See Also: sapl-decide-once(1), sapl-decide(1)
         """ }
 )
 // @formatter:on

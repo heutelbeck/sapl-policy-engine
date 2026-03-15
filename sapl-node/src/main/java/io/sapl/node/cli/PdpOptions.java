@@ -28,16 +28,16 @@ import picocli.CommandLine.Option;
  */
 class PdpOptions {
 
-    @ArgGroup(exclusive = false)
+    @ArgGroup(exclusive = false, heading = "%nRemote Connection:%n")
     RemoteConnectionOptions remoteConnection;
 
-    @ArgGroup(exclusive = true)
+    @ArgGroup(exclusive = true, heading = "%nPolicy Source:%n")
     PolicySourceOptions policySource;
 
-    @ArgGroup(exclusive = true)
+    @ArgGroup(exclusive = true, heading = "%nBundle Verification:%n")
     BundleVerificationOptions bundleVerification;
 
-    @ArgGroup(exclusive = true, multiplicity = "0..1")
+    @ArgGroup(exclusive = true, multiplicity = "0..1", heading = "%nSubscription Input:%n")
     SubscriptionInputOptions subscriptionInput;
 
     @Option(names = "--trace", description = "Print the full policy evaluation trace to stderr")
