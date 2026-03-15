@@ -33,7 +33,43 @@ import picocli.CommandLine.Spec;
  * Evaluates a single authorization subscription against policies and prints the
  * decision as JSON to stdout.
  */
-@Command(name = "decide-once", description = "Evaluate a single authorization decision", mixinStandardHelpOptions = true)
+// @formatter:off
+@Command(
+    name = "decide-once",
+    mixinStandardHelpOptions = true,
+    description = { """
+        Evaluate a single authorization decision and print the result as JSON.
+
+        Evaluates the authorization subscription against policies once and prints
+        the full authorization decision to stdout. The output is a JSON object
+        containing the decision (PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE),
+        any obligations, advice, and resource transformations.
+
+        The subscription can be provided via named flags (-s, -a, -r) or a JSON
+        file (-f). Named flag values must be valid JSON (strings must be
+        quoted, e.g., '"alice"'). Use -f - to read from stdin.
+
+        By default, policies are loaded from the current directory. Use --dir for
+        a specific directory, --bundle for a bundle file, or --remote to
+        query a running PDP server.
+        """ },
+    exitCodeListHeading = "%nExit Codes:%n",
+    exitCodeList = {
+        " 0:Decision printed successfully",
+        " 1:Error during evaluation"
+    },
+    footerHeading = "%nExamples:%n",
+    footer = { """
+          sapl decide-once --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
+
+          sapl decide-once -f request.json --bundle policies.saplbundle
+
+          echo '{"subject":"alice","action":"read","resource":"doc"}' | sapl decide-once -f -
+
+          sapl decide-once --remote --token $SAPL_TOKEN -s '{"role":"admin"}' -a '"write"' -r '"config"'
+        """ }
+)
+// @formatter:on
 class DecideOnceCommand implements Callable<Integer> {
 
     static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";

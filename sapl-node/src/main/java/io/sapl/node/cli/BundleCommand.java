@@ -52,9 +52,24 @@ import picocli.CommandLine.Spec;
  * <p>
  * These commands run without starting Spring Boot for fast execution.
  */
-@Command(name = "bundle", description = "Policy bundle operations", mixinStandardHelpOptions = true, subcommands = {
-        BundleCommand.Create.class, BundleCommand.Sign.class, BundleCommand.Verify.class, BundleCommand.Inspect.class,
-        BundleCommand.Keygen.class })
+// @formatter:off
+@Command(
+    name = "bundle",
+    mixinStandardHelpOptions = true,
+    description = { """
+        Policy bundle operations.
+
+        Bundles package SAPL policies and PDP configuration into a single
+        file for deployment. They can be cryptographically signed with
+        Ed25519 keys for integrity verification.
+        """ },
+    subcommands = {
+        BundleCommand.Create.class, BundleCommand.Sign.class,
+        BundleCommand.Verify.class, BundleCommand.Inspect.class,
+        BundleCommand.Keygen.class
+    }
+)
+// @formatter:on
 class BundleCommand {
 
     private static final String PDP_JSON       = "pdp.json";
@@ -74,7 +89,34 @@ class BundleCommand {
     private static final String ERROR_VERIFYING_BUNDLE    = "Error verifying bundle: %s.";
     private static final String HINT_USE_FORCE            = "Use --force to overwrite.";
 
-    @Command(name = "create", description = "Create a policy bundle from a directory", mixinStandardHelpOptions = true)
+    // @formatter:off
+    @Command(
+        name = "create",
+        mixinStandardHelpOptions = true,
+        description = { """
+            Create a policy bundle from a directory.
+
+            Packages all .sapl policy files and pdp.json from the input directory
+            into a .saplbundle file. Policies are validated for correct SAPL
+            syntax during creation.
+
+            Optionally signs the bundle during creation when a private key is
+            provided. This is equivalent to creating an unsigned bundle and
+            then running 'sapl bundle sign' separately.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Bundle created successfully",
+            " 1:Error (invalid input, no policies found, or I/O error)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle create -i ./policies -o policies.saplbundle
+
+              sapl bundle create -i ./policies -o policies.saplbundle -k signing.pem --key-id prod-2026
+            """ }
+    )
+    // @formatter:on
     static class Create implements Callable<Integer> {
 
         @Spec
@@ -152,7 +194,34 @@ class BundleCommand {
 
     }
 
-    @Command(name = "sign", description = "Sign a policy bundle", mixinStandardHelpOptions = true)
+    // @formatter:off
+    @Command(
+        name = "sign",
+        mixinStandardHelpOptions = true,
+        description = { """
+            Sign a policy bundle with an Ed25519 private key.
+
+            Creates a manifest containing SHA-256 hashes of all files in the
+            bundle and signs it with the provided Ed25519 private key. The
+            signature enables the PDP server to verify bundle integrity and
+            authenticity at load time.
+
+            By default, the input bundle is overwritten with the signed version.
+            Use -o to write to a different file.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Bundle signed successfully",
+            " 1:Error (bundle or key not found, or signing failed)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle sign -b policies.saplbundle -k signing.pem
+
+              sapl bundle sign -b policies.saplbundle -k signing.pem -o signed.saplbundle --key-id prod-2026
+            """ }
+    )
+    // @formatter:on
     static class Sign implements Callable<Integer> {
 
         @Spec
@@ -219,7 +288,28 @@ class BundleCommand {
 
     }
 
-    @Command(name = "verify", description = "Verify a signed policy bundle", mixinStandardHelpOptions = true)
+    // @formatter:off
+    @Command(
+        name = "verify",
+        mixinStandardHelpOptions = true,
+        description = { """
+            Verify a signed policy bundle against an Ed25519 public key.
+
+            Validates the bundle's Ed25519 signature and checks SHA-256 hashes
+            of all files against the manifest. Reports the key ID, creation
+            timestamp, and number of verified files on success.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Verification successful",
+            " 1:Verification failed, bundle not signed, or error"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle verify -b policies.saplbundle -k signing.pub
+            """ }
+    )
+    // @formatter:on
     static class Verify implements Callable<Integer> {
 
         @Spec
@@ -277,7 +367,28 @@ class BundleCommand {
 
     }
 
-    @Command(name = "inspect", description = "Show bundle contents and metadata", mixinStandardHelpOptions = true)
+    // @formatter:off
+    @Command(
+        name = "inspect",
+        mixinStandardHelpOptions = true,
+        description = { """
+            Show bundle contents and metadata.
+
+            Displays the signature status, PDP configuration (pdp.json), and
+            a list of all policies with their sizes. Useful for auditing
+            bundles before deployment.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Inspection completed",
+            " 1:Error reading bundle"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle inspect -b policies.saplbundle
+            """ }
+    )
+    // @formatter:on
     static class Inspect implements Callable<Integer> {
 
         @Spec
@@ -347,7 +458,32 @@ class BundleCommand {
 
     }
 
-    @Command(name = "keygen", description = "Generate Ed25519 keypair for bundle signing", mixinStandardHelpOptions = true)
+    // @formatter:off
+    @Command(
+        name = "keygen",
+        mixinStandardHelpOptions = true,
+        description = { """
+            Generate an Ed25519 keypair for bundle signing.
+
+            Creates a PKCS#8 PEM-encoded private key (<prefix>.pem) and an
+            X.509 PEM-encoded public key (<prefix>.pub). The private key
+            is used with 'sapl bundle sign' or 'sapl bundle create -k'.
+            The public key is configured on the PDP server to verify
+            bundle signatures.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Keypair generated",
+            " 1:Error (file exists without --force, or generation failed)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle keygen -o signing-key
+
+              sapl bundle keygen -o signing-key --force
+            """ }
+    )
+    // @formatter:on
     static class Keygen implements Callable<Integer> {
 
         @Spec

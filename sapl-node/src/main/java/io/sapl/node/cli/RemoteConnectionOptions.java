@@ -22,7 +22,7 @@ import picocli.CommandLine.Option;
 
 class RemoteConnectionOptions {
 
-    @Option(names = "--remote", required = true, description = "Use remote PDP instead of local policies")
+    @Option(names = "--remote", required = true, description = "Connect to a remote PDP server instead of evaluating locally")
     boolean remote;
 
     @Option(names = "--url", description = "Remote PDP URL (default: ${DEFAULT-VALUE})", defaultValue = "http://localhost:8443")
@@ -31,15 +31,15 @@ class RemoteConnectionOptions {
     @ArgGroup(exclusive = true)
     AuthOptions auth;
 
-    @Option(names = "--insecure", description = "Skip TLS certificate verification")
+    @Option(names = "--insecure", description = "Skip TLS certificate verification (development only)")
     boolean insecure;
 
     static class AuthOptions {
 
-        @Option(names = "--basic-auth", description = "Basic auth credentials (user:password)")
+        @Option(names = "--basic-auth", description = "HTTP Basic credentials in user:password format")
         String basicAuth;
 
-        @Option(names = "--token", description = "Bearer token (API key or JWT)")
+        @Option(names = "--token", description = "Bearer token for authentication (API key or JWT)")
         String token;
 
     }

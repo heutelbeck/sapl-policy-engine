@@ -23,10 +23,10 @@ import picocli.CommandLine.Option;
 
 class BundleVerificationOptions {
 
-    @Option(names = "--public-key", description = "Ed25519 public key for bundle verification")
+    @Option(names = "--public-key", description = "Ed25519 public key file (PEM) for bundle signature verification")
     Path publicKey;
 
-    @Option(names = "--no-verify", description = "Skip bundle signature verification")
+    @Option(names = "--no-verify", description = "Skip bundle signature verification (development only)")
     boolean noVerify;
 
 }

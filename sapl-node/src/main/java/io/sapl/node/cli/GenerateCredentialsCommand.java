@@ -33,11 +33,46 @@ import picocli.CommandLine.Spec;
 /**
  * Commands for generating authentication credentials.
  */
-@Command(name = "generate", description = "Generate authentication credentials", mixinStandardHelpOptions = true, subcommands = {
-        GenerateCredentialsCommand.BasicCredentials.class, GenerateCredentialsCommand.ApiKey.class })
+// @formatter:off
+@Command(
+    name = "generate",
+    mixinStandardHelpOptions = true,
+    description = { """
+        Generate authentication credentials for PDP server clients.
+
+        Creates credentials with Argon2id-encoded hashes and outputs
+        ready-to-use configuration snippets for application.yml.
+        """ },
+    subcommands = {
+        GenerateCredentialsCommand.BasicCredentials.class,
+        GenerateCredentialsCommand.ApiKey.class
+    }
+)
+// @formatter:on
 class GenerateCredentialsCommand {
 
-    @Command(name = "basic", description = "Generate Basic Auth credentials (Argon2 encoded)", mixinStandardHelpOptions = true)
+    // @formatter:off
+    @Command(
+        name = "basic",
+        mixinStandardHelpOptions = true,
+        description = { """
+            Generate HTTP Basic Auth credentials with Argon2id-encoded password.
+
+            Creates a random username and password, encodes the password with
+            Argon2id, and prints the credentials along with an application.yml
+            configuration snippet and a curl usage example.
+
+            Store the plaintext password securely. Only the Argon2id hash goes
+            into server configuration.
+            """ },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl generate basic
+
+              sapl generate basic --id my-client --pdp-id production
+            """ }
+    )
+    // @formatter:on
     static class BasicCredentials implements Callable<Integer> {
 
         @Spec
@@ -93,7 +128,27 @@ class GenerateCredentialsCommand {
 
     }
 
-    @Command(name = "apikey", description = "Generate an API key", mixinStandardHelpOptions = true)
+    // @formatter:off
+    @Command(
+        name = "apikey",
+        mixinStandardHelpOptions = true,
+        description = { """
+            Generate a Bearer token API key with Argon2id-encoded hash.
+
+            Creates an API key with the format sapl_<random> and encodes it
+            with Argon2id. Prints the key along with an application.yml
+            configuration snippet and a curl usage example.
+
+            The API key is used as a Bearer token in the Authorization header.
+            """ },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl generate apikey
+
+              sapl generate apikey --id my-service --pdp-id production
+            """ }
+    )
+    // @formatter:on
     static class ApiKey implements Callable<Integer> {
 
         @Spec

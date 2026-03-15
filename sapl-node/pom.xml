@@ -326,6 +326,7 @@
 							<goal>java</goal>
 						</goals>
 						<configuration>
+							<skip>${maven.test.skip}</skip>
 							<mainClass>picocli.codegen.docgen.manpage.ManPageGenerator</mainClass>
 							<classpathScope>test</classpathScope>
 							<arguments>
@@ -341,6 +342,7 @@
 							<goal>java</goal>
 						</goals>
 						<configuration>
+							<skip>${maven.test.skip}</skip>
 							<mainClass>io.sapl.node.docgen.CliReferenceMarkdownGenerator</mainClass>
 							<classpathScope>test</classpathScope>
 							<arguments>
@@ -363,6 +365,7 @@
 							<goal>process-asciidoc</goal>
 						</goals>
 						<configuration>
+							<skip>${maven.test.skip}</skip>
 							<sourceDirectory>${project.build.directory}/generated-manpage-adoc</sourceDirectory>
 							<outputDirectory>${project.build.directory}/generated-man</outputDirectory>
 							<backend>manpage</backend>

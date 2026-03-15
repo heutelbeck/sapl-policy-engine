@@ -125,6 +125,8 @@ final class CliReferenceMarkdownGenerator {
         appendDescription(sb, spec);
         appendSynopsis(sb, spec);
         appendOptions(sb, spec);
+        appendExitCodes(sb, spec);
+        appendExamples(sb, spec);
         appendSubcommands(sb, sub, headingLevel);
     }
 
@@ -198,6 +200,33 @@ final class CliReferenceMarkdownGenerator {
         val defaultVal  = defaultValueOf(option);
         sb.append("| `").append(names).append(paramLabel).append("` | ").append(escapeMarkdownTable(description))
                 .append(" | ").append(defaultVal).append(" |\n");
+    }
+
+    private static void appendExitCodes(StringBuilder sb, CommandSpec spec) {
+        val exitCodes = spec.usageMessage().exitCodeList();
+        if (exitCodes.isEmpty()) {
+            return;
+        }
+        sb.append("**Exit Codes**\n\n");
+        sb.append("| Code | Description |\n");
+        sb.append("|------|-------------|\n");
+        for (val entry : exitCodes.entrySet()) {
+            sb.append("| ").append(entry.getKey().trim()).append(" | ").append(escapeMarkdownTable(entry.getValue()))
+                    .append(" |\n");
+        }
+        sb.append('\n');
+    }
+
+    private static void appendExamples(StringBuilder sb, CommandSpec spec) {
+        val footer = spec.usageMessage().footer();
+        if (footer.length == 0) {
+            return;
+        }
+        sb.append("**Examples**\n\n```\n");
+        for (val line : footer) {
+            sb.append(line.stripLeading()).append('\n');
+        }
+        sb.append("```\n\n");
     }
 
     private static void appendSubcommands(StringBuilder sb, CommandLine commandLine, int headingLevel) {

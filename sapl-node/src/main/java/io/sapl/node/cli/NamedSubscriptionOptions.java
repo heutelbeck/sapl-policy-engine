@@ -21,19 +21,23 @@ import picocli.CommandLine.Option;
 
 class NamedSubscriptionOptions {
 
-    @Option(names = { "-s", "--subject" }, required = true, description = "Subject (JSON)")
+    @Option(names = { "-s",
+            "--subject" }, required = true, description = "Subject as a JSON value (string, number, object, or array)")
     String subject;
 
-    @Option(names = { "-a", "--action" }, required = true, description = "Action (JSON)")
+    @Option(names = { "-a",
+            "--action" }, required = true, description = "Action as a JSON value (string, number, object, or array)")
     String action;
 
-    @Option(names = { "-r", "--resource" }, required = true, description = "Resource (JSON)")
+    @Option(names = { "-r",
+            "--resource" }, required = true, description = "Resource as a JSON value (string, number, object, or array)")
     String resource;
 
-    @Option(names = { "-e", "--environment" }, description = "Environment (JSON)")
+    @Option(names = { "-e",
+            "--environment" }, description = "Environment as a JSON value (optional context for policy evaluation)")
     String environment;
 
-    @Option(names = "--secrets", description = "Secrets (JSON object)")
+    @Option(names = "--secrets", description = "Secrets as a JSON object (available to policies via the secrets() function)")
     String secrets;
 
 }

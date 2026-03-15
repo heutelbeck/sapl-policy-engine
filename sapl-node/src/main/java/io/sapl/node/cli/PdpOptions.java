@@ -40,13 +40,13 @@ class PdpOptions {
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     SubscriptionInputOptions subscriptionInput;
 
-    @Option(names = "--trace", description = "Print full evaluation trace to stderr")
+    @Option(names = "--trace", description = "Print the full policy evaluation trace to stderr")
     boolean trace;
 
-    @Option(names = "--json-report", description = "Print JSON evaluation report to stderr")
+    @Option(names = "--json-report", description = "Print a machine-readable JSON evaluation report to stderr")
     boolean jsonReport;
 
-    @Option(names = "--text-report", description = "Print text evaluation report to stderr")
+    @Option(names = "--text-report", description = "Print a human-readable text evaluation report to stderr")
     boolean textReport;
 
     Path saplHomeOverride;

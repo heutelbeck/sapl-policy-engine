@@ -45,7 +45,45 @@ import picocli.CommandLine.Spec;
  * transformation</li>
  * </ul>
  */
-@Command(name = "check", description = "Check authorization and encode result as exit code", mixinStandardHelpOptions = true)
+// @formatter:off
+@Command(
+    name = "check",
+    mixinStandardHelpOptions = true,
+    description = { """
+        Check authorization and encode the result as a process exit code.
+
+        Evaluates a single authorization subscription against policies and exits
+        with a code that encodes the decision. No output is written to stdout,
+        making this command ideal for shell scripts and CI/CD pipelines.
+
+        The subscription can be provided via named flags (-s, -a, -r) or a JSON
+        file (-f). Named flag values must be valid JSON (strings must be
+        quoted, e.g., '"alice"'). Use -f - to read from stdin.
+
+        By default, policies are loaded from the current directory. Use --dir for
+        a specific directory, --bundle for a bundle file, or --remote to
+        query a running PDP server.
+        """ },
+    exitCodeListHeading = "%nExit Codes:%n",
+    exitCodeList = {
+        " 0:PERMIT without obligations or resource transformation",
+        " 1:Error during evaluation",
+        " 2:DENY",
+        " 3:NOT_APPLICABLE (no matching policy)",
+        " 4:INDETERMINATE, or PERMIT with obligations/resource transformation"
+    },
+    footerHeading = "%nExamples:%n",
+    footer = { """
+          sapl check --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
+
+          if sapl check --bundle prod.saplbundle -s '"ci"' -a '"deploy"' -r '"prod"'; then echo "Permitted"; fi
+
+          echo '{"subject":"alice","action":"read","resource":"doc"}' | sapl check -f -
+
+          sapl check --remote --url https://pdp.example.com --token $SAPL_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
+        """ }
+)
+// @formatter:on
 class CheckCommand implements Callable<Integer> {
 
     static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";

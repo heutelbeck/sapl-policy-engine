@@ -35,7 +35,41 @@ import picocli.CommandLine.Spec;
  * a new decision line. Runs until interrupted (Ctrl+C) or the stream
  * completes.
  */
-@Command(name = "decide", description = "Stream authorization decisions as NDJSON", mixinStandardHelpOptions = true)
+// @formatter:off
+@Command(
+    name = "decide",
+    mixinStandardHelpOptions = true,
+    description = { """
+        Subscribe to authorization decisions and stream updates as NDJSON.
+
+        Subscribes to the policy decision point and prints each decision as a
+        JSON line to stdout (Newline Delimited JSON). When policies change,
+        attributes update, or the subscription context evolves, a new
+        decision line is emitted automatically.
+
+        Runs until interrupted (Ctrl+C) or the decision stream completes.
+
+        The subscription can be provided via named flags (-s, -a, -r) or a JSON
+        file (-f). Named flag values must be valid JSON (strings must be
+        quoted, e.g., '"alice"'). Use -f - to read from stdin.
+
+        By default, policies are loaded from the current directory. Use --dir for
+        a specific directory, --bundle for a bundle file, or --remote to
+        query a running PDP server.
+        """ },
+    exitCodeListHeading = "%nExit Codes:%n",
+    exitCodeList = {
+        " 0:Clean shutdown (stream completed or interrupted)",
+        " 1:Error during evaluation"
+    },
+    footerHeading = "%nExamples:%n",
+    footer = { """
+          sapl decide --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
+
+          sapl decide --remote --token $SAPL_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
+        """ }
+)
+// @formatter:on
 class DecideCommand implements Callable<Integer> {
 
     static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";

@@ -27,7 +27,8 @@ class SubscriptionInputOptions {
     @ArgGroup(exclusive = false)
     NamedSubscriptionOptions named;
 
-    @Option(names = { "-f", "--file" }, description = "Subscription JSON file")
+    @Option(names = { "-f",
+            "--file" }, description = "Read authorization subscription from a JSON file. Use - for stdin.")
     Path file;
 
 }

@@ -29,7 +29,40 @@ import picocli.CommandLine.Command;
  * executes, so this command exists primarily for help text and documentation
  * generation.
  */
-@Command(name = "server", description = "Start the PDP server (default when no command is given)", mixinStandardHelpOptions = true)
+// @formatter:off
+@Command(
+    name = "server",
+    mixinStandardHelpOptions = true,
+    description = { """
+        Start the PDP server (default when no command is given).
+
+        Launches the SAPL Policy Decision Point as an HTTP server. Clients send
+        authorization subscriptions via the HTTP API and receive decisions
+        as JSON responses or Server-Sent Event streams.
+
+        The server is configured via application.yml. Place it in a config/
+        subdirectory of the working directory, or specify a custom location
+        with --spring.config.location=file:/path/to/application.yml.
+
+        Any Spring Boot property can be overridden on the command line:
+          --server.port=9090
+          --io.sapl.pdp.embedded.pdp-config-type=BUNDLES
+          --io.sapl.pdp.embedded.policies-path=/opt/policies
+
+        Key configuration areas: policy source type (DIRECTORY, BUNDLES),
+        authentication (no-auth, basic, API key, OAuth2), TLS, and
+        observability (health endpoints, Prometheus metrics).
+        """ },
+    footerHeading = "%nExamples:%n",
+    footer = { """
+          sapl server
+
+          sapl server --server.port=9090
+
+          sapl server --spring.config.location=file:/etc/sapl/application.yml
+        """ }
+)
+// @formatter:on
 class ServerCommand implements Callable<Integer> {
 
     @Override

@@ -23,10 +23,10 @@ import picocli.CommandLine.Option;
 
 class PolicySourceOptions {
 
-    @Option(names = "--dir", description = "Policy directory")
+    @Option(names = "--dir", description = "Directory containing .sapl policy files and pdp.json")
     Path dir;
 
-    @Option(names = "--bundle", description = "Bundle file")
+    @Option(names = "--bundle", description = "Policy bundle file (.saplbundle)")
     Path bundle;
 
 }

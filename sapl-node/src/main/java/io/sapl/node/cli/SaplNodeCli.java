@@ -33,9 +33,24 @@ import picocli.CommandLine.IVersionProvider;
  * started).
  * Subcommands like 'bundle' are handled by picocli within the Spring context.
  */
-@Command(name = "sapl", description = "SAPL Policy Decision Point Server", mixinStandardHelpOptions = true, versionProvider = SaplNodeCli.VersionProvider.class, subcommands = {
-        ServerCommand.class, BundleCommand.class, CheckCommand.class, DecideCommand.class, DecideOnceCommand.class,
-        GenerateCredentialsCommand.class })
+// @formatter:off
+@Command(
+    name = "sapl",
+    mixinStandardHelpOptions = true,
+    versionProvider = SaplNodeCli.VersionProvider.class,
+    description = { """
+        SAPL Policy Decision Point Server and authorization policy toolkit.
+
+        Without a subcommand, starts the PDP server on localhost:8443.
+        Use subcommands to evaluate policies, manage bundles, and
+        generate credentials without starting the server.
+        """ },
+    subcommands = {
+        ServerCommand.class, BundleCommand.class, CheckCommand.class,
+        DecideCommand.class, DecideOnceCommand.class, GenerateCredentialsCommand.class
+    }
+)
+// @formatter:on
 public class SaplNodeCli implements Callable<Integer> {
 
     @Override
