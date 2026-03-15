@@ -91,7 +91,7 @@ final class CliReferenceMarkdownGenerator {
                 layout: default
                 title: Command Line
                 parent: SAPL Node
-                nav_order: 8
+                nav_order: 708
                 ---
 
                 """);
