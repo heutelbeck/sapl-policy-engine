@@ -63,7 +63,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build Required Modules Only
-        run: mvn -B clean install -pl sapl-documentation-generator,sapl-bom -am -Dmaven.test.skip=true -T 1C
+        run: mvn -B clean install -pl sapl-documentation-generator,sapl-node,sapl-bom -am -Dmaven.test.skip=true -T 1C
 
       - name: Run Documentation Generator
         run: |
@@ -76,6 +76,7 @@ jobs:
           mkdir -p combined-documentation
           cp -r sapl-documentation/* combined-documentation/
           cp -r sapl-documentation-generator/target/doc/* combined-documentation/
+          cp sapl-node/target/generated-docs/7_8_CLIReference.md combined-documentation/
 
       - name: Push Documentation to Website
         uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2

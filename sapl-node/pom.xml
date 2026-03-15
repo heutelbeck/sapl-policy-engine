@@ -165,6 +165,13 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
 
+		<!-- Doc Generation (build-time only) -->
+		<dependency>
+			<groupId>info.picocli</groupId>
+			<artifactId>picocli-codegen</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -306,6 +313,62 @@
 					<outputFormat>json</outputFormat>
 					<skipNotDeployed>false</skipNotDeployed>
 				</configuration>
+			</plugin>
+		<!-- Generate AsciiDoc man page sources from picocli @Command annotations -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>generate-manpage-adoc</id>
+						<phase>process-test-classes</phase>
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration>
+							<mainClass>picocli.codegen.docgen.manpage.ManPageGenerator</mainClass>
+							<classpathScope>test</classpathScope>
+							<arguments>
+								<argument>io.sapl.node.cli.SaplNodeCli</argument>
+								<argument>--outdir=${project.build.directory}/generated-manpage-adoc</argument>
+							</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>generate-markdown-reference</id>
+						<phase>process-test-classes</phase>
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration>
+							<mainClass>io.sapl.node.docgen.CliReferenceMarkdownGenerator</mainClass>
+							<classpathScope>test</classpathScope>
+							<arguments>
+								<argument>${project.build.directory}/generated-docs</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Convert AsciiDoc to roff man pages -->
+			<plugin>
+				<groupId>org.asciidoctor</groupId>
+				<artifactId>asciidoctor-maven-plugin</artifactId>
+				<version>3.1.1</version>
+				<executions>
+					<execution>
+						<id>generate-manpages</id>
+						<phase>process-test-classes</phase>
+						<goals>
+							<goal>process-asciidoc</goal>
+						</goals>
+						<configuration>
+							<sourceDirectory>${project.build.directory}/generated-manpage-adoc</sourceDirectory>
+							<outputDirectory>${project.build.directory}/generated-man</outputDirectory>
+							<backend>manpage</backend>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

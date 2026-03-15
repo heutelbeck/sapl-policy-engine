@@ -644,11 +644,15 @@ jobs:
         run: |
           mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/macos staging/windows
 
+          # Man pages are platform-independent, bundled in the linux-amd64 artifact
+          MAN_SRC=artifacts/linux-amd64/generated-man
+
           # Linux amd64 (tar.gz)
           cp artifacts/linux-amd64/sapl staging/linux-amd64/sapl
           chmod +x staging/linux-amd64/sapl
           cp LICENSE staging/linux-amd64/
           cp sapl-node/README.md staging/linux-amd64/
+          cp -r "$MAN_SRC" staging/linux-amd64/man
           tar -czf "release/sapl-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
 
           # Linux arm64 (tar.gz)
@@ -656,6 +660,7 @@ jobs:
           chmod +x staging/linux-arm64/sapl
           cp LICENSE staging/linux-arm64/
           cp sapl-node/README.md staging/linux-arm64/
+          cp -r "$MAN_SRC" staging/linux-arm64/man
           tar -czf "release/sapl-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
 
           # Windows (zip)
@@ -670,6 +675,7 @@ jobs:
             chmod +x staging/macos/sapl
             cp LICENSE staging/macos/
             cp sapl-node/README.md staging/macos/
+            cp -r "$MAN_SRC" staging/macos/man
             tar -czf "release/sapl-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
           else
             echo "::notice::macOS artifact not available (built on tag releases only)"
@@ -687,6 +693,7 @@ jobs:
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
         run: |
+          export MAN_DIR=artifacts/linux-amd64/generated-man
           export BINARY=artifacts/linux-amd64/sapl ARCH=amd64
           nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl_${VERSION}_amd64.deb"
           nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-${VERSION}.x86_64.rpm"

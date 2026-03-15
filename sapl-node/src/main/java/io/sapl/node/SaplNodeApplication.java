@@ -17,6 +17,7 @@
  */
 package io.sapl.node;
 
+import java.util.Arrays;
 import java.util.Set;
 
 import org.springframework.aot.hint.MemberCategory;
@@ -30,7 +31,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -53,11 +53,13 @@ import picocli.CommandLine;
 @EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
+    private static final String SERVER_COMMAND = "server";
+
     private static final Set<String> HELP_FLAGS = Set.of("--help", "-h", "--version", "-V");
 
     public static void main(String[] args) {
         val exitCode = run(args);
-        if (exitCode != 0 || isCliInvocation(args)) {
+        if (exitCode != 0 || !isServerMode(args)) {
             System.exit(exitCode);
         }
     }
@@ -66,12 +68,15 @@ public class SaplNodeApplication {
      * Runs the application and returns an exit code. Testable entry point.
      */
     static int run(String[] args) {
-        if (isCliInvocation(args)) {
-            configureCliLogging();
-            return new CommandLine(new SaplNodeCli()).execute(args);
+        if (isServerMode(args)) {
+            val springArgs = args.length > 0 && SERVER_COMMAND.equals(args[0])
+                    ? Arrays.copyOfRange(args, 1, args.length)
+                    : args;
+            SpringApplication.run(SaplNodeApplication.class, springArgs);
+            return 0;
         }
-        SpringApplication.run(SaplNodeApplication.class, args);
-        return 0;
+        configureCliLogging();
+        return new CommandLine(new SaplNodeCli()).execute(args);
     }
 
     /**
@@ -100,14 +105,17 @@ public class SaplNodeApplication {
         root.addAppender(appender);
     }
 
-    private static boolean isCliInvocation(String[] args) {
+    private static boolean isServerMode(String[] args) {
         if (args.length == 0) {
-            return false;
-        }
-        if (HELP_FLAGS.contains(args[0])) {
             return true;
         }
-        return new CommandLine(new SaplNodeCli()).getSubcommands().containsKey(args[0]);
+        if (SERVER_COMMAND.equals(args[0])) {
+            return Arrays.stream(args).noneMatch(HELP_FLAGS::contains);
+        }
+        if (HELP_FLAGS.contains(args[0])) {
+            return false;
+        }
+        return !new CommandLine(new SaplNodeCli()).getSubcommands().containsKey(args[0]);
     }
 
     static class NativeResourceHints implements RuntimeHintsRegistrar {

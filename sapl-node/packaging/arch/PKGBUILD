@@ -39,4 +39,5 @@ package() {
     install -Dm644 "${srcdir}/../README" "${pkgdir}/var/lib/sapl/README"
     install -Dm644 "${srcdir}/../example/pdp.json" "${pkgdir}/var/lib/sapl/example/pdp.json"
     install -Dm644 "${srcdir}/../example/deny-all.sapl" "${pkgdir}/var/lib/sapl/example/deny-all.sapl"
+    for manpage in man/*.1; do install -Dm644 "$manpage" "${pkgdir}/usr/share/man/man1/$(basename "$manpage")"; done
 }

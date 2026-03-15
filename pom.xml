@@ -226,6 +226,11 @@
 				<version>${picocli.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>info.picocli</groupId>
+				<artifactId>picocli-codegen</artifactId>
+				<version>${picocli.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>org.jetbrains</groupId>
 				<artifactId>annotations</artifactId>
 				<version>${jetbrains-annotations.version}</version>

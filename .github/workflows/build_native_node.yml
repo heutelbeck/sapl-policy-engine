@@ -35,14 +35,19 @@ jobs:
             artifact-name: sapl-linux-amd64
             executable: sapl
             profile: native-linux
+            upload-path: |
+              sapl-node/target/sapl
+              sapl-node/target/generated-man/*.1
           - os: ubuntu-24.04-arm
             artifact-name: sapl-linux-arm64
             executable: sapl
             profile: native-linux-arm
+            upload-path: sapl-node/target/sapl
           - os: windows-latest
             artifact-name: sapl-windows-amd64
             executable: sapl.exe
             profile: native
+            upload-path: sapl-node/target/sapl.exe
       fail-fast: false
 
     name: Build (${{ matrix.os }})
@@ -104,7 +109,7 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.artifact-name }}
-          path: sapl-node/target/${{ matrix.executable }}
+          path: ${{ matrix.upload-path }}
           if-no-files-found: error
           retention-days: 7
 
