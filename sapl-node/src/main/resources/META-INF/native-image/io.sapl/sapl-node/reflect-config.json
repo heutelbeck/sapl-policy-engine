@@ -55,6 +55,13 @@
     "allDeclaredFields": true
   },
   {
+    "name": "io.sapl.node.cli.ServerCommand",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "io.sapl.node.cli.GenerateCredentialsCommand",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
