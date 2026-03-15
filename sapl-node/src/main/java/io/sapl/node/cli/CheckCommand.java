@@ -17,14 +17,19 @@
  */
 package io.sapl.node.cli;
 
-import org.springframework.boot.SpringApplication;
+import static io.sapl.node.cli.PdpSetup.ERROR_REMOTE_CONNECTION;
+
+import java.util.concurrent.Callable;
+
+import javax.net.ssl.SSLException;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.val;
 import picocli.CommandLine.Command;
-import tools.jackson.databind.json.JsonMapper;
+import picocli.CommandLine.Mixin;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Spec;
 
 /**
  * Evaluates a single authorization subscription and encodes the decision as a
@@ -41,33 +46,39 @@ import tools.jackson.databind.json.JsonMapper;
  * </ul>
  */
 @Command(name = "check", description = "Check authorization and encode result as exit code", mixinStandardHelpOptions = true)
-class CheckCommand extends AbstractPdpCommand {
+class CheckCommand implements Callable<Integer> {
+
+    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
+
+    @Spec
+    CommandSpec spec;
+
+    @Mixin
+    PdpOptions pdpOptions;
 
     @Override
     public Integer call() {
-        val err = spec.commandLine().getErr();
-
-        val resolved = resolvePolicyConfiguration(err);
-        if (resolved == null) {
-            return 1;
-        }
-
-        val springArgs = buildSpringArgs(resolved);
-
-        try (val context = bootHeadlessContext(springArgs)) {
-            val pdp      = context.getBean(PolicyDecisionPoint.class);
-            val mapper   = context.getBean(JsonMapper.class);
-            val sub      = SubscriptionResolver.resolve(subscriptionInput, mapper);
-            val decision = pdp.decideOnceBlocking(sub);
-            val exitCode = toExitCode(decision);
-            SpringApplication.exit(context);
-            return exitCode;
+        val      err   = spec.commandLine().getErr();
+        PdpSetup setup = null;
+        try {
+            setup = PdpSetup.open(pdpOptions, err);
+            if (setup == null)
+                return 1;
+            val sub      = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, setup.mapper());
+            val decision = setup.pdp().decideOnceBlocking(sub);
+            return toExitCode(decision);
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
+            return 1;
+        } catch (SSLException e) {
+            err.println(ERROR_REMOTE_CONNECTION.formatted(e.getMessage()));
             return 1;
         } catch (RuntimeException e) {
             err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
             return 1;
+        } finally {
+            if (setup != null)
+                setup.shutdown();
         }
     }
 

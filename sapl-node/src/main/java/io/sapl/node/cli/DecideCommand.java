@@ -17,42 +17,48 @@
  */
 package io.sapl.node.cli;
 
+import static io.sapl.node.cli.PdpSetup.ERROR_REMOTE_CONNECTION;
+
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
-import org.springframework.boot.SpringApplication;
+import javax.net.ssl.SSLException;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.val;
 import picocli.CommandLine.Command;
-import tools.jackson.databind.json.JsonMapper;
+import picocli.CommandLine.Mixin;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Spec;
 
 /**
  * Streams authorization decisions as NDJSON to stdout. Each policy change emits
- * a new decision line. Runs until interrupted (Ctrl+C) or the policy stream
+ * a new decision line. Runs until interrupted (Ctrl+C) or the stream
  * completes.
  */
 @Command(name = "decide", description = "Stream authorization decisions as NDJSON", mixinStandardHelpOptions = true)
-class DecideCommand extends AbstractPdpCommand {
+class DecideCommand implements Callable<Integer> {
+
+    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
+
+    @Spec
+    CommandSpec spec;
+
+    @Mixin
+    PdpOptions pdpOptions;
 
     @Override
     public Integer call() {
-        val err = spec.commandLine().getErr();
-        val out = spec.commandLine().getOut();
-
-        val resolved = resolvePolicyConfiguration(err);
-        if (resolved == null) {
-            return 1;
-        }
-
-        val springArgs = buildSpringArgs(resolved);
-
+        val      err   = spec.commandLine().getErr();
+        val      out   = spec.commandLine().getOut();
+        PdpSetup setup = null;
         try {
-            val context = bootHeadlessContext(springArgs);
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> SpringApplication.exit(context)));
-
-            val pdp    = context.getBean(PolicyDecisionPoint.class);
-            val mapper = context.getBean(JsonMapper.class);
-            val sub    = SubscriptionResolver.resolve(subscriptionInput, mapper);
+            setup = PdpSetup.open(pdpOptions, err);
+            if (setup == null)
+                return 1;
+            Runtime.getRuntime().addShutdownHook(new Thread(setup::shutdown));
+            val pdp    = setup.pdp();
+            val mapper = setup.mapper();
+            val sub    = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, mapper);
             val latch  = new CountDownLatch(1);
 
             pdp.decide(sub).doOnNext(decision -> {
@@ -68,12 +74,18 @@ class DecideCommand extends AbstractPdpCommand {
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
             return 1;
+        } catch (SSLException e) {
+            err.println(ERROR_REMOTE_CONNECTION.formatted(e.getMessage()));
+            return 1;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return 0;
         } catch (RuntimeException e) {
             err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
             return 1;
+        } finally {
+            if (setup != null)
+                setup.shutdown();
         }
     }
 

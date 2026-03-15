@@ -29,8 +29,15 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
 import io.sapl.node.cli.SaplNodeCli;
 import lombok.val;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @EnableCaching
@@ -58,10 +65,37 @@ public class SaplNodeApplication {
      */
     static int run(String[] args) {
         if (isCliInvocation(args)) {
+            configureCliLogging();
             return new CommandLine(new SaplNodeCli()).execute(args);
         }
         SpringApplication.run(SaplNodeApplication.class, args);
         return 0;
+    }
+
+    /**
+     * Configures logback to route all log output to stderr at ERROR level.
+     * This prevents CLI commands from polluting stdout, which is reserved
+     * for command output (JSON decisions, bundle info, etc.).
+     */
+    static void configureCliLogging() {
+        val context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context.reset();
+
+        val encoder = new PatternLayoutEncoder();
+        encoder.setContext(context);
+        encoder.setPattern("%d{HH:mm:ss} %-5level %logger{36} - %msg%n");
+        encoder.start();
+
+        val appender = new ConsoleAppender<ILoggingEvent>();
+        appender.setContext(context);
+        appender.setName("STDERR");
+        appender.setTarget("System.err");
+        appender.setEncoder(encoder);
+        appender.start();
+
+        val root = context.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.ERROR);
+        root.addAppender(appender);
     }
 
     private static boolean isCliInvocation(String[] args) {
@@ -78,10 +112,11 @@ public class SaplNodeApplication {
 
         private static final String CLI_PACKAGE = "io.sapl.node.cli.";
 
-        private static final String[] PICOCLI_REFLECTION_CLASSES = { CLI_PACKAGE + "AbstractPdpCommand",
-                CLI_PACKAGE + "BundleVerificationOptions", CLI_PACKAGE + "CheckCommand", CLI_PACKAGE + "DecideCommand",
-                CLI_PACKAGE + "DecideOnceCommand", CLI_PACKAGE + "NamedSubscriptionOptions",
-                CLI_PACKAGE + "PolicySourceOptions", CLI_PACKAGE + "SubscriptionInputOptions" };
+        private static final String[] PICOCLI_REFLECTION_CLASSES = { CLI_PACKAGE + "BundleVerificationOptions",
+                CLI_PACKAGE + "CheckCommand", CLI_PACKAGE + "DecideCommand", CLI_PACKAGE + "DecideOnceCommand",
+                CLI_PACKAGE + "NamedSubscriptionOptions", CLI_PACKAGE + "PdpOptions",
+                CLI_PACKAGE + "PolicySourceOptions", CLI_PACKAGE + "RemoteConnectionOptions",
+                CLI_PACKAGE + "RemoteConnectionOptions$AuthOptions", CLI_PACKAGE + "SubscriptionInputOptions" };
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {

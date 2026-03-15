@@ -17,33 +17,19 @@
  */
 package io.sapl.node.cli;
 
-import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.concurrent.Callable;
 
-import org.springframework.boot.Banner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.context.ConfigurableApplicationContext;
-
-import io.sapl.node.SaplNodeApplication;
-import io.sapl.node.cli.PolicySourceResolver.ResolvedPolicy;
-import lombok.val;
 import picocli.CommandLine.ArgGroup;
-import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Spec;
 
 /**
- * Shared infrastructure for CLI commands that evaluate authorization
- * subscriptions against a local PDP.
+ * Shared CLI options for commands that evaluate authorization subscriptions.
+ * Used as a picocli {@code @Mixin} on each command.
  */
-abstract class AbstractPdpCommand implements Callable<Integer> {
+class PdpOptions {
 
-    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
-
-    @Spec
-    CommandSpec spec;
+    @ArgGroup(exclusive = false)
+    RemoteConnectionOptions remoteConnection;
 
     @ArgGroup(exclusive = true)
     PolicySourceOptions policySource;
@@ -63,26 +49,10 @@ abstract class AbstractPdpCommand implements Callable<Integer> {
     @Option(names = "--text-report", description = "Print text evaluation report to stderr")
     boolean textReport;
 
-    private Path saplHomeOverride;
+    Path saplHomeOverride;
 
     void setSaplHomeOverride(Path path) {
         this.saplHomeOverride = path;
-    }
-
-    ResolvedPolicy resolvePolicyConfiguration(PrintWriter err) {
-        return PolicySourceResolver.resolve(policySource, bundleVerification, saplHomeOverride, err);
-    }
-
-    String[] buildSpringArgs(ResolvedPolicy resolved) {
-        return SpringArgsBuilder.build(resolved, trace, jsonReport, textReport);
-    }
-
-    static ConfigurableApplicationContext bootHeadlessContext(String[] springArgs) {
-        val app = new SpringApplication(SaplNodeApplication.class);
-        app.setWebApplicationType(WebApplicationType.NONE);
-        app.setBannerMode(Banner.Mode.OFF);
-        app.setAdditionalProfiles("cli");
-        return app.run(springArgs);
     }
 
 }

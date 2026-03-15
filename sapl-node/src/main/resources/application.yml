@@ -14,7 +14,9 @@
 #
 
 spring:
-  application.name: sapl-node
+  application.name: sapl
+  config:
+    import: optional:classpath:git.properties
   cache:
     type: caffeine
     caffeine:

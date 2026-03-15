@@ -47,7 +47,7 @@ class DecideOnceCommandTests {
         void whenDirOption_thenPolicySourceDirIsSet() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--dir", "/tmp/policies");
-            assertThat(cmd.policySource.dir).isEqualTo(Path.of("/tmp/policies"));
+            assertThat(cmd.pdpOptions.policySource.dir).isEqualTo(Path.of("/tmp/policies"));
         }
 
         @Test
@@ -55,7 +55,7 @@ class DecideOnceCommandTests {
         void whenBundleOption_thenPolicySourceBundleIsSet() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--bundle", "/tmp/my.saplbundle");
-            assertThat(cmd.policySource.bundle).isEqualTo(Path.of("/tmp/my.saplbundle"));
+            assertThat(cmd.pdpOptions.policySource.bundle).isEqualTo(Path.of("/tmp/my.saplbundle"));
         }
 
         @ParameterizedTest(name = "rejects {0}")
@@ -81,7 +81,7 @@ class DecideOnceCommandTests {
         void whenNamedFlags_thenSubscriptionInputPopulated() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
-            assertThat(cmd.subscriptionInput.named).satisfies(named -> {
+            assertThat(cmd.pdpOptions.subscriptionInput.named).satisfies(named -> {
                 assertThat(named.subject).isEqualTo("\"alice\"");
                 assertThat(named.action).isEqualTo("\"read\"");
                 assertThat(named.resource).isEqualTo("\"doc\"");
@@ -103,7 +103,7 @@ class DecideOnceCommandTests {
         void whenFileOnly_thenFilePopulatedAndNamedNull() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("-f", "request.json");
-            assertThat(cmd.subscriptionInput).satisfies(input -> {
+            assertThat(cmd.pdpOptions.subscriptionInput).satisfies(input -> {
                 assertThat(input.file).isEqualTo(Path.of("request.json"));
                 assertThat(input.named).isNull();
             });
@@ -114,7 +114,7 @@ class DecideOnceCommandTests {
         void whenFileDash_thenStdinMarkerPath() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("-f", "-");
-            assertThat(cmd.subscriptionInput.file).isEqualTo(Path.of("-"));
+            assertThat(cmd.pdpOptions.subscriptionInput.file).isEqualTo(Path.of("-"));
         }
 
         @Test
@@ -122,7 +122,7 @@ class DecideOnceCommandTests {
         void whenTraceFlag_thenTraceIsTrue() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--trace");
-            assertThat(cmd.trace).isTrue();
+            assertThat(cmd.pdpOptions.trace).isTrue();
         }
 
         @Test
@@ -130,7 +130,7 @@ class DecideOnceCommandTests {
         void whenNoSubscriptionInput_thenSubscriptionInputIsNull() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--dir", "/tmp");
-            assertThat(cmd.subscriptionInput).isNull();
+            assertThat(cmd.pdpOptions.subscriptionInput).isNull();
         }
 
         @Test
