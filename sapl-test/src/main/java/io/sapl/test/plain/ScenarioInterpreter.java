@@ -125,15 +125,7 @@ public class ScenarioInterpreter {
             fixture.withTestIdentifier(requirementName + " > " + scenarioName);
 
             // Load configuration if specified, otherwise apply document selection
-            if (mergedGiven.configurationPath != null) {
-                fixture.withConfigurationFromResources(mergedGiven.configurationPath);
-            } else if (mergedGiven.pdpConfigurationPath != null) {
-                // Documents must be added before pdp.json config
-                applyDocumentSelection(fixture, documentSpec, false);
-                fixture.withConfigFileFromResource(mergedGiven.pdpConfigurationPath);
-            } else {
-                applyDocumentSelection(fixture, documentSpec, isUnitTest);
-            }
+            applyConfigurationOrDocuments(fixture, mergedGiven, documentSpec, isUnitTest);
 
             // Apply combining algorithm (if specified or use defaults)
             applyCombiningAlgorithm(fixture, mergedGiven, isUnitTest && !usesConfigDirective);
@@ -243,6 +235,27 @@ public class ScenarioInterpreter {
             return false;
         }
         return docSpec instanceof SingleDocumentContext;
+    }
+
+    private void applyConfigurationOrDocuments(SaplTestFixture fixture, MergedGiven mergedGiven,
+            @Nullable DocumentSpecificationContext documentSpec, boolean isUnitTest) {
+        val basePath = config.basePath();
+        if (mergedGiven.configurationPath != null) {
+            if (basePath != null) {
+                fixture.withConfigurationFromDirectory(basePath.resolve(mergedGiven.configurationPath).toString());
+            } else {
+                fixture.withConfigurationFromResources(mergedGiven.configurationPath);
+            }
+        } else if (mergedGiven.pdpConfigurationPath != null) {
+            applyDocumentSelection(fixture, documentSpec, false);
+            if (basePath != null) {
+                fixture.withConfigFile(basePath.resolve(mergedGiven.pdpConfigurationPath).toString());
+            } else {
+                fixture.withConfigFileFromResource(mergedGiven.pdpConfigurationPath);
+            }
+        } else {
+            applyDocumentSelection(fixture, documentSpec, isUnitTest);
+        }
     }
 
     /**

@@ -99,6 +99,7 @@ import picocli.CommandLine.Spec;
 // @formatter:on
 class TestCommand implements Callable<Integer> {
 
+    private static final String POLICIES_DIRECTORY = "policies";
     private static final String SAPL_EXTENSION     = ".sapl";
     private static final String SAPLTEST_EXTENSION = ".sapltest";
 
@@ -156,7 +157,7 @@ class TestCommand implements Callable<Integer> {
         List<SaplDocument>     policies;
         List<SaplTestDocument> tests;
         try {
-            policies = discoverFiles(dir, SAPL_EXTENSION).stream().map(TestCommand::toSaplDocument).toList();
+            policies = discoverFiles(dir, SAPL_EXTENSION).stream().map(p -> toSaplDocument(p, dir)).toList();
             tests    = discoverFiles(effectiveTestdir, SAPLTEST_EXTENSION).stream().map(TestCommand::toSaplTestDocument)
                     .toList();
         } catch (IOException e) {
@@ -173,7 +174,8 @@ class TestCommand implements Callable<Integer> {
             return 1;
         }
 
-        val config = TestConfiguration.builder().withSaplDocuments(policies).withSaplTestDocuments(tests).build();
+        val config = TestConfiguration.builder().withSaplDocuments(policies).withSaplTestDocuments(tests)
+                .withBasePath(dir).build();
 
         PlainTestResults results;
         try {
@@ -188,7 +190,7 @@ class TestCommand implements Callable<Integer> {
         printSummary(results, out, err);
 
         val coverage = aggregateCoverage(results);
-        generateReports(coverage, policies, err);
+        generateReports(coverage, err);
 
         if (results.errors() > 0) {
             return 2;
@@ -201,11 +203,11 @@ class TestCommand implements Callable<Integer> {
     }
 
     private boolean validateThresholds(PrintWriter err) {
-        val valid = validateThreshold("--policy-set-hit-ratio", policySetHitRatio, err)
-                & validateThreshold("--policy-hit-ratio", policyHitRatio, err)
-                & validateThreshold("--condition-hit-ratio", conditionHitRatio, err)
-                & validateThreshold("--branch-coverage-ratio", branchCoverageRatio, err);
-        return valid;
+        val policySetOk = validateThreshold("--policy-set-hit-ratio", policySetHitRatio, err);
+        val policyOk    = validateThreshold("--policy-hit-ratio", policyHitRatio, err);
+        val conditionOk = validateThreshold("--condition-hit-ratio", conditionHitRatio, err);
+        val branchOk    = validateThreshold("--branch-coverage-ratio", branchCoverageRatio, err);
+        return policySetOk && policyOk && conditionOk && branchOk;
     }
 
     private static boolean validateThreshold(String name, float value, PrintWriter err) {
@@ -222,14 +224,39 @@ class TestCommand implements Callable<Integer> {
         }
     }
 
-    private static SaplDocument toSaplDocument(Path path) {
+    private static SaplDocument toSaplDocument(Path path, Path baseDir) {
         try {
-            val source = Files.readString(path);
-            val name   = path.getFileName().toString();
+            val source       = Files.readString(path);
+            val relativePath = baseDir.relativize(path).toString().replace('\\', '/');
+            val stripped     = relativePath.endsWith(SAPL_EXTENSION)
+                    ? relativePath.substring(0, relativePath.length() - SAPL_EXTENSION.length())
+                    : relativePath;
+            val name         = extractDocumentName(stripped);
             return SaplDocument.of(name, source, path.toString());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read: " + path, e);
         }
+    }
+
+    /**
+     * Extracts the document name from a relative path, applying the SAPL naming
+     * convention: files in the {@code policies/} directory are named by filename
+     * only, files in other directories use path-qualified names.
+     *
+     * @param relativePath the path relative to the base directory, without
+     * extension
+     * @return the document name
+     */
+    private static String extractDocumentName(String relativePath) {
+        val firstSlash = relativePath.indexOf('/');
+        if (firstSlash < 0) {
+            return relativePath;
+        }
+        val firstComponent = relativePath.substring(0, firstSlash);
+        if (POLICIES_DIRECTORY.equals(firstComponent)) {
+            return relativePath.substring(relativePath.lastIndexOf('/') + 1);
+        }
+        return relativePath;
     }
 
     private static SaplTestDocument toSaplTestDocument(Path path) {
@@ -271,9 +298,9 @@ class TestCommand implements Callable<Integer> {
                 results.failed(), results.errors()));
     }
 
-    private void generateReports(AggregatedCoverageData coverage, List<SaplDocument> policies, PrintWriter err) {
+    private void generateReports(AggregatedCoverageData coverage, PrintWriter err) {
         if (html) {
-            generateHtmlReport(coverage, policies, err);
+            generateHtmlReport(coverage, err);
         }
         if (sonar) {
             generateSonarReport(err);
@@ -282,13 +309,13 @@ class TestCommand implements Callable<Integer> {
 
     private AggregatedCoverageData aggregateCoverage(PlainTestResults results) {
         val aggregated = new AggregatedCoverageData();
-        for (val record : results.coverageByDocumentId().values()) {
-            aggregated.merge(record);
+        for (val coverageRecord : results.coverageByDocumentId().values()) {
+            aggregated.merge(coverageRecord);
         }
         return aggregated;
     }
 
-    private void generateHtmlReport(AggregatedCoverageData coverage, List<SaplDocument> policies, PrintWriter err) {
+    private void generateHtmlReport(AggregatedCoverageData coverage, PrintWriter err) {
         val policyCoverageList = coverage.getPolicyCoverageList();
         PolicySourcePopulator.populateSources(policyCoverageList, List.of(dir.toAbsolutePath()));
 

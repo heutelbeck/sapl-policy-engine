@@ -44,7 +44,7 @@ class TestCommandTests {
     private static final String TEST_PASSING = """
             requirement "greeting permitted" {
                 given
-                    - document "greet.sapl"
+                    - document "greet"
                 scenario "when greeting"
                     when "alice" attempts "greet" on "world"
                     expect permit;
@@ -54,7 +54,7 @@ class TestCommandTests {
     private static final String TEST_FAILING = """
             requirement "greeting denied" {
                 given
-                    - document "greet.sapl"
+                    - document "greet"
                 scenario "when greeting"
                     when "alice" attempts "greet" on "world"
                     expect deny;

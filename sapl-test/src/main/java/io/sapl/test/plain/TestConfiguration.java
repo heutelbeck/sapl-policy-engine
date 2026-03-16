@@ -24,6 +24,7 @@ import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,7 +52,8 @@ public record TestConfiguration(
         List<Class<?>> functionLibraries,
         List<Object> policyInformationPoints,
         boolean failFast,
-        Duration verificationTimeout) {
+        Duration verificationTimeout,
+        Path basePath) {
 
     /**
      * Default timeout for verification (1 second for faster feedback during
@@ -80,6 +82,7 @@ public record TestConfiguration(
         private final List<Object>           policyInformationPoints = new ArrayList<>();
         private boolean                      failFast                = false;
         private Duration                     verificationTimeout     = DEFAULT_VERIFICATION_TIMEOUT;
+        private Path                         basePath                = null;
 
         /**
          * Adds a SAPL document to test.
@@ -206,12 +209,27 @@ public record TestConfiguration(
         }
 
         /**
+         * Sets the base path for filesystem-based resolution of
+         * {@code configuration} and {@code pdp-configuration} directives in
+         * test files. When set, these directives resolve against the filesystem
+         * instead of the classpath.
+         *
+         * @param basePath the base directory for path resolution, or
+         * {@code null} for classpath-based resolution
+         * @return this builder for chaining
+         */
+        public Builder withBasePath(Path basePath) {
+            this.basePath = basePath;
+            return this;
+        }
+
+        /**
          * Builds the configuration.
          */
         public TestConfiguration build() {
             return new TestConfiguration(List.copyOf(saplDocuments), List.copyOf(saplTestDocuments), defaultAlgorithm,
                     Map.copyOf(pdpVariables), Map.copyOf(pdpSecrets), List.copyOf(functionLibraries),
-                    List.copyOf(policyInformationPoints), failFast, verificationTimeout);
+                    List.copyOf(policyInformationPoints), failFast, verificationTimeout, basePath);
         }
     }
 }

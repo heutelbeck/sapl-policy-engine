@@ -43,9 +43,11 @@ class WebDependencyFactory {
 
     private static final String RESOURCE_PREFIX = "io/sapl/test/coverage/report/html/";
 
-    private static final String TARGET_BASE     = "html/assets/";
+    private static final String TARGET_BASE = "html/assets/";
+    private static final String IMAGES_DIR  = "images/";
+
     private static final String TARGET_CSS      = TARGET_BASE + "lib/css/";
-    private static final String TARGET_IMAGES   = TARGET_BASE + "images/";
+    private static final String TARGET_IMAGES   = TARGET_BASE + IMAGES_DIR;
     private static final String TARGET_JS       = TARGET_BASE + "lib/js";
     private static final String TARGET_JS_ADDON = TARGET_JS + "/addon/mode/";
 
@@ -75,8 +77,8 @@ class WebDependencyFactory {
                 new WebDependency("main-css", "main.css", RESOURCE_PREFIX + "css/", TARGET_CSS),
 
                 // Images
-                new WebDependency("favicon", "favicon.png", RESOURCE_PREFIX + "images/", TARGET_IMAGES),
-                new WebDependency("logo-header", "logo-header.png", RESOURCE_PREFIX + "images/", TARGET_IMAGES));
+                new WebDependency("favicon", "favicon.png", RESOURCE_PREFIX + IMAGES_DIR, TARGET_IMAGES),
+                new WebDependency("logo-header", "logo-header.png", RESOURCE_PREFIX + IMAGES_DIR, TARGET_IMAGES));
     }
 
     /**
@@ -102,8 +104,11 @@ class WebDependencyFactory {
         }
 
         try {
-            if ("jar".equals(resource.getProtocol())) {
+            val protocol = resource.getProtocol();
+            if ("jar".equals(protocol)) {
                 return discoverVersionFromJar(resource.toURI().toString(), basePath);
+            } else if ("resource".equals(protocol)) {
+                return discoverVersionFromNativeImage(basePath);
             } else {
                 return discoverVersionFromFileSystem(Path.of(resource.toURI()));
             }
@@ -121,6 +126,21 @@ class WebDependencyFactory {
                 return entries.filter(Files::isDirectory).map(p -> p.getFileName().toString()).findFirst()
                         .orElseThrow(() -> new IllegalStateException(ERROR_NO_VERSION_DIRECTORY_IN_WEBJAR));
             }
+        }
+    }
+
+    private static String discoverVersionFromNativeImage(String basePath) throws IOException {
+        val        uri = URI.create("resource:/");
+        FileSystem fileSystem;
+        try {
+            fileSystem = FileSystems.getFileSystem(uri);
+        } catch (java.nio.file.FileSystemNotFoundException e) {
+            fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap());
+        }
+        val path = fileSystem.getPath(basePath);
+        try (val entries = Files.list(path)) {
+            return entries.filter(Files::isDirectory).map(p -> p.getFileName().toString()).findFirst()
+                    .orElseThrow(() -> new IllegalStateException(ERROR_NO_VERSION_DIRECTORY_IN_WEBJAR));
         }
     }
 

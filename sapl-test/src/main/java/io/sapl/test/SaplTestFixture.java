@@ -56,7 +56,6 @@ import io.sapl.test.coverage.TestCoverageRecord;
 import io.sapl.test.coverage.TestResult;
 import lombok.Getter;
 import lombok.NonNull;
-import org.jspecify.annotations.Nullable;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -1316,7 +1315,7 @@ public class SaplTestFixture {
          *
          * @return the coverage record, or null if coverage collection is disabled
          */
-        public @Nullable TestCoverageRecord getCoverageRecord() {
+        public TestCoverageRecord getCoverageRecord() {
             return coverageAccumulator != null ? coverageAccumulator.getRecord() : null;
         }
 
