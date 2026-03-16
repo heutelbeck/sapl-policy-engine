@@ -103,23 +103,23 @@ spec:
         - name: sapl
           image: ghcr.io/heutelbeck/sapl-node:4.0.0
           ports:
-            - containerPort: 8080
+            - containerPort: 8443
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8080
+              port: 8443
             initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8080
+              port: 8443
             initialDelaySeconds: 10
             periodSeconds: 5
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8080
+              port: 8443
             initialDelaySeconds: 5
             periodSeconds: 5
             failureThreshold: 12
@@ -149,7 +149,7 @@ io.sapl.pdp.embedded:
   metrics-enabled: true
 ```
 
-When `metrics-enabled` is `false` (the default in embedded mode), no metrics are recorded and there is zero runtime overhead. The property is a final boolean that the JIT compiler evaluates at startup. Dead metric recording branches are eliminated entirely.
+SAPL Node enables metrics by default. When embedding the PDP as a library, `metrics-enabled` defaults to `false`. When disabled, no metrics are recorded and there is zero runtime overhead. The property is a final boolean that the JIT compiler evaluates at startup. Dead metric recording branches are eliminated entirely.
 
 Configure Prometheus to scrape the metrics endpoint:
 
@@ -161,7 +161,7 @@ scrape_configs:
       username: prometheus
       password: secret
     static_configs:
-      - targets: ['sapl:8080']
+      - targets: ['sapl:8443']
 ```
 
 The prometheus endpoint requires authentication. Use a dedicated service account with Basic Auth or API key credentials. See [Security](../7_6_Security/) for credential generation.

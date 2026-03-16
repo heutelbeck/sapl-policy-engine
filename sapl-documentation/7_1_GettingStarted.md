@@ -31,15 +31,15 @@ Verify the installation:
 
 ### Quick Start
 
-This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP with curl. No configuration files are needed. The built-in defaults work out of the box: no TLS, no authentication, policies loaded from the current directory.
+This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP. No configuration files are needed. The built-in defaults work out of the box: no TLS, no authentication, policies loaded from the current directory.
 
 Create a working directory and a policy file:
 
 ```shell
-mkdir my-node
+mkdir demo
 ```
 
-Create `my-node/tick.sapl`. This policy uses the built in time PIP to grant access only when the current second is divisible by 5:
+Create `demo/tick.sapl`. This policy uses the built in time PIP to grant access only when the current second is divisible by 5:
 
 ```
 policy "tick"
@@ -47,35 +47,61 @@ permit
   time.secondOf(<time.now>) % 5 == 0
 ```
 
-The `<time.now>` attribute is a stream. It emits the current UTC timestamp once per second. Every time a new value arrives, the PDP re evaluates the policy and pushes an updated decision to all connected clients.
+The `<time.now>` attribute is a stream. It emits the current UTC timestamp once per second. Every time a new value arrives, the PDP re-evaluates the policy and pushes an updated decision to all connected clients.
 
 Start the server:
 
 ```shell
-cd my-node && ./sapl
+cd demo && ./sapl
 ```
 
 The node starts on `localhost:8443` with no TLS and no authentication required. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
 
-In a separate terminal, request a one shot decision:
+In a separate terminal, request a one-shot decision:
+
+<details open>
+<summary>sapl CLI</summary>
+
+```shell
+sapl decide-once --remote -s '"anyone"' -a '"read"' -r '"clock"'
+```
+
+</details>
+<details>
+<summary>curl</summary>
 
 ```shell
 curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
+</details>
+
 The response is a single JSON object. Depending on the current second, the decision is either `PERMIT` or `NOT_APPLICABLE`.
 
-Now try the streaming endpoint. This is where SAPL shows its strength. The PDP holds the connection open and pushes a new decision every time the policy evaluation result changes:
+Now try streaming. This is where SAPL shows its strength. The PDP holds the connection open and pushes a new decision every time the policy evaluation result changes:
+
+<details open>
+<summary>sapl CLI</summary>
+
+```shell
+sapl decide --remote -s '"anyone"' -a '"read"' -r '"clock"'
+```
+
+</details>
+<details>
+<summary>curl</summary>
 
 ```shell
 curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
+</details>
+
 Watch the output. Every few seconds, the decision flips between `PERMIT` and `NOT_APPLICABLE` as the current time crosses a multiple of five. The application does not need to poll. The PDP pushes changes as they happen.
 
 Press `Ctrl+C` to stop the stream. The PDP cleans up the subscription automatically.
 
-Try editing `tick.sapl` while the streaming curl is running. Change `% 5` to `% 10` and save. The PDP detects the change, recompiles the policy, and pushes an updated decision on the same connection. No restart needed.
+Try editing `tick.sapl` while the stream is running. Change `% 5` to `% 10` and save. The PDP detects the change, recompiles the policy, and pushes an updated decision on the same connection. No restart needed.
 
 While the server is running, you can also check its operational state. The health endpoint shows whether policies loaded successfully:
 
@@ -98,7 +124,7 @@ For Prometheus metrics, Kubernetes probes, and decision logging, see [Monitoring
 The minimal working directory is simply the binary and your policy files:
 
 ```
-my-node/
+demo/
   sapl
   tick.sapl
 ```
@@ -106,7 +132,7 @@ my-node/
 For more complex setups, add a `pdp.json` to configure the combining algorithm and a `config/application.yml` to override defaults:
 
 ```
-my-node/
+demo/
   sapl
   pdp.json          (optional)
   tick.sapl
@@ -130,11 +156,28 @@ Or for RPM-based distributions:
 sudo rpm -i sapl-4.0.0.x86_64.rpm
 ```
 
-The package installs the binary to `/usr/bin/sapl`, the configuration to `/etc/sapl/application.yml`, a systemd service, and example policies in `/var/lib/sapl/example/`.
+#### What the Package Installs
 
-The service is configured in `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
+The package creates a `sapl` system user (no shell, no login) and installs the following files:
 
-To deploy your first bundle using the included example policies:
+```
+/usr/bin/sapl                                  binary
+/usr/share/man/man1/sapl*.1                    man pages
+/usr/share/bash-completion/completions/sapl    tab completion
+/usr/lib/systemd/system/sapl.service           systemd unit
+/etc/sapl/application.yml                      configuration
+/var/lib/sapl/                                 data directory (sapl:sapl, 0750)
+/var/lib/sapl/README                           quickstart guide
+/var/lib/sapl/example/                         example policies and pdp.json
+```
+
+The configuration file at `/etc/sapl/application.yml` is preserved on package upgrades. The service unit explicitly loads this file with `--spring.config.location=file:/etc/sapl/application.yml`, which replaces the JAR-embedded defaults entirely.
+
+The service is configured in `BUNDLES` mode with signature verification enabled. The node will not start serving decisions until bundle security is configured.
+
+#### Deploying Your First Bundle
+
+Use the included example policies to create a signed bundle:
 
 ```shell
 sudo sapl bundle keygen -o /etc/sapl/signing
@@ -149,13 +192,35 @@ io.sapl.pdp.embedded:
     public-key-path: /etc/sapl/signing.pub
 ```
 
-Start or restart the service:
+#### Managing the Service
+
+Start the service and enable it on boot:
 
 ```shell
 sudo systemctl enable --now sapl
 ```
 
-Verify:
+Other common operations:
+
+```shell
+sudo systemctl stop sapl
+sudo systemctl restart sapl
+systemctl status sapl
+```
+
+#### Inspecting Logs
+
+The service logs to the journal. View logs with `journalctl`:
+
+```shell
+journalctl -u sapl -f
+journalctl -u sapl --since today
+journalctl -u sapl -p err
+```
+
+Enable evaluation diagnostics by setting `print-text-report: true` in `/etc/sapl/application.yml` and restarting the service. See [Monitoring](../7_7_Monitoring/) for all diagnostic options.
+
+#### Verifying
 
 ```shell
 curl -s http://localhost:8443/actuator/health | jq .
@@ -165,11 +230,15 @@ You should see `"status": "UP"`. The PDP watches `/var/lib/sapl/` for bundle cha
 
 Replace the example policies with your own by creating `.sapl` files in a directory and rebuilding the bundle. See `/var/lib/sapl/README` for the full workflow.
 
+#### Service Hardening
+
+The systemd unit runs with strict security restrictions: `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome=true`, and write access limited to `/var/lib/sapl/`. The service cannot write outside its data directory. Place signing keys and TLS keystores in `/etc/sapl/` (readable but not writable by the service).
+
 ### Running with Docker
 
 For container deployments, the server runs inside Docker while you use the local `sapl` binary for CLI operations like bundle creation and credential generation.
 
-The container image is `ghcr.io/heutelbeck/sapl-node`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
+The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.0.0`). The examples below use the current development tag `4.0.0-SNAPSHOT`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
 To get started with signed bundles:
 
@@ -211,101 +280,51 @@ docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e 
 
 ### CLI Reference
 
-The `sapl` binary doubles as a CLI tool. These commands run locally without starting the server. Use them to manage bundles and generate credentials for your `application.yml`.
+The `sapl` binary doubles as a CLI tool. The CLI commands (`decide`, `decide-once`, `check`, `test`) do not use Spring Boot configuration. They resolve policies through command-line options or automatic discovery from `~/.sapl/`.
 
-#### bundle create
+#### Policy Discovery
 
-Creates a `.saplbundle` archive from a directory of `.sapl` files and a `pdp.json`. The `pdp.json` must contain a `configurationId` field. If a signing key is provided, the bundle is signed in the same step.
+When no `--dir` or `--bundle` flag is given, CLI commands look for policies in `~/.sapl/`:
 
-```
-sapl bundle create -i <dir> -o <file> [-k <key>]
-```
-
-| Option           | Description                                                   |
-|------------------|---------------------------------------------------------------|
-| `-i`, `--input`  | Input directory containing policies.                          |
-| `-o`, `--output` | Output `.saplbundle` file.                                    |
-| `-k`, `--key`    | Ed25519 private key file (PEM format) for signing. Optional.  |
-| `--key-id`       | Key identifier for rotation support. Defaults to `"default"`. |
-
-#### bundle sign
-
-Signs a bundle with an Ed25519 private key. Overwrites the input bundle unless `-o` is specified.
+- If `.sapl` files are found, the CLI uses `DIRECTORY` mode.
+- If `.saplbundle` files are found, the CLI uses `BUNDLES` mode and auto-discovers `~/.sapl/public-key.pem` for signature verification.
+- If both `.sapl` and `.saplbundle` files are present, the CLI exits with an error (ambiguous source).
+- Use `--no-verify` to skip bundle signature verification during development.
 
 ```
-sapl bundle sign -b <file> -k <key> [options]
+~/.sapl/
+  pdp.json              optional PDP configuration
+  *.sapl                policy files (DIRECTORY mode)
+  *.saplbundle          bundle files (BUNDLES mode)
+  public-key.pem        optional signing key for bundle verification
 ```
 
-| Option | Description |
-|--------|-------------|
-| `-b`, `--bundle` | Bundle file to sign. |
-| `-k`, `--key` | Ed25519 private key file (PEM, PKCS8). |
-| `-o`, `--output` | Output file. Defaults to overwriting the input. |
-| `--key-id` | Key identifier stored in the manifest. Defaults to `"default"`. |
+#### Remote Mode
 
-#### bundle verify
+All evaluation commands accept `--remote` to connect to a running SAPL Node instead of evaluating locally. Connection details can be set via flags or environment variables:
 
-Verifies a signed bundle against an Ed25519 public key. Returns exit code 0 on success and 1 on failure.
+| Flag | Environment Variable | Default |
+|------|---------------------|---------|
+| `--url` | `SAPL_URL` | `http://localhost:8443` |
+| `--token` | `SAPL_BEARER_TOKEN` | |
+| `--basic-auth` | `SAPL_BASIC_AUTH` | |
 
-```
-sapl bundle verify -b <file> -k <key> [options]
-```
+Flags take precedence over environment variables. For evaluation command details (`decide`, `decide-once`, `check`), see [Getting Started](../1_3_GettingStarted/). For `test`, see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/).
 
-| Option | Description |
-|--------|-------------|
-| `-b`, `--bundle` | Bundle file to verify. |
-| `-k`, `--key` | Ed25519 public key file (PEM, X.509). |
-| `--check-expiration` | Fails if the signature has expired. |
+#### Bundle and Credential Commands
 
-#### bundle inspect
+The following commands run locally without starting the server. Use them to manage bundles and generate credentials for your `application.yml`.
 
-Displays bundle contents, signature status, configuration, and policy list.
+| Command | Description |
+|---------|-------------|
+| `sapl bundle create` | Create a `.saplbundle` archive from a directory of `.sapl` files and a `pdp.json`. Optionally signs in the same step. |
+| `sapl bundle sign` | Sign a bundle with an Ed25519 private key. |
+| `sapl bundle verify` | Verify a signed bundle against a public key. |
+| `sapl bundle inspect` | Display bundle contents, signature status, and policy list. |
+| `sapl bundle keygen` | Generate an Ed25519 keypair for bundle signing. |
+| `sapl generate basic` | Generate Basic Auth credentials and a ready-to-paste YAML block. |
+| `sapl generate apikey` | Generate an API key and a ready-to-paste YAML block. |
 
-```
-sapl bundle inspect -b <file>
-```
-
-| Option | Description |
-|--------|-------------|
-| `-b`, `--bundle` | Bundle file to inspect. |
-
-#### bundle keygen
-
-Generates an Ed25519 keypair for bundle signing.
-
-```
-sapl bundle keygen -o <prefix> [options]
-```
-
-| Option | Description |
-|--------|-------------|
-| `-o`, `--output` | Output prefix. Creates `<prefix>.pem` (private key) and `<prefix>.pub` (public key). |
-| `--force` | Overwrites existing files. |
-
-#### generate basic
-
-Generates Basic Auth credentials. Prints the plaintext password and a ready to paste YAML block for `application.yml`.
-
-```
-sapl generate basic --id <id> --pdp-id <pdpId>
-```
-
-| Option | Description |
-|--------|-------------|
-| `-i`, `--id` | Client identifier. |
-| `-p`, `--pdp-id` | PDP identifier for multi tenant routing. |
-
-#### generate apikey
-
-Generates an API key. Prints the plaintext key and a ready to paste YAML block for `application.yml`.
-
-```
-sapl generate apikey --id <id> --pdp-id <pdpId>
-```
-
-| Option | Description |
-|--------|-------------|
-| `-i`, `--id` | Client identifier. |
-| `-p`, `--pdp-id` | PDP identifier for multi tenant routing. |
+Run any command with `--help` for the full option reference. See also the [CLI Reference](../7_8_CommandLine/) for the complete man page documentation.
 
 For authentication and TLS setup, see [Security](../7_6_Security/). For health checks and metrics, see [Monitoring](../7_7_Monitoring/).

@@ -258,3 +258,60 @@ logging.level:
 ```
 
 Generate API keys with `sapl generate apikey --id service-a --pdp-id default`. For the full property reference, see [Configuration](../7_2_Configuration/). For health checks and Kubernetes probes, see [Monitoring](../7_7_Monitoring/).
+
+### Reverse Proxy Configuration
+
+The streaming PDP endpoints (`/api/pdp/decide`, `/api/pdp/multi-decide`, `/api/pdp/multi-decide-all`) use Server-Sent Events (SSE) over long-lived HTTP POST connections. Default proxy configurations buffer responses and time out idle connections, both of which break SSE streaming.
+
+The key requirements for any reverse proxy in front of SAPL Node:
+
+1. **Disable response buffering.** SSE events must be flushed immediately to the client.
+2. **Set a long read timeout.** Streaming connections stay open indefinitely. The proxy must not close them after a short idle period.
+3. **Preserve chunked transfer encoding.** Do not add `Content-Length` headers to streaming responses.
+4. **Forward the HTTP method.** All PDP endpoints use POST.
+
+#### Keep-Alive Frames
+
+SAPL Node can send periodic SSE comment frames (`:keep-alive`) on idle connections to prevent proxies and firewalls from dropping them. Set the interval in `application.yml`:
+
+```yaml
+io.sapl.node:
+  keep-alive: 15
+```
+
+This sends a keep-alive frame every 15 seconds. Set the proxy read timeout to a value above this interval (e.g., 60 seconds). The default is `0` (disabled). See [Configuration](../7_2_Configuration/) for the property reference.
+
+#### nginx
+
+```nginx
+location /api/pdp/ {
+    proxy_pass http://127.0.0.1:8443;
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 3600s;
+    proxy_set_header Connection '';
+    proxy_http_version 1.1;
+    chunked_transfer_encoding on;
+}
+
+location /actuator/ {
+    proxy_pass http://127.0.0.1:8443;
+}
+```
+
+#### Apache
+
+Enable `mod_proxy` and `mod_proxy_http`. Disable response buffering for the PDP path:
+
+```apache
+ProxyPass /api/pdp/ http://127.0.0.1:8443/api/pdp/
+ProxyPassReverse /api/pdp/ http://127.0.0.1:8443/api/pdp/
+SetEnv proxy-sendchunked 1
+SetEnv proxy-sendcl 0
+ProxyTimeout 3600
+
+ProxyPass /actuator/ http://127.0.0.1:8443/actuator/
+ProxyPassReverse /actuator/ http://127.0.0.1:8443/actuator/
+```
+
+The non-streaming endpoints (`/api/pdp/decide-once`, `/api/pdp/multi-decide-all-once`) and actuator endpoints work with default proxy settings and do not require special configuration.

@@ -66,6 +66,7 @@ All properties live under the prefix `io.sapl.node`:
 | `users[].basic.secret` | `String` | | Argon2 encoded password for HTTP Basic authentication. |
 | `users[].api-key` | `String` | | Argon2 encoded API key. The client sends the plaintext key as a Bearer token in the `Authorization` header. |
 | `oauth.pdp-id-claim` | `String` | `"sapl_pdp_id"` | JWT claim name used to extract the PDP identifier for tenant routing. |
+| `keep-alive` | `long` | `0` | Seconds between SSE keep-alive frames on idle streaming connections. Prevents proxies and firewalls from dropping inactive connections. `0` disables keep-alive. See [Reverse Proxy Configuration](../7_6_Security/#reverse-proxy-configuration). |
 
 See [Security](../7_6_Security/) for details on each authentication mode and credential generation.
 
