@@ -829,7 +829,7 @@ jobs:
           git push
 
   publish-native-lsp:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, publish-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -894,6 +894,7 @@ jobs:
           chmod +x staging/linux-amd64/sapl-language-server
           cp LICENSE staging/linux-amd64/
           cp sapl-language-server/README.md staging/linux-amd64/
+          cp sapl-language-server/packaging/sapl-language-server.1 staging/linux-amd64/
           tar -czf "release/sapl-language-server-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
 
           # Linux arm64 (tar.gz)
@@ -901,6 +902,7 @@ jobs:
           chmod +x staging/linux-arm64/sapl-language-server
           cp LICENSE staging/linux-arm64/
           cp sapl-language-server/README.md staging/linux-arm64/
+          cp sapl-language-server/packaging/sapl-language-server.1 staging/linux-arm64/
           tar -czf "release/sapl-language-server-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
 
           # macOS (tar.gz)
@@ -908,6 +910,7 @@ jobs:
           chmod +x staging/macos/sapl-language-server
           cp LICENSE staging/macos/
           cp sapl-language-server/README.md staging/macos/
+          cp sapl-language-server/packaging/sapl-language-server.1 staging/macos/
           tar -czf "release/sapl-language-server-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
 
           # Windows (zip)
@@ -1025,6 +1028,23 @@ jobs:
             ```
           files: release/*
           fail_on_unmatched_files: true
+
+      - name: Update Nix LSP package hashes
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+          GH_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
+        run: |
+          AMD64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-language-server-${VERSION}-linux-amd64.tar.gz" | base64 -w0)"
+          ARM64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-language-server-${VERSION}-linux-arm64.tar.gz" | base64 -w0)"
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/heutelbeck/sapl-nix.git" sapl-nix
+          printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > sapl-nix/nix/lsp-hashes.json
+          cd sapl-nix
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nix/lsp-hashes.json
+          if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
+          git commit -m "update sapl-language-server package hashes for ${VERSION}"
+          git push
 
   publish-docs:
     needs: [test, version-check]
