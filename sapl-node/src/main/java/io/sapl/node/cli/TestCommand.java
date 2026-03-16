@@ -90,7 +90,7 @@ import picocli.CommandLine.Spec;
           # Custom output directory
           sapl test --output ./reports/sapl-coverage
 
-          # Require 80%% policy hit ratio
+          # Enforce a coverage threshold
           sapl test --policy-hit-ratio 80
 
         See Also: sapl-check(1), sapl-decide(1)
@@ -115,31 +115,31 @@ class TestCommand implements Callable<Integer> {
     @Spec
     CommandSpec spec;
 
-    @Option(names = "--dir", defaultValue = ".", description = "Directory containing .sapl policy files (default: current directory)")
+    @Option(names = "--dir", defaultValue = ".", description = "Directory containing .sapl policy files")
     Path dir;
 
     @Option(names = "--testdir", description = "Directory containing .sapltest test files (default: same as --dir)")
     Path testdir;
 
-    @Option(names = "--output", defaultValue = "./sapl-coverage", description = "Output directory for coverage data and reports (default: ./sapl-coverage)")
+    @Option(names = "--output", defaultValue = "./sapl-coverage", description = "Output directory for coverage data and reports")
     Path output;
 
-    @Option(names = "--html", negatable = true, defaultValue = "true", description = "Generate HTML coverage report (default: true)")
+    @Option(names = "--html", negatable = true, defaultValue = "true", description = "Generate HTML coverage report")
     boolean html;
 
-    @Option(names = "--sonar", negatable = true, defaultValue = "false", description = "Generate SonarQube coverage report (default: false)")
+    @Option(names = "--sonar", negatable = true, defaultValue = "false", description = "Generate SonarQube coverage report")
     boolean sonar;
 
-    @Option(names = "--policy-set-hit-ratio", defaultValue = "0", description = "Required policy set hit ratio percentage (0 = disabled)")
+    @Option(names = "--policy-set-hit-ratio", defaultValue = "0", description = "Required policy set hit ratio, 0-100 (0 = disabled)")
     float policySetHitRatio;
 
-    @Option(names = "--policy-hit-ratio", defaultValue = "0", description = "Required policy hit ratio percentage (0 = disabled)")
+    @Option(names = "--policy-hit-ratio", defaultValue = "0", description = "Required policy hit ratio, 0-100 (0 = disabled)")
     float policyHitRatio;
 
-    @Option(names = "--condition-hit-ratio", defaultValue = "0", description = "Required condition hit ratio percentage (0 = disabled)")
+    @Option(names = "--condition-hit-ratio", defaultValue = "0", description = "Required condition hit ratio, 0-100 (0 = disabled)")
     float conditionHitRatio;
 
-    @Option(names = "--branch-coverage-ratio", defaultValue = "0", description = "Required branch coverage ratio percentage (0 = disabled)")
+    @Option(names = "--branch-coverage-ratio", defaultValue = "0", description = "Required branch coverage ratio, 0-100 (0 = disabled)")
     float branchCoverageRatio;
 
     @Override
