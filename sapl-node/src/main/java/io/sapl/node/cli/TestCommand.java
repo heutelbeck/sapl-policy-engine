@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
@@ -35,9 +38,11 @@ import io.sapl.test.plain.PlainTestResults;
 import io.sapl.test.plain.SaplDocument;
 import io.sapl.test.plain.SaplTestDocument;
 import io.sapl.test.plain.TestConfiguration;
+import io.sapl.test.plain.ScenarioResult;
 import io.sapl.test.plain.TestStatus;
 import lombok.val;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
@@ -103,15 +108,23 @@ class TestCommand implements Callable<Integer> {
     private static final String SAPL_EXTENSION     = ".sapl";
     private static final String SAPLTEST_EXTENSION = ".sapltest";
 
-    static final String ERROR_COVERAGE_REPORT     = "Error: Failed to generate coverage report: %s";
-    static final String ERROR_EXECUTION_FAILED    = "Error: Test execution failed: %s";
-    static final String ERROR_INVALID_THRESHOLD   = "Error: %s must be between 0 and 100, got: %.2f";
-    static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: %s";
-    static final String ERROR_NO_TESTS_FOUND      = "Error: No .sapltest files found in: %s";
+    static final String ERROR_COVERAGE_REPORT     = "Error: Failed to generate coverage report: %s.";
+    static final String ERROR_EXECUTION_FAILED    = "Error: Test execution failed: %s.";
+    static final String ERROR_INVALID_THRESHOLD   = "Error: %s must be between 0 and 100, got: %.2f.";
+    static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: %s.";
+    static final String ERROR_NO_TESTS_FOUND      = "Error: No .sapltest files found in: %s.";
     static final String ERROR_QUALITY_GATE_FAILED = "Error: Quality gate not met. See details above.";
-    static final String ERROR_READING_FILES       = "Error: Failed to read files from: %s (%s)";
+    static final String ERROR_READING_FILES       = "Error: Failed to read files from: %s (%s).";
 
-    static final String WARN_COVERAGE_WRITE_FAILED = "Warning: Failed to write coverage data: %s";
+    static final String WARN_COVERAGE_WRITE_FAILED = "Warning: Failed to write coverage data: %s.";
+
+    private static final String ANSI_BOLD       = "\u001B[1m";
+    private static final String ANSI_BOLD_GREEN = "\u001B[1;32m";
+    private static final String ANSI_BOLD_RED   = "\u001B[1;31m";
+    private static final String ANSI_FAINT      = "\u001B[2m";
+    private static final String ANSI_GREEN      = "\u001B[32m";
+    private static final String ANSI_RED        = "\u001B[31m";
+    private static final String ANSI_RESET      = "\u001B[0m";
 
     @Spec
     CommandSpec spec;
@@ -234,7 +247,7 @@ class TestCommand implements Callable<Integer> {
             val name         = extractDocumentName(stripped);
             return SaplDocument.of(name, source, path.toString());
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read: " + path, e);
+            throw new IllegalStateException("Failed to read: " + path + ".", e);
         }
     }
 
@@ -265,7 +278,7 @@ class TestCommand implements Callable<Integer> {
             val name   = path.getFileName().toString();
             return SaplTestDocument.of(name, source);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read: " + path, e);
+            throw new IllegalStateException("Failed to read: " + path + ".", e);
         }
     }
 
@@ -281,21 +294,71 @@ class TestCommand implements Callable<Integer> {
     }
 
     private void printSummary(PlainTestResults results, PrintWriter out, PrintWriter err) {
-        out.println();
+        val color = Ansi.AUTO.enabled();
+
+        val grouped = new LinkedHashMap<String, LinkedHashMap<String, List<ScenarioResult>>>();
         for (val scenario : results.scenarioResults()) {
-            val icon = switch (scenario.status()) {
-            case PASSED -> "PASS";
-            case FAILED -> "FAIL";
-            case ERROR  -> "ERR ";
-            };
-            out.println("  " + icon + "  " + scenario.fullName());
-            if (scenario.status() != TestStatus.PASSED && scenario.failureMessage() != null) {
-                err.println("         " + scenario.failureMessage());
+            grouped.computeIfAbsent(scenario.saplTestDocumentId(), k -> new LinkedHashMap<>())
+                    .computeIfAbsent(scenario.requirementName(), k -> new ArrayList<>()).add(scenario);
+        }
+
+        out.println();
+        var firstFile = true;
+        for (val fileEntry : grouped.entrySet()) {
+            if (!firstFile) {
+                out.println();
+            }
+            firstFile = false;
+            out.println(styled(color, ANSI_BOLD, "  " + fileEntry.getKey()));
+
+            for (val reqEntry : fileEntry.getValue().entrySet()) {
+                out.println(styled(color, ANSI_BOLD, "    " + reqEntry.getKey()));
+
+                for (val scenario : reqEntry.getValue()) {
+                    val duration  = formatDuration(scenario.duration().toMillis());
+                    val statusTag = switch (scenario.status()) {
+                                  case PASSED -> styled(color, ANSI_GREEN, "PASS");
+                                  case FAILED -> styled(color, ANSI_BOLD_RED, "FAIL");
+                                  case ERROR  -> styled(color, ANSI_BOLD_RED, "ERR ");
+                                  };
+                    out.println("      " + statusTag + "  " + scenario.scenarioName() + "  "
+                            + styled(color, ANSI_FAINT, duration));
+
+                    if (scenario.status() != TestStatus.PASSED && scenario.failureMessage() != null) {
+                        err.println(styled(color, ANSI_RED, "            " + scenario.failureMessage()));
+                    }
+                }
             }
         }
+
         out.println();
-        out.println("Tests: %d total, %d passed, %d failed, %d errors".formatted(results.total(), results.passed(),
-                results.failed(), results.errors()));
+        val totalDuration = results.scenarioResults().stream().map(ScenarioResult::duration).reduce(Duration.ZERO,
+                Duration::plus);
+
+        val summary = new StringBuilder("Tests:  ");
+        if (results.passed() > 0) {
+            summary.append(styled(color, ANSI_BOLD_GREEN, results.passed() + " passed"));
+        }
+        if (results.failed() > 0) {
+            summary.append(", ").append(styled(color, ANSI_BOLD_RED, results.failed() + " failed"));
+        }
+        if (results.errors() > 0) {
+            summary.append(", ").append(styled(color, ANSI_BOLD_RED, results.errors() + " errors"));
+        }
+        summary.append(", ").append(results.total()).append(" total");
+        out.println(summary);
+        out.println("Time:   " + styled(color, ANSI_FAINT, formatDuration(totalDuration.toMillis())));
+    }
+
+    private static String styled(boolean color, String code, String text) {
+        return color ? code + text + ANSI_RESET : text;
+    }
+
+    private static String formatDuration(long millis) {
+        if (millis < 1000) {
+            return millis + "ms";
+        }
+        return "%.2fs".formatted(millis / 1000.0);
     }
 
     private void generateReports(AggregatedCoverageData coverage, PrintWriter err) {
@@ -343,10 +406,20 @@ class TestCommand implements Callable<Integer> {
     }
 
     private int checkQualityGate(AggregatedCoverageData coverage, PrintWriter out, PrintWriter err) {
-        val policySetOk = checkPolicySetRatio(coverage, out);
-        val policyOk    = checkPolicyRatio(coverage, out);
-        val conditionOk = checkConditionRatio(coverage, out);
-        val branchOk    = checkBranchCoverage(coverage, out);
+        val color   = Ansi.AUTO.enabled();
+        val hasGate = policySetHitRatio > 0 || policyHitRatio > 0 || conditionHitRatio > 0 || branchCoverageRatio > 0;
+
+        if (hasGate) {
+            out.println(styled(color, ANSI_BOLD, "Coverage:"));
+        }
+
+        val policySetOk = checkThreshold("Policy Set Hit Ratio", coverage.getPolicySetHitRatio(), policySetHitRatio,
+                color, out);
+        val policyOk    = checkThreshold("Policy Hit Ratio", coverage.getPolicyHitRatio(), policyHitRatio, color, out);
+        val conditionOk = checkThreshold("Condition Hit Ratio", coverage.getConditionHitRatio(), conditionHitRatio,
+                color, out);
+        val branchOk    = checkThreshold("Branch Coverage", coverage.getOverallBranchCoverage(), branchCoverageRatio,
+                color, out);
 
         if (policySetOk && policyOk && conditionOk && branchOk) {
             return 0;
@@ -355,40 +428,15 @@ class TestCommand implements Callable<Integer> {
         return 3;
     }
 
-    private boolean checkPolicySetRatio(AggregatedCoverageData coverage, PrintWriter out) {
-        if (policySetHitRatio <= 0) {
+    private static boolean checkThreshold(String label, double actual, double required, boolean color,
+            PrintWriter out) {
+        if (required <= 0) {
             return true;
         }
-        val actual = coverage.getPolicySetHitRatio();
-        out.println("Policy Set Hit Ratio: %.2f%% (required: %.2f%%)".formatted(actual, policySetHitRatio));
-        return actual >= policySetHitRatio;
-    }
-
-    private boolean checkPolicyRatio(AggregatedCoverageData coverage, PrintWriter out) {
-        if (policyHitRatio <= 0) {
-            return true;
-        }
-        val actual = coverage.getPolicyHitRatio();
-        out.println("Policy Hit Ratio: %.2f%% (required: %.2f%%)".formatted(actual, policyHitRatio));
-        return actual >= policyHitRatio;
-    }
-
-    private boolean checkConditionRatio(AggregatedCoverageData coverage, PrintWriter out) {
-        if (conditionHitRatio <= 0) {
-            return true;
-        }
-        val actual = coverage.getConditionHitRatio();
-        out.println("Condition Hit Ratio: %.2f%% (required: %.2f%%)".formatted(actual, conditionHitRatio));
-        return actual >= conditionHitRatio;
-    }
-
-    private boolean checkBranchCoverage(AggregatedCoverageData coverage, PrintWriter out) {
-        if (branchCoverageRatio <= 0) {
-            return true;
-        }
-        val actual = coverage.getOverallBranchCoverage();
-        out.println("Branch Coverage: %.2f%% (required: %.2f%%)".formatted(actual, branchCoverageRatio));
-        return actual >= branchCoverageRatio;
+        val passed    = actual >= required;
+        val indicator = passed ? styled(color, ANSI_GREEN, "PASS") : styled(color, ANSI_BOLD_RED, "FAIL");
+        out.println("  %-25s %6.2f%% >= %6.2f%%  %s".formatted(label, actual, required, indicator));
+        return passed;
     }
 
 }
