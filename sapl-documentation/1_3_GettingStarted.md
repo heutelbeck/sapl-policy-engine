@@ -163,12 +163,65 @@ sapl decide -s '\"cuddy\"' -a '\"use\"' -r '\"MRT\"'
 
 Watch the decision flip between `PERMIT` and `DENY` every five seconds. The PDP re-evaluates the policy each time `<time.now>` emits a new timestamp and pushes the updated decision. The application does not poll.
 
+#### Using Policies in Scripts
+
+The `check` command evaluates a subscription and exits with a code that encodes the decision: `0` for PERMIT, `2` for DENY. No output is written to stdout, making it ideal for shell scripts. Here is a script that checks authorization before starting the MRT:
+
+<details open>
+<summary>Bash</summary>
+
+```bash
+if sapl check -s '"housemd"' -a '"use"' -r '"MRT"'; then
+    echo "Access granted. Starting MRT..."
+    # start-mrt
+else
+    echo "Access denied."
+fi
+```
+
+</details>
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+sapl check -s '\"housemd\"' -a '\"use\"' -r '\"MRT\"'
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Access granted. Starting MRT..."
+    # Start-MRT
+} else {
+    Write-Host "Access denied."
+}
+```
+
+</details>
+
+Try it with `'"cuddy"'` -- the script denies access. Change Cuddy's policy and run again -- no code change needed.
+
 ### Next Steps
 
-You now have a working local setup. Some things to explore:
+You now have policies that grant and deny access, react to live changes, and can be used from shell scripts. From here you can go in several directions:
 
-* Run policy unit tests with `sapl test` (see [Testing](../5_0_SAPLTest/)).
-* Validate policies in CI with `sapl check` (see [SAPL Node](../7_0_SaplNode/)).
-* Add a `pdp.json` to configure the combining algorithm (see [PDP Configuration](../2_2_PDPConfiguration/)).
-* Learn the policy language in depth (see [SAPL Reference](../3_0_SAPLReference/)).
-* Run the PDP as a server for HTTP-based authorization (see [SAPL Node Getting Started](../7_1_GettingStarted/)).
+**Learn the policy language.** The examples above use simple equality checks. SAPL supports pattern matching, arithmetic, functions, and attribute streams for expressing complex authorization logic. See [The SAPL Policy Language](../2_0_TheSAPLPolicyLanguage/).
+
+**Test and validate policies.** Write unit tests for your policies with `sapl test` (see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/)). Use `sapl check` in CI pipelines to verify that policy changes do not break expected decisions.
+
+**Run the PDP as a server.** So far you used the CLI to evaluate policies locally. The same `sapl` binary can run as an HTTP server that applications query for authorization decisions over the network. The CLI commands `decide`, `decide-once`, and `check` also work as clients against a remote PDP server using `--remote`. See [SAPL Node](../7_1_GettingStarted/).
+
+**Integrate into your application.** SAPL provides SDKs for Java ([Java API](../6_2_JavaApi/)), Spring ([Spring Security](../6_4_SpringIntegration/)), NestJS ([NestJS](../6_5_NestJS/)), Python ([Django](../6_6_PythonDjango/), [Flask](../6_7_PythonFlask/), [FastAPI](../6_8_PythonFastAPI/)), and [.NET](../6_11_DotNet/). See [Integration](../6_0_Integration/) for the full list.
+
+**Build your own integration.** If no SDK exists for your language or framework, you can implement a client against the [HTTP API](../6_1_HTTPApi/) directly. For authors building reusable PEP libraries, the [PEP Implementation Specification](../8_1_PEPImplementationSpecification/) defines the requirements.
+
+**Explore demo applications.** Complete working examples show how SAPL integrates with real frameworks. Each demo includes policies, Docker infrastructure, and runnable endpoints:
+
+* [Java/Spring demos](https://github.com/heutelbeck/sapl-demos) -- Embedded and remote PDP usage, Spring MVC and WebFlux method security, database query rewriting for row-level security with JPA, R2DBC, and MongoDB, OAuth2/JWT integration, and MQTT as a Policy Information Point.
+* [NestJS demo](https://github.com/heutelbeck/sapl-nestjs-demo) -- All seven constraint handler types, content filtering, resource replacement, streaming SSE with continuous authorization, service-level enforcement, and JWT-based ABAC with Keycloak.
+* [Node.js demos](https://github.com/heutelbeck/sapl-nodejs-demos) -- An Express demo covering basic enforcement and constraint handling, and a NestJS demo with external data source integration.
+* [Python demos](https://github.com/heutelbeck/sapl-python-demos) -- Four demos covering FastAPI, Django, Flask, and FastMCP (Model Context Protocol). The FastAPI and Django demos include JWT authentication, SSE streaming, and all constraint handler types. The Flask demo covers basic pre/post enforcement.
+* [.NET demo](https://github.com/heutelbeck/sapl-dotnet-demos) -- ASP.NET Core with attribute-driven enforcement, all constraint handler types, service-layer enforcement, JWT export endpoints, and SSE streaming with till-denied, drop-while-denied, and recoverable patterns.
+
+**AI and LLM authorization.** SAPL can enforce access control on AI tool calls, RAG pipelines, and MCP servers. These demos show how policies control what an LLM is allowed to see and do:
+
+* [RAG clinical trial](https://github.com/heutelbeck/sapl-demos/tree/main/rag-clinical-trial) (Java/Spring AI) -- Document-level access control in a RAG pipeline. SAPL obligations modify pgvector search filters before retrieval, ensuring the LLM never sees unauthorized documents. Access is controlled by role, site assignment, and declared purpose, including GDPR purpose limitation for personal data.
+* [MCP tool-calling](https://github.com/heutelbeck/sapl-demos/tree/main/mcp-clinical-trial) (Java/Spring AI) -- Policy-driven access control on Spring AI `@Tool` methods. SAPL policies decide per tool and per user which clinical trial data the LLM can access.
+* [Human-in-the-loop](https://github.com/heutelbeck/sapl-demos/tree/main/hitl-clinical-trial) (Java/Spring AI) -- Policy-driven human approval for safety-critical AI tool calls. SAPL obligations trigger blocking approval dialogs with configurable timeouts and mandatory review flags before the LLM can execute high-risk actions.
+* [FastMCP](https://github.com/heutelbeck/sapl-python-demos/tree/main/fastmcp_demo) (Python) -- SAPL authorization for MCP servers, showing both global middleware and per-component `auth=sapl()` approaches. Policies control tool visibility and access with JWT authentication via Keycloak.
