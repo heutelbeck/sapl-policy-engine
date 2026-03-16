@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -40,37 +40,38 @@
             // Entitlements (decision types)
             { regex: /\b(permit|deny)\b/, token: "keyword" },
 
-            // Algorithms (combining algorithms)
-            { regex: /\b(first-applicable|only-one-applicable|deny-overrides|permit-overrides|deny-unless-permit|permit-unless-deny)\b/, token: "builtin" },
+            // Combining algorithm keywords
+            { regex: /\b(first|priority|unanimous|strict|unique|or|abstain|errors|propagate)\b/, token: "builtin" },
 
             // Authorization subscription variables
             { regex: /\b(subject|action|resource|environment)\b/, token: "variable-2" },
 
             // Keywords
-            { regex: /\b(policy|set|for|where|var|as|import|schema|enforced|each|advice|obligation|transform|in)\b/, token: "keyword" },
+            { regex: /\b(policy|set|for|var|as|import|schema|enforced|each|advice|obligation|transform|in)\b/, token: "keyword" },
 
             // Constants
             { regex: /\b(true|false|null|undefined)\b/, token: "atom" },
 
-            // Attributes (stream access)
-            { regex: /\|?<[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*(\([^)]*\))?(\[[^\]]*])?>/, token: "attribute" },
+            // Attributes and pipe environment attribute
+            { regex: /\|<[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*(\([^)]*\))?(\[[^\]]*])?>/, token: "attribute" },
+            { regex: /<[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*(\([^)]*\))?(\[[^\]]*])?>/, token: "attribute" },
 
             // Functions (followed by parenthesis)
             { regex: /\b[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*(?=\s*\()/, token: "def" },
 
-            // Operators
-            { regex: /&&|\|\||!/, token: "operator" },
-            { regex: /==|!=|<=|>=|<|>|=~/, token: "operator" },
-            { regex: /[+\-*\/%^&|]/, token: "operator" },
-            { regex: /\|-/, token: "operator" },
-            { regex: /::/, token: "operator" },
-            { regex: /@/, token: "operator" },
+            // Multi-character operators (must precede single-character)
+            { regex: /&&|\|\||\.\./, token: "operator" },
+            { regex: /==|!=|<=|>=|=~/, token: "operator" },
+            { regex: /\|<|\|-|::/, token: "operator" },
+
+            // Single-character operators
+            { regex: /[<>!+\-*\/%^&|@#=]/, token: "operator" },
 
             // Punctuation
-            { regex: /[\[\]{}().,;:]/, token: "punctuation" },
+            { regex: /[\[\]{}().,;:?]/, token: "punctuation" },
 
             // Identifiers
-            { regex: /[a-zA-Z_][a-zA-Z0-9_]*/, token: "variable" }
+            { regex: /[a-zA-Z_$][a-zA-Z0-9_$]*/, token: "variable" }
         ],
         comment: [
             { regex: /.*?\*\//, token: "comment", next: "start" },
