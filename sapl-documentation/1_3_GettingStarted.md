@@ -7,7 +7,7 @@ nav_order: 3
 
 ## Getting Started
 
-This guide presents two approaches to working with SAPL. Start with the playground to learn policy syntax, then run a local PDP server to experiment with the HTTP API.
+SAPL is a reactive authorization engine: it evaluates access control policies and pushes updated decisions whenever policies, attributes, or subscriptions change. This guide introduces the policy syntax through the browser-based playground, then walks through hands-on policy evaluation using the CLI.
 
 ### Learning Policy Syntax
 
@@ -15,95 +15,160 @@ The [SAPL Playground](https://playground.sapl.io/) runs entirely in your browser
 
 The playground is primarily useful for learning the policy syntax and testing basic policy logic. The playground cannot connect to external attribute sources, and access to PIPs calling out to location tracking, HTTP servers, or MQTT brokers are present but calls are blocked. However, it is a useful tool to learn how a PDP works, how multiple policies and policy sets interact with each other, and how the streaming nature of SAPL works. It even allows you to graphically dig into traces of individual decisions for learning or debugging of your policies. You can also use it to share authorization scenarios with others.
 
-### Running a Local PDP Server
+### Evaluating Policies
 
-SAPL Node is a lightweight PDP server. Native binaries are available for Linux, Windows, and macOS. No runtime dependencies are needed.
+The `sapl` CLI lets you evaluate policies locally without starting a server. Download the binary for your platform from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases) and extract it. Each archive contains the `sapl` binary, the `LICENSE`, and a `README.md`. On Linux, DEB and RPM packages are also available (see [SAPL Node Getting Started](../7_1_GettingStarted/#installing-with-deb-or-rpm)).
 
-1. Download the archive for your platform from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases) and extract it. Each archive contains the `sapl` binary, the `LICENSE`, and a `README.md`. On Linux, DEB and RPM packages are also available (see [Installing with DEB or RPM](../7_1_GettingStarted/#installing-with-deb-or-rpm)).
-
-2. Create a working directory and write a policy. SAPL policy files use the `.sapl` extension. The PDP monitors the directory and loads all `.sapl` files automatically.
+Verify the installation:
 
 ```bash
-mkdir my-pdp
+sapl --version
 ```
 
-Create `my-pdp/allow-mrt.sapl`:
+#### Write a Policy
+
+By default, the CLI loads policies from `~/.sapl/`. Create the directory and a policy file:
+
+<details open>
+<summary>Bash</summary>
+
+```bash
+mkdir -p ~/.sapl
+```
+
+</details>
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+mkdir ~\.sapl
+```
+
+</details>
+
+Create `~/.sapl/allow-mrt.sapl`:
 
 ```sapl
 policy "Dr. House is allowed to use the MRT!"
 permit subject == "housemd" & action == "use" & resource == "MRT";
 ```
 
-3. Copy or move the `sapl` binary into the working directory and start the server:
+#### Evaluate with decide-once
 
-**Linux/macOS:**
+The `decide-once` command evaluates the subscription against all loaded policies, prints the result, and exits. A subscription has three required components: `--subject`, `--action`, and `--resource`, each a JSON value:
+
+<details open>
+<summary>Bash</summary>
+
 ```bash
-cd my-pdp && ./sapl
+sapl decide-once --subject '"housemd"' --action '"use"' --resource '"MRT"'
 ```
 
-**Windows (PowerShell):**
+</details>
+<details>
+<summary>PowerShell</summary>
+
 ```powershell
-cd my-pdp; .\sapl.exe
+sapl decide-once --subject '\"housemd\"' --action '\"use\"' --resource '\"MRT\"'
 ```
 
-The server starts on `localhost:8443`. By default, it binds to `127.0.0.1` only, does not accept external connections, and runs without TLS and authentication. No configuration files are needed. The PDP loads all `.sapl` files from the current directory and watches for changes.
+</details>
 
-> **Note:** Since the server only listens on localhost, the lack of TLS and authentication is safe for local development. For network-accessible deployments, see [SAPL Node](../7_0_SaplNode/) to configure TLS, authentication, and signed policy bundles.
-
-4. In a separate terminal, send an authorization request:
+Alternatively, pass the subscription as a JSON file with `--file` (`-f`), or pipe it from stdin with `-f -`:
 
 ```bash
-curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}'
+echo '{"subject":"housemd","action":"use","resource":"MRT"}' | sapl decide-once -f -
 ```
 
-The server returns `{"decision":"PERMIT"}`. The policy matches the subscription: subject `housemd`, action `use`, resource `MRT`.
+This prints `{"decision":"PERMIT"}`. The policy matches: subject `housemd`, action `use`, resource `MRT`.
+
+> **Quoting:** Because subscription components are JSON values, strings must include double quotes. In Bash, wrap them in single quotes: `--subject '"housemd"'`. In PowerShell, use backslash-escaped quotes: `--subject '\"housemd\"'`. The remaining examples use the short flags `-s`, `-a`, `-r`.
 
 Try a request that does not match:
 
-```bash
-curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"cuddy","action":"use","resource":"MRT"}'
-```
-
-This returns `{"decision":"DENY"}`. No policy matches subject `cuddy`, so the default combining algorithm applies its default decision: `DENY`.
-
-5. Now try the streaming endpoint. This is where SAPL differs from traditional authorization systems. The PDP holds the connection open and pushes a new decision whenever the evaluation result changes:
+<details open>
+<summary>Bash</summary>
 
 ```bash
-curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}'
+sapl decide-once -s '"cuddy"' -a '"use"' -r '"MRT"'
 ```
 
-The server returns `{"decision":"PERMIT"}` and keeps the connection open. Now edit `allow-mrt.sapl` while the curl is running: change `"housemd"` to `"cuddy"` and save. The PDP detects the change, recompiles the policy, and immediately pushes `{"decision":"DENY"}` on the same connection. Change it back and `PERMIT` returns. No restart, no polling.
+</details>
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+sapl decide-once -s '\"cuddy\"' -a '\"use\"' -r '\"MRT\"'
+```
+
+</details>
+
+This returns `{"decision":"DENY"}`. No policy matches subject `cuddy`, so the PDP denies the request. When multiple policies exist, a *combining algorithm* determines how their individual results are merged into a final decision. The default algorithm denies access unless a policy explicitly permits it (see [PDP Configuration](../2_2_PDPConfiguration/)).
+
+#### Streaming with decide
+
+The `decide` command holds the subscription open and prints a new decision whenever the result changes:
+
+<details open>
+<summary>Bash</summary>
+
+```bash
+sapl decide -s '"housemd"' -a '"use"' -r '"MRT"'
+```
+
+</details>
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+sapl decide -s '\"housemd\"' -a '\"use\"' -r '\"MRT\"'
+```
+
+</details>
+
+The CLI prints `{"decision":"PERMIT"}` and keeps running. Now edit `~/.sapl/allow-mrt.sapl` while the command is running: change `"housemd"` to `"cuddy"` and save. The PDP detects the change, recompiles the policy, and immediately prints `{"decision":"DENY"}`. Change it back and `PERMIT` returns. No restart, no polling.
 
 Press `Ctrl+C` to stop the stream.
 
-6. To see streaming driven by external data, create a new policy `time-demo.sapl` that uses the built-in time PIP:
+#### Time-based Streaming
+
+The PDP loads all `.sapl` files from the policy directory. Create a second policy file `~/.sapl/cuddy-time-limited.sapl` that gives Cuddy time-limited access:
 
 ```sapl
-policy "time demo"
-permit
+policy "Dr. Cuddy has time-limited MRT access"
+permit subject == "cuddy" & action == "use" & resource == "MRT"
   time.secondOf(<time.now>) % 10 < 5;
 ```
 
-The `<time.now>` attribute is a stream that emits the current UTC timestamp once per second. The `time.secondOf` function extracts the seconds component. The modulo expression makes the policy applicable only when the current second is 0-4 within each 10-second window.
+`<time.now>` is an *attribute stream* -- it emits the current UTC timestamp once per second. The `time.secondOf` function extracts the seconds component. The modulo expression makes the policy applicable only when the current second is 0-4 within each 10-second window.
 
-Start a streaming subscription:
+Start a streaming subscription for Cuddy:
+
+<details open>
+<summary>Bash</summary>
 
 ```bash
-curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
+sapl decide -s '"cuddy"' -a '"use"' -r '"MRT"'
 ```
 
-Watch the decision flip between `PERMIT` and `DENY` every five seconds. The application does not poll. The PDP pushes changes as they happen.
+</details>
+<details>
+<summary>PowerShell</summary>
 
-**Next Steps**
+```powershell
+sapl decide -s '\"cuddy\"' -a '\"use\"' -r '\"MRT\"'
+```
 
-You now have a working PDP. Some things to try:
+</details>
 
-* Experiment with different authorization subscriptions and policies.
+Watch the decision flip between `PERMIT` and `DENY` every five seconds. The PDP re-evaluates the policy each time `<time.now>` emits a new timestamp and pushes the updated decision. The application does not poll.
+
+### Next Steps
+
+You now have a working local setup. Some things to explore:
+
+* Run policy unit tests with `sapl test` (see [Testing](../5_0_SAPLTest/)).
+* Validate policies in CI with `sapl check` (see [SAPL Node](../7_0_SaplNode/)).
 * Add a `pdp.json` to configure the combining algorithm (see [PDP Configuration](../2_2_PDPConfiguration/)).
-* Create multiple policies and observe how they interact.
-* Check the health endpoint at `http://localhost:8443/actuator/health`.
-* Read about the [SAPL language](../3_0_SAPLReference/) to model your own authorization rules.
-
-The HTTP API works from any programming language that can make HTTP requests. See the [HTTP API](../6_1_HTTPApi/) documentation for the complete specification including multi-subscriptions and streaming.
-
-For integrating SAPL directly into Java applications using an embedded PDP, see [Java API](../6_2_JavaApi/). For production deployment with TLS, authentication, and signed bundles, see [SAPL Node](../7_0_SaplNode/).
+* Learn the policy language in depth (see [SAPL Reference](../3_0_SAPLReference/)).
+* Run the PDP as a server for HTTP-based authorization (see [SAPL Node Getting Started](../7_1_GettingStarted/)).

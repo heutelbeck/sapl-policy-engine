@@ -56,7 +56,7 @@ import picocli.CommandLine.Spec;
         to stdout, making this command ideal for shell scripts and CI/CD
         pipelines.
 
-        By default, policies are loaded from the current directory. Use
+        By default, policies are loaded from ~/.sapl/. Use
         --dir for a different directory, --bundle for a bundle file, or
         --remote to query a running PDP server.
         """ },

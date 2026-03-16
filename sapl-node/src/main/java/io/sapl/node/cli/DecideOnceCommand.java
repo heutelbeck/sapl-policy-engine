@@ -44,7 +44,7 @@ import picocli.CommandLine.Spec;
         decision (PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE), any
         obligations, advice, and resource transformations.
 
-        By default, policies are loaded from the current directory. Use
+        By default, policies are loaded from ~/.sapl/. Use
         --dir for a different directory, --bundle for a bundle file, or
         --remote to query a running PDP server.
         """ },

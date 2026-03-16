@@ -47,7 +47,7 @@ import picocli.CommandLine.IVersionProvider;
         Policy Sources:
           The check, decide, and decide-once commands load policies from
           one of three sources. By default, .sapl files and pdp.json are
-          read from the current directory. Use --dir to specify a different
+          read from ~/.sapl/. Use --dir to specify a different
           directory, --bundle to load a .saplbundle file, or --remote to
           query a running PDP server.
 
