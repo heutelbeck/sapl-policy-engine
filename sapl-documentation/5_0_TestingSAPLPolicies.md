@@ -8,27 +8,28 @@ has_toc: false
 
 ## Testing SAPL Policies
 
-Policies are code. They encode authorization logic that determines who can access what under which conditions. Like any code, policies can have bugs, miss edge cases, and break when requirements change. SAPL provides a dedicated test DSL for testing policies directly, without writing Java code.
+Policies are code. They encode authorization logic that determines who can access what under which conditions. Like any code, policies can have bugs, miss edge cases, and break when requirements change. SAPL provides a dedicated test DSL and a built-in test runner for testing policies directly.
 
 A complete test looks like this:
 
 ```sapltest
 requirement "patient record access" {
+    given
+        - document "patient-access"
+
     scenario "doctors can read patient records"
-        given
-            - document "patient-access"
         when "Dr. Smith" attempts "read" on "patient_record"
         expect permit;
 
     scenario "nurses cannot delete patient records"
-        given
-            - document "patient-access"
         when "Nurse Jones" attempts "delete" on "patient_record"
-        expect deny;
+        expect not-applicable;
 }
 ```
 
-Test files use the `.sapltest` extension and are placed alongside your policies. The test framework discovers and executes them automatically.
+> **Unit tests vs. CLI:** A unit test evaluates a single policy document in isolation. When no rule in that document matches, the result is `NOT_APPLICABLE`. The CLI commands (`decide-once`, `check`) wrap the evaluation in a *combining algorithm* that maps `NOT_APPLICABLE` to `DENY` by default. To test the combined behavior, use integration tests (see [Unit Tests and Integration Tests](../5_8_UnitAndIntegrationTests/)).
+
+Test files use the `.sapltest` extension and are placed alongside your policies.
 
 ### Approach
 
@@ -39,16 +40,62 @@ Tests are organized into **requirements** that group related **scenarios**. Each
 - **given** sets up the test: which policy to load, which functions and attributes to mock.
 - **when** defines the authorization subscription: who is attempting what action on which resource.
 - **expect** declares the expected decision.
-        
+
 The DSL uses `expect` rather than `then` because policy evaluation is a pure computation. There are no side effects to observe. The PDP receives a subscription and produces a decision. `expect` expresses this declarative relationship directly.
 
-### Runtime
+### Prerequisites
 
-Tests are written entirely in the SAPL test DSL. No Java knowledge is required to write or maintain tests. The project setup below provides a lightweight Java runtime to discover and execute them. You need JDK 21 or later and Maven installed on your system.
+The `sapl` CLI is required. Download the binary for your platform from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases) and verify the installation with `sapl --version`. See [SAPL Node Getting Started](../7_1_GettingStarted/#installing-with-deb-or-rpm) for package installation on Linux.
 
-Future releases of the SAPL policy administration tools will include a built-in test runner with a graphical interface, making even this minimal project setup unnecessary.
+### Running Tests
 
-### Project Setup
+The `sapl test` command discovers `.sapl` and `.sapltest` files, runs all scenarios, and generates coverage reports. Place your policies and tests in the same directory:
+
+```
+policies/
+  patient-access.sapl
+  patient-access-tests.sapltest
+```
+
+Run the tests:
+
+```bash
+sapl test --dir ./policies
+```
+
+By default, `sapl test` looks in the current directory. If your policies and tests live in separate directories, use `--testdir`:
+
+```bash
+sapl test --dir ./policies --testdir ./tests
+```
+
+The test runner prints results per requirement and scenario, with pass/fail status and timing:
+
+```
+  patient-access-tests.sapltest
+    patient record access
+      PASS  doctors can read patient records          12ms
+      PASS  nurses cannot delete patient records       8ms
+
+Tests:  2 passed, 2 total
+Time:   20ms
+```
+
+Exit codes encode the result: `0` for all tests passed, `2` for failures, `3` for quality gate not met (see [Coverage](../5_9_Coverage/)).
+
+### CI/CD Integration
+
+Use `sapl test` in CI pipelines to verify that policy changes do not break expected decisions. The command returns non-zero exit codes on failure, making it a drop-in quality gate:
+
+```bash
+sapl test --dir ./policies --policy-hit-ratio 100
+```
+
+This fails the build if any policy is not exercised by at least one test. See [Coverage](../5_9_Coverage/) for all available thresholds and report options.
+
+### Java Project Integration
+
+For projects that already use Maven, SAPL tests can run as part of the Maven build lifecycle via JUnit 5. This is useful when your policies live inside a Java project and you want test results in the same `mvn verify` run alongside your application tests.
 
 Add the test dependency and coverage plugin to your `pom.xml`:
 
@@ -92,8 +139,6 @@ Add the test dependency and coverage plugin to your `pom.xml`:
     </plugins>
 </build>
 ```
-
-### Project Layout
 
 Policies live in `src/main/resources/policies/`. Tests live in `src/test/resources/`. A single JUnit adapter class in `src/test/java/` connects the test framework to JUnit:
 

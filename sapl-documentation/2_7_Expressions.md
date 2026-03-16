@@ -419,7 +419,7 @@ As attributes have no order, the sorting of the result array of a condition step
 
 The slice contains the items with indices between `Start` and `Stop`, with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element's index). All parts except the first colon are optional. `Step` defaults to 1.
 
-**Default values:** When `Step` is positive (or omitted), `Start` defaults to `0` and `Stop` defaults to the array length. When `Step` is negative, `Start` defaults to the last index and `Stop` defaults to before the first element—allowing the slice to traverse the array in reverse. A `Step` of `0` results in an error.
+**Default values:** When `Step` is positive (or omitted), `Start` defaults to `0` and `Stop` defaults to the array length. When `Step` is negative, `Start` defaults to the last index and `Stop` defaults to before the first element, allowing the slice to traverse the array in reverse. A `Step` of `0` results in an error.
 
 **Negative indices:** Both `Start` and `Stop` support negative indices, which count from the end of the array. For example, `-1` refers to the last element, `-2` to the second-to-last, and so on. These indices are converted to their positive equivalents before slicing.
 
@@ -441,7 +441,7 @@ If the direction of `Step` is inconsistent with the range (e.g., trying to go fo
 > - `[::-1]` returns `[9, 8, 7, 6, 5, 4, 3, 2, 1, 0]` (all elements in reverse order)
 > - `[::-3]` returns `[9, 6, 3, 0]` (every third element, in reverse)
 > - `[5:2:-1]` returns `[5, 4, 3]` (from index 5 down to, but not including, index 2)
-> - `[1:5:-1]` returns `[]` (empty—cannot go backward from 1 to 5)
+> - `[1:5:-1]` returns `[]` (empty, cannot go backward from 1 to 5)
 > - `[-3:]` returns `[7, 8, 9]` (the last three elements)
 > - `[:-3]` returns `[0, 1, 2, 3, 4, 5, 6]` (all but the last three elements)
 

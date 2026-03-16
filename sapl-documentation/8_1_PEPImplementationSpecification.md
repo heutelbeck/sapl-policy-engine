@@ -63,7 +63,7 @@ The following works form the conceptual foundation of this specification. Full c
 | NIST SP 800-207 [[14]](#ref-14)                                           | PEP as mandatory pervasive gatekeeper                                     |
 | OpenID CAEP [[15]](#ref-15), SSF [[16]](#ref-16), AuthZEN [[17]](#ref-17) | Continuous access evaluation, real-time signals, PEP-PDP interoperability |
 
-**Related work.** Google's Zanzibar [[12]](#ref-12) addresses a different concern: relationship-based access control (ReBAC) with global consistency at scale. While influential in the authorization space, its architecture (centralized tuple store, consistency tokens) does not inform PEP design as specified here. SAPL's streaming attribute-based model predates the Zanzibar publication and solves a fundamentally different problem -- continuous policy enforcement over attribute streams rather than graph-based relationship checks.
+**Related work.** Google's Zanzibar [[12]](#ref-12) addresses a different concern: relationship-based access control (ReBAC) with global consistency at scale. While influential in the authorization space, its architecture (centralized tuple store, consistency tokens) does not inform PEP design as specified here. SAPL's streaming attribute-based model predates the Zanzibar publication and solves a fundamentally different problem: continuous policy enforcement over attribute streams rather than graph-based relationship checks.
 
 ---
 
@@ -172,15 +172,15 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 This section explains the internal mechanics of a PEP, building incrementally from the simplest enforcement to full-featured constraint handling. Understanding these mechanics is essential for library authors implementing a PEP SDK.
 
-**Important framing:** The pseudocode in this section describes what the enforcement aspect does internally -- the logic behind the decorator. It is not the developer-facing API. The primary API for application developers is the declarative decorator described in Section 10. Application developers should never need to call `buildSubscription()` or `httpPost()` directly; the decorator handles this transparently. The imperative enforcement functions exist as an implementation layer and as an escape hatch for edge cases that the decorator cannot express.
+**Important framing:** The pseudocode in this section describes what the enforcement aspect does internally, the logic behind the decorator. It is not the developer-facing API. The primary API for application developers is the declarative decorator described in Section 10. Application developers should never need to call `buildSubscription()` or `httpPost()` directly; the decorator handles this transparently. The imperative enforcement functions exist as an implementation layer and as an escape hatch for edge cases that the decorator cannot express.
 
 **Architectural layering:** A well-structured PEP implementation has three layers:
 
-1. **Enforcement engine** (framework-agnostic): Implements the core enforcement logic described in this section -- PDP communication, decision evaluation, constraint handler resolution and execution, error handling. This layer has no knowledge of HTTP, decorators, or framework conventions.
+1. **Enforcement engine** (framework-agnostic): Implements the core enforcement logic described in this section: PDP communication, decision evaluation, constraint handler resolution and execution, error handling. This layer has no knowledge of HTTP, decorators, or framework conventions.
 2. **Enforcement aspect / decorator** (framework-specific): The primary developer-facing API. Intercepts method calls, bridges the framework's calling conventions to the enforcement engine, and converts results back to framework-valid responses. This layer is responsible for resolving method arguments from all sources, building the subscription from runtime context, and mapping denial to the framework's native error type. Section 10 specifies this layer.
 3. **Application code**: The developer's method. Returns domain objects (not framework response types). Contains no authorization logic. The decorator makes authorization transparent.
 
-The decorator layer is not a thin wrapper. It is the component that makes the enforcement engine usable. A PEP that only exposes the enforcement engine (layer 1) without a well-designed decorator (layer 2) forces every application developer to manually bridge their framework's conventions -- the exact boilerplate the library exists to eliminate.
+The decorator layer is not a thin wrapper. It is the component that makes the enforcement engine usable. A PEP that only exposes the enforcement engine (layer 1) without a well-designed decorator (layer 2) forces every application developer to manually bridge their framework's conventions, the exact boilerplate the library exists to eliminate.
 
 ### 4.1 The Minimum Viable PEP
 
@@ -528,7 +528,7 @@ PDP communication carries authorization decisions and potentially sensitive subs
 
 **REQ-SCHEMA-1:** The authorization subscription schema treats `subject`, `action`, and `resource` as mandatory fields. The `environment` and `secrets` fields are optional and SHOULD be omitted from the wire format when undefined/empty (not sent as `null` or `{}`).
 
-**REQ-SECRETS-1:** When the `secrets` field is present (non-empty) in an authorization subscription, the PEP MUST transmit it to the PDP -- it is needed for policy evaluation.
+**REQ-SECRETS-1:** When the `secrets` field is present (non-empty) in an authorization subscription, the PEP MUST transmit it to the PDP. It is needed for policy evaluation.
 
 **REQ-SECRETS-2:** The `secrets` field MUST be excluded from all log output, including debug-level logs. The PEP MUST destructure or filter the subscription before logging.
 
@@ -564,7 +564,7 @@ All delay parameters are deployment-dependent. The spec does not prescribe speci
 
 **REQ-STREAM-4:** Log severity SHOULD escalate after repeated failures (e.g., WARN for first N attempts, ERROR thereafter) to prevent log flooding while ensuring persistent failures are visible to operators.
 
-**REQ-STREAM-5:** On authentication errors (HTTP 401/403), the PEP MUST log at ERROR level on every occurrence (not subject to log escalation dampening) to ensure the operator notices a likely configuration problem. The PEP MUST still retry -- authentication failures can be transient (gateway rolling deployment, token rotation timing, PDP redeployment) and permanent retry abandonment would require manual restart to recover.
+**REQ-STREAM-5:** On authentication errors (HTTP 401/403), the PEP MUST log at ERROR level on every occurrence (not subject to log escalation dampening) to ensure the operator notices a likely configuration problem. The PEP MUST still retry. Authentication failures can be transient (gateway rolling deployment, token rotation timing, PDP redeployment) and permanent retry abandonment would require manual restart to recover.
 
 ### 6.5 SSE Streaming Parser
 
@@ -639,7 +639,7 @@ A PEP does not enforce authorization at a single checkpoint. Enforcement happens
 
 Each handler type (Side-effect, Consumer, Mapping, FilterPredicate, MethodInvocation, ErrorHandler, ErrorMapping) maps to one or more of these locations. A side-effect handler with signal ON_DECISION fires at the "on decision" location. A mapping handler fires at "on return value" or "on each data item," depending on the enforcement mode. A method invocation handler only exists in PreEnforce because it operates at the "pre-method invocation" location, which does not exist in PostEnforce (the method has already run) or in streaming modes (the method is invoked once on first PERMIT, not on each decision).
 
-**Platform-specific enforcement locations:** Frameworks with richer reactive abstractions may expose additional lifecycle hooks. For example, Java's Project Reactor provides `doOnSubscribe`, `doOnRequest` (backpressure signal), `doOnTerminate`, and `doAfterTerminate` -- each representing an enforcement location where constraints can intervene. The Java reference implementation exposes handler provider interfaces for all of these. The NestJS reference implementation, built on RxJS, does not have equivalents for these signals and therefore defines fewer handler types. When implementing a PEP for a new framework, the set of handler types should match the lifecycle hooks the framework's reactive or async model naturally provides. Do not invent artificial enforcement locations; only expose locations that the framework supports natively. An example of a framework-specific enforcement locations would be for example in specific modeling frameworks, e.g., Axon Framework for CQRS-ES applications, here one should implement the hooks that naturally fit in the modeling style (e.g., Pre or Post Command handling).
+**Platform-specific enforcement locations:** Frameworks with richer reactive abstractions may expose additional lifecycle hooks. For example, Java's Project Reactor provides `doOnSubscribe`, `doOnRequest` (backpressure signal), `doOnTerminate`, and `doAfterTerminate`, each representing an enforcement location where constraints can intervene. The Java reference implementation exposes handler provider interfaces for all of these. The NestJS reference implementation, built on RxJS, does not have equivalents for these signals and therefore defines fewer handler types. When implementing a PEP for a new framework, the set of handler types should match the lifecycle hooks the framework's reactive or async model naturally provides. Do not invent artificial enforcement locations; only expose locations that the framework supports natively. An example of a framework-specific enforcement locations would be for example in specific modeling frameworks, e.g., Axon Framework for CQRS-ES applications, here one should implement the hooks that naturally fit in the modeling style (e.g., Pre or Post Command handling).
 
 ### Handler Resolution Timing
 
@@ -744,7 +744,7 @@ Advice handler failures are logged and absorbed, never causing denial (see Secti
 
 **Semantics:** Suspend data forwarding on deny, resume on re-permit. The subscriber MUST be able to distinguish "access denied" from "access permitted, no data available." The PEP MUST emit an access-state signal on every PERMITTED-to-DENIED and DENIED-to-PERMITTED transition.
 
-**REQ-ACCESS-VISIBILITY-1:** On a PERMITTED-to-DENIED transition, the PEP MUST deliver a deny signal to the subscriber before suppressing further data. On a DENIED-to-PERMITTED transition, the PEP MUST deliver a recovery signal to the subscriber before forwarding source data. These signals MUST be delivered immediately when the decision arrives, not deferred to the next source emission. Without recovery signals, the subscriber cannot distinguish "access revoked" from "access restored, source idle" -- a UI would show "no access" indefinitely even after access is restored, until the source happens to emit.
+**REQ-ACCESS-VISIBILITY-1:** On a PERMITTED-to-DENIED transition, the PEP MUST deliver a deny signal to the subscriber before suppressing further data. On a DENIED-to-PERMITTED transition, the PEP MUST deliver a recovery signal to the subscriber before forwarding source data. These signals MUST be delivered immediately when the decision arrives, not deferred to the next source emission. Without recovery signals, the subscriber cannot distinguish "access revoked" from "access restored, source idle". A UI would show "no access" indefinitely even after access is restored, until the source happens to emit.
 
 **Flow:**
 1. Subscribe to `decide()` on the PDP (streaming).
@@ -996,13 +996,13 @@ Building a PEP that works is necessary. Building one that developers want to use
 
 ### 10.1 Decorator/Annotation-Based Enforcement
 
-The decorator is the primary developer-facing API. It is not a convenience wrapper around an imperative function -- it is the product. The imperative enforcement engine (Section 4) is an implementation detail that the decorator delegates to internally.
+The decorator is the primary developer-facing API. It is not a convenience wrapper around an imperative function. It is the product. The imperative enforcement engine (Section 4) is an implementation detail that the decorator delegates to internally.
 
 A well-designed enforcement decorator:
 
 - **Intercepts the method call transparently.** The developer writes business logic. The decorator adds authorization without modifying the method's signature, return type, or error contract.
 - **Resolves all method parameters into a uniform argument structure.** If the framework does not natively inject all parameter sources (query parameters, request body fields, headers) as method arguments, the decorator resolves them by inspecting the method signature and the request context. The enforcement engine and constraint handlers (especially MethodInvocation handlers) see a complete, named argument set regardless of the framework's routing model.
-- **Builds the subscription from runtime context.** The decorator gathers context from multiple sources -- authenticated user, HTTP request, route parameters, method metadata, method arguments -- and feeds it to the subscription builder. The developer overrides individual fields with static values or callbacks; everything else uses sensible defaults.
+- **Builds the subscription from runtime context.** The decorator gathers context from multiple sources (authenticated user, HTTP request, route parameters, method metadata, method arguments) and feeds it to the subscription builder. The developer overrides individual fields with static values or callbacks; everything else uses sensible defaults.
 - **Converts results to framework-valid responses.** If the framework requires a specific response type (e.g., a response object rather than a plain data structure), the decorator handles the conversion. The decorated method returns domain objects; the decorator serializes them.
 - **Maps denial to the framework's native error type.** Access denial produces the framework's standard "forbidden" error, not a library-specific exception.
 - **Works on any method in the dependency injection context**, not only HTTP handler methods. When used outside HTTP context (service layer, background tasks), HTTP-specific defaults are omitted and the developer provides explicit subscription fields. See Section 10.3.
@@ -1037,7 +1037,7 @@ A PEP that automatically derives subscription fields from code context produces 
 }
 ```
 
-These work out of the box and require zero configuration from the developer. But policies written against technical subscriptions are coupled to implementation details -- renaming a method, changing a URL path, or moving a controller breaks policies. They also leak implementation structure into the policy layer: a policy that matches on `action.java.name == "findById"` is meaningful to a developer but opaque to a policy administrator.
+These work out of the box and require zero configuration from the developer. But policies written against technical subscriptions are coupled to implementation details. Renaming a method, changing a URL path, or moving a controller breaks policies. They also leak implementation structure into the policy layer: a policy that matches on `action.java.name == "findById"` is meaningful to a developer but opaque to a policy administrator.
 
 When the developer **manually overrides** subscription fields, the subscription becomes **domain-driven**:
 
@@ -1079,7 +1079,7 @@ Mono<Patient> findById(long id) { ... }
 async findById(@Param('id') id: string): Promise<Patient> { ... }
 ```
 
-The examples above illustrate two reference implementations. Other frameworks MUST adapt the mechanism to their own idioms -- the examples are not prescriptive syntax. The key requirement is that the developer can construct subscription field values programmatically from runtime context (method arguments, request data, authentication state, and in PostEnforce the return value) using the framework's native patterns, without modifying PEP internals.
+The examples above illustrate two reference implementations. Other frameworks MUST adapt the mechanism to their own idioms. The examples are not prescriptive syntax. The key requirement is that the developer can construct subscription field values programmatically from runtime context (method arguments, request data, authentication state, and in PostEnforce the return value) using the framework's native patterns, without modifying PEP internals.
 
 #### 10.2.2 Runtime Context for Subscription Building
 
@@ -1095,7 +1095,7 @@ The PEP gathers runtime context from multiple sources to populate subscription f
 | Return value           | PostEnforce only                | The method's return value                             |
 | Session / auth context | All modes (framework-dependent) | Session attributes, security context                  |
 
-**REQ-CONTEXT-ARGS-1:** "Method arguments" in the table above means **all resolved parameters**, not only those the framework natively injects as function arguments. The enforcement decorator is responsible for ensuring that parameters from all sources -- path variables, query strings, request body fields, default values from the method signature -- are resolved and available as named arguments in the context. This is critical because the same context is shared with MethodInvocation constraint handlers (Section 8.1), which must be able to modify any parameter by name. If the framework only injects path variables as method arguments but the method signature declares query parameters with default values, the decorator MUST resolve those query parameters from the request and include them.
+**REQ-CONTEXT-ARGS-1:** "Method arguments" in the table above means **all resolved parameters**, not only those the framework natively injects as function arguments. The enforcement decorator is responsible for ensuring that parameters from all sources (path variables, query strings, request body fields, default values from the method signature) are resolved and available as named arguments in the context. This is critical because the same context is shared with MethodInvocation constraint handlers (Section 8.1), which must be able to modify any parameter by name. If the framework only injects path variables as method arguments but the method signature declares query parameters with default values, the decorator MUST resolve those query parameters from the request and include them.
 
 **REQ-CONTEXT-POSTEXEC-1:** In PostEnforce mode, the subscription MUST be built after the method executes, and the method's return value MUST be available as context for dynamic subscription fields. This is PostEnforce's distinguishing feature: the PDP can make decisions based on what the method actually returned.
 
@@ -1128,7 +1128,7 @@ The `secrets` field enables the PDP to access credential material needed for pol
 
 The callback signature MUST be consistent across all five subscription fields and across all enforcement modes. The only variation is that `return value` is populated in PostEnforce and absent in PreEnforce and streaming modes. Implementations MUST NOT use different callback signatures for different fields (e.g., zero-argument callbacks for some fields and context-receiving callbacks for others) or for different enforcement modes.
 
-This context enables the developer to construct domain-driven subscriptions programmatically. The following pseudocode illustrates the intent -- actual syntax must be adapted to the target language and framework:
+This context enables the developer to construct domain-driven subscriptions programmatically. The following pseudocode illustrates the intent. Actual syntax must be adapted to the target language and framework:
 
 ```
 -- PreEnforce: resource built from method arguments, secrets from auth context
@@ -1174,7 +1174,7 @@ The automatic defaults are intentionally technical. This is the correct trade-of
 
 When the enforcement decorator is applied to a method outside HTTP context (service-layer methods, background tasks, scheduled jobs, CLI handlers), the PEP MUST gracefully degrade: HTTP-derived defaults (subject from authenticated user, resource from request path, environment from client IP) are omitted or use non-HTTP fallbacks, and the subscription is built from explicitly provided fields and method metadata (method name, class name, arguments). The PEP MUST NOT fail with a generic error when HTTP context is unavailable.
 
-**REQ-CONTEXT-GRACEFUL-1:** If request context is unavailable and a subscription field would use a request-dependent default, the PEP MUST either: (a) use a fallback default that does not require the request (e.g., `"anonymous"` for subject, method metadata for action), or (b) raise a clear, actionable error at subscription build time that identifies which field needs an explicit override. The error message MUST guide the developer toward the fix (e.g., "subject could not be derived from HTTP context -- provide an explicit subject in the decorator options"). The PEP MUST NOT raise an opaque "no request found" error that gives the developer no path forward.
+**REQ-CONTEXT-GRACEFUL-1:** If request context is unavailable and a subscription field would use a request-dependent default, the PEP MUST either: (a) use a fallback default that does not require the request (e.g., `"anonymous"` for subject, method metadata for action), or (b) raise a clear, actionable error at subscription build time that identifies which field needs an explicit override. The error message MUST guide the developer toward the fix (e.g., "subject could not be derived from HTTP context, provide an explicit subject in the decorator options"). The PEP MUST NOT raise an opaque "no request found" error that gives the developer no path forward.
 
 **REQ-CONTEXT-2:** For streaming enforcement, the request context MUST be captured at subscription time (when the endpoint handler is invoked), not at decision-evaluation time or data-emission time.
 
