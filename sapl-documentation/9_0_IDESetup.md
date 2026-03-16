@@ -41,14 +41,6 @@ Download the archive for your platform from [GitHub Releases](https://github.com
 
 Place the binary on your `PATH` or reference its absolute path in your editor configuration.
 
-#### Building from Source
-
-```shell
-cd sapl-language-server && mvn install -am -DskipTests
-```
-
-This produces `target/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar`.
-
 ### Visual Studio Code
 
 #### Step 1: Install Syntax Highlighting
@@ -64,8 +56,8 @@ Install [Generic LSP Client (v2)](https://marketplace.visualstudio.com/items?ite
 
 ```json
 {
-  "glspc.server.command": "java",
-  "glspc.server.commandArguments": ["-jar", "/path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar"],
+  "glspc.server.command": "sapl-language-server",
+  "glspc.server.commandArguments": [],
   "glspc.server.languageId": ["sapl", "sapltest"]
 }
 ```
@@ -85,7 +77,7 @@ Install [Generic LSP Client (v2)](https://marketplace.visualstudio.com/items?ite
 **Settings** > **Languages & Frameworks** > **Language Servers** > **+**
 
 - **Name**: SAPL
-- **Command**: `java -jar /path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar`
+- **Command**: `sapl-language-server`
 - **Mappings**:
   - File pattern `*.sapl`, Language Id `SAPL`
   - File pattern `*.sapltest`, Language Id `SAPLTest`
@@ -109,15 +101,15 @@ nvim-lsp/
 ├── init.lua              # Plugin setup (lazy.nvim, nvim-cmp, noice.nvim, semantic colors)
 ├── filetype.lua          # Registers .sapl and .sapltest extensions
 └── lua/
-    └── sapl_lspconfig.lua  # LSP server registration (update JAR path here)
+    └── sapl_lspconfig.lua  # LSP server registration (update binary path here)
 ```
 
 To integrate into an existing config:
 
 1. Copy `lua/sapl_lspconfig.lua` to your Lua path
-2. Edit `sapl_lspconfig.lua` and update the JAR path on line 19:
+2. Edit `sapl_lspconfig.lua` and update the command on line 19:
    ```lua
-   cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar' },
+   cmd = { 'sapl-language-server' },
    ```
 3. Add filetype registration from `filetype.lua`
 4. Optionally add semantic highlight colors from `init.lua` (the `setup_semantic_highlights()` function)
@@ -151,8 +143,8 @@ A Nix module is provided at [`ide-support/nixos/sapl-nvim.nix`](https://github.c
 
 - Right-click **Program** > **New Configuration**
 - **Name**: SAPL Language Server
-- **Location**: `java`
-- **Arguments**: `-jar /path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar`
+- **Location**: `sapl-language-server`
+- **Arguments**: (leave empty)
 
 #### Step 2: Create Content Type
 
@@ -199,7 +191,7 @@ Then configure the LSP client in **Settings** > **Configure Kate...** > **LSP Cl
 {
   "servers": {
     "sapl": {
-      "command": ["java", "-jar", "/path/to/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar"],
+      "command": ["sapl-language-server"],
       "url": "https://github.com/heutelbeck/sapl-policy-engine",
       "highlightingModeRegex": "^SAPL.*$"
     }

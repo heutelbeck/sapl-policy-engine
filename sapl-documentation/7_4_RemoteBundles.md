@@ -134,7 +134,7 @@ For individual tenants that should accept unsigned bundles without enabling the 
 
 Tenants listed here may load unsigned bundles while all other tenants still require valid signatures.
 
-For development only, the 2-factor escape hatch disables signature verification globally:
+For development only, disable signature verification globally:
 
 ```yaml
   bundle-security:

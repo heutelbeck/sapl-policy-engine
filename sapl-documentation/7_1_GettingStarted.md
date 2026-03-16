@@ -39,7 +39,7 @@ Create a working directory and a policy file:
 mkdir demo
 ```
 
-Create `demo/tick.sapl`. This policy uses the built in time PIP to grant access only when the current second is divisible by 5:
+Create `demo/tick.sapl`. This policy uses the built-in time PIP to grant access only when the current second is divisible by 5:
 
 ```
 policy "tick"

@@ -129,7 +129,7 @@ To deploy your first bundle:
 
 ```shell
 sapl bundle keygen -o signing
-sapl bundle create -i ./my-policies -o /var/lib/sapl/default.saplbundle -k signing.pem
+sapl bundle create -i ./policies -o /var/lib/sapl/default.saplbundle -k signing.pem
 ```
 
 Then configure the public key in `application.yml`:
