@@ -71,7 +71,8 @@ import picocli.CommandLine.IVersionProvider;
         """ },
     subcommands = {
         ServerCommand.class, BundleCommand.class, CheckCommand.class,
-        DecideCommand.class, DecideOnceCommand.class, GenerateCredentialsCommand.class
+        DecideCommand.class, DecideOnceCommand.class, GenerateCredentialsCommand.class,
+        TestCommand.class
     }
 )
 // @formatter:on

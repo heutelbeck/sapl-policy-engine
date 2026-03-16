@@ -6,6 +6,21 @@
       },
       {
         "pattern": "logback.*\\.xml"
+      },
+      {
+        "pattern": "io/sapl/test/coverage/report/html/templates/.*\\.html"
+      },
+      {
+        "pattern": "io/sapl/test/coverage/report/html/css/.*\\.css"
+      },
+      {
+        "pattern": "io/sapl/test/coverage/report/html/images/.*\\.png"
+      },
+      {
+        "pattern": "io/sapl/test/coverage/report/html/js/.*\\.js"
+      },
+      {
+        "pattern": "META-INF/resources/webjars/codemirror/.*"
       }
     ]
   }

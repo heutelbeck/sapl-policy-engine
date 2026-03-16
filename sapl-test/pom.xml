@@ -59,6 +59,12 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
+		<!-- WebJar for HTML coverage report syntax highlighting -->
+		<dependency>
+			<groupId>org.webjars.npm</groupId>
+			<artifactId>codemirror</artifactId>
+			<version>6.65.7</version>
+		</dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

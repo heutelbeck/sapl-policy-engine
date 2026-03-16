@@ -103,6 +103,12 @@ public class PlainTestAdapter {
                 }
             }
 
+            for (var result : results) {
+                if (result.coverage() != null) {
+                    coverage.put(result.fullName(), result.coverage());
+                }
+            }
+
             sink.next(new ExecutionCompleted(PlainTestResults.from(results, coverage)));
             sink.complete();
         });

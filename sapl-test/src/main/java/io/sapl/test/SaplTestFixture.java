@@ -52,9 +52,11 @@ import io.sapl.pdp.interceptors.VoteReport;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.coverage.CoverageAccumulator;
 import io.sapl.test.coverage.CoverageWriter;
+import io.sapl.test.coverage.TestCoverageRecord;
 import io.sapl.test.coverage.TestResult;
 import lombok.Getter;
 import lombok.NonNull;
+import org.jspecify.annotations.Nullable;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -1304,6 +1306,18 @@ public class SaplTestFixture {
         public DecisionResult thenAwait(@NonNull Duration duration) {
             step = step.thenAwait(duration);
             return this;
+        }
+
+        /**
+         * Returns the coverage record accumulated during evaluation.
+         * <p>
+         * This method can be called even if {@link #verify()} throws, to retrieve
+         * partial coverage data from evaluations that completed before the failure.
+         *
+         * @return the coverage record, or null if coverage collection is disabled
+         */
+        public @Nullable TestCoverageRecord getCoverageRecord() {
+            return coverageAccumulator != null ? coverageAccumulator.getRecord() : null;
         }
 
         /**

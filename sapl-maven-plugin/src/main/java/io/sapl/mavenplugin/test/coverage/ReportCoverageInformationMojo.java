@@ -17,13 +17,10 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
-import io.sapl.api.coverage.PolicyCoverageData;
-import io.sapl.mavenplugin.test.coverage.report.html.HtmlLineCoverageReportGenerator;
-import io.sapl.test.coverage.AggregatedCoverageData;
-import io.sapl.test.coverage.CoverageReader;
-import io.sapl.test.coverage.SonarQubeCoverageReportGenerator;
-import lombok.Setter;
-import lombok.val;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -32,10 +29,13 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
+import io.sapl.test.coverage.AggregatedCoverageData;
+import io.sapl.test.coverage.CoverageReader;
+import io.sapl.test.coverage.SonarQubeCoverageReportGenerator;
+import io.sapl.test.coverage.report.html.HtmlLineCoverageReportGenerator;
+import io.sapl.test.coverage.report.html.PolicySourcePopulator;
+import lombok.Setter;
+import lombok.val;
 
 /**
  * Maven mojo for generating SAPL policy coverage reports.
@@ -51,6 +51,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     private static final String ERROR_COVERAGE_FILE_NOT_FOUND           = "Coverage file not found: %s";
     private static final String ERROR_COVERAGE_THRESHOLDS_NOT_MET       = "One or more SAPL coverage thresholds not met. See build log for details.";
     private static final String ERROR_FAILED_READING_COVERAGE_DATA      = "Failed reading coverage data from SAPL tests.";
+    private static final String ERROR_GENERATING_HTML_REPORT            = "Error generating HTML coverage report.";
     private static final String ERROR_GENERATING_SONARQUBE_REPORT       = "Error generating SonarQube coverage report.";
     private static final String ERROR_SAPL_TEST_REQUIREMENTS_NOT_PASSED = "SAPL test requirements not passed. Tests must be enabled.";
 
@@ -287,68 +288,17 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     private void generateHtmlReport(AggregatedCoverageData coverage, Path baseDir) throws MojoExecutionException {
         val policies       = coverage.getPolicyCoverageList();
         val projectBaseDir = project != null ? project.getBasedir().toPath() : Path.of(".");
-        populatePolicySources(policies, projectBaseDir);
+        PolicySourcePopulator.populateSources(policies, List.of(projectBaseDir.resolve("src/main/resources"),
+                projectBaseDir.resolve("target/classes"), projectBaseDir));
 
-        val generator = new HtmlLineCoverageReportGenerator();
-        val indexHtml = generator.generateHtmlReport(policies, baseDir, coverage.getPolicySetHitRatio(),
-                coverage.getPolicyHitRatio(), coverage.getConditionHitRatio());
-        getLog().info("HTML coverage report: " + indexHtml.toUri());
-    }
-
-    /**
-     * Reads policy source files to populate documentSource for HTML report
-     * generation.
-     * <p>
-     * The NDJSON coverage format stores file paths relative to the classpath root.
-     * For HTML reports with syntax highlighting, we need to read the actual source
-     * from the src/main/resources or target/classes directories.
-     */
-    private void populatePolicySources(Collection<PolicyCoverageData> policies, Path projectBaseDir) {
-        for (val policy : policies) {
-            populatePolicySource(policy, projectBaseDir);
+        try {
+            val generator = new HtmlLineCoverageReportGenerator();
+            val indexHtml = generator.generateHtmlReport(policies, baseDir, coverage.getPolicySetHitRatio(),
+                    coverage.getPolicyHitRatio(), coverage.getConditionHitRatio());
+            getLog().info("HTML coverage report: " + indexHtml.toUri());
+        } catch (IOException e) {
+            throw new MojoExecutionException(ERROR_GENERATING_HTML_REPORT, e);
         }
-    }
-
-    private void populatePolicySource(PolicyCoverageData policy, Path projectBaseDir) {
-        if (policy.getDocumentSource() != null && !policy.getDocumentSource().isEmpty()) {
-            return;
-        }
-
-        val filePath = policy.getFilePath();
-        if (filePath == null || filePath.isEmpty()) {
-            getLog().debug("No file path for policy: " + policy.getDocumentName());
-            return;
-        }
-
-        val source = tryReadPolicySource(projectBaseDir, filePath);
-        if (source != null) {
-            policy.setDocumentSource(source);
-            getLog().debug("Loaded source for: " + policy.getDocumentName());
-        } else {
-            getLog().debug("Source file not found for: " + policy.getDocumentName());
-        }
-    }
-
-    /**
-     * Tries to read policy source from multiple locations.
-     * <p>
-     * File paths in coverage data are relative to the classpath root, so we need
-     * to try src/main/resources first, then target/classes as a fallback.
-     */
-    private String tryReadPolicySource(Path projectBaseDir, String relativePath) {
-        val candidatePaths = new Path[] { projectBaseDir.resolve("src/main/resources").resolve(relativePath),
-                projectBaseDir.resolve("target/classes").resolve(relativePath), projectBaseDir.resolve(relativePath) };
-
-        for (val path : candidatePaths) {
-            if (Files.exists(path)) {
-                try {
-                    return Files.readString(path);
-                } catch (IOException e) {
-                    getLog().debug("Could not read: " + path + " - " + e.getMessage());
-                }
-            }
-        }
-        return null;
     }
 
     private void validateAllThresholds(boolean policySetOk, boolean policyOk, boolean conditionOk, boolean branchOk)

@@ -98,6 +98,7 @@ public class ScenarioInterpreter {
         val scenarioName    = unquoteString(scenario.name.getText());
         val startTime       = System.nanoTime();
 
+        SaplTestFixture.DecisionResult decisionResult = null;
         try {
             // Merge requirement-level and scenario-level given blocks
             val mergedGiven = mergeGivenBlocks(requirement.given(), scenario.given());
@@ -150,8 +151,8 @@ public class ScenarioInterpreter {
             applyAttributeMocks(fixture, mergedGiven);
 
             // Build and execute authorization subscription
-            val whenStep       = scenario.whenStep();
-            val decisionResult = executeWhenClause(fixture, whenStep);
+            val whenStep = scenario.whenStep();
+            decisionResult = executeWhenClause(fixture, whenStep);
 
             // Execute expectations (including then/expect sequences)
             executeExpectations(decisionResult, scenario.expectOrThenExpect());
@@ -173,12 +174,14 @@ public class ScenarioInterpreter {
                         testResult.failureMessage(), testResult.coverage());
             }
         } catch (AssertionError e) {
-            // StepVerifier throws AssertionError on expectation failure
             val duration = Duration.ofNanos(System.nanoTime() - startTime);
-            return ScenarioResult.failed(testDoc.id(), requirementName, scenarioName, duration, e.getMessage(), null);
+            val coverage = decisionResult != null ? decisionResult.getCoverageRecord() : null;
+            return ScenarioResult.failed(testDoc.id(), requirementName, scenarioName, duration, e.getMessage(),
+                    coverage);
         } catch (Exception e) {
             val duration = Duration.ofNanos(System.nanoTime() - startTime);
-            return ScenarioResult.error(testDoc.id(), requirementName, scenarioName, duration, e, null);
+            val coverage = decisionResult != null ? decisionResult.getCoverageRecord() : null;
+            return ScenarioResult.error(testDoc.id(), requirementName, scenarioName, duration, e, coverage);
         }
     }
 

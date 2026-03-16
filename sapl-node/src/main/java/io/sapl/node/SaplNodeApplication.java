@@ -127,7 +127,7 @@ public class SaplNodeApplication {
                 CLI_PACKAGE + "NamedSubscriptionOptions", CLI_PACKAGE + "PdpOptions",
                 CLI_PACKAGE + "PolicySourceOptions", CLI_PACKAGE + "RemoteConnectionOptions",
                 CLI_PACKAGE + "RemoteConnectionOptions$AuthOptions", CLI_PACKAGE + "ServerCommand",
-                CLI_PACKAGE + "SubscriptionInputOptions" };
+                CLI_PACKAGE + "SubscriptionInputOptions", CLI_PACKAGE + "TestCommand" };
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {

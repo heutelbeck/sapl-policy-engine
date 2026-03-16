@@ -43,7 +43,7 @@ import picocli.CommandLine.Model.PositionalParamSpec;
  *
  * @see SaplNodeCli
  */
-final class CliReferenceMarkdownGenerator {
+public final class CliReferenceMarkdownGenerator {
 
     private static final String OUTPUT_FILE = "7_8_CommandLine.md";
 

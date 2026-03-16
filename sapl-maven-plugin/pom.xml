@@ -33,7 +33,7 @@
 
 	<properties>
 		<maven.version>3.9.11</maven.version>
-		<sonar.sources>src/main/java,src/main/resources/html/templates</sonar.sources>
+		<sonar.sources>src/main/java</sonar.sources>
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
 	
@@ -74,34 +74,6 @@
 			<artifactId>sapl-test</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<!-- Sapl Plugin Dependencies -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-
-		<!-- WebJars for HTML report assets -->
-		<dependency>
-			<groupId>org.webjars.npm</groupId>
-			<artifactId>codemirror</artifactId>
-			<version>6.65.7</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>bootstrap</artifactId>
-			<version>5.3.8</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars.npm</groupId>
-			<artifactId>popperjs__core</artifactId>
-			<version>2.11.8</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>requirejs</artifactId>
-			<version>2.3.7</version>
-		</dependency>
-
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

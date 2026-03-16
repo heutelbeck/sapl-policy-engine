@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xml:lang="en">
+
+<head>
+	<title>SAPL Coverage Report</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="icon" href="../assets/images/favicon.png" type="image/png">
+	<link rel="stylesheet" href="../assets/lib/css/codemirror.css">
+	<link rel="stylesheet" href="../assets/lib/css/main.css">
+	<style>
+		.CodeMirror {
+			height: calc(100% - 50px) !important;
+		}
+	</style>
+</head>
+
+<body>
+	<main id="main">
+		<nav class="navbar" aria-label="SAPL Branding">
+			<a class="navbar-brand" href="#">
+				<img src="../assets/images/logo-header.png" alt="SAPL Logo">
+			</a>
+		</nav>
+
+		<nav aria-label="breadcrumb">
+			<ol class="breadcrumb">
+				<li class="breadcrumb-item"><a href="../report.html">Main</a></li>
+				<li class="breadcrumb-item active" aria-current="page">{{policyTitle}}</li>
+			</ol>
+		</nav>
+
+		<div class="card-body">
+			<h1 style="margin-bottom: 2vw">
+				{{policyTitle}}
+			</h1>
+			<textarea id="policyTextArea">{{policyText}}</textarea>
+		</div>
+	</main>
+
+	<div id="sapl-tooltip" class="sapl-tooltip"></div>
+
+	<script src="../assets/lib/js/codemirror.js"></script>
+	<script src="../assets/lib/js/addon/mode/simple.js"></script>
+	<script src="../assets/lib/js/sapl-mode.js"></script>
+	<script>
+		(function () {
+			var editor = CodeMirror.fromTextArea(document.getElementById("policyTextArea"), {
+				lineNumbers: true,
+				mode: "xtext/sapl",
+				readOnly: "nocursor"
+			});
+
+			var lineModels = {{lineModelsJson}};
+			for (var i = 0; i < lineModels.length; i++) {
+				var lineModel = lineModels[i];
+				if (lineModel.c) {
+					editor.addLineClass(i, "text", lineModel.c);
+				}
+				if (lineModel.p) {
+					editor.markText(
+						{line: i, ch: 0},
+						{line: i, ch: editor.getLine(i).length},
+						{attributes: {"data-sapl-tooltip": lineModel.p}}
+					);
+				}
+			}
+
+			var tooltip = document.getElementById("sapl-tooltip");
+			document.addEventListener("mouseover", function (e) {
+				var target = e.target.closest("[data-sapl-tooltip]");
+				if (target) {
+					tooltip.textContent = target.getAttribute("data-sapl-tooltip");
+					tooltip.classList.add("visible");
+					var rect = target.getBoundingClientRect();
+					tooltip.style.left = rect.left + "px";
+					tooltip.style.top = (rect.top - tooltip.offsetHeight - 4) + "px";
+				}
+			});
+			document.addEventListener("mouseout", function (e) {
+				var target = e.target.closest("[data-sapl-tooltip]");
+				if (target) {
+					tooltip.classList.remove("visible");
+				}
+			});
+		})();
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,135 @@
+:root {
+	--padding-left: 20px;
+}
+
+/* Coverage line colors */
+.coverage-green span {
+	background-color: #ccffcc;
+}
+
+.coverage-yellow span {
+	background-color: #ffffcc;
+}
+
+.coverage-red span {
+	background-color: #ffaaaa;
+}
+
+/* Navbar */
+.navbar {
+	display: flex;
+	align-items: center;
+	background-color: #20232a;
+	padding: 0.5rem 1rem;
+}
+
+.navbar-brand img {
+	display: inline-block;
+	height: 60px;
+	padding-left: var(--padding-left);
+}
+
+/* Card */
+.card {
+	border: 1px solid rgba(0, 0, 0, 0.125);
+	border-radius: 0.25rem;
+	margin: 0.75rem var(--padding-left);
+}
+
+.card-header {
+	padding: 0.75rem 1.25rem;
+	background-color: rgba(0, 0, 0, 0.03);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+	font-weight: 500;
+}
+
+.card-body {
+	padding: var(--padding-left);
+	height: 80%;
+}
+
+/* List group */
+.list-group {
+	display: flex;
+	flex-direction: column;
+	padding-left: 0;
+	margin-bottom: 0;
+}
+
+.list-group-item {
+	position: relative;
+	display: block;
+	padding: 0.5rem 1rem;
+	border: 1px solid rgba(0, 0, 0, 0.125);
+	text-decoration: none;
+	color: #212529;
+}
+
+.list-group-item + .list-group-item {
+	border-top-width: 0;
+}
+
+.list-group-item:first-child {
+	border-top-left-radius: 0.25rem;
+	border-top-right-radius: 0.25rem;
+}
+
+.list-group-item:last-child {
+	border-bottom-left-radius: 0.25rem;
+	border-bottom-right-radius: 0.25rem;
+}
+
+.list-group-item-action:hover {
+	background-color: #f8f9fa;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+	display: flex;
+	flex-wrap: wrap;
+	padding: 1rem 1rem;
+	margin-bottom: .25rem;
+	background-color: #e9ecef;
+	text-align: center;
+	line-height: 100%;
+	padding-left: var(--padding-left);
+	list-style: none;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+	content: "/";
+	padding: 0 0.5rem;
+	color: #6c757d;
+}
+
+.breadcrumb-item a {
+	text-decoration: none;
+	color: #0d6efd;
+}
+
+.breadcrumb-item a:hover {
+	text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+	color: #6c757d;
+}
+
+/* Tooltip */
+.sapl-tooltip {
+	position: absolute;
+	z-index: 1000;
+	padding: 0.5rem 0.75rem;
+	background-color: #333;
+	color: #fff;
+	border-radius: 0.25rem;
+	font-size: 0.875rem;
+	white-space: nowrap;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.15s;
+}
+
+.sapl-tooltip.visible {
+	opacity: 1;
+}

@@ -15,29 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.mavenplugin.test.coverage.report;
+package io.sapl.test.coverage.report.html;
+
+import java.util.List;
 
 import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.experimental.UtilityClass;
-
-import java.util.List;
+import lombok.val;
 
 /**
  * Provides sample PolicyCoverageData for tests.
  */
 @UtilityClass
-public class SampleCoverageInformation {
+class SampleCoverageInformation {
 
     private static final String POLICY_SOURCE = """
             import test.upper as uppies
 
             set "testPolicies"
-            deny-unless-permit
+            priority permit or deny
 
             policy "policy 1"
             permit
                 action == "read"
-            where
                 subject.<test.upper> == "WILLI";
                 var test = 1;
                 time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
@@ -46,8 +46,8 @@ public class SampleCoverageInformation {
     /**
      * Returns sample coverage data for testing HTML report generation.
      */
-    public static List<PolicyCoverageData> policies() {
-        var policy = new PolicyCoverageData("policy_1.sapl", POLICY_SOURCE, "set");
+    static List<PolicyCoverageData> policies() {
+        val policy = new PolicyCoverageData("policy_1.sapl", POLICY_SOURCE, "set");
 
         policy.recordTargetHit(true);
 
@@ -58,4 +58,5 @@ public class SampleCoverageInformation {
 
         return List.of(policy);
     }
+
 }
