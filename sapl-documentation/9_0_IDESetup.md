@@ -11,9 +11,27 @@ The SAPL language server provides IDE support for `.sapl` policy files and `.sap
 
 ### Obtaining the Language Server
 
-The language server is available as a standalone JAR (requires Java 21+) or as a pre-built native binary (no Java required).
+The language server is available as a native binary (no Java required), as Linux packages (DEB/RPM), or as a standalone JAR (requires Java 21+).
 
-Pre-built native binaries are available from [GitHub Releases](https://github.com/heutelbeck/sapl-policy-engine/releases/tag/snapshot):
+#### Linux Packages
+
+On Debian/Ubuntu:
+
+```shell
+sudo dpkg -i sapl-language-server_4.0.0_amd64.deb
+```
+
+On RPM-based distributions:
+
+```shell
+sudo rpm -i sapl-language-server-4.0.0.x86_64.rpm
+```
+
+The package installs the binary to `/usr/bin/sapl-language-server` and a man page to `/usr/share/man/man1/`. No configuration files, services, or system users are needed.
+
+#### Pre-built Binaries
+
+Download the archive for your platform from [GitHub Releases](https://github.com/heutelbeck/sapl-policy-engine/releases/tag/snapshot):
 
 | Platform       | Binary                                   |
 |----------------|------------------------------------------|
@@ -21,7 +39,9 @@ Pre-built native binaries are available from [GitHub Releases](https://github.co
 | macOS ARM64    | `sapl-language-server-macos-arm64`       |
 | Windows x86_64 | `sapl-language-server-windows-amd64.exe` |
 
-To build the standalone JAR from source:
+Place the binary on your `PATH` or reference its absolute path in your editor configuration.
+
+#### Building from Source
 
 ```shell
 cd sapl-language-server && mvn install -am -DskipTests

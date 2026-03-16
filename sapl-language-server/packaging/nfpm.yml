@@ -41,3 +41,8 @@ contents:
     expand: true
     file_info:
       mode: 0755
+
+  - src: sapl-language-server/packaging/sapl-language-server.1
+    dst: /usr/share/man/man1/sapl-language-server.1
+    file_info:
+      mode: 0644

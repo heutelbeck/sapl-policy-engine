@@ -1,0 +1,35 @@
+# Maintainer: Dominic Heutelbeck <dominic@heutelbeck.com>
+#
+# Install from the repository:
+#   cd sapl-language-server/packaging/arch && makepkg -si
+#
+# Or from AUR (if published):
+#   yay -S sapl-language-server
+
+pkgname=sapl-language-server
+pkgver=4.0.0_SNAPSHOT
+pkgrel=1
+pkgdesc='SAPL Language Server for IDE integration'
+arch=('x86_64' 'aarch64')
+url='https://github.com/heutelbeck/sapl-policy-engine'
+license=('Apache-2.0')
+depends=('glibc')
+
+# Map makepkg arch names to release archive platform suffixes.
+_platform_x86_64='linux-amd64'
+_platform_aarch64='linux-arm64'
+
+# Release version used in archive filenames (dots not underscores).
+_relver="${pkgver//_/-}"
+
+source_x86_64=("${pkgname}-${pkgver}-x86_64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot/${pkgname}-${_relver}-${_platform_x86_64}.tar.gz")
+source_aarch64=("${pkgname}-${pkgver}-aarch64.tar.gz::https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot/${pkgname}-${_relver}-${_platform_aarch64}.tar.gz")
+
+# Update after each release. Compute with: sha256sum sapl-language-server-*.tar.gz
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+    install -Dm755 sapl-language-server "${pkgdir}/usr/bin/sapl-language-server"
+    install -Dm644 "${srcdir}/../sapl-language-server.1" "${pkgdir}/usr/share/man/man1/sapl-language-server.1"
+}

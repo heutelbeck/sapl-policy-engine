@@ -1,0 +1,73 @@
+.\" Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+.\" SPDX-License-Identifier: Apache-2.0
+.TH SAPL-LANGUAGE-SERVER 1 "2026-03-16" "SAPL 4.0.0" "SAPL Language Server"
+.SH NAME
+sapl-language-server \- language server for SAPL policy and test files
+.SH SYNOPSIS
+.B sapl-language-server
+.RB [ \-\-socket
+.RB [ \-\-port=\fIPORT\fR ]]
+.SH DESCRIPTION
+.B sapl-language-server
+implements the Language Server Protocol (LSP) for
+.I .sapl
+policy files and
+.I .sapltest
+test files.
+.PP
+Features include syntax error diagnostics, semantic validation,
+context-aware content assist, document formatting, document symbols,
+folding ranges, selection ranges, hover documentation, variable rename,
+and semantic token highlighting.
+.PP
+By default the server communicates over standard input and output (stdio mode).
+Editors launch the binary directly and connect via pipes.
+.PP
+In socket mode the server listens on a TCP port and accepts multiple
+concurrent editor connections.
+.SH OPTIONS
+.TP
+.B \-\-socket
+Listen on a TCP socket instead of stdio. The server binds to
+.B localhost
+only.
+.TP
+.BI \-\-port= PORT
+TCP port for socket mode. Default:
+.BR 5007 .
+Ignored when running in stdio mode.
+.SH EXIT STATUS
+.TP
+.B 0
+Normal shutdown.
+.TP
+.B 1
+Startup error (e.g., port already in use).
+.SH EXAMPLES
+Start in stdio mode (typical editor integration):
+.PP
+.RS
+.nf
+sapl-language-server
+.fi
+.RE
+.PP
+Start in socket mode on the default port:
+.PP
+.RS
+.nf
+sapl-language-server --socket
+.fi
+.RE
+.PP
+Start in socket mode on a custom port:
+.PP
+.RS
+.nf
+sapl-language-server --socket --port=9090
+.fi
+.RE
+.SH SEE ALSO
+.BR sapl (1)
+.PP
+Full documentation: <https://sapl.io>
