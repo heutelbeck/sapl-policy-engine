@@ -38,6 +38,7 @@ jobs:
             upload-path: |
               sapl-node/target/sapl
               sapl-node/target/generated-man/*.1
+              sapl-node/target/generated-completion/sapl.bash
           - os: ubuntu-24.04-arm
             artifact-name: sapl-linux-arm64
             executable: sapl

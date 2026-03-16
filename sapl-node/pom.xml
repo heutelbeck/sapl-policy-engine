@@ -336,6 +336,40 @@
 						</configuration>
 					</execution>
 					<execution>
+						<id>create-completion-dir</id>
+						<phase>process-test-classes</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<skip>${maven.test.skip}</skip>
+							<executable>mkdir</executable>
+							<arguments>
+								<argument>-p</argument>
+								<argument>${project.build.directory}/generated-completion</argument>
+							</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>generate-bash-completion</id>
+						<phase>process-test-classes</phase>
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration>
+							<skip>${maven.test.skip}</skip>
+							<mainClass>picocli.AutoComplete</mainClass>
+							<classpathScope>test</classpathScope>
+							<arguments>
+								<argument>--name=sapl</argument>
+								<argument>--force</argument>
+								<argument>-o</argument>
+								<argument>${project.build.directory}/generated-completion/sapl.bash</argument>
+								<argument>io.sapl.node.cli.SaplNodeCli</argument>
+							</arguments>
+						</configuration>
+					</execution>
+					<execution>
 						<id>generate-markdown-reference</id>
 						<phase>process-test-classes</phase>
 						<goals>
