@@ -48,10 +48,12 @@ mkdir ~\.sapl
 
 Create `~/.sapl/allow-mrt.sapl`:
 
-```sapl
+```sapl-demo
 policy "Dr. House is allowed to use the MRT!"
-permit subject == "housemd" & action == "use" & resource == "MRT";
+permit
+  subject == "housemd" & action == "use" & resource == "MRT";
 ```
+{: data-json='{"subject":"housemd","action":"use","resource":"MRT"}' }
 
 #### Evaluate with decide-once
 
@@ -134,12 +136,13 @@ Press `Ctrl+C` to stop the stream.
 
 The PDP loads all `.sapl` files from the policy directory. Create a second policy file `~/.sapl/cuddy-time-limited.sapl` that gives Cuddy time-limited access:
 
-```sapl
+```sapl-demo
 policy "Dr. Cuddy has time-limited MRT access"
 permit
   subject == "cuddy" & action == "use" & resource == "MRT";
   time.secondOf(<time.now>) % 10 < 5;
 ```
+{: data-json='{"subject":"cuddy","action":"use","resource":"MRT"}' }
 
 `<time.now>` is an *attribute stream*. It emits the current UTC timestamp once per second. The `time.secondOf` function extracts the seconds component. The modulo expression makes the policy applicable only when the current second is 0-4 within each 10-second window.
 

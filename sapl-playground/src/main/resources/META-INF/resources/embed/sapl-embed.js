@@ -1,21 +1,27 @@
 /*
- * SAPL Playground Embed Script
+ * SAPL Embed Script
  *
- * Renders a read-only CodeMirror placeholder with SAPL syntax highlighting.
- * On click, lazy-loads the interactive Vaadin web component.
+ * Provides CodeMirror-based SAPL syntax highlighting for all SAPL code blocks
+ * and adds interactive playground loading for demo blocks.
  *
- * Usage:
+ * Element types:
+ *
+ *   <sapl-code>   -- static read-only CodeMirror editor (replaces Rouge highlighting)
+ *   <sapl-demo>   -- interactive: CodeMirror + "Try it live" click-to-load playground
+ *
+ * Both elements expect a <pre> fallback and (for demos) hidden <script> blocks:
+ *
  *   <sapl-demo>
- *       <script type="sapl/policy">
- *   policy "example"
- *   permit
- *     action == "read"
- *       </script>
- *       <script type="sapl/subscription">
- *   {"subject": "alice", "action": "read", "resource": "document"}
- *       </script>
+ *       <pre class="sapl-fallback"><code>policy "example" permit</code></pre>
+ *       <script type="sapl/policy">policy "example" permit</script>
+ *       <script type="sapl/subscription">{"subject":"alice",...}</script>
  *   </sapl-demo>
- *   <script type="module" src="http://playground-host/embed/sapl-embed.js"></script>
+ *
+ *   <sapl-code>
+ *       <pre class="sapl-fallback"><code>policy "example" permit</code></pre>
+ *   </sapl-code>
+ *
+ * Load via: <script type="module" src="https://playground.sapl.io/embed/sapl-embed.js"></script>
  */
 
 var PLAYGROUND_ORIGIN = new URL(import.meta.url).origin;
@@ -27,14 +33,22 @@ function injectStyles() {
     var style = document.createElement('style');
     style.id = 'sapl-embed-styles';
     style.textContent =
-        'sapl-demo { display: block; }' +
+        'sapl-code, sapl-demo { display: block; }' +
+        'sapl-code .sapl-fallback, sapl-demo .sapl-fallback { display: none; }' +
+        'sapl-code .cm-editor, sapl-demo .cm-editor {' +
+        '  border-radius: 8px;' +
+        '  overflow: hidden;' +
+        '}' +
         'sapl-demo .sapl-placeholder {' +
         '  cursor: pointer;' +
         '  border: 1px solid rgba(255, 255, 255, 0.1);' +
         '  border-radius: 8px;' +
         '  overflow: hidden;' +
         '}' +
-        'sapl-demo .sapl-placeholder .cm-editor { cursor: pointer; }' +
+        'sapl-demo .sapl-placeholder .cm-editor {' +
+        '  cursor: pointer;' +
+        '  border-radius: 0;' +
+        '}' +
         'sapl-demo .sapl-hint {' +
         '  padding: 0.5em 1em;' +
         '  color: #6c7086;' +
@@ -50,16 +64,18 @@ function injectStyles() {
     document.head.appendChild(style);
 }
 
-var saplLanguage;
+var cmModules;
 
 async function loadCodeMirror() {
+    if (cmModules) return cmModules;
+
     var [{basicSetup, EditorView}, {StreamLanguage}, {oneDark}] = await Promise.all([
         import('https://esm.sh/codemirror'),
         import('https://esm.sh/@codemirror/language'),
         import('https://esm.sh/@codemirror/theme-one-dark')
     ]);
 
-    saplLanguage = StreamLanguage.define({
+    var saplLanguage = StreamLanguage.define({
         token: function(stream) {
             if (stream.match(/\/\/.*/)) return 'comment';
             if (stream.match(/\/\*[\s\S]*?\*\//)) return 'comment';
@@ -76,7 +92,8 @@ async function loadCodeMirror() {
         }
     });
 
-    return { basicSetup, EditorView, oneDark };
+    cmModules = { basicSetup, EditorView, oneDark, saplLanguage };
+    return cmModules;
 }
 
 function loadWcScript() {
@@ -88,16 +105,41 @@ function loadWcScript() {
     document.head.appendChild(script);
 }
 
+function getCode(container) {
+    var codeEl = container.querySelector('pre code');
+    return codeEl ? codeEl.textContent.trim() : '';
+}
+
+function createEditor(parent, code, modules) {
+    new modules.EditorView({
+        doc: code,
+        extensions: [
+            modules.basicSetup,
+            modules.saplLanguage,
+            modules.oneDark,
+            modules.EditorView.editable.of(false)
+        ],
+        parent: parent
+    });
+}
+
+async function initStatic(container) {
+    var code = getCode(container);
+    var modules = await loadCodeMirror();
+
+    var editorDiv = document.createElement('div');
+    container.appendChild(editorDiv);
+    createEditor(editorDiv, code, modules);
+}
+
 async function initDemo(container) {
     var policyEl = container.querySelector('script[type="sapl/policy"]');
     var subscriptionEl = container.querySelector('script[type="sapl/subscription"]');
 
-    var policy = policyEl ? policyEl.textContent.trim() : '';
+    var policy = policyEl ? policyEl.textContent.trim() : getCode(container);
     var subscription = subscriptionEl ? subscriptionEl.textContent.trim() : '{}';
 
-    var { basicSetup, EditorView, oneDark } = await loadCodeMirror();
-
-    container.innerHTML = '';
+    var modules = await loadCodeMirror();
 
     var placeholder = document.createElement('div');
     placeholder.className = 'sapl-placeholder';
@@ -114,12 +156,7 @@ async function initDemo(container) {
     placeholder.appendChild(hint);
 
     container.appendChild(placeholder);
-
-    new EditorView({
-        doc: policy,
-        extensions: [basicSetup, saplLanguage, oneDark, EditorView.editable.of(false)],
-        parent: editorDiv
-    });
+    createEditor(editorDiv, policy, modules);
 
     var activated = false;
 
@@ -147,4 +184,5 @@ async function initDemo(container) {
 }
 
 injectStyles();
+document.querySelectorAll('sapl-code').forEach(initStatic);
 document.querySelectorAll('sapl-demo').forEach(initDemo);

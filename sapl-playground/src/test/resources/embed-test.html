@@ -19,22 +19,27 @@
 </head>
 <body>
 
-<h1>SAPL Web Component Embed Test</h1>
-<p>This page validates embedding a Vaadin-exported web component into static HTML.
-   The component lazy-loads when the user clicks the placeholder.</p>
+<h1>SAPL Embed Test</h1>
 
+<h2>Static code block (sapl-code)</h2>
+<sapl-code>
+    <pre class="sapl-fallback"><code>policy "read only"
+permit
+  action == "read";</code></pre>
+</sapl-code>
+
+<h2>Interactive demo (sapl-demo)</h2>
 <sapl-demo>
+    <pre class="sapl-fallback"><code>policy "example"
+permit
+  time.secondOf(&lt;time.now&gt;) % 5 &lt; 2;</code></pre>
     <script type="sapl/policy">
 policy "example"
 permit
   time.secondOf(<time.now>) % 5 < 2;
     </script>
     <script type="sapl/subscription">
-{
-  "subject": "alice",
-  "action": "read",
-  "resource": "document"
-}
+{"subject":"alice","action":"read","resource":"document"}
     </script>
 </sapl-demo>
 

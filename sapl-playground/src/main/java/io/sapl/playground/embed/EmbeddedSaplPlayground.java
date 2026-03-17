@@ -179,7 +179,12 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
      */
     public void setSubscription(String subscription) {
         if (subscriptionEditor != null && subscription != null) {
-            subscriptionEditor.setDocument(subscription);
+            try {
+                val json = mapper.readTree(subscription);
+                subscriptionEditor.setDocument(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
+            } catch (JacksonException e) {
+                subscriptionEditor.setDocument(subscription);
+            }
         }
     }
 
