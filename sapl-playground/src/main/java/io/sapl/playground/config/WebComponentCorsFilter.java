@@ -29,6 +29,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 /**
  * CORS filter that allows cross-origin requests to the web component and
@@ -38,30 +39,39 @@ import java.util.List;
 @Component
 class WebComponentCorsFilter extends OncePerRequestFilter {
 
-    private final EmbedCorsProperties properties;
+    private static final String ALLOWED_HEADERS = "Content-Type, Accept, X-Requested-With, v-r";
+
+    private final Set<String> allowedOrigins;
 
     WebComponentCorsFilter(EmbedCorsProperties properties) {
-        this.properties = properties;
+        this.allowedOrigins = Set.copyOf(properties.allowedOrigins());
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         val origin = request.getHeader("Origin");
-        if (origin != null && properties.allowedOrigins().contains(origin)) {
-            response.setHeader("Access-Control-Allow-Origin", origin);
+        val matchedOrigin = origin != null ? findAllowedOrigin(origin) : null;
+        if (matchedOrigin != null) {
+            response.setHeader("Access-Control-Allow-Origin", matchedOrigin);
             response.setHeader("Access-Control-Allow-Credentials", "true");
             if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
                 response.setHeader("Access-Control-Allow-Methods", "GET, POST");
-                val requestedHeaders = request.getHeader("Access-Control-Request-Headers");
-                if (requestedHeaders != null) {
-                    response.setHeader("Access-Control-Allow-Headers", requestedHeaders);
-                }
+                response.setHeader("Access-Control-Allow-Headers", ALLOWED_HEADERS);
                 response.setStatus(HttpServletResponse.SC_OK);
                 return;
             }
         }
         chain.doFilter(request, response);
+    }
+
+    private String findAllowedOrigin(String origin) {
+        for (val allowed : allowedOrigins) {
+            if (allowed.equals(origin)) {
+                return allowed;
+            }
+        }
+        return null;
     }
 
     @ConfigurationProperties(prefix = "sapl.embed.cors")
