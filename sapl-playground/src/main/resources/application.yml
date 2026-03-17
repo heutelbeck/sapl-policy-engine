@@ -1,16 +1,26 @@
 server:
   port: ${PORT:8080}
+  servlet:
+    session:
+      persistent: false
 
 vaadin:
   allowed-packages: io.sapl
 
+sapl:
+  embed:
+    cors:
+      allowed-origins:
+        - http://localhost:9000
+
 logging:
   level:
-    org.atmosphere: warn
+    org.atmosphere: error
     org.springframework.boot.devtools.restart.ChangeableUrls: warn
     io.sapl.lsp.core.ConfigurationManager: warn
     io.sapl.lsp.core.document.DocumentManager: warn
     io.sapl.lsp.server.SAPLLanguageServer: warn
+    io.sapl.pdp.configuration.PdpVoterSource: error
     io.sapl.vaadin: info
-    io.sapl.vaadin.lsp.LspWebSocketEndpoint: warn
+    io.sapl.vaadin.lsp.LspWebSocketEndpoint: off
     io.sapl.playground.ui: info

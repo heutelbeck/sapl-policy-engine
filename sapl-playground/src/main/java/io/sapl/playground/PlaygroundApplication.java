@@ -26,11 +26,13 @@ import com.vaadin.flow.theme.aura.Aura;
 import io.sapl.api.SaplVersion;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 import java.io.Serial;
 
 @Push
 @SpringBootApplication
+@ConfigurationPropertiesScan
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("themes/sapl/styles-aura.css")
 @StyleSheet("styles/playground.css")

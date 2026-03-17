@@ -141,7 +141,7 @@ public class PdpVoterSource {
                 getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null,
                         0, current.lastSuccessfulLoad(), now, formattedError));
             }
-            log.error("Configuration rejected:\n{}", formattedError);
+            log.warn("Configuration rejected:\n{}", formattedError);
             return;
         }
         val optionalConfig = Optional.of(newConfiguration);
