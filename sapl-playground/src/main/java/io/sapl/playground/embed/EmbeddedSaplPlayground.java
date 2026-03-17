@@ -104,11 +104,11 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
 
     private static final String URL_HASH_PREFIX = "#permalink/";
 
-    private final JsonMapper                              mapper;
-    private final transient PlaygroundValidator           validator;
-    private final transient PlaygroundPolicyDecisionPoint policyDecisionPoint;
-    private final transient PermalinkConfiguration        permalinkConfiguration;
-    private final transient PermalinkService              permalinkService;
+    private final JsonMapper                        mapper;
+    private transient PlaygroundValidator           validator;
+    private transient PlaygroundPolicyDecisionPoint policyDecisionPoint;
+    private transient PermalinkConfiguration        permalinkConfiguration;
+    private transient PermalinkService              permalinkService;
 
     private SaplEditorLsp           policyEditor;
     private ValidationStatusDisplay policyValidationDisplay;
