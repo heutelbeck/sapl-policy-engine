@@ -309,7 +309,7 @@ All evaluation commands accept `--remote` to connect to a running SAPL Node inst
 | `--token` | `SAPL_BEARER_TOKEN` | |
 | `--basic-auth` | `SAPL_BASIC_AUTH` | |
 
-Flags take precedence over environment variables. For evaluation command details (`decide`, `decide-once`, `check`), see [Getting Started](../1_3_GettingStarted/). For `test`, see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/).
+Flags take precedence over environment variables. For evaluation command details (`decide`, `decide-once`, `check`), see [Getting Started](../1_2_GettingStarted/). For `test`, see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/).
 
 #### Bundle and Credential Commands
 
