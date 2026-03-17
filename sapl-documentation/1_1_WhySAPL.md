@@ -68,4 +68,4 @@ Different authorization engines reflect different design priorities. A brief, no
 
 All of these engines implement attribute-based access control. The meaningful differences are in how they integrate external data, whether they support streaming evaluation, what they include in the authorization decision beyond permit/deny, and how they approach policy testing and verification.
 
-To see the language in action, continue to the [Introduction](../1_2_Introduction/).
+To get started, continue to [Getting Started](../1_2_GettingStarted/).
