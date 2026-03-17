@@ -16,13 +16,16 @@ SAPL (Streaming Attribute Policy Language) is a domain-specific language for exp
 
 Here is what a SAPL policy looks like:
 
-```sapl
+```sapl-demo
 policy "compartmentalize read access by department"
 permit
     resource.type == "patient_record" & action == "read";
     subject.role == "doctor";
     resource.department == subject.department;
 ```
+<!-- sapl-subscription
+{"subject":{"role":"doctor","department":"cardiology"},"action":"read","resource":{"type":"patient_record","department":"cardiology"}}
+-->
 
 **In plain English:** *"Permit reading patient records if the reader is a doctor from the same department as the record."*
 

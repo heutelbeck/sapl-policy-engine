@@ -32,7 +32,7 @@ fly, or triggering side effects and processes like audits.
 
 Here is a simple example of a SAPL policy:
 
-```sapl
+```sapl-demo
 policy "I am a minimal example"
 permit
     action == "read";
@@ -70,7 +70,7 @@ Every policy begins with the keyword `policy` followed by a unique name (a strin
 - Optional **advice** blocks (recommendations the PEP **should** consider)
 - An optional **transform** expression (resource transformation)
 
-```sapl
+```sapl-demo
 policy "permit reading patient records for doctors"
 permit                                       // entitlement
     resource.type == "patient_record";       // condition 1
@@ -84,6 +84,9 @@ advice
 transform
     resource |- filter.blacken
 ```
+<!-- sapl-subscription
+{"subject":{"role":"doctor","department":"cardiology"},"action":"read","resource":{"type":"patient_record","department":"cardiology","content":"sensitive data"}}
+-->
 
 ### Name
 
@@ -96,21 +99,27 @@ The entitlement is either `permit` or `deny`. It determines the vote the policy 
 {: .note }
 > Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny` policy or whether there is just no permitting policy for a certain situation.
 
-```sapl
+```sapl-demo
 policy "allow doctors to read patient records"
 permit
     subject.role == "doctor";
     action == "read";
     resource.type == "patient_record";
 ```
+<!-- sapl-subscription
+{"subject":{"role":"doctor"},"action":"read","resource":{"type":"patient_record"}}
+-->
 
-```sapl
+```sapl-demo
 policy "deny access outside business hours"
 deny
     resource.type == "patient_record";
     action == "read";
     !<time.localTimeIsBetween("08:00:00", "18:00:00")>;
 ```
+<!-- sapl-subscription
+{"subject":"doctor","action":"read","resource":{"type":"patient_record"}}
+-->
 
 The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute (covered in [Functions and Attribute Finders](../2_8_FunctionsAndAttributes/)).
 
@@ -125,7 +134,7 @@ All conditions must evaluate to `true` for the policy to apply. If the body is m
 
 The values from the authorization subscription are bound to `subject`, `action`, `resource`, and `environment`.
 
-```sapl
+```sapl-demo
 policy "compartmentalize read access by department"
 permit
     resource.type == "patient_record";
@@ -135,6 +144,9 @@ permit
     subject.role == "doctor";
     userDept == resourceDept;
 ```
+<!-- sapl-subscription
+{"subject":{"role":"doctor","department":"cardiology"},"action":"read","resource":{"type":"patient_record","department":"cardiology"}}
+-->
 
 A variable assignment starts with the keyword `var`, followed by an identifier, `=`, and an expression. The result can then be used in later statements within the same policy. This avoids redundant calculations or repeated calls to external attribute sources, and improves readability. Variable assignments always evaluate to `true`.
 

@@ -51,7 +51,7 @@ The `first or deny` algorithm evaluates policies in document order and uses the 
 
 > **Note:** This is a fictional scenario to illustrate how policy order can encode business priority.
 
-```sapl
+```sapl-demo
 set "facility access control"
 first or deny
 for resource.type == "facility"
@@ -68,6 +68,9 @@ policy "standard access during business hours"
 permit
     <time.localTimeIsBetween("08:00:00", "18:00:00")>;
 ```
+<!-- sapl-subscription
+{"subject":{"id":"alice"},"action":"enter","resource":{"type":"facility","vipList":["alice","bob"],"blacklist":["eve"]}}
+-->
 
 The policy order encodes business priority: "VIP status trumps blacklist status."
 
