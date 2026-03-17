@@ -54,6 +54,9 @@ permit
 ```
 {: data-subject="housemd" data-action="use" data-resource="MRT" }
 
+{: .note }
+> If you are reading this on the documentation site, the embedded playground above shows the result of evaluating this single policy in isolation. It displays the outcome of the one matching policy only. A full PDP additionally applies a *combining algorithm* on top that merges the results of all loaded policies into a final decision. For example, when no policy matches, the embedded playground shows `NOT_APPLICABLE`, while a PDP configured with a deny-by-default algorithm returns `DENY`. The CLI examples below use a full PDP with such a configuration.
+
 #### Evaluate with decide-once
 
 The `decide-once` command evaluates the subscription against all loaded policies, prints the result, and exits. A subscription has three required components: `--subject`, `--action`, and `--resource`, each a JSON value:
