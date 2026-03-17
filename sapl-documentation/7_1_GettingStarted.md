@@ -59,7 +59,7 @@ The node starts on `localhost:8443` with no TLS and no authentication required. 
 
 In a separate terminal, request a one-shot decision:
 
-<details open>
+<details open markdown="1">
 <summary>sapl CLI</summary>
 
 ```shell
@@ -67,7 +67,7 @@ sapl decide-once --remote -s '"anyone"' -a '"read"' -r '"clock"'
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>curl</summary>
 
 ```shell
@@ -80,7 +80,7 @@ The response is a single JSON object. Depending on the current second, the decis
 
 Now try streaming. This is where SAPL shows its strength. The PDP holds the connection open and pushes a new decision every time the policy evaluation result changes:
 
-<details open>
+<details open markdown="1">
 <summary>sapl CLI</summary>
 
 ```shell
@@ -88,7 +88,7 @@ sapl decide --remote -s '"anyone"' -a '"read"' -r '"clock"'
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>curl</summary>
 
 ```shell

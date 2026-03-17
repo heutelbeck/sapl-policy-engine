@@ -28,7 +28,7 @@ sapl --version
 
 By default, the CLI loads policies from `~/.sapl/`. Create the directory and a policy file:
 
-<details open>
+<details open markdown="1">
 <summary>Bash</summary>
 
 ```bash
@@ -36,7 +36,7 @@ mkdir -p ~/.sapl
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>PowerShell</summary>
 
 ```powershell
@@ -58,7 +58,7 @@ permit
 
 The `decide-once` command evaluates the subscription against all loaded policies, prints the result, and exits. A subscription has three required components: `--subject`, `--action`, and `--resource`, each a JSON value:
 
-<details open>
+<details open markdown="1">
 <summary>Bash</summary>
 
 ```bash
@@ -66,7 +66,7 @@ sapl decide-once --subject '"housemd"' --action '"use"' --resource '"MRT"'
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>PowerShell</summary>
 
 ```powershell
@@ -87,7 +87,7 @@ This prints `{"decision":"PERMIT"}`. The policy matches: subject `housemd`, acti
 
 Try a request that does not match:
 
-<details open>
+<details open markdown="1">
 <summary>Bash</summary>
 
 ```bash
@@ -95,7 +95,7 @@ sapl decide-once -s '"cuddy"' -a '"use"' -r '"MRT"'
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>PowerShell</summary>
 
 ```powershell
@@ -110,7 +110,7 @@ This returns `{"decision":"DENY"}`. No policy matches subject `cuddy`, so the PD
 
 The `decide` command holds the subscription open and prints a new decision whenever the result changes:
 
-<details open>
+<details open markdown="1">
 <summary>Bash</summary>
 
 ```bash
@@ -118,7 +118,7 @@ sapl decide -s '"housemd"' -a '"use"' -r '"MRT"'
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>PowerShell</summary>
 
 ```powershell
@@ -147,7 +147,7 @@ permit
 
 Start a streaming subscription for Cuddy:
 
-<details open>
+<details open markdown="1">
 <summary>Bash</summary>
 
 ```bash
@@ -155,7 +155,7 @@ sapl decide -s '"cuddy"' -a '"use"' -r '"MRT"'
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>PowerShell</summary>
 
 ```powershell
@@ -170,7 +170,7 @@ Watch the decision flip between `PERMIT` and `DENY` every five seconds. The PDP 
 
 The `check` command evaluates a subscription and exits with a code that encodes the decision: `0` for PERMIT, `2` for DENY. No output is written to stdout, making it ideal for shell scripts. Here is a script that checks authorization before starting the MRT:
 
-<details open>
+<details open markdown="1">
 <summary>Bash</summary>
 
 ```bash
@@ -183,7 +183,7 @@ fi
 ```
 
 </details>
-<details>
+<details markdown="1">
 <summary>PowerShell</summary>
 
 ```powershell
