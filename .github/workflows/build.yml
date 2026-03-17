@@ -1100,6 +1100,7 @@ jobs:
               --restart unless-stopped \
               -p 9003:8080 \
               -e SAPL_PLAYGROUND_BASEURL=https://playground.sapl.io \
+              -e SAPL_EMBED_CORS_ALLOWEDORIGINS_0=https://sapl.io \
               ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
 
             echo "Verifying deployment..."

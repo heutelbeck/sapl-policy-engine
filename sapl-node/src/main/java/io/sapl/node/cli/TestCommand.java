@@ -335,6 +335,11 @@ class TestCommand implements Callable<Integer> {
         val totalDuration = results.scenarioResults().stream().map(ScenarioResult::duration).reduce(Duration.ZERO,
                 Duration::plus);
 
+        out.println(buildSummaryLine(results, color));
+        out.println("Time:   " + styled(color, ANSI_FAINT, formatDuration(totalDuration.toMillis())));
+    }
+
+    private static String buildSummaryLine(PlainTestResults results, boolean color) {
         val summary = new StringBuilder("Tests:  ");
         if (results.passed() > 0) {
             summary.append(styled(color, ANSI_BOLD_GREEN, results.passed() + " passed"));
@@ -346,8 +351,7 @@ class TestCommand implements Callable<Integer> {
             summary.append(", ").append(styled(color, ANSI_BOLD_RED, results.errors() + " errors"));
         }
         summary.append(", ").append(results.total()).append(" total");
-        out.println(summary);
-        out.println("Time:   " + styled(color, ANSI_FAINT, formatDuration(totalDuration.toMillis())));
+        return summary.toString();
     }
 
     private static String styled(boolean color, String code, String text) {
