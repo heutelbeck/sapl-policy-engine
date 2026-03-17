@@ -252,6 +252,7 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         layout.setSpacing(true);
         layout.setAlignItems(FlexComponent.Alignment.STRETCH);
         layout.getStyle().set(CSS_MARGIN_TOP, CSS_SPACE_S);
+        layout.getStyle().set("overflow", "hidden");
 
         val subscriptionColumn = buildSubscriptionColumn();
         val decisionColumn     = buildDecisionColumn();
