@@ -19,6 +19,7 @@ package io.sapl.playground.embed;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.shared.communication.PushMode;
+import com.vaadin.flow.shared.ui.Transport;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -148,6 +149,7 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         attachEvent.getUI().getPushConfiguration().setPushMode(PushMode.AUTOMATIC);
+        attachEvent.getUI().getPushConfiguration().setTransport(Transport.LONG_POLLING);
     }
 
     /**

@@ -50,7 +50,7 @@ class WebComponentCorsFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        val origin = request.getHeader("Origin");
+        val origin        = request.getHeader("Origin");
         val matchedOrigin = origin != null ? findAllowedOrigin(origin) : null;
         if (matchedOrigin != null) {
             response.setHeader("Access-Control-Allow-Origin", matchedOrigin);

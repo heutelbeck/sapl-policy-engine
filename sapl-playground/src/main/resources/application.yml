@@ -3,6 +3,9 @@ server:
   servlet:
     session:
       persistent: false
+      cookie:
+        same-site: none
+        secure: true
 
 vaadin:
   allowed-packages: io.sapl
