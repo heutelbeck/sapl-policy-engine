@@ -53,7 +53,7 @@ policy "Dr. House is allowed to use the MRT!"
 permit
   subject == "housemd" & action == "use" & resource == "MRT";
 ```
-{: data-json='{"subject":"housemd","action":"use","resource":"MRT"}' }
+{: data-subject="housemd" data-action="use" data-resource="MRT" }
 
 #### Evaluate with decide-once
 
@@ -142,7 +142,7 @@ permit
   subject == "cuddy" & action == "use" & resource == "MRT";
   time.secondOf(<time.now>) % 10 < 5;
 ```
-{: data-json='{"subject":"cuddy","action":"use","resource":"MRT"}' }
+{: data-subject="cuddy" data-action="use" data-resource="MRT" }
 
 `<time.now>` is an *attribute stream*. It emits the current UTC timestamp once per second. The `time.secondOf` function extracts the seconds component. The modulo expression makes the policy applicable only when the current second is 0-4 within each 10-second window.
 
