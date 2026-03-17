@@ -31,7 +31,7 @@ import java.io.Serial;
  * {@code /web-component/sapl-playground.js} and can be embedded in any HTML
  * page.
  */
-@CssImport("embed-playground.css")
+@CssImport("./embed-playground.css")
 public class EmbeddedSaplPlaygroundExporter extends WebComponentExporter<EmbeddedSaplPlayground> {
     @Serial
     private static final long serialVersionUID = 1L;
