@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Java API
-parent: Integration
+parent: SDKs and APIs
 nav_order: 602
 ---
 

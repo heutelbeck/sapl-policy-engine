@@ -1,11 +1,11 @@
 ---
 layout: default
-title: Spring Security
-parent: Integration
-nav_order: 604
+title: Spring
+parent: SDKs and APIs
+nav_order: 603
 ---
 
-# SAPL Spring Security
+## Spring SDK
 
 This library integrates SAPL authorization into Spring Boot applications. You write authorization rules as external policy files, and SAPL enforces them at runtime without code changes or redeployment. For background on why and when to use policy-based authorization, see [Why SAPL?](../1_1_WhySAPL/).
 

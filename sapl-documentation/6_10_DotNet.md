@@ -1,12 +1,12 @@
 ---
 layout: default
-title: C# .NET
+title: .NET
 has_children: false
-parent: Integration
-nav_order: 611
+parent: SDKs and APIs
+nav_order: 610
 ---
 
-## .NET Integration
+## .NET SDK
 
 Attribute-Based Access Control (ABAC) for ASP.NET Core using SAPL (Streaming Attribute Policy Language). Provides attribute-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 

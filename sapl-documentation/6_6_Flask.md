@@ -1,17 +1,17 @@
 ---
 layout: default
-title: Python Django
-#permalink: /python-django/
+title: Flask
+#permalink: /python-flask/
 has_children: false
-parent: Integration
+parent: SDKs and APIs
 nav_order: 606
 ---
 
-## Python Django Integration
+## Flask SDK
 
-Attribute-Based Access Control (ABAC) for Django using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
+Attribute-Based Access Control (ABAC) for Flask using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
-The `sapl-django` library integrates SAPL policy enforcement into Django applications with asynchronous (ASGI) views and Server-Sent Events streaming for continuous authorization.
+The `sapl-flask` library integrates SAPL policy enforcement into Flask applications as a Flask extension. It wraps Flask's synchronous request model with an internal async bridge to communicate with the PDP, and supports streaming responses with Server-Sent Events for continuous authorization.
 
 ### What is SAPL?
 
@@ -42,118 +42,127 @@ For a deeper introduction to SAPL's subscription model and policy language, see 
 Install the library and the base dependency:
 
 ```bash
-pip install sapl-django
+pip install sapl-flask
 ```
 
-This also installs `sapl-base`, which provides the PDP client, constraint engine, and content filtering. The library requires Python 3.12 or later and Django 4.2+.
+This also installs `sapl-base`, which provides the PDP client, constraint engine, and content filtering. The library requires Python 3.12 or later and Flask 3.0+.
 
-A complete working demo with constraint handlers, content filtering, and streaming enforcement is available at [sapl-python-demos/django_demo](https://github.com/heutelbeck/sapl-python-demos/tree/main/django_demo).
+A complete working demo with constraint handlers and streaming enforcement is available at [sapl-python-demos/flask_demo](https://github.com/heutelbeck/sapl-python-demos/tree/main/flask_demo).
 
 ### Setup
 
-#### Configuration via Django Settings
+#### Flask Extension
 
-Add `SAPL_CONFIG` to your Django settings module:
+Initialize the `SaplFlask` extension with your Flask application. Configuration is read from `app.config`:
 
 ```python
-# settings.py
+from flask import Flask
+from sapl_flask import SaplFlask
 
-SAPL_CONFIG = {
-    "base_url": "https://localhost:8443",
-    "token": "sapl_your_api_key_here",
-}
+app = Flask(__name__)
+app.config["SAPL_BASE_URL"] = "https://localhost:8443"
+app.config["SAPL_TOKEN"] = "sapl_your_api_key_here"
+
+sapl = SaplFlask(app)
 ```
 
 For basic authentication instead of an API key:
 
 ```python
-SAPL_CONFIG = {
-    "base_url": "https://localhost:8443",
-    "username": "myPdpClient",
-    "password": "myPassword",
-}
+app.config["SAPL_BASE_URL"] = "https://localhost:8443"
+app.config["SAPL_USERNAME"] = "myPdpClient"
+app.config["SAPL_PASSWORD"] = "myPassword"
+
+sapl = SaplFlask(app)
 ```
 
-`token` (API key) and `username`/`password` (Basic Auth) are mutually exclusive. Configure one or the other.
+`SAPL_TOKEN` (API key) and `SAPL_USERNAME`/`SAPL_PASSWORD` (Basic Auth) are mutually exclusive. Configure one or the other.
+
+#### Application Factory Pattern
+
+For applications using the factory pattern, use `init_app`:
+
+```python
+from sapl_flask import SaplFlask
+
+sapl = SaplFlask()
+
+
+def create_app():
+    app = Flask(__name__)
+    app.config["SAPL_BASE_URL"] = "https://localhost:8443"
+    app.config["SAPL_TOKEN"] = "sapl_your_api_key_here"
+
+    sapl.init_app(app)
+    return app
+```
+
+#### Local Development (HTTP)
 
 For local development without TLS:
 
 ```python
-SAPL_CONFIG = {
-    "base_url": "http://localhost:8443",
-    "allow_insecure_connections": True,
-}
+app.config["SAPL_BASE_URL"] = "http://localhost:8443"
+app.config["SAPL_ALLOW_INSECURE_CONNECTIONS"] = True
+
+sapl = SaplFlask(app)
 ```
 
-#### Middleware
+#### Cleanup
 
-Add `SaplRequestMiddleware` to the `MIDDLEWARE` list. It propagates the current `HttpRequest` via `contextvars` so the subscription builder can access it during enforcement:
+Register the extension's `close()` method with `atexit` to release PDP connections on shutdown:
 
 ```python
-# settings.py
+import atexit
 
-MIDDLEWARE = [
-    "sapl_django.middleware.SaplRequestMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    # ...
-]
+sapl = SaplFlask(app)
+atexit.register(sapl.close)
 ```
 
-The middleware supports both synchronous (`__call__`) and asynchronous (`__acall__`) request handling.
-
-#### Installed Apps
-
-Add `sapl_django` to `INSTALLED_APPS`:
-
-```python
-INSTALLED_APPS = [
-    "django.contrib.contenttypes",
-    "django.contrib.auth",
-    "sapl_django",
-    # your apps ...
-]
-```
-
-The PDP client and constraint enforcement service are created lazily on first use from `SAPL_CONFIG`. No explicit initialization call is required.
+The extension registers itself as `app.extensions["sapl"]` and is automatically discoverable by the enforcement decorators within any Flask application context.
 
 ### Enforcement Decorators
 
-All decorators work on async Django view functions. The decorated view must accept `request: HttpRequest` as a parameter (typically the first argument).
+All decorators work on synchronous Flask view functions. The decorators internally bridge to async for PDP communication. The Flask request context is accessed via `flask.request` and `flask.g`, so no explicit `request` parameter is needed in decorator arguments.
 
 #### @pre_enforce
 
 Authorizes **before** the view executes. The view only runs on PERMIT.
 
 ```python
-from django.http import HttpRequest, JsonResponse
-from sapl_django import pre_enforce
+from flask import Flask, jsonify
+from sapl_flask import SaplFlask, pre_enforce
+
+app = Flask(__name__)
+sapl = SaplFlask(app)
 
 
-@pre_enforce(action="read", resource="patient")
-async def get_patient(request: HttpRequest, patient_id: str) -> JsonResponse:
-    return JsonResponse({"id": patient_id, "name": "Jane Doe", "ssn": "123-45-6789"})
+@app.route("/patient/<patient_id>")
+@pre_enforce(action="readPatient", resource="patient")
+def get_patient(patient_id: str):
+    return jsonify({"id": patient_id, "name": "Jane Doe", "ssn": "123-45-6789"})
 ```
 
-Use `@pre_enforce` for views with side effects (database writes, emails) that should not execute when access is denied. On denial, Django's `PermissionDenied` exception is raised, which returns HTTP 403.
+Use `@pre_enforce` for views with side effects (database writes, emails) that should not execute when access is denied. On denial, Flask's `abort(403)` is called.
 
 #### @post_enforce
 
-Authorizes **after** the view executes. The view always runs; its return value is available to the subscription builder via the `return_value` argument.
+Authorizes **after** the view executes. The view always runs; its return value is available to the subscription builder via the `return_value` parameter.
 
 ```python
-from django.http import HttpRequest, JsonResponse
-from sapl_django import post_enforce
+from sapl_flask import post_enforce
 
 
+@app.route("/record/<record_id>")
 @post_enforce(
     action="read",
-    resource=lambda ctx: {"type": "record", "data": ctx.return_value},
+    resource=lambda: {"type": "record", "path": request.path},
 )
-async def get_record(request: HttpRequest, record_id: str) -> JsonResponse:
-    return JsonResponse({"id": record_id, "value": "sensitive-data"})
+def get_record(record_id: str):
+    return jsonify({"id": record_id, "value": "sensitive-data"})
 ```
 
-Use `@post_enforce` when the policy needs to see the actual return value to make its authorization decision (e.g., deny based on the data's classification). On denial, the return value is discarded and `PermissionDenied` is raised.
+Use `@post_enforce` when the policy needs to see the actual return value to make its authorization decision (e.g., deny based on the data's classification). On denial, the return value is discarded and `abort(403)` is called.
 
 #### Building the Authorization Subscription
 
@@ -161,15 +170,17 @@ Each decorator accepts keyword arguments to customize the authorization subscrip
 
 **Default Values**
 
-When not explicitly provided, the subscription fields are derived from the Django `HttpRequest`:
+When not explicitly provided, the subscription fields are derived from the Flask request context:
 
-| Field         | Default                                                                     |
-| ------------- | --------------------------------------------------------------------------- |
-| `subject`     | `request.user.username` or `"anonymous"` if no authenticated user           |
-| `action`      | `{"method": request.method, "view": function_name}`                         |
-| `resource`    | `{"path": request.path, "kwargs": resolver_match.kwargs}`                   |
-| `environment` | `{"ip": request.META["REMOTE_ADDR"]}` (when available)                      |
-| `secrets`     | Not sent unless explicitly specified                                        |
+| Field         | Default                                                                         |
+| ------------- | ------------------------------------------------------------------------------- |
+| `subject`     | `g.user`, or `flask_login.current_user`, or `"anonymous"`                       |
+| `action`      | `{"method": request.method, "endpoint": function_name}`                         |
+| `resource`    | `{"path": request.path, "view_args": request.view_args}`                        |
+| `environment` | `{"ip": request.remote_addr}` (when available)                                  |
+| `secrets`     | Not sent unless explicitly specified                                            |
+
+Flask-Login integration is automatic: if `flask-login` is installed and a user is authenticated, `current_user.username` (or `str(current_user)`) is used as the subject.
 
 **Static Values**
 
@@ -181,14 +192,16 @@ Pass a string or dict directly:
 
 **Dynamic Values (Callables)**
 
-Pass a callable that receives a `SubscriptionContext` and returns the field value. The context provides `request`, `return_value` (`None` for `@pre_enforce`), `params` (URL kwargs), `query` (query string), and `args` (resolved function arguments):
+Pass a callable that receives a `SubscriptionContext` and returns the field value. The context provides `request`, `return_value` (`None` for `@pre_enforce`), `params` (view args), `query` (query string), and `args` (resolved function arguments):
 
 ```python
 @pre_enforce(
-    subject=lambda ctx: ctx.request.user.username,
-    resource=lambda ctx: {"path": ctx.request.path, "method": ctx.request.method},
+    subject=lambda ctx: getattr(ctx.request, "user", "anonymous") if ctx.request else "anonymous",
+    resource=lambda ctx: {"path": ctx.params, "method": ctx.request.method} if ctx.request else {},
 )
 ```
+
+The `SubscriptionContext` is the same across all Python SAPL integrations, making subscription field callables portable between frameworks.
 
 **Secrets**
 
@@ -198,46 +211,46 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 @pre_enforce(
     action="exportData",
     resource=lambda ctx: {"pilotId": ctx.params.get("pilot_id")},
-    secrets=lambda ctx: {"jwt": getattr(ctx.request, "sapl_token", None)} if ctx.request else None,
+    secrets=lambda ctx: {"jwt": g.token} if hasattr(g, "token") else None,
 )
 ```
 
 **Custom Deny Handling**
 
-Add `on_deny` to any `@pre_enforce` or `@post_enforce` to return a custom response instead of raising `PermissionDenied`:
+Add `on_deny` to any `@pre_enforce` or `@post_enforce` to return a custom response instead of `abort(403)`:
 
 ```python
+from flask import jsonify
+
+
 @pre_enforce(
     action="exportData",
-    on_deny=lambda decision: JsonResponse(
-        {"error": "access_denied", "decision": decision.decision.value},
-        status=403,
-    ),
+    on_deny=lambda decision: (jsonify({"error": "access_denied"}), 403),
 )
 ```
 
 #### @enforce_till_denied
 
-Streaming enforcement that **terminates permanently** on the first non-PERMIT decision. The decorated view must return an async generator. Returns a Django `StreamingHttpResponse` with SSE format.
+Streaming enforcement that **terminates permanently** on the first non-PERMIT decision. The decorated view must return a generator. Returns a Flask `Response` with `text/event-stream` content type.
 
 ```python
-import asyncio
+import time
 from datetime import datetime, timezone
-from django.http import HttpRequest, StreamingHttpResponse
-from sapl_django import enforce_till_denied
+from sapl_flask import enforce_till_denied
 
 
+@app.route("/stream/heartbeat")
 @enforce_till_denied(
     action="stream:heartbeat",
     resource="heartbeat",
     on_stream_deny=lambda decision: {"type": "ACCESS_DENIED"},
 )
-async def heartbeat(request: HttpRequest):
+def heartbeat():
     seq = 0
     while True:
         yield {"seq": seq, "ts": datetime.now(timezone.utc).isoformat()}
         seq += 1
-        await asyncio.sleep(2)
+        time.sleep(2)
 ```
 
 The `on_stream_deny` callback receives the PDP decision and can return a final data item that is sent to the client before the stream terminates.
@@ -247,16 +260,17 @@ The `on_stream_deny` callback receives the PDP decision and can return a final d
 Silently **drops data** during DENY periods. The stream stays alive and resumes forwarding when a new PERMIT decision arrives.
 
 ```python
-from sapl_django import enforce_drop_while_denied
+from sapl_flask import enforce_drop_while_denied
 
 
+@app.route("/stream/data")
 @enforce_drop_while_denied(action="stream:heartbeat", resource="heartbeat")
-async def heartbeat(request: HttpRequest):
+def data_stream():
     seq = 0
     while True:
         yield {"seq": seq}
         seq += 1
-        await asyncio.sleep(2)
+        time.sleep(2)
 ```
 
 The client sees gaps in sequence numbers but the connection remains open. No signals are sent during DENY periods.
@@ -266,21 +280,22 @@ The client sees gaps in sequence numbers but the connection remains open. No sig
 Sends **in-band suspend/resume signals** on policy transitions. Edge-triggered: `on_stream_deny` fires on PERMIT-to-DENY transitions, `on_stream_recover` fires on DENY-to-PERMIT transitions.
 
 ```python
-from sapl_django import enforce_recoverable_if_denied
+from sapl_flask import enforce_recoverable_if_denied
 
 
+@app.route("/stream/recoverable")
 @enforce_recoverable_if_denied(
     action="stream:heartbeat",
     resource="heartbeat",
     on_stream_deny=lambda decision: {"type": "ACCESS_SUSPENDED"},
     on_stream_recover=lambda decision: {"type": "ACCESS_RESTORED"},
 )
-async def heartbeat(request: HttpRequest):
+def recoverable_stream():
     seq = 0
     while True:
         yield {"seq": seq}
         seq += 1
-        await asyncio.sleep(2)
+        time.sleep(2)
 ```
 
 | Scenario                                       | Strategy                          |
@@ -299,10 +314,10 @@ Only `PERMIT` grants access. The PDP can return four possible decisions (`PERMIT
 
 A `PERMIT` with obligations is not a free pass. The PEP checks that every obligation in the decision has a registered handler. If even one obligation cannot be fulfilled, the PEP treats the decision as a denial. If a handler accepts responsibility but fails during execution, that also results in denial. Advice is softer: if an advice handler fails, the PEP logs the failure and moves on. Advice never causes denial.
 
-| Aspect          | Obligation                                                         | Advice                                         |
-|-----------------|--------------------------------------------------------------------|-------------------------------------------------|
-| All handled?    | Required. Unhandled obligations deny access (PermissionDenied).    | Optional. Unhandled advice is silently ignored. |
-| Handler failure | Denies access (PermissionDenied).                                  | Logs a warning and continues.                   |
+| Aspect          | Obligation                                                | Advice                                         |
+|-----------------|-----------------------------------------------------------|-------------------------------------------------|
+| All handled?    | Required. Unhandled obligations deny access (403).        | Optional. Unhandled advice is silently ignored. |
+| Handler failure | Denies access (403).                                      | Logs a warning and continues.                   |
 
 This means you can always trust that if your view runs, every obligation attached to the decision has been successfully enforced.
 
@@ -324,7 +339,7 @@ For streaming views (`@enforce_till_denied`, `@enforce_drop_while_denied`, `@enf
 | Location           | When it happens                              | What constraints do here                |
 |--------------------|----------------------------------------------|-----------------------------------------|
 | On decision        | Each new decision from the PDP stream        | Side effects like logging, audit        |
-| On each data item  | Each element yielded by the async generator  | Transform, filter, or replace items     |
+| On each data item  | Each element yielded by the generator        | Transform, filter, or replace items     |
 | On stream error    | Generator produces an error                  | Transform or observe the error          |
 | On stream complete | Generator finishes normally                  | Cleanup and finalization                |
 | On cancel          | Client disconnects or enforcement terminates | Release resources and close connections |
@@ -337,7 +352,7 @@ When you decorate a view with `@pre_enforce`, here is what happens step by step.
 
 First, the PEP builds an authorization subscription from the decorator options (or from defaults if you left them out) and sends it to the PDP as a one-shot request. The PDP evaluates the subscription against all matching policies and returns a single decision.
 
-If the decision is anything other than `PERMIT`, the PEP raises `PermissionDenied` immediately. Your view never runs.
+If the decision is anything other than `PERMIT`, the PEP calls `abort(403)` immediately. Your view never runs.
 
 If the decision is `PERMIT`, the PEP resolves all constraint handlers. It walks through the obligations and advice attached to the decision and checks which registered handlers claim responsibility for each one. If any obligation has no matching handler, the PEP denies access right there, because it cannot guarantee the obligation will be enforced.
 
@@ -349,7 +364,7 @@ With all handlers resolved, execution proceeds through the enforcement locations
 
 This means the PDP can make decisions based on the actual data your view produced. For example, a policy might permit access to a record only if its classification level is below a threshold, something that can only be checked after loading the record.
 
-If the decision is not `PERMIT`, the PEP discards the return value and raises `PermissionDenied`.
+If the decision is not `PERMIT`, the PEP discards the return value and calls `abort(403)`.
 
 If the decision is `PERMIT`, constraint handlers proceed through the same stages as `@pre_enforce`, minus the method-invocation handlers (since the view has already run). Return-value handlers can still transform the result before it reaches the caller.
 
@@ -389,8 +404,10 @@ When the PDP returns a decision with `obligations` or `advice`, the constraint e
 
 #### Registering Custom Handlers
 
+Register handlers on the `SaplFlask` extension instance:
+
 ```python
-from sapl_django import register_constraint_handler
+from sapl_flask import SaplFlask
 from sapl_base.constraint_types import Signal
 
 
@@ -410,11 +427,11 @@ class LogAccessHandler:
         return handler
 
 
-# Register during Django app startup (e.g., in AppConfig.ready())
-register_constraint_handler(LogAccessHandler(), "runnable")
+sapl = SaplFlask(app)
+sapl.register_constraint_handler(LogAccessHandler(), "runnable")
 ```
 
-Register handlers in your Django `AppConfig.ready()` method so they are available when the first request arrives.
+Register all handlers after calling `SaplFlask(app)` or `sapl.init_app(app)`, typically at module level or in a dedicated setup function.
 
 #### MethodInvocationContext
 
@@ -426,7 +443,7 @@ The `MethodInvocationContext` provides:
 | `kwargs`        | `dict[str, Any]`  | Keyword arguments. Handlers can add, modify, or remove keys.          |
 | `function_name` | `str`             | The intercepted view function name                                    |
 | `class_name`    | `str`             | Qualified class name (empty for plain functions)                      |
-| `request`       | `Any`             | The Django `HttpRequest`, or `None` for service-layer calls           |
+| `request`       | `Any`             | The Flask request object, or `None` for service-layer calls           |
 
 Handlers can modify `context.kwargs` to change what arguments the view receives. This enables patterns like policy-driven transfer limits:
 
@@ -508,9 +525,9 @@ The built-in content filter supports **simple dot-notation paths only** (`$.fiel
 
 ### Streaming Authorization
 
-For SSE endpoints returning async generators, the three streaming decorators provide continuous authorization where the PDP streams decisions over time. Access may flip between PERMIT and DENY based on time, location, or context changes.
+For SSE endpoints, the three streaming decorators provide continuous authorization where the PDP streams decisions over time. Access may flip between PERMIT and DENY based on time, location, or context changes.
 
-Django streaming responses use `StreamingHttpResponse` with `content_type="text/event-stream"`. The decorators automatically wrap the async generator output in SSE format.
+Flask streaming responses use `Response` with `mimetype="text/event-stream"`. The decorators internally bridge between Flask's synchronous generator model and the async PDP streaming protocol using a dedicated event loop.
 
 A time-based policy that cycles between PERMIT and DENY:
 
@@ -523,48 +540,50 @@ permit
   second >= 0 && second < 20 || second >= 40;
 ```
 
-Deploy with ASGI (e.g., Daphne or Uvicorn) for async view and streaming support:
+Connect with curl to observe streaming behavior:
 
 ```bash
-uvicorn demo_project.asgi:application --host 0.0.0.0 --port 3000
+curl -N http://localhost:3000/stream/heartbeat
 ```
 
 ### Manual PDP Access
 
-For cases where decorators are not suitable, access the PDP client directly:
+For cases where decorators are not suitable, access the PDP client directly via the extension:
 
 ```python
-from django.http import HttpRequest, JsonResponse
-from sapl_django import get_pdp_client
+import asyncio
+from flask import jsonify, abort
+from sapl_flask import get_sapl_extension
 from sapl_base.types import AuthorizationSubscription, Decision
 
 
-async def get_hello(request: HttpRequest) -> JsonResponse:
-    pdp_client = get_pdp_client()
+@app.route("/hello")
+def get_hello():
+    sapl = get_sapl_extension()
     subscription = AuthorizationSubscription(
         subject="anonymous",
         action="read",
         resource="hello",
     )
-    decision = await pdp_client.decide_once(subscription)
+    decision = asyncio.run(sapl.pdp_client.decide_once(subscription))
 
     if decision.decision == Decision.PERMIT and not decision.obligations:
-        return JsonResponse({"message": "hello"})
-    return JsonResponse({"error": "Access denied"}, status=403)
+        return jsonify({"message": "hello"})
+    abort(403, description="Access denied by policy")
 ```
 
-When using the PDP client directly, you are responsible for checking the decision, enforcing obligations, and handling resource replacement.
+When using the PDP client directly, you are responsible for checking the decision, enforcing obligations, and handling resource replacement. Flask views are synchronous, so wrap async PDP calls with `asyncio.run()`.
 
 ### Service Layer Enforcement
 
-The same `@pre_enforce` and `@post_enforce` decorators work at any layer, not just on Django views. When used on a service method without an `HttpRequest` parameter, the decorator automatically translates denial into Django's `PermissionDenied` exception, which the calling view can handle normally:
+The same `@pre_enforce` and `@post_enforce` decorators work at any layer, not just on Flask views. When used on a service method outside of a Flask request context, the decorator automatically translates denial into `abort(403)` when a request context is available, or propagates the error normally otherwise:
 
 ```python
-from sapl_django import pre_enforce, post_enforce
+from sapl_flask import pre_enforce, post_enforce
 
 
 @pre_enforce(action="listPatients", resource="patients")
-async def list_patients() -> list[dict]:
+def list_patients() -> list[dict]:
     return [dict(p) for p in PATIENTS]
 
 
@@ -572,62 +591,62 @@ async def list_patients() -> list[dict]:
     action="getPatientDetail",
     resource=lambda ctx: {"type": "patientDetail", "data": ctx.return_value},
 )
-async def get_patient_detail(patient_id: str) -> dict | None:
+def get_patient_detail(patient_id: str) -> dict | None:
     return next((dict(p) for p in PATIENTS if p["id"] == patient_id), None)
 ```
 
-The calling view does not need any special error handling. `PermissionDenied` propagates through Django's normal exception handling and returns HTTP 403:
+The calling view does not need any special error handling. The decorator handles denial automatically:
 
 ```python
-from django.http import HttpRequest, JsonResponse
-from . import patient_service
+from flask import jsonify
+from services import patient_service
 
 
-async def get_patient_detail(request: HttpRequest, patient_id: str) -> JsonResponse:
-    result = await patient_service.get_patient_detail(patient_id)
-    return JsonResponse(result)
+@app.route("/services/patients/<patient_id>")
+def get_patient_detail(patient_id: str):
+    result = patient_service.get_patient_detail(patient_id)
+    return jsonify(result)
 ```
 
-Service-layer decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as when used on views. When no `HttpRequest` is available, subject defaults to `"anonymous"` and environment is empty.
+Service-layer decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as when used on views. When no Flask request context is available, subject defaults to `"anonymous"` and environment is empty.
 
 ### Demo Application
 
-A complete working demo is available at [sapl-python-demos/django_demo](https://github.com/heutelbeck/sapl-python-demos/tree/main/django_demo). It includes:
+A complete working demo is available at [sapl-python-demos/flask_demo](https://github.com/heutelbeck/sapl-python-demos/tree/main/flask_demo). It includes:
 
 - Manual PDP access (no decorators)
 - `@pre_enforce` and `@post_enforce` with content filtering
-- Service-layer enforcement using the same decorators on plain async functions
+- Service-layer enforcement using the same decorators on plain functions
 - All 7 constraint handler types (runnable, consumer, mapping, filter predicate, method invocation, error handler, error mapping)
 - SSE streaming with all three enforcement strategies (till-denied, drop-while-denied, recoverable-if-denied)
 - JWT-based ABAC with secrets
 
 ### Configuration Reference
 
-All options are set via the `SAPL_CONFIG` dictionary in Django settings:
+All options are set via `app.config`:
 
-| Key                            | Type    | Default                     | Description                                              |
-| ------------------------------ | ------- | --------------------------- | -------------------------------------------------------- |
-| `base_url`                     | `str`   | `"https://localhost:8443"`  | PDP server URL                                           |
-| `token`                        | `str`   | `None`                      | Bearer token / API key for authentication                |
-| `username`                     | `str`   | `None`                      | Basic auth username (mutually exclusive with `token`)    |
-| `password`                     | `str`   | `None`                      | Basic auth password                                      |
-| `timeout`                      | `float` | `5.0`                       | PDP request timeout in seconds                           |
-| `allow_insecure_connections`   | `bool`  | `False`                     | Allow HTTP connections (never use in production)         |
-| `streaming_max_retries`        | `int`   | `0`                         | Maximum reconnection attempts for streaming connections  |
-| `streaming_retry_base_delay`   | `float` | `1.0`                       | Base delay in seconds for exponential backoff on retry   |
-| `streaming_retry_max_delay`    | `float` | `30.0`                      | Maximum delay in seconds for exponential backoff         |
+| Key                                | Type    | Default                     | Description                                              |
+| ---------------------------------- | ------- | --------------------------- | -------------------------------------------------------- |
+| `SAPL_BASE_URL`                    | `str`   | `"https://localhost:8443"`  | PDP server URL                                           |
+| `SAPL_TOKEN`                       | `str`   | `None`                      | Bearer token / API key for authentication                |
+| `SAPL_USERNAME`                    | `str`   | `None`                      | Basic auth username (mutually exclusive with `TOKEN`)    |
+| `SAPL_PASSWORD`                    | `str`   | `None`                      | Basic auth password                                      |
+| `SAPL_TIMEOUT`                     | `float` | `5.0`                       | PDP request timeout in seconds                           |
+| `SAPL_ALLOW_INSECURE_CONNECTIONS`  | `bool`  | `False`                     | Allow HTTP connections (never use in production)         |
+
+Streaming retry configuration is set at the `sapl_base` level via the PDP client config. Flask's `SaplFlask` extension does not currently expose these options through `app.config`.
 
 ### Troubleshooting
 
 | Symptom                              | Likely Cause                            | Fix                                                              |
 | ------------------------------------ | --------------------------------------- | ---------------------------------------------------------------- |
-| All decisions are INDETERMINATE       | PDP unreachable                         | Check `base_url` and that PDP is running                         |
+| All decisions are INDETERMINATE       | PDP unreachable                         | Check `SAPL_BASE_URL` and that PDP is running                    |
 | 403 despite PERMIT decision           | Unhandled obligation                    | Check handler `is_responsible()` matches the obligation `type`   |
-| Handler not firing                    | Missing registration                    | Call `register_constraint_handler()` in `AppConfig.ready()`      |
-| Subject is `"anonymous"`              | No authenticated user on request        | Set up Django authentication or set subject explicitly           |
+| Handler not firing                    | Missing registration                    | Call `sapl.register_constraint_handler()` after init             |
+| Subject is `"anonymous"`              | No user in `g.user` or flask-login      | Set `g.user` in a before_request hook or use flask-login         |
 | Content filter throws                 | Unsupported path syntax                 | Only simple dot paths supported (`$.field.nested`)               |
-| `ImproperlyConfigured`                | Missing `SAPL_CONFIG`                   | Add `SAPL_CONFIG` dict to Django settings                        |
-| Streaming not working                 | Running under WSGI                      | Use ASGI server (Uvicorn/Daphne) for async views                 |
+| `RuntimeError: SAPL not initialized`  | Extension not registered                | Call `SaplFlask(app)` or `sapl.init_app(app)`                    |
+| Streaming response empty              | Generator not yielding dicts            | Ensure generator yields dicts (serialized as JSON SSE events)    |
 
 ### License
 

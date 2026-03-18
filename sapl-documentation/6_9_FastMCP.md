@@ -1,12 +1,12 @@
 ---
 layout: default
-title: Python FastMCP
+title: FastMCP
 has_children: false
-parent: Integration
-nav_order: 610
+parent: SDKs and APIs
+nav_order: 609
 ---
 
-## Python FastMCP Integration
+## FastMCP SDK
 
 Policy-based authorization for [FastMCP](https://gofastmcp.com/) servers using SAPL (Streaming Attribute Policy Language). The `sapl-fastmcp` library provides two authorization paths: a global `SAPLMiddleware` that intercepts all MCP operations with full constraint handler support, and a per-component `auth=sapl()` check for simpler binary permit/deny decisions. Both paths query the SAPL PDP for every tool call, resource read, and prompt access.
 

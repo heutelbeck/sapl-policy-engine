@@ -213,7 +213,7 @@ You now have policies that grant and deny access, react to live changes, and can
 
 **Run the PDP as a server.** So far you used the CLI to evaluate policies locally. The same `sapl` binary can run as an HTTP server that applications query for authorization decisions over the network. The CLI commands `decide`, `decide-once`, and `check` also work as clients against a remote PDP server using `--remote`. See [SAPL Node](../7_1_GettingStarted/).
 
-**Integrate into your application.** SAPL provides SDKs for Java ([Java API](../6_2_JavaApi/)), Spring ([Spring Security](../6_4_SpringIntegration/)), NestJS ([NestJS](../6_5_NestJS/)), Python ([Django](../6_6_PythonDjango/), [Flask](../6_7_PythonFlask/), [FastAPI](../6_8_PythonFastAPI/)), and [.NET](../6_11_DotNet/). See [Integration](../6_0_Integration/) for the full list.
+**Integrate into your application.** SAPL provides SDKs for Java ([Java API](../6_2_JavaApi/)), [Spring](../6_3_Spring/), [NestJS](../6_4_NestJS/), Python ([Django](../6_5_Django/), [Flask](../6_6_Flask/), [FastAPI](../6_7_FastAPI/), [Tornado](../6_8_Tornado/), [FastMCP](../6_9_FastMCP/)), and [.NET](../6_10_DotNet/). See [SDKs and APIs](../6_0_SDKsAndAPIs/) for the full list.
 
 **Build your own integration.** If no SDK exists for your language or framework, you can implement a client against the [HTTP API](../6_1_HTTPApi/) directly. For authors building reusable PEP libraries, the [PEP Implementation Specification](../8_1_PEPImplementationSpecification/) defines the requirements.
 

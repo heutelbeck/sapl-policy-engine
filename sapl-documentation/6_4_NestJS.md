@@ -1,11 +1,11 @@
 ---
 layout: default
 title: NestJS
-parent: Integration
-nav_order: 605
+parent: SDKs and APIs
+nav_order: 604
 ---
 
-# @sapl/nestjs
+## NestJS SDK
 
 Attribute-Based Access Control (ABAC) for NestJS using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
