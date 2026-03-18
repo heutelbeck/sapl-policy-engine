@@ -51,7 +51,8 @@ public class HttpPolicyInformationPoint {
             | Policy syntax | Meaning |
             |---|---|
             | `<http.get(request)>` | Environment attribute, HTTP GET with request settings. |
-            | `"https://api.example.com".<http.get(request)>` | Entity attribute, URL used as `baseUrl`. |
+            | `"https://api.example.com".<http.get>` | Entity attribute, HTTP GET with default settings. |
+            | `"https://api.example.com".<http.get(request)>` | Entity attribute, URL used as `baseUrl`, custom settings. |
             | `<http.post(request)>` | Environment attribute, HTTP POST. |
             | `<http.websocket(request)>` | Environment attribute, WebSocket connection. |
 
@@ -298,8 +299,22 @@ public class HttpPolicyInformationPoint {
         return webClient.consumeWebSocket(mergeHeaders(ctx, requestSettings));
     }
 
-    @Attribute
-    @EnvironmentAttribute(docs = """
+    @Attribute(docs = """
+            ```(TEXT resourceUrl).<get>``` is an attribute of the resource identified by the ```resourceUrl```.
+            Performs an HTTP GET request with default settings.
+
+            Example:
+            ```sapl
+            policy "http example"
+            permit
+              "https://example.com/resources/123".<http.get>.status == "HEALTHY";
+            ```
+            """)
+    public Flux<Value> get(TextValue resourceUrl, AttributeAccessContext ctx) {
+        return get(resourceUrl, ctx, Value.EMPTY_OBJECT);
+    }
+
+    @Attribute(docs = """
             ```(TEXT resourceUrl).<get(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP GET
@@ -312,12 +327,19 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.get({ })>.status == "HEALTHY";
             ```
             """)
-    public Flux<Value> get(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+    public Flux<Value> get(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.httpRequest(HttpMethod.GET, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
-    @Attribute
-    @EnvironmentAttribute(docs = """
+    @Attribute(docs = """
+            ```(TEXT resourceUrl).<post>``` is an attribute of the resource identified by the ```resourceUrl```.
+            Performs an HTTP POST request with default settings.
+            """)
+    public Flux<Value> post(TextValue resourceUrl, AttributeAccessContext ctx) {
+        return post(resourceUrl, ctx, Value.EMPTY_OBJECT);
+    }
+
+    @Attribute(docs = """
             ```(TEXT resourceUrl).<post(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP POST
@@ -330,12 +352,19 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.post({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    public Flux<Value> post(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+    public Flux<Value> post(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.httpRequest(HttpMethod.POST, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
-    @Attribute
-    @EnvironmentAttribute(docs = """
+    @Attribute(docs = """
+            ```(TEXT resourceUrl).<put>``` is an attribute of the resource identified by the ```resourceUrl```.
+            Performs an HTTP PUT request with default settings.
+            """)
+    public Flux<Value> put(TextValue resourceUrl, AttributeAccessContext ctx) {
+        return put(resourceUrl, ctx, Value.EMPTY_OBJECT);
+    }
+
+    @Attribute(docs = """
             ```(TEXT resourceUrl).<put(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP PUT
@@ -348,12 +377,19 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.put({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    public Flux<Value> put(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+    public Flux<Value> put(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.httpRequest(HttpMethod.PUT, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
-    @Attribute
-    @EnvironmentAttribute(docs = """
+    @Attribute(docs = """
+            ```(TEXT resourceUrl).<patch>``` is an attribute of the resource identified by the ```resourceUrl```.
+            Performs an HTTP PATCH request with default settings.
+            """)
+    public Flux<Value> patch(TextValue resourceUrl, AttributeAccessContext ctx) {
+        return patch(resourceUrl, ctx, Value.EMPTY_OBJECT);
+    }
+
+    @Attribute(docs = """
             ```(TEXT resourceUrl).<patch(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP PATCH
@@ -366,12 +402,19 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.patch({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    public Flux<Value> patch(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+    public Flux<Value> patch(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.httpRequest(HttpMethod.PATCH, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
-    @Attribute
-    @EnvironmentAttribute(docs = """
+    @Attribute(docs = """
+            ```(TEXT resourceUrl).<delete>``` is an attribute of the resource identified by the ```resourceUrl```.
+            Performs an HTTP DELETE request with default settings.
+            """)
+    public Flux<Value> delete(TextValue resourceUrl, AttributeAccessContext ctx) {
+        return delete(resourceUrl, ctx, Value.EMPTY_OBJECT);
+    }
+
+    @Attribute(docs = """
             ```(TEXT resourceUrl).<delete(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP DELETE
@@ -384,12 +427,19 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.delete({})> != undefined;
             ```
             """)
-    public Flux<Value> delete(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+    public Flux<Value> delete(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.httpRequest(HttpMethod.DELETE, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
-    @Attribute
-    @EnvironmentAttribute(docs = """
+    @Attribute(docs = """
+            ```(TEXT resourceUrl).<websocket>``` is an attribute of the resource identified by the ```resourceUrl```.
+            Connects to a WebSocket with default settings.
+            """)
+    public Flux<Value> websocket(TextValue resourceUrl, AttributeAccessContext ctx) {
+        return websocket(resourceUrl, ctx, Value.EMPTY_OBJECT);
+    }
+
+    @Attribute(docs = """
             ```(TEXT resourceUrl).<websocket(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
             This attribute takes a ```requestSettings``` object as a parameter and connects to a Websocket and emits events
@@ -403,7 +453,7 @@ public class HttpPolicyInformationPoint {
               "https://example.com/status".<http.websocket(request)>.health == "GOOD";
             ```
             """)
-    public Flux<Value> websocket(AttributeAccessContext ctx, TextValue resourceUrl, ObjectValue requestSettings) {
+    public Flux<Value> websocket(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.consumeWebSocket(withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 

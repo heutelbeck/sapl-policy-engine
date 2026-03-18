@@ -102,8 +102,8 @@ class HttpPolicyInformationPointTests {
     }
 
     @Nested
-    @DisplayName("Entity attributes")
-    class EntityAttributes {
+    @DisplayName("Entity attributes with request settings")
+    class EntityAttributesWithSettings {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
@@ -115,7 +115,7 @@ class HttpPolicyInformationPointTests {
             val expectedRequest = baseRequest("https://localhost:1234");
             val pip             = new HttpPolicyInformationPoint(mockClient);
 
-            assertThatCode(() -> invoker.invoke(pip, EMPTY_CTX, URL, request)).doesNotThrowAnyException();
+            assertThatCode(() -> invoker.invoke(pip, URL, EMPTY_CTX, request)).doesNotThrowAnyException();
             verify(mockClient, times(1)).httpRequest(expectedMethod, expectedRequest);
         }
 
@@ -137,7 +137,48 @@ class HttpPolicyInformationPointTests {
             val expectedRequest = baseRequest("https://localhost:1234");
             val pip             = new HttpPolicyInformationPoint(mockClient);
 
-            assertThatCode(() -> pip.websocket(EMPTY_CTX, URL, request)).doesNotThrowAnyException();
+            assertThatCode(() -> pip.websocket(URL, EMPTY_CTX, request)).doesNotThrowAnyException();
+            verify(mockClient, times(1)).consumeWebSocket(expectedRequest);
+        }
+    }
+
+    @Nested
+    @DisplayName("Entity attributes without request settings")
+    class EntityAttributesNoArgs {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource
+        @DisplayName("no-args overload delegates with empty settings")
+        void whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject(String name,
+                HttpMethod expectedMethod, NoArgsEntityAttributeInvoker invoker) {
+            val mockClient      = mockHttpClient();
+            val expectedRequest = baseRequest("https://localhost:1234");
+            val pip             = new HttpPolicyInformationPoint(mockClient);
+
+            assertThatCode(() -> invoker.invoke(pip, URL, EMPTY_CTX)).doesNotThrowAnyException();
+            verify(mockClient, times(1)).httpRequest(expectedMethod, expectedRequest);
+        }
+
+        static Stream<Arguments> whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject() {
+            return Stream.of(
+                    Arguments.of("GET", HttpMethod.GET, (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::get),
+                    Arguments.of("POST", HttpMethod.POST,
+                            (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::post),
+                    Arguments.of("PUT", HttpMethod.PUT, (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::put),
+                    Arguments.of("PATCH", HttpMethod.PATCH,
+                            (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::patch),
+                    Arguments.of("DELETE", HttpMethod.DELETE,
+                            (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::delete));
+        }
+
+        @Test
+        @DisplayName("websocket no-args overload delegates with empty settings")
+        void whenWebSocketCalledWithUrlAndNoSettingsThenConsumesWithEmptyObject() {
+            val mockClient      = mockWebSocketClient();
+            val expectedRequest = baseRequest("https://localhost:1234");
+            val pip             = new HttpPolicyInformationPoint(mockClient);
+
+            assertThatCode(() -> pip.websocket(URL, EMPTY_CTX)).doesNotThrowAnyException();
             verify(mockClient, times(1)).consumeWebSocket(expectedRequest);
         }
     }
@@ -510,8 +551,13 @@ class HttpPolicyInformationPointTests {
 
     @FunctionalInterface
     interface EntityAttributeInvoker {
-        Flux<Value> invoke(HttpPolicyInformationPoint pip, AttributeAccessContext ctx, TextValue url,
+        Flux<Value> invoke(HttpPolicyInformationPoint pip, TextValue url, AttributeAccessContext ctx,
                 ObjectValue requestSettings);
+    }
+
+    @FunctionalInterface
+    interface NoArgsEntityAttributeInvoker {
+        Flux<Value> invoke(HttpPolicyInformationPoint pip, TextValue url, AttributeAccessContext ctx);
     }
 
 }
