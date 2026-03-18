@@ -81,7 +81,7 @@ async function loadCodeMirror() {
             if (stream.match(/\/\*[\s\S]*?\*\//)) return 'comment';
             if (stream.match(/"(?:[^"\\]|\\.)*"/)) return 'string';
             if (stream.match(/-?\d+(\.\d+)?([eE][+-]?\d+)?/)) return 'number';
-            if (stream.match(/\b(policy|set|permit|deny|import|as|var|advice|obligation|transform|on)\b/)) return 'keyword';
+            if (stream.match(/\b(policy|set|permit|deny|import|as|var|schema|enforced|advice|obligation|transform|in|each|for)\b/)) return 'keyword';
             if (stream.match(/\b(subject|action|resource|environment)\b/)) return 'variableName.special';
             if (stream.match(/\b(true|false|null|undefined)\b/)) return 'atom';
             if (stream.match(/\b(first|priority|unanimous|strict|unique|or|abstain|errors|propagate)\b/)) return 'keyword';

@@ -79,40 +79,58 @@ const lspFoldService = foldService.of((state, lineStart, lineEnd) => {
 });
 
 // Simple SAPL syntax highlighting (fallback when LSP not ready)
+// SAPL syntax highlighting — aligned with SAPLLexer.g4
 const saplLanguage = StreamLanguage.define({
     token(stream) {
         if (stream.match(/\/\/.*/)) return 'comment';
         if (stream.match(/\/\*[\s\S]*?\*\//)) return 'comment';
         if (stream.match(/"(?:[^"\\]|\\.)*"/)) return 'string';
         if (stream.match(/-?\d+(\.\d+)?([eE][+-]?\d+)?/)) return 'number';
-        if (stream.match(/\b(policy|set|permit|deny|import|as|where|var|advice|obligation|transform|on)\b/)) return 'keyword';
+        if (stream.match(/\b(policy|set|permit|deny|import|as|var|schema|enforced|advice|obligation|transform|in|each|for)\b/)) return 'keyword';
         if (stream.match(/\b(subject|action|resource|environment)\b/)) return 'variableName.special';
         if (stream.match(/\b(true|false|null|undefined)\b/)) return 'atom';
-        if (stream.match(/\b(first-applicable|deny-overrides|permit-overrides|only-one-applicable|deny-unless-permit|permit-unless-deny)\b/)) return 'keyword';
-        if (stream.match(/[a-zA-Z_][a-zA-Z0-9_]*/)) return 'variableName';
-        if (stream.match(/[+\-*/%<>=!&|^~?:]+/)) return 'operator';
+        if (stream.match(/\b(first|priority|unanimous|strict|unique|or|abstain|errors|propagate)\b/)) return 'keyword';
+        if (stream.match(/[a-zA-Z_$][a-zA-Z_$0-9]*/)) return 'variableName';
+        if (stream.match(/\|\-|::|==|!=|=~|<=|>=|\|\<|\|\||&&/)) return 'operator';
+        if (stream.match(/[+\-*/%<>=!&|^~?:@#]+/)) return 'operator';
         stream.next();
         return null;
     }
 });
 
-// Simple SAPLTest syntax highlighting
+// SAPLTest syntax highlighting — aligned with SAPLTestLexer.g4
 const saplTestLanguage = StreamLanguage.define({
     token(stream) {
         if (stream.match(/\/\/.*/)) return 'comment';
         if (stream.match(/\/\*[\s\S]*?\*\//)) return 'comment';
         if (stream.match(/"(?:[^"\\]|\\.)*"/)) return 'string';
         if (stream.match(/-?\d+(\.\d+)?([eE][+-]?\d+)?/)) return 'number';
-        if (stream.match(/\b(requirement|scenario|given|when|then|expect)\b/)) return 'keyword';
-        if (stream.match(/\b(permit|deny|indeterminate|not-applicable)\b/)) return 'keyword';
+        // Hyphenated keywords must be matched before identifiers
+        if (stream.match(/\b(not-applicable|pdp-configuration|null-or-empty|null-or-blank|case-insensitive|virtual-time)\b/)) return 'keyword';
+        // Structure keywords
+        if (stream.match(/\b(requirement|scenario|given|when|then|expect|verify)\b/)) return 'keyword';
+        // Decision keywords
+        if (stream.match(/\b(permit|deny|indeterminate|decision)\b/)) return 'keyword';
+        // Reserved identifiers
         if (stream.match(/\b(subject|action|resource|environment|attempts|on)\b/)) return 'variableName.special';
-        if (stream.match(/\b(function|attribute|maps|to|emits|stream|timing|of|is|called|virtual-time|error)\b/)) return 'keyword';
-        if (stream.match(/\b(pip|static-pip|function-library|static-function-library)\b/)) return 'keyword';
-        if (stream.match(/\b(pdp|variables|combining-algorithm|configuration|policy|set|policies)\b/)) return 'keyword';
-        if (stream.match(/\b(matching|any|equals|containing|key|value|where|with|decision|obligation|advice|obligations)\b/)) return 'keyword';
+        // Mock and streaming keywords
+        if (stream.match(/\b(function|attribute|maps|to|emits|stream|of|is|called|error|next|once|times)\b/)) return 'keyword';
+        // Configuration keywords
+        if (stream.match(/\b(variables|secrets|configuration|document|documents)\b/)) return 'keyword';
+        // Combining algorithm components
+        if (stream.match(/\b(first|priority|unanimous|strict|unique|or|abstain|errors|propagate)\b/)) return 'keyword';
+        // Matcher keywords
+        if (stream.match(/\b(matching|any|equals|equal|containing|key|value|where|with|obligation|advice|obligations|and|in)\b/)) return 'keyword';
+        // String matcher keywords
+        if (stream.match(/\b(blank|empty|compressed|whitespace|regex|starting|ending|length|order)\b/)) return 'keyword';
+        // Type names
         if (stream.match(/\b(null|text|number|boolean|array|object)\b/)) return 'typeName';
+        // Atoms
         if (stream.match(/\b(true|false|undefined)\b/)) return 'atom';
-        if (stream.match(/[a-zA-Z_][a-zA-Z0-9_]*/)) return 'variableName';
+        // Policy/set references
+        if (stream.match(/\b(policy|set|policies)\b/)) return 'keyword';
+        // Identifiers
+        if (stream.match(/[a-zA-Z_$][a-zA-Z_$0-9]*/)) return 'variableName';
         stream.next();
         return null;
     }
