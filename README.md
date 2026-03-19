@@ -1,200 +1,260 @@
-<!-- PROJECT LOGO -->
-<br />
-<div align="center">
-  <a href="https://github.com/heutelbeck/sapl-policy-engine">
-    <img src="https://sapl.io/assets/favicon.png" alt="Logo" width="100em" >
-  </a>
+<h1 align="center">
+  <a href="https://sapl.io"><img src="https://sapl.io/assets/favicon.png" alt="SAPL" width="48" valign="middle"></a>
+  &nbsp;SAPL - Streaming Attribute Policy Language
+</h1>
 
-<h3 align="center">SAPL</h3>
+<p align="center">
+  Authorization you can read, test, and trust.<br>
+  Policies that stay current. Decisions that stream. A testing DSL that proves correctness.
+</p>
 
-  <p align="center">
-    The Streaming Attribute Policy Language and Engine
-    <br />
-    <a href="https://sapl.io/"><strong>Explore our website »</strong></a>
-    <br />
-    <br />
-    <a href="https://playground.sapl.io/">Playground</a>
-    ·
-    <a href="https://github.com/heutelbeck/sapl-demos">Demos</a>
-    ·
-    <a href="https://github.com/heutelbeck/sapl-policy-engine/issues">Report an issue</a>
-    ·
-    <a href="https://github.com/heutelbeck/sapl-policy-engine/issues">Discord</a>
-  </p>
-</div>
+<p align="center">
+  <a href="https://sapl.io"><strong>sapl.io</strong></a>
+  &middot;
+  <a href="https://sapl.io/docs/latest/1_2_GettingStarted/">Get Started</a>
+  &middot;
+  <a href="https://playground.sapl.io/">Playground</a>
+  &middot;
+  <a href="https://sapl.io/scenarios/spring/">Scenarios</a>
+  &middot;
+  <a href="https://sapl.io/docs/latest/">Docs</a>
+  &middot;
+  <a href="https://github.com/heutelbeck/sapl-demos">Demos</a>
+  &middot;
+  <a href="https://discord.gg/pRXEVWm3xM">Discord</a>
+</p>
 
-<!-- PROJECT SHIELDS -->
+<p align="center">
+
 [![Build Status][build-status-shield]][build-status-url]
 [![SonarCloud Status][sonarcloud-status-shield]][sonarcloud-status-url]
 [![Security Rating][security-rating-shield]][security-rating-url]
 [![Maven Central][maven-central-shield]][maven-central-url]
-[![Maven Snapshot](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fcentral.sonatype.com%2Frepository%2Fmaven-snapshots%2Fio%2Fsapl%2Fsapl-lang%2Fmaven-metadata.xml&query=%2Fmetadata%2Fversioning%2Flatest&label=snapshot)](https://central.sonatype.com/artifact/io.sapl/sapl-lang)
+[![Maven Snapshot](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fcentral.sonatype.com%2Frepository%2Fmaven-snapshots%2Fio%2Fsapl%2Fsapl-spring-boot-starter%2F4.0.0-SNAPSHOT%2Fmaven-metadata.xml&query=%2Fmetadata%2Fversion&label=snapshot)](https://central.sonatype.com/artifact/io.sapl/sapl-spring-boot-starter)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/heutelbeck/sapl-policy-engine/badge)](https://securityscorecards.dev/viewer/?uri=github.com/heutelbeck/sapl-policy-engine)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8298/badge?cache-control=no-cache)](https://www.bestpractices.dev/projects/8298)
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+</p>
 
-The reactive open-source engine for adding Attribute-Based Access Control (ABAC) to your Java applications, supporting attribute streams for efficient interactive real-time access control.
+## What SAPL does
 
-SAPL is a powerful policy language and engine for implementing ABAC. It comes with development tools for testing, authorization servers, and authoring tools. Framework integrations are available for Spring, Axon, and Vaadin to provide flexible policy enforcement points (PEPs) in your application.
+SAPL is an authorization engine with a human-readable policy language, streaming decisions that update in real time when context changes, and a dedicated testing DSL with coverage reporting. It runs embedded in your application or as a standalone server.
 
-For an explanation, overview, and documentation about the SAPL project look up our [website][website-url].
+```
+policy "freeze during peak hours"
+deny
+    subject.role == "engineer";
+    action == "deploy";
+    resource.environment == "production";
+    <time.localTimeIsBetween("09:00", "17:00", "Europe/Berlin")>;
+obligation {
+    "type": "notify",
+    "channel": "ops-alerts",
+    "message": "Deployment blocked: peak hours"
+}
+```
 
-## Compatibility
+Policies can do more than allow or deny. Obligations and advice attach machine-readable instructions to decisions: redact fields, rewrite queries, log access, require human approval, or trigger notifications. The framework enforces them automatically.
 
-| SAPL  | Java    | Spring Boot |
-|-------|---------|-------------|
-| 4.0.x | 21 - 25 | 4.0.x       |
-| 3.0.x | 17+     | 3.x         |
+## Why SAPL
 
-<!-- GETTING STARTED -->
-## Getting Started
+- **Streaming authorization.** Subscribe to decisions. The PDP pushes updates when attributes change. No polling, no stale decisions.
+- **Human-readable policies.** Not Datalog, not YAML, not XML. Policies read like structured English.
+- **Testing DSL.** The only authorization engine with a dedicated test language. Mock attribute sources, emit streaming changes, assert decision sequences, enforce coverage thresholds in CI.
+- **Obligations and advice.** Every decision can carry structured instructions that the framework executes automatically.
+- **AI agent authorization.** Control tool calls, RAG retrieval, and MCP operations with per-tool policies and human-in-the-loop approval workflows.
 
-To get started with integrating SAPL into your Java application, add the following reference to your build tool project definition.
+## Quick start
 
-**We recommend using the latest release for stability or the SNAPSHOT version if you want to be up-to-date with the latest new features.**
+**Try in the browser.** The [Playground](https://playground.sapl.io/) runs entirely in your browser. Write policies, create subscriptions, observe decisions. No install needed.
 
-**Maven**
+**Try on the command line.** Download the `sapl` binary from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases). Write a policy:
+
+```
+policy "Dr. House is allowed to use the MRT!"
+permit
+    subject == "housemd" & action == "use" & resource == "MRT";
+```
+
+Evaluate it:
+
+```bash
+sapl decide-once -s '"housemd"' -a '"use"' -r '"MRT"'
+# {"decision":"PERMIT"}
+
+sapl decide-once -s '"cuddy"' -a '"use"' -r '"MRT"'
+# {"decision":"DENY"}
+```
+
+The [Getting Started guide](https://sapl.io/docs/latest/1_2_GettingStarted/) covers the full CLI workflow including streaming decisions and testing.
+
+<details>
+<summary>Spring Boot integration</summary>
+
+Add the starter:
 
 ```xml
 <dependency>
-  <groupId>io.sapl</groupId>
-  <artifactId>sapl-pdp</artifactId>
-  <version>4.0.0-SNAPSHOT</version>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-spring-boot-starter</artifactId>
+    <version>4.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
-**Gradle**
+Annotate a method:
 
-```gradle
-dependencies {
-  implementation 'io.sapl:sapl-pdp:4.0.0-SNAPSHOT'
+```java
+@PreEnforce(action = "'read'", resource = "'patient'")
+public Patient getPatient(String id) {
+    return repository.findById(id);
 }
 ```
 
-This enables you to use the interface `PolicyDecisionPoint` to decide about requests.
+Write a policy in `src/main/resources/policies/`:
 
-Want to integrate and understand the full scale of capabilities of SAPL? Visit our [website](https://sapl.io).
+```
+policy "doctors read patients"
+permit
+    subject.role == "doctor";
+    action == "read";
+    resource == "patient";
+```
 
-Want to see integration examples? View our dedicated [demos](https://github.com/heutelbeck/sapl-demos).
+The [Spring scenario](https://sapl.io/scenarios/spring/) walks through a complete application step by step.
 
-Feeling experimental? Use our snapshots for the newest development state!
+</details>
 
-## IDE-Support
+## Use it with any stack
 
-<!-- Eclipse -->
-## SAPL Eclipse Plug-in
+| Integration | How |
+|-------------|-----|
+| [Spring Boot](https://sapl.io/docs/latest/6_3_Spring/) | Annotations (`@PreEnforce`, `@PostEnforce`), embedded PDP, reactive support |
+| [FastAPI](https://sapl.io/docs/latest/6_7_FastAPI/) | Decorators with lambda resource builders |
+| [Django](https://sapl.io/docs/latest/6_5_Django/) | Decorators with request context |
+| [NestJS](https://sapl.io/docs/latest/6_4_NestJS/) | Guards and interceptors |
+| [.NET](https://sapl.io/docs/latest/6_10_DotNet/) | Attributes with subscription customizers |
+| [Flask](https://sapl.io/docs/latest/6_6_Flask/) | Decorators |
+| [FastMCP](https://sapl.io/docs/latest/6_9_FastMCP/) | MCP server authorization |
+| [Java API](https://sapl.io/docs/latest/6_2_JavaApi/) | Programmatic, no framework required |
 
+## Test policies like you test code
 
-Get code editing support in Eclipse by installing the SAPL Plug-in: [![Install SAPL Plugin](https://img.shields.io/badge/Eclipse%20Marketplace-Install-blueviolet?logo=eclipse)](https://marketplace.eclipse.org/marketplace-client-intro?mpc_install=5795798 "Drag to your running Eclipse workspace. Requires Eclipse Marketplace Client")
+SAPL is the only authorization engine with a dedicated testing language. Mock attribute sources, emit streaming changes, assert decision sequences, and enforce coverage thresholds in CI.
 
-### IntelliJ IDEA Plug-in
+```
+policy "permit on emergency"
+permit
+    action == "read" & resource == "time";
+    "status".<mqtt.messages> == "emergency";
+```
 
-Get code editing support by installing the [SAPL Plug-in for IntelliJ IDEA](https://github.com/heutelbeck/sapl-intellij-plugin).
+```
+scenario "decision changes when emergency status changes"
+    given
+        - attribute "statusMock" "status".<mqtt.messages> emits "emergency"
+    when "user" attempts "read" on "time"
+    expect permit
+    then
+        - attribute "statusMock" emits "ok"
+    expect not-applicable
+    then
+        - attribute "statusMock" emits "emergency"
+    expect permit;
+```
 
-### Other IDEs
+```
+> sapl test --policy-hit-ratio 100 --condition-hit-ratio 100
 
-SAPL provides a language server for the integration into other IDEs which support the language server protocol.
-For details see [sapl-language-server](sapl-language-server/README.md).
+  permit_on_emergency.sapltest
+    PASS  permit when MQTT status is emergency
+    PASS  not-applicable when MQTT status is ok
+    PASS  alternating permit and not-applicable with multiple status changes
 
-<!-- DEMOS -->
-## Want to integrate SAPL?
+Tests:    10 passed, 10 total
+Coverage: Policy Hit 100.00%  Condition Hit 100.00%
+```
 
-SAPL supports different integration scenarios, which are partially described on our [website][website-url].
+## Scenarios
 
-If you want to see examples, view our [demo repository][demos-url] to give you a gist about how you could integrate SAPL.
+Working demos with code walkthroughs:
 
-**Need a [SBOM][sbom-definition-url]? View [here][sbom-extraction-url].**
+- [Spring Security](https://sapl.io/scenarios/spring/) -- method-level ABAC in a Spring Boot application
+- [AI Tool Authorization](https://sapl.io/scenarios/ai-tools/) -- per-tool gating for Spring AI
+- [RAG Pipeline](https://sapl.io/scenarios/ai-rag/) -- dynamic query rewriting for retrieval-augmented generation
+- [Human-in-the-Loop](https://sapl.io/scenarios/ai-hitl/) -- policy-driven approval workflows for AI tool calls
+- [MCP Server](https://sapl.io/scenarios/ai-mcp/) -- authorize tool calls, resources, and prompts in MCP servers
 
-<!-- CONTRIBUTING -->
-## Want to contribute to SAPL?
+## Get involved
 
-Any contributions you make are **greatly appreciated**.
+- **[Playground](https://playground.sapl.io/)** -- try SAPL policies in the browser, no install needed
+- **[Get Started](https://sapl.io/docs/latest/1_2_GettingStarted/)** -- add SAPL to your first project
+- **[Documentation](https://sapl.io/docs/latest/)** -- language reference, functions, integrations
+- **[Demos](https://github.com/heutelbeck/sapl-demos)** -- runnable example projects
+- **[Discord](https://discord.gg/pRXEVWm3xM)** -- questions, ideas, help from the team
 
-See our [Contribution document](CONTRIBUTING.md) for more detailed information on how to contribute.
+## IDE and editor support
 
-<!-- SECURITY -->
-## Found a vulnerability?
+The SAPL language server provides syntax highlighting, diagnostics, content assist, formatting, and more for `.sapl` and `.sapltest` files in any LSP-compatible editor. See the [IDE setup guide](https://sapl.io/docs/latest/9_0_IDESetup/) for IntelliJ, VS Code, Neovim, and other editors.
 
-The project is committed to identifying and eliminating any potential weaknesses in its security.
+## Compatibility
 
-See our [Security document](SECURITY.md) for more detailed information on how to report vulnerabilities.
+| SAPL  | Java  | Spring Boot |
+|-------|-------|-------------|
+| 4.0.x | 21+   | 4.0.x       |
+| 3.0.x | 17+   | 3.x         |
 
-<!-- SNAPSHOTS REFERENCE -->
-## Snapshots
+## Contributing
 
-This project provides snapshots of the newest development state to enable testing and integration.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**Be careful when using snapshots as they may be broken!**
+## Security
 
-To add snapshot references to your project add the following references to your build tool project definition.
+See [SECURITY.md](SECURITY.md).
+
+## Code of Conduct
+
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## License
+
+Apache 2.0. See [LICENSE](./LICENSE).
+
+<details>
+<summary>Using snapshots</summary>
+
+Snapshots provide the newest development state. Add the snapshot repository to your build:
 
 **Maven**
 
-By default, Maven only retrieves dependencies from the central releases repository. To get access to the snapshot 
-builds, the matching snapshots repository must be added to the projects ```pom.xml```.   
-
 ```xml
 <repositories>
-		<repository>
-			<name>Central Portal Snapshots</name>
-			<id>central-portal-snapshots</id>
-			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
+    <repository>
+        <id>central-portal-snapshots</id>
+        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        <releases><enabled>false</enabled></releases>
+        <snapshots><enabled>true</enabled></snapshots>
+    </repository>
 </repositories>
-```
-
-After doing so, the projects now has access to the SAPL snapshot builds which can be added as follows:
-
-```
-<dependencies>
-  <dependency>
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-{package}</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
-  </dependency>
-</dependencies>
 ```
 
 **Gradle**
 
-By default, Gradle only retrieves dependencies from the central releases repository. To get access to the snapshot
-builds, the matching snapshots repository must be added to the project configuration.
-
 ```gradle
 repositories {
-  maven {
-    url = uri("https://central.sonatype.com/repository/maven-snapshots")
-  }
-}
-
-dependencies {
-  implementation 'io.sapl:{package}:4.0.0-SNAPSHOT'
+    maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
 }
 ```
 
-**You need to replace `{package}` with the designated project!**
+</details>
 
+<details>
+<summary>SBOM</summary>
 
-<!-- CODE OF CONDUCT -->
-## Code of Conduct
+Need a [Software Bill of Materials](https://www.cisa.gov/sbom)? See [dependency graph](https://github.com/heutelbeck/sapl-policy-engine/network/dependencies).
 
-This project has adopted a [Code of Conduct](CODE_OF_CONDUCT.md), and it will be enforced in any communication.
+</details>
 
-<!-- LICENSE -->
-## License
-
-Distributed under the Apache 2.0 License. See [LICENSE](./LICENSE) for more information.
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+<!-- MARKDOWN LINKS -->
 [build-status-shield]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml/badge.svg?branch=master
 [build-status-url]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml?branch=master
 [sonarcloud-status-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=alert_status
@@ -203,8 +263,3 @@ Distributed under the Apache 2.0 License. See [LICENSE](./LICENSE) for more info
 [security-rating-url]: https://sonarcloud.io/summary/new_code?id=heutelbeck_sapl-policy-engine
 [maven-central-shield]: https://img.shields.io/maven-central/v/io.sapl/sapl-lang
 [maven-central-url]: https://mvnrepository.com/artifact/io.sapl
-
-[website-url]: https://sapl.io
-[demos-url]: https://github.com/heutelbeck/sapl-demos
-[sbom-definition-url]: https://www.cisa.gov/sbom
-[sbom-extraction-url]: https://github.com/heutelbeck/sapl-policy-engine/network/dependencies
