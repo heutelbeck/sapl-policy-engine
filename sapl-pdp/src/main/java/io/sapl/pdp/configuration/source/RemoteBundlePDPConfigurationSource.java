@@ -72,6 +72,7 @@ import static io.sapl.pdp.configuration.source.RemoteBundleSourceConfig.FetchMod
 @Slf4j
 public final class RemoteBundlePDPConfigurationSource implements Disposable {
 
+    private static final String BUNDLE_EXTENSION          = ".saplbundle";
     private static final String ERROR_EMPTY_RESPONSE_BODY = "Server returned 200 with empty body.";
 
     private static final String WARN_FETCH_FAILED = "Fetch failed for pdpId '{}' (retry #{}): {}";
@@ -201,12 +202,18 @@ public final class RemoteBundlePDPConfigurationSource implements Disposable {
     }
 
     private void loadBundle(String pdpId, byte[] bundleBytes, @Nullable String etag) {
-        val configuration = BundleParser.parse(bundleBytes, pdpId, config.securityPolicy());
+        val effectivePdpId = stripBundleExtension(pdpId);
+        val configuration  = BundleParser.parse(bundleBytes, effectivePdpId, config.securityPolicy());
         pdpVoterSource.loadConfiguration(configuration, true);
         if (etag != null) {
             etags.put(pdpId, etag);
         }
         log.info("Loaded remote bundle for pdpId '{}' ({} bytes, ETag: {}).", pdpId, bundleBytes.length, etag);
+    }
+
+    private static String stripBundleExtension(String pdpId) {
+        return pdpId.endsWith(BUNDLE_EXTENSION) ? pdpId.substring(0, pdpId.length() - BUNDLE_EXTENSION.length())
+                : pdpId;
     }
 
     private Duration getPollDelay(String pdpId) {
