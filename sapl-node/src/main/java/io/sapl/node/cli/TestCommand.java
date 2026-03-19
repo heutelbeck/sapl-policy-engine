@@ -199,12 +199,7 @@ class TestCommand implements Callable<Integer> {
             return 1;
         }
 
-        try {
-            Files.deleteIfExists(new CoverageWriter(output).getCoverageFilePath());
-        } catch (IOException e) {
-            err.println(WARN_COVERAGE_WRITE_FAILED.formatted(e.getMessage()));
-        }
-
+        cleanStaleCoverageData(err);
         writeCoverage(results, err);
         printSummary(results, out, err);
 
@@ -285,6 +280,14 @@ class TestCommand implements Callable<Integer> {
             return SaplTestDocument.of(name, source);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read: " + path + ".", e);
+        }
+    }
+
+    private void cleanStaleCoverageData(PrintWriter err) {
+        try {
+            Files.deleteIfExists(output.resolve("coverage.ndjson"));
+        } catch (IOException e) {
+            err.println(WARN_COVERAGE_WRITE_FAILED.formatted(e.getMessage()));
         }
     }
 
