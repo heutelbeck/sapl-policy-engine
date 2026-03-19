@@ -199,6 +199,12 @@ class TestCommand implements Callable<Integer> {
             return 1;
         }
 
+        try {
+            Files.deleteIfExists(new CoverageWriter(output).getCoverageFilePath());
+        } catch (IOException e) {
+            err.println(WARN_COVERAGE_WRITE_FAILED.formatted(e.getMessage()));
+        }
+
         writeCoverage(results, err);
         printSummary(results, out, err);
 
