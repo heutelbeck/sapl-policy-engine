@@ -138,10 +138,10 @@ class TestCommand implements Callable<Integer> {
     @Option(names = "--output", defaultValue = "./sapl-coverage", description = "Output directory for coverage data and reports")
     Path output;
 
-    @Option(names = "--html", negatable = true, defaultValue = "true", description = "Generate HTML coverage report")
+    @Option(names = "--html", negatable = true, defaultValue = "true", fallbackValue = "true", description = "Generate HTML coverage report")
     boolean html;
 
-    @Option(names = "--sonar", negatable = true, defaultValue = "false", description = "Generate SonarQube coverage report")
+    @Option(names = "--sonar", negatable = true, defaultValue = "false", fallbackValue = "true", description = "Generate SonarQube coverage report")
     boolean sonar;
 
     @Option(names = "--policy-set-hit-ratio", defaultValue = "0", description = "Required policy set hit ratio, 0-100 (0 = disabled)")
