@@ -99,8 +99,8 @@ priority deny or deny
 
 This denies access unless a policy explicitly permits, deny votes cannot be overridden, and missing policies result in denial. For PDP-level configuration, this is the recommended default. Deviations should be justified by specific application requirements.
 
-{: .warning }
-> The PDP-level combining algorithm is a mandatory configuration. Without one, the PDP returns `INDETERMINATE` for every subscription. See [PDP Configuration](../2_2_PDPConfiguration/) for details.
+{: .info }
+> When no PDP-level combining algorithm is configured, the default is `priority deny or deny errors propagate`. This denies by default and propagates errors so that misconfigurations fail visibly. See [PDP Configuration](../2_2_PDPConfiguration/) for details.
 
 For other scenarios:
 
