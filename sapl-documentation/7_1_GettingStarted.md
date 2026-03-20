@@ -29,6 +29,23 @@ Verify the installation:
 ./sapl --version
 ```
 
+#### Installing with DEB or RPM
+
+On Debian/Ubuntu and Red Hat/Fedora, platform packages are available from the same releases page. These install the binary to `/usr/bin/sapl` and set up the PATH automatically. See the [Getting Started guide](../1_2_GettingStarted/) for package installation commands.
+
+#### GitHub Actions
+
+For CI pipelines, use the [`setup-sapl`](https://github.com/heutelbeck/setup-sapl) action to install the CLI automatically:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: heutelbeck/setup-sapl@v1
+  - run: sapl test --dir ./policies
+```
+
+The action downloads the correct binary for the runner platform and adds it to the PATH. See the [Testing CI/CD Integration](../5_0_TestingSAPLPolicies/#cicd-integration) section for coverage gates and SonarQube integration examples.
+
 ### Quick Start
 
 This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP. No configuration files are needed. The built-in defaults work out of the box: no TLS, no authentication, policies loaded from the current directory.

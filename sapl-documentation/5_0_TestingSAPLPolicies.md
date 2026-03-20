@@ -85,7 +85,47 @@ Exit codes encode the result: `0` for all tests passed, `2` for failures, `3` fo
 
 ### CI/CD Integration
 
-Use `sapl test` in CI pipelines to verify that policy changes do not break expected decisions. The command returns non-zero exit codes on failure, making it a drop-in quality gate:
+Use `sapl test` in CI pipelines to verify that policy changes do not break expected decisions. The command returns non-zero exit codes on failure, making it a drop-in quality gate.
+
+#### GitHub Actions
+
+The [`setup-sapl`](https://github.com/heutelbeck/setup-sapl) action installs the SAPL CLI on any GitHub Actions runner. It downloads the correct binary for the runner's platform and adds it to the PATH.
+
+Run policy tests:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: heutelbeck/setup-sapl@v1
+  - run: sapl test --dir ./policies
+```
+
+Enforce coverage quality gates:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: heutelbeck/setup-sapl@v1
+  - run: sapl test --dir ./policies --policy-hit-ratio 100 --condition-hit-ratio 80
+```
+
+Generate a SonarQube coverage report:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: heutelbeck/setup-sapl@v1
+  - run: sapl test --dir ./policies --sonar --output sapl-coverage
+  - uses: SonarSource/sonarqube-scan-action@v5
+    with:
+      args: -Dsonar.coverageReportPaths=sapl-coverage/sonar/sonar-generic-coverage.xml
+```
+
+The action supports `ubuntu-latest` (x86_64 and ARM64) and `windows-latest`. See the [setup-sapl README](https://github.com/heutelbeck/setup-sapl) for version pinning and all options.
+
+#### Other CI Systems
+
+On any CI system, download the binary from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases) and run:
 
 ```bash
 sapl test --dir ./policies --policy-hit-ratio 100
