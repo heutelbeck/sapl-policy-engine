@@ -26,7 +26,14 @@
 
 var PLAYGROUND_ORIGIN = new URL(import.meta.url).origin;
 var WC_SCRIPT_URL = PLAYGROUND_ORIGIN + '/web-component/sapl-playground.js';
+var CM_BUNDLE_URL = PLAYGROUND_ORIGIN + '/embed/codemirror-bundle.min.js';
 var wcScriptLoaded = false;
+
+function isDarkMode() {
+    var t = document.documentElement.getAttribute('data-theme');
+    if (t) return t === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
 function injectStyles() {
     if (document.getElementById('sapl-embed-styles')) return;
@@ -41,7 +48,7 @@ function injectStyles() {
         '}' +
         'sapl-demo .sapl-placeholder {' +
         '  cursor: pointer;' +
-        '  border: 1px solid rgba(255, 255, 255, 0.1);' +
+        '  border: 1px solid var(--color-border, rgba(0,0,0,0.1));' +
         '  border-radius: 8px;' +
         '  overflow: hidden;' +
         '}' +
@@ -51,14 +58,14 @@ function injectStyles() {
         '}' +
         'sapl-demo .sapl-hint {' +
         '  padding: 0.5em 1em;' +
-        '  color: #6c7086;' +
+        '  color: var(--color-text-secondary, #4a5568);' +
         '  font-size: 0.85em;' +
         '  text-align: center;' +
         '  cursor: pointer;' +
-        '  transition: color 0.2s;' +
-        '  background: hsl(210, 10%, 12%);' +
+        '  transition: color 0.2s, background-color 0.3s;' +
+        '  background: var(--color-code-label-bg, #e2e8f0);' +
         '}' +
-        'sapl-demo .sapl-hint:hover { color: #cdd6f4; }' +
+        'sapl-demo .sapl-hint:hover { color: var(--color-text, #1a1a2e); }' +
         'sapl-demo sapl-playground { display: block; }' +
         'sapl-demo sapl-playground:not(:defined) { display: none; }';
     document.head.appendChild(style);
@@ -69,13 +76,9 @@ var cmModules;
 async function loadCodeMirror() {
     if (cmModules) return cmModules;
 
-    var [{basicSetup, EditorView}, {StreamLanguage}, {oneDark}] = await Promise.all([
-        import('https://esm.sh/codemirror'),
-        import('https://esm.sh/@codemirror/language'),
-        import('https://esm.sh/@codemirror/theme-one-dark')
-    ]);
+    var cm = await import(CM_BUNDLE_URL);
 
-    var saplLanguage = StreamLanguage.define({
+    var saplLanguage = cm.StreamLanguage.define({
         token: function(stream) {
             if (stream.match(/\/\/.*/)) return 'comment';
             if (stream.match(/\/\*[\s\S]*?\*\//)) return 'comment';
@@ -92,7 +95,13 @@ async function loadCodeMirror() {
         }
     });
 
-    cmModules = { basicSetup, EditorView, oneDark, saplLanguage };
+    cmModules = {
+        EditorView: cm.EditorView,
+        minimalSetup: cm.minimalSetup,
+        oneDark: cm.oneDark,
+        Compartment: cm.Compartment,
+        saplLanguage: saplLanguage
+    };
     return cmModules;
 }
 
@@ -110,16 +119,31 @@ function getCode(container) {
     return codeEl ? codeEl.textContent.trim() : '';
 }
 
+var editors = [];
+
 function createEditor(parent, code, modules) {
-    new modules.EditorView({
+    var themeComp = new modules.Compartment();
+    var dark = isDarkMode();
+    var view = new modules.EditorView({
         doc: code,
         extensions: [
-            modules.basicSetup,
+            modules.minimalSetup,
+            themeComp.of(dark ? modules.oneDark : []),
             modules.saplLanguage,
-            modules.oneDark,
             modules.EditorView.editable.of(false)
         ],
         parent: parent
+    });
+    editors.push({ view: view, compartment: themeComp });
+    return view;
+}
+
+function updateEditorThemes() {
+    var dark = isDarkMode();
+    editors.forEach(function(e) {
+        e.view.dispatch({
+            effects: e.compartment.reconfigure(dark ? cmModules.oneDark : [])
+        });
     });
 }
 
@@ -186,3 +210,10 @@ async function initDemo(container) {
 injectStyles();
 document.querySelectorAll('sapl-code').forEach(initStatic);
 document.querySelectorAll('sapl-demo').forEach(initDemo);
+
+// Watch for theme changes on the host page
+new MutationObserver(function() {
+    updateEditorThemes();
+}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateEditorThemes);
