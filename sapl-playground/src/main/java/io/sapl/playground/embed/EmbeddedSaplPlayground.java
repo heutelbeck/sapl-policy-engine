@@ -18,6 +18,7 @@
 package io.sapl.playground.embed;
 
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.page.ColorScheme;
 import com.vaadin.flow.shared.communication.PushMode;
 import com.vaadin.flow.shared.ui.Transport;
 import com.vaadin.flow.component.Composite;
@@ -171,6 +172,8 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     }
 
     private void applyEditorTheme() {
+        getUI().ifPresent(ui -> ui.getPage().setColorScheme(
+                isDarkMode ? ColorScheme.Value.DARK : ColorScheme.Value.LIGHT));
         if (policyEditor != null)
             policyEditor.setDarkTheme(isDarkMode);
         if (subscriptionEditor != null)
