@@ -1748,8 +1748,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 .set(CSS_MARGIN_TOP, "-2px");
 
         val logoText = new Div(logoTitle, logoSubtitle);
-        logoText.getStyle().set("display", "flex").set("flex-direction", "column")
-                .set(CSS_GAP, "0");
+        logoText.getStyle().set("display", "flex").set("flex-direction", "column").set(CSS_GAP, "0");
 
         val logoGroup = new HorizontalLayout(logoDark, logoLight, logoText);
         logoGroup.setAlignItems(FlexComponent.Alignment.CENTER);
