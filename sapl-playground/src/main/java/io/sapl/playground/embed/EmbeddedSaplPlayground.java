@@ -156,19 +156,16 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
 
     private void detectHostColorScheme(AttachEvent attachEvent) {
         attachEvent.getUI().getPage().executeJs(
-                "var el = $0;"
-                + "function notify(d) { el.dispatchEvent(new CustomEvent('host-theme', {detail: d})); }"
-                + "notify(window.matchMedia('(prefers-color-scheme: dark)').matches);"
-                + "window.matchMedia('(prefers-color-scheme: dark)')"
-                + "  .addEventListener('change', function(e) { notify(e.matches); });"
-                + "window.addEventListener('message', function(e) {"
-                + "  if (e.data && e.data.type === 'sapl-theme') notify(e.data.dark);"
-                + "});",
-                getElement()
-        );
+                "var el = $0;" + "function notify(d) { el.dispatchEvent(new CustomEvent('host-theme', {detail: d})); }"
+                        + "notify(window.matchMedia('(prefers-color-scheme: dark)').matches);"
+                        + "window.matchMedia('(prefers-color-scheme: dark)')"
+                        + "  .addEventListener('change', function(e) { notify(e.matches); });"
+                        + "window.addEventListener('message', function(e) {"
+                        + "  if (e.data && e.data.type === 'sapl-theme') notify(e.data.dark);" + "});",
+                getElement());
 
         getElement().addEventListener("host-theme", event -> {
-            isDarkMode = event.getEventData().getBoolean("event.detail");
+            isDarkMode = event.getEventData().get("event.detail").booleanValue();
             applyEditorTheme();
         }).addEventData("event.detail");
     }

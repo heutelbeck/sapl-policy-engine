@@ -1725,25 +1725,43 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private HorizontalLayout buildHeader() {
         val header = new HorizontalLayout();
         header.setWidthFull();
-        header.setPadding(true);
+        header.setPadding(false);
         header.setSpacing(true);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
-        header.getStyle().set(CSS_BACKGROUND_COLOR, CSS_VALUE_CONTRAST_5PCT);
+        header.getStyle().set(CSS_BACKGROUND_COLOR, CSS_VALUE_CONTRAST_5PCT).set(CSS_PADDING, "0.15rem 0.75rem");
 
         val logoDark = new Image("sapl-icon-dark.svg", LABEL_SAPL_LOGO);
-        logoDark.setHeight(CSS_VALUE_SIZE_2_5EM);
+        logoDark.setHeight("2rem");
         logoDark.setClassName("logo-dark");
 
         val logoLight = new Image("sapl-icon-light.svg", LABEL_SAPL_LOGO);
-        logoLight.setHeight(CSS_VALUE_SIZE_2_5EM);
+        logoLight.setHeight("2rem");
         logoLight.setClassName("logo-light");
+
+        val logoTitle = new Span("SAPL");
+        logoTitle.getStyle().set(CSS_FONT_SIZE, "1.1rem").set(CSS_FONT_WEIGHT, "800").set("letter-spacing", "-0.03em")
+                .set("line-height", "1");
+
+        val logoSubtitle = new Span("Playground");
+        logoSubtitle.getStyle().set(CSS_FONT_SIZE, "0.55rem").set(CSS_FONT_WEIGHT, "500")
+                .set(CSS_COLOR, "var(--lumo-secondary-text-color)").set("letter-spacing", "0.04em")
+                .set(CSS_MARGIN_TOP, "-2px");
+
+        val logoText = new Div(logoTitle, logoSubtitle);
+        logoText.getStyle().set("display", "flex").set("flex-direction", "column")
+                .set(CSS_GAP, "0");
+
+        val logoGroup = new HorizontalLayout(logoDark, logoLight, logoText);
+        logoGroup.setAlignItems(FlexComponent.Alignment.CENTER);
+        logoGroup.setSpacing(false);
+        logoGroup.getStyle().set(CSS_GAP, "0.5rem");
 
         val combiningAlgorithmLayout = createCombiningAlgorithmLayout();
         val examplesMenu             = createExamplesMenu();
         val shareButton              = createShareButton();
         val homepageLink             = createHomepageLink();
 
-        val leftSection = new HorizontalLayout(logoDark, logoLight, examplesMenu, combiningAlgorithmLayout);
+        val leftSection = new HorizontalLayout(logoGroup, examplesMenu, combiningAlgorithmLayout);
         leftSection.setAlignItems(FlexComponent.Alignment.CENTER);
         leftSection.setSpacing(true);
 
