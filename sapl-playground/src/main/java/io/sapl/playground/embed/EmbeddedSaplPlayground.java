@@ -156,24 +156,25 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     }
 
     private void detectHostColorScheme(AttachEvent attachEvent) {
-        attachEvent.getUI().getPage().executeJs(
-                "var el = $0;" + "function notify(d) { el.dispatchEvent(new CustomEvent('host-theme', {detail: d})); }"
-                        + "notify(window.matchMedia('(prefers-color-scheme: dark)').matches);"
-                        + "window.matchMedia('(prefers-color-scheme: dark)')"
-                        + "  .addEventListener('change', function(e) { notify(e.matches); });"
-                        + "window.addEventListener('message', function(e) {"
-                        + "  if (e.data && e.data.type === 'sapl-theme') notify(e.data.dark);" + "});",
-                getElement());
+        attachEvent.getUI().getPage().executeJs("var el = $0;" + "function isDark() {"
+                + "  var t = document.documentElement.getAttribute('data-theme');" + "  if (t) return t === 'dark';"
+                + "  return window.matchMedia('(prefers-color-scheme: dark)').matches;" + "}" + "function notify() {"
+                + "  el.dispatchEvent(new CustomEvent('host-theme', {detail: {dark: isDark()}}));" + "}" + "notify();"
+                + "new MutationObserver(notify)"
+                + "  .observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});"
+                + "window.matchMedia('(prefers-color-scheme: dark)')" + "  .addEventListener('change', notify);"
+                + "window.addEventListener('message', function(e) {"
+                + "  if (e.data && e.data.type === 'sapl-theme') notify();" + "});", getElement());
 
         getElement().addEventListener("host-theme", event -> {
-            isDarkMode = event.getEventData().get("event.detail").booleanValue();
+            isDarkMode = event.getEventData().get("event.detail.dark").booleanValue();
             applyEditorTheme();
-        }).addEventData("event.detail");
+        }).addEventData("event.detail.dark");
     }
 
     private void applyEditorTheme() {
-        getUI().ifPresent(ui -> ui.getPage().setColorScheme(
-                isDarkMode ? ColorScheme.Value.DARK : ColorScheme.Value.LIGHT));
+        getUI().ifPresent(
+                ui -> ui.getPage().setColorScheme(isDarkMode ? ColorScheme.Value.DARK : ColorScheme.Value.LIGHT));
         if (policyEditor != null)
             policyEditor.setDarkTheme(isDarkMode);
         if (subscriptionEditor != null)

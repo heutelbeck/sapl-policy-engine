@@ -18,20 +18,16 @@ html {
 }
 
 /* Bridge variables for JS editor components using Lumo contrast variables */
-@media (prefers-color-scheme: light) {
-  html {
-    --lumo-contrast-5pct: rgba(0, 0, 0, 0.05);
-    --lumo-contrast-10pct: rgba(0, 0, 0, 0.10);
-    --lumo-contrast-20pct: rgba(0, 0, 0, 0.20);
-    --lumo-contrast-50pct: rgba(0, 0, 0, 0.50);
-  }
+html {
+  --lumo-contrast-5pct: rgba(0, 0, 0, 0.05);
+  --lumo-contrast-10pct: rgba(0, 0, 0, 0.10);
+  --lumo-contrast-20pct: rgba(0, 0, 0, 0.20);
+  --lumo-contrast-50pct: rgba(0, 0, 0, 0.50);
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    --lumo-contrast-5pct: rgba(255, 255, 255, 0.05);
-    --lumo-contrast-10pct: rgba(255, 255, 255, 0.10);
-    --lumo-contrast-20pct: rgba(255, 255, 255, 0.20);
-    --lumo-contrast-50pct: rgba(255, 255, 255, 0.50);
-  }
+html[theme~="dark"] {
+  --lumo-contrast-5pct: rgba(255, 255, 255, 0.05);
+  --lumo-contrast-10pct: rgba(255, 255, 255, 0.10);
+  --lumo-contrast-20pct: rgba(255, 255, 255, 0.20);
+  --lumo-contrast-50pct: rgba(255, 255, 255, 0.50);
 }
