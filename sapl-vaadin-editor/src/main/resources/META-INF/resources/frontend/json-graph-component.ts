@@ -44,10 +44,17 @@ const LINE_CHAR_LIMIT = 25;
 const MAX_DISPLAY_LINES = 2;
 const LINE_HEIGHT = 16;
 
-// Color scheme matching Vaadin Lumo dark theme
-const COLORS = {
+// Color schemes: dark matches Vaadin Aura dark, light matches sapl.io pages light
+const DARK_COLORS = {
     background: 'hsl(210, 10%, 12%)',
     link: 'rgba(255, 255, 255, 0.1)',
+    buttonBg: 'rgba(64, 160, 159, 0.15)',
+    buttonBorder: 'rgba(64, 160, 159, 0.4)',
+    buttonText: 'rgb(64, 160, 159)',
+    tooltipBg: 'rgba(0, 0, 0, 0.92)',
+    tooltipText: '#fff',
+    tooltipBorder: 'rgba(64, 160, 159, 0.4)',
+    shadow: 'rgba(0, 0, 0, 0.3)',
     nodes: {
         object: { fill: 'hsl(210, 15%, 18%)', border: 'rgba(64, 160, 159, 0.6)', text: 'rgb(64, 160, 159)' },
         array: { fill: 'hsl(39, 30%, 25%)', border: 'rgba(255, 160, 64, 0.6)', text: 'rgb(255, 180, 100)' },
@@ -57,6 +64,28 @@ const COLORS = {
         null: { fill: 'hsl(210, 8%, 16%)', border: 'rgba(255, 255, 255, 0.2)', text: 'rgba(255, 255, 255, 0.4)' },
         undefined: { fill: 'hsl(210, 8%, 16%)', border: 'rgba(255, 255, 255, 0.15)', text: 'rgba(255, 255, 255, 0.35)' },
         error: { fill: 'hsl(0, 50%, 20%)', border: 'rgba(255, 100, 100, 0.7)', text: 'rgb(255, 120, 120)' }
+    }
+};
+
+const LIGHT_COLORS = {
+    background: '#f8fafc',
+    link: 'rgba(0, 0, 0, 0.10)',
+    buttonBg: 'rgba(2, 131, 146, 0.10)',
+    buttonBorder: 'rgba(2, 131, 146, 0.4)',
+    buttonText: '#028392',
+    tooltipBg: 'rgba(255, 255, 255, 0.95)',
+    tooltipText: '#1a1a2e',
+    tooltipBorder: 'rgba(2, 131, 146, 0.4)',
+    shadow: 'rgba(0, 0, 0, 0.10)',
+    nodes: {
+        object: { fill: '#edf2f7', border: 'rgba(2, 131, 146, 0.5)', text: '#028392' },
+        array: { fill: '#fef3c7', border: 'rgba(180, 120, 40, 0.5)', text: '#92600a' },
+        string: { fill: '#f0fdf4', border: 'rgba(34, 120, 69, 0.5)', text: '#166534' },
+        number: { fill: '#ecfeff', border: 'rgba(2, 131, 146, 0.5)', text: '#026d79' },
+        boolean: { fill: '#faf5ff', border: 'rgba(140, 80, 170, 0.5)', text: '#6b21a8' },
+        null: { fill: '#e2e8f0', border: 'rgba(0, 0, 0, 0.15)', text: '#4a5568' },
+        undefined: { fill: '#e2e8f0', border: 'rgba(0, 0, 0, 0.10)', text: '#929699' },
+        error: { fill: '#fef2f2', border: 'rgba(200, 50, 50, 0.5)', text: '#b91c1c' }
     }
 };
 
@@ -82,6 +111,9 @@ export class JsonGraphComponent extends LitElement {
     @property({ type: Boolean })
     valueMode: boolean = false;
 
+    @property({ type: Boolean, attribute: 'dark-theme' })
+    isDarkTheme: boolean = false;
+
     @query('#graph-container')
     private container!: HTMLDivElement;
 
@@ -102,7 +134,7 @@ export class JsonGraphComponent extends LitElement {
         #graph-container {
             width: 100%;
             height: 100%;
-            background: hsl(210, 10%, 12%);
+            background: var(--graph-bg);
             border-radius: 4px;
             overflow: hidden;
             position: relative;
@@ -113,11 +145,11 @@ export class JsonGraphComponent extends LitElement {
             top: 10px;
             right: 10px;
             z-index: 1;
-            background: rgba(64, 160, 159, 0.15);
-            border: 1px solid rgba(64, 160, 159, 0.4);
+            background: var(--graph-btn-bg);
+            border: 1px solid var(--graph-btn-border);
             border-radius: 3px;
             padding: 6px 10px;
-            color: rgb(64, 160, 159);
+            color: var(--graph-btn-text);
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s;
@@ -129,20 +161,14 @@ export class JsonGraphComponent extends LitElement {
         }
 
         .maximize-button:hover {
-            background: rgba(64, 160, 159, 0.25);
-            border-color: rgb(64, 160, 159);
-            color: rgb(64, 160, 159);
-        }
-
-        .maximize-button:active {
-            background: rgba(64, 160, 159, 0.35);
+            opacity: 0.8;
         }
 
         .custom-tooltip {
             position: absolute;
             visibility: hidden;
-            background: rgba(0, 0, 0, 0.92);
-            color: #fff;
+            background: var(--graph-tooltip-bg);
+            color: var(--graph-tooltip-text);
             padding: 10px 14px;
             border-radius: 6px;
             font-size: 12px;
@@ -151,8 +177,8 @@ export class JsonGraphComponent extends LitElement {
             word-wrap: break-word;
             z-index: 10000;
             pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(64, 160, 159, 0.4);
+            box-shadow: 0 4px 12px var(--graph-shadow);
+            border: 1px solid var(--graph-tooltip-border);
             line-height: 1.4;
         }
 
@@ -162,7 +188,7 @@ export class JsonGraphComponent extends LitElement {
 
         .tooltip-type {
             font-weight: 600;
-            color: rgb(64, 160, 159);
+            color: var(--graph-btn-text);
             text-transform: uppercase;
             font-size: 10px;
             letter-spacing: 0.5px;
@@ -181,12 +207,12 @@ export class JsonGraphComponent extends LitElement {
             font-size: 10px;
             opacity: 0.7;
             font-style: italic;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid var(--graph-link);
             padding-top: 6px;
         }
 
         .tooltip-copied {
-            color: rgb(85, 170, 119);
+            color: #166534;
             font-weight: 600;
         }
 
@@ -210,11 +236,20 @@ export class JsonGraphComponent extends LitElement {
     }
 
     firstUpdated() {
+        this.applyThemeProperties();
         setTimeout(() => this.initializeGraph(), 100);
         this.observeResize();
     }
 
     updated(changedProperties: Map<string, any>) {
+        if (changedProperties.has('isDarkTheme')) {
+            this.applyThemeProperties();
+            if (this.svg) {
+                this.svg.style('background', this.colors().background);
+                this.renderGraph();
+            }
+        }
+
         if (changedProperties.has('jsonData')) {
             this.renderGraph();
         }
@@ -222,6 +257,19 @@ export class JsonGraphComponent extends LitElement {
         if (changedProperties.has('initialTransform') && this.initialTransform && this.svg) {
             setTimeout(() => this.applyInitialTransform(), 150);
         }
+    }
+
+    private applyThemeProperties() {
+        const c = this.colors();
+        this.style.setProperty('--graph-bg', c.background);
+        this.style.setProperty('--graph-link', c.link);
+        this.style.setProperty('--graph-btn-bg', c.buttonBg);
+        this.style.setProperty('--graph-btn-border', c.buttonBorder);
+        this.style.setProperty('--graph-btn-text', c.buttonText);
+        this.style.setProperty('--graph-tooltip-bg', c.tooltipBg);
+        this.style.setProperty('--graph-tooltip-text', c.tooltipText);
+        this.style.setProperty('--graph-tooltip-border', c.tooltipBorder);
+        this.style.setProperty('--graph-shadow', c.shadow);
     }
 
     disconnectedCallback() {
@@ -266,7 +314,7 @@ export class JsonGraphComponent extends LitElement {
             .append('svg')
             .attr('width', width)
             .attr('height', height)
-            .style('background', COLORS.background);
+            .style('background', this.colors().background);
 
         const g = this.svg.append('g').attr('class', 'zoom-group');
 
@@ -348,7 +396,7 @@ export class JsonGraphComponent extends LitElement {
             .join('path')
             .attr('d', (d: any) => this.createLinkPath(d))
             .attr('fill', 'none')
-            .attr('stroke', COLORS.link)
+            .attr('stroke', this.colors().link)
             .attr('stroke-width', 1.5);
     }
 
@@ -390,7 +438,7 @@ export class JsonGraphComponent extends LitElement {
             .attr('stroke', (d: any) => this.getNodeColors(d.data.type).border)
             .attr('stroke-width', 1.5)
             .style('cursor', 'pointer')
-            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))')
+            .style('filter', `drop-shadow(0 2px 4px ${this.colors().shadow})`)
             .on('mouseenter', function(event: MouseEvent, d: any) {
                 self.showTooltip(event, d);
             })
@@ -635,8 +683,13 @@ export class JsonGraphComponent extends LitElement {
         return typeof value;
     }
 
+    private colors() {
+        return this.isDarkTheme ? DARK_COLORS : LIGHT_COLORS;
+    }
+
     private getNodeColors(type: string) {
-        return COLORS.nodes[type as keyof typeof COLORS.nodes] || COLORS.nodes.object;
+        const nodes = this.colors().nodes;
+        return nodes[type as keyof typeof nodes] || nodes.object;
     }
 
     getZoomTransform(): string {

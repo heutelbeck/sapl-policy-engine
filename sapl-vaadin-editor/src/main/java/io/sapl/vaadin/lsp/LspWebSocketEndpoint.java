@@ -138,7 +138,12 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
 
     @Override
     public void handleTransportError(WebSocketSession session, @NonNull Throwable exception) throws Exception {
-        log.error("LSP WebSocket transport error for session {}", session.getId(), exception);
+        if (exception instanceof IOException
+                && exception.getCause() instanceof java.nio.channels.ClosedChannelException) {
+            log.debug("LSP WebSocket closed for session {} (channel closed)", session.getId());
+        } else {
+            log.error("LSP WebSocket transport error for session {}", session.getId(), exception);
+        }
     }
 
     private void startLspServer(WebSocketSession session, InputStream input, OutputStream output) {

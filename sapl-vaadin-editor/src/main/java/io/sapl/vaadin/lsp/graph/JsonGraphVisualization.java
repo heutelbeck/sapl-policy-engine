@@ -175,6 +175,18 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     }
 
     /**
+     * Sets the color theme for the graph visualization.
+     *
+     * @param darkTheme true for dark theme, false for light theme
+     */
+    public void setDarkTheme(boolean darkTheme) {
+        getElement().setProperty("isDarkTheme", darkTheme);
+        if (maximizedVisualization != null) {
+            maximizedVisualization.setDarkTheme(darkTheme);
+        }
+    }
+
+    /**
      * Opens the maximized view in a fullscreen dialog.
      * <p>
      * This method is called from the client-side when the user clicks the maximize
@@ -239,6 +251,7 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
         val visualization = new JsonGraphVisualization();
         visualization.setSizeFull();
         visualization.getElement().setAttribute(HIDE_BUTTON_ATTRIBUTE, "true");
+        visualization.setDarkTheme(getElement().getProperty("isDarkTheme", false));
         return visualization;
     }
 

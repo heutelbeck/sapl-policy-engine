@@ -25,6 +25,7 @@ import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.page.ColorScheme;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -95,6 +96,7 @@ import io.sapl.vaadin.lsp.JsonEditorConfiguration;
 import io.sapl.vaadin.lsp.SaplEditorLsp;
 import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
 import io.sapl.vaadin.lsp.graph.JsonGraphVisualization;
+import io.sapl.vaadin.theme.ThemeToggleButton;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.Disposable;
@@ -343,6 +345,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private ComboBox<DefaultDecision> defaultDecisionComboBox;
     private ComboBox<ErrorHandling>   errorHandlingComboBox;
 
+    private boolean              isDarkMode           = false;
     private boolean              isScrollLockActive;
     private boolean              isFollowLatestDecisionActive;
     private String               currentErrorReportText;
@@ -1516,7 +1519,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private SaplEditorLsp createSaplEditorLsp() {
         val config = new SaplEditorLspConfiguration();
         config.setHasLineNumbers(true);
-        config.setDarkTheme(true);
+        config.setDarkTheme(isDarkMode);
         config.setWsUrl(permalinkConfiguration.getLspUrl());
 
         val editor = new SaplEditorLsp(config);
@@ -1727,27 +1730,34 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.getStyle().set(CSS_BACKGROUND_COLOR, CSS_VALUE_CONTRAST_5PCT);
 
-        val logo = new Image(RESOURCE_LOGO, LABEL_SAPL_LOGO);
-        logo.setHeight(CSS_VALUE_SIZE_2_5EM);
+        val logoDark = new Image("sapl-icon-dark.svg", LABEL_SAPL_LOGO);
+        logoDark.setHeight(CSS_VALUE_SIZE_2_5EM);
+        logoDark.setClassName("logo-dark");
 
-        val title = new Span(LABEL_SAPL_PLAYGROUND);
-        title.getStyle().set(CSS_FONT_SIZE, CSS_VALUE_FONT_SIZE_XL).set(CSS_FONT_WEIGHT, CSS_VALUE_WEIGHT_600)
-                .set(CSS_TEXT_ALIGN, CSS_VALUE_CENTER).set(CSS_FLEX_GROW, CSS_VALUE_ONE);
+        val logoLight = new Image("sapl-icon-light.svg", LABEL_SAPL_LOGO);
+        logoLight.setHeight(CSS_VALUE_SIZE_2_5EM);
+        logoLight.setClassName("logo-light");
 
         val combiningAlgorithmLayout = createCombiningAlgorithmLayout();
         val examplesMenu             = createExamplesMenu();
         val shareButton              = createShareButton();
         val homepageLink             = createHomepageLink();
 
-        val leftSection = new HorizontalLayout(logo, examplesMenu, combiningAlgorithmLayout);
+        val leftSection = new HorizontalLayout(logoDark, logoLight, examplesMenu, combiningAlgorithmLayout);
         leftSection.setAlignItems(FlexComponent.Alignment.CENTER);
         leftSection.setSpacing(true);
 
-        val rightSection = new HorizontalLayout(homepageLink, shareButton);
+        val spacer = new Span();
+        spacer.getStyle().set(CSS_FLEX_GROW, CSS_VALUE_ONE);
+
+        val themeToggle = new ThemeToggleButton();
+        themeToggle.addThemeToggleListener(event -> toggleColorScheme(event.isDarkMode()));
+
+        val rightSection = new HorizontalLayout(homepageLink, shareButton, themeToggle);
         rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
         rightSection.setSpacing(true);
 
-        header.add(leftSection, title, rightSection);
+        header.add(leftSection, spacer, rightSection);
 
         return header;
     }
@@ -1771,6 +1781,26 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         button.setTooltipText(TOOLTIP_CREATE_SHAREABLE_LINK);
         button.addClickListener(event -> handleShareButtonClick());
         return button;
+    }
+
+    private void toggleColorScheme(boolean darkMode) {
+        isDarkMode = darkMode;
+        val scheme = isDarkMode ? ColorScheme.Value.DARK : ColorScheme.Value.LIGHT;
+        UI.getCurrent().getPage().setColorScheme(scheme);
+
+        policyTabContexts.values().forEach(ctx -> ctx.editor.setDarkTheme(isDarkMode));
+        if (subscriptionEditor != null)
+            subscriptionEditor.setDarkTheme(isDarkMode);
+        if (variablesEditor != null)
+            variablesEditor.setDarkTheme(isDarkMode);
+        if (decisionJsonEditor != null)
+            decisionJsonEditor.setDarkTheme(isDarkMode);
+        if (decisionJsonReportEditor != null)
+            decisionJsonReportEditor.setDarkTheme(isDarkMode);
+        if (decisionJsonTraceEditor != null)
+            decisionJsonTraceEditor.setDarkTheme(isDarkMode);
+        if (traceGraphVisualization != null)
+            traceGraphVisualization.setDarkTheme(isDarkMode);
     }
 
     /*
@@ -2194,7 +2224,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private JsonEditor createJsonEditorLsp(boolean hasLineNumbers) {
         val config = new JsonEditorConfiguration();
         config.setHasLineNumbers(hasLineNumbers);
-        config.setDarkTheme(true);
+        config.setDarkTheme(isDarkMode);
         config.setReadOnly(!hasLineNumbers);
         config.setLint(hasLineNumbers);
         return new JsonEditor(config);

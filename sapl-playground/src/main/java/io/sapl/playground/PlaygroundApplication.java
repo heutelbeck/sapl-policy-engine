@@ -36,7 +36,7 @@ import java.io.Serial;
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("themes/sapl/styles-aura.css")
 @StyleSheet("styles/playground.css")
-@ColorScheme(ColorScheme.Value.DARK)
+@ColorScheme(ColorScheme.Value.LIGHT_DARK)
 public class PlaygroundApplication implements AppShellConfigurator {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;

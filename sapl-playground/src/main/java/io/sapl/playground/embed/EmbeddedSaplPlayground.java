@@ -119,6 +119,7 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     private Button                  evaluateButton;
 
     private volatile boolean     isSubscriptionActive;
+    private boolean              isDarkMode = false;
     private transient Disposable activeSubscription;
 
     /**
@@ -150,6 +151,35 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         super.onAttach(attachEvent);
         attachEvent.getUI().getPushConfiguration().setPushMode(PushMode.AUTOMATIC);
         attachEvent.getUI().getPushConfiguration().setTransport(Transport.LONG_POLLING);
+        detectHostColorScheme(attachEvent);
+    }
+
+    private void detectHostColorScheme(AttachEvent attachEvent) {
+        attachEvent.getUI().getPage().executeJs(
+                "var el = $0;"
+                + "function notify(d) { el.dispatchEvent(new CustomEvent('host-theme', {detail: d})); }"
+                + "notify(window.matchMedia('(prefers-color-scheme: dark)').matches);"
+                + "window.matchMedia('(prefers-color-scheme: dark)')"
+                + "  .addEventListener('change', function(e) { notify(e.matches); });"
+                + "window.addEventListener('message', function(e) {"
+                + "  if (e.data && e.data.type === 'sapl-theme') notify(e.data.dark);"
+                + "});",
+                getElement()
+        );
+
+        getElement().addEventListener("host-theme", event -> {
+            isDarkMode = event.getEventData().getBoolean("event.detail");
+            applyEditorTheme();
+        }).addEventData("event.detail");
+    }
+
+    private void applyEditorTheme() {
+        if (policyEditor != null)
+            policyEditor.setDarkTheme(isDarkMode);
+        if (subscriptionEditor != null)
+            subscriptionEditor.setDarkTheme(isDarkMode);
+        if (decisionEditor != null)
+            decisionEditor.setDarkTheme(isDarkMode);
     }
 
     /**
@@ -317,7 +347,7 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     private SaplEditorLsp createSaplEditor() {
         val config = new SaplEditorLspConfiguration();
         config.setHasLineNumbers(true);
-        config.setDarkTheme(true);
+        config.setDarkTheme(isDarkMode);
         config.setWsUrl(permalinkConfiguration.getLspUrl());
 
         val editor = new SaplEditorLsp(config);
@@ -328,7 +358,7 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     private JsonEditor createJsonEditor(boolean editable) {
         val config = new JsonEditorConfiguration();
         config.setHasLineNumbers(editable);
-        config.setDarkTheme(true);
+        config.setDarkTheme(isDarkMode);
         config.setReadOnly(!editable);
         config.setLint(editable);
         return new JsonEditor(config);
