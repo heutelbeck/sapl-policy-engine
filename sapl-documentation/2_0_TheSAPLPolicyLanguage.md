@@ -43,7 +43,7 @@ permit
 
 SAPL policies evaluate **JSON authorization subscriptions** (input) to produce a sequence of **JSON authorization decisions** (output). Internally, SAPL's data model extends JSON with `undefined` values and error states to enable robust policy evaluation.
 
-```mermaid
+<!-- mermaid source for regeneration:
 graph LR
     Subject[Subject<br/>User/System]
     PEP[Policy Enforcement Point<br/>PEP]
@@ -51,16 +51,16 @@ graph LR
     PDP[Policy Decision Point<br/>PDP]
     PRP[Policy Retrieval Point<br/>PRP]
     PIP[Policy Information Point<br/>PIP]
-
-    Subject -- 1\. Attempts Action<br/>e.g., read data --> PEP
-    PEP -- 2\. Authorization Subscription<br/>JSON --> PDP
-    PDP -- 3\. Retrieve Policies --> PRP
-    PDP -- 4\. Fetch/Monitor<br/>Attributes  --> PIP
-    PDP -- 5\. Authorization Decision<br/>JSON --> PEP
-    PEP -- 6a\. Deny Access --> Subject
-    PEP -- 6b\. Execute Action<br/>e.g., read data --> RAP
-    PEP -- 7\. Deliver Action Result<br/>e.g., data --> Subject
-```
+    Subject -- 1. Attempts Action -- > PEP
+    PEP -- 2. Authorization Subscription (JSON) -- > PDP
+    PDP -- 3. Retrieve Policies -- > PRP
+    PDP -- 4. Fetch/Monitor Attributes -- > PIP
+    PDP -- 5. Authorization Decision (JSON) -- > PEP
+    PEP -- 6a. Deny Access -- > Subject
+    PEP -- 6b. Execute Action -- > RAP
+    PEP -- 7. Deliver Action Result -- > Subject
+-->
+![ABAC authorization flow: Subject attempts action, PEP builds subscription, PDP retrieves policies from PRP and fetches attributes from PIP, PDP returns decision, PEP enforces by denying or executing and delivering result](/docs/XXXSAPLVERSIONXXX/assets/sapl_reference_images/abac-flow.svg)
 
 A typical scenario: a subject (e.g., a user or system) attempts to take action (e.g., read or cancel an order) on a protected resource (e.g., a domain object or a file). The system implements a **policy enforcement point (PEP)** protecting its resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization subscription and sends it to a **policy decision point (PDP)** that evaluates SAPL policies to decide if it grants access. The decision is sent back to the PEP, which either grants or denies access. The PDP subscribes to all data sources referenced by the policies, and new decisions are sent to the PEP whenever indicated by the policies and data sources.
 

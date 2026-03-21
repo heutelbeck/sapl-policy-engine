@@ -15,23 +15,6 @@ SAPL is a policy language and Policy Decision Point (PDP) for attribute-based ac
 
 ## How @sapl/nestjs Works
 
-```mermaid
-flowchart LR
-    subgraph app["Your NestJS App"]
-        direction TB
-        A["Controller / Service<br/>@PreEnforce / @PostEnforce"]
-        B["Constraint Handler Bundle<br/>obligations + advice<br/>execute handlers"]
-        A --> B
-    end
-
-    subgraph pdp["SAPL PDP"]
-        C["Policies (*.sapl)<br/>subject + action +<br/>resource + environment"]
-    end
-
-    A -- "subscription" --> C
-    C -- "decision" --> B
-```
-
 Three core concepts:
 
 1. **Authorization subscription**: your app sends `{ subject, action, resource, environment }` to the PDP.
@@ -483,11 +466,10 @@ The built-in content filter supports **simple dot-notation paths only** (`$.fiel
 
 For SSE endpoints that return `Observable<T>`, three streaming decorators provide continuous authorization where the PDP streams decisions over time. Access may flip between PERMIT and DENY based on time, location, or context changes.
 
-```mermaid
+<!-- mermaid source for regeneration:
 sequenceDiagram
     participant PDP
     participant Stream
-
     rect rgb(220, 245, 220)
         Note over PDP,Stream: PERMIT phase
         PDP->>Stream: PERMIT
@@ -495,30 +477,25 @@ sequenceDiagram
             Stream-->>Stream: data event
         end
     end
-
     rect rgb(255, 220, 220)
         Note over PDP,Stream: DENY phase
         PDP->>Stream: DENY
     end
-
     alt @EnforceTillDenied
         Stream-->>Stream: ACCESS_DENIED event
         Note over Stream: Stream closed permanently
     else @EnforceDropWhileDenied
         Note over Stream: Events silently dropped
-        rect rgb(220, 245, 220)
-            PDP->>Stream: PERMIT
-            Note over Stream: Events resume
-        end
+        PDP->>Stream: PERMIT
+        Note over Stream: Events resume
     else @EnforceRecoverableIfDenied
         Stream-->>Stream: ACCESS_SUSPENDED event
-        rect rgb(220, 245, 220)
-            PDP->>Stream: PERMIT
-            Stream-->>Stream: ACCESS_RESTORED event
-            Note over Stream: Events resume
-        end
+        PDP->>Stream: PERMIT
+        Stream-->>Stream: ACCESS_RESTORED event
+        Note over Stream: Events resume
     end
-```
+-->
+![Streaming enforcement sequence: PDP sends PERMIT and data events flow, then DENY triggers one of three strategies - EnforceTillDenied closes the stream, EnforceDropWhileDenied silently drops events and resumes on re-PERMIT, EnforceRecoverableIfDenied sends ACCESS_SUSPENDED and ACCESS_RESTORED signals](/docs/XXXSAPLVERSIONXXX/assets/sapl_reference_images/nestjs-streaming.svg)
 
 ### When to Use Which Strategy
 

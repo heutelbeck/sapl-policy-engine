@@ -9,23 +9,6 @@ nav_order: 603
 
 This library integrates SAPL authorization into Spring Boot applications. You write authorization rules as external policy files, and SAPL enforces them at runtime without code changes or redeployment. For background on why and when to use policy-based authorization, see [Why SAPL?](../1_1_WhySAPL/).
 
-```mermaid
-flowchart LR
-    subgraph app["Your Spring Application"]
-        direction TB
-        A["Controller / Service<br/>@PreEnforce / @PostEnforce"]
-        B["Constraint Handler Bundle<br/>obligations + advice<br/>execute handlers"]
-        A --> B
-    end
-
-    subgraph pdp["SAPL PDP"]
-        C["Policies (*.sapl)<br/>subject + action +<br/>resource + environment"]
-    end
-
-    A -- "subscription" --> C
-    C -- "decision" --> B
-```
-
 Your application sends an authorization subscription to the PDP, which evaluates its policies and returns a decision. If the decision carries constraints (obligations or advice), the constraint handler bundle executes the appropriate handlers before the result reaches the caller.
 
 A collection of working demo applications covering common integration scenarios is available at [sapl-demos](https://github.com/heutelbeck/sapl-demos).
