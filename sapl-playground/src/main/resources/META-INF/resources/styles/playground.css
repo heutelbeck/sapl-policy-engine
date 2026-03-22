@@ -1,8 +1,10 @@
-/* Logo swap: show dark icon by default (light mode), swap in dark mode */
+/* Logo swap: show light icon by default, swap in dark mode */
 .logo-dark { display: none; }
 .logo-light { display: block; }
-html[theme~="dark"] .logo-dark { display: block; }
-html[theme~="dark"] .logo-light { display: none; }
+html[theme~="dark"] .logo-dark,
+html[color-scheme="dark"] .logo-dark { display: block; }
+html[theme~="dark"] .logo-light,
+html[color-scheme="dark"] .logo-light { display: none; }
 
 /* Compact tabs for main playground editor (not documentation) */
 .playground-main vaadin-tabsheet {
