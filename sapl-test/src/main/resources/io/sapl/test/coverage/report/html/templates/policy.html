@@ -72,8 +72,8 @@
 					tooltip.textContent = target.getAttribute("data-sapl-tooltip");
 					tooltip.classList.add("visible");
 					var rect = target.getBoundingClientRect();
-					tooltip.style.left = rect.left + "px";
-					tooltip.style.top = (rect.top - tooltip.offsetHeight - 4) + "px";
+					tooltip.style.left = (rect.left + window.scrollX) + "px";
+					tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 4) + "px";
 				}
 			});
 			document.addEventListener("mouseout", function (e) {
