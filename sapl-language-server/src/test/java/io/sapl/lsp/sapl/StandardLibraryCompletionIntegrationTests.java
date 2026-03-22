@@ -111,6 +111,30 @@ class StandardLibraryCompletionIntegrationTests {
         assertThat(labels).contains(expectedAttribute);
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("pipAttributeTestCases")
+    void whenTypingAfterAngleBracket_thenPIPAttributeOffered(String description, String expectedAttribute) {
+        var document = "policy \"test\" permit <t";
+        var position = positionAtEnd(document);
+
+        var completions = getCompletions(document, position);
+        var labels      = extractLabels(completions);
+
+        assertThat(labels).contains(expectedAttribute);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("pipAttributeTestCases")
+    void whenTypingAfterPipeAngleBracket_thenPIPAttributeOffered(String description, String expectedAttribute) {
+        var document = "policy \"test\" permit |<t";
+        var position = positionAtEnd(document);
+
+        var completions = getCompletions(document, position);
+        var labels      = extractLabels(completions);
+
+        assertThat(labels).contains(expectedAttribute);
+    }
+
     @Test
     void whenInExpressionContext_thenAllMajorLibrariesRepresented() {
         var document = "policy \"test\" permit ";

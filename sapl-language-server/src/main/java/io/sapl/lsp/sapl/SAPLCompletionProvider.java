@@ -171,16 +171,15 @@ public class SAPLCompletionProvider {
             return false;
         }
 
-        // Don't filter in structural contexts where prefix might be a keyword
+        // Don't filter in structural or attribute contexts
         return switch (context) {
-        case DOCUMENT_START, AFTER_IMPORTS, IMPORT_PATH, COMBINING_ALGORITHM,
-                ENTITLEMENT                                                                                                                                         ->
+        case DOCUMENT_START, AFTER_IMPORTS, IMPORT_PATH, COMBINING_ALGORITHM, ENTITLEMENT, ENVIRONMENT_ATTRIBUTE,
+                ATTRIBUTE                                                                                                         ->
             false;
-        case EXPRESSION, FUNCTION_CALL, ENVIRONMENT_ATTRIBUTE, ATTRIBUTE, POLICY_SET_BODY, POLICY_AFTER_ENTITLEMENT,
-                POLICY_BODY_START,
-                POLICY_BODY_AFTER_STATEMENT                                                                                                                         ->
+        case EXPRESSION, FUNCTION_CALL, POLICY_SET_BODY, POLICY_AFTER_ENTITLEMENT, POLICY_BODY_START,
+                POLICY_BODY_AFTER_STATEMENT                                                                                       ->
             !isKeyword(prefix);
-        case UNKNOWN                                                                                                                                                ->
+        case UNKNOWN                                                                                                              ->
             false;
         };
     }
@@ -383,8 +382,14 @@ public class SAPLCompletionProvider {
             return CompletionContext.EXPRESSION;
         }
 
-        // Check for attribute context
+        // Check for attribute context (cursor on < or |<)
         if (isAttributeTrigger(tokenType)) {
+            return CompletionContext.ENVIRONMENT_ATTRIBUTE;
+        }
+
+        // Typing after attribute trigger (e.g., <t or |<t)
+        var previousToken = ctx.previousToken();
+        if (previousToken != null && isAttributeTrigger(previousToken.getType())) {
             return CompletionContext.ENVIRONMENT_ATTRIBUTE;
         }
 
