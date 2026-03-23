@@ -17,8 +17,6 @@
  */
 package io.sapl.node.cli;
 
-import java.nio.file.Path;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Param;
@@ -27,47 +25,42 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
+import javax.net.ssl.SSLException;
+
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
-import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * JMH benchmark for the embedded Policy Decision Point. Measures pure policy
- * evaluation performance without network overhead.
+ * JMH benchmark for a remote Policy Decision Point. Measures end-to-end
+ * latency including HTTP transport, serialization, and server-side evaluation.
  * <p>
  * This class must be {@code public} because JMH's code generator requires
  * public access to {@code @State} classes and {@code @Benchmark} methods.
  */
 @State(Scope.Benchmark)
-public class EmbeddedBenchmark {
+public class RemoteBenchmark {
 
     @Param({})
     public String contextJson;
 
     private PolicyDecisionPoint       pdp;
     private AuthorizationSubscription subscription;
-    private PDPComponents             components;
 
     @Setup(Level.Trial)
-    public void setup() {
+    public void setup() throws SSLException {
         val ctx    = BenchmarkContext.fromJson(contextJson);
         val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         subscription = mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class);
-        components   = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of(ctx.policiesPath()))
-                .build();
-        pdp          = components.pdp();
+        pdp          = RemotePdpFactory.create(ctx);
     }
 
     @TearDown(Level.Trial)
     public void tearDown() {
-        if (components != null) {
-            components.dispose();
-        }
+        pdp = null;
     }
 
     @Benchmark

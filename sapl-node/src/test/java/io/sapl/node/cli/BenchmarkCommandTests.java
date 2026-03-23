@@ -25,6 +25,7 @@ import java.io.StringWriter;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -96,6 +97,19 @@ class BenchmarkCommandTests {
             });
         }
 
+        @Test
+        @DisplayName("--remote populates remote connection options")
+        void whenRemoteOption_thenRemoteConnectionPopulated() {
+            val cmd = new BenchmarkCommand();
+            new CommandLine(cmd).parseArgs("--remote", "--url", "https://pdp.example.com", "--token", "secret", "-s",
+                    "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
+            assertThat(cmd.pdpOptions.remoteConnection).satisfies(remote -> {
+                assertThat(remote.remote).isTrue();
+                assertThat(remote.url).isEqualTo("https://pdp.example.com");
+                assertThat(remote.auth.token).isEqualTo("secret");
+            });
+        }
+
         @ParameterizedTest(name = "rejects {0}")
         @DisplayName("mutually exclusive options are rejected")
         @MethodSource
@@ -119,27 +133,45 @@ class BenchmarkCommandTests {
     @DisplayName("execution validation")
     class ExecutionValidationTests {
 
+        private StringWriter err;
+        private CommandLine  cmd;
+
+        @BeforeEach
+        void setUp() {
+            err = new StringWriter();
+            cmd = new CommandLine(new BenchmarkCommand());
+            cmd.setErr(new PrintWriter(err));
+        }
+
         @Test
         @DisplayName("missing subscription returns exit code 1 with error message")
         void whenNoSubscription_thenExitCode1WithError() {
-            val err = new StringWriter();
-            val cmd = new CommandLine(new BenchmarkCommand());
-            cmd.setErr(new PrintWriter(err));
-            val exitCode = cmd.execute("--dir", "/tmp/policies");
-            assertThat(exitCode).isEqualTo(1);
+            assertThat(cmd.execute("--dir", "/tmp/policies")).isEqualTo(1);
             assertThat(err.toString()).contains(BenchmarkCommand.ERROR_SUBSCRIPTION_MISSING);
         }
 
         @Test
         @DisplayName("non-existent policy directory returns exit code 1")
         void whenInvalidPolicyDir_thenExitCode1() {
-            val err = new StringWriter();
-            val cmd = new CommandLine(new BenchmarkCommand());
-            cmd.setErr(new PrintWriter(err));
-            val exitCode = cmd.execute("--dir", "/nonexistent/path", "-s", "\"alice\"", "-a", "\"read\"", "-r",
-                    "\"doc\"");
-            assertThat(exitCode).isEqualTo(1);
+            assertThat(cmd.execute("--dir", "/nonexistent/path", "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\""))
+                    .isEqualTo(1);
             assertThat(err.toString()).contains("not found");
+        }
+
+        @Test
+        @DisplayName("--remote with --dir returns exit code 1")
+        void whenRemoteWithDir_thenExitCode1() {
+            assertThat(cmd.execute("--remote", "--dir", "/tmp", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\""))
+                    .isEqualTo(1);
+            assertThat(err.toString()).contains(BenchmarkCommand.ERROR_REMOTE_WITH_LOCAL);
+        }
+
+        @Test
+        @DisplayName("--remote with --no-verify returns exit code 1")
+        void whenRemoteWithVerification_thenExitCode1() {
+            assertThat(cmd.execute("--remote", "--no-verify", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\""))
+                    .isEqualTo(1);
+            assertThat(err.toString()).contains(BenchmarkCommand.ERROR_REMOTE_WITH_VERIFICATION);
         }
 
     }

@@ -18,7 +18,9 @@
 package io.sapl.node.cli;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -43,42 +45,66 @@ class JmhBenchmarkRunner {
 
     static final String ERROR_BENCHMARK_FAILED = "Error: JMH benchmark failed: %s";
 
-    static int run(BenchmarkContext ctx, BenchmarkOptions opts, PrintWriter out, PrintWriter err) {
+    static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
+            PrintWriter err) {
         try {
-            val builder = new OptionsBuilder().include(EmbeddedBenchmark.class.getName()).forks(0)
-                    .warmupIterations(opts.warmupIterations).warmupTime(TimeValue.seconds(opts.warmupTimeSeconds))
-                    .measurementIterations(opts.measurementIterations)
-                    .measurementTime(TimeValue.seconds(opts.measurementTimeSeconds)).threads(opts.threads)
+            val benchmarkClass = ctx.isRemote() ? RemoteBenchmark.class : EmbeddedBenchmark.class;
+            val includePattern = buildIncludePattern(benchmarkClass, cfg);
+            val builder        = new OptionsBuilder().include(includePattern).forks(0)
+                    .warmupIterations(cfg.warmupIterations()).warmupTime(TimeValue.seconds(cfg.warmupTimeSeconds()))
+                    .measurementIterations(cfg.measurementIterations())
+                    .measurementTime(TimeValue.seconds(cfg.measurementTimeSeconds())).threads(threads)
                     .param("contextJson", ctx.toJson()).mode(Mode.Throughput).timeUnit(TimeUnit.SECONDS)
                     .shouldDoGC(true).syncIterations(true);
 
-            if (opts.output != null) {
-                val resultPath = opts.output.resolve("results.json").toString();
+            if (cfg.output() != null) {
+                val mode       = ctx.isRemote() ? "remote" : "embedded";
+                val resultPath = cfg.output().resolve(cfg.outputFileName(mode, "all", threads)).toString();
                 builder.resultFormat(ResultFormatType.JSON).result(resultPath);
             }
 
-            val results = new Runner(builder.build()).run();
-            printSummary(results, out);
-            return 0;
+            val runResults       = new Runner(builder.build()).run();
+            val benchmarkResults = toBenchmarkResults(runResults);
+            printSummary(benchmarkResults, out);
+            return benchmarkResults;
         } catch (RunnerException e) {
             err.println(ERROR_BENCHMARK_FAILED.formatted(e.getMessage()));
-            return 1;
+            return null;
         }
     }
 
-    private static void printSummary(Collection<RunResult> results, PrintWriter out) {
+    private static String buildIncludePattern(Class<?> benchmarkClass, BenchmarkRunConfig cfg) {
+        val base = benchmarkClass.getName();
+        if (cfg.benchmarks() == null || cfg.benchmarks().isEmpty()) {
+            return base;
+        }
+        val methods = String.join("|", cfg.benchmarks());
+        return base + "\\.(" + methods + ")";
+    }
+
+    private static List<BenchmarkResult> toBenchmarkResults(Collection<RunResult> runResults) {
+        val results = new ArrayList<BenchmarkResult>();
+        for (val rr : runResults) {
+            val label   = rr.getPrimaryResult().getLabel();
+            val threads = rr.getParams().getThreads();
+            val rawData = new ArrayList<Double>();
+            for (val br : rr.getBenchmarkResults()) {
+                for (val ir : br.getIterationResults()) {
+                    rawData.add(ir.getPrimaryResult().getScore());
+                }
+            }
+            results.add(BenchmarkResult.fromIterations(label, threads, rawData));
+        }
+        return results;
+    }
+
+    private static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
         out.println();
         out.println("%-30s %10s %15s %10s".formatted("Benchmark", "Threads", "Throughput", "Error"));
         out.println("-".repeat(70));
-        for (val result : results) {
-            val primary    = result.getPrimaryResult();
-            val label      = primary.getLabel();
-            val score      = primary.getScore();
-            val scoreError = primary.getScoreError();
-            val unit       = primary.getScoreUnit();
-            val threads    = result.getParams().getThreads();
-            out.println(String.format(Locale.US, "%-30s %10d %,13.1f %s %,10.1f %s", label, threads, score, unit,
-                    scoreError, unit));
+        for (val r : results) {
+            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s %,10.1f ops/s", r.method(), r.threads(),
+                    r.mean(), r.stddev()));
         }
         out.flush();
     }

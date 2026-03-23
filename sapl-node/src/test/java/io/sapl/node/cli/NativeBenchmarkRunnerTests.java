@@ -22,7 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Path;
+import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.val;
-import picocli.CommandLine;
 import tools.jackson.databind.json.JsonMapper;
 
 @DisplayName("NativeBenchmarkRunner")
@@ -39,64 +40,84 @@ class NativeBenchmarkRunnerTests {
     private static final String TEST_POLICIES_DIR = Path.of("src/test/resources/it/policies/single-pdp")
             .toAbsolutePath().toString();
 
-    private BenchmarkOptions createOptions(int warmupIterations, int warmupTime, int measurementIterations,
-            int measurementTime, int threads) {
-        val benchCmd = new BenchmarkCommand();
-        new CommandLine(benchCmd).parseArgs("--warmup-iterations", String.valueOf(warmupIterations), "--warmup-time",
-                String.valueOf(warmupTime), "--measurement-iterations", String.valueOf(measurementIterations),
-                "--measurement-time", String.valueOf(measurementTime), "-t", String.valueOf(threads), "-s", "\"alice\"",
-                "-a", "\"eat\"", "-r", "\"apple\"");
-        return benchCmd.benchmarkOptions;
+    private static BenchmarkRunConfig quickConfig(List<String> benchmarks) {
+        return new BenchmarkRunConfig(1, 1, 1, 1, List.of(1), benchmarks, null, "20260323-120000");
     }
 
-    private BenchmarkContext createContext() {
+    private static BenchmarkContext createContext() {
         val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         val subscription = AuthorizationSubscription.of("alice", "eat", "apple");
         val subJson      = mapper.writeValueAsString(subscription);
-        return new BenchmarkContext(subJson, TEST_POLICIES_DIR, "DIRECTORY");
+        return BenchmarkContext.embedded(subJson, TEST_POLICIES_DIR, "DIRECTORY");
     }
 
     @Nested
     @DisplayName("successful benchmark execution")
     class SuccessTests {
 
+        private StringWriter out;
+        private StringWriter err;
+
+        @BeforeEach
+        void setUp() {
+            out = new StringWriter();
+            err = new StringWriter();
+            val ctx     = createContext();
+            val cfg     = quickConfig(List.of("decideOnceBlocking"));
+            val results = NativeBenchmarkRunner.run(ctx, cfg, 1, new PrintWriter(out, true),
+                    new PrintWriter(err, true));
+            assertThat(results).as("runner should return results, not null").isNotNull();
+        }
+
         @Test
-        @DisplayName("returns exit code 0 with valid policies and subscription")
-        void whenValidPoliciesAndSubscription_thenExitCode0() {
-            val out      = new StringWriter();
-            val err      = new StringWriter();
-            val errPw    = new PrintWriter(err, true);
-            val outPw    = new PrintWriter(out, true);
-            val ctx      = createContext();
-            val opts     = createOptions(1, 1, 1, 1, 1);
-            val exitCode = NativeBenchmarkRunner.run(ctx, opts, outPw, errPw);
+        @DisplayName("produces no errors on stderr")
+        void whenValidPoliciesAndSubscription_thenNoErrors() {
             assertThat(err.toString()).as("stderr should be empty but was: %s", err).isEmpty();
-            assertThat(exitCode).isZero();
         }
 
         @Test
-        @DisplayName("output contains warmup and measurement headers")
+        @DisplayName("output contains benchmark header and iteration results")
         void whenBenchmarkRuns_thenOutputContainsHeaders() {
-            val out  = new StringWriter();
-            val err  = new StringWriter();
-            val ctx  = createContext();
-            val opts = createOptions(1, 1, 1, 1, 1);
-            NativeBenchmarkRunner.run(ctx, opts, new PrintWriter(out), new PrintWriter(err));
-            val output = out.toString();
-            assertThat(output).contains("# Native benchmark: decideOnceBlocking").contains("Warmup 1:")
-                    .contains("Iteration 1:").contains("Result \"decideOnceBlocking\":").contains("ops/s");
+            assertThat(out.toString()).contains("# Native benchmark (embedded):").contains("Warmup 1:")
+                    .contains("Iteration 1:").contains("ops/s");
         }
 
         @Test
-        @DisplayName("reports positive throughput for a simple permit policy")
-        void whenSimplePolicy_thenPositiveThroughput() {
-            val out  = new StringWriter();
-            val err  = new StringWriter();
-            val ctx  = createContext();
-            val opts = createOptions(1, 1, 1, 1, 1);
-            NativeBenchmarkRunner.run(ctx, opts, new PrintWriter(out), new PrintWriter(err));
-            val output = out.toString();
-            assertThat(output).contains("Iteration 1:").contains("ops/s");
+        @DisplayName("output contains summary table with benchmark name")
+        void whenBenchmarkCompletes_thenSummaryTablePresent() {
+            assertThat(out.toString()).contains("Benchmark").contains("Threads").contains("Throughput")
+                    .contains("decideOnceBlocking");
+        }
+
+    }
+
+    private record RunOutput(String stdout, String stderr, List<BenchmarkResult> results) {}
+
+    private static RunOutput runBenchmark(BenchmarkContext ctx, BenchmarkRunConfig cfg) {
+        val out     = new StringWriter();
+        val err     = new StringWriter();
+        val results = NativeBenchmarkRunner.run(ctx, cfg, 1, new PrintWriter(out, true), new PrintWriter(err, true));
+        return new RunOutput(out.toString(), err.toString(), results);
+    }
+
+    @Nested
+    @DisplayName("multiple benchmark methods")
+    class MultiMethodTests {
+
+        @Test
+        @DisplayName("runs all three methods when no filter specified")
+        void whenNoFilter_thenAllMethodsRun() {
+            val output = runBenchmark(createContext(), quickConfig(null));
+            assertThat(output.stdout()).contains("--- decideOnceBlocking ---").contains("--- decideOnceReactive ---")
+                    .contains("--- decideStreamFirst ---");
+        }
+
+        @Test
+        @DisplayName("runs only filtered methods when filter specified")
+        void whenFilterSpecified_thenOnlyMatchingMethodsRun() {
+            val output = runBenchmark(createContext(), quickConfig(List.of("decideOnceBlocking")));
+            assertThat(output.stdout()).contains("--- decideOnceBlocking ---")
+                    .doesNotContain("--- decideOnceReactive ---").doesNotContain("--- decideStreamFirst ---");
         }
 
     }
@@ -106,27 +127,21 @@ class NativeBenchmarkRunnerTests {
     class ErrorTests {
 
         @Test
-        @DisplayName("returns exit code 1 with non-existent policy directory")
-        void whenInvalidPolicyDir_thenExitCode1() {
-            val out      = new StringWriter();
-            val err      = new StringWriter();
-            val ctx      = new BenchmarkContext("{}", "/nonexistent/path", "DIRECTORY");
-            val opts     = createOptions(1, 1, 1, 1, 1);
-            val exitCode = NativeBenchmarkRunner.run(ctx, opts, new PrintWriter(out), new PrintWriter(err));
-            assertThat(exitCode).isEqualTo(1);
-            assertThat(err.toString()).contains("Error:");
+        @DisplayName("returns null with non-existent policy directory")
+        void whenInvalidPolicyDir_thenReturnsNull() {
+            val output = runBenchmark(BenchmarkContext.embedded("{}", "/nonexistent/path", "DIRECTORY"),
+                    quickConfig(List.of("decideOnceBlocking")));
+            assertThat(output.results()).isNull();
+            assertThat(output.stderr()).contains("Error:");
         }
 
         @Test
-        @DisplayName("returns exit code 1 with malformed subscription JSON")
-        void whenMalformedSubscription_thenExitCode1() {
-            val out      = new StringWriter();
-            val err      = new StringWriter();
-            val ctx      = new BenchmarkContext("not json", TEST_POLICIES_DIR, "DIRECTORY");
-            val opts     = createOptions(1, 1, 1, 1, 1);
-            val exitCode = NativeBenchmarkRunner.run(ctx, opts, new PrintWriter(out), new PrintWriter(err));
-            assertThat(exitCode).isEqualTo(1);
-            assertThat(err.toString()).contains("Error:");
+        @DisplayName("returns null with malformed subscription JSON")
+        void whenMalformedSubscription_thenReturnsNull() {
+            val output = runBenchmark(BenchmarkContext.embedded("not json", TEST_POLICIES_DIR, "DIRECTORY"),
+                    quickConfig(List.of("decideOnceBlocking")));
+            assertThat(output.results()).isNull();
+            assertThat(output.stderr()).contains("Error:");
         }
 
     }

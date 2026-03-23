@@ -17,17 +17,24 @@
  */
 package io.sapl.node.cli;
 
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+
+import javax.net.ssl.SSLException;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -45,34 +52,56 @@ import tools.jackson.databind.json.JsonMapper;
 class NativeBenchmarkRunner {
 
     static final String ERROR_BENCHMARK_FAILED = "Error: Benchmark failed: %s";
+    static final String WARN_JSON_WRITE_FAILED = "Warning: Failed to write JSON results: %s";
 
-    static int run(BenchmarkContext ctx, BenchmarkOptions opts, PrintWriter out, PrintWriter err) {
+    static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
+            PrintWriter err) {
         PDPComponents components = null;
         try {
             val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscription = mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class);
-            components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of(ctx.policiesPath()))
-                    .build();
-            val pdp = components.pdp();
+            val mode         = ctx.isRemote() ? "remote" : "embedded";
 
-            out.println("# Native benchmark: decideOnceBlocking");
-            out.println("# Warmup: %d iterations x %d s".formatted(opts.warmupIterations, opts.warmupTimeSeconds));
-            out.println("# Measurement: %d iterations x %d s".formatted(opts.measurementIterations,
-                    opts.measurementTimeSeconds));
-            out.println("# Threads: %d".formatted(opts.threads));
+            PolicyDecisionPoint pdp;
+            if (ctx.isRemote()) {
+                pdp = RemotePdpFactory.create(ctx);
+            } else {
+                components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of(ctx.policiesPath()))
+                        .build();
+                pdp        = components.pdp();
+            }
+
+            val methods = resolveMethods(pdp, subscription, cfg.benchmarks());
+
+            out.println("# Native benchmark (%s): %d method(s), %d thread(s)".formatted(mode, methods.size(), threads));
+            out.println("# Warmup: %d x %d s, Measurement: %d x %d s".formatted(cfg.warmupIterations(),
+                    cfg.warmupTimeSeconds(), cfg.measurementIterations(), cfg.measurementTimeSeconds()));
             out.println();
 
-            runPhase("Warmup", opts.warmupIterations, opts.warmupTimeSeconds, opts.threads, pdp, subscription, out,
-                    false);
-            val results = runPhase("Iteration", opts.measurementIterations, opts.measurementTimeSeconds, opts.threads,
-                    pdp, subscription, out, true);
+            val rawResults       = new LinkedHashMap<String, List<Double>>();
+            val benchmarkResults = new ArrayList<BenchmarkResult>();
+            for (val entry : methods.entrySet()) {
+                out.println("--- %s ---".formatted(entry.getKey()));
+                runPhase("Warmup", cfg.warmupIterations(), cfg.warmupTimeSeconds(), threads, entry.getValue(), out,
+                        false);
+                val iterationData = runPhase("Iteration", cfg.measurementIterations(), cfg.measurementTimeSeconds(),
+                        threads, entry.getValue(), out, true);
+                rawResults.put(entry.getKey(), iterationData);
+                benchmarkResults.add(BenchmarkResult.fromIterations(entry.getKey(), threads, iterationData));
+                out.println();
+            }
 
-            out.println();
-            printSummary(results, out);
-            return 0;
-        } catch (RuntimeException e) {
+            printSummary(benchmarkResults, out);
+
+            if (cfg.output() != null) {
+                val fileName = cfg.outputFileName(mode, "all", threads);
+                writeJsonResults(rawResults, cfg, threads, cfg.output().resolve(fileName), err);
+            }
+
+            return benchmarkResults;
+        } catch (RuntimeException | SSLException e) {
             err.println(ERROR_BENCHMARK_FAILED.formatted(e.getMessage()));
-            return 1;
+            return null;
         } finally {
             if (components != null) {
                 components.dispose();
@@ -80,12 +109,31 @@ class NativeBenchmarkRunner {
         }
     }
 
+    private static Map<String, Supplier<AuthorizationDecision>> resolveMethods(PolicyDecisionPoint pdp,
+            AuthorizationSubscription subscription, List<String> filter) {
+        val all = new LinkedHashMap<String, Supplier<AuthorizationDecision>>();
+        all.put("decideOnceBlocking", () -> pdp.decideOnceBlocking(subscription));
+        all.put("decideOnceReactive", () -> pdp.decideOnce(subscription).block());
+        all.put("decideStreamFirst", () -> pdp.decide(subscription).blockFirst());
+
+        if (filter == null || filter.isEmpty()) {
+            return all;
+        }
+        val filtered = new LinkedHashMap<String, Supplier<AuthorizationDecision>>();
+        for (val entry : all.entrySet()) {
+            if (filter.contains(entry.getKey())) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtered.isEmpty() ? all : filtered;
+    }
+
     private static List<Double> runPhase(String phaseName, int iterations, int timePerIterationSeconds, int threads,
-            PolicyDecisionPoint pdp, AuthorizationSubscription subscription, PrintWriter out, boolean collect) {
+            Supplier<AuthorizationDecision> method, PrintWriter out, boolean collect) {
         val results = collect ? new ArrayList<Double>(iterations) : null;
         for (int i = 0; i < iterations; i++) {
             System.gc();
-            val opsCount   = runTimedIteration(timePerIterationSeconds, threads, pdp, subscription);
+            val opsCount   = runTimedIteration(timePerIterationSeconds, threads, method);
             val throughput = (double) opsCount / timePerIterationSeconds;
             val nsPerOp    = timePerIterationSeconds * 1_000_000_000.0 / opsCount;
             out.println("%s %d: %,.1f ops/s  (%.0f ns/op)".formatted(phaseName, i + 1, throughput, nsPerOp));
@@ -99,14 +147,13 @@ class NativeBenchmarkRunner {
 
     /**
      * Sink for benchmark return values. Storing to a volatile field prevents the
-     * AOT compiler from eliminating the {@code decideOnceBlocking} call as dead
-     * code, mirroring JMH's Blackhole mechanism.
+     * AOT compiler from eliminating the benchmark call as dead code, mirroring
+     * JMH's Blackhole mechanism.
      */
     @SuppressWarnings("unused")
     private static volatile Object sink;
 
-    private static long runTimedIteration(int seconds, int threadCount, PolicyDecisionPoint pdp,
-            AuthorizationSubscription subscription) {
+    private static long runTimedIteration(int seconds, int threadCount, Supplier<AuthorizationDecision> method) {
         val totalOps = new AtomicLong(0);
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds);
         val latch    = new CountDownLatch(threadCount);
@@ -116,7 +163,7 @@ class NativeBenchmarkRunner {
                 long   localOps   = 0;
                 Object lastResult = null;
                 while (System.nanoTime() < deadline) {
-                    lastResult = pdp.decideOnceBlocking(subscription);
+                    lastResult = method.get();
                     localOps++;
                 }
                 sink = lastResult;
@@ -134,33 +181,67 @@ class NativeBenchmarkRunner {
         return totalOps.get();
     }
 
-    private static void printSummary(List<Double> throughputs, PrintWriter out) {
-        if (throughputs.isEmpty()) {
-            return;
+    private static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
+        out.println("%-30s %10s %15s %10s".formatted("Benchmark", "Threads", "Throughput", "Error"));
+        out.println("-".repeat(70));
+        for (val r : results) {
+            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s %,10.1f ops/s", r.method(), r.threads(),
+                    r.mean(), r.stddev()));
         }
-        val sorted = new ArrayList<>(throughputs);
-        Collections.sort(sorted);
-        val mean   = throughputs.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-        val stddev = Math.sqrt(throughputs.stream().mapToDouble(d -> (d - mean) * (d - mean)).average().orElse(0.0));
-        val p50    = percentile(sorted, 0.50);
-        val p95    = percentile(sorted, 0.95);
-        val p99    = percentile(sorted, 0.99);
-
-        out.println("Result \"decideOnceBlocking\":");
-        out.println(String.format(Locale.US, "  %,.1f +/- %,.1f ops/s", mean, stddev));
-        out.println(
-                String.format(Locale.US, "  p50 = %,.1f ops/s, p95 = %,.1f ops/s, p99 = %,.1f ops/s", p50, p95, p99));
+        out.flush();
     }
 
-    private static double percentile(List<Double> sorted, double p) {
-        if (sorted.size() == 1) {
-            return sorted.getFirst();
+    private static void writeJsonResults(Map<String, List<Double>> rawResults, BenchmarkRunConfig cfg, int threads,
+            Path outputPath, PrintWriter err) {
+        val sb = new StringBuilder();
+        sb.append("[\n");
+        val entries = new ArrayList<>(rawResults.entrySet());
+        for (int i = 0; i < entries.size(); i++) {
+            val entry = entries.get(i);
+            val r     = BenchmarkResult.fromIterations(entry.getKey(), threads, entry.getValue());
+            sb.append("  {\n");
+            sb.append("    \"benchmark\": \"%s\",\n".formatted(r.method()));
+            sb.append("    \"mode\": \"thrpt\",\n");
+            sb.append("    \"threads\": %d,\n".formatted(threads));
+            sb.append("    \"warmupIterations\": %d,\n".formatted(cfg.warmupIterations()));
+            sb.append("    \"warmupTime\": \"%d s\",\n".formatted(cfg.warmupTimeSeconds()));
+            sb.append("    \"measurementIterations\": %d,\n".formatted(cfg.measurementIterations()));
+            sb.append("    \"measurementTime\": \"%d s\",\n".formatted(cfg.measurementTimeSeconds()));
+            sb.append("    \"primaryMetric\": {\n");
+            sb.append("      \"score\": %s,\n".formatted(fmt(r.mean())));
+            sb.append("      \"scoreError\": %s,\n".formatted(fmt(r.stddev())));
+            sb.append("      \"scoreUnit\": \"ops/s\",\n");
+            sb.append("      \"scorePercentiles\": {\n");
+            sb.append("        \"5.0\": %s,\n".formatted(fmt(r.p5())));
+            sb.append("        \"50.0\": %s,\n".formatted(fmt(r.median())));
+            sb.append("        \"95.0\": %s\n".formatted(fmt(r.p95())));
+            sb.append("      },\n");
+            sb.append("      \"rawData\": [%s]\n".formatted(formatRawData(r.rawData())));
+            sb.append("    }\n");
+            sb.append("  }%s\n".formatted(i < entries.size() - 1 ? "," : ""));
         }
-        val index = p * (sorted.size() - 1);
-        val lower = (int) Math.floor(index);
-        val upper = Math.min(lower + 1, sorted.size() - 1);
-        val frac  = index - lower;
-        return sorted.get(lower) * (1 - frac) + sorted.get(upper) * frac;
+        sb.append("]\n");
+        try {
+            Files.writeString(outputPath, sb.toString());
+        } catch (IOException e) {
+            err.println(WARN_JSON_WRITE_FAILED.formatted(e.getMessage()));
+        }
+    }
+
+    private static String fmt(double value) {
+        return String.format(Locale.US, "%.6f", value);
+    }
+
+    private static String formatRawData(List<Double> values) {
+        val sb = new StringBuilder("[");
+        for (int i = 0; i < values.size(); i++) {
+            sb.append(fmt(values.get(i)));
+            if (i < values.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
 }
