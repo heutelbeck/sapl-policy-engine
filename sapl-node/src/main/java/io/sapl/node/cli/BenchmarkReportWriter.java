@@ -29,7 +29,9 @@ import lombok.val;
 
 /**
  * Writes benchmark results in Markdown and CSV formats. Produces
- * self-contained reports suitable for thesis appendices.
+ * self-contained reports suitable for thesis appendices. Tables use
+ * fixed-width columns for readability in both rendered Markdown and
+ * plaintext.
  */
 @UtilityClass
 class BenchmarkReportWriter {
@@ -51,72 +53,14 @@ class BenchmarkReportWriter {
     static String buildMarkdown(List<BenchmarkResult> results, BenchmarkContext ctx, BenchmarkRunConfig cfg,
             String runner) {
         val sb = new StringBuilder();
+        val mw = maxMethodWidth(results);
 
         sb.append("# Benchmark Report\n\n");
-
-        sb.append("## Methodology\n\n");
-        sb.append("| Parameter | Value |\n");
-        sb.append("|-----------|-------|\n");
-        sb.append("| Runner | %s |\n".formatted(runner));
-        sb.append("| Mode | %s |\n".formatted(ctx.isRemote() ? "remote" : "embedded"));
-        if (ctx.isRemote()) {
-            sb.append("| Remote URL | %s |\n".formatted(ctx.remoteUrl()));
-        } else {
-            sb.append("| Policy source | %s |\n".formatted(ctx.policiesPath()));
-            sb.append("| Config type | %s |\n".formatted(ctx.configType()));
-        }
-        sb.append("| Warmup | %d iterations x %d s |\n".formatted(cfg.warmupIterations(), cfg.warmupTimeSeconds()));
-        sb.append("| Measurement | %d iterations x %d s |\n".formatted(cfg.measurementIterations(),
-                cfg.measurementTimeSeconds()));
-        sb.append("| Timestamp | %s |\n".formatted(cfg.timestamp()));
-        sb.append('\n');
-
-        sb.append("## Results\n\n");
-        sb.append("| Method | Threads | Mean (ops/s) | Median (ops/s) | StdDev | CV% | Min | Max | p5 | p95 |\n");
-        sb.append("|--------|---------|-------------|---------------|--------|-----|-----|-----|-----|-----|\n");
-        for (val r : results) {
-            sb.append(String.format(Locale.US,
-                    "| %s | %d | %,.0f | %,.0f | %,.0f | %.1f%% | %,.0f | %,.0f | %,.0f | %,.0f |\n", r.method(),
-                    r.threads(), r.mean(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(), r.p95()));
-        }
-        sb.append('\n');
-
-        sb.append("## Latency (derived from throughput)\n\n");
-        sb.append("| Method | Threads | Mean (ns/op) | p5 (ns/op) | p95 (ns/op) |\n");
-        sb.append("|--------|---------|-------------|-----------|------------|\n");
-        for (val r : results) {
-            val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
-            val p5Ns   = r.p95() > 0 ? 1_000_000_000.0 / r.p95() : 0;
-            val p95Ns  = r.p5() > 0 ? 1_000_000_000.0 / r.p5() : 0;
-            sb.append(String.format(Locale.US, "| %s | %d | %,.0f | %,.0f | %,.0f |\n", r.method(), r.threads(), meanNs,
-                    p5Ns, p95Ns));
-        }
-        sb.append('\n');
-
-        appendScalingTable(sb, results);
-
+        appendMethodology(sb, ctx, cfg, runner);
+        appendResultsTable(sb, results, mw);
+        appendLatencyTable(sb, results, mw);
+        appendScalingTable(sb, results, mw);
         return sb.toString();
-    }
-
-    private static void appendScalingTable(StringBuilder sb, List<BenchmarkResult> results) {
-        val methods = results.stream().map(BenchmarkResult::method).distinct().toList();
-        if (methods.isEmpty()) {
-            return;
-        }
-        sb.append("## Scaling Efficiency\n\n");
-        sb.append("| Method | Threads | Throughput (ops/s) | Scaling vs 1T | Ideal |\n");
-        sb.append("|--------|---------|--------------------|---------------|-------|\n");
-        for (val method : methods) {
-            val methodResults = results.stream().filter(r -> r.method().equals(method)).toList();
-            val baseline      = methodResults.stream().filter(r -> r.threads() == 1).findFirst()
-                    .map(BenchmarkResult::mean).orElse(0.0);
-            for (val r : methodResults) {
-                val scaling = baseline > 0 ? r.mean() / baseline : 0.0;
-                sb.append(String.format(Locale.US, "| %s | %d | %,.0f | %.1fx | %.1fx |\n", r.method(), r.threads(),
-                        r.mean(), scaling, (double) r.threads()));
-            }
-        }
-        sb.append('\n');
     }
 
     static String buildCsv(List<BenchmarkResult> results) {
@@ -129,6 +73,87 @@ class BenchmarkReportWriter {
                     r.threads(), r.mean(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(), r.p95(), meanNs));
         }
         return sb.toString();
+    }
+
+    private static void appendMethodology(StringBuilder sb, BenchmarkContext ctx, BenchmarkRunConfig cfg,
+            String runner) {
+        sb.append("## Methodology\n\n");
+        sb.append("| Parameter   | Value                  |\n");
+        sb.append("|-------------|------------------------|\n");
+        sb.append("| Runner      | %-22s |\n".formatted(runner));
+        sb.append("| Mode        | %-22s |\n".formatted(ctx.isRemote() ? "remote" : "embedded"));
+        if (ctx.isRemote()) {
+            sb.append("| Remote URL  | %-22s |\n".formatted(ctx.remoteUrl()));
+        } else {
+            sb.append("| Policies    | %-22s |\n".formatted(ctx.policiesPath()));
+            sb.append("| Config type | %-22s |\n".formatted(ctx.configType()));
+        }
+        sb.append("| Warmup      | %-22s |\n"
+                .formatted("%d iter x %d s".formatted(cfg.warmupIterations(), cfg.warmupTimeSeconds())));
+        sb.append("| Measurement | %-22s |\n"
+                .formatted("%d iter x %d s".formatted(cfg.measurementIterations(), cfg.measurementTimeSeconds())));
+        sb.append("| Timestamp   | %-22s |\n".formatted(cfg.timestamp()));
+        sb.append('\n');
+    }
+
+    private static void appendResultsTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
+        sb.append("## Results\n\n");
+        val fmt = "| %-" + mw + "s | %7s | %14s | %14s | %10s | %5s | %14s | %14s | %14s | %14s |\n";
+        val sep = "| " + "-".repeat(mw) + " | ------: | -------------: | -------------: | ---------: | ----: "
+                + "| -------------: | -------------: | -------------: | -------------: |\n";
+        sb.append(String.format(fmt, "Method", "Threads", "Mean (ops/s)", "Median (ops/s)", "StdDev", "CV%", "Min",
+                "Max", "p5", "p95"));
+        sb.append(sep);
+        for (val r : results) {
+            sb.append(String.format(Locale.US, "| %-" + mw
+                    + "s | %7d | %,14.0f | %,14.0f | %,10.0f | %4.1f%% | %,14.0f | %,14.0f | %,14.0f | %,14.0f |\n",
+                    r.method(), r.threads(), r.mean(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(),
+                    r.p95()));
+        }
+        sb.append('\n');
+    }
+
+    private static void appendLatencyTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
+        sb.append("## Latency (derived from throughput)\n\n");
+        val fmt = "| %-" + mw + "s | %7s | %14s | %14s | %14s |\n";
+        val sep = "| " + "-".repeat(mw) + " | ------: | -------------: | -------------: | -------------: |\n";
+        sb.append(String.format(fmt, "Method", "Threads", "Mean (ns/op)", "p5 (ns/op)", "p95 (ns/op)"));
+        sb.append(sep);
+        for (val r : results) {
+            val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
+            val p5Ns   = r.p95() > 0 ? 1_000_000_000.0 / r.p95() : 0;
+            val p95Ns  = r.p5() > 0 ? 1_000_000_000.0 / r.p5() : 0;
+            sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %,14.0f | %,14.0f | %,14.0f |\n", r.method(),
+                    r.threads(), meanNs, p5Ns, p95Ns));
+        }
+        sb.append('\n');
+    }
+
+    private static void appendScalingTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
+        val methods = results.stream().map(BenchmarkResult::method).distinct().toList();
+        if (methods.isEmpty()) {
+            return;
+        }
+        sb.append("## Scaling Efficiency\n\n");
+        val fmt = "| %-" + mw + "s | %7s | %18s | %13s | %5s |\n";
+        val sep = "| " + "-".repeat(mw) + " | ------: | -----------------: | ------------: | ----: |\n";
+        sb.append(String.format(fmt, "Method", "Threads", "Throughput (ops/s)", "Scaling vs 1T", "Ideal"));
+        sb.append(sep);
+        for (val method : methods) {
+            val methodResults = results.stream().filter(r -> r.method().equals(method)).toList();
+            val baseline      = methodResults.stream().filter(r -> r.threads() == 1).findFirst()
+                    .map(BenchmarkResult::mean).orElse(0.0);
+            for (val r : methodResults) {
+                val scaling = baseline > 0 ? r.mean() / baseline : 0.0;
+                sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %,18.0f | %12.1fx | %4.1fx |\n", r.method(),
+                        r.threads(), r.mean(), scaling, (double) r.threads()));
+            }
+        }
+        sb.append('\n');
+    }
+
+    private static int maxMethodWidth(List<BenchmarkResult> results) {
+        return Math.max(6, results.stream().mapToInt(r -> r.method().length()).max().orElse(20));
     }
 
 }
