@@ -233,7 +233,7 @@ class NativeBenchmarkRunner {
     }
 
     private static String formatRawData(List<Double> values) {
-        val sb = new StringBuilder('[');
+        val sb = new StringBuilder("[");
         for (int i = 0; i < values.size(); i++) {
             sb.append(fmt(values.get(i)));
             if (i < values.size() - 1) {
