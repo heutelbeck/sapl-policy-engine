@@ -12,7 +12,8 @@ import { EditorState, Compartment, StateField, StateEffect } from '@codemirror/s
 import { keymap, Decoration, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { indentWithTab, defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { StreamLanguage, bracketMatching, foldService, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { StreamLanguage, bracketMatching, foldService, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, defaultHighlightStyle, HighlightStyle } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 import { linter, Diagnostic, lintKeymap } from '@codemirror/lint';
 import { autocompletion, CompletionContext, closeBrackets, closeBracketsKeymap, completionKeymap, snippet } from '@codemirror/autocomplete';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
@@ -30,6 +31,34 @@ const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
 const bracketMatchingCompartment = new Compartment();
 const closeBracketsCompartment = new Compartment();
+
+// SAPL light theme — WCAG AA compliant, brand-aligned colors
+const saplLightHighlightStyle = HighlightStyle.define([
+    { tag: tags.keyword, color: '#027080' },
+    { tag: tags.variableName, color: '#0070c1' },
+    { tag: [tags.special(tags.variableName)], color: '#8f5500' },
+    { tag: tags.string, color: '#a31515' },
+    { tag: tags.number, color: '#076e48' },
+    { tag: tags.comment, color: '#5c6670', fontStyle: 'italic' },
+    { tag: tags.atom, color: '#076e48' },
+    { tag: tags.bool, color: '#076e48' },
+    { tag: tags.typeName, color: '#025d6b' },
+    { tag: tags.operator, color: '#383a42' },
+    { tag: tags.definition(tags.variableName), color: '#795e26' },
+    { tag: tags.propertyName, color: '#0070c1' },
+]);
+const saplLight = [
+    EditorView.theme({
+        '&': { backgroundColor: '#ffffff', color: '#383a42' },
+        '.cm-gutters': { backgroundColor: '#f5f5f5', color: '#6e7781', borderRight: '1px solid #ddd' },
+        '.cm-activeLineGutter': { backgroundColor: '#e0e0e0' },
+        '.cm-activeLine': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
+        '.cm-cursor, .cm-cursor-primary': { borderLeftColor: '#027080' },
+        '.cm-selectionBackground': { backgroundColor: '#b3d7ff' },
+        '&.cm-focused .cm-selectionBackground': { backgroundColor: '#b3d7ff' },
+    }, { dark: false }),
+    syntaxHighlighting(saplLightHighlightStyle),
+];
 
 // Coverage highlighting - StateEffect and StateField for line decorations
 const setCoverageEffect = StateEffect.define();
@@ -562,7 +591,7 @@ class SaplEditorLsp extends LitElement {
             keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...lintKeymap]),
             keymap.of([indentWithTab]),
             languageCompartment.of(this._getLanguageMode()),
-            themeCompartment.of(this.isDarkTheme ? oneDark : []),
+            themeCompartment.of(this.isDarkTheme ? oneDark : saplLight),
             readOnlyCompartment.of(EditorState.readOnly.of(this.isReadOnly)),
             bracketMatchingCompartment.of(this.matchBrackets ? bracketMatching() : []),
             closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : [])
@@ -640,7 +669,7 @@ class SaplEditorLsp extends LitElement {
                 basicSetup,
                 keymap.of([indentWithTab]),
                 languageCompartment.of(this._getLanguageMode()),
-                themeCompartment.of(this.isDarkTheme ? oneDark : []),
+                themeCompartment.of(this.isDarkTheme ? oneDark : saplLight),
                 bracketMatchingCompartment.of(this.matchBrackets ? bracketMatching() : []),
                 closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
                 cursorTheme
@@ -1405,7 +1434,7 @@ class SaplEditorLsp extends LitElement {
     setDarkTheme(isDark) {
         this.isDarkTheme = isDark;
         this.setAttribute('data-theme', isDark ? 'dark' : 'light');
-        const effect = themeCompartment.reconfigure(isDark ? oneDark : []);
+        const effect = themeCompartment.reconfigure(isDark ? oneDark : saplLight);
 
         if (this._editor) {
             this._editor.dispatch({ effects: effect });

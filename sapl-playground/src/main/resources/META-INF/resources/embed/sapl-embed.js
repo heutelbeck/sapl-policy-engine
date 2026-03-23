@@ -95,10 +95,34 @@ async function loadCodeMirror() {
         }
     });
 
+    var saplLightHighlightStyle = cm.HighlightStyle.define([
+        { tag: cm.tags.keyword, color: '#027080' },
+        { tag: cm.tags.variableName, color: '#0070c1' },
+        { tag: [cm.tags.special(cm.tags.variableName)], color: '#8f5500' },
+        { tag: cm.tags.string, color: '#a31515' },
+        { tag: cm.tags.number, color: '#076e48' },
+        { tag: cm.tags.comment, color: '#5c6670', fontStyle: 'italic' },
+        { tag: cm.tags.atom, color: '#076e48' },
+        { tag: cm.tags.bool, color: '#076e48' },
+        { tag: cm.tags.typeName, color: '#025d6b' },
+        { tag: cm.tags.operator, color: '#383a42' },
+        { tag: cm.tags.definition(cm.tags.variableName), color: '#795e26' },
+        { tag: cm.tags.propertyName, color: '#0070c1' },
+    ]);
+    var saplLightTheme = [
+        cm.EditorView.theme({
+            '&': { backgroundColor: '#ffffff', color: '#383a42' },
+            '.cm-gutters': { backgroundColor: '#f5f5f5', color: '#6e7781', borderRight: '1px solid #ddd' },
+            '.cm-cursor, .cm-cursor-primary': { borderLeftColor: '#027080' },
+        }, { dark: false }),
+        cm.syntaxHighlighting(saplLightHighlightStyle),
+    ];
+
     cmModules = {
         EditorView: cm.EditorView,
         minimalSetup: cm.minimalSetup,
         oneDark: cm.oneDark,
+        saplLight: saplLightTheme,
         Compartment: cm.Compartment,
         saplLanguage: saplLanguage
     };
@@ -128,7 +152,7 @@ function createEditor(parent, code, modules) {
         doc: code,
         extensions: [
             modules.minimalSetup,
-            themeComp.of(dark ? modules.oneDark : []),
+            themeComp.of(dark ? modules.oneDark : modules.saplLight),
             modules.saplLanguage,
             modules.EditorView.editable.of(false)
         ],
@@ -142,7 +166,7 @@ function updateEditorThemes() {
     var dark = isDarkMode();
     editors.forEach(function(e) {
         e.view.dispatch({
-            effects: e.compartment.reconfigure(dark ? cmModules.oneDark : [])
+            effects: e.compartment.reconfigure(dark ? cmModules.oneDark : cmModules.saplLight)
         });
     });
 }
