@@ -577,3 +577,94 @@ Default decision: `PERMIT`, `DENY`, or `ABSTAIN`.
 Error handling: `PROPAGATE` or `ABSTAIN`.
 
 Variables defined here are available to all policies.
+
+## Benchmarking
+
+SAPL Node includes a built-in benchmark command for measuring PDP evaluation throughput and latency. It uses JMH when running from a JAR and a built-in timing harness when running as a native binary.
+
+### Quick benchmark
+
+```shell
+sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"document"'
+```
+
+### Benchmark options
+
+```
+--warmup-iterations N    Number of warmup iterations (default: 3)
+--warmup-time N          Seconds per warmup iteration (default: 1)
+--measurement-iterations N  Number of measurement iterations (default: 5)
+--measurement-time N     Seconds per measurement iteration (default: 3)
+-t, --threads N          Concurrent benchmark threads (default: 1)
+-o, --output DIR         Output directory for JSON, Markdown, and CSV results
+-c, --config FILE        JSON configuration file for reproducible runs
+--remote                 Benchmark a remote PDP server instead of embedded
+```
+
+### Configuration file
+
+For reproducible runs with multiple thread counts and method selection:
+
+```json
+{
+  "warmupIterations": 3,
+  "warmupTimeSeconds": 5,
+  "measurementIterations": 5,
+  "measurementTimeSeconds": 5,
+  "threads": [1, 2, 4, 8, 16, 24],
+  "benchmarks": ["decideOnceBlocking", "decideOnceReactive"]
+}
+```
+
+### Remote benchmarking
+
+Start a server in one terminal and benchmark against it from another:
+
+```shell
+sapl server --dir ./policies
+sapl benchmark --remote --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"document"'
+```
+
+### Generating benchmark policy corpus
+
+A test utility generates standardized policy sets with varying counts and complexity:
+
+```shell
+mvn test-compile -pl sapl-node -q
+java -cp sapl-node/target/test-classes:sapl-node/target/classes io.sapl.node.cli.BenchmarkPolicyGenerator /tmp/benchmark-policies
+java -cp sapl-node/target/test-classes:sapl-node/target/classes io.sapl.node.cli.BenchmarkPolicyGenerator /tmp/benchmark-policies --large
+```
+
+The standard corpus generates: `empty`, `simple-1`, `simple-10`, `simple-100`, `simple-500`, `complex-1`, `complex-10`, `complex-100`, `all-match-100`.
+
+The `--large` flag adds: `simple-1000`, `simple-5000`, `simple-10000`, `complex-1000`, `all-match-1000`.
+
+All scenarios use the same subscription:
+
+```shell
+-s '{"name":"alice","roles":["admin"],"department":"engineering","clearanceLevel":5}' -a '"read"' -r '"document"'
+```
+
+### Running the full benchmark suite
+
+Scripts are provided for running all scenarios with consistent parameters:
+
+```shell
+bash sapl-node/src/test/resources/benchmark/benchmark.sh "java -jar sapl-node/target/sapl-node-4.0.0-SNAPSHOT.jar" /tmp/bench-jvm
+bash sapl-node/src/test/resources/benchmark/benchmark.sh ./target/sapl /tmp/bench-native
+bash sapl-node/src/test/resources/benchmark/benchmark-large.sh "java -jar sapl-node/target/sapl-node-4.0.0-SNAPSHOT.jar" /tmp/bench-jvm-large
+```
+
+Each scenario produces a results subdirectory with JSON (JMH-compatible), Markdown (thesis-ready tables), and CSV files.
+
+### Output formats
+
+When `--output` is specified, each run produces timestamped files:
+
+```
+results/
+  20260323-154207_embedded_all_1threads.json    JMH-compatible JSON
+  20260323-154207_embedded_all_4threads.json
+  20260323-154207_embedded_report.md            Markdown with methodology, results, latency, scaling tables
+  20260323-154207_embedded_report.csv           CSV for chart generation
+```
