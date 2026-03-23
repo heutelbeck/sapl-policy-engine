@@ -154,7 +154,8 @@ function createEditor(parent, code, modules) {
             modules.minimalSetup,
             themeComp.of(dark ? modules.oneDark : modules.saplLight),
             modules.saplLanguage,
-            modules.EditorView.editable.of(false)
+            modules.EditorView.editable.of(false),
+            modules.EditorView.contentAttributes.of({'aria-label': 'SAPL policy example'})
         ],
         parent: parent
     });
