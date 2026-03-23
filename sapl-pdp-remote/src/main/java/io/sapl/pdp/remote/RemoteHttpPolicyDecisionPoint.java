@@ -44,6 +44,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.util.retry.Retry;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -214,7 +215,8 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     @NoArgsConstructor
     public static class RemoteHttpPolicyDecisionPointBuilder {
         private String                                         baseUrl    = "https://localhost:8443";
-        private HttpClient                                     httpClient = HttpClient.create();
+        private HttpClient                                     httpClient = HttpClient.create()
+                .protocol(HttpProtocol.HTTP11, HttpProtocol.H2);
         private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
 
         public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {

@@ -30,6 +30,8 @@ spring:
 server:
   address: 127.0.0.1
   port: 8443
+  http2:
+    enabled: true
   ssl:
     enabled: false
     # Uncomment and configure to enable TLS:

@@ -42,7 +42,7 @@ class BenchmarkOptions {
     @Option(names = { "-t", "--threads" }, defaultValue = "1", description = "Number of concurrent benchmark threads")
     int threads;
 
-    @Option(names = { "-o", "--output" }, description = "Output directory for JSON benchmark results")
+    @Option(names = { "-o", "--output" }, description = "Output directory for benchmark results (JSON, Markdown, CSV)")
     Path output;
 
     @Option(names = { "-c", "--config" }, description = "JSON configuration file for reproducible benchmark runs")

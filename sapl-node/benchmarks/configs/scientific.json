@@ -1,0 +1,8 @@
+{
+  "warmupIterations": 5,
+  "warmupTimeSeconds": 10,
+  "measurementIterations": 10,
+  "measurementTimeSeconds": 10,
+  "threads": [1, 2, 4, 8, 16, 24, 32],
+  "benchmarks": ["decideOnceBlocking", "decideOnceReactive", "decideStreamFirst"]
+}

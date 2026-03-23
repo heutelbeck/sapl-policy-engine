@@ -647,15 +647,16 @@ All scenarios use the same subscription:
 
 ### Running the full benchmark suite
 
-Scripts are provided for running all scenarios with consistent parameters:
+Benchmark scripts are in `sapl-node/benchmarks/`. See `benchmarks/README.md` for full documentation.
 
 ```shell
-bash sapl-node/src/test/resources/benchmark/benchmark.sh "java -jar sapl-node/target/sapl-node-4.0.0-SNAPSHOT.jar" /tmp/bench-jvm
-bash sapl-node/src/test/resources/benchmark/benchmark.sh ./target/sapl /tmp/bench-native
-bash sapl-node/src/test/resources/benchmark/benchmark-large.sh "java -jar sapl-node/target/sapl-node-4.0.0-SNAPSHOT.jar" /tmp/bench-jvm-large
+cd sapl-node/benchmarks
+./run-sapl4.sh "java -jar ../target/sapl-node-4.0.0-SNAPSHOT.jar" /tmp/bench-jvm
+./run-sapl4.sh ../target/sapl /tmp/bench-native quick
+./run-all.sh "java -jar ../target/sapl-node-4.0.0-SNAPSHOT.jar" /tmp/bench-full standard
 ```
 
-Each scenario produces a results subdirectory with JSON (JMH-compatible), Markdown (thesis-ready tables), and CSV files.
+Each scenario produces a results subdirectory with JSON (JMH-compatible), Markdown, and CSV files.
 
 ### Output formats
 

@@ -28,6 +28,7 @@ import javax.net.ssl.SSLException;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import lombok.val;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
@@ -49,11 +50,15 @@ import tools.jackson.databind.json.JsonMapper;
         timing harness when running as a native binary.
 
         By default, benchmarks the embedded PDP directly. Use --dir to
-        specify a policy directory, --bundle for a bundle file. Use --remote
-        to benchmark against a running PDP server.
+        specify a policy directory, or --remote to benchmark against a
+        running PDP server.
 
-        For reproducible runs, adjust warmup and measurement parameters
-        via CLI flags or provide a JSON config file with --config.
+        When --output is specified, produces JSON (JMH-compatible), Markdown
+        (with methodology, results, latency, and scaling tables), and CSV
+        files with timestamped filenames.
+
+        For reproducible runs with multiple thread counts, provide a JSON
+        config file with --config.
         """ },
     exitCodeListHeading = "%nExit Codes:%n",
     exitCodeList = {
@@ -92,8 +97,17 @@ class BenchmarkCommand implements Callable<Integer> {
     @Spec
     CommandSpec spec;
 
-    @Mixin
-    PdpOptions pdpOptions;
+    @ArgGroup(exclusive = false, heading = "%nRemote Connection:%n")
+    RemoteConnectionOptions remoteConnection;
+
+    @ArgGroup(exclusive = true, heading = "%nPolicy Source:%n")
+    PolicySourceOptions policySource;
+
+    @ArgGroup(exclusive = true, heading = "%nBundle Verification:%n")
+    BundleVerificationOptions bundleVerification;
+
+    @ArgGroup(exclusive = true, multiplicity = "0..1", heading = "%nSubscription Input:%n")
+    SubscriptionInputOptions subscriptionInput;
 
     @Mixin
     BenchmarkOptions benchmarkOptions;
@@ -103,15 +117,15 @@ class BenchmarkCommand implements Callable<Integer> {
         val err = spec.commandLine().getErr();
         val out = spec.commandLine().getOut();
         try {
-            if (pdpOptions.subscriptionInput == null) {
+            if (subscriptionInput == null) {
                 err.println(ERROR_SUBSCRIPTION_MISSING);
                 return 1;
             }
 
             val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
-            val subscription = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, mapper);
+            val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
             val subJson      = mapper.writeValueAsString(subscription);
-            val remote       = pdpOptions.remoteConnection != null && pdpOptions.remoteConnection.remote;
+            val remote       = remoteConnection != null && remoteConnection.remote;
             val ctx          = remote ? buildRemoteContext(subJson, err) : buildEmbeddedContext(subJson, err);
 
             if (ctx == null) {
@@ -151,8 +165,7 @@ class BenchmarkCommand implements Callable<Integer> {
     }
 
     private BenchmarkContext buildEmbeddedContext(String subJson, PrintWriter err) {
-        val resolved = PolicySourceResolver.resolve(pdpOptions.policySource, pdpOptions.bundleVerification,
-                pdpOptions.saplHomeOverride, err);
+        val resolved = PolicySourceResolver.resolve(policySource, bundleVerification, null, err);
         if (resolved == null) {
             return null;
         }
@@ -160,18 +173,17 @@ class BenchmarkCommand implements Callable<Integer> {
     }
 
     private BenchmarkContext buildRemoteContext(String subJson, PrintWriter err) {
-        if (pdpOptions.policySource != null) {
+        if (policySource != null) {
             err.println(ERROR_REMOTE_WITH_LOCAL);
             return null;
         }
-        if (pdpOptions.bundleVerification != null) {
+        if (bundleVerification != null) {
             err.println(ERROR_REMOTE_WITH_VERIFICATION);
             return null;
         }
-        val conn      = pdpOptions.remoteConnection;
-        val basicAuth = conn.auth != null ? conn.auth.basicAuth : null;
-        val token     = conn.auth != null ? conn.auth.token : null;
-        return BenchmarkContext.remote(subJson, conn.url, basicAuth, token, conn.insecure);
+        val basicAuth = remoteConnection.auth != null ? remoteConnection.auth.basicAuth : null;
+        val token     = remoteConnection.auth != null ? remoteConnection.auth.token : null;
+        return BenchmarkContext.remote(subJson, remoteConnection.url, basicAuth, token, remoteConnection.insecure);
     }
 
     private List<BenchmarkResult> runAllBenchmarks(BenchmarkContext ctx, BenchmarkRunConfig runCfg, PrintWriter out,

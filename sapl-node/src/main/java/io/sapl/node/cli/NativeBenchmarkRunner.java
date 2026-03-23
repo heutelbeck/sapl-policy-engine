@@ -38,6 +38,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -66,8 +67,14 @@ class NativeBenchmarkRunner {
             if (ctx.isRemote()) {
                 pdp = RemotePdpFactory.create(ctx);
             } else {
-                components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of(ctx.policiesPath()))
-                        .build();
+                val builder = PolicyDecisionPointBuilder.withDefaults();
+                if ("BUNDLES".equals(ctx.configType())) {
+                    val secPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+                    builder.withBundleDirectorySource(Path.of(ctx.policiesPath()), secPolicy);
+                } else {
+                    builder.withDirectorySource(Path.of(ctx.policiesPath()));
+                }
+                components = builder.build();
                 pdp        = components.pdp();
             }
 

@@ -129,6 +129,10 @@ class BenchmarkPolicyGenerator {
 
         generateAllMatch(outputDir.resolve("all-match-100"), 100);
 
+        generateRbacOpa(outputDir.resolve("rbac-small"));
+        generateRbacExplosion(outputDir.resolve("rbac-large"));
+        generateAbacEquivalent(outputDir.resolve("abac-equivalent"));
+
         if (large) {
             generateSimple(outputDir.resolve("simple-1000"), 1000);
             generateSimple(outputDir.resolve("simple-5000"), 5000);
@@ -176,6 +180,134 @@ class BenchmarkPolicyGenerator {
             var content = ALL_MATCHING_SIMPLE.formatted(i);
             Files.writeString(dir.resolve("match-%04d.sapl".formatted(i)), content);
         }
+    }
+
+    private static void generateRbacOpa(Path dir) throws IOException {
+        Files.createDirectories(dir);
+        var pdpJson = """
+                {
+                  "algorithm": {
+                    "votingMode": "PRIORITY_DENY",
+                    "defaultDecision": "DENY",
+                    "errorHandling": "PROPAGATE"
+                  },
+                  "variables": {
+                    "permissions" : {
+                      "dev" : [
+                          { "type": "foo123", "action": "write" },
+                          { "type": "foo123", "action": "read"  }
+                        ],
+                      "test" : [
+                          { "type": "foo123", "action": "read" }
+                        ]
+                    }
+                  }
+                }
+                """;
+        var policy  = """
+                policy "RBAC"
+                permit
+                    { "type" : resource.type, "action": action } in permissions[(subject.role)];
+                """;
+        Files.writeString(dir.resolve("pdp.json"), pdpJson);
+        Files.writeString(dir.resolve("rbac.sapl"), policy);
+    }
+
+    private static final String[] DEPARTMENTS = { "engineering", "qa", "sales", "marketing", "finance", "hr", "ops",
+            "legal", "security", "support" };
+    private static final String[] LOCATIONS   = { "london", "berlin", "new-york", "singapore", "sydney" };
+    private static final String[] SENIORITIES = { "junior", "senior", "lead", "director" };
+    private static final String[] ACTIONS     = { "read", "write", "delete", "approve" };
+
+    private static void generateRbacExplosion(Path dir) throws IOException {
+        Files.createDirectories(dir);
+        var permissions = new StringBuilder("{\n");
+        var first       = true;
+        for (var dept : DEPARTMENTS) {
+            for (var loc : LOCATIONS) {
+                for (var seniority : SENIORITIES) {
+                    var roleName = dept + "-" + loc + "-" + seniority;
+                    if (!first) {
+                        permissions.append(",\n");
+                    }
+                    first = false;
+                    permissions.append("        \"%s\" : [\n".formatted(roleName));
+                    var perms     = new java.util.ArrayList<String>();
+                    var maxAction = switch (seniority) {
+                                  case "junior"   -> 1;
+                                  case "senior"   -> 2;
+                                  case "lead"     -> 3;
+                                  case "director" -> 4;
+                                  default         -> 1;
+                                  };
+                    for (int a = 0; a < maxAction; a++) {
+                        perms.add("            { \"type\": \"%s-%s\", \"action\": \"%s\" }".formatted(dept, loc,
+                                ACTIONS[a]));
+                    }
+                    permissions.append(String.join(",\n", perms));
+                    permissions.append("\n          ]");
+                }
+            }
+        }
+        permissions.append("\n      }");
+
+        var pdpJson = """
+                {
+                  "algorithm": {
+                    "votingMode": "PRIORITY_DENY",
+                    "defaultDecision": "DENY",
+                    "errorHandling": "PROPAGATE"
+                  },
+                  "variables": {
+                    "permissions" : %s
+                  }
+                }
+                """.formatted(permissions);
+
+        var policy = """
+                policy "RBAC"
+                permit
+                    { "type" : resource.type, "action": action } in permissions[(subject.role)];
+                """;
+
+        Files.writeString(dir.resolve("pdp.json"), pdpJson);
+        Files.writeString(dir.resolve("rbac.sapl"), policy);
+    }
+
+    private static void generateAbacEquivalent(Path dir) throws IOException {
+        Files.createDirectories(dir);
+        Files.writeString(dir.resolve("pdp.json"), PDP_JSON);
+        Files.writeString(dir.resolve("read-access.sapl"), """
+                policy "read access"
+                permit
+                    action == "read";
+                    subject.department == resource.department;
+                    resource.location == subject.location;
+                """);
+        Files.writeString(dir.resolve("write-access.sapl"), """
+                policy "write access"
+                permit
+                    action == "write";
+                    subject.department == resource.department;
+                    resource.location == subject.location;
+                    subject.seniority in ["senior", "lead", "director"];
+                """);
+        Files.writeString(dir.resolve("delete-access.sapl"), """
+                policy "delete access"
+                permit
+                    action == "delete";
+                    subject.department == resource.department;
+                    resource.location == subject.location;
+                    subject.seniority in ["lead", "director"];
+                """);
+        Files.writeString(dir.resolve("approve-access.sapl"), """
+                policy "approve access"
+                permit
+                    action == "approve";
+                    subject.department == resource.department;
+                    resource.location == subject.location;
+                    subject.seniority == "director";
+                """);
     }
 
 }

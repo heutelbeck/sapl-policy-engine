@@ -31,6 +31,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.val;
@@ -58,9 +59,15 @@ public class EmbeddedBenchmark {
         val ctx    = BenchmarkContext.fromJson(contextJson);
         val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         subscription = mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class);
-        components   = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of(ctx.policiesPath()))
-                .build();
-        pdp          = components.pdp();
+        val builder = PolicyDecisionPointBuilder.withDefaults();
+        if ("BUNDLES".equals(ctx.configType())) {
+            val securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+            builder.withBundleDirectorySource(Path.of(ctx.policiesPath()), securityPolicy);
+        } else {
+            builder.withDirectorySource(Path.of(ctx.policiesPath()));
+        }
+        components = builder.build();
+        pdp        = components.pdp();
     }
 
     @TearDown(Level.Trial)

@@ -60,7 +60,7 @@ class BenchmarkCommandTests {
         void whenDirOption_thenPolicySourceDirIsSet() {
             val cmd = new BenchmarkCommand();
             new CommandLine(cmd).parseArgs("--dir", "/tmp/policies", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
-            assertThat(cmd.pdpOptions.policySource.dir).isEqualTo(Path.of("/tmp/policies"));
+            assertThat(cmd.policySource.dir).isEqualTo(Path.of("/tmp/policies"));
         }
 
         @Test
@@ -103,7 +103,7 @@ class BenchmarkCommandTests {
             val cmd = new BenchmarkCommand();
             new CommandLine(cmd).parseArgs("--remote", "--url", "https://pdp.example.com", "--token", "secret", "-s",
                     "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
-            assertThat(cmd.pdpOptions.remoteConnection).satisfies(remote -> {
+            assertThat(cmd.remoteConnection).satisfies(remote -> {
                 assertThat(remote.remote).isTrue();
                 assertThat(remote.url).isEqualTo("https://pdp.example.com");
                 assertThat(remote.auth.token).isEqualTo("secret");
