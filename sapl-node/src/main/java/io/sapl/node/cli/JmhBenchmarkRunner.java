@@ -69,7 +69,7 @@ class JmhBenchmarkRunner {
             return benchmarkResults;
         } catch (RunnerException e) {
             err.println(ERROR_BENCHMARK_FAILED.formatted(e.getMessage()));
-            return null;
+            return List.of();
         }
     }
 

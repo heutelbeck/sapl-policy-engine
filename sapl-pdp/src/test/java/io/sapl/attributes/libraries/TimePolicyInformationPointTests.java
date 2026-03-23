@@ -27,6 +27,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
@@ -36,8 +38,10 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -54,6 +58,14 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(Instant.parse(instantIso));
         when(clock.getZone()).thenReturn(zone);
         return clock;
+    }
+
+    static Stream<Arguments> monthBetweenRangeArgs() {
+        return Stream.of(arguments("2021-11-08T13:00:00Z", 3L, 11L, Value.TRUE, "non-wrapping range: inside is true"),
+                arguments("2021-11-08T13:00:00Z", 3L, 9L, Value.FALSE, "non-wrapping range: outside is false"),
+                arguments("2021-11-08T13:00:00Z", 11L, 3L, Value.TRUE, "wrapping range 11-3: November is true"),
+                arguments("2021-06-08T13:00:00Z", 11L, 3L, Value.FALSE, "wrapping range 11-3: June is false"),
+                arguments("2021-11-08T13:00:00Z", 11L, 11L, Value.TRUE, "same start and end means single month"));
     }
 
     @Nested
@@ -712,51 +724,14 @@ class TimePolicyInformationPointTests {
     @DisplayName("monthBetween")
     class MonthBetweenTests {
 
-        @Test
-        @DisplayName("non-wrapping range: inside is true")
-        void whenInsideNonWrappingRangeThenTrue() {
-            // November is month 11, range 3-11 (Mar-Nov)
-            val clock = clockAt("2021-11-08T13:00:00Z");
+        @ParameterizedTest(name = "{4}")
+        @MethodSource("io.sapl.attributes.libraries.TimePolicyInformationPointTests#monthBetweenRangeArgs")
+        void whenMonthBetweenRangeThenExpected(String clockTime, long start, long end, Value expected,
+                String description) {
+            val clock = clockAt(clockTime);
             val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(3L), Value.of(11L)))
-                    .expectNext(Value.TRUE).thenCancel().verify();
-        }
-
-        @Test
-        @DisplayName("non-wrapping range: outside is false")
-        void whenOutsideNonWrappingRangeThenFalse() {
-            // November is month 11, range 3-9 (Mar-Sep)
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(3L), Value.of(9L)))
-                    .expectNext(Value.FALSE).thenCancel().verify();
-        }
-
-        @Test
-        @DisplayName("wrapping range 11-3: November is true")
-        void whenWrappingRangeNovemberThenTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(11L), Value.of(3L)))
-                    .expectNext(Value.TRUE).thenCancel().verify();
-        }
-
-        @Test
-        @DisplayName("wrapping range 11-3: June is false")
-        void whenWrappingRangeJuneThenFalse() {
-            val clock = clockAt("2021-06-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(11L), Value.of(3L)))
-                    .expectNext(Value.FALSE).thenCancel().verify();
-        }
-
-        @Test
-        @DisplayName("same start and end means single month")
-        void whenSameStartAndEndThenSingleMonth() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(11L), Value.of(11L)))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(start), Value.of(end)))
+                    .expectNext(expected).thenCancel().verify();
         }
 
         @ParameterizedTest

@@ -806,19 +806,22 @@ public class TimePolicyInformationPoint {
         }
         val monthSet = EnumSet.noneOf(Month.class);
         for (val month : months) {
-            if (month instanceof TextValue(var name)) {
+            switch (month) {
+            case TextValue(var name)     -> {
                 try {
                     monthSet.add(Month.valueOf(name.toUpperCase()));
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException(String.format(ERROR_MONTH_NAME_INVALID, name), e);
                 }
-            } else if (month instanceof NumberValue(var number)) {
+            }
+            case NumberValue(var number) -> {
                 val intVal = number.intValue();
                 if (intVal < 1 || intVal > 12) {
                     throw new IllegalArgumentException(String.format(ERROR_MONTH_NAME_INVALID, intVal));
                 }
                 monthSet.add(Month.of(intVal));
-            } else {
+            }
+            default                      ->
                 throw new IllegalArgumentException(String.format(ERROR_MONTH_NAME_INVALID, month));
             }
         }

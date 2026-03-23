@@ -128,19 +128,9 @@ class BenchmarkCommand implements Callable<Integer> {
             val estimatedSeconds = runCfg.estimatedDurationSeconds();
             err.println("Estimated duration: %d:%02d".formatted(estimatedSeconds / 60, estimatedSeconds % 60));
 
-            val allResults = new ArrayList<BenchmarkResult>();
-            for (val threads : runCfg.threads()) {
-                err.println("Running with %d thread(s)...".formatted(threads));
-                List<BenchmarkResult> threadResults;
-                if (isNativeImage()) {
-                    threadResults = NativeBenchmarkRunner.run(ctx, runCfg, threads, out, err);
-                } else {
-                    threadResults = JmhBenchmarkRunner.run(ctx, runCfg, threads, out, err);
-                }
-                if (threadResults == null) {
-                    return 1;
-                }
-                allResults.addAll(threadResults);
+            val allResults = runAllBenchmarks(ctx, runCfg, out, err);
+            if (allResults.isEmpty()) {
+                return 1;
             }
 
             if (runCfg.output() != null) {
@@ -182,6 +172,21 @@ class BenchmarkCommand implements Callable<Integer> {
         val basicAuth = conn.auth != null ? conn.auth.basicAuth : null;
         val token     = conn.auth != null ? conn.auth.token : null;
         return BenchmarkContext.remote(subJson, conn.url, basicAuth, token, conn.insecure);
+    }
+
+    private List<BenchmarkResult> runAllBenchmarks(BenchmarkContext ctx, BenchmarkRunConfig runCfg, PrintWriter out,
+            PrintWriter err) {
+        val allResults = new ArrayList<BenchmarkResult>();
+        for (int threads : runCfg.threads()) {
+            err.println("Running with %d thread(s)...".formatted(threads));
+            val threadResults = isNativeImage() ? NativeBenchmarkRunner.run(ctx, runCfg, threads, out, err)
+                    : JmhBenchmarkRunner.run(ctx, runCfg, threads, out, err);
+            if (threadResults.isEmpty()) {
+                return List.of();
+            }
+            allResults.addAll(threadResults);
+        }
+        return allResults;
     }
 
     private static boolean isNativeImage() {

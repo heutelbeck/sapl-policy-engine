@@ -60,6 +60,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.MissingNode;
 
+import java.io.ObjectInputStream;
 import java.io.Serial;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ import java.util.Map;
  * subscription editor, an evaluate button, and read-only decision output.
  */
 @Slf4j
-public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
+public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
@@ -140,6 +141,20 @@ public class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         initializeDefaults();
 
         addDetachListener(event -> cleanup());
+    }
+
+    @Serial
+    private void readObject(ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        initializeTransientFields();
+    }
+
+    private void initializeTransientFields() {
+        val context = getSpringApplicationContext();
+        this.policyDecisionPoint    = context.getBean(PlaygroundPolicyDecisionPoint.class);
+        this.validator              = context.getBean(PlaygroundValidator.class);
+        this.permalinkConfiguration = context.getBean(PermalinkConfiguration.class);
+        this.permalinkService       = context.getBean(PermalinkService.class);
     }
 
     private static ApplicationContext getSpringApplicationContext() {

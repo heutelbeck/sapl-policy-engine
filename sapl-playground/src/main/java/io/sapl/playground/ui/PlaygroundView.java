@@ -174,7 +174,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_PADDING          = "padding";
     private static final String CSS_POSITION         = "position";
     private static final String CSS_RIGHT            = "right";
-    private static final String CSS_TEXT_ALIGN       = "text-align";
     private static final String CSS_TOP              = "top";
     private static final String CSS_WHITE_SPACE      = "white-space";
     private static final String CSS_WIDTH            = "width";
@@ -183,12 +182,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_ABSOLUTE            = "absolute";
     private static final String CSS_VALUE_AUTO                = "auto";
     private static final String CSS_VALUE_BREAK_WORD          = "break-word";
-    private static final String CSS_VALUE_CENTER              = "center";
     private static final String CSS_VALUE_CONTRAST_5PCT       = "rgba(255, 255, 255, 0.05)";
     private static final String CSS_VALUE_CONTRAST_10PCT_LINE = "1px solid rgba(255, 255, 255, 0.10)";
     private static final String CSS_VALUE_ERROR_BG            = "#282a36";
     private static final String CSS_VALUE_ERROR_FG            = "#f8f8f2";
-    private static final String CSS_VALUE_FONT_SIZE_XL        = "1.375rem";
     private static final String CSS_VALUE_MONOSPACE           = "monospace";
     private static final String CSS_VALUE_ONE                 = "1";
     private static final String CSS_VALUE_ONE_EM              = "1em";
@@ -201,12 +198,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_SIZE_15PX           = "15px";
     private static final String CSS_VALUE_SIZE_200PX          = "200px";
     private static final String CSS_VALUE_SIZE_25PX           = "25px";
-    private static final String CSS_VALUE_SIZE_2_5EM          = "2.5em";
     private static final String CSS_VALUE_SIZE_600PX          = "600px";
     private static final String CSS_VALUE_SPACE_M             = "1rem";
     private static final String CSS_VALUE_SPACE_S             = "0.5rem";
     private static final String CSS_VALUE_SPACE_XS            = "0.25rem";
-    private static final String CSS_VALUE_WEIGHT_600          = "600";
     private static final String CSS_VALUE_ZERO                = "0";
 
     private static final String FRAGMENT_PREFIX_EXAMPLE   = "example/";
@@ -250,7 +245,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_REPORT                     = "Report";
     private static final String LABEL_SAPL_HOMEPAGE              = "SAPL Homepage";
     private static final String LABEL_SAPL_LOGO                  = "SAPL Logo";
-    private static final String LABEL_SAPL_PLAYGROUND            = "SAPL Playground";
     private static final String LABEL_SCROLL_LOCK                = "Scroll Lock";
     private static final String LABEL_SHARE                      = "Share";
     private static final String LABEL_SHARE_PLAYGROUND_STATE     = "Share Playground State";
@@ -285,8 +279,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final String POLICY_NAME_PREFIX  = "Policy ";
     private static final String POLICY_NAME_UNKNOWN = "unknown";
-
-    private static final String RESOURCE_LOGO = "logo-header.png";
 
     private static final String TARGET_BLANK = "_blank";
 
@@ -1753,7 +1745,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val logoGroup = new HorizontalLayout(logoDark, logoLight, logoText);
         logoGroup.setAlignItems(FlexComponent.Alignment.CENTER);
         logoGroup.setSpacing(false);
-        logoGroup.getStyle().set(CSS_GAP, "0.5rem");
+        logoGroup.getStyle().set(CSS_GAP, CSS_VALUE_SPACE_S);
 
         val combiningAlgorithmLayout = createCombiningAlgorithmLayout();
         val examplesMenu             = createExamplesMenu();

@@ -101,7 +101,7 @@ class NativeBenchmarkRunner {
             return benchmarkResults;
         } catch (RuntimeException | SSLException e) {
             err.println(ERROR_BENCHMARK_FAILED.formatted(e.getMessage()));
-            return null;
+            return List.of();
         } finally {
             if (components != null) {
                 components.dispose();
@@ -200,25 +200,25 @@ class NativeBenchmarkRunner {
             val entry = entries.get(i);
             val r     = BenchmarkResult.fromIterations(entry.getKey(), threads, entry.getValue());
             sb.append("  {\n");
-            sb.append("    \"benchmark\": \"%s\",\n".formatted(r.method()));
+            sb.append("    \"benchmark\": \"").append(r.method()).append("\",\n");
             sb.append("    \"mode\": \"thrpt\",\n");
-            sb.append("    \"threads\": %d,\n".formatted(threads));
-            sb.append("    \"warmupIterations\": %d,\n".formatted(cfg.warmupIterations()));
-            sb.append("    \"warmupTime\": \"%d s\",\n".formatted(cfg.warmupTimeSeconds()));
-            sb.append("    \"measurementIterations\": %d,\n".formatted(cfg.measurementIterations()));
-            sb.append("    \"measurementTime\": \"%d s\",\n".formatted(cfg.measurementTimeSeconds()));
+            sb.append("    \"threads\": ").append(threads).append(",\n");
+            sb.append("    \"warmupIterations\": ").append(cfg.warmupIterations()).append(",\n");
+            sb.append("    \"warmupTime\": \"").append(cfg.warmupTimeSeconds()).append(" s\",\n");
+            sb.append("    \"measurementIterations\": ").append(cfg.measurementIterations()).append(",\n");
+            sb.append("    \"measurementTime\": \"").append(cfg.measurementTimeSeconds()).append(" s\",\n");
             sb.append("    \"primaryMetric\": {\n");
-            sb.append("      \"score\": %s,\n".formatted(fmt(r.mean())));
-            sb.append("      \"scoreError\": %s,\n".formatted(fmt(r.stddev())));
+            sb.append("      \"score\": ").append(fmt(r.mean())).append(",\n");
+            sb.append("      \"scoreError\": ").append(fmt(r.stddev())).append(",\n");
             sb.append("      \"scoreUnit\": \"ops/s\",\n");
             sb.append("      \"scorePercentiles\": {\n");
-            sb.append("        \"5.0\": %s,\n".formatted(fmt(r.p5())));
-            sb.append("        \"50.0\": %s,\n".formatted(fmt(r.median())));
-            sb.append("        \"95.0\": %s\n".formatted(fmt(r.p95())));
+            sb.append("        \"5.0\": ").append(fmt(r.p5())).append(",\n");
+            sb.append("        \"50.0\": ").append(fmt(r.median())).append(",\n");
+            sb.append("        \"95.0\": ").append(fmt(r.p95())).append('\n');
             sb.append("      },\n");
-            sb.append("      \"rawData\": [%s]\n".formatted(formatRawData(r.rawData())));
+            sb.append("      \"rawData\": [").append(formatRawData(r.rawData())).append("]\n");
             sb.append("    }\n");
-            sb.append("  }%s\n".formatted(i < entries.size() - 1 ? "," : ""));
+            sb.append("  }").append(i < entries.size() - 1 ? ",\n" : "\n");
         }
         sb.append("]\n");
         try {
@@ -233,14 +233,14 @@ class NativeBenchmarkRunner {
     }
 
     private static String formatRawData(List<Double> values) {
-        val sb = new StringBuilder("[");
+        val sb = new StringBuilder('[');
         for (int i = 0; i < values.size(); i++) {
             sb.append(fmt(values.get(i)));
             if (i < values.size() - 1) {
                 sb.append(", ");
             }
         }
-        sb.append("]");
+        sb.append(']');
         return sb.toString();
     }
 
