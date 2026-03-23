@@ -122,7 +122,8 @@ public class SaplNodeApplication {
 
         private static final String CLI_PACKAGE = "io.sapl.node.cli.";
 
-        private static final String[] PICOCLI_REFLECTION_CLASSES = { CLI_PACKAGE + "BundleVerificationOptions",
+        private static final String[] PICOCLI_REFLECTION_CLASSES = { CLI_PACKAGE + "BenchmarkCommand",
+                CLI_PACKAGE + "BenchmarkOptions", CLI_PACKAGE + "BundleVerificationOptions",
                 CLI_PACKAGE + "CheckCommand", CLI_PACKAGE + "DecideCommand", CLI_PACKAGE + "DecideOnceCommand",
                 CLI_PACKAGE + "NamedSubscriptionOptions", CLI_PACKAGE + "PdpOptions",
                 CLI_PACKAGE + "PolicySourceOptions", CLI_PACKAGE + "RemoteConnectionOptions",

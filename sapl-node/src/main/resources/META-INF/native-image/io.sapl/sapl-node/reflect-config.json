@@ -278,35 +278,84 @@
   },
   {
     "name": "io.sapl.api.model.Value",
+    "allDeclaredConstructors": true,
     "allDeclaredMethods": true
   },
   {
     "name": "io.sapl.api.model.ArrayValue",
+    "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
     "name": "io.sapl.api.model.BooleanValue",
+    "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
     "name": "io.sapl.api.model.ErrorValue",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.NullValue",
+    "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
     "name": "io.sapl.api.model.NumberValue",
+    "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
     "name": "io.sapl.api.model.ObjectValue",
+    "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
     "name": "io.sapl.api.model.TextValue",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.TracedValue",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.model.UndefinedValue",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.pdp.AuthorizationSubscription",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.pdp.AuthorizationDecision",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.pdp.Decision",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.node.cli.BenchmarkContext",
+    "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
