@@ -49,9 +49,9 @@ const saplLightHighlightStyle = HighlightStyle.define([
 ]);
 const saplLight = [
     EditorView.theme({
-        '&': { backgroundColor: '#ffffff', color: '#383a42' },
-        '.cm-gutters': { backgroundColor: '#f5f5f5', color: '#6e7781', borderRight: '1px solid #ddd' },
-        '.cm-activeLineGutter': { backgroundColor: '#e0e0e0' },
+        '&': { backgroundColor: '#f1f5f9', color: '#383a42' },
+        '.cm-gutters': { backgroundColor: '#e8ecf2', color: '#6e7781', borderRight: '1px solid #dde2ea' },
+        '.cm-activeLineGutter': { backgroundColor: '#dde2ea' },
         '.cm-activeLine': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
         '.cm-cursor, .cm-cursor-primary': { borderLeftColor: '#027080' },
         '.cm-selectionBackground': { backgroundColor: '#b3d7ff' },
@@ -203,8 +203,8 @@ class SaplEditorLsp extends LitElement {
         }
         /* Light theme background - applied via host attribute */
         :host([data-theme="light"]) .cm-editor {
-            background-color: #ffffff !important;
-            color: #000000 !important;
+            background-color: #f1f5f9 !important;
+            color: #383a42 !important;
         }
         :host([data-theme="light"]) .cm-gutters {
             background-color: #f5f5f5 !important;

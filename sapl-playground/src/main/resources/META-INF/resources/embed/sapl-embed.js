@@ -111,8 +111,8 @@ async function loadCodeMirror() {
     ]);
     var saplLightTheme = [
         cm.EditorView.theme({
-            '&': { backgroundColor: '#ffffff', color: '#383a42' },
-            '.cm-gutters': { backgroundColor: '#f5f5f5', color: '#6e7781', borderRight: '1px solid #ddd' },
+            '&': { backgroundColor: '#f1f5f9', color: '#383a42' },
+            '.cm-gutters': { backgroundColor: '#e8ecf2', color: '#6e7781', borderRight: '1px solid #dde2ea' },
             '.cm-cursor, .cm-cursor-primary': { borderLeftColor: '#027080' },
         }, { dark: false }),
         cm.syntaxHighlighting(saplLightHighlightStyle),
