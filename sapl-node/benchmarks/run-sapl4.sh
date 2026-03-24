@@ -105,12 +105,12 @@ run_scenario() {
 }
 
 # Policy count scaling
-for scenario in empty simple-1 simple-10 simple-100 simple-500 simple-1000 simple-5000 simple-10000; do
+for scenario in empty simple-1 simple-100 simple-500 simple-1000 simple-5000 simple-10000; do
     run_scenario "$scenario" "${STANDARD_SUB[@]}"
 done
 
 # Policy complexity
-for scenario in complex-1 complex-10 complex-100 complex-1000 complex-5000 complex-10000; do
+for scenario in complex-1 complex-100 complex-1000 complex-5000 complex-10000; do
     run_scenario "$scenario" "${STANDARD_SUB[@]}"
 done
 
