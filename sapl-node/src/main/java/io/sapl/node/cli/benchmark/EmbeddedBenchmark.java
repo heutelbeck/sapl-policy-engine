@@ -78,6 +78,11 @@ public class EmbeddedBenchmark {
     }
 
     @Benchmark
+    public AuthorizationDecision noOp() {
+        return AuthorizationDecision.PERMIT;
+    }
+
+    @Benchmark
     public AuthorizationDecision decideOnceBlocking() {
         return pdp.decideOnceBlocking(subscription);
     }

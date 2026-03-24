@@ -1,116 +1,72 @@
 # SAPL Benchmarks
 
-Performance benchmarks for the SAPL Policy Decision Point. Measures evaluation throughput, per-request latency distribution, and scaling efficiency across policy complexity, policy count, threading, access control models, and deployment modes.
+Three focused benchmarks measuring different aspects of SAPL performance.
 
 ## Quick Start
 
 ```shell
-mvn package -pl sapl-node -DskipTests && mvn test-compile -pl sapl-node
+mvn package -pl sapl-node -DskipTests
 
-# Quick smoke test (~5 min, JVM only, embedded + remote)
-./run-all.sh /tmp/bench quick
-
-# Standard benchmark (~30 min, all available engines)
-./run-all.sh /tmp/bench
-
-# Rigorous benchmark with full thread scaling (~2 hours)
-./run-all.sh /tmp/bench scientific
+# Run everything (~30 min with quick config)
+cd sapl-node/benchmarks
+nix develop ./opa --command bash -c 'export SAPL_JAR=/path/to/sapl-node.jar; ./run-all.sh /tmp/bench quick'
 ```
 
-## Benchmark Matrix
+## Benchmarks
 
-### Embedded (no network overhead)
+### 1. SAPL Performance (`run-sapl-performance.sh`)
 
-| Engine | Runner | Script |
-|--------|--------|--------|
-| SAPL 4.0 JVM | JMH | `run-sapl4.sh "java -jar ../target/sapl-node-*.jar"` |
-| SAPL 4.0 native | built-in timing | `run-sapl4.sh ../target/sapl` |
-| OPA | `opa bench` | `run-opa.sh` |
-| SAPL 3.0 | JMH (forks=1) | `run-sapl3.sh` |
+Full SAPL 4.0 characterization. Measures embedded throughput, HTTP remote, RSocket remote, thread scaling, and JVM vs native across all policy complexity levels.
 
-### Remote (HTTP, same tool for cross-engine comparison)
+```shell
+./run-sapl-performance.sh <output-dir> [quick|standard|scientific]
+```
 
-Uses `wrk` to benchmark the HTTP API of each engine with identical RBAC policy.
+**What it measures:**
+- No-op baseline (JMH overhead ceiling)
+- Embedded throughput: empty through 500+ policies, simple and complex
+- HTTP remote: blocking, concurrent, raw, wrk ceiling
+- RSocket remote: blocking, concurrent
+- All of the above for JVM and native binary
+- Thread scaling per config level
 
-| Server | Client | Script |
-|--------|--------|--------|
-| SAPL 4.0 JVM | wrk | `run-remote-wrk.sh sapl-jvm` |
-| SAPL 4.0 native | wrk | `run-remote-wrk.sh sapl-native` |
-| OPA | wrk | `run-remote-wrk.sh opa` |
+**Scenarios:** empty, simple-1/100/500, complex-1/100, all-match-100, rbac-small, rbac-large, abac-equivalent
 
-### Remote (SAPL built-in client, all server/client permutations)
+### 2. Version Comparison (`run-version-comparison.sh`)
 
-Uses the `sapl benchmark --remote` command with blocking, concurrent (reactive WebClient batching), and raw (direct Netty) modes. Includes per-request latency measurement via JMH SampleTime.
+Quick SAPL 3 vs SAPL 4 embedded comparison. Same scenarios, same combining algorithm (`DENY_OVERRIDES`), matching JMH parameters.
 
-| Server | Client | Script |
-|--------|--------|--------|
-| JVM | JVM | `run-sapl4-remote.sh "java -jar ..." "java -jar ..."` |
-| JVM | native | `run-sapl4-remote.sh "java -jar ..." sapl` |
-| native | JVM | `run-sapl4-remote.sh sapl "java -jar ..."` |
-| native | native | `run-sapl4-remote.sh sapl sapl` |
+```shell
+./run-version-comparison.sh <output-dir>
+```
 
-## Scripts
+Always uses quick-equivalent parameters. Produces per-scenario throughput for direct improvement factor calculation.
 
-| Script | Purpose |
-|--------|---------|
-| `generate-policies.sh` | Generates the standardized policy corpus |
-| `run-sapl4.sh` | SAPL 4.0 embedded PDP benchmark |
-| `run-sapl4-remote.sh` | SAPL 4.0 remote PDP with built-in client (all server/client permutations) |
-| `run-remote-wrk.sh` | Cross-engine remote benchmark using wrk (SAPL JVM, SAPL native, OPA) |
-| `run-sapl3.sh` | SAPL 3.0 comparison benchmark |
-| `run-opa.sh` | OPA embedded benchmark (`opa bench`) |
-| `run-all.sh` | Runs all engines and modes in sequence |
+**Prerequisites:** `~/git/sapl-benchmark3/target/sapl-benchmark3-1.0.0.jar`
+
+### 3. Engine Comparison (`run-engine-comparison.sh`)
+
+Cross-engine comparison: SAPL 4 vs OPA on the same RBAC deny case.
+
+```shell
+nix develop ./opa --command ./run-engine-comparison.sh <output-dir> [quick|standard|scientific]
+```
+
+**Phase 1 - Embedded:** OPA `opa bench` (with `--input` for fair comparison) vs SAPL embedded benchmark.
+
+**Phase 2 - HTTP Remote:** wrk against both SAPL and OPA servers with identical parameters. Same tool, same transport, same warmup. This is the fair comparison.
+
+**Phase 3 - RSocket:** SAPL-only capability demonstration. Shows what's possible beyond HTTP.
+
+**Prerequisites:** `wrk` and `opa` on PATH (use `nix develop ./opa` for OPA)
 
 ## Configurations
 
-### Embedded configs (`configs/`)
-
-| Config | Warmup | Measurement | Threads | Duration |
+| Config | Warmup | Measurement | Threads | Use case |
 |--------|--------|-------------|---------|----------|
-| `quick` | 1 x 1s | 2 x 2s | 1 | ~2 min |
-| `standard` | 3 x 5s | 5 x 5s | 1, 4, 8 | ~15 min |
-| `scientific` | 5 x 10s | 10 x 10s | 1, 2, 4, 8, 16, 24, 32 | ~60 min |
-
-### Remote configs (`configs/remote-*`)
-
-Include concurrent and raw benchmark modes in addition to blocking.
-
-| Config | Warmup | Measurement | Threads | Duration |
-|--------|--------|-------------|---------|----------|
-| `remote-quick` | 1 x 1s | 2 x 2s | 1 | ~3 min |
-| `remote-standard` | 3 x 5s | 5 x 5s | 1, 4, 8 | ~30 min |
-| `remote-scientific` | 5 x 10s | 10 x 10s | 1, 2, 4, 8, 16, 24 | ~2 hours |
-
-### wrk parameters (per config level)
-
-| Config | Threads | Connections | Duration |
-|--------|---------|-------------|----------|
-| `quick` | 2 | 32 | 10s |
-| `standard` | 4 | 128 | 30s |
-| `scientific` | 8 | 256 | 60s |
-
-## Policy Corpus
-
-Generated by `generate-policies.sh`. All scenarios use a fixed subscription so results are comparable.
-
-### Scaling scenarios
-
-| Scenario | Policies | Description |
-|----------|----------|-------------|
-| `empty` | 0 | PDP framework overhead baseline |
-| `simple-{1,10,100,500}` | varies | Simple equality conditions, 1 matching |
-| `complex-{1,10,100}` | varies | Regex, nested access, obligations, advice |
-| `all-match-{100,1000}` | varies | All policies match (worst-case combining) |
-
-With `--large`: adds `simple-{1000,5000,10000}`, `complex-{1000,5000,10000}`, `all-match-1000`.
-
-### RBAC vs ABAC scenarios
-
-| Scenario | Model | Policies | Description |
-|----------|-------|----------|-------------|
-| `rbac-small` | RBAC | 1 | OPA-equivalent: dev/test roles, deny case |
-| `rbac-large` | RBAC | 1 | Role explosion: 10 depts x 5 locations x 4 seniority |
-| `abac-equivalent` | ABAC | 4 | Same access control as rbac-large, attribute-based |
+| `quick` | 1 x 1s | 2 x 2s | 1 | Smoke test, CI |
+| `standard` | 3 x 5s | 5 x 5s | 1, 4, 8 | Development |
+| `scientific` | 5 x 10s | 10 x 10s | 1, 4, 8, 16, 24 | Publication |
 
 ## Benchmark Methods
 
@@ -118,65 +74,53 @@ With `--large`: adds `simple-{1000,5000,10000}`, `complex-{1000,5000,10000}`, `a
 
 | Method | Description |
 |--------|-------------|
-| `decideOnceBlocking` | Synchronous evaluation, bypasses Reactor |
-| `decideStreamFirst` | Reactive stream, takes first decision |
+| `noOp` | Returns PERMIT without PDP. JMH overhead ceiling. |
+| `decideOnceBlocking` | Synchronous PDP evaluation. |
+| `decideStreamFirst` | Reactive stream, first decision. |
 
-### Remote (SAPL client)
+### Remote (HTTP)
 
-| Method | Description | Latency measured |
-|--------|-------------|-----------------|
-| `decideOnceBlocking` | One HTTP request per invocation, blocks thread | Yes (JMH SampleTime) |
-| `decideStreamFirst` | SSE stream per invocation, takes first event | Yes (JMH SampleTime) |
-| `decideOnceConcurrent` | 256 concurrent requests via WebClient + Reactor flatMap | Throughput only |
-| `decideOnceRaw` | 256 concurrent requests via raw Netty HttpClient | Throughput only |
+| Method | Description |
+|--------|-------------|
+| `decideOnceBlocking` | One HTTP round-trip, blocks thread. |
+| `decideStreamFirst` | SSE stream, first event. |
+| `decideOnceConcurrent` | 256 concurrent requests via WebClient. |
+| `decideOnceRaw` | 256 concurrent via raw Netty (HTTP ceiling). |
 
-Use `--raw` flag to run only `decideOnceRaw` for server ceiling measurement.
+### Remote (RSocket)
 
-## OPA Comparison
+| Method | Description |
+|--------|-------------|
+| `decideOnceBlocking` | One RSocket request-response, protobuf. |
+| `decideStreamFirst` | RSocket request-stream, first frame. |
+| `decideOnceConcurrent` | 256 concurrent via protobuf client. |
 
-The `run-opa.sh` script benchmarks OPA on the exact RBAC policy from the [OPA performance documentation](https://www.openpolicyagent.org/docs/policy-performance). Same data, same deny-case query, same hardware.
+## Environment Variables
 
-For remote comparison, `run-remote-wrk.sh opa` starts OPA in server mode and benchmarks it with wrk using the same RBAC policy.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SAPL_JAR` | `../target/sapl-node-4.0.0-SNAPSHOT.jar` | Path to sapl-node JAR |
+| `SAPL_NATIVE` | `sapl` on PATH | Path to native binary |
+| `SAPL3_JAR` | `~/git/sapl-benchmark3/target/sapl-benchmark3-1.0.0.jar` | SAPL 3 benchmark JAR |
 
-OPA is provided via a Nix flake in `opa/`:
+## Native Binary
 
-```shell
-nix develop ./opa --command bash -c "./run-all.sh /tmp/bench"
-```
-
-## Native Binary Benchmarks
-
-When run from a GraalVM native binary, `sapl benchmark` uses a built-in timing harness instead of JMH with per-request latency sampling for blocking methods.
+Build with GraalVM:
 
 ```shell
 nix develop ~/.dotfiles#graalvm --command mvn package -pl sapl-node -Pnative -DskipTests
-./run-sapl4.sh ../target/sapl /tmp/bench-native
 ```
+
+Set `SAPL_NATIVE` to the binary path if not on PATH.
 
 ## Output
 
-Each scenario produces timestamped output files:
+Each benchmark produces timestamped files per scenario:
 
 ```
 results/scenario-name/
-  20260324-020000_embedded_all_1threads.json     JMH-compatible JSON
-  20260324-020000_embedded_all_4threads.json
-  20260324-020000_embedded_report.md             Markdown report
-  20260324-020000_embedded_report.csv            CSV for chart generation
-```
-
-The Markdown report includes:
-- Methodology table (runner, mode, policy source, parameters)
-- Results table (mean, median, stddev, CV%, min, max, p5, p95)
-- Latency table (measured per-request: p50, p90, p99, p99.9, max)
-- Latency table (derived from throughput for concurrent/raw methods)
-- Scaling efficiency table (actual vs ideal scaling factor)
-
-## SAPL 3.0 Comparison
-
-Requires the `sapl-benchmark3` project at `~/git/sapl-benchmark3/`:
-
-```shell
-cd ~/git/sapl-benchmark3 && mvn package -q && cd -
-./run-sapl3.sh /tmp/bench-sapl3
+  YYYYMMDD-HHMMSS_embedded_report.md      Markdown with throughput, latency, scaling
+  YYYYMMDD-HHMMSS_embedded_report.csv     CSV for chart generation
+  YYYYMMDD-HHMMSS_embedded_all_1threads.json  JMH-compatible JSON
+  wrk.txt                                  wrk output (remote only)
 ```

@@ -92,7 +92,7 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
             {
               "algorithm": {
                 "votingMode": "PRIORITY_DENY",
-                "defaultDecision": "DENY",
+                "defaultDecision": "ABSTAIN",
                 "errorHandling": "PROPAGATE"
               },
               "variables": {}
@@ -245,7 +245,7 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
                 {
                   "algorithm": {
                     "votingMode": "PRIORITY_DENY",
-                    "defaultDecision": "DENY",
+                    "defaultDecision": "ABSTAIN",
                     "errorHandling": "PROPAGATE"
                   },
                   "variables": {
@@ -306,7 +306,7 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
                 {
                   "algorithm": {
                     "votingMode": "PRIORITY_DENY",
-                    "defaultDecision": "DENY",
+                    "defaultDecision": "ABSTAIN",
                     "errorHandling": "PROPAGATE"
                   },
                   "variables": {

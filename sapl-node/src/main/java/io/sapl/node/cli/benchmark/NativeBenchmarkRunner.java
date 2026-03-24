@@ -145,17 +145,19 @@ public class NativeBenchmarkRunner {
                                     .flatMap(i -> pdp.decideOnce(subscription), CONCURRENT_BATCH).collectList().block(),
                             CONCURRENT_BATCH));
 
-            val body     = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
-            val provider = ConnectionProvider.builder("raw-native").maxConnections(256).pendingAcquireMaxCount(10_000)
-                    .build();
-            val raw      = HttpClient.create(provider).baseUrl(ctx.remoteUrl())
-                    .headers(h -> h.add("Content-Type", "application/json"));
-            all.put("decideOnceRaw",
-                    new BenchmarkMethod(() -> Flux.range(0, CONCURRENT_BATCH)
-                            .flatMap(i -> raw.post().uri("/api/pdp/decide-once")
-                                    .send(Mono.fromSupplier(() -> Unpooled.wrappedBuffer(body)))
-                                    .responseSingle((resp, buf) -> buf.asByteArray()), CONCURRENT_BATCH)
-                            .collectList().block(), CONCURRENT_BATCH));
+            if (ctx.remoteUrl() != null) {
+                val body     = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
+                val provider = ConnectionProvider.builder("raw-native").maxConnections(256)
+                        .pendingAcquireMaxCount(10_000).build();
+                val raw      = HttpClient.create(provider).baseUrl(ctx.remoteUrl())
+                        .headers(h -> h.add("Content-Type", "application/json"));
+                all.put("decideOnceRaw",
+                        new BenchmarkMethod(() -> Flux.range(0, CONCURRENT_BATCH)
+                                .flatMap(i -> raw.post().uri("/api/pdp/decide-once")
+                                        .send(Mono.fromSupplier(() -> Unpooled.wrappedBuffer(body)))
+                                        .responseSingle((resp, buf) -> buf.asByteArray()), CONCURRENT_BATCH)
+                                .collectList().block(), CONCURRENT_BATCH));
+            }
         }
 
         if (filter == null || filter.isEmpty()) {
