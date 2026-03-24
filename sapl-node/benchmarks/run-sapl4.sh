@@ -71,7 +71,7 @@ LARGE_FLAG=""
 if grep -q '"simple-1000\|"5000\|"10000' "$CONFIG_FILE" 2>/dev/null; then
     LARGE_FLAG="--large"
 fi
-bash "$SCRIPT_DIR/generate-policies.sh" "$POLICY_DIR" $LARGE_FLAG
+bash "$SCRIPT_DIR/generate-policies.sh" "$SAPL_CMD" "$POLICY_DIR" $LARGE_FLAG
 
 echo
 

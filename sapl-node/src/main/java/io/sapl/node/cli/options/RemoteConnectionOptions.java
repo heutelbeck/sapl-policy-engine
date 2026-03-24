@@ -1,0 +1,47 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.node.cli.options;
+
+import picocli.CommandLine.ArgGroup;
+import picocli.CommandLine.Option;
+
+public class RemoteConnectionOptions {
+
+    @Option(names = "--remote", required = true, description = "Connect to a remote PDP server instead of evaluating locally")
+    public boolean remote;
+
+    @Option(names = "--url", description = "Remote PDP URL (default: ${DEFAULT-VALUE}, env: SAPL_URL)", defaultValue = "http://localhost:8443")
+    public String url;
+
+    @ArgGroup(exclusive = true)
+    public AuthOptions auth;
+
+    @Option(names = "--insecure", description = "Skip TLS certificate verification (development only)")
+    public boolean insecure;
+
+    public static class AuthOptions {
+
+        @Option(names = "--basic-auth", description = "HTTP Basic credentials as user:password (env: SAPL_BASIC_AUTH)")
+        public String basicAuth;
+
+        @Option(names = "--token", description = "Bearer token for API key or JWT (env: SAPL_BEARER_TOKEN)")
+        public String token;
+
+    }
+
+}

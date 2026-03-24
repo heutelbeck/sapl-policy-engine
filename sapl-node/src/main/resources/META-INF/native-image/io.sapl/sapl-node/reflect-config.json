@@ -13,70 +13,70 @@
     "allDeclaredMethods": true
   },
   {
-    "name": "io.sapl.node.cli.BundleCommand",
+    "name": "io.sapl.node.cli.commands.BundleCommand",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.BundleCommand$Create",
+    "name": "io.sapl.node.cli.commands.BundleCommand$Create",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.BundleCommand$Sign",
+    "name": "io.sapl.node.cli.commands.BundleCommand$Sign",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.BundleCommand$Verify",
+    "name": "io.sapl.node.cli.commands.BundleCommand$Verify",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.BundleCommand$Inspect",
+    "name": "io.sapl.node.cli.commands.BundleCommand$Inspect",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.BundleCommand$Keygen",
+    "name": "io.sapl.node.cli.commands.BundleCommand$Keygen",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.ServerCommand",
+    "name": "io.sapl.node.cli.commands.ServerCommand",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.GenerateCredentialsCommand",
+    "name": "io.sapl.node.cli.commands.GenerateCredentialsCommand",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.GenerateCredentialsCommand$ApiKey",
+    "name": "io.sapl.node.cli.commands.GenerateCredentialsCommand$ApiKey",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.GenerateCredentialsCommand$BasicCredentials",
+    "name": "io.sapl.node.cli.commands.GenerateCredentialsCommand$BasicCredentials",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
@@ -354,7 +354,7 @@
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.BenchmarkContext",
+    "name": "io.sapl.node.cli.benchmark.BenchmarkContext",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true
@@ -394,7 +394,7 @@
     "allDeclaredFields": true
   },
   {
-    "name": "io.sapl.node.cli.TestCommand",
+    "name": "io.sapl.node.cli.commands.TestCommand",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,

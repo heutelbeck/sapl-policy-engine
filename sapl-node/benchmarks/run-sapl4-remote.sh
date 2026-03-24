@@ -69,10 +69,14 @@ mkdir -p "$RESULTS_DIR"
 SERVER_PID=""
 
 cleanup() {
+    local exit_code=$?
     if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
         echo "Stopping server (PID $SERVER_PID)..."
         kill "$SERVER_PID" 2>/dev/null || true
         wait "$SERVER_PID" 2>/dev/null || true
+    fi
+    if [ $exit_code -ne 0 ]; then
+        echo "Error: script failed with exit code $exit_code" >&2
     fi
 }
 trap cleanup EXIT
@@ -92,8 +96,8 @@ wait_for_server() {
     return 1
 }
 
-# Generate policies
-bash "$SCRIPT_DIR/generate-policies.sh" "$POLICY_DIR" 2>/dev/null
+# Generate policies using the server binary (both JVM and native support the subcommand)
+bash "$SCRIPT_DIR/generate-policies.sh" "$SERVER_CMD" "$POLICY_DIR"
 
 STANDARD_SUB=(-s '{"name":"alice","roles":["admin"],"department":"engineering","clearanceLevel":5}' -a '"read"' -r '"document"')
 RBAC_SMALL_SUB=(-s '{"username":"bob","role":"test"}' -a '"write"' -r '{"type":"foo123"}')

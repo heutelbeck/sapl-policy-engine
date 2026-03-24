@@ -22,39 +22,19 @@ set -euo pipefail
 # generate-policies.sh - Generates the standardized SAPL benchmark policy corpus.
 #
 # Usage:
-#   ./generate-policies.sh <output-dir> [--large]
+#   ./generate-policies.sh <sapl-command> <output-dir> [--large]
 #
-# The standard corpus includes:
-#   empty, simple-{1,10,100,500}, complex-{1,10,100}, all-match-100,
-#   rbac-small, rbac-large, abac-equivalent
-#
-# With --large, additionally generates:
-#   simple-{1000,5000,10000}, complex-{1000,5000,10000}, all-match-1000
-#
-# Requires: sapl-node must be compiled (mvn test-compile -pl sapl-node)
+# Examples:
+#   ./generate-policies.sh "java -jar ../target/sapl-node-4.0.0-SNAPSHOT.jar" /tmp/policies
+#   ./generate-policies.sh ../target/sapl /tmp/policies --large
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MODULE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-if [ $# -lt 1 ] || [ $# -gt 2 ]; then
-    echo "Usage: $0 <output-dir> [--large]"
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+    echo "Usage: $0 <sapl-command> <output-dir> [--large]"
     exit 1
 fi
 
-OUTPUT_DIR=$1
-LARGE_FLAG=${2:-}
+SAPL_CMD=$1
+OUTPUT_DIR=$2
+LARGE_FLAG=${3:-}
 
-# Verify compiled classes exist
-if [ ! -d "$MODULE_DIR/target/test-classes" ]; then
-    echo "Error: sapl-node test classes not found. Run: mvn test-compile -pl sapl-node"
-    exit 1
-fi
-
-CLASSPATH="$MODULE_DIR/target/test-classes:$MODULE_DIR/target/classes"
-
-# Add all dependency JARs from target/dependency if present, otherwise from Maven repo
-if [ -d "$MODULE_DIR/target/dependency" ]; then
-    CLASSPATH="$CLASSPATH:$MODULE_DIR/target/dependency/*"
-fi
-
-java -cp "$CLASSPATH" io.sapl.node.cli.BenchmarkPolicyGenerator "$OUTPUT_DIR" $LARGE_FLAG
+$SAPL_CMD generate-benchmark-policies "$OUTPUT_DIR" $LARGE_FLAG

@@ -67,9 +67,9 @@ OPA_BIN="${OPA_BIN:-opa}"
 
 # wrk parameters per config level
 case "$CONFIG" in
-    quick)      WRK_THREADS=2;  WRK_CONNS=32;  WRK_DURATION=10s ;;
-    standard)   WRK_THREADS=4;  WRK_CONNS=128; WRK_DURATION=30s ;;
-    scientific) WRK_THREADS=8;  WRK_CONNS=256; WRK_DURATION=60s ;;
+    quick)      WRK_THREADS=2;  WRK_CONNS=32;  WRK_DURATION=10s; WRK_WARMUP=5s ;;
+    standard)   WRK_THREADS=4;  WRK_CONNS=128; WRK_DURATION=30s; WRK_WARMUP=15s ;;
+    scientific) WRK_THREADS=8;  WRK_CONNS=256; WRK_DURATION=60s; WRK_WARMUP=30s ;;
     *) echo "Error: Unknown config: $CONFIG (use quick, standard, or scientific)"; exit 1 ;;
 esac
 
@@ -80,10 +80,14 @@ mkdir -p "$RESULTS_DIR"
 SERVER_PID=""
 
 cleanup() {
+    local exit_code=$?
     if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
         echo "Stopping server (PID $SERVER_PID)..."
         kill "$SERVER_PID" 2>/dev/null || true
         wait "$SERVER_PID" 2>/dev/null || true
+    fi
+    if [ $exit_code -ne 0 ]; then
+        echo "Error: script failed with exit code $exit_code" >&2
     fi
 }
 trap cleanup EXIT
@@ -106,7 +110,7 @@ wait_for_server() {
 
 start_sapl_server() {
     local cmd=$1
-    bash "$SCRIPT_DIR/generate-policies.sh" "$POLICY_DIR" 2>/dev/null
+    bash "$SCRIPT_DIR/generate-policies.sh" "$cmd" "$POLICY_DIR"
     cd "$POLICY_DIR/rbac-small"
     $cmd server > "$RESULTS_DIR/server.log" 2>&1 &
     SERVER_PID=$!
@@ -124,6 +128,8 @@ run_wrk() {
     local label=$1
     local url=$2
     local lua_script=$3
+    echo "--- $label: warmup ($WRK_WARMUP) ---"
+    wrk -t"$WRK_THREADS" -c"$WRK_CONNS" -d"$WRK_WARMUP" -s "$lua_script" "$url" > /dev/null 2>&1
     echo "--- $label: wrk -t$WRK_THREADS -c$WRK_CONNS -d$WRK_DURATION ---"
     wrk -t"$WRK_THREADS" -c"$WRK_CONNS" -d"$WRK_DURATION" --latency -s "$lua_script" "$url" | tee "$RESULTS_DIR/$label.txt"
     echo

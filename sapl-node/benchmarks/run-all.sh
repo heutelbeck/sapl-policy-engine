@@ -63,7 +63,7 @@ export SAPL_NATIVE="${SAPL_NATIVE:-sapl}"
 SAPL_JAR_CMD="java -jar $SAPL_JAR"
 
 HAS_NATIVE=false
-if command -v "$SAPL_NATIVE" &> /dev/null; then HAS_NATIVE=true; fi
+if command -v "$SAPL_NATIVE" &> /dev/null || [ -x "$SAPL_NATIVE" ]; then HAS_NATIVE=true; fi
 
 HAS_OPA=false
 if command -v opa &> /dev/null; then HAS_OPA=true; fi
