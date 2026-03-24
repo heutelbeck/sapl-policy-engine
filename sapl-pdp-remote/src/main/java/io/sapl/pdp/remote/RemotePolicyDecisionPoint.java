@@ -23,7 +23,12 @@ package io.sapl.pdp.remote;
  * Use the fluent builder API to configure and create a remote PDP connection:
  *
  * <pre>{@code
+ * // HTTP/HTTPS transport
  * var pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("https://localhost:8443")
+ *         .basicAuth("clientKey", "clientSecret").build();
+ *
+ * // RSocket with protobuf (high performance)
+ * var pdp = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7001)
  *         .basicAuth("clientKey", "clientSecret").build();
  * }</pre>
  */
@@ -39,12 +44,24 @@ public class RemotePolicyDecisionPoint {
     }
 
     /**
-     * Configures the remote PDP to use HTTP/HTTPS transport.
+     * Configures the remote PDP to use HTTP/HTTPS transport with JSON
+     * serialization via Spring WebClient.
      *
      * @return an HTTP-specific builder for further configuration
      */
     public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
         return RemoteHttpPolicyDecisionPoint.builder();
+    }
+
+    /**
+     * Configures the remote PDP to use RSocket transport with protobuf
+     * serialization. This is the high-performance path that bypasses HTTP
+     * and JSON overhead entirely.
+     *
+     * @return an RSocket-specific builder for further configuration
+     */
+    public ProtobufRemotePolicyDecisionPoint.Builder rsocket() {
+        return ProtobufRemotePolicyDecisionPoint.builder();
     }
 
 }

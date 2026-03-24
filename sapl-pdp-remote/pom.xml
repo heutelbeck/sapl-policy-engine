@@ -60,6 +60,21 @@
 			<groupId>io.projectreactor.netty</groupId>
 			<artifactId>reactor-netty</artifactId>
 		</dependency>
+		<!-- RSocket transport -->
+		<dependency>
+			<groupId>io.rsocket</groupId>
+			<artifactId>rsocket-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.rsocket</groupId>
+			<artifactId>rsocket-transport-netty</artifactId>
+		</dependency>
+		<!-- Protobuf codec for RSocket -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-api-proto</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>

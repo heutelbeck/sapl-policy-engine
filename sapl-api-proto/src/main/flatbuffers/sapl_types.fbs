@@ -1,0 +1,136 @@
+// Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// FlatBuffers schema definitions for SAPL API types.
+// These mirror the Java types in io.sapl.api.pdp and io.sapl.api.model.
+
+namespace io.sapl.api.flatbuffers;
+
+// Decision enum - INDETERMINATE=0 is default for safe failure
+enum Decision : byte { INDETERMINATE = 0, PERMIT = 1, DENY = 2, NOT_APPLICABLE = 3 }
+
+// Value kind discriminator for the Value union
+enum ValueKind : byte {
+    NONE = 0,
+    NullValue = 1,
+    BoolValue = 2,
+    NumberValue = 3,
+    TextValue = 4,
+    ArrayValue = 5,
+    ObjectValue = 6,
+    UndefinedValue = 7,
+    ErrorValue = 8
+}
+
+// Represents JSON null
+table NullValue {}
+
+// Represents a boolean value
+table BoolValue { value:bool; }
+
+// Represents a number (BigDecimal as string for precision)
+table NumberValue { value:string; }
+
+// Represents a text/string value
+table TextValue { value:string; }
+
+// Forward declaration for recursive types
+table Value;
+
+// Represents an array of values
+table ArrayValue { elements:[Value]; }
+
+// Key-value pair for object fields
+table ObjectField {
+    key:string;
+    value:Value;
+}
+
+// Represents an object (map of string keys to values)
+table ObjectValue { fields:[ObjectField]; }
+
+// Represents the undefined value
+table UndefinedValue {}
+
+// Represents an error state
+table ErrorValue {
+    message:string;
+    arguments:[string];
+}
+
+// Union of all value types
+union ValueUnion {
+    NullValue,
+    BoolValue,
+    NumberValue,
+    TextValue,
+    ArrayValue,
+    ObjectValue,
+    UndefinedValue,
+    ErrorValue
+}
+
+// The central value type for policy evaluation
+table Value {
+    kind:ValueUnion;
+}
+
+// Authorization subscription - request for an authorization decision
+table AuthorizationSubscription {
+    subject:Value;
+    action:Value;
+    resource:Value;
+    environment:Value;
+    secrets:Value;
+}
+
+// Authorization decision - result of policy evaluation
+table AuthorizationDecision {
+    decision:Decision = INDETERMINATE;
+    obligations:ArrayValue;
+    advice:ArrayValue;
+    resource:Value;
+}
+
+// Identifiable authorization subscription
+table IdentifiableAuthorizationSubscription {
+    subscription_id:string;
+    subscription:AuthorizationSubscription;
+}
+
+// Identifiable authorization decision
+table IdentifiableAuthorizationDecision {
+    subscription_id:string;
+    decision:AuthorizationDecision;
+}
+
+// Multi-authorization subscription container
+table MultiAuthorizationSubscription {
+    subscriptions:[IdentifiableAuthorizationSubscription];
+}
+
+// Decision entry for multi-authorization decision map
+table DecisionEntry {
+    subscription_id:string;
+    decision:AuthorizationDecision;
+}
+
+// Multi-authorization decision container
+table MultiAuthorizationDecision {
+    decisions:[DecisionEntry];
+}
+
+root_type Value;
