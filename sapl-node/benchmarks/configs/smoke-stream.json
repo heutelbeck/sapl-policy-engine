@@ -1,0 +1,1 @@
+{"warmupIterations":1,"warmupTimeSeconds":1,"measurementIterations":1,"measurementTimeSeconds":2,"threads":[1],"benchmarks":["decideStreamFirst"]}

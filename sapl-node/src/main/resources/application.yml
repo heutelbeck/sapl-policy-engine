@@ -183,6 +183,16 @@ io.sapl:
 #
 # loader.path: /path/to/lib
 
+# --- RSocket (Protobuf) ---
+#
+# High-performance binary transport using RSocket with protobuf serialization.
+# Disabled by default. Enable for applications that need lower latency than
+# HTTP/JSON. Clients connect via RemotePolicyDecisionPoint.builder().rsocket().
+#
+# sapl.pdp.rsocket:
+#   enabled: true
+#   port: 7000
+
 # --- Keep-Alive ---
 #
 # Interval in seconds between keep-alive frames on idle connections.

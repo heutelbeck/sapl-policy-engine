@@ -17,52 +17,34 @@
  */
 package io.sapl.server.pdpcontroller;
 
-import io.rsocket.core.RSocketServer;
-import io.rsocket.transport.netty.server.CloseableChannel;
-import io.rsocket.transport.netty.server.TcpServerTransport;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import jakarta.annotation.PreDestroy;
-import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.api.pdp.PolicyDecisionPoint;
+
 /**
- * Configuration for the protobuf-based RSocket PDP server. Runs on a separate
- * port from the Spring Messaging-based endpoint for performance comparison.
- *
+ * Configuration for the protobuf-based RSocket PDP server.
  * <p>
- * Enable with property {@code sapl.pdp.rsocket.protobuf.enabled=true} and
- * configure the port with {@code sapl.pdp.rsocket.protobuf.port}.
+ * Enable with property {@code sapl.pdp.rsocket.enabled=true} and configure
+ * the port with {@code sapl.pdp.rsocket.port} (default: 7000).
+ * <p>
+ * If a {@link RSocketConnectionAuthenticator} bean is present, connections
+ * are authenticated via the RSocket setup frame. Otherwise, all connections
+ * are accepted without authentication.
+ * <p>
+ * The server lifecycle is managed by {@link ProtobufRSocketServerLifecycle}
+ * via Spring's {@link org.springframework.context.SmartLifecycle} interface.
  */
-@Slf4j
 @Configuration
-@ConditionalOnProperty(name = "sapl.pdp.rsocket.protobuf.enabled", havingValue = "true")
 public class ProtobufRSocketServerConfiguration {
 
-    @Value("${sapl.pdp.rsocket.protobuf.port:7001}")
-    private int port;
-
-    private CloseableChannel server;
-
     @Bean
-    ProtobufRSocketAcceptor protobufRSocketAcceptor(PolicyDecisionPoint pdp) {
-        return new ProtobufRSocketAcceptor(pdp);
+    ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:false}") boolean enabled,
+            @Value("${sapl.pdp.rsocket.port:7000}") int port, PolicyDecisionPoint pdp,
+            @Nullable RSocketConnectionAuthenticator authenticator) {
+        return new ProtobufRSocketServerLifecycle(enabled, port, pdp, authenticator);
     }
 
-    @Bean
-    CloseableChannel protobufRSocketServer(ProtobufRSocketAcceptor acceptor) {
-        server = RSocketServer.create(acceptor).bindNow(TcpServerTransport.create(port));
-        log.info("Protobuf RSocket PDP server started on port {}", port);
-        return server;
-    }
-
-    @PreDestroy
-    void shutdown() {
-        if (server != null) {
-            log.info("Shutting down Protobuf RSocket PDP server");
-            server.dispose();
-        }
-    }
 }

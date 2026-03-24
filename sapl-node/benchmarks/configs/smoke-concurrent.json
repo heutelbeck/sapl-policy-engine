@@ -1,0 +1,1 @@
+{"warmupIterations":2,"warmupTimeSeconds":3,"measurementIterations":3,"measurementTimeSeconds":5,"threads":[1,4,8],"benchmarks":["decideOnceConcurrent"]}

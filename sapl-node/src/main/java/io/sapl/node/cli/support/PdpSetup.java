@@ -35,6 +35,7 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.node.SaplNodeApplication;
 import io.sapl.node.cli.options.PdpOptions;
 import io.sapl.node.cli.options.RemoteConnectionOptions;
+import io.sapl.pdp.remote.ProtobufRemotePolicyDecisionPoint;
 import io.sapl.pdp.remote.RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.val;
@@ -85,12 +86,27 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
     }
 
     private static PdpSetup openRemote(RemoteConnectionOptions remote) throws SSLException {
+        if (remote.rsocket) {
+            return openRsocket(remote);
+        }
+        return openHttp(remote);
+    }
+
+    private static PdpSetup openHttp(RemoteConnectionOptions remote) throws SSLException {
         val url     = resolveWithEnv(remote.url, "SAPL_URL", "http://localhost:8443");
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(url);
         if (remote.insecure) {
             builder.withUnsecureSSL();
         }
         configureAuth(builder, remote.auth);
+        val pdp    = builder.build();
+        val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+        return new PdpSetup(pdp, mapper, null);
+    }
+
+    private static PdpSetup openRsocket(RemoteConnectionOptions remote) {
+        val builder = ProtobufRemotePolicyDecisionPoint.builder().host(remote.rsocketHost).port(remote.rsocketPort);
+        configureRsocketAuth(builder, remote.auth);
         val pdp    = builder.build();
         val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         return new PdpSetup(pdp, mapper, null);
@@ -114,6 +130,38 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
             logbackContext.getLogger("io.sapl.pdp.interceptors").setLevel(Level.INFO);
         }
         return new PdpSetup(context.getBean(PolicyDecisionPoint.class), context.getBean(JsonMapper.class), context);
+    }
+
+    private static void configureRsocketAuth(ProtobufRemotePolicyDecisionPoint.Builder builder,
+            RemoteConnectionOptions.AuthOptions auth) {
+        if (auth != null) {
+            if (auth.basicAuth != null) {
+                val separatorIndex = auth.basicAuth.indexOf(':');
+                if (separatorIndex < 0) {
+                    throw new IllegalArgumentException(ERROR_BASIC_AUTH_FORMAT);
+                }
+                builder.basicAuth(auth.basicAuth.substring(0, separatorIndex),
+                        auth.basicAuth.substring(separatorIndex + 1));
+                return;
+            }
+            if (auth.token != null) {
+                builder.apiKey(auth.token);
+                return;
+            }
+        }
+        val envBasicAuth = System.getenv("SAPL_BASIC_AUTH");
+        if (envBasicAuth != null) {
+            val separatorIndex = envBasicAuth.indexOf(':');
+            if (separatorIndex < 0) {
+                throw new IllegalArgumentException(ERROR_BASIC_AUTH_FORMAT);
+            }
+            builder.basicAuth(envBasicAuth.substring(0, separatorIndex), envBasicAuth.substring(separatorIndex + 1));
+            return;
+        }
+        val envToken = System.getenv("SAPL_BEARER_TOKEN");
+        if (envToken != null) {
+            builder.apiKey(envToken);
+        }
     }
 
     private static void configureAuth(RemoteHttpPolicyDecisionPointBuilder builder,

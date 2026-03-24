@@ -39,18 +39,22 @@ import picocli.CommandLine.Command;
         send authorization subscriptions via the HTTP API and receive
         decisions as JSON responses or Server-Sent Event streams.
 
+        Optionally, a high-performance RSocket endpoint with protobuf
+        serialization can be enabled for lower-latency authorization.
+        Enable with --sapl.pdp.rsocket.enabled=true (default port: 7000).
+
         The server is configured via application.yml. Place it in a config/
         subdirectory of the working directory, or specify a custom location
         with --spring.config.location=file:/path/to/application.yml.
 
         Any Spring Boot property can be overridden on the command line:
           --server.port=9090
-          --io.sapl.pdp.embedded.pdp-config-type=BUNDLES
-          --io.sapl.pdp.embedded.policies-path=/opt/policies
+          --sapl.pdp.rsocket.enabled=true
+          --sapl.pdp.rsocket.port=7000
 
         Key configuration areas: policy source type (DIRECTORY, BUNDLES),
-        authentication (no-auth, basic, API key, OAuth2), TLS, and
-        observability (health endpoints, Prometheus metrics).
+        authentication (no-auth, basic, API key, OAuth2), TLS, RSocket,
+        and observability (health endpoints, Prometheus metrics).
         """ },
     exitCodeListHeading = "%nExit Codes:%n",
     exitCodeList = {

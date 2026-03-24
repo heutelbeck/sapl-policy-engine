@@ -70,11 +70,13 @@ public class RemoteBenchmark {
         subscription = mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class);
         pdp          = RemotePdpFactory.create(ctx);
 
-        preSerializedBody = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
-        val provider = ConnectionProvider.builder("raw-benchmark").maxConnections(256).pendingAcquireMaxCount(10_000)
-                .build();
-        rawClient = HttpClient.create(provider).baseUrl(ctx.remoteUrl())
-                .headers(h -> h.add("Content-Type", "application/json"));
+        if (ctx.remoteUrl() != null) {
+            preSerializedBody = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
+            val provider = ConnectionProvider.builder("raw-benchmark").maxConnections(256)
+                    .pendingAcquireMaxCount(10_000).build();
+            rawClient = HttpClient.create(provider).baseUrl(ctx.remoteUrl())
+                    .headers(h -> h.add("Content-Type", "application/json"));
+        }
     }
 
     @TearDown(Level.Trial)

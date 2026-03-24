@@ -26,12 +26,10 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.util.CharsetUtil;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.metadata.AuthMetadataCodec;
-import io.rsocket.metadata.WellKnownAuthType;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -75,12 +73,13 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     private static final String ERROR_ENCODE_SUBSCRIPTION                        = "Failed to encode subscription: {}";
     private static final String ERROR_RSOCKET_CONNECTION                         = "RSocket connection error: {}";
 
+    private static final String ERROR_STREAM_RECONNECT = "PDP streaming connection lost, reconnecting (attempt {})";
+
     static final int RETRY_ESCALATION_THRESHOLD = 5;
 
     private static final String WARN_INSECURE_SSL       = "!!! ATTENTION: do not use insecure sslContext in production !!!";
     private static final String WARN_INSECURE_SSL_DELIM = "------------------------------------------------------------------";
     private static final String WARN_STREAM_RECONNECT   = "PDP streaming connection lost, reconnecting (attempt {})";
-    private static final String ERROR_STREAM_RECONNECT  = "PDP streaming connection lost, reconnecting (attempt {})";
 
     private final Mono<RSocket> rSocketMono;
 
@@ -136,7 +135,8 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Mono.just(AuthorizationDecision.INDETERMINATE);
             }
-        }).doOnError(error -> log.error(ERROR_RSOCKET_CONNECTION, error.getMessage()));
+        }).doOnError(error -> log.error(ERROR_RSOCKET_CONNECTION, error.getMessage()))
+                .onErrorReturn(AuthorizationDecision.INDETERMINATE);
     }
 
     @Override

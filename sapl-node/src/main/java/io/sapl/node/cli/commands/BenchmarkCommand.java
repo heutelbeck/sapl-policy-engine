@@ -113,8 +113,9 @@ import tools.jackson.databind.json.JsonMapper;
 public class BenchmarkCommand implements Callable<Integer> {
 
     static final String ERROR_OUTPUT_DIR_CREATION      = "Error: Could not create output directory: %s";
-    static final String ERROR_REMOTE_CONNECTION        = "Error: Failed to connect to remote PDP: %s";
+    static final String ERROR_RAW_WITH_RSOCKET         = "Error: --raw is not applicable with --rsocket.";
     static final String ERROR_RAW_WITHOUT_REMOTE       = "Error: --raw requires --remote.";
+    static final String ERROR_REMOTE_CONNECTION        = "Error: Failed to connect to remote PDP: %s";
     static final String ERROR_REMOTE_WITH_LOCAL        = "Error: --remote cannot be used with --dir or --bundle.";
     static final String ERROR_REMOTE_WITH_VERIFICATION = "Error: --remote cannot be used with --public-key or --no-verify.";
     static final String ERROR_SUBSCRIPTION_MISSING     = "Error: Subscription is required. Use -s/-a/-r or -f.";
@@ -154,6 +155,10 @@ public class BenchmarkCommand implements Callable<Integer> {
 
             if (benchmarkOptions.raw && !remote) {
                 err.println(ERROR_RAW_WITHOUT_REMOTE);
+                return 1;
+            }
+            if (benchmarkOptions.raw && remoteConnection != null && remoteConnection.rsocket) {
+                err.println(ERROR_RAW_WITH_RSOCKET);
                 return 1;
             }
 
@@ -214,6 +219,10 @@ public class BenchmarkCommand implements Callable<Integer> {
         }
         val basicAuth = remoteConnection.auth != null ? remoteConnection.auth.basicAuth : null;
         val token     = remoteConnection.auth != null ? remoteConnection.auth.token : null;
+        if (remoteConnection.rsocket) {
+            return BenchmarkContext.rsocket(subJson, remoteConnection.rsocketHost, remoteConnection.rsocketPort,
+                    basicAuth, token);
+        }
         return BenchmarkContext.remote(subJson, remoteConnection.url, basicAuth, token, remoteConnection.insecure);
     }
 

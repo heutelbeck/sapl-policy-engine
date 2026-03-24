@@ -32,10 +32,13 @@ import tools.jackson.databind.json.JsonMapper;
  * @param policiesPath absolute path to the policy directory or bundle (null for
  * remote)
  * @param configType DIRECTORY or BUNDLES (null for remote)
- * @param remoteUrl remote PDP URL (null for embedded)
+ * @param remoteUrl remote PDP URL for HTTP (null for embedded or rsocket)
  * @param basicAuth HTTP Basic credentials as user:password (null if unused)
  * @param token bearer token for API key or JWT (null if unused)
  * @param insecure skip TLS certificate verification
+ * @param rsocket true to use RSocket/protobuf transport
+ * @param rsocketHost RSocket host (null for embedded or HTTP)
+ * @param rsocketPort RSocket port (0 for embedded or HTTP)
  */
 public record BenchmarkContext(
         String subscriptionJson,
@@ -44,21 +47,31 @@ public record BenchmarkContext(
         @Nullable String remoteUrl,
         @Nullable String basicAuth,
         @Nullable String token,
-        boolean insecure) {
+        boolean insecure,
+        boolean rsocket,
+        @Nullable String rsocketHost,
+        int rsocketPort) {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     public static BenchmarkContext embedded(String subscriptionJson, String policiesPath, String configType) {
-        return new BenchmarkContext(subscriptionJson, policiesPath, configType, null, null, null, false);
+        return new BenchmarkContext(subscriptionJson, policiesPath, configType, null, null, null, false, false, null,
+                0);
     }
 
     public static BenchmarkContext remote(String subscriptionJson, String remoteUrl, @Nullable String basicAuth,
             @Nullable String token, boolean insecure) {
-        return new BenchmarkContext(subscriptionJson, null, null, remoteUrl, basicAuth, token, insecure);
+        return new BenchmarkContext(subscriptionJson, null, null, remoteUrl, basicAuth, token, insecure, false, null,
+                0);
+    }
+
+    public static BenchmarkContext rsocket(String subscriptionJson, String host, int port, @Nullable String basicAuth,
+            @Nullable String token) {
+        return new BenchmarkContext(subscriptionJson, null, null, null, basicAuth, token, false, true, host, port);
     }
 
     public boolean isRemote() {
-        return remoteUrl != null;
+        return remoteUrl != null || rsocket;
     }
 
     public String toJson() {
