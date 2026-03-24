@@ -108,8 +108,7 @@ class NativeBenchmarkRunnerTests {
         @DisplayName("runs all three methods when no filter specified")
         void whenNoFilter_thenAllMethodsRun() {
             val output = runBenchmark(createContext(), quickConfig(null));
-            assertThat(output.stdout()).contains("--- decideOnceBlocking ---").contains("--- decideOnceReactive ---")
-                    .contains("--- decideStreamFirst ---");
+            assertThat(output.stdout()).contains("--- decideOnceBlocking ---").contains("--- decideStreamFirst ---");
         }
 
         @Test

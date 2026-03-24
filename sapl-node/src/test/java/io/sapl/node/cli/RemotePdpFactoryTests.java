@@ -19,10 +19,16 @@ package io.sapl.node.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import lombok.val;
 
@@ -30,8 +36,8 @@ import lombok.val;
 class RemotePdpFactoryTests {
 
     @Nested
-    @DisplayName("basicAuth validation")
-    class BasicAuthTests {
+    @DisplayName("authentication modes")
+    class AuthenticationTests {
 
         @Test
         @DisplayName("rejects basicAuth without colon separator")
@@ -41,28 +47,18 @@ class RemotePdpFactoryTests {
                     .hasMessage(RemotePdpFactory.ERROR_BASIC_AUTH_FORMAT);
         }
 
-        @Test
-        @DisplayName("accepts basicAuth with colon separator")
-        void whenBasicAuthValid_thenCreatesWithoutException() throws Exception {
-            val ctx = BenchmarkContext.remote("{}", "http://localhost:8443", "user:pass", null, false);
-            val pdp = RemotePdpFactory.create(ctx);
-            assertThat(pdp).isNotNull();
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("creates PDP for valid auth configuration")
+        @MethodSource
+        void whenValidAuth_thenCreatesSuccessfully(String description, String basicAuth, String token)
+                throws Exception {
+            val ctx = BenchmarkContext.remote("{}", "http://localhost:8443", basicAuth, token, false);
+            assertThat(RemotePdpFactory.create(ctx)).isNotNull();
         }
 
-        @Test
-        @DisplayName("accepts token auth")
-        void whenTokenAuth_thenCreatesWithoutException() throws Exception {
-            val ctx = BenchmarkContext.remote("{}", "http://localhost:8443", null, "my-token", false);
-            val pdp = RemotePdpFactory.create(ctx);
-            assertThat(pdp).isNotNull();
-        }
-
-        @Test
-        @DisplayName("accepts no auth")
-        void whenNoAuth_thenCreatesWithoutException() throws Exception {
-            val ctx = BenchmarkContext.remote("{}", "http://localhost:8443", null, null, false);
-            val pdp = RemotePdpFactory.create(ctx);
-            assertThat(pdp).isNotNull();
+        static Stream<Arguments> whenValidAuth_thenCreatesSuccessfully() {
+            return Stream.of(arguments("basic auth", "user:pass", null), arguments("token auth", null, "my-token"),
+                    arguments("no auth", null, null));
         }
 
     }

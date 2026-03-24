@@ -17,8 +17,12 @@
  */
 package io.sapl.node.cli;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.OperationsPerInvocation;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -27,11 +31,16 @@ import org.openjdk.jmh.annotations.TearDown;
 
 import javax.net.ssl.SSLException;
 
+import io.netty.buffer.Unpooled;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.val;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -44,11 +53,15 @@ import tools.jackson.databind.json.JsonMapper;
 @State(Scope.Benchmark)
 public class RemoteBenchmark {
 
+    static final int CONCURRENT_BATCH = 256;
+
     @Param({})
     public String contextJson;
 
     private PolicyDecisionPoint       pdp;
     private AuthorizationSubscription subscription;
+    private HttpClient                rawClient;
+    private byte[]                    preSerializedBody;
 
     @Setup(Level.Trial)
     public void setup() throws SSLException {
@@ -56,6 +69,12 @@ public class RemoteBenchmark {
         val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         subscription = mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class);
         pdp          = RemotePdpFactory.create(ctx);
+
+        preSerializedBody = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
+        val provider = ConnectionProvider.builder("raw-benchmark").maxConnections(256).pendingAcquireMaxCount(10_000)
+                .build();
+        rawClient = HttpClient.create(provider).baseUrl(ctx.remoteUrl())
+                .headers(h -> h.add("Content-Type", "application/json"));
     }
 
     @TearDown(Level.Trial)
@@ -69,13 +88,25 @@ public class RemoteBenchmark {
     }
 
     @Benchmark
-    public AuthorizationDecision decideOnceReactive() {
-        return pdp.decideOnce(subscription).block();
+    public AuthorizationDecision decideStreamFirst() {
+        return pdp.decide(subscription).blockFirst();
     }
 
     @Benchmark
-    public AuthorizationDecision decideStreamFirst() {
-        return pdp.decide(subscription).blockFirst();
+    @OperationsPerInvocation(CONCURRENT_BATCH)
+    public List<AuthorizationDecision> decideOnceConcurrent() {
+        return Flux.range(0, CONCURRENT_BATCH).flatMap(i -> pdp.decideOnce(subscription), CONCURRENT_BATCH)
+                .collectList().block();
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(CONCURRENT_BATCH)
+    public List<byte[]> decideOnceRaw() {
+        return Flux.range(0, CONCURRENT_BATCH)
+                .flatMap(i -> rawClient.post().uri("/api/pdp/decide-once")
+                        .send(Mono.fromSupplier(() -> Unpooled.wrappedBuffer(preSerializedBody)))
+                        .responseSingle((resp, buf) -> buf.asByteArray()), CONCURRENT_BATCH)
+                .collectList().block();
     }
 
 }

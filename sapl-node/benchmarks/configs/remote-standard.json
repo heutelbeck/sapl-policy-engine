@@ -4,5 +4,5 @@
   "measurementIterations": 5,
   "measurementTimeSeconds": 5,
   "threads": [1, 4, 8],
-  "benchmarks": ["decideOnceBlocking", "decideStreamFirst"]
+  "benchmarks": ["decideOnceBlocking", "decideStreamFirst", "decideOnceConcurrent", "decideOnceRaw"]
 }

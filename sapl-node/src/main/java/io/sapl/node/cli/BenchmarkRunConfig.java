@@ -51,18 +51,21 @@ record BenchmarkRunConfig(
 
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
+    private static final List<String> RAW_BENCHMARKS = List.of("decideOnceRaw");
+
     static BenchmarkRunConfig resolve(BenchmarkOptions opts, @Nullable BenchmarkConfig config) {
-        val ts = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        val ts         = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        val benchmarks = opts.raw ? RAW_BENCHMARKS : (config != null ? config.benchmarks() : null);
         if (config == null) {
             return new BenchmarkRunConfig(opts.warmupIterations, opts.warmupTimeSeconds, opts.measurementIterations,
-                    opts.measurementTimeSeconds, List.of(opts.threads), null, opts.output, ts);
+                    opts.measurementTimeSeconds, List.of(opts.threads), benchmarks, opts.output, ts);
         }
         return new BenchmarkRunConfig(override(config.warmupIterations(), opts.warmupIterations, 3),
                 override(config.warmupTimeSeconds(), opts.warmupTimeSeconds, 1),
                 override(config.measurementIterations(), opts.measurementIterations, 5),
                 override(config.measurementTimeSeconds(), opts.measurementTimeSeconds, 3),
-                resolveThreads(config.threads(), opts.threads), config.benchmarks(),
-                resolveOutput(config.output(), opts.output), ts);
+                resolveThreads(config.threads(), opts.threads), benchmarks, resolveOutput(config.output(), opts.output),
+                ts);
     }
 
     String outputFileName(String mode, String method, int threadCount) {
@@ -70,10 +73,17 @@ record BenchmarkRunConfig(
     }
 
     int estimatedDurationSeconds() {
-        val perThread   = (warmupIterations * warmupTimeSeconds + measurementIterations * measurementTimeSeconds) + 5;
-        val methodCount = benchmarks != null ? benchmarks.size() : 1;
-        return perThread * threads.size() * methodCount;
+        val perMethod       = (warmupIterations * warmupTimeSeconds + measurementIterations * measurementTimeSeconds)
+                + 5;
+        val methodCount     = benchmarks != null ? benchmarks.size() : 1;
+        val latencyMethods  = benchmarks != null ? benchmarks.stream().filter(BLOCKING_METHODS::contains).count()
+                : BLOCKING_METHODS.size();
+        val throughputTotal = perMethod * methodCount;
+        val latencyTotal    = perMethod * latencyMethods;
+        return (int) (throughputTotal + latencyTotal) * threads.size();
     }
+
+    private static final List<String> BLOCKING_METHODS = List.of("decideOnceBlocking", "decideStreamFirst");
 
     private static int override(@Nullable Integer configValue, int cliValue, int defaultValue) {
         if (cliValue != defaultValue) {

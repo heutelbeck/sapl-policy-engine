@@ -83,11 +83,6 @@ public class EmbeddedBenchmark {
     }
 
     @Benchmark
-    public AuthorizationDecision decideOnceReactive() {
-        return pdp.decideOnce(subscription).block();
-    }
-
-    @Benchmark
     public AuthorizationDecision decideStreamFirst() {
         return pdp.decide(subscription).blockFirst();
     }

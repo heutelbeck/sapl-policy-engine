@@ -119,6 +119,35 @@ class BenchmarkReportWriter {
     }
 
     private static void appendLatencyTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
+        val measured = results.stream().anyMatch(r -> r.latency() != null);
+        if (measured) {
+            appendMeasuredLatencyTable(sb, results, mw);
+        }
+        appendDerivedLatencyTable(sb, results, mw);
+    }
+
+    private static void appendMeasuredLatencyTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
+        val withLatency = results.stream().filter(r -> r.latency() != null).toList();
+        if (withLatency.isEmpty()) {
+            return;
+        }
+        sb.append("## Latency (measured per-request)\n\n");
+        val fmt = "| %-" + mw + "s | %7s | %12s | %12s | %12s | %12s | %12s |";
+        val sep = "| " + "-".repeat(mw)
+                + " | ------: | -----------: | -----------: | -----------: | -----------: | -----------: |\n";
+        sb.append(String.format(fmt, HEADER_METHOD, HEADER_THREADS, "p50 (ns)", "p90 (ns)", "p99 (ns)", "p99.9 (ns)",
+                "max (ns)")).append('\n');
+        sb.append(sep);
+        for (val r : withLatency) {
+            val l = r.latency();
+            sb.append(String.format(Locale.US,
+                    "| %-" + mw + "s | %7d | %,12.0f | %,12.0f | %,12.0f | %,12.0f | %,12.0f |", r.method(),
+                    r.threads(), l.p50(), l.p90(), l.p99(), l.p999(), l.max())).append('\n');
+        }
+        sb.append('\n');
+    }
+
+    private static void appendDerivedLatencyTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
         sb.append("## Latency (derived from throughput)\n\n");
         val fmt = "| %-" + mw + "s | %7s | %14s | %14s | %14s |";
         val sep = "| " + "-".repeat(mw) + " | ------: | -------------: | -------------: | -------------: |\n";

@@ -45,16 +45,23 @@ import tools.jackson.databind.json.JsonMapper;
     mixinStandardHelpOptions = true,
     header = "Benchmark PDP evaluation performance.",
     description = { """
-        Measures policy evaluation throughput and latency. Uses the Java
-        Microbenchmark Harness (JMH) when running from a JAR, or a built-in
+        Measures policy evaluation throughput and per-request latency
+        distribution. Uses JMH when running from a JAR, or a built-in
         timing harness when running as a native binary.
 
         By default, benchmarks the embedded PDP directly. Use --dir to
         specify a policy directory, or --remote to benchmark against a
         running PDP server.
 
+        Remote benchmarks include blocking, concurrent (reactive batching
+        via WebClient), and raw (direct Netty, bypasses WebClient) modes.
+        Use --raw to run only the raw mode for server ceiling measurement.
+
+        Latency percentiles (p50, p90, p99, p99.9) are measured per-request
+        for blocking methods via a separate JMH SampleTime pass.
+
         When --output is specified, produces JSON (JMH-compatible), Markdown
-        (with methodology, results, latency, and scaling tables), and CSV
+        (with methodology, throughput, latency, and scaling tables), and CSV
         files with timestamped filenames.
 
         For reproducible runs with multiple thread counts, provide a JSON
@@ -70,17 +77,20 @@ import tools.jackson.databind.json.JsonMapper;
           # Quick benchmark with local policies
           sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
 
-          # Longer run with more iterations
-          sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"' --warmup-iterations 5 --warmup-time 5 --measurement-iterations 10 --measurement-time 10
+          # Longer run with more iterations and output
+          sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"' --warmup-iterations 5 --warmup-time 5 --measurement-iterations 10 --measurement-time 10 -o ./results
 
-          # Multi-threaded benchmark with JSON output
-          sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"' -t 4 -o ./results
+          # Multi-threaded benchmark
+          sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"' -t 4
 
           # Benchmark a remote PDP server
           sapl benchmark --remote --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"doc"'
 
           # Remote with authentication
           sapl benchmark --remote --url https://pdp.example.com --token $SAPL_BEARER_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
+
+          # Measure server ceiling with raw Netty client (bypasses WebClient)
+          sapl benchmark --remote --raw --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"doc"' -t 8
 
         See Also: sapl-check(1), sapl-decide-once(1)
         """ }
@@ -90,6 +100,7 @@ class BenchmarkCommand implements Callable<Integer> {
 
     static final String ERROR_OUTPUT_DIR_CREATION      = "Error: Could not create output directory: %s";
     static final String ERROR_REMOTE_CONNECTION        = "Error: Failed to connect to remote PDP: %s";
+    static final String ERROR_RAW_WITHOUT_REMOTE       = "Error: --raw requires --remote.";
     static final String ERROR_REMOTE_WITH_LOCAL        = "Error: --remote cannot be used with --dir or --bundle.";
     static final String ERROR_REMOTE_WITH_VERIFICATION = "Error: --remote cannot be used with --public-key or --no-verify.";
     static final String ERROR_SUBSCRIPTION_MISSING     = "Error: Subscription is required. Use -s/-a/-r or -f.";
@@ -126,7 +137,13 @@ class BenchmarkCommand implements Callable<Integer> {
             val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
             val subJson      = mapper.writeValueAsString(subscription);
             val remote       = remoteConnection != null && remoteConnection.remote;
-            val ctx          = remote ? buildRemoteContext(subJson, err) : buildEmbeddedContext(subJson, err);
+
+            if (benchmarkOptions.raw && !remote) {
+                err.println(ERROR_RAW_WITHOUT_REMOTE);
+                return 1;
+            }
+
+            val ctx = remote ? buildRemoteContext(subJson, err) : buildEmbeddedContext(subJson, err);
 
             if (ctx == null) {
                 return 1;

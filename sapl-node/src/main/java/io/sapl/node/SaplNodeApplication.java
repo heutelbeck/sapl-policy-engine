@@ -142,6 +142,8 @@ public class SaplNodeApplication {
                 hints.reflection().registerTypeIfPresent(classLoader, className,
                         MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.ACCESS_DECLARED_FIELDS);
             }
+            hints.reflection().registerTypeIfPresent(classLoader, CLI_PACKAGE + "BenchmarkConfig",
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_DECLARED_METHODS);
         }
 
     }

@@ -46,6 +46,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import reactor.util.retry.Retry;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -214,9 +215,12 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @NoArgsConstructor
     public static class RemoteHttpPolicyDecisionPointBuilder {
-        private String                                         baseUrl    = "https://localhost:8443";
-        private HttpClient                                     httpClient = HttpClient.create()
-                .protocol(HttpProtocol.HTTP11, HttpProtocol.H2);
+        private String                          baseUrl                     = "https://localhost:8443";
+        private static final ConnectionProvider DEFAULT_CONNECTION_PROVIDER = ConnectionProvider.builder("sapl-pdp")
+                .maxConnections(64).pendingAcquireMaxCount(10_000).build();
+
+        private HttpClient                                     httpClient = HttpClient
+                .create(DEFAULT_CONNECTION_PROVIDER).protocol(HttpProtocol.HTTP11, HttpProtocol.H2);
         private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
 
         public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
