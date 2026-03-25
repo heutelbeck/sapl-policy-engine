@@ -17,7 +17,12 @@
  */
 package io.sapl.server.pdpcontroller;
 
-import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
@@ -103,7 +108,8 @@ public class RSocketPDPController {
     @MessageMapping("multi-decide-all-once")
     public Mono<MultiAuthorizationDecision> decideAllOnce(MultiAuthorizationSubscription multiAuthzSubscription) {
         return pdp.decideAll(multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).next();
+                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).next()
+                .defaultIfEmpty(MultiAuthorizationDecision.indeterminate());
     }
 
 }

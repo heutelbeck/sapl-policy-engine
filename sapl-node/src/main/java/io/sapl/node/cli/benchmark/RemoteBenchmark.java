@@ -36,6 +36,7 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.remote.ProtobufRemotePolicyDecisionPoint;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -53,6 +54,13 @@ import tools.jackson.databind.json.JsonMapper;
 @State(Scope.Benchmark)
 public class RemoteBenchmark {
 
+    // Derived from Little's Law: L = cores x (1 + W_io / W_cpu).
+    // For fast policy evaluation behind RSocket/HTTP, W_cpu is small relative
+    // to W_io (network round-trip), giving a high IO/CPU ratio. A multiplier
+    // of 10x cores is conservative for localhost and reasonable for remote.
+    // Fixed at 256 because @OperationsPerInvocation requires a compile-time
+    // constant. This targets ~24-core machines (24 x 10 = 240, rounded up).
+    // For significantly different hardware, adjust and recompile.
     static final int CONCURRENT_BATCH = 256;
 
     @Param({})
@@ -72,7 +80,7 @@ public class RemoteBenchmark {
 
         if (ctx.remoteUrl() != null) {
             preSerializedBody = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
-            val provider = ConnectionProvider.builder("raw-benchmark").maxConnections(256)
+            val provider = ConnectionProvider.builder("raw-benchmark").maxConnections(CONCURRENT_BATCH)
                     .pendingAcquireMaxCount(10_000).build();
             rawClient = HttpClient.create(provider).baseUrl(ctx.remoteUrl())
                     .headers(h -> h.add("Content-Type", "application/json"));
@@ -81,6 +89,9 @@ public class RemoteBenchmark {
 
     @TearDown(Level.Trial)
     public void tearDown() {
+        if (pdp instanceof ProtobufRemotePolicyDecisionPoint rsocketPdp) {
+            rsocketPdp.dispose();
+        }
         pdp = null;
     }
 

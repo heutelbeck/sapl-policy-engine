@@ -570,6 +570,7 @@
 								<exclude>**/*.pem</exclude>
 								<exclude>**/*.saplbundle</exclude>
 								<exclude>**/PKGBUILD</exclude>
+								<exclude>**/flake.lock</exclude>
 							</excludes>
 						</licenseSet>
 					</licenseSets>
@@ -588,6 +589,8 @@
 						<sapltest>SLASHSTAR_STYLE</sapltest>
 						<service>SCRIPT_STYLE</service>
 						<install>SCRIPT_STYLE</install>
+						<nix>SCRIPT_STYLE</nix>
+						<rego>SCRIPT_STYLE</rego>
 					</mapping>
 				</configuration>
 				<executions>

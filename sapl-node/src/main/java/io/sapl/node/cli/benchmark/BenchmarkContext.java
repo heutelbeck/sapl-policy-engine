@@ -17,8 +17,14 @@
  */
 package io.sapl.node.cli.benchmark;
 
+import java.nio.file.Path;
+
 import org.jspecify.annotations.Nullable;
 
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -68,6 +74,22 @@ public record BenchmarkContext(
     public static BenchmarkContext rsocket(String subscriptionJson, String host, int port, @Nullable String basicAuth,
             @Nullable String token) {
         return new BenchmarkContext(subscriptionJson, null, null, null, basicAuth, token, false, true, host, port);
+    }
+
+    /**
+     * Builds an embedded PDP from the policy source configured in this context.
+     *
+     * @return the built PDP components (caller must dispose)
+     */
+    public PDPComponents buildEmbeddedPdp() {
+        val builder = PolicyDecisionPointBuilder.withDefaults();
+        if ("BUNDLES".equals(configType)) {
+            val securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+            builder.withBundleDirectorySource(Path.of(policiesPath), securityPolicy);
+        } else {
+            builder.withDirectorySource(Path.of(policiesPath));
+        }
+        return builder.build();
     }
 
     public boolean isRemote() {

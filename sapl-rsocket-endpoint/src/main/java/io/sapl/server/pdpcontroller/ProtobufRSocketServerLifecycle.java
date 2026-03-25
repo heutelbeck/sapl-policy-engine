@@ -26,6 +26,7 @@ import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
  * Manages the lifecycle of the protobuf RSocket PDP server. Participates in
@@ -34,12 +35,6 @@ import lombok.extern.slf4j.Slf4j;
  * <p>
  * When {@code enabled} is false, the server is not started and all lifecycle
  * methods are no-ops.
- *
- * @param enabled whether the RSocket server should start
- * @param port the TCP port to bind to
- * @param pdp the policy decision point
- * @param authenticator the connection authenticator, or null for
- * unauthenticated access
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -50,8 +45,8 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final PolicyDecisionPoint                      pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
 
-    private @Nullable CloseableChannel server;
-    private boolean                    running;
+    private volatile @Nullable CloseableChannel server;
+    private volatile boolean                    running;
 
     @Override
     public void start() {
@@ -63,7 +58,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         } else {
             log.warn("RSocket server has no authentication configured");
         }
-        var acceptor = new ProtobufRSocketAcceptor(pdp, authenticator);
+        val acceptor = new ProtobufRSocketAcceptor(pdp, authenticator);
         server  = RSocketServer.create(acceptor).bindNow(TcpServerTransport.create(port));
         running = true;
         log.info("Protobuf RSocket PDP server started on port {}", port);

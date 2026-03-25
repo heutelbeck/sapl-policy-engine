@@ -73,6 +73,8 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
     private static final ThreadLocal<String> PDP_ID_HOLDER = new ThreadLocal<>();
 
+    // Virtual thread executor creates threads on demand with no pool to shut down.
+    // Static is safe here - no resource leak on application shutdown.
     private static final Scheduler VIRTUAL_THREAD_SCHEDULER = Schedulers
             .fromExecutorService(Executors.newVirtualThreadPerTaskExecutor());
 
@@ -256,7 +258,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
                 return DefaultPayload.create(SaplProtobufCodec.writeAuthorizationDecision(decision));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_DECISION_FAILED, e.getMessage());
-                return DefaultPayload.create(new byte[0]);
+                return encodeIndeterminateDecision();
             }
         }
 
@@ -265,7 +267,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
                 return DefaultPayload.create(SaplProtobufCodec.writeIdentifiableAuthorizationDecision(decision));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_IDENTIFIABLE_DECISION_FAILED, e.getMessage());
-                return DefaultPayload.create(new byte[0]);
+                return encodeIndeterminateDecision();
             }
         }
 
@@ -274,6 +276,16 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
                 return DefaultPayload.create(SaplProtobufCodec.writeMultiAuthorizationDecision(decision));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_MULTI_DECISION_FAILED, e.getMessage());
+                return encodeIndeterminateDecision();
+            }
+        }
+
+        private Payload encodeIndeterminateDecision() {
+            try {
+                return DefaultPayload
+                        .create(SaplProtobufCodec.writeAuthorizationDecision(AuthorizationDecision.INDETERMINATE));
+            } catch (IOException fallbackError) {
+                log.error(ERROR_ENCODE_DECISION_FAILED, fallbackError.getMessage());
                 return DefaultPayload.create(new byte[0]);
             }
         }

@@ -86,7 +86,10 @@ public class BenchmarkReportWriter {
         sb.append("|-------------|------------------------|\n");
         sb.append("| Runner      | %-22s |".formatted(runner)).append('\n');
         sb.append("| Mode        | %-22s |".formatted(ctx.isRemote() ? "remote" : "embedded")).append('\n');
-        if (ctx.isRemote()) {
+        if (ctx.rsocket()) {
+            sb.append("| Transport   | %-22s |".formatted("RSocket/protobuf")).append('\n');
+            sb.append("| Host:Port   | %-22s |".formatted(ctx.rsocketHost() + ":" + ctx.rsocketPort())).append('\n');
+        } else if (ctx.isRemote()) {
             sb.append("| Remote URL  | %-22s |".formatted(ctx.remoteUrl())).append('\n');
         } else {
             sb.append("| Policies    | %-22s |".formatted(ctx.policiesPath())).append('\n');
@@ -147,17 +150,23 @@ public class BenchmarkReportWriter {
         sb.append('\n');
     }
 
+    // Derives per-request latency from throughput using Little's Law:
+    // latency = threads / throughput
+    // Throughput percentile inversion: high throughput (p95) = low latency (p5) and
+    // vice versa.
     private static void appendDerivedLatencyTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
-        sb.append("## Latency (derived from throughput)\n\n");
+        sb.append("## Latency (derived from throughput via Little's Law)\n\n");
         val fmt = "| %-" + mw + "s | %7s | %14s | %14s | %14s |";
         val sep = "| " + "-".repeat(mw) + " | ------: | -------------: | -------------: | -------------: |\n";
         sb.append(String.format(fmt, HEADER_METHOD, HEADER_THREADS, "Mean (ns/op)", "p5 (ns/op)", "p95 (ns/op)"))
                 .append('\n');
         sb.append(sep);
         for (val r : results) {
-            val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
-            val p5Ns   = r.p95() > 0 ? 1_000_000_000.0 / r.p95() : 0;
-            val p95Ns  = r.p5() > 0 ? 1_000_000_000.0 / r.p5() : 0;
+            // Little's Law: per-request latency = threads / throughput
+            val threads = Math.max(1, r.threads());
+            val meanNs  = r.mean() > 0 ? threads * 1_000_000_000.0 / r.mean() : 0;
+            val p5Ns    = r.p95() > 0 ? threads * 1_000_000_000.0 / r.p95() : 0;
+            val p95Ns   = r.p5() > 0 ? threads * 1_000_000_000.0 / r.p5() : 0;
             sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %,14.0f | %,14.0f | %,14.0f |", r.method(),
                     r.threads(), meanNs, p5Ns, p95Ns)).append('\n');
         }

@@ -41,15 +41,13 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
-import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.resources.ConnectionProvider;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -57,15 +55,23 @@ import tools.jackson.databind.json.JsonMapper;
  * of JMH, which is valid for AOT-compiled code because there is no JIT
  * warmup, dead code elimination, or constant folding at runtime.
  */
+@Slf4j
 @UtilityClass
 public class NativeBenchmarkRunner {
 
-    static final int CONCURRENT_BATCH = RemoteBenchmark.CONCURRENT_BATCH;
+    // Derived from Little's Law: L = cores x (1 + W_io / W_cpu).
+    // For fast policy evaluation behind RSocket/HTTP, W_cpu is small relative
+    // to W_io (network round-trip), giving a high IO/CPU ratio. Using a
+    // multiplier of 10 is conservative for localhost benchmarks (ratio ~5-6)
+    // and reasonable for remote benchmarks (ratio ~20+). Clamped to [32, 512]
+    // to avoid under-saturation on small machines or memory pressure on large ones.
+    static final int CONCURRENT_BATCH = Math.clamp(Runtime.getRuntime().availableProcessors() * 10, 32, 512);
 
     static final String ERROR_BENCHMARK_FAILED = "Error: Benchmark failed: %s";
+    static final String WARN_BENCHMARK_THREADS = "Benchmark threads did not complete within timeout";
     static final String WARN_JSON_WRITE_FAILED = "Warning: Failed to write JSON results: %s";
 
-    record BenchmarkMethod(Supplier<Object> method, int opsPerInvocation) {};
+    record BenchmarkMethod(Supplier<Object> method, int opsPerInvocation) {}
 
     public static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
             PrintWriter err) {
@@ -79,14 +85,7 @@ public class NativeBenchmarkRunner {
             if (ctx.isRemote()) {
                 pdp = RemotePdpFactory.create(ctx);
             } else {
-                val builder = PolicyDecisionPointBuilder.withDefaults();
-                if ("BUNDLES".equals(ctx.configType())) {
-                    val secPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
-                    builder.withBundleDirectorySource(Path.of(ctx.policiesPath()), secPolicy);
-                } else {
-                    builder.withDirectorySource(Path.of(ctx.policiesPath()));
-                }
-                components = builder.build();
+                components = ctx.buildEmbeddedPdp();
                 pdp        = components.pdp();
             }
 
@@ -146,10 +145,8 @@ public class NativeBenchmarkRunner {
                             CONCURRENT_BATCH));
 
             if (ctx.remoteUrl() != null) {
-                val body     = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
-                val provider = ConnectionProvider.builder("raw-native").maxConnections(256)
-                        .pendingAcquireMaxCount(10_000).build();
-                val raw      = HttpClient.create(provider).baseUrl(ctx.remoteUrl())
+                val body = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
+                val raw  = HttpClient.create().baseUrl(ctx.remoteUrl())
                         .headers(h -> h.add("Content-Type", "application/json"));
                 all.put("decideOnceRaw",
                         new BenchmarkMethod(() -> Flux.range(0, CONCURRENT_BATCH)
@@ -216,104 +213,93 @@ public class NativeBenchmarkRunner {
         val perThread    = collectNanos ? new List[threadCount] : null;
         for (int t = 0; t < threadCount; t++) {
             val threadIndex = t;
-            threads[t] = new Thread(() -> {
-                long   localOps   = 0;
-                Object lastResult = null;
-                val    localNanos = collectNanos ? new ArrayList<Double>(10_000) : null;
-                while (System.nanoTime() < deadline) {
-                    val start = collectNanos ? System.nanoTime() : 0;
-                    lastResult = method.get();
-                    if (collectNanos) {
-                        localNanos.add((double) (System.nanoTime() - start));
-                    }
-                    localOps++;
-                }
-                sink = lastResult;
-                totalOps.addAndGet(localOps);
-                if (collectNanos) {
-                    perThread[threadIndex] = localNanos;
-                }
-                latch.countDown();
-            });
-            threads[t].setDaemon(true);
+            threads[t] = createBenchmarkThread(method, deadline, collectNanos, totalOps, perThread, threadIndex, latch);
             threads[t].start();
         }
-        try {
-            latch.await(seconds + 5L, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        awaitCompletion(latch, seconds);
         if (collectNanos) {
-            for (val samples : perThread) {
-                if (samples != null) {
-                    latencySamples.addAll(samples);
-                }
-            }
+            mergeLatencySamples(perThread, latencySamples);
         }
         return totalOps.get();
     }
 
-    private static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
-        out.println("%-30s %10s %15s %10s".formatted("Benchmark", "Threads", "Throughput", "Error"));
-        out.println("-".repeat(70));
-        for (val r : results) {
-            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s %,10.1f ops/s", r.method(), r.threads(),
-                    r.mean(), r.stddev()));
+    private static Thread createBenchmarkThread(Supplier<Object> method, long deadline, boolean collectNanos,
+            AtomicLong totalOps, @Nullable List<Double>[] perThread, int threadIndex, CountDownLatch latch) {
+        val thread = new Thread(() -> {
+            long   localOps   = 0;
+            Object lastResult = null;
+            val    localNanos = collectNanos ? new ArrayList<Double>(10_000) : null;
+            while (System.nanoTime() < deadline) {
+                val start = collectNanos ? System.nanoTime() : 0;
+                lastResult = method.get();
+                if (collectNanos) {
+                    localNanos.add((double) (System.nanoTime() - start));
+                }
+                localOps++;
+            }
+            sink = lastResult;
+            totalOps.addAndGet(localOps);
+            if (collectNanos) {
+                perThread[threadIndex] = localNanos;
+            }
+            latch.countDown();
+        });
+        thread.setDaemon(true);
+        return thread;
+    }
+
+    private static void awaitCompletion(CountDownLatch latch, int seconds) {
+        try {
+            if (!latch.await(seconds + 5L, TimeUnit.SECONDS)) {
+                log.warn(WARN_BENCHMARK_THREADS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
-        out.flush();
+    }
+
+    private static void mergeLatencySamples(List<Double>[] perThread, List<Double> latencySamples) {
+        for (val samples : perThread) {
+            if (samples != null) {
+                latencySamples.addAll(samples);
+            }
+        }
+    }
+
+    private static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
+        BenchmarkResult.printSummary(results, out);
     }
 
     private static void writeJsonResults(Map<String, List<Double>> rawResults, BenchmarkRunConfig cfg, int threads,
             Path outputPath, PrintWriter err) {
-        val sb = new StringBuilder();
-        sb.append("[\n");
-        val entries = new ArrayList<>(rawResults.entrySet());
-        for (int i = 0; i < entries.size(); i++) {
-            val entry = entries.get(i);
-            val r     = BenchmarkResult.fromIterations(entry.getKey(), threads, entry.getValue());
-            sb.append("  {\n");
-            sb.append("    \"benchmark\": \"").append(r.method()).append("\",\n");
-            sb.append("    \"mode\": \"thrpt\",\n");
-            sb.append("    \"threads\": ").append(threads).append(",\n");
-            sb.append("    \"warmupIterations\": ").append(cfg.warmupIterations()).append(",\n");
-            sb.append("    \"warmupTime\": \"").append(cfg.warmupTimeSeconds()).append(" s\",\n");
-            sb.append("    \"measurementIterations\": ").append(cfg.measurementIterations()).append(",\n");
-            sb.append("    \"measurementTime\": \"").append(cfg.measurementTimeSeconds()).append(" s\",\n");
-            sb.append("    \"primaryMetric\": {\n");
-            sb.append("      \"score\": ").append(fmt(r.mean())).append(",\n");
-            sb.append("      \"scoreError\": ").append(fmt(r.stddev())).append(",\n");
-            sb.append("      \"scoreUnit\": \"ops/s\",\n");
-            sb.append("      \"scorePercentiles\": {\n");
-            sb.append("        \"5.0\": ").append(fmt(r.p5())).append(",\n");
-            sb.append("        \"50.0\": ").append(fmt(r.median())).append(",\n");
-            sb.append("        \"95.0\": ").append(fmt(r.p95())).append('\n');
-            sb.append("      },\n");
-            sb.append("      \"rawData\": [").append(formatRawData(r.rawData())).append("]\n");
-            sb.append("    }\n");
-            sb.append("  }").append(i < entries.size() - 1 ? ",\n" : "\n");
+        val resultList = new ArrayList<Map<String, Object>>();
+        for (val entry : rawResults.entrySet()) {
+            val r    = BenchmarkResult.fromIterations(entry.getKey(), threads, entry.getValue());
+            val item = new LinkedHashMap<String, Object>();
+            item.put("benchmark", r.method());
+            item.put("mode", "thrpt");
+            item.put("threads", threads);
+            item.put("warmupIterations", cfg.warmupIterations());
+            item.put("warmupTime", cfg.warmupTimeSeconds() + " s");
+            item.put("measurementIterations", cfg.measurementIterations());
+            item.put("measurementTime", cfg.measurementTimeSeconds() + " s");
+
+            val metric = new LinkedHashMap<String, Object>();
+            metric.put("score", r.mean());
+            metric.put("scoreStdDev", r.stddev());
+            metric.put("scoreUnit", "ops/s");
+            metric.put("scorePercentiles", Map.of("5.0", r.p5(), "50.0", r.median(), "95.0", r.p95()));
+            metric.put("rawData", r.rawData());
+            item.put("primaryMetric", metric);
+
+            resultList.add(item);
         }
-        sb.append("]\n");
         try {
-            Files.writeString(outputPath, sb.toString());
+            val mapper = JsonMapper.builder().build();
+            Files.writeString(outputPath, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultList));
         } catch (IOException e) {
             err.println(WARN_JSON_WRITE_FAILED.formatted(e.getMessage()));
         }
-    }
-
-    private static String fmt(double value) {
-        return String.format(Locale.US, "%.6f", value);
-    }
-
-    private static String formatRawData(List<Double> values) {
-        val sb = new StringBuilder("[");
-        for (int i = 0; i < values.size(); i++) {
-            sb.append(fmt(values.get(i)));
-            if (i < values.size() - 1) {
-                sb.append(", ");
-            }
-        }
-        sb.append(']');
-        return sb.toString();
     }
 
 }

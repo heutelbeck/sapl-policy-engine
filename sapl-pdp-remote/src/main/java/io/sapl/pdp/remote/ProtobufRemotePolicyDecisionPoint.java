@@ -41,7 +41,6 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import javax.net.ssl.SSLException;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -73,38 +72,27 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     private static final String ERROR_ENCODE_SUBSCRIPTION                        = "Failed to encode subscription: {}";
     private static final String ERROR_RSOCKET_CONNECTION                         = "RSocket connection error: {}";
 
-    private static final String ERROR_STREAM_RECONNECT = "PDP streaming connection lost, reconnecting (attempt {})";
-
-    static final int RETRY_ESCALATION_THRESHOLD = 5;
-
-    private static final String WARN_INSECURE_SSL       = "!!! ATTENTION: do not use insecure sslContext in production !!!";
-    private static final String WARN_INSECURE_SSL_DELIM = "------------------------------------------------------------------";
-    private static final String WARN_STREAM_RECONNECT   = "PDP streaming connection lost, reconnecting (attempt {})";
+    static final int RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
     private final Mono<RSocket> rSocketMono;
 
-    @Setter
     @Getter
-    private int firstBackoffMillis = 500;
+    private final int firstBackoffMillis;
 
-    @Setter
     @Getter
-    private int maxBackOffMillis = 5000;
+    private final int maxBackOffMillis;
 
-    ProtobufRemotePolicyDecisionPoint(Mono<RSocket> rSocketMono) {
-        this.rSocketMono = rSocketMono.cache();
+    // TODO: .cache() prevents reconnection after connection drop. The retry logic
+    // in decide() retries downstream operations but cannot re-establish the cached
+    // connection. Consider using Mono.defer() with reconnection logic.
+    ProtobufRemotePolicyDecisionPoint(Mono<RSocket> rSocketMono, int firstBackoffMillis, int maxBackOffMillis) {
+        this.rSocketMono        = rSocketMono.cache();
+        this.firstBackoffMillis = firstBackoffMillis;
+        this.maxBackOffMillis   = maxBackOffMillis;
     }
 
     private Retry createRetrySpec() {
-        return Retry.backoff(Long.MAX_VALUE, Duration.ofMillis(firstBackoffMillis))
-                .maxBackoff(Duration.ofMillis(maxBackOffMillis)).doBeforeRetry(signal -> {
-                    val attempt = signal.totalRetries() + 1;
-                    if (attempt >= RETRY_ESCALATION_THRESHOLD) {
-                        log.error(ERROR_STREAM_RECONNECT, attempt);
-                    } else {
-                        log.warn(WARN_STREAM_RECONNECT, attempt);
-                    }
-                });
+        return RemotePdpRetry.createRetrySpec(Long.MAX_VALUE, firstBackoffMillis, maxBackOffMillis);
     }
 
     @Override
@@ -255,9 +243,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
          * @throws SSLException if SSL configuration fails
          */
         public Builder withUnsecureSSL() throws SSLException {
-            log.warn(WARN_INSECURE_SSL_DELIM);
-            log.warn(WARN_INSECURE_SSL);
-            log.warn(WARN_INSECURE_SSL_DELIM);
+            RemotePdpRetry.logInsecureSslWarning();
             val sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
         }
@@ -357,7 +343,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 connector.setupPayload(setupPayload);
             }
             val rSocketMono = connector.connect(TcpClientTransport.create(tcpClient));
-            return new ProtobufRemotePolicyDecisionPoint(rSocketMono);
+            return new ProtobufRemotePolicyDecisionPoint(rSocketMono, 500, 5000);
         }
     }
 }

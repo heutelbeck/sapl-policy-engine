@@ -17,9 +17,11 @@
  */
 package io.sapl.node.cli.benchmark;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
@@ -67,19 +69,8 @@ public record BenchmarkResult(
             val sorted = new ArrayList<>(nanoseconds);
             Collections.sort(sorted);
             val avg = nanoseconds.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-            return new Latency(avg, pctl(sorted, 0.50), pctl(sorted, 0.90), pctl(sorted, 0.99), pctl(sorted, 0.999),
-                    sorted.getFirst(), sorted.getLast());
-        }
-
-        private static double pctl(List<Double> sorted, double p) {
-            if (sorted.size() == 1) {
-                return sorted.getFirst();
-            }
-            val index = p * (sorted.size() - 1);
-            val lower = (int) Math.floor(index);
-            val upper = Math.min(lower + 1, sorted.size() - 1);
-            val frac  = index - lower;
-            return sorted.get(lower) * (1 - frac) + sorted.get(upper) * frac;
+            return new Latency(avg, percentile(sorted, 0.50), percentile(sorted, 0.90), percentile(sorted, 0.99),
+                    percentile(sorted, 0.999), sorted.getFirst(), sorted.getLast());
         }
     }
 
@@ -95,11 +86,23 @@ public record BenchmarkResult(
         val sorted = new ArrayList<>(throughputs);
         Collections.sort(sorted);
         val mean   = throughputs.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-        val stddev = Math.sqrt(throughputs.stream().mapToDouble(d -> (d - mean) * (d - mean)).average().orElse(0.0));
+        val n      = throughputs.size();
+        val stddev = n > 1 ? Math.sqrt(throughputs.stream().mapToDouble(d -> (d - mean) * (d - mean)).sum() / (n - 1))
+                : 0.0;
         val cv     = mean > 0 ? (stddev / mean) * 100.0 : 0.0;
         return new BenchmarkResult(method, threads, mean, percentile(sorted, 0.50), stddev, cv, sorted.getFirst(),
                 sorted.getLast(), percentile(sorted, 0.05), percentile(sorted, 0.95), List.copyOf(throughputs),
                 latency);
+    }
+
+    static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
+        out.println("%-30s %10s %15s %10s".formatted("Benchmark", "Threads", "Throughput", "Error"));
+        out.println("-".repeat(70));
+        for (val r : results) {
+            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s %,10.1f ops/s", r.method(), r.threads(),
+                    r.mean(), r.stddev()));
+        }
+        out.flush();
     }
 
     private static double percentile(List<Double> sorted, double p) {

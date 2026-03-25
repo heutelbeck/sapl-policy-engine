@@ -55,8 +55,15 @@ public record BenchmarkRunConfig(
     private static final List<String> RAW_BENCHMARKS = List.of("decideOnceRaw");
 
     public static BenchmarkRunConfig resolve(BenchmarkOptions opts, @Nullable BenchmarkConfig config) {
-        val ts         = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-        val benchmarks = opts.raw ? RAW_BENCHMARKS : (config != null ? config.benchmarks() : null);
+        val          ts = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        List<String> benchmarks;
+        if (opts.raw) {
+            benchmarks = RAW_BENCHMARKS;
+        } else if (config != null) {
+            benchmarks = config.benchmarks();
+        } else {
+            benchmarks = null;
+        }
         if (config == null) {
             return new BenchmarkRunConfig(opts.warmupIterations, opts.warmupTimeSeconds, opts.measurementIterations,
                     opts.measurementTimeSeconds, List.of(opts.threads), benchmarks, opts.output, ts);
@@ -84,7 +91,7 @@ public record BenchmarkRunConfig(
         return (int) (throughputTotal + latencyTotal) * threads.size();
     }
 
-    private static final List<String> BLOCKING_METHODS = List.of("decideOnceBlocking", "decideStreamFirst");
+    static final List<String> BLOCKING_METHODS = List.of("decideOnceBlocking", "decideStreamFirst");
 
     private static int override(@Nullable Integer configValue, int cliValue, int defaultValue) {
         if (cliValue != defaultValue) {

@@ -27,6 +27,10 @@ spring:
 
 # --- Server ---
 
+# Event loop threads. Default = availableProcessors() (includes HT).
+# For throughput tuning, set to physical core count instead.
+# reactor.netty.ioWorkerCount: 16
+
 server:
   address: 127.0.0.1
   port: 8443

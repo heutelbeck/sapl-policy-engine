@@ -26,6 +26,8 @@ import java.util.concurrent.Callable;
 
 import javax.net.ssl.SSLException;
 
+import org.jspecify.annotations.Nullable;
+
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.node.cli.benchmark.BenchmarkConfig;
 import io.sapl.node.cli.benchmark.BenchmarkContext;
@@ -39,6 +41,7 @@ import io.sapl.node.cli.options.BundleVerificationOptions;
 import io.sapl.node.cli.options.PolicySourceOptions;
 import io.sapl.node.cli.options.RemoteConnectionOptions;
 import io.sapl.node.cli.options.SubscriptionInputOptions;
+import io.sapl.node.cli.support.PdpSetup;
 import io.sapl.node.cli.support.PolicySourceResolver;
 import io.sapl.node.cli.support.SubscriptionResolver;
 import lombok.val;
@@ -112,13 +115,10 @@ import tools.jackson.databind.json.JsonMapper;
 // @formatter:on
 public class BenchmarkCommand implements Callable<Integer> {
 
-    static final String ERROR_OUTPUT_DIR_CREATION      = "Error: Could not create output directory: %s";
-    static final String ERROR_RAW_WITH_RSOCKET         = "Error: --raw is not applicable with --rsocket.";
-    static final String ERROR_RAW_WITHOUT_REMOTE       = "Error: --raw requires --remote.";
-    static final String ERROR_REMOTE_CONNECTION        = "Error: Failed to connect to remote PDP: %s";
-    static final String ERROR_REMOTE_WITH_LOCAL        = "Error: --remote cannot be used with --dir or --bundle.";
-    static final String ERROR_REMOTE_WITH_VERIFICATION = "Error: --remote cannot be used with --public-key or --no-verify.";
-    static final String ERROR_SUBSCRIPTION_MISSING     = "Error: Subscription is required. Use -s/-a/-r or -f.";
+    static final String ERROR_OUTPUT_DIR_CREATION  = "Error: Could not create output directory: %s";
+    static final String ERROR_RAW_WITH_RSOCKET     = "Error: --raw is not applicable with --rsocket.";
+    static final String ERROR_RAW_WITHOUT_REMOTE   = "Error: --raw requires --remote.";
+    static final String ERROR_SUBSCRIPTION_MISSING = "Error: Subscription is required. Use -s/-a/-r or -f.";
 
     @Spec
     CommandSpec spec;
@@ -143,8 +143,9 @@ public class BenchmarkCommand implements Callable<Integer> {
         val err = spec.commandLine().getErr();
         val out = spec.commandLine().getOut();
         try {
-            if (subscriptionInput == null) {
-                err.println(ERROR_SUBSCRIPTION_MISSING);
+            val validationError = validateOptions();
+            if (validationError != null) {
+                err.println(validationError);
                 return 1;
             }
 
@@ -152,17 +153,7 @@ public class BenchmarkCommand implements Callable<Integer> {
             val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
             val subJson      = mapper.writeValueAsString(subscription);
             val remote       = remoteConnection != null && remoteConnection.remote;
-
-            if (benchmarkOptions.raw && !remote) {
-                err.println(ERROR_RAW_WITHOUT_REMOTE);
-                return 1;
-            }
-            if (benchmarkOptions.raw && remoteConnection != null && remoteConnection.rsocket) {
-                err.println(ERROR_RAW_WITH_RSOCKET);
-                return 1;
-            }
-
-            val ctx = remote ? buildRemoteContext(subJson, err) : buildEmbeddedContext(subJson, err);
+            val ctx          = remote ? buildRemoteContext(subJson, err) : buildEmbeddedContext(subJson, err);
 
             if (ctx == null) {
                 return 1;
@@ -192,7 +183,7 @@ public class BenchmarkCommand implements Callable<Integer> {
             err.println(e.getMessage());
             return 1;
         } catch (SSLException e) {
-            err.println(ERROR_REMOTE_CONNECTION.formatted(e.getMessage()));
+            err.println(PdpSetup.ERROR_REMOTE_CONNECTION.formatted(e.getMessage()));
             return 1;
         } catch (IOException e) {
             err.println(ERROR_OUTPUT_DIR_CREATION.formatted(e.getMessage()));
@@ -208,13 +199,27 @@ public class BenchmarkCommand implements Callable<Integer> {
         return BenchmarkContext.embedded(subJson, resolved.path(), resolved.configType().name());
     }
 
+    private @Nullable String validateOptions() {
+        if (subscriptionInput == null) {
+            return ERROR_SUBSCRIPTION_MISSING;
+        }
+        val remote = remoteConnection != null && remoteConnection.remote;
+        if (benchmarkOptions.raw && !remote) {
+            return ERROR_RAW_WITHOUT_REMOTE;
+        }
+        if (benchmarkOptions.raw && remoteConnection != null && remoteConnection.rsocket) {
+            return ERROR_RAW_WITH_RSOCKET;
+        }
+        return null;
+    }
+
     private BenchmarkContext buildRemoteContext(String subJson, PrintWriter err) {
         if (policySource != null) {
-            err.println(ERROR_REMOTE_WITH_LOCAL);
+            err.println(PdpSetup.ERROR_REMOTE_WITH_LOCAL);
             return null;
         }
         if (bundleVerification != null) {
-            err.println(ERROR_REMOTE_WITH_VERIFICATION);
+            err.println(PdpSetup.ERROR_REMOTE_WITH_VERIFICATION);
             return null;
         }
         val basicAuth = remoteConnection.auth != null ? remoteConnection.auth.basicAuth : null;

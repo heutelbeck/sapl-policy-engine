@@ -88,15 +88,10 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     private static final String MULTI_DECIDE     = "/api/pdp/multi-decide";
     private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
 
-    private static final String ERROR_AUTH_FAILED       = "PDP authentication failed (HTTP {}). Check credentials configuration.";
-    private static final String ERROR_HTTP_STATUS       = "PDP returned HTTP {} ({})";
-    private static final String ERROR_STREAM_FAILED     = "PDP streaming communication error: {}";
-    private static final String ERROR_STREAM_RECONNECT  = "PDP streaming connection lost, reconnecting (attempt {})";
-    private static final String WARN_INSECURE_SSL       = "!!! ATTENTION: don't not use insecure sslContext in production !!!";
-    private static final String WARN_INSECURE_SSL_DELIM = "------------------------------------------------------------------";
-    private static final String WARN_STREAM_RECONNECT   = "PDP streaming connection lost, reconnecting (attempt {})";
-
-    static final int RETRY_ESCALATION_THRESHOLD = 5;
+    private static final String ERROR_AUTH_FAILED          = "PDP authentication failed (HTTP {}). Check credentials configuration.";
+    private static final String ERROR_HTTP_STATUS          = "PDP returned HTTP {} ({})";
+    private static final String ERROR_STREAM_FAILED        = "PDP streaming communication error: {}";
+    static final int            RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
     private final WebClient client;
 
@@ -183,15 +178,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     private Retry createRetrySpec() {
-        return Retry.backoff(maxRetries, Duration.ofMillis(firstBackoffMillis))
-                .maxBackoff(Duration.ofMillis(maxBackOffMillis)).doBeforeRetry(signal -> {
-                    val attempt = signal.totalRetries() + 1;
-                    if (attempt >= RETRY_ESCALATION_THRESHOLD) {
-                        log.error(ERROR_STREAM_RECONNECT, attempt);
-                    } else {
-                        log.warn(WARN_STREAM_RECONNECT, attempt);
-                    }
-                });
+        return RemotePdpRetry.createRetrySpec(maxRetries, firstBackoffMillis, maxBackOffMillis);
     }
 
     private void logStreamError(Throwable error) {
@@ -224,9 +211,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
 
         public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
-            log.warn(WARN_INSECURE_SSL_DELIM);
-            log.warn(WARN_INSECURE_SSL);
-            log.warn(WARN_INSECURE_SSL_DELIM);
+            RemotePdpRetry.logInsecureSslWarning();
             val sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
         }

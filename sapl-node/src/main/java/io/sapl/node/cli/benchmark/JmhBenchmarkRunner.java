@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +46,7 @@ public class JmhBenchmarkRunner {
 
     static final String ERROR_BENCHMARK_FAILED = "Error: JMH benchmark failed: %s";
 
-    private static final List<String> BLOCKING_METHODS = List.of("decideOnceBlocking", "decideStreamFirst");
+    private static final List<String> BLOCKING_METHODS = BenchmarkRunConfig.BLOCKING_METHODS;
 
     public static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
             PrintWriter err) {
@@ -80,7 +79,7 @@ public class JmhBenchmarkRunner {
 
     private static Map<String, BenchmarkResult.Latency> runLatencyPass(Class<?> benchmarkClass, BenchmarkRunConfig cfg,
             int threads, BenchmarkContext ctx, PrintWriter err) {
-        val latencyMethods = resolveLatencyMethods(benchmarkClass, cfg);
+        val latencyMethods = resolveLatencyMethods(cfg);
         if (latencyMethods.isEmpty()) {
             return Map.of();
         }
@@ -109,7 +108,7 @@ public class JmhBenchmarkRunner {
         }
     }
 
-    private static List<String> resolveLatencyMethods(Class<?> benchmarkClass, BenchmarkRunConfig cfg) {
+    private static List<String> resolveLatencyMethods(BenchmarkRunConfig cfg) {
         if (cfg.benchmarks() != null && !cfg.benchmarks().isEmpty()) {
             return cfg.benchmarks().stream().filter(BLOCKING_METHODS::contains).toList();
         }
@@ -144,13 +143,7 @@ public class JmhBenchmarkRunner {
 
     private static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
         out.println();
-        out.println("%-30s %10s %15s %10s".formatted("Benchmark", "Threads", "Throughput", "Error"));
-        out.println("-".repeat(70));
-        for (val r : results) {
-            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s %,10.1f ops/s", r.method(), r.threads(),
-                    r.mean(), r.stddev()));
-        }
-        out.flush();
+        BenchmarkResult.printSummary(results, out);
     }
 
 }

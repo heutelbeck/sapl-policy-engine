@@ -22,6 +22,8 @@ import java.util.Map;
 
 import javax.net.ssl.SSLException;
 
+import org.jspecify.annotations.Nullable;
+
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
@@ -134,67 +136,54 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
 
     private static void configureRsocketAuth(ProtobufRemotePolicyDecisionPoint.Builder builder,
             RemoteConnectionOptions.AuthOptions auth) {
-        if (auth != null) {
-            if (auth.basicAuth != null) {
-                val separatorIndex = auth.basicAuth.indexOf(':');
-                if (separatorIndex < 0) {
-                    throw new IllegalArgumentException(ERROR_BASIC_AUTH_FORMAT);
-                }
-                builder.basicAuth(auth.basicAuth.substring(0, separatorIndex),
-                        auth.basicAuth.substring(separatorIndex + 1));
-                return;
-            }
-            if (auth.token != null) {
-                builder.apiKey(auth.token);
-                return;
-            }
-        }
-        val envBasicAuth = System.getenv("SAPL_BASIC_AUTH");
-        if (envBasicAuth != null) {
-            val separatorIndex = envBasicAuth.indexOf(':');
-            if (separatorIndex < 0) {
-                throw new IllegalArgumentException(ERROR_BASIC_AUTH_FORMAT);
-            }
-            builder.basicAuth(envBasicAuth.substring(0, separatorIndex), envBasicAuth.substring(separatorIndex + 1));
-            return;
-        }
-        val envToken = System.getenv("SAPL_BEARER_TOKEN");
-        if (envToken != null) {
-            builder.apiKey(envToken);
+        val resolved = resolveCredentials(auth);
+        if (resolved.basicAuth != null) {
+            val parsed = parseBasicAuth(resolved.basicAuth);
+            builder.basicAuth(parsed[0], parsed[1]);
+        } else if (resolved.token != null) {
+            builder.apiKey(resolved.token);
         }
     }
 
     private static void configureAuth(RemoteHttpPolicyDecisionPointBuilder builder,
             RemoteConnectionOptions.AuthOptions auth) {
+        val resolved = resolveCredentials(auth);
+        if (resolved.basicAuth != null) {
+            val parsed = parseBasicAuth(resolved.basicAuth);
+            builder.basicAuth(parsed[0], parsed[1]);
+        } else if (resolved.token != null) {
+            builder.apiKey(resolved.token);
+        }
+    }
+
+    private record ResolvedCredentials(@Nullable String basicAuth, @Nullable String token) {}
+
+    private static ResolvedCredentials resolveCredentials(RemoteConnectionOptions.AuthOptions auth) {
         if (auth != null) {
             if (auth.basicAuth != null) {
-                applyBasicAuth(builder, auth.basicAuth);
-                return;
+                return new ResolvedCredentials(auth.basicAuth, null);
             }
             if (auth.token != null) {
-                builder.apiKey(auth.token);
-                return;
+                return new ResolvedCredentials(null, auth.token);
             }
         }
         val envBasicAuth = System.getenv("SAPL_BASIC_AUTH");
         if (envBasicAuth != null) {
-            applyBasicAuth(builder, envBasicAuth);
-            return;
+            return new ResolvedCredentials(envBasicAuth, null);
         }
         val envToken = System.getenv("SAPL_BEARER_TOKEN");
         if (envToken != null) {
-            builder.apiKey(envToken);
+            return new ResolvedCredentials(null, envToken);
         }
+        return new ResolvedCredentials(null, null);
     }
 
-    private static void applyBasicAuth(RemoteHttpPolicyDecisionPointBuilder builder, String credentials) {
+    public static String[] parseBasicAuth(String credentials) {
         val separatorIndex = credentials.indexOf(':');
         if (separatorIndex < 0) {
             throw new IllegalArgumentException(ERROR_BASIC_AUTH_FORMAT);
         }
-        val user     = credentials.substring(0, separatorIndex);
-        val password = credentials.substring(separatorIndex + 1);
-        builder.basicAuth(user, password);
+        return new String[] { credentials.substring(0, separatorIndex), credentials.substring(separatorIndex + 1) };
     }
 
     private static String resolveWithEnv(String flagValue, String envVar, String defaultValue) {

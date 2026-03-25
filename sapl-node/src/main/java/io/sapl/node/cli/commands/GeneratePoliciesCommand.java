@@ -25,8 +25,10 @@ import java.util.concurrent.Callable;
 
 import lombok.val;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 /**
  * Generates a standardized benchmark policy corpus for performance testing.
@@ -82,11 +84,16 @@ import picocli.CommandLine.Parameters;
 // @formatter:on
 public class GeneratePoliciesCommand implements Callable<Integer> {
 
+    @Spec
+    CommandSpec spec;
+
     @Parameters(index = "0", description = "Output directory for generated policies")
     Path outputDir;
 
     @Option(names = "--large", description = "Include large scenarios (1000, 5000, 10000 policies)")
     boolean large;
+
+    private static final String PDP_JSON_FILENAME = "pdp.json";
 
     private static final String PDP_JSON = """
             {
@@ -197,22 +204,22 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
                 generateAllMatch(outputDir.resolve("all-match-1000"), 1000);
             }
 
-            System.out.println("Generated benchmark policies in: " + outputDir);
+            spec.commandLine().getOut().println("Generated benchmark policies in: " + outputDir);
             return 0;
         } catch (IOException e) {
-            System.err.println("Error generating policies: " + e.getMessage());
+            spec.commandLine().getErr().println("Error generating policies: " + e.getMessage());
             return 1;
         }
     }
 
     private static void generateEmpty(Path dir) throws IOException {
         Files.createDirectories(dir);
-        Files.writeString(dir.resolve("pdp.json"), PDP_JSON);
+        Files.writeString(dir.resolve(PDP_JSON_FILENAME), PDP_JSON);
     }
 
     private static void generateSimple(Path dir, int count) throws IOException {
         Files.createDirectories(dir);
-        Files.writeString(dir.resolve("pdp.json"), PDP_JSON);
+        Files.writeString(dir.resolve(PDP_JSON_FILENAME), PDP_JSON);
         Files.writeString(dir.resolve("matching.sapl"), MATCHING_SIMPLE);
         for (int i = 2; i <= count; i++) {
             val content = NON_MATCHING_SIMPLE.formatted(i, i, i);
@@ -222,7 +229,7 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
 
     private static void generateComplex(Path dir, int count) throws IOException {
         Files.createDirectories(dir);
-        Files.writeString(dir.resolve("pdp.json"), PDP_JSON);
+        Files.writeString(dir.resolve(PDP_JSON_FILENAME), PDP_JSON);
         Files.writeString(dir.resolve("matching.sapl"), MATCHING_COMPLEX);
         for (int i = 2; i <= count; i++) {
             val content = NON_MATCHING_COMPLEX.formatted(i, i, i, i, i, i, i);
@@ -232,7 +239,7 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
 
     private static void generateAllMatch(Path dir, int count) throws IOException {
         Files.createDirectories(dir);
-        Files.writeString(dir.resolve("pdp.json"), PDP_JSON);
+        Files.writeString(dir.resolve(PDP_JSON_FILENAME), PDP_JSON);
         for (int i = 1; i <= count; i++) {
             val content = ALL_MATCHING_SIMPLE.formatted(i);
             Files.writeString(dir.resolve("match-%04d.sapl".formatted(i)), content);
@@ -266,7 +273,7 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
                 permit
                     { "type" : resource.type, "action": action } in permissions[(subject.role)];
                 """;
-        Files.writeString(dir.resolve("pdp.json"), pdpJson);
+        Files.writeString(dir.resolve(PDP_JSON_FILENAME), pdpJson);
         Files.writeString(dir.resolve("rbac.sapl"), policy);
     }
 
@@ -321,13 +328,13 @@ public class GeneratePoliciesCommand implements Callable<Integer> {
                     { "type" : resource.type, "action": action } in permissions[(subject.role)];
                 """;
 
-        Files.writeString(dir.resolve("pdp.json"), pdpJson);
+        Files.writeString(dir.resolve(PDP_JSON_FILENAME), pdpJson);
         Files.writeString(dir.resolve("rbac.sapl"), policy);
     }
 
     private static void generateAbacEquivalent(Path dir) throws IOException {
         Files.createDirectories(dir);
-        Files.writeString(dir.resolve("pdp.json"), PDP_JSON);
+        Files.writeString(dir.resolve(PDP_JSON_FILENAME), PDP_JSON);
         Files.writeString(dir.resolve("read-access.sapl"), """
                 policy "read access"
                 permit
