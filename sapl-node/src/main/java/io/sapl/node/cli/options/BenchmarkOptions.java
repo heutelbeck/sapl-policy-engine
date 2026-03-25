@@ -45,9 +45,6 @@ public class BenchmarkOptions {
     @Option(names = { "-o", "--output" }, description = "Output directory for benchmark results (JSON, Markdown, CSV)")
     public Path output;
 
-    @Option(names = "--raw", description = "Use raw Netty HTTP client (bypasses WebClient, measures server ceiling)")
-    public boolean raw;
-
     @Option(names = { "-c", "--config" }, description = "JSON configuration file for reproducible benchmark runs")
     public Path configFile;
 

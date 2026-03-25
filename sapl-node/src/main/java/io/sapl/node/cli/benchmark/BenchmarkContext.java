@@ -19,8 +19,6 @@ package io.sapl.node.cli.benchmark;
 
 import java.nio.file.Path;
 
-import org.jspecify.annotations.Nullable;
-
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -28,53 +26,16 @@ import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Serializable context for passing benchmark configuration to JMH via
- * {@code @Param} or directly to the native benchmark runner.
- * <p>
- * For embedded mode, {@code policiesPath} and {@code configType} are set.
- * For remote mode, {@code remoteUrl} is set and policy fields are null.
+ * Serializable context for passing embedded benchmark configuration to JMH
+ * via {@code @Param} or directly to the native benchmark runner.
  *
  * @param subscriptionJson the authorization subscription as a JSON string
- * @param policiesPath absolute path to the policy directory or bundle (null for
- * remote)
- * @param configType DIRECTORY or BUNDLES (null for remote)
- * @param remoteUrl remote PDP URL for HTTP (null for embedded or rsocket)
- * @param basicAuth HTTP Basic credentials as user:password (null if unused)
- * @param token bearer token for API key or JWT (null if unused)
- * @param insecure skip TLS certificate verification
- * @param rsocket true to use RSocket/protobuf transport
- * @param rsocketHost RSocket host (null for embedded or HTTP)
- * @param rsocketPort RSocket port (0 for embedded or HTTP)
+ * @param policiesPath absolute path to the policy directory or bundle
+ * @param configType DIRECTORY or BUNDLES
  */
-public record BenchmarkContext(
-        String subscriptionJson,
-        @Nullable String policiesPath,
-        @Nullable String configType,
-        @Nullable String remoteUrl,
-        @Nullable String basicAuth,
-        @Nullable String token,
-        boolean insecure,
-        boolean rsocket,
-        @Nullable String rsocketHost,
-        int rsocketPort) {
+public record BenchmarkContext(String subscriptionJson, String policiesPath, String configType) {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
-
-    public static BenchmarkContext embedded(String subscriptionJson, String policiesPath, String configType) {
-        return new BenchmarkContext(subscriptionJson, policiesPath, configType, null, null, null, false, false, null,
-                0);
-    }
-
-    public static BenchmarkContext remote(String subscriptionJson, String remoteUrl, @Nullable String basicAuth,
-            @Nullable String token, boolean insecure) {
-        return new BenchmarkContext(subscriptionJson, null, null, remoteUrl, basicAuth, token, insecure, false, null,
-                0);
-    }
-
-    public static BenchmarkContext rsocket(String subscriptionJson, String host, int port, @Nullable String basicAuth,
-            @Nullable String token) {
-        return new BenchmarkContext(subscriptionJson, null, null, null, basicAuth, token, false, true, host, port);
-    }
 
     /**
      * Builds an embedded PDP from the policy source configured in this context.
@@ -92,10 +53,6 @@ public record BenchmarkContext(
         return builder.build();
     }
 
-    public boolean isRemote() {
-        return remoteUrl != null || rsocket;
-    }
-
     public String toJson() {
         return MAPPER.writeValueAsString(this);
     }
@@ -103,5 +60,4 @@ public record BenchmarkContext(
     public static BenchmarkContext fromJson(String json) {
         return MAPPER.readValue(json, BenchmarkContext.class);
     }
-
 }

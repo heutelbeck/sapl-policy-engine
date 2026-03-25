@@ -30,63 +30,28 @@ import lombok.val;
 class BenchmarkContextTests {
 
     @Nested
-    @DisplayName("embedded context round-trip")
-    class EmbeddedRoundTripTests {
+    @DisplayName("JSON round-trip")
+    class RoundTripTests {
 
         @Test
-        @DisplayName("preserves all embedded fields through JSON serialization")
-        void whenEmbeddedRoundTrip_thenAllFieldsPreserved() {
-            val original     = BenchmarkContext.embedded("{\"subject\":\"alice\"}", "/tmp/policies", "DIRECTORY");
+        @DisplayName("preserves all fields through JSON serialization")
+        void whenRoundTrip_thenAllFieldsPreserved() {
+            val original     = new BenchmarkContext("{\"subject\":\"alice\"}", "/tmp/policies", "DIRECTORY");
             val deserialized = BenchmarkContext.fromJson(original.toJson());
             assertThat(deserialized).satisfies(ctx -> {
                 assertThat(ctx.subscriptionJson()).isEqualTo("{\"subject\":\"alice\"}");
                 assertThat(ctx.policiesPath()).isEqualTo("/tmp/policies");
                 assertThat(ctx.configType()).isEqualTo("DIRECTORY");
-                assertThat(ctx.isRemote()).isFalse();
             });
         }
 
         @Test
         @DisplayName("preserves BUNDLES config type")
         void whenBundlesType_thenPreservedInRoundTrip() {
-            val original     = BenchmarkContext.embedded("{}", "/bundles", "BUNDLES");
+            val original     = new BenchmarkContext("{}", "/bundles", "BUNDLES");
             val deserialized = BenchmarkContext.fromJson(original.toJson());
             assertThat(deserialized.configType()).isEqualTo("BUNDLES");
         }
-
-    }
-
-    @Nested
-    @DisplayName("remote context round-trip")
-    class RemoteRoundTripTests {
-
-        @Test
-        @DisplayName("preserves remote URL and auth through JSON serialization")
-        void whenRemoteRoundTrip_thenAllFieldsPreserved() {
-            val original     = BenchmarkContext.remote("{}", "http://localhost:8443", "user:pass", null, true);
-            val deserialized = BenchmarkContext.fromJson(original.toJson());
-            assertThat(deserialized).satisfies(ctx -> {
-                assertThat(ctx.isRemote()).isTrue();
-                assertThat(ctx.remoteUrl()).isEqualTo("http://localhost:8443");
-                assertThat(ctx.basicAuth()).isEqualTo("user:pass");
-                assertThat(ctx.token()).isNull();
-                assertThat(ctx.insecure()).isTrue();
-                assertThat(ctx.policiesPath()).isNull();
-            });
-        }
-
-        @Test
-        @DisplayName("preserves token auth through JSON serialization")
-        void whenTokenAuth_thenPreservedInRoundTrip() {
-            val original     = BenchmarkContext.remote("{}", "https://pdp.example.com", null, "my-token", false);
-            val deserialized = BenchmarkContext.fromJson(original.toJson());
-            assertThat(deserialized).satisfies(ctx -> {
-                assertThat(ctx.token()).isEqualTo("my-token");
-                assertThat(ctx.basicAuth()).isNull();
-                assertThat(ctx.insecure()).isFalse();
-            });
-        }
-
     }
 
     @Nested
@@ -98,7 +63,5 @@ class BenchmarkContextTests {
         void whenMalformedJson_thenThrows() {
             assertThatThrownBy(() -> BenchmarkContext.fromJson("not valid json")).isInstanceOf(RuntimeException.class);
         }
-
     }
-
 }

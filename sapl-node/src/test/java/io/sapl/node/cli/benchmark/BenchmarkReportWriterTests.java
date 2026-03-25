@@ -72,8 +72,10 @@ class BenchmarkReportWriterTests {
         @DisplayName("handles empty iteration list")
         void whenEmpty_thenAllZeros() {
             val result = BenchmarkResult.fromIterations("test", 1, List.of());
-            assertThat(result.mean()).isZero();
-            assertThat(result.rawData()).isEmpty();
+            assertThat(result).satisfies(r -> {
+                assertThat(r.mean()).isZero();
+                assertThat(r.rawData()).isEmpty();
+            });
         }
 
     }
@@ -86,7 +88,7 @@ class BenchmarkReportWriterTests {
         @DisplayName("contains methodology section with policy source")
         void whenEmbedded_thenMethodologyContainsPolicySource() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA));
-            val ctx     = BenchmarkContext.embedded("{}", "/tmp/policies", "DIRECTORY");
+            val ctx     = new BenchmarkContext("{}", "/tmp/policies", "DIRECTORY");
             val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1), null, null, "20260323-120000");
             val md      = BenchmarkReportWriter.buildMarkdown(results, ctx, cfg, "JVM (JMH)");
             assertThat(md).contains("# Benchmark Report").contains("## Methodology").contains("/tmp/policies")
@@ -94,20 +96,10 @@ class BenchmarkReportWriterTests {
         }
 
         @Test
-        @DisplayName("contains methodology section with remote URL")
-        void whenRemote_thenMethodologyContainsUrl() {
-            val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA));
-            val ctx     = BenchmarkContext.remote("{}", "http://localhost:8443", null, null, false);
-            val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1), null, null, "20260323-120000");
-            val md      = BenchmarkReportWriter.buildMarkdown(results, ctx, cfg, "native (AOT)");
-            assertThat(md).contains("remote").contains("http://localhost:8443");
-        }
-
-        @Test
         @DisplayName("contains results table with statistics")
         void whenResults_thenTableContainsAllColumns() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA));
-            val ctx     = BenchmarkContext.embedded("{}", "/tmp", "DIRECTORY");
+            val ctx     = new BenchmarkContext("{}", "/tmp", "DIRECTORY");
             val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1), null, null, "20260323-120000");
             val md      = BenchmarkReportWriter.buildMarkdown(results, ctx, cfg, "JVM (JMH)");
             assertThat(md).contains("## Results").contains("Mean (ops/s)").contains("Median (ops/s)").contains("StdDev")
@@ -118,7 +110,7 @@ class BenchmarkReportWriterTests {
         @DisplayName("contains latency section derived from throughput")
         void whenResults_thenLatencyTablePresent() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA));
-            val ctx     = BenchmarkContext.embedded("{}", "/tmp", "DIRECTORY");
+            val ctx     = new BenchmarkContext("{}", "/tmp", "DIRECTORY");
             val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1), null, null, "20260323-120000");
             val md      = BenchmarkReportWriter.buildMarkdown(results, ctx, cfg, "JVM (JMH)");
             assertThat(md).contains("## Latency").contains("ns/op");
@@ -129,7 +121,7 @@ class BenchmarkReportWriterTests {
         void whenMultipleThreads_thenScalingTablePresent() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, List.of(10000.0)),
                     BenchmarkResult.fromIterations("decideOnceBlocking", 4, List.of(35000.0)));
-            val ctx     = BenchmarkContext.embedded("{}", "/tmp", "DIRECTORY");
+            val ctx     = new BenchmarkContext("{}", "/tmp", "DIRECTORY");
             val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1, 4), null, null, "20260323-120000");
             val md      = BenchmarkReportWriter.buildMarkdown(results, ctx, cfg, "JVM (JMH)");
             assertThat(md).contains("## Scaling Efficiency").contains("Scaling vs 1T").contains("3.5x");
@@ -149,7 +141,7 @@ class BenchmarkReportWriterTests {
             val csv     = BenchmarkReportWriter.buildCsv(results);
             val lines   = csv.split("\n");
             assertThat(lines).hasSize(3);
-            assertThat(lines[0]).contains("method,threads,mean_ops_s,median_ops_s,stddev,cv_pct");
+            assertThat(lines[0]).contains("method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct");
             assertThat(lines[1]).startsWith("decideOnceBlocking,1,");
             assertThat(lines[2]).startsWith("decideOnceReactive,1,");
         }

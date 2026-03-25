@@ -24,10 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import javax.net.ssl.SSLException;
-
-import org.jspecify.annotations.Nullable;
-
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.node.cli.benchmark.BenchmarkConfig;
 import io.sapl.node.cli.benchmark.BenchmarkContext;
@@ -39,9 +35,7 @@ import io.sapl.node.cli.benchmark.NativeBenchmarkRunner;
 import io.sapl.node.cli.options.BenchmarkOptions;
 import io.sapl.node.cli.options.BundleVerificationOptions;
 import io.sapl.node.cli.options.PolicySourceOptions;
-import io.sapl.node.cli.options.RemoteConnectionOptions;
 import io.sapl.node.cli.options.SubscriptionInputOptions;
-import io.sapl.node.cli.support.PdpSetup;
 import io.sapl.node.cli.support.PolicySourceResolver;
 import io.sapl.node.cli.support.SubscriptionResolver;
 import lombok.val;
@@ -53,26 +47,22 @@ import picocli.CommandLine.Spec;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Benchmarks PDP evaluation performance using JMH (JAR mode) or a built-in
- * timing harness (native image mode).
+ * Benchmarks embedded PDP evaluation performance using JMH (JAR mode) or a
+ * built-in timing harness (native image mode). For remote server load
+ * testing, use {@code sapl loadtest} instead.
  */
 // @formatter:off
 @Command(
     name = "benchmark",
     mixinStandardHelpOptions = true,
-    header = "Benchmark PDP evaluation performance.",
+    header = "Benchmark embedded PDP evaluation performance.",
     description = { """
         Measures policy evaluation throughput and per-request latency
-        distribution. Uses JMH when running from a JAR, or a built-in
-        timing harness when running as a native binary.
+        distribution for an embedded PDP. Uses JMH when running from a JAR,
+        or a built-in timing harness when running as a native binary.
 
-        By default, benchmarks the embedded PDP directly. Use --dir to
-        specify a policy directory, or --remote to benchmark against a
-        running PDP server.
-
-        Remote benchmarks include blocking, concurrent (reactive batching
-        via WebClient), and raw (direct Netty, bypasses WebClient) modes.
-        Use --raw to run only the raw mode for server ceiling measurement.
+        Requires a policy directory (--dir) or bundle (--bundle) containing
+        the policies to evaluate.
 
         Latency percentiles (p50, p90, p99, p99.9) are measured per-request
         for blocking methods via a separate JMH SampleTime pass.
@@ -83,6 +73,9 @@ import tools.jackson.databind.json.JsonMapper;
 
         For reproducible runs with multiple thread counts, provide a JSON
         config file with --config.
+
+        For remote server load testing (HTTP or RSocket), use
+        'sapl loadtest' instead.
         """ },
     exitCodeListHeading = "%nExit Codes:%n",
     exitCodeList = {
@@ -100,31 +93,17 @@ import tools.jackson.databind.json.JsonMapper;
           # Multi-threaded benchmark
           sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"' -t 4
 
-          # Benchmark a remote PDP server
-          sapl benchmark --remote --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"doc"'
-
-          # Remote with authentication
-          sapl benchmark --remote --url https://pdp.example.com --token $SAPL_BEARER_TOKEN -s '"alice"' -a '"read"' -r '"doc"'
-
-          # Measure server ceiling with raw Netty client (bypasses WebClient)
-          sapl benchmark --remote --raw --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"doc"' -t 8
-
-        See Also: sapl-check(1), sapl-decide-once(1)
+        See Also: sapl-loadtest(1), sapl-check(1), sapl-decide-once(1)
         """ }
 )
 // @formatter:on
 public class BenchmarkCommand implements Callable<Integer> {
 
     static final String ERROR_OUTPUT_DIR_CREATION  = "Error: Could not create output directory: %s";
-    static final String ERROR_RAW_WITH_RSOCKET     = "Error: --raw is not applicable with --rsocket.";
-    static final String ERROR_RAW_WITHOUT_REMOTE   = "Error: --raw requires --remote.";
     static final String ERROR_SUBSCRIPTION_MISSING = "Error: Subscription is required. Use -s/-a/-r or -f.";
 
     @Spec
     CommandSpec spec;
-
-    @ArgGroup(exclusive = false, heading = "%nRemote Connection:%n")
-    RemoteConnectionOptions remoteConnection;
 
     @ArgGroup(exclusive = true, heading = "%nPolicy Source:%n")
     PolicySourceOptions policySource;
@@ -138,22 +117,25 @@ public class BenchmarkCommand implements Callable<Integer> {
     @Mixin
     public BenchmarkOptions benchmarkOptions;
 
+    /**
+     * Runs the embedded PDP benchmark and writes results.
+     *
+     * @return 0 on success, 1 on error
+     */
     @Override
     public Integer call() {
         val err = spec.commandLine().getErr();
         val out = spec.commandLine().getOut();
         try {
-            val validationError = validateOptions();
-            if (validationError != null) {
-                err.println(validationError);
+            if (subscriptionInput == null) {
+                err.println(ERROR_SUBSCRIPTION_MISSING);
                 return 1;
             }
 
             val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
             val subJson      = mapper.writeValueAsString(subscription);
-            val remote       = remoteConnection != null && remoteConnection.remote;
-            val ctx          = remote ? buildRemoteContext(subJson, err) : buildEmbeddedContext(subJson, err);
+            val ctx          = buildContext(subJson, err);
 
             if (ctx == null) {
                 return 1;
@@ -182,53 +164,18 @@ public class BenchmarkCommand implements Callable<Integer> {
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
             return 1;
-        } catch (SSLException e) {
-            err.println(PdpSetup.ERROR_REMOTE_CONNECTION.formatted(e.getMessage()));
-            return 1;
         } catch (IOException e) {
             err.println(ERROR_OUTPUT_DIR_CREATION.formatted(e.getMessage()));
             return 1;
         }
     }
 
-    private BenchmarkContext buildEmbeddedContext(String subJson, PrintWriter err) {
+    private BenchmarkContext buildContext(String subJson, PrintWriter err) {
         val resolved = PolicySourceResolver.resolve(policySource, bundleVerification, null, err);
         if (resolved == null) {
             return null;
         }
-        return BenchmarkContext.embedded(subJson, resolved.path(), resolved.configType().name());
-    }
-
-    private @Nullable String validateOptions() {
-        if (subscriptionInput == null) {
-            return ERROR_SUBSCRIPTION_MISSING;
-        }
-        val remote = remoteConnection != null && remoteConnection.remote;
-        if (benchmarkOptions.raw && !remote) {
-            return ERROR_RAW_WITHOUT_REMOTE;
-        }
-        if (benchmarkOptions.raw && remoteConnection != null && remoteConnection.rsocket) {
-            return ERROR_RAW_WITH_RSOCKET;
-        }
-        return null;
-    }
-
-    private BenchmarkContext buildRemoteContext(String subJson, PrintWriter err) {
-        if (policySource != null) {
-            err.println(PdpSetup.ERROR_REMOTE_WITH_LOCAL);
-            return null;
-        }
-        if (bundleVerification != null) {
-            err.println(PdpSetup.ERROR_REMOTE_WITH_VERIFICATION);
-            return null;
-        }
-        val basicAuth = remoteConnection.auth != null ? remoteConnection.auth.basicAuth : null;
-        val token     = remoteConnection.auth != null ? remoteConnection.auth.token : null;
-        if (remoteConnection.rsocket) {
-            return BenchmarkContext.rsocket(subJson, remoteConnection.rsocketHost, remoteConnection.rsocketPort,
-                    basicAuth, token);
-        }
-        return BenchmarkContext.remote(subJson, remoteConnection.url, basicAuth, token, remoteConnection.insecure);
+        return new BenchmarkContext(subJson, resolved.path(), resolved.configType().name());
     }
 
     private List<BenchmarkResult> runAllBenchmarks(BenchmarkContext ctx, BenchmarkRunConfig runCfg, PrintWriter out,
@@ -254,5 +201,4 @@ public class BenchmarkCommand implements Callable<Integer> {
             return false;
         }
     }
-
 }

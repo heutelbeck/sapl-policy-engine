@@ -51,7 +51,7 @@ public class JmhBenchmarkRunner {
     public static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
             PrintWriter err) {
         try {
-            val benchmarkClass = ctx.isRemote() ? RemoteBenchmark.class : EmbeddedBenchmark.class;
+            val benchmarkClass = EmbeddedBenchmark.class;
             val includePattern = buildIncludePattern(benchmarkClass, cfg);
             val builder        = new OptionsBuilder().include(includePattern).forks(0)
                     .warmupIterations(cfg.warmupIterations()).warmupTime(TimeValue.seconds(cfg.warmupTimeSeconds()))
@@ -61,7 +61,7 @@ public class JmhBenchmarkRunner {
                     .shouldDoGC(true).syncIterations(true);
 
             if (cfg.output() != null) {
-                val mode       = ctx.isRemote() ? "remote" : "embedded";
+                val mode       = "embedded";
                 val resultPath = cfg.output().resolve(cfg.outputFileName(mode, "all", threads)).toString();
                 builder.resultFormat(ResultFormatType.JSON).result(resultPath);
             }

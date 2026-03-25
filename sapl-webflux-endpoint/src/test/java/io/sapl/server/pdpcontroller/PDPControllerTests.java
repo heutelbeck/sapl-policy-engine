@@ -35,6 +35,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -73,8 +74,7 @@ class PDPControllerTests {
 
     @Test
     void decideOnceValidBody() {
-        when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class))).thenReturn(Flux
-                .just(AuthorizationDecision.DENY, AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
+        when(pdp.decideOnce(any(AuthorizationSubscription.class))).thenReturn(Mono.just(AuthorizationDecision.DENY));
 
         final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
@@ -85,7 +85,7 @@ class PDPControllerTests {
 
         StepVerifier.create(result.getResponseBody()).expectNext(AuthorizationDecision.DENY).verifyComplete();
 
-        verify(pdp, times(1)).decide(subscription);
+        verify(pdp, times(1)).decideOnce(subscription);
     }
 
     @Test
@@ -107,8 +107,7 @@ class PDPControllerTests {
 
     @Test
     void decideOnceWithValidProcessingError() {
-        when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.error(new RuntimeException()));
+        when(pdp.decideOnce(any(AuthorizationSubscription.class))).thenReturn(Mono.error(new RuntimeException()));
 
         final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
@@ -119,7 +118,7 @@ class PDPControllerTests {
 
         StepVerifier.create(result.getResponseBody()).expectNext(AuthorizationDecision.INDETERMINATE).verifyComplete();
 
-        verify(pdp, times(1)).decide(subscription);
+        verify(pdp, times(1)).decideOnce(subscription);
     }
 
     @Test

@@ -20,6 +20,7 @@ package io.sapl.pdp.remote;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -70,11 +71,12 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     private static final String ERROR_DECODE_MULTI_AUTHORIZATION_DECISION        = "Failed to decode multi authorization decision: {}";
     private static final String ERROR_ENCODE_MULTI_SUBSCRIPTION                  = "Failed to encode multi-subscription: {}";
     private static final String ERROR_ENCODE_SUBSCRIPTION                        = "Failed to encode subscription: {}";
-    private static final String ERROR_RSOCKET_CONNECTION                         = "RSocket connection error: {}";
+    private static final String ERROR_RSOCKET_CONNECTION                         = "RSocket connection error: {} ({})";
 
     static final int RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
-    private final Mono<RSocket> rSocketMono;
+    private final Mono<RSocket>            rSocketMono;
+    private final AtomicReference<RSocket> cachedSocket = new AtomicReference<>();
 
     @Getter
     private final int firstBackoffMillis;
@@ -82,11 +84,19 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     @Getter
     private final int maxBackOffMillis;
 
-    // TODO: .cache() prevents reconnection after connection drop. The retry logic
-    // in decide() retries downstream operations but cannot re-establish the cached
-    // connection. Consider using Mono.defer() with reconnection logic.
+    // Reconnecting cache: reuses the RSocket while alive, reconnects after
+    // connection drop. Mono.defer() re-evaluates on each subscription, so
+    // retryWhen in decide() naturally triggers reconnection when the cached
+    // socket is disposed.
     ProtobufRemotePolicyDecisionPoint(Mono<RSocket> rSocketMono, int firstBackoffMillis, int maxBackOffMillis) {
-        this.rSocketMono        = rSocketMono.cache();
+        val connectMono = rSocketMono;
+        this.rSocketMono        = Mono.defer(() -> {
+                                    val existing = cachedSocket.get();
+                                    if (existing != null && !existing.isDisposed()) {
+                                        return Mono.just(existing);
+                                    }
+                                    return connectMono.doOnNext(cachedSocket::set);
+                                });
         this.firstBackoffMillis = firstBackoffMillis;
         this.maxBackOffMillis   = maxBackOffMillis;
     }
@@ -107,7 +117,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 return Flux.just(AuthorizationDecision.INDETERMINATE);
             }
         }).onErrorResume(error -> {
-            log.error(ERROR_RSOCKET_CONNECTION, error.getMessage());
+            log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
             return Flux.just(AuthorizationDecision.INDETERMINATE);
         }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
@@ -123,7 +133,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Mono.just(AuthorizationDecision.INDETERMINATE);
             }
-        }).doOnError(error -> log.error(ERROR_RSOCKET_CONNECTION, error.getMessage()))
+        }).doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage()))
                 .onErrorReturn(AuthorizationDecision.INDETERMINATE);
     }
 
@@ -139,7 +149,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
             }
         }).onErrorResume(error -> {
-            log.error(ERROR_RSOCKET_CONNECTION, error.getMessage());
+            log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
             return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
         }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
@@ -156,7 +166,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 return Flux.just(MultiAuthorizationDecision.indeterminate());
             }
         }).onErrorResume(error -> {
-            log.error(ERROR_RSOCKET_CONNECTION, error.getMessage());
+            log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
             return Flux.just(MultiAuthorizationDecision.indeterminate());
         }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
@@ -212,7 +222,10 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
      * Dispose the RSocket connection.
      */
     public void dispose() {
-        rSocketMono.subscribe(RSocket::dispose);
+        val socket = cachedSocket.getAndSet(null);
+        if (socket != null) {
+            socket.dispose();
+        }
     }
 
     /**

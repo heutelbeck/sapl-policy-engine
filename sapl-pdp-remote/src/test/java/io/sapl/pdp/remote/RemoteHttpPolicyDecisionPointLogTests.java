@@ -53,6 +53,7 @@ class RemoteHttpPolicyDecisionPointLogTests {
     private MockWebServer               server;
     private ListAppender<ILoggingEvent> logAppender;
     private Logger                      pdpLogger;
+    private Logger                      retryLogger;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -63,11 +64,14 @@ class RemoteHttpPolicyDecisionPointLogTests {
         logAppender.start();
         pdpLogger = (Logger) LoggerFactory.getLogger(RemoteHttpPolicyDecisionPoint.class);
         pdpLogger.addAppender(logAppender);
+        retryLogger = (Logger) LoggerFactory.getLogger(RemotePdpRetry.class);
+        retryLogger.addAppender(logAppender);
     }
 
     @AfterEach
     void tearDown() throws IOException {
         pdpLogger.detachAppender(logAppender);
+        retryLogger.detachAppender(logAppender);
         logAppender.stop();
         server.shutdown();
     }

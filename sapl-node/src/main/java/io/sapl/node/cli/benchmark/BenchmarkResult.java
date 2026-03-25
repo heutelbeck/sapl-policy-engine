@@ -37,6 +37,7 @@ import lombok.val;
  * @param mean mean throughput in ops/s
  * @param median median (p50) throughput in ops/s
  * @param stddev standard deviation of throughput
+ * @param ci95 95% confidence interval half-width (t-distribution)
  * @param cv coefficient of variation (stddev/mean) as percentage
  * @param min minimum iteration throughput
  * @param max maximum iteration throughput
@@ -52,6 +53,7 @@ public record BenchmarkResult(
         double mean,
         double median,
         double stddev,
+        double ci95,
         double cv,
         double min,
         double max,
@@ -62,6 +64,12 @@ public record BenchmarkResult(
 
     public record Latency(double mean, double p50, double p90, double p99, double p999, double min, double max) {
 
+        /**
+         * Computes latency percentiles from raw nanosecond samples.
+         *
+         * @param nanoseconds per-request latency samples in nanoseconds
+         * @return latency statistics with percentiles
+         */
         public static Latency fromSamples(List<Double> nanoseconds) {
             if (nanoseconds.isEmpty()) {
                 return new Latency(0, 0, 0, 0, 0, 0, 0);
@@ -74,14 +82,32 @@ public record BenchmarkResult(
         }
     }
 
+    /**
+     * Creates a result from per-iteration throughput values without latency data.
+     *
+     * @param method the benchmark method name
+     * @param threads the thread count
+     * @param throughputs per-iteration throughput values in ops/s
+     * @return the computed result with statistics and 95% CI
+     */
     public static BenchmarkResult fromIterations(String method, int threads, List<Double> throughputs) {
         return fromIterations(method, threads, throughputs, null);
     }
 
+    /**
+     * Creates a result from per-iteration throughput values with optional
+     * measured latency data.
+     *
+     * @param method the benchmark method name
+     * @param threads the thread count
+     * @param throughputs per-iteration throughput values in ops/s
+     * @param latency measured per-request latency (null if not measured)
+     * @return the computed result with statistics, 95% CI, and latency
+     */
     public static BenchmarkResult fromIterations(String method, int threads, List<Double> throughputs,
             @Nullable Latency latency) {
         if (throughputs.isEmpty()) {
-            return new BenchmarkResult(method, threads, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), null);
+            return new BenchmarkResult(method, threads, 0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), null);
         }
         val sorted = new ArrayList<>(throughputs);
         Collections.sort(sorted);
@@ -89,18 +115,41 @@ public record BenchmarkResult(
         val n      = throughputs.size();
         val stddev = n > 1 ? Math.sqrt(throughputs.stream().mapToDouble(d -> (d - mean) * (d - mean)).sum() / (n - 1))
                 : 0.0;
+        val ci95   = n > 1 ? tCritical95(n - 1) * stddev / Math.sqrt(n) : 0.0;
         val cv     = mean > 0 ? (stddev / mean) * 100.0 : 0.0;
-        return new BenchmarkResult(method, threads, mean, percentile(sorted, 0.50), stddev, cv, sorted.getFirst(),
+        return new BenchmarkResult(method, threads, mean, percentile(sorted, 0.50), stddev, ci95, cv, sorted.getFirst(),
                 sorted.getLast(), percentile(sorted, 0.05), percentile(sorted, 0.95), List.copyOf(throughputs),
                 latency);
     }
 
+    // t-distribution critical values for 95% CI (two-tailed, alpha=0.05).
+    // Index 0 = df=1, index 1 = df=2, etc. For df>30, use z=1.96.
+    private static final double[] T_CRITICAL_95 = { 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262,
+            2.228, 2.201, 2.179, 2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069, 2.064,
+            2.060, 2.056, 2.052, 2.048, 2.045, 2.042 };
+
+    private static double tCritical95(int degreesOfFreedom) {
+        if (degreesOfFreedom <= 0) {
+            return 0.0;
+        }
+        if (degreesOfFreedom <= T_CRITICAL_95.length) {
+            return T_CRITICAL_95[degreesOfFreedom - 1];
+        }
+        return 1.96;
+    }
+
+    /**
+     * Prints a formatted summary table of benchmark results.
+     *
+     * @param results the benchmark results
+     * @param out the writer for output
+     */
     static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
-        out.println("%-30s %10s %15s %10s".formatted("Benchmark", "Threads", "Throughput", "Error"));
-        out.println("-".repeat(70));
+        out.println("%-30s %10s %15s %15s".formatted("Benchmark", "Threads", "Throughput", "95% CI"));
+        out.println("-".repeat(75));
         for (val r : results) {
-            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s %,10.1f ops/s", r.method(), r.threads(),
-                    r.mean(), r.stddev()));
+            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s +/- %,10.1f ops/s", r.method(), r.threads(),
+                    r.mean(), r.ci95()));
         }
         out.flush();
     }

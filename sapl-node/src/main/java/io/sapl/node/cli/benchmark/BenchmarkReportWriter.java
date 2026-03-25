@@ -41,9 +41,19 @@ public class BenchmarkReportWriter {
 
     static final String WARN_REPORT_WRITE_FAILED = "Warning: Failed to write report: %s";
 
+    /**
+     * Writes benchmark results to Markdown and CSV files in the given directory.
+     *
+     * @param results the benchmark results to write
+     * @param ctx the benchmark context (policy source info)
+     * @param cfg the run configuration (warmup, measurement params)
+     * @param runner the runner identifier (e.g., "JVM (JMH)" or "native (AOT)")
+     * @param outputDir the output directory
+     * @param err writer for error messages
+     */
     public static void writeReports(List<BenchmarkResult> results, BenchmarkContext ctx, BenchmarkRunConfig cfg,
             String runner, Path outputDir, PrintWriter err) {
-        val mode     = ctx.isRemote() ? "remote" : "embedded";
+        val mode     = "embedded";
         val baseName = cfg.timestamp() + "_" + mode + "_report";
         try {
             Files.writeString(outputDir.resolve(baseName + ".md"), buildMarkdown(results, ctx, cfg, runner));
@@ -53,6 +63,16 @@ public class BenchmarkReportWriter {
         }
     }
 
+    /**
+     * Builds a Markdown report with methodology, results, latency, and scaling
+     * tables.
+     *
+     * @param results the benchmark results
+     * @param ctx the benchmark context
+     * @param cfg the run configuration
+     * @param runner the runner identifier
+     * @return the Markdown report as a string
+     */
     static String buildMarkdown(List<BenchmarkResult> results, BenchmarkContext ctx, BenchmarkRunConfig cfg,
             String runner) {
         val sb = new StringBuilder();
@@ -66,15 +86,21 @@ public class BenchmarkReportWriter {
         return sb.toString();
     }
 
+    /**
+     * Builds a CSV export with one row per benchmark result.
+     *
+     * @param results the benchmark results
+     * @return the CSV content as a string
+     */
     static String buildCsv(List<BenchmarkResult> results) {
         val sb = new StringBuilder();
         sb.append(
-                "method,threads,mean_ops_s,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,mean_ns_op\n");
+                "method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,mean_ns_op\n");
         for (val r : results) {
             val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
-            sb.append(String.format(Locale.US, "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f", r.method(),
-                    r.threads(), r.mean(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(), r.p95(), meanNs))
-                    .append('\n');
+            sb.append(String.format(Locale.US, "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f", r.method(),
+                    r.threads(), r.mean(), r.ci95(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(), r.p95(),
+                    meanNs)).append('\n');
         }
         return sb.toString();
     }
@@ -85,38 +111,49 @@ public class BenchmarkReportWriter {
         sb.append("| Parameter   | Value                  |\n");
         sb.append("|-------------|------------------------|\n");
         sb.append("| Runner      | %-22s |".formatted(runner)).append('\n');
-        sb.append("| Mode        | %-22s |".formatted(ctx.isRemote() ? "remote" : "embedded")).append('\n');
-        if (ctx.rsocket()) {
-            sb.append("| Transport   | %-22s |".formatted("RSocket/protobuf")).append('\n');
-            sb.append("| Host:Port   | %-22s |".formatted(ctx.rsocketHost() + ":" + ctx.rsocketPort())).append('\n');
-        } else if (ctx.isRemote()) {
-            sb.append("| Remote URL  | %-22s |".formatted(ctx.remoteUrl())).append('\n');
-        } else {
-            sb.append("| Policies    | %-22s |".formatted(ctx.policiesPath())).append('\n');
-            sb.append("| Config type | %-22s |".formatted(ctx.configType())).append('\n');
-        }
+        sb.append("| Mode        | %-22s |".formatted("embedded")).append('\n');
+        sb.append("| Policies    | %-22s |".formatted(ctx.policiesPath())).append('\n');
+        sb.append("| Config type | %-22s |".formatted(ctx.configType())).append('\n');
         sb.append("| Warmup      | %-22s |"
                 .formatted("%d iter x %d s".formatted(cfg.warmupIterations(), cfg.warmupTimeSeconds()))).append('\n');
         sb.append("| Measurement | %-22s |"
                 .formatted("%d iter x %d s".formatted(cfg.measurementIterations(), cfg.measurementTimeSeconds())))
                 .append('\n');
+        if ("JMH".equals(runner)) {
+            sb.append("| Forks       | %-22s |".formatted("0 (fat JAR limitation)")).append('\n');
+            sb.append("| GC between  | %-22s |".formatted("yes (shouldDoGC=true)")).append('\n');
+        } else {
+            sb.append("| GC between  | %-22s |".formatted("yes (System.gc())")).append('\n');
+        }
         sb.append("| Timestamp   | %-22s |".formatted(cfg.timestamp())).append('\n');
         sb.append('\n');
+        if ("JMH".equals(runner)) {
+            sb.append("**Caveats:** forks(0) means benchmarks run in the same JVM without process isolation. ");
+            sb.append(
+                    "Results may be affected by prior benchmark state (class loading, JIT compilation, heap pressure). ");
+            sb.append("GC is triggered between iterations, reducing GC noise but making results more optimistic ");
+            sb.append("than production where GC runs during request processing.\n\n");
+        } else {
+            sb.append("**Caveats:** Native image benchmarks have no JIT warmup. GC is triggered between iterations. ");
+            sb.append("Latency measurements use closed-loop timing (service time, not response time under load) ");
+            sb.append("and are subject to coordinated omission.\n\n");
+        }
     }
 
     private static void appendResultsTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {
         sb.append("## Results\n\n");
-        val fmt = "| %-" + mw + "s | %7s | %14s | %14s | %10s | %5s | %14s | %14s | %14s | %14s |";
-        val sep = "| " + "-".repeat(mw) + " | ------: | -------------: | -------------: | ---------: | ----: "
+        val fmt = "| %-" + mw + "s | %7s | %14s | %14s | %14s | %10s | %5s | %14s | %14s | %14s | %14s |";
+        val sep = "| " + "-".repeat(mw)
+                + " | ------: | -------------: | -------------: | -------------: | ---------: | ----: "
                 + "| -------------: | -------------: | -------------: | -------------: |\n";
-        sb.append(String.format(fmt, HEADER_METHOD, HEADER_THREADS, "Mean (ops/s)", "Median (ops/s)", "StdDev", "CV%",
-                "Min", "Max", "p5", "p95")).append('\n');
+        sb.append(String.format(fmt, HEADER_METHOD, HEADER_THREADS, "Mean (ops/s)", "95% CI", "Median (ops/s)",
+                "StdDev", "CV%", "Min", "Max", "p5", "p95")).append('\n');
         sb.append(sep);
         for (val r : results) {
             sb.append(String.format(Locale.US, "| %-" + mw
-                    + "s | %7d | %,14.0f | %,14.0f | %,10.0f | %4.1f%% | %,14.0f | %,14.0f | %,14.0f | %,14.0f |",
-                    r.method(), r.threads(), r.mean(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(),
-                    r.p95())).append('\n');
+                    + "s | %7d | %,14.0f | %,14.0f | %,14.0f | %,10.0f | %4.1f%% | %,14.0f | %,14.0f | %,14.0f | %,14.0f |",
+                    r.method(), r.threads(), r.mean(), r.ci95(), r.median(), r.stddev(), r.cv(), r.min(), r.max(),
+                    r.p5(), r.p95())).append('\n');
         }
         sb.append('\n');
     }

@@ -19,53 +19,35 @@ package io.sapl.node.cli.benchmark;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import javax.net.ssl.SSLException;
-
 import org.jspecify.annotations.Nullable;
 
-import io.netty.buffer.Unpooled;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Benchmark runner for GraalVM native images. Uses simple timing loops instead
- * of JMH, which is valid for AOT-compiled code because there is no JIT
- * warmup, dead code elimination, or constant folding at runtime.
+ * Embedded benchmark runner for GraalVM native images. Uses simple timing
+ * loops instead of JMH, which is valid for AOT-compiled code because there
+ * is no JIT warmup, dead code elimination, or constant folding at runtime.
  */
 @Slf4j
 @UtilityClass
 public class NativeBenchmarkRunner {
-
-    // Derived from Little's Law: L = cores x (1 + W_io / W_cpu).
-    // For fast policy evaluation behind RSocket/HTTP, W_cpu is small relative
-    // to W_io (network round-trip), giving a high IO/CPU ratio. Using a
-    // multiplier of 10 is conservative for localhost benchmarks (ratio ~5-6)
-    // and reasonable for remote benchmarks (ratio ~20+). Clamped to [32, 512]
-    // to avoid under-saturation on small machines or memory pressure on large ones.
-    static final int CONCURRENT_BATCH = Math.clamp(Runtime.getRuntime().availableProcessors() * 10, 32, 512);
 
     static final String ERROR_BENCHMARK_FAILED = "Error: Benchmark failed: %s";
     static final String WARN_BENCHMARK_THREADS = "Benchmark threads did not complete within timeout";
@@ -75,23 +57,15 @@ public class NativeBenchmarkRunner {
 
     public static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
             PrintWriter err) {
-        PDPComponents components = null;
+        var components = (io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents) null;
         try {
+            components = ctx.buildEmbeddedPdp();
             val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscription = mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class);
-            val mode         = ctx.isRemote() ? "remote" : "embedded";
+            val pdp          = components.pdp();
+            val methods      = resolveMethods(pdp, subscription, cfg.benchmarks());
 
-            PolicyDecisionPoint pdp;
-            if (ctx.isRemote()) {
-                pdp = RemotePdpFactory.create(ctx);
-            } else {
-                components = ctx.buildEmbeddedPdp();
-                pdp        = components.pdp();
-            }
-
-            val methods = resolveMethods(pdp, subscription, ctx, cfg.benchmarks());
-
-            out.println("# Native benchmark (%s): %d method(s), %d thread(s)".formatted(mode, methods.size(), threads));
+            out.println("# Native benchmark (embedded): %d method(s), %d thread(s)".formatted(methods.size(), threads));
             out.println("# Warmup: %d x %d s, Measurement: %d x %d s".formatted(cfg.warmupIterations(),
                     cfg.warmupTimeSeconds(), cfg.measurementIterations(), cfg.measurementTimeSeconds()));
             out.println();
@@ -102,8 +76,9 @@ public class NativeBenchmarkRunner {
                 val bm           = entry.getValue();
                 val collectNanos = bm.opsPerInvocation() == 1;
                 out.println("--- %s ---".formatted(entry.getKey()));
-                runPhase("Warmup", cfg.warmupIterations(), cfg.warmupTimeSeconds(), threads, bm.method(), out, false,
-                        bm.opsPerInvocation());
+                val warmupData = runPhase("Warmup", cfg.warmupIterations(), cfg.warmupTimeSeconds(), threads,
+                        bm.method(), out, true, bm.opsPerInvocation());
+                checkWarmupConvergence(warmupData, out);
                 val latencySamples = collectNanos ? new ArrayList<Double>() : null;
                 val iterationData  = runPhase("Iteration", cfg.measurementIterations(), cfg.measurementTimeSeconds(),
                         threads, bm.method(), out, true, bm.opsPerInvocation(), latencySamples);
@@ -116,12 +91,12 @@ public class NativeBenchmarkRunner {
             printSummary(benchmarkResults, out);
 
             if (cfg.output() != null) {
-                val fileName = cfg.outputFileName(mode, "all", threads);
+                val fileName = cfg.outputFileName("embedded", "all", threads);
                 writeJsonResults(rawResults, cfg, threads, cfg.output().resolve(fileName), err);
             }
 
             return benchmarkResults;
-        } catch (RuntimeException | SSLException e) {
+        } catch (Exception e) {
             err.println(ERROR_BENCHMARK_FAILED.formatted(e.getMessage()));
             return List.of();
         } finally {
@@ -132,30 +107,10 @@ public class NativeBenchmarkRunner {
     }
 
     private static Map<String, BenchmarkMethod> resolveMethods(PolicyDecisionPoint pdp,
-            AuthorizationSubscription subscription, BenchmarkContext ctx, List<String> filter) {
+            AuthorizationSubscription subscription, List<String> filter) {
         val all = new LinkedHashMap<String, BenchmarkMethod>();
         all.put("decideOnceBlocking", new BenchmarkMethod(() -> pdp.decideOnceBlocking(subscription), 1));
         all.put("decideStreamFirst", new BenchmarkMethod(() -> pdp.decide(subscription).blockFirst(), 1));
-
-        if (ctx.isRemote()) {
-            all.put("decideOnceConcurrent",
-                    new BenchmarkMethod(
-                            () -> Flux.range(0, CONCURRENT_BATCH)
-                                    .flatMap(i -> pdp.decideOnce(subscription), CONCURRENT_BATCH).collectList().block(),
-                            CONCURRENT_BATCH));
-
-            if (ctx.remoteUrl() != null) {
-                val body = ctx.subscriptionJson().getBytes(StandardCharsets.UTF_8);
-                val raw  = HttpClient.create().baseUrl(ctx.remoteUrl())
-                        .headers(h -> h.add("Content-Type", "application/json"));
-                all.put("decideOnceRaw",
-                        new BenchmarkMethod(() -> Flux.range(0, CONCURRENT_BATCH)
-                                .flatMap(i -> raw.post().uri("/api/pdp/decide-once")
-                                        .send(Mono.fromSupplier(() -> Unpooled.wrappedBuffer(body)))
-                                        .responseSingle((resp, buf) -> buf.asByteArray()), CONCURRENT_BATCH)
-                                .collectList().block(), CONCURRENT_BATCH));
-            }
-        }
 
         if (filter == null || filter.isEmpty()) {
             return all;
@@ -204,31 +159,47 @@ public class NativeBenchmarkRunner {
 
     private static long runTimedIteration(int seconds, int threadCount, Supplier<Object> method,
             @Nullable List<Double> latencySamples) {
-        val totalOps     = new AtomicLong(0);
-        val deadline     = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds);
-        val latch        = new CountDownLatch(threadCount);
-        val threads      = new Thread[threadCount];
-        val collectNanos = latencySamples != null;
+        val totalOps      = new AtomicLong(0);
+        val startBarrier  = new CountDownLatch(threadCount);
+        val completeLatch = new CountDownLatch(threadCount);
+        val threads       = new Thread[threadCount];
+        val collectNanos  = latencySamples != null;
+        val durationNanos = TimeUnit.SECONDS.toNanos(seconds);
         @SuppressWarnings("unchecked")
-        val perThread    = collectNanos ? new List[threadCount] : null;
+        val perThread     = collectNanos ? new List[threadCount] : null;
         for (int t = 0; t < threadCount; t++) {
             val threadIndex = t;
-            threads[t] = createBenchmarkThread(method, deadline, collectNanos, totalOps, perThread, threadIndex, latch);
+            threads[t] = createBenchmarkThread(method, durationNanos, collectNanos, totalOps, perThread, threadIndex,
+                    startBarrier, completeLatch);
             threads[t].start();
         }
-        awaitCompletion(latch, seconds);
+        awaitCompletion(completeLatch, seconds);
         if (collectNanos) {
             mergeLatencySamples(perThread, latencySamples);
         }
         return totalOps.get();
     }
 
-    private static Thread createBenchmarkThread(Supplier<Object> method, long deadline, boolean collectNanos,
-            AtomicLong totalOps, @Nullable List<Double>[] perThread, int threadIndex, CountDownLatch latch) {
+    private static Thread createBenchmarkThread(Supplier<Object> method, long durationNanos, boolean collectNanos,
+            AtomicLong totalOps, @Nullable List<Double>[] perThread, int threadIndex, CountDownLatch startBarrier,
+            CountDownLatch completeLatch) {
         val thread = new Thread(() -> {
+            // Signal ready, then wait for all threads before starting measurement
+            startBarrier.countDown();
+            try {
+                startBarrier.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            // Deadline set per-thread after barrier, so all threads measure the same
+            // duration
+            val    deadline   = System.nanoTime() + durationNanos;
             long   localOps   = 0;
             Object lastResult = null;
-            val    localNanos = collectNanos ? new ArrayList<Double>(10_000) : null;
+            // Pre-allocate for ~100K ops/s to minimize resizing during measurement
+            val estimatedOps = (int) (durationNanos / 1_000_000_000L * 100_000L);
+            val localNanos   = collectNanos ? new ArrayList<Double>(Math.max(estimatedOps, 1_000)) : null;
             while (System.nanoTime() < deadline) {
                 val start = collectNanos ? System.nanoTime() : 0;
                 lastResult = method.get();
@@ -242,7 +213,7 @@ public class NativeBenchmarkRunner {
             if (collectNanos) {
                 perThread[threadIndex] = localNanos;
             }
-            latch.countDown();
+            completeLatch.countDown();
         });
         thread.setDaemon(true);
         return thread;
@@ -266,6 +237,26 @@ public class NativeBenchmarkRunner {
         }
     }
 
+    static final double WARMUP_CV_THRESHOLD = 10.0;
+
+    private static void checkWarmupConvergence(List<Double> warmupData, PrintWriter out) {
+        if (warmupData.size() < 2) {
+            return;
+        }
+        val last     = warmupData.getLast();
+        val previous = warmupData.get(warmupData.size() - 2);
+        val mean     = (last + previous) / 2.0;
+        if (mean <= 0) {
+            return;
+        }
+        val diff = Math.abs(last - previous);
+        val cv   = (diff / mean) * 100.0;
+        if (cv > WARMUP_CV_THRESHOLD) {
+            out.println("WARNING: Warmup may not have converged (last two iterations differ by %.1f%%). ".formatted(cv)
+                    + "Consider increasing warmup iterations.");
+        }
+    }
+
     private static void printSummary(List<BenchmarkResult> results, PrintWriter out) {
         BenchmarkResult.printSummary(results, out);
     }
@@ -286,6 +277,7 @@ public class NativeBenchmarkRunner {
 
             val metric = new LinkedHashMap<String, Object>();
             metric.put("score", r.mean());
+            metric.put("scoreCi95", r.ci95());
             metric.put("scoreStdDev", r.stddev());
             metric.put("scoreUnit", "ops/s");
             metric.put("scorePercentiles", Map.of("5.0", r.p5(), "50.0", r.median(), "95.0", r.p95()));
@@ -301,5 +293,4 @@ public class NativeBenchmarkRunner {
             err.println(WARN_JSON_WRITE_FAILED.formatted(e.getMessage()));
         }
     }
-
 }

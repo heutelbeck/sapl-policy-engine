@@ -48,7 +48,7 @@ class NativeBenchmarkRunnerTests {
         val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         val subscription = AuthorizationSubscription.of("alice", "eat", "apple");
         val subJson      = mapper.writeValueAsString(subscription);
-        return BenchmarkContext.embedded(subJson, TEST_POLICIES_DIR, "DIRECTORY");
+        return new BenchmarkContext(subJson, TEST_POLICIES_DIR, "DIRECTORY");
     }
 
     @Nested
@@ -128,7 +128,7 @@ class NativeBenchmarkRunnerTests {
         @Test
         @DisplayName("non-existent policy directory returns empty results")
         void whenInvalidPolicyDir_thenEmptyResults() {
-            val output = runBenchmark(BenchmarkContext.embedded("{}", "/nonexistent/path", "DIRECTORY"),
+            val output = runBenchmark(new BenchmarkContext("{}", "/nonexistent/path", "DIRECTORY"),
                     quickConfig(List.of("decideOnceBlocking")));
             assertThat(output.results()).isNotNull().isEmpty();
         }
@@ -136,7 +136,7 @@ class NativeBenchmarkRunnerTests {
         @Test
         @DisplayName("malformed subscription JSON returns null or empty results")
         void whenMalformedSubscription_thenFailsGracefully() {
-            val output = runBenchmark(BenchmarkContext.embedded("not json", TEST_POLICIES_DIR, "DIRECTORY"),
+            val output = runBenchmark(new BenchmarkContext("not json", TEST_POLICIES_DIR, "DIRECTORY"),
                     quickConfig(List.of("decideOnceBlocking")));
             assertThat(output.results()).satisfiesAnyOf(r -> assertThat(r).isNull(), r -> assertThat(r).isEmpty());
         }

@@ -23,10 +23,14 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import java.util.concurrent.Executors;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,6 +55,10 @@ public class PDPController {
     private final PolicyDecisionPoint pdp;
     @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}")
     private long                      keepAliveSeconds = 0;
+
+    // Diagnostic: virtual thread scheduler for blocking decide-once comparison
+    private static final Scheduler VIRTUAL_THREAD_SCHEDULER = Schedulers
+            .fromExecutorService(Executors.newVirtualThreadPerTaskExecutor());
 
     /**
      * Enables keep alive comments to keep tcp connection active. This is usually
@@ -89,17 +97,37 @@ public class PDPController {
     }
 
     /**
-     * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
+     * Delegates to
+     * {@link PolicyDecisionPoint#decideOnce(AuthorizationSubscription)}.
      *
      * @param authzSubscription the authorization subscription to be processed by
      * the PDP.
      * @return a Mono for the initial decision.
-     * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
+     * @see PolicyDecisionPoint#decideOnce(AuthorizationSubscription)
      */
     @PostMapping(value = "/decide-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<AuthorizationDecision> decideOnce(@Valid @RequestBody AuthorizationSubscription authzSubscription) {
-        return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
-                .next();
+        return pdp.decideOnce(authzSubscription).onErrorReturn(AuthorizationDecision.INDETERMINATE);
+    }
+
+    // Diagnostic endpoint: uses decideOnceBlocking on a virtual thread,
+    // bypassing the reactive streaming chain. Compare with /decide-once
+    // to isolate server-side reactive overhead. Remove after profiling.
+    @PostMapping(value = "/decide-once-blocking", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<AuthorizationDecision> decideOnceBlocking(
+            @Valid @RequestBody AuthorizationSubscription authzSubscription) {
+        return Mono.fromCallable(() -> pdp.decideOnceBlocking(authzSubscription)).subscribeOn(VIRTUAL_THREAD_SCHEDULER)
+                .onErrorReturn(AuthorizationDecision.INDETERMINATE);
+    }
+
+    // Diagnostic endpoint: returns a constant PERMIT without touching the PDP.
+    // Measures pure transport + WebFlux handler chain + JSON ser/deser ceiling.
+    // Remove after profiling.
+    private static final AuthorizationDecision NOOP_DECISION = AuthorizationDecision.PERMIT;
+
+    @PostMapping(value = "/decide-once-noop", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<AuthorizationDecision> decideOnceNoop(@Valid @RequestBody AuthorizationSubscription authzSubscription) {
+        return Mono.just(NOOP_DECISION);
     }
 
     /**
@@ -153,7 +181,8 @@ public class PDPController {
     public Mono<MultiAuthorizationDecision> decideAllOnce(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
         return pdp.decideAll(multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).next();
+                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).next()
+                .defaultIfEmpty(MultiAuthorizationDecision.indeterminate());
     }
 
 }

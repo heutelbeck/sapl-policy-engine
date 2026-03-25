@@ -97,19 +97,6 @@ class BenchmarkCommandTests {
             });
         }
 
-        @Test
-        @DisplayName("--remote populates remote connection options")
-        void whenRemoteOption_thenRemoteConnectionPopulated() {
-            val cmd = new BenchmarkCommand();
-            new CommandLine(cmd).parseArgs("--remote", "--url", "https://pdp.example.com", "--token", "secret", "-s",
-                    "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
-            assertThat(cmd.remoteConnection).satisfies(remote -> {
-                assertThat(remote.remote).isTrue();
-                assertThat(remote.url).isEqualTo("https://pdp.example.com");
-                assertThat(remote.auth.token).isEqualTo("secret");
-            });
-        }
-
         @ParameterizedTest(name = "rejects {0}")
         @DisplayName("mutually exclusive options are rejected")
         @MethodSource
@@ -156,22 +143,6 @@ class BenchmarkCommandTests {
             assertThat(cmd.execute("--dir", "/nonexistent/path", "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\""))
                     .isEqualTo(1);
             assertThat(err.toString()).contains("not found");
-        }
-
-        @Test
-        @DisplayName("--remote with --dir returns exit code 1")
-        void whenRemoteWithDir_thenExitCode1() {
-            assertThat(cmd.execute("--remote", "--dir", "/tmp", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\""))
-                    .isEqualTo(1);
-            assertThat(err.toString()).contains(BenchmarkCommand.ERROR_REMOTE_WITH_LOCAL);
-        }
-
-        @Test
-        @DisplayName("--remote with --no-verify returns exit code 1")
-        void whenRemoteWithVerification_thenExitCode1() {
-            assertThat(cmd.execute("--remote", "--no-verify", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\""))
-                    .isEqualTo(1);
-            assertThat(err.toString()).contains(BenchmarkCommand.ERROR_REMOTE_WITH_VERIFICATION);
         }
 
     }
