@@ -1,0 +1,56 @@
+[
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "io.sapl.benchmark.sapl4.EmbeddedPdpBenchmark.decideStreamFirst",
+        "mode" : "thrpt",
+        "threads" : 2,
+        "forks" : 1,
+        "jvm" : "/nix/store/kqv29ccdl68mxyscmj3s743ck3lgnv4w-openjdk-25.0.2+10/lib/openjdk/bin/java",
+        "jvmArgs" : [
+            "-Xmx32g",
+            "-Dorg.slf4j.simpleLogger.defaultLogLevel=WARN"
+        ],
+        "jdkVersion" : "25.0.2",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.0.2+10",
+        "warmupIterations" : 1,
+        "warmupTime" : "3 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 1,
+        "measurementTime" : "30 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "scenarioName" : "simple-100"
+        },
+        "primaryMetric" : {
+            "score" : 1044615.8682602675,
+            "scoreError" : "NaN",
+            "scoreConfidence" : [
+                "NaN",
+                "NaN"
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1044615.8682602675,
+                "50.0" : 1044615.8682602675,
+                "90.0" : 1044615.8682602675,
+                "95.0" : 1044615.8682602675,
+                "99.0" : 1044615.8682602675,
+                "99.9" : 1044615.8682602675,
+                "99.99" : 1044615.8682602675,
+                "99.999" : 1044615.8682602675,
+                "99.9999" : 1044615.8682602675,
+                "100.0" : 1044615.8682602675
+            },
+            "scoreUnit" : "ops/s",
+            "rawData" : [
+                [
+                    1044615.8682602675
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    }
+]
+
+

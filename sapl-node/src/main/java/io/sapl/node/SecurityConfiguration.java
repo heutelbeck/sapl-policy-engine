@@ -137,6 +137,15 @@ public class SecurityConfiguration {
             throw new IllegalStateException(ERROR_NO_AUTH_MECHANISM_DEFINED);
         }
 
+        if (pdpProperties.isAllowNoAuth() && !pdpProperties.isAllowBasicAuth() && !pdpProperties.isAllowApiKeyAuth()
+                && !pdpProperties.isAllowOauth2Auth()) {
+            // No authentication at all: minimize security filter chain overhead
+            log.warn("Server has been configured to reply to requests without authentication.");
+            return http.csrf(CsrfSpec::disable).formLogin(FormLoginSpec::disable).httpBasic(spec -> spec.disable())
+                    .requestCache(spec -> spec.disable())
+                    .authorizeExchange(exchange -> exchange.anyExchange().permitAll()).build();
+        }
+
         if (pdpProperties.isAllowNoAuth()) {
             log.warn("Server has been configured to reply to requests without authentication.");
             http = http.authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll());

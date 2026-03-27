@@ -23,12 +23,12 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.functions.libraries.SaplFunctionLibrary;
 import io.sapl.node.cli.commands.BenchmarkCommand;
+import io.sapl.node.cli.commands.LoadtestCommand;
 import io.sapl.node.cli.commands.BundleCommand;
 import io.sapl.node.cli.commands.CheckCommand;
 import io.sapl.node.cli.commands.DecideCommand;
 import io.sapl.node.cli.commands.DecideOnceCommand;
 import io.sapl.node.cli.commands.GenerateCredentialsCommand;
-import io.sapl.node.cli.commands.GeneratePoliciesCommand;
 import io.sapl.node.cli.commands.ServerCommand;
 import io.sapl.node.cli.commands.TestCommand;
 import lombok.val;
@@ -81,7 +81,8 @@ import picocli.CommandLine.IVersionProvider;
     subcommands = {
         ServerCommand.class, BundleCommand.class, CheckCommand.class,
         DecideCommand.class, DecideOnceCommand.class, GenerateCredentialsCommand.class,
-        GeneratePoliciesCommand.class, TestCommand.class, BenchmarkCommand.class
+        TestCommand.class, BenchmarkCommand.class,
+        LoadtestCommand.class
     }
 )
 // @formatter:on

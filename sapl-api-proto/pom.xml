@@ -36,7 +36,7 @@
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
 		<flatbuffers.version>25.2.10</flatbuffers.version>
-		<protobuf.version>4.29.3</protobuf.version>
+		<protobuf.version>4.34.1</protobuf.version>
 	</properties>
 
 	<dependencies>

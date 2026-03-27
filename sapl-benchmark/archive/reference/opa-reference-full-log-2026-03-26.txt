@@ -1,0 +1,324 @@
+====
+    Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+
+    SPDX-License-Identifier: Apache-2.0
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+====
+
+warning: Git tree '/home/dominic/git/sapl-policy-engine' is dirty
+warning: updating lock file "/home/dominic/git/sapl-policy-engine/sapl-node/benchmarks/opa/flake.lock":
+• Added input 'nixpkgs':
+    'github:NixOS/nixpkgs/fdc7b8f7b30fdbedec91b71ed82f36e1637483ed?narHash=sha256-a%2B%2BtZ1RQsDb1I0NHrFwdGuRlR5TORvCEUksM459wKUA%3D' (2026-03-23)
+OPA benchmark shell
+  opa version: Version: 1.14.1
+  Run: ./run-opa-bench.sh
+CPU topology: 8 P-cores, 16 E-cores, 32 logical CPUs
+================================================================
+  OPA Reference Benchmark
+================================================================
+Environment:
+  CPU:    13th Gen Intel(R) Core(TM) i9-13900KS
+  Cores:  8 P-cores + 16 E-cores (32 logical)
+  JVM:    openjdk version "21.0.9" 2025-10-21
+  OS:     Linux 6.18.18
+  Pinning: available (taskset)
+  wrk:    wrk 4.2.0 [epoll] Copyright (C) 2012 Will Glozer
+  Native: sapl
+
+OPA:          Version: 1.14.1
+Core sweep:   1 2 4 6 8 P-cores
+Conn sweep:   32 64 128 256
+wrk duration: 30s
+
+>>> Embedded (opa bench, 10 iterations)
+================================================================
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  21169 │
+│ ns/op                                     │  51570 │
+│ B/op                                      │   8474 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  52647 │
+│ histogram_timer_rego_query_eval_ns_90%    │  62192 │
+│ histogram_timer_rego_query_eval_ns_95%    │  75094 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 390805 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 742519 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 743938 │
+│ histogram_timer_rego_query_eval_ns_count  │  21169 │
+│ histogram_timer_rego_query_eval_ns_max    │ 743938 │
+│ histogram_timer_rego_query_eval_ns_mean   │  43965 │
+│ histogram_timer_rego_query_eval_ns_median │  42800 │
+│ histogram_timer_rego_query_eval_ns_min    │   7952 │
+│ histogram_timer_rego_query_eval_ns_stddev │  61260 │
+└───────────────────────────────────────────┴────────┘
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  25160 │
+│ ns/op                                     │  59816 │
+│ B/op                                      │   8469 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  53932 │
+│ histogram_timer_rego_query_eval_ns_90%    │  61185 │
+│ histogram_timer_rego_query_eval_ns_95%    │  79528 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 155026 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 703236 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 705882 │
+│ histogram_timer_rego_query_eval_ns_count  │  25160 │
+│ histogram_timer_rego_query_eval_ns_max    │ 705882 │
+│ histogram_timer_rego_query_eval_ns_mean   │  47093 │
+│ histogram_timer_rego_query_eval_ns_median │  44154 │
+│ histogram_timer_rego_query_eval_ns_min    │   8070 │
+│ histogram_timer_rego_query_eval_ns_stddev │  41067 │
+└───────────────────────────────────────────┴────────┘
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  25878 │
+│ ns/op                                     │  49674 │
+│ B/op                                      │   8469 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  46354 │
+│ histogram_timer_rego_query_eval_ns_90%    │  58757 │
+│ histogram_timer_rego_query_eval_ns_95%    │  71124 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 256694 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 871582 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 878901 │
+│ histogram_timer_rego_query_eval_ns_count  │  25878 │
+│ histogram_timer_rego_query_eval_ns_max    │ 878901 │
+│ histogram_timer_rego_query_eval_ns_mean   │  41026 │
+│ histogram_timer_rego_query_eval_ns_median │  42810 │
+│ histogram_timer_rego_query_eval_ns_min    │   8048 │
+│ histogram_timer_rego_query_eval_ns_stddev │  52142 │
+└───────────────────────────────────────────┴────────┘
+┌───────────────────────────────────────────┬─────────┐
+│ samples                                   │   23187 │
+│ ns/op                                     │   52764 │
+│ B/op                                      │    8467 │
+│ allocs/op                                 │     188 │
+│ histogram_timer_rego_query_eval_ns_75%    │   46853 │
+│ histogram_timer_rego_query_eval_ns_90%    │   59646 │
+│ histogram_timer_rego_query_eval_ns_95%    │   74352 │
+│ histogram_timer_rego_query_eval_ns_99%    │  203009 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 1503451 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 1520816 │
+│ histogram_timer_rego_query_eval_ns_count  │   23187 │
+│ histogram_timer_rego_query_eval_ns_max    │ 1520816 │
+│ histogram_timer_rego_query_eval_ns_mean   │   44549 │
+│ histogram_timer_rego_query_eval_ns_median │   42896 │
+│ histogram_timer_rego_query_eval_ns_min    │    7936 │
+│ histogram_timer_rego_query_eval_ns_stddev │   74453 │
+└───────────────────────────────────────────┴─────────┘
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  23157 │
+│ ns/op                                     │  50404 │
+│ B/op                                      │   8466 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  47467 │
+│ histogram_timer_rego_query_eval_ns_90%    │  59094 │
+│ histogram_timer_rego_query_eval_ns_95%    │  71935 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 354064 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 819761 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 824362 │
+│ histogram_timer_rego_query_eval_ns_count  │  23157 │
+│ histogram_timer_rego_query_eval_ns_max    │ 824362 │
+│ histogram_timer_rego_query_eval_ns_mean   │  42163 │
+│ histogram_timer_rego_query_eval_ns_median │  42796 │
+│ histogram_timer_rego_query_eval_ns_min    │   7979 │
+│ histogram_timer_rego_query_eval_ns_stddev │  54694 │
+└───────────────────────────────────────────┴────────┘
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  23288 │
+│ ns/op                                     │  55039 │
+│ B/op                                      │   8466 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  51483 │
+│ histogram_timer_rego_query_eval_ns_90%    │  59712 │
+│ histogram_timer_rego_query_eval_ns_95%    │  69598 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 233620 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 629550 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 631408 │
+│ histogram_timer_rego_query_eval_ns_count  │  23288 │
+│ histogram_timer_rego_query_eval_ns_max    │ 631408 │
+│ histogram_timer_rego_query_eval_ns_mean   │  43021 │
+│ histogram_timer_rego_query_eval_ns_median │  43050 │
+│ histogram_timer_rego_query_eval_ns_min    │   8020 │
+│ histogram_timer_rego_query_eval_ns_stddev │  42048 │
+└───────────────────────────────────────────┴────────┘
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  23481 │
+│ ns/op                                     │  59323 │
+│ B/op                                      │   8464 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  54590 │
+│ histogram_timer_rego_query_eval_ns_90%    │  63882 │
+│ histogram_timer_rego_query_eval_ns_95%    │  78398 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 341888 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 671593 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 674100 │
+│ histogram_timer_rego_query_eval_ns_count  │  23481 │
+│ histogram_timer_rego_query_eval_ns_max    │ 674100 │
+│ histogram_timer_rego_query_eval_ns_mean   │  48793 │
+│ histogram_timer_rego_query_eval_ns_median │  44306 │
+│ histogram_timer_rego_query_eval_ns_min    │   7964 │
+│ histogram_timer_rego_query_eval_ns_stddev │  52036 │
+└───────────────────────────────────────────┴────────┘
+┌───────────────────────────────────────────┬─────────┐
+│ samples                                   │   28387 │
+│ ns/op                                     │   62786 │
+│ B/op                                      │    8465 │
+│ allocs/op                                 │     188 │
+│ histogram_timer_rego_query_eval_ns_75%    │   54629 │
+│ histogram_timer_rego_query_eval_ns_90%    │   63572 │
+│ histogram_timer_rego_query_eval_ns_95%    │   81994 │
+│ histogram_timer_rego_query_eval_ns_99%    │  343730 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 1049393 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 1057974 │
+│ histogram_timer_rego_query_eval_ns_count  │   28387 │
+│ histogram_timer_rego_query_eval_ns_max    │ 1057974 │
+│ histogram_timer_rego_query_eval_ns_mean   │   53221 │
+│ histogram_timer_rego_query_eval_ns_median │   44670 │
+│ histogram_timer_rego_query_eval_ns_min    │    8090 │
+│ histogram_timer_rego_query_eval_ns_stddev │   64653 │
+└───────────────────────────────────────────┴─────────┘
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  20054 │
+│ ns/op                                     │  60616 │
+│ B/op                                      │   8465 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  54937 │
+│ histogram_timer_rego_query_eval_ns_90%    │  62495 │
+│ histogram_timer_rego_query_eval_ns_95%    │  78964 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 292010 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 475493 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 475777 │
+│ histogram_timer_rego_query_eval_ns_count  │  20054 │
+│ histogram_timer_rego_query_eval_ns_max    │ 475777 │
+│ histogram_timer_rego_query_eval_ns_mean   │  48289 │
+│ histogram_timer_rego_query_eval_ns_median │  44416 │
+│ histogram_timer_rego_query_eval_ns_min    │   7978 │
+│ histogram_timer_rego_query_eval_ns_stddev │  43477 │
+└───────────────────────────────────────────┴────────┘
+┌───────────────────────────────────────────┬────────┐
+│ samples                                   │  28378 │
+│ ns/op                                     │  62146 │
+│ B/op                                      │   8461 │
+│ allocs/op                                 │    188 │
+│ histogram_timer_rego_query_eval_ns_75%    │  54464 │
+│ histogram_timer_rego_query_eval_ns_90%    │  62871 │
+│ histogram_timer_rego_query_eval_ns_95%    │  80080 │
+│ histogram_timer_rego_query_eval_ns_99%    │ 382854 │
+│ histogram_timer_rego_query_eval_ns_99.9%  │ 681302 │
+│ histogram_timer_rego_query_eval_ns_99.99% │ 684518 │
+│ histogram_timer_rego_query_eval_ns_count  │  28378 │
+│ histogram_timer_rego_query_eval_ns_max    │ 684518 │
+│ histogram_timer_rego_query_eval_ns_mean   │  51425 │
+│ histogram_timer_rego_query_eval_ns_median │  44172 │
+│ histogram_timer_rego_query_eval_ns_min    │   8114 │
+│ histogram_timer_rego_query_eval_ns_stddev │  54920 │
+└───────────────────────────────────────────┴────────┘
+
+>>> HTTP Core x Concurrency Matrix (wrk -t2 -d30s)
+================================================================
+
+  === 1 P-core(s): server=0-1 client=2-31 ===
+  Cooling to 38C... 37C
+    32c: 27372.28/s  p50=0.99ms  p99=7.59ms  91C
+  Cooling to 38C... 37C
+    64c: 25370.46/s  p50=2.40ms  p99=15.32ms  96C
+  Cooling to 38C... 38C
+    128c: 23475.59/s  p50=5.41ms  p99=29.83ms  96C
+  Cooling to 38C... 38C
+    256c: 21904.33/s  p50=10.99ms  p99=67.36ms  96C
+
+  === 2 P-core(s): server=0-3 client=4-31 ===
+  Cooling to 38C... 38C
+    32c: 48164.25/s  p50=444.00us  p99=9.06ms  64C
+  Cooling to 38C... 38C
+    64c: 47639.79/s  p50=0.92ms  p99=17.73ms  64C
+  Cooling to 38C... 38C
+    128c: 47131.42/s  p50=2.72ms  p99=35.39ms  71C
+  Cooling to 38C... 38C
+    256c: 47856.00/s  p50=5.76ms  p99=71.10ms  65C
+
+  === 4 P-core(s): server=0-7 client=8-31 ===
+  Cooling to 38C... 38C
+    32c: 68235.05/s  p50=428.00us  p99=3.08ms  100C
+  Cooling to 38C... 38C
+    64c: 68571.15/s  p50=34.49k
+1.05ms  p99=6.68ms  75C
+  Cooling to 38C... 38C
+    128c: 68520.75/s  p50=2.03ms  p99=12.07ms  100C
+  Cooling to 38C... 38C
+    256c: 70759.80/s  p50=3.97ms  p99=24.29ms  99C
+
+  === 6 P-core(s): server=0-11 client=12-31 ===
+  Cooling to 38C... 38C
+    32c: 69627.11/s  p50=449.00us  p99=2.47ms  100C
+  Cooling to 38C... 38C
+    64c: 72833.43/s  p50=0.93ms  p99=5.21ms  99C
+  Cooling to 38C... 38C
+    128c: 75224.39/s  p50=37.86k
+1.76ms  p99=8.94ms  77C
+  Cooling to 38C... 38C
+    256c: 78374.29/s  p50=39.46k
+3.51ms  p99=16.72ms  100C
+
+  === 8 P-core(s): server=0-15 client=16-31 ===
+  Cooling to 38C... 38C
+    32c: 23846.17/s  p50=1.30ms  p99=6.73ms  69C
+  Cooling to 38C... 38C
+    64c: 53906.35/s  p50=27.11k
+1.17ms  p99=6.59ms  99C
+  Cooling to 38C... 38C
+    128c: 73971.52/s  p50=1.80ms  p99=8.89ms  98C
+  Cooling to 38C... 38C
+    256c: 82852.00/s  p50=3.33ms  p99=15.71ms  74C
+
+  === Unpinned (all cores) ===
+    32c: 12992.55/s  p50=2.37ms  p99=9.94ms  42C
+    64c: 22677.04/s  p50=2.69ms  p99=14.66ms  41C
+    128c: 14370.84/s  p50=9.44ms  p99=29.80ms  41C
+    256c: 15065.38/s  p50=18.14ms  p99=57.94ms  40C
+
+================================================================
+  OPA HTTP Matrix
+================================================================
+cores     conns    rps       p50       p99      temp
+1         32       27372.28  0.99ms    7.59ms   91
+1         64       25370.46  2.40ms    15.32ms  96
+1         128      23475.59  5.41ms    29.83ms  96
+1         256      21904.33  10.99ms   67.36ms  96
+2         32       48164.25  444.00us  9.06ms   64
+2         64       47639.79  0.92ms    17.73ms  64
+2         128      47131.42  2.72ms    35.39ms  71
+2         256      47856.00  5.76ms    71.10ms  65
+4         32       68235.05  428.00us  3.08ms   100
+4         64       68571.15  34.49k             
+1.05ms    6.68ms   75                           
+4         128      68520.75  2.03ms    12.07ms  100
+4         256      70759.80  3.97ms    24.29ms  99
+6         32       69627.11  449.00us  2.47ms   100
+6         64       72833.43  0.93ms    5.21ms   99
+6         128      75224.39  37.86k             
+1.76ms    8.94ms   77                           
+6         256      78374.29  39.46k             
+3.51ms    16.72ms  100                          
+8         32       23846.17  1.30ms    6.73ms   69
+8         64       53906.35  27.11k             
+1.17ms    6.59ms   99                           
+8         128      73971.52  1.80ms    8.89ms   98
+8         256      82852.00  3.33ms    15.71ms  74
+unpinned  32       12992.55  2.37ms    9.94ms   42
+unpinned  64       22677.04  2.69ms    14.66ms  41
+unpinned  128      14370.84  9.44ms    29.80ms  41
+unpinned  256      15065.38  18.14ms   57.94ms  40
+
+Results saved to: /tmp/opa-reference
+================================================================

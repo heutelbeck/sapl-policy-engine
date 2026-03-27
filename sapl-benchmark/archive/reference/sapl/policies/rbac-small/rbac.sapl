@@ -1,0 +1,3 @@
+policy "RBAC"
+permit
+    { "type" : resource.type, "action": action } in permissions[(subject.role)];

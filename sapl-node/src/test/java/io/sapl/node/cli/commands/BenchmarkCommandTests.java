@@ -70,12 +70,11 @@ class BenchmarkCommandTests {
             new CommandLine(cmd).parseArgs("-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
             assertThat(cmd.benchmarkOptions).satisfies(opts -> {
                 assertThat(opts.warmupIterations).isEqualTo(3);
-                assertThat(opts.warmupTimeSeconds).isEqualTo(1);
+                assertThat(opts.warmupTimeSeconds).isEqualTo(45);
                 assertThat(opts.measurementIterations).isEqualTo(5);
-                assertThat(opts.measurementTimeSeconds).isEqualTo(3);
+                assertThat(opts.measurementTimeSeconds).isEqualTo(45);
                 assertThat(opts.threads).isEqualTo(1);
                 assertThat(opts.output).isNull();
-                assertThat(opts.configFile).isNull();
             });
         }
 
@@ -84,8 +83,8 @@ class BenchmarkCommandTests {
         void whenAllBenchmarkOptions_thenAllParsed() {
             val cmd = new BenchmarkCommand();
             new CommandLine(cmd).parseArgs("--warmup-iterations", "10", "--warmup-time", "5",
-                    "--measurement-iterations", "20", "--measurement-time", "15", "-t", "8", "-o", "/tmp/results", "-c",
-                    "/tmp/config.json", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
+                    "--measurement-iterations", "20", "--measurement-time", "15", "-t", "8", "-o", "/tmp/results", "-s",
+                    "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
             assertThat(cmd.benchmarkOptions).satisfies(opts -> {
                 assertThat(opts.warmupIterations).isEqualTo(10);
                 assertThat(opts.warmupTimeSeconds).isEqualTo(5);
@@ -93,7 +92,6 @@ class BenchmarkCommandTests {
                 assertThat(opts.measurementTimeSeconds).isEqualTo(15);
                 assertThat(opts.threads).isEqualTo(8);
                 assertThat(opts.output).isEqualTo(Path.of("/tmp/results"));
-                assertThat(opts.configFile).isEqualTo(Path.of("/tmp/config.json"));
             });
         }
 

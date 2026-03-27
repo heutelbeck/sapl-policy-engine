@@ -25,13 +25,11 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.node.cli.benchmark.BenchmarkConfig;
 import io.sapl.node.cli.benchmark.BenchmarkContext;
 import io.sapl.node.cli.benchmark.BenchmarkReportWriter;
 import io.sapl.node.cli.benchmark.BenchmarkResult;
 import io.sapl.node.cli.benchmark.BenchmarkRunConfig;
-import io.sapl.node.cli.benchmark.JmhBenchmarkRunner;
-import io.sapl.node.cli.benchmark.NativeBenchmarkRunner;
+import io.sapl.node.cli.benchmark.EmbeddedBenchmarkRunner;
 import io.sapl.node.cli.options.BenchmarkOptions;
 import io.sapl.node.cli.options.BundleVerificationOptions;
 import io.sapl.node.cli.options.PolicySourceOptions;
@@ -43,13 +41,15 @@ import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Benchmarks embedded PDP evaluation performance using JMH (JAR mode) or a
- * built-in timing harness (native image mode). For remote server load
- * testing, use {@code sapl loadtest} instead.
+ * Quick assessment tool for embedded PDP evaluation performance. Uses a
+ * built-in timing harness. For rigorous benchmarks, use the
+ * sapl-benchmark-sapl4 module. For remote server load testing, use
+ * {@code sapl loadtest}.
  */
 // @formatter:off
 @Command(
@@ -57,22 +57,17 @@ import tools.jackson.databind.json.JsonMapper;
     mixinStandardHelpOptions = true,
     header = "Benchmark embedded PDP evaluation performance.",
     description = { """
-        Measures policy evaluation throughput and per-request latency
-        distribution for an embedded PDP. Uses JMH when running from a JAR,
-        or a built-in timing harness when running as a native binary.
+        Quick assessment of policy evaluation throughput and latency for
+        an embedded PDP using a built-in timing harness.
 
-        Requires a policy directory (--dir) or bundle (--bundle) containing
-        the policies to evaluate.
+        Use --rbac for a self-contained benchmark without policy files,
+        or provide a policy directory (--dir) or bundle (--bundle).
 
-        Latency percentiles (p50, p90, p99, p99.9) are measured per-request
-        for blocking methods via a separate JMH SampleTime pass.
+        When --output is specified, produces Markdown and CSV reports
+        with timestamped filenames.
 
-        When --output is specified, produces JSON (JMH-compatible), Markdown
-        (with methodology, throughput, latency, and scaling tables), and CSV
-        files with timestamped filenames.
-
-        For reproducible runs with multiple thread counts, provide a JSON
-        config file with --config.
+        For rigorous benchmarks with proper JIT isolation,
+        use the sapl-benchmark-sapl4 module instead.
 
         For remote server load testing (HTTP or RSocket), use
         'sapl loadtest' instead.
@@ -84,14 +79,14 @@ import tools.jackson.databind.json.JsonMapper;
     },
     footerHeading = "%nExamples:%n",
     footer = { """
+          # Built-in RBAC benchmark (no files needed)
+          sapl benchmark --rbac -o ./results
+
           # Quick benchmark with local policies
           sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"'
 
-          # Longer run with more iterations and output
-          sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"' --warmup-iterations 5 --warmup-time 5 --measurement-iterations 10 --measurement-time 10 -o ./results
-
-          # Multi-threaded benchmark
-          sapl benchmark --dir ./policies -s '"alice"' -a '"read"' -r '"doc"' -t 4
+          # Multi-threaded benchmark with config file
+          sapl benchmark --rbac -c configs/standard.json -o ./results
 
         See Also: sapl-loadtest(1), sapl-check(1), sapl-decide-once(1)
         """ }
@@ -99,11 +94,15 @@ import tools.jackson.databind.json.JsonMapper;
 // @formatter:on
 public class BenchmarkCommand implements Callable<Integer> {
 
-    static final String ERROR_OUTPUT_DIR_CREATION  = "Error: Could not create output directory: %s";
-    static final String ERROR_SUBSCRIPTION_MISSING = "Error: Subscription is required. Use -s/-a/-r or -f.";
+    static final String ERROR_OUTPUT_DIR_CREATION  = "Error: Could not create output directory: %s.";
+    static final String ERROR_RBAC_CONFLICT        = "Error: --rbac cannot be combined with --dir, --bundle, or subscription options.";
+    static final String ERROR_SUBSCRIPTION_MISSING = "Error: Subscription is required. Use -s/-a/-r, -f, or --rbac.";
 
     @Spec
     CommandSpec spec;
+
+    @Option(names = "--rbac", description = "Use built-in RBAC benchmark (no policy files or subscription needed).")
+    boolean rbac;
 
     @ArgGroup(exclusive = true, heading = "%nPolicy Source:%n")
     PolicySourceOptions policySource;
@@ -127,29 +126,16 @@ public class BenchmarkCommand implements Callable<Integer> {
         val err = spec.commandLine().getErr();
         val out = spec.commandLine().getOut();
         try {
-            if (subscriptionInput == null) {
-                err.println(ERROR_SUBSCRIPTION_MISSING);
-                return 1;
-            }
-
-            val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
-            val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
-            val subJson      = mapper.writeValueAsString(subscription);
-            val ctx          = buildContext(subJson, err);
-
+            val ctx = resolveContext(err);
             if (ctx == null) {
                 return 1;
             }
 
-            val config = benchmarkOptions.configFile != null ? BenchmarkConfig.load(benchmarkOptions.configFile) : null;
-            val runCfg = BenchmarkRunConfig.resolve(benchmarkOptions, config);
+            val runCfg = BenchmarkRunConfig.resolve(benchmarkOptions);
 
             if (runCfg.output() != null) {
                 Files.createDirectories(runCfg.output());
             }
-
-            val estimatedSeconds = runCfg.estimatedDurationSeconds();
-            err.println("Estimated duration: %d:%02d".formatted(estimatedSeconds / 60, estimatedSeconds % 60));
 
             val allResults = runAllBenchmarks(ctx, runCfg, out, err);
             if (allResults.isEmpty()) {
@@ -157,8 +143,7 @@ public class BenchmarkCommand implements Callable<Integer> {
             }
 
             if (runCfg.output() != null) {
-                val runner = isNativeImage() ? "native (AOT)" : "JVM (JMH)";
-                BenchmarkReportWriter.writeReports(allResults, ctx, runCfg, runner, runCfg.output(), err);
+                BenchmarkReportWriter.writeReports(allResults, ctx, runCfg, "timing loop", runCfg.output(), err);
             }
             return 0;
         } catch (IllegalArgumentException e) {
@@ -170,8 +155,22 @@ public class BenchmarkCommand implements Callable<Integer> {
         }
     }
 
-    private BenchmarkContext buildContext(String subJson, PrintWriter err) {
-        val resolved = PolicySourceResolver.resolve(policySource, bundleVerification, null, err);
+    private BenchmarkContext resolveContext(PrintWriter err) {
+        if (rbac) {
+            if (policySource != null || subscriptionInput != null) {
+                err.println(ERROR_RBAC_CONFLICT);
+                return null;
+            }
+            return BenchmarkContext.rbacDefault();
+        }
+        if (subscriptionInput == null) {
+            err.println(ERROR_SUBSCRIPTION_MISSING);
+            return null;
+        }
+        val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+        val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
+        val subJson      = mapper.writeValueAsString(subscription);
+        val resolved     = PolicySourceResolver.resolve(policySource, bundleVerification, null, err);
         if (resolved == null) {
             return null;
         }
@@ -183,22 +182,12 @@ public class BenchmarkCommand implements Callable<Integer> {
         val allResults = new ArrayList<BenchmarkResult>();
         for (int threads : runCfg.threads()) {
             err.println("Running with %d thread(s)...".formatted(threads));
-            val threadResults = isNativeImage() ? NativeBenchmarkRunner.run(ctx, runCfg, threads, out, err)
-                    : JmhBenchmarkRunner.run(ctx, runCfg, threads, out, err);
+            val threadResults = EmbeddedBenchmarkRunner.run(ctx, runCfg, threads, out, err);
             if (threadResults.isEmpty()) {
                 return List.of();
             }
             allResults.addAll(threadResults);
         }
         return allResults;
-    }
-
-    private static boolean isNativeImage() {
-        try {
-            val clazz = Class.forName("org.graalvm.nativeimage.ImageInfo");
-            return (boolean) clazz.getMethod("inImageCode").invoke(null);
-        } catch (ReflectiveOperationException e) {
-            return false;
-        }
     }
 }

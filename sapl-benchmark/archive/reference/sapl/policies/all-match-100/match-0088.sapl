@@ -1,0 +1,4 @@
+policy "match-all-0088"
+permit
+    action == "read";
+    resource == "document";

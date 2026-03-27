@@ -19,15 +19,9 @@ package io.sapl.node.cli.benchmark;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.node.cli.commands.BenchmarkCommand;
 import io.sapl.node.cli.options.BenchmarkOptions;
@@ -49,21 +43,29 @@ class BenchmarkRunConfigTests {
         return cmd.benchmarkOptions;
     }
 
+    private static BenchmarkOptions optionsWithMachineReadable() {
+        val cmd = new BenchmarkCommand();
+        new CommandLine(cmd).parseArgs("--machine-readable", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
+        return cmd.benchmarkOptions;
+    }
+
     @Nested
-    @DisplayName("resolve without config file")
-    class WithoutConfigTests {
+    @DisplayName("resolve from CLI options")
+    class ResolveTests {
 
         @Test
-        @DisplayName("uses CLI defaults when no config file")
-        void whenNoConfig_thenCliDefaults() {
-            val cfg = BenchmarkRunConfig.resolve(defaultOptions(), null);
+        @DisplayName("uses CLI defaults")
+        void whenDefaults_thenCliDefaultsApplied() {
+            val cfg = BenchmarkRunConfig.resolve(defaultOptions());
             assertThat(cfg).satisfies(c -> {
                 assertThat(c.warmupIterations()).isEqualTo(3);
-                assertThat(c.warmupTimeSeconds()).isEqualTo(1);
+                assertThat(c.warmupTimeSeconds()).isEqualTo(45);
                 assertThat(c.measurementIterations()).isEqualTo(5);
-                assertThat(c.measurementTimeSeconds()).isEqualTo(3);
+                assertThat(c.measurementTimeSeconds()).isEqualTo(45);
                 assertThat(c.threads()).containsExactly(1);
-                assertThat(c.benchmarks()).isNull();
+                assertThat(c.benchmarks()).containsExactly("decideOnceBlocking");
+                assertThat(c.latency()).isTrue();
+                assertThat(c.machineReadable()).isFalse();
                 assertThat(c.output()).isNull();
                 assertThat(c.timestamp()).matches("\\d{8}-\\d{6}");
             });
@@ -72,38 +74,15 @@ class BenchmarkRunConfigTests {
         @Test
         @DisplayName("CLI thread override produces single-element list")
         void whenCliThreadOverride_thenSingleElementList() {
-            val cfg = BenchmarkRunConfig.resolve(optionsWithThreads(8), null);
+            val cfg = BenchmarkRunConfig.resolve(optionsWithThreads(8));
             assertThat(cfg.threads()).containsExactly(8);
         }
 
-    }
-
-    @Nested
-    @DisplayName("resolve with config file")
-    class WithConfigTests {
-
         @Test
-        @DisplayName("config file values override defaults")
-        void whenConfigProvided_thenConfigValuesUsed() {
-            val config = new BenchmarkConfig(10, 5, 20, 10, List.of(1, 4, 8), List.of("decideOnceBlocking"), null);
-            val cfg    = BenchmarkRunConfig.resolve(defaultOptions(), config);
-            assertThat(cfg).satisfies(c -> {
-                assertThat(c.warmupIterations()).isEqualTo(10);
-                assertThat(c.warmupTimeSeconds()).isEqualTo(5);
-                assertThat(c.measurementIterations()).isEqualTo(20);
-                assertThat(c.measurementTimeSeconds()).isEqualTo(10);
-                assertThat(c.threads()).containsExactly(1, 4, 8);
-                assertThat(c.benchmarks()).containsExactly("decideOnceBlocking");
-            });
-        }
-
-        @Test
-        @DisplayName("CLI flags take precedence over config file")
-        void whenCliOverridesConfig_thenCliWins() {
-            val config  = new BenchmarkConfig(10, 5, 20, 10, List.of(1, 4), null, null);
-            val cliOpts = optionsWithThreads(16);
-            val cfg     = BenchmarkRunConfig.resolve(cliOpts, config);
-            assertThat(cfg.threads()).containsExactly(16);
+        @DisplayName("machine-readable flag resolves to true when set")
+        void whenMachineReadableFlag_thenResolvedTrue() {
+            val cfg = BenchmarkRunConfig.resolve(optionsWithMachineReadable());
+            assertThat(cfg.machineReadable()).isTrue();
         }
 
     }
@@ -115,49 +94,9 @@ class BenchmarkRunConfigTests {
         @Test
         @DisplayName("generates timestamp-prefixed filename")
         void whenOutputFileName_thenTimestampPrefixed() {
-            val cfg  = BenchmarkRunConfig.resolve(defaultOptions(), null);
+            val cfg  = BenchmarkRunConfig.resolve(defaultOptions());
             val name = cfg.outputFileName("embedded", "decideOnceBlocking", 4);
             assertThat(name).matches("\\d{8}-\\d{6}_embedded_decideOnceBlocking_4threads\\.json");
-        }
-
-    }
-
-    @Nested
-    @DisplayName("duration estimation")
-    class DurationTests {
-
-        @Test
-        @DisplayName("estimates duration from warmup + measurement + overhead")
-        void whenEstimated_thenCalculatesCorrectly() {
-            val config         = new BenchmarkConfig(5, 10, 10, 10, List.of(1, 4), null, null);
-            val cfg            = BenchmarkRunConfig.resolve(defaultOptions(), config);
-            val estimated      = cfg.estimatedDurationSeconds();
-            val perMethod      = 5 * 10 + 10 * 10 + 5;
-            val throughputRuns = perMethod * 1;
-            val latencyRuns    = perMethod * 2;
-            assertThat(estimated).isEqualTo((throughputRuns + latencyRuns) * 2);
-        }
-
-    }
-
-    @Nested
-    @DisplayName("BenchmarkConfig JSON loading")
-    class ConfigLoadTests {
-
-        @Test
-        @DisplayName("loads config from JSON file")
-        void whenValidJson_thenLoadsSuccessfully(@TempDir Path tempDir) throws IOException {
-            val configFile = tempDir.resolve("bench.json");
-            Files.writeString(configFile, """
-                    {"warmupIterations": 5, "threads": [1, 2, 4], "benchmarks": ["decideOnceBlocking"]}
-                    """);
-            val config = BenchmarkConfig.load(configFile);
-            assertThat(config).satisfies(c -> {
-                assertThat(c.warmupIterations()).isEqualTo(5);
-                assertThat(c.threads()).containsExactly(1, 2, 4);
-                assertThat(c.benchmarks()).containsExactly("decideOnceBlocking");
-                assertThat(c.measurementIterations()).isNull();
-            });
         }
 
     }

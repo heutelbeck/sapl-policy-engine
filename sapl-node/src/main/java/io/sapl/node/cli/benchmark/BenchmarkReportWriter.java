@@ -39,7 +39,15 @@ public class BenchmarkReportWriter {
     private static final String HEADER_METHOD  = "Method";
     private static final String HEADER_THREADS = "Threads";
 
-    static final String WARN_REPORT_WRITE_FAILED = "Warning: Failed to write report: %s";
+    private static void appendEnvironment(StringBuilder sb) {
+        sb.append("| JVM            | %-22s |".formatted(System.getProperty("java.version", "unknown"))).append('\n');
+        sb.append("| OS             | %-22s |"
+                .formatted(System.getProperty("os.name", "unknown") + " " + System.getProperty("os.arch", "")))
+                .append('\n');
+        sb.append("| CPUs           | %-22s |".formatted(Runtime.getRuntime().availableProcessors())).append('\n');
+    }
+
+    static final String WARN_REPORT_WRITE_FAILED = "Warning: Failed to write report: %s.";
 
     /**
      * Writes benchmark results to Markdown and CSV files in the given directory.
@@ -47,7 +55,7 @@ public class BenchmarkReportWriter {
      * @param results the benchmark results to write
      * @param ctx the benchmark context (policy source info)
      * @param cfg the run configuration (warmup, measurement params)
-     * @param runner the runner identifier (e.g., "JVM (JMH)" or "native (AOT)")
+     * @param runner the runner identifier (e.g., "native (AOT)")
      * @param outputDir the output directory
      * @param err writer for error messages
      */
@@ -57,6 +65,25 @@ public class BenchmarkReportWriter {
         val baseName = cfg.timestamp() + "_" + mode + "_report";
         try {
             Files.writeString(outputDir.resolve(baseName + ".md"), buildMarkdown(results, ctx, cfg, runner));
+            Files.writeString(outputDir.resolve(baseName + ".csv"), buildCsv(results));
+        } catch (IOException e) {
+            err.println(WARN_REPORT_WRITE_FAILED.formatted(e.getMessage()));
+        }
+    }
+
+    /**
+     * Writes load test results to Markdown and CSV files.
+     *
+     * @param results the load test results
+     * @param ctx the load test context (protocol, target, concurrency)
+     * @param outputDir the output directory
+     * @param err writer for error messages
+     */
+    public static void writeLoadtestReports(List<BenchmarkResult> results, LoadtestContext ctx, Path outputDir,
+            PrintWriter err) {
+        val baseName = ctx.timestamp() + "_" + ctx.protocol().toLowerCase() + "_loadtest";
+        try {
+            Files.writeString(outputDir.resolve(baseName + ".md"), buildLoadtestMarkdown(results, ctx));
             Files.writeString(outputDir.resolve(baseName + ".csv"), buildCsv(results));
         } catch (IOException e) {
             err.println(WARN_REPORT_WRITE_FAILED.formatted(e.getMessage()));
@@ -86,6 +113,35 @@ public class BenchmarkReportWriter {
         return sb.toString();
     }
 
+    static String buildLoadtestMarkdown(List<BenchmarkResult> results, LoadtestContext ctx) {
+        val sb = new StringBuilder();
+        val mw = maxMethodWidth(results);
+
+        sb.append("# Load Test Report\n\n");
+        sb.append("## Methodology\n\n");
+        sb.append("| Parameter      | Value                  |\n");
+        sb.append("|----------------|------------------------|\n");
+        sb.append("| Protocol       | %-22s |".formatted(ctx.protocol())).append('\n');
+        sb.append("| Target         | %-22s |".formatted(ctx.target())).append('\n');
+        sb.append("| Concurrency    | %-22s |".formatted(ctx.concurrency())).append('\n');
+        if (ctx.connections() > 0) {
+            sb.append("| Connections    | %-22s |".formatted(ctx.connections())).append('\n');
+            sb.append("| VT/connection  | %-22s |".formatted(ctx.vtPerConnection())).append('\n');
+        }
+        sb.append("| Warmup         | %-22s |".formatted("convergence-based")).append('\n');
+        sb.append("| Measurement    | %-22s |".formatted(ctx.measureSeconds() + " s")).append('\n');
+        sb.append("| Timestamp      | %-22s |".formatted(ctx.timestamp())).append('\n');
+        appendEnvironment(sb);
+        if (ctx.label() != null) {
+            sb.append("| Label          | %-22s |".formatted(ctx.label())).append('\n');
+        }
+        sb.append('\n');
+
+        appendResultsTable(sb, results, mw);
+        appendLatencyTable(sb, results, mw);
+        return sb.toString();
+    }
+
     /**
      * Builds a CSV export with one row per benchmark result.
      *
@@ -94,13 +150,16 @@ public class BenchmarkReportWriter {
      */
     static String buildCsv(List<BenchmarkResult> results) {
         val sb = new StringBuilder();
-        sb.append(
-                "method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,mean_ns_op\n");
+        sb.append("method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,"
+                + "mean_ns_op,latency_p50_ns,latency_p90_ns,latency_p99_ns,latency_p999_ns,latency_max_ns\n");
         for (val r : results) {
             val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
-            sb.append(String.format(Locale.US, "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f", r.method(),
+            val l      = r.latency();
+            sb.append(String.format(Locale.US,
+                    "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.0f,%.0f,%.0f,%.0f,%.0f", r.method(),
                     r.threads(), r.mean(), r.ci95(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(), r.p95(),
-                    meanNs)).append('\n');
+                    meanNs, l != null ? l.p50() : 0, l != null ? l.p90() : 0, l != null ? l.p99() : 0,
+                    l != null ? l.p999() : 0, l != null ? l.max() : 0)).append('\n');
         }
         return sb.toString();
     }
@@ -112,32 +171,21 @@ public class BenchmarkReportWriter {
         sb.append("|-------------|------------------------|\n");
         sb.append("| Runner      | %-22s |".formatted(runner)).append('\n');
         sb.append("| Mode        | %-22s |".formatted("embedded")).append('\n');
-        sb.append("| Policies    | %-22s |".formatted(ctx.policiesPath())).append('\n');
+        sb.append("| Policies    | %-22s |".formatted(ctx.policiesPath() != null ? ctx.policiesPath() : "built-in"))
+                .append('\n');
         sb.append("| Config type | %-22s |".formatted(ctx.configType())).append('\n');
         sb.append("| Warmup      | %-22s |"
                 .formatted("%d iter x %d s".formatted(cfg.warmupIterations(), cfg.warmupTimeSeconds()))).append('\n');
         sb.append("| Measurement | %-22s |"
                 .formatted("%d iter x %d s".formatted(cfg.measurementIterations(), cfg.measurementTimeSeconds())))
                 .append('\n');
-        if ("JMH".equals(runner)) {
-            sb.append("| Forks       | %-22s |".formatted("0 (fat JAR limitation)")).append('\n');
-            sb.append("| GC between  | %-22s |".formatted("yes (shouldDoGC=true)")).append('\n');
-        } else {
-            sb.append("| GC between  | %-22s |".formatted("yes (System.gc())")).append('\n');
-        }
+        sb.append("| GC between  | %-22s |".formatted("yes (System.gc())")).append('\n');
         sb.append("| Timestamp   | %-22s |".formatted(cfg.timestamp())).append('\n');
+        appendEnvironment(sb);
         sb.append('\n');
-        if ("JMH".equals(runner)) {
-            sb.append("**Caveats:** forks(0) means benchmarks run in the same JVM without process isolation. ");
-            sb.append(
-                    "Results may be affected by prior benchmark state (class loading, JIT compilation, heap pressure). ");
-            sb.append("GC is triggered between iterations, reducing GC noise but making results more optimistic ");
-            sb.append("than production where GC runs during request processing.\n\n");
-        } else {
-            sb.append("**Caveats:** Native image benchmarks have no JIT warmup. GC is triggered between iterations. ");
-            sb.append("Latency measurements use closed-loop timing (service time, not response time under load) ");
-            sb.append("and are subject to coordinated omission.\n\n");
-        }
+        sb.append("**Caveats:** This is a quick assessment tool, not a rigorous benchmark. ");
+        sb.append("GC is triggered between iterations. Latency measurements use closed-loop timing ");
+        sb.append("(service time, not response time under load) and are subject to coordinated omission.\n\n");
     }
 
     private static void appendResultsTable(StringBuilder sb, List<BenchmarkResult> results, int mw) {

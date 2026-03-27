@@ -1,0 +1,4 @@
+policy "filler-0160"
+permit
+    action == "action-0160";
+    resource == "resource-0160";

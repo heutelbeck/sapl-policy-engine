@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <parent>
+    <artifactId>sapl-policy-engine</artifactId>
+    <groupId>io.sapl</groupId>
+    <version>4.0.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>sapl-benchmark-sapl3</artifactId>
+  <name>SAPL Benchmark (SAPL 3.0)</name>
+  <description>JMH benchmarks for SAPL 3.0.0 PDP evaluation performance,
+		used for version-to-version comparison with SAPL 4.0.</description>
+  <licenses>
+    <license>
+      <name>Apache 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+  <organization>
+    <name>Dominic Heutelbeck</name>
+  </organization>
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.openjdk.jmh</groupId>
+              <artifactId>jmh-generator-annprocess</artifactId>
+              <version>${jmh.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer>
+                  <mainClass>io.sapl.benchmark.sapl3.Sapl3Benchmark</mainClass>
+                </transformer>
+                <transformer />
+                <transformer>
+                  <resource>META-INF/BenchmarkList</resource>
+                </transformer>
+                <transformer>
+                  <resource>META-INF/CompilerHints</resource>
+                </transformer>
+                <transformer>
+                  <resource>plugin.properties</resource>
+                </transformer>
+              </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <dependencies>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>1.37</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+  <properties>
+    <jmh.version>1.37</jmh.version>
+    <sapl3.version>3.0.0</sapl3.version>
+    <main.basedir>${project.basedir}/../../</main.basedir>
+  </properties>
+</project>

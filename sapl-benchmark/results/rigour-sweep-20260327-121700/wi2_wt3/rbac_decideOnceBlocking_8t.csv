@@ -1,0 +1,14 @@
+# SAPL 4.0 Benchmark Results
+# Command: --scenario=rbac --method=decideOnceBlocking -t 8 --warmup-iterations=2 --warmup-time=3 --measurement-time=30 --convergence-threshold=50 --convergence-window=2 --max-forks=2 --heap=32g -o /home/dominic/git/sapl-policy-engine/sapl-benchmark/scripts/../results/rigour-sweep-20260327-121700/wi2_wt3
+# JVM: 25.0.2 (OpenJDK 64-Bit Server VM)
+# GC: default
+# Scenario: rbac
+# Method: decideOnceBlocking
+# Threads: 8
+# Warmup: 2 x 3s
+# Measurement: 30s
+# Convergence: CoV < 50.0% over 2 forks
+# Virtual threads: false
+fork,throughput_ops_s
+1,25576939.76
+2,31304007.13

@@ -1,0 +1,21 @@
+# SAPL 4.0 Benchmark Results
+# Command: --scenario=simple-1000 --method=decideStreamFirst -t 8 --warmup-iterations=1 --warmup-time=3 --measurement-time=30 --convergence-threshold=2 --convergence-window=3 --max-forks=10 --latency=true --heap=32g -o sapl-benchmark/results/embedded-sapl4-jvm-rigorous-20260327-144430
+# JVM: 25.0.2 (OpenJDK 64-Bit Server VM)
+# GC: default
+# Scenario: simple-1000
+# Method: decideStreamFirst
+# Threads: 8
+# Warmup: 1 x 3s
+# Measurement: 30s
+# Convergence: CoV < 2.0% over 3 forks
+# Virtual threads: false
+# Latency p50 (ns): 14480
+# Latency p90 (ns): 14752
+# Latency p99 (ns): 21952
+# Latency p99.9 (ns): 37120
+# Latency max (ns): 1107968
+fork,throughput_ops_s
+1,545009.64
+2,577268.89
+3,562235.53
+4,575732.41

@@ -1,0 +1,2 @@
+method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,mean_ns_op
+rsocket-4c-256vt,1,1353626.67,0.00,1353626.67,0.00,0.00,1353626.67,1353626.67,1353626.67,1353626.67,738.76

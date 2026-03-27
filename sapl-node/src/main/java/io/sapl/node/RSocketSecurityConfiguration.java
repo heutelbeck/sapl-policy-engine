@@ -50,10 +50,10 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class RSocketSecurityConfiguration {
 
-    private static final String ERROR_AUTH_FAILED     = "Authentication failed";
-    private static final String ERROR_INVALID_API_KEY = "Invalid API key";
-    private static final String ERROR_NO_CREDENTIALS  = "No authentication credentials in setup frame";
-    private static final String ERROR_UNKNOWN_USER    = "Unknown user: %s";
+    private static final String ERROR_AUTH_FAILED     = "Authentication failed.";
+    private static final String ERROR_INVALID_API_KEY = "Invalid API key.";
+    private static final String ERROR_NO_CREDENTIALS  = "No authentication credentials in setup frame.";
+    private static final String ERROR_UNKNOWN_USER    = "Unknown user: %s.";
 
     private final SaplNodeProperties properties;
     private final UserLookupService  userLookupService;

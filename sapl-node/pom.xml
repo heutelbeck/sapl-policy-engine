@@ -43,7 +43,6 @@
 	<properties>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
 		<main.basedir>${project.basedir}/../</main.basedir>
-		<jmh.version>1.37</jmh.version>
 	</properties>
 	
 	<dependencies>
@@ -176,17 +175,11 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
 
-		<!-- JMH Benchmark Framework -->
+
 		<dependency>
-			<groupId>org.openjdk.jmh</groupId>
-			<artifactId>jmh-core</artifactId>
-			<version>${jmh.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.openjdk.jmh</groupId>
-			<artifactId>jmh-generator-annprocess</artifactId>
-			<version>${jmh.version}</version>
-			<scope>provided</scope>
+			<groupId>org.hdrhistogram</groupId>
+			<artifactId>HdrHistogram</artifactId>
+			<version>2.2.2</version>
 		</dependency>
 
 		<!-- Doc Generation (build-time only) -->
@@ -246,11 +239,6 @@
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 							<version>${lombok.version}</version>
-						</path>
-						<path>
-							<groupId>org.openjdk.jmh</groupId>
-							<artifactId>jmh-generator-annprocess</artifactId>
-							<version>${jmh.version}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
@@ -522,6 +510,7 @@
 								<buildArg>--enable-url-protocols=http,https</buildArg>
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
 								<buildArg>-march=compatibility</buildArg>
+								<buildArg>-O3</buildArg>
 								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>

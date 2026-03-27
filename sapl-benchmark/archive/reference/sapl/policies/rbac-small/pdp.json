@@ -1,0 +1,18 @@
+{
+  "algorithm": {
+    "votingMode": "PRIORITY_DENY",
+    "defaultDecision": "ABSTAIN",
+    "errorHandling": "PROPAGATE"
+  },
+  "variables": {
+    "permissions" : {
+      "dev" : [
+          { "type": "foo123", "action": "write" },
+          { "type": "foo123", "action": "read"  }
+        ],
+      "test" : [
+          { "type": "foo123", "action": "read" }
+        ]
+    }
+  }
+}

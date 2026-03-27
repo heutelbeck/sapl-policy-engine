@@ -1,0 +1,17 @@
+policy "filler-complex-0089"
+permit
+    action == "action-0089";
+    resource == "resource-0089";
+    "role-0089" in subject.roles;
+    subject.department =~ "^department-0089.*";
+    var ref = subject.clearanceLevel;
+obligation
+    {
+        "type"    : "logAccess",
+        "message" : "User " + subject.name + " accessed resource-0089 at level " + ref
+    }
+advice
+    {
+        "type"    : "audit",
+        "details" : "access to resource-0089 by " + subject.name
+    }

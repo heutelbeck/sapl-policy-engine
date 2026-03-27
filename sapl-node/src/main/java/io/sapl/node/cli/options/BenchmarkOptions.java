@@ -30,22 +30,29 @@ public class BenchmarkOptions {
     @Option(names = "--warmup-iterations", defaultValue = "3", description = "Number of warmup iterations before measurement")
     public int warmupIterations;
 
-    @Option(names = "--warmup-time", defaultValue = "1", description = "Duration of each warmup iteration in seconds")
+    @Option(names = "--warmup-time", defaultValue = "45", description = "Duration of each warmup iteration in seconds")
     public int warmupTimeSeconds;
 
     @Option(names = "--measurement-iterations", defaultValue = "5", description = "Number of measurement iterations")
     public int measurementIterations;
 
-    @Option(names = "--measurement-time", defaultValue = "3", description = "Duration of each measurement iteration in seconds")
+    @Option(names = "--measurement-time", defaultValue = "45", description = "Duration of each measurement iteration in seconds")
     public int measurementTimeSeconds;
 
     @Option(names = { "-t", "--threads" }, defaultValue = "1", description = "Number of concurrent benchmark threads")
     public int threads;
 
+    @Option(names = { "-b",
+            "--benchmark" }, defaultValue = "decideOnceBlocking", description = "Benchmark method to run (decideOnceBlocking, decideStreamFirst, noOp)")
+    public String benchmark;
+
+    @Option(names = "--latency", defaultValue = "true", description = "Run a separate latency measurement pass after throughput")
+    public boolean latency;
+
     @Option(names = { "-o", "--output" }, description = "Output directory for benchmark results (JSON, Markdown, CSV)")
     public Path output;
 
-    @Option(names = { "-c", "--config" }, description = "JSON configuration file for reproducible benchmark runs")
-    public Path configFile;
+    @Option(names = "--machine-readable", defaultValue = "false", description = "Output single-line parseable results for script integration")
+    public boolean machineReadable;
 
 }

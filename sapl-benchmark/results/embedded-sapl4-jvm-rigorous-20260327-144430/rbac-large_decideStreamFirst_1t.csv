@@ -1,0 +1,24 @@
+# SAPL 4.0 Benchmark Results
+# Command: --scenario=rbac-large --method=decideStreamFirst -t 1 --warmup-iterations=1 --warmup-time=3 --measurement-time=30 --convergence-threshold=2 --convergence-window=3 --max-forks=10 --latency=true --heap=32g -o sapl-benchmark/results/embedded-sapl4-jvm-rigorous-20260327-144430
+# JVM: 25.0.2 (OpenJDK 64-Bit Server VM)
+# GC: default
+# Scenario: rbac-large
+# Method: decideStreamFirst
+# Threads: 1
+# Warmup: 1 x 3s
+# Measurement: 30s
+# Convergence: CoV < 2.0% over 3 forks
+# Virtual threads: false
+# Latency p50 (ns): 510
+# Latency p90 (ns): 534
+# Latency p99 (ns): 947
+# Latency p99.9 (ns): 3332
+# Latency max (ns): 6193152
+fork,throughput_ops_s
+1,1968628.99
+2,1915917.15
+3,1999742.88
+4,1864884.68
+5,1950866.41
+6,1913588.41
+7,1888638.86
