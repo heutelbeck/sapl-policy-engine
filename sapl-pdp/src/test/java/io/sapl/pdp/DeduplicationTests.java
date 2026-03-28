@@ -26,6 +26,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -115,8 +116,8 @@ class DeduplicationTests {
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
-            val decisions = pdp.gatherVotes(sub).map(tv -> tv.vote().authorizationDecision()).take(3).collectList()
-                    .block(Duration.ofSeconds(10));
+            val decisions = pdp.gatherVotes(sub, MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID)
+                    .map(tv -> tv.vote().authorizationDecision()).take(3).collectList().block(Duration.ofSeconds(10));
 
             assertThat(decisions).isNotNull().hasSizeGreaterThanOrEqualTo(2);
 
@@ -181,8 +182,9 @@ class DeduplicationTests {
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
-            val decisions = pdp.gatherVotes(sub).map(tv -> tv.vote().authorizationDecision())
-                    .take(Duration.ofSeconds(5)).collectList().block(Duration.ofSeconds(10));
+            val decisions = pdp.gatherVotes(sub, MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID)
+                    .map(tv -> tv.vote().authorizationDecision()).take(Duration.ofSeconds(5)).collectList()
+                    .block(Duration.ofSeconds(10));
 
             assertThat(decisions).isNotNull()
                     .as("With 1-second polling and time used in condition, " + "expect multiple votes in 5 seconds")

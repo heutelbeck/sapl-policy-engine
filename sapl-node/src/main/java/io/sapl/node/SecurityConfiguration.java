@@ -31,7 +31,6 @@ import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpe
 import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
 import org.springframework.security.config.web.server.ServerHttpSecurity.HttpBasicSpec;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
@@ -41,13 +40,10 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.server.ServerWebExchange;
 
-import io.sapl.api.pdp.ReactivePdpIdSource;
 import io.sapl.node.apikey.ApiKeyReactiveAuthenticationManager;
 import io.sapl.node.apikey.ApiKeyService;
-import io.sapl.node.auth.SaplAuthenticationToken;
 import io.sapl.node.auth.SaplJwtAuthenticationConverter;
-import io.sapl.node.auth.SaplUser;
-import io.sapl.node.auth.SaplJwtAuthenticationToken;
+import io.sapl.node.auth.SaplUserContextFilter;
 import io.sapl.node.auth.SaplReactiveUserDetailsService;
 import io.sapl.node.auth.UserLookupService;
 import lombok.RequiredArgsConstructor;
@@ -84,39 +80,9 @@ public class SecurityConfiguration {
         return new SaplReactiveUserDetailsService(userLookupService);
     }
 
-    /**
-     * Provides a PDP ID extractor that extracts the PDP identifier from the
-     * current security context.
-     * <p>
-     * Supports extraction from:
-     * <ul>
-     * <li>{@link SaplAuthenticationToken} - for API Key and Basic Auth</li>
-     * <li>{@link SaplJwtAuthenticationToken} - for OAuth2 JWT</li>
-     * <li>{@link UserDetails} principal - resolves via user lookup service</li>
-     * </ul>
-     *
-     * @return the PDP ID extractor
-     */
     @Bean
-    ReactivePdpIdSource pdpIdExtractor() {
-        return () -> ReactiveSecurityContextHolder.getContext()
-                .flatMap(ctx -> Mono.justOrEmpty(ctx.getAuthentication())).flatMap(this::extractPdpId)
-                .defaultIfEmpty(pdpProperties.getDefaultPdpId());
-    }
-
-    private Mono<String> extractPdpId(Authentication authentication) {
-        if (authentication instanceof SaplAuthenticationToken saplAuth) {
-            return Mono.just(saplAuth.getPdpId());
-        }
-        if (authentication instanceof SaplJwtAuthenticationToken jwtAuth) {
-            return Mono.just(jwtAuth.getPdpId());
-        }
-        val principal = authentication.getPrincipal();
-        if (principal instanceof UserDetails userDetails) {
-            return saplUserDetailsService().resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId)
-                    .defaultIfEmpty(pdpProperties.getDefaultPdpId());
-        }
-        return Mono.just(pdpProperties.getDefaultPdpId());
+    SaplUserContextFilter saplUserContextFilter() {
+        return new SaplUserContextFilter(saplUserDetailsService());
     }
 
     /**

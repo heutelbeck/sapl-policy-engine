@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -131,7 +133,8 @@ class SaplUserContextFilterTests {
 
     private WebFilterChain createCapturingChain(AtomicReference<String> capturedPdpId) {
         return exchange -> Mono.deferContextual(ctx -> {
-            ctx.getOrEmpty(SaplUserContextFilter.PDP_ID_KEY).ifPresent(pdpId -> capturedPdpId.set((String) pdpId));
+            ctx.getOrEmpty(MultiTenantPolicyDecisionPoint.REACTOR_CONTEXT_PDP_ID_KEY)
+                    .ifPresent(pdpId -> capturedPdpId.set((String) pdpId));
             return Mono.empty();
         });
     }

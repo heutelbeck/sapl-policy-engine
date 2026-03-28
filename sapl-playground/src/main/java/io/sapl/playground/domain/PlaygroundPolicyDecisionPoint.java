@@ -22,6 +22,7 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TimestampedVote;
@@ -30,7 +31,6 @@ import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.Clock;
 import java.util.List;
@@ -67,8 +67,7 @@ public class PlaygroundPolicyDecisionPoint {
     public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
         val pdpVoterSource = new PdpVoterSource(functionBroker, attributeBroker, Clock.systemUTC());
         this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
-        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString(),
-                Mono.just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID));
+        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString());
     }
 
     /**
@@ -83,7 +82,8 @@ public class PlaygroundPolicyDecisionPoint {
      * @return flux of timestamped votes with evaluation details
      */
     public Flux<TimestampedVote> decide(AuthorizationSubscription authorizationSubscription) {
-        return policyDecisionPoint.gatherVotes(authorizationSubscription);
+        return policyDecisionPoint.gatherVotes(authorizationSubscription,
+                MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**

@@ -25,7 +25,7 @@ import org.springframework.context.SmartLifecycle;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -45,7 +45,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final boolean                                  enabled;
     private final int                                      port;
     private final @Nullable Duration                       maxConnectionLifetime;
-    private final PolicyDecisionPoint                      pdp;
+    private final MultiTenantPolicyDecisionPoint           pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
 
     private volatile @Nullable CloseableChannel server;

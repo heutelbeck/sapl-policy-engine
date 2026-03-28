@@ -22,7 +22,6 @@ import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.*;
 import reactor.core.Disposable;
-import reactor.core.publisher.Mono;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeBrokerException;
@@ -54,7 +53,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -168,9 +166,6 @@ public class PolicyDecisionPointBuilder {
 
     private final List<VoteInterceptor> interceptors = new ArrayList<>();
 
-    private Mono<String>                         pdpIdExtractor        = Mono
-            .just(DynamicPolicyDecisionPoint.DEFAULT_PDP_ID);
-    private Supplier<String>                     blockingPdpIdSupplier = () -> DynamicPolicyDecisionPoint.DEFAULT_PDP_ID;
     private Function<PdpVoterSource, Disposable> sourceFactory;
     private final List<PDPConfiguration>         initialConfigurations = new ArrayList<>();
 
@@ -268,44 +263,6 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withFunctionLibrary(Class<?> libraryClass) {
         this.staticFunctionLibraries.add(libraryClass);
-        return this;
-    }
-
-    /**
-     * Sets the PDP ID extractor for multi-tenant routing.
-     * <p>
-     * The extractor is invoked for each authorization decision to determine which
-     * PDP configuration to use. If not set, always returns "default" as pdpId.
-     *
-     * @param pdpIdExtractor
-     * a Mono that extracts the PDP ID from the current context
-     *
-     * @return this builder
-     *
-     * @see ReactivePdpIdSource
-     */
-    public PolicyDecisionPointBuilder withPdpIdExtractor(Mono<String> pdpIdExtractor) {
-        this.pdpIdExtractor = pdpIdExtractor;
-        return this;
-    }
-
-    /**
-     * Sets the blocking PDP ID supplier for multi-tenant routing in synchronous
-     * contexts.
-     * <p>
-     * The supplier is invoked for each blocking authorization decision
-     * ({@code decideOnceBlocking}) to determine which PDP configuration to use.
-     * If not set, always returns "default" as pdpId.
-     *
-     * @param blockingPdpIdSupplier
-     * a supplier that returns the PDP ID from the current thread context
-     *
-     * @return this builder
-     *
-     * @see BlockingPdpIdSource
-     */
-    public PolicyDecisionPointBuilder withBlockingPdpIdSupplier(Supplier<String> blockingPdpIdSupplier) {
-        this.blockingPdpIdSupplier = blockingPdpIdSupplier;
         return this;
     }
 
@@ -821,7 +778,7 @@ public class PolicyDecisionPointBuilder {
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
         val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
-                pdpIdExtractor, sortedInterceptors, blockingPdpIdSupplier);
+                sortedInterceptors);
 
         // Create default configuration from collected policies
         if (!policyDocuments.isEmpty()) {

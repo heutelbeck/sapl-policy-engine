@@ -432,11 +432,10 @@ class DynamicPolicyDecisionPointTests {
     }
 
     @Test
-    @DisplayName("custom blocking PDP ID supplier routes to correct tenant configuration")
-    void whenCustomBlockingPdpIdSupplierThenVoteOnceUsesSuppliedPdpId() {
+    @DisplayName("explicit PDP ID routes to correct tenant configuration")
+    void whenExplicitPdpIdThenVoteOnceUsesCorrectTenant() {
         val tenantPdpId = "tenant-a";
-        val components  = PolicyDecisionPointBuilder.withoutDefaults().withBlockingPdpIdSupplier(() -> tenantPdpId)
-                .build();
+        val components  = PolicyDecisionPointBuilder.withoutDefaults().build();
         val tenantPdp   = (DynamicPolicyDecisionPoint) components.pdp();
         val voterSource = components.pdpVoterSource();
 
@@ -448,7 +447,7 @@ class DynamicPolicyDecisionPointTests {
         voterSource.loadConfiguration(tenantConfig, false);
 
         val subscription = subscription("user", "read", "data");
-        val decision     = tenantPdp.decideOnceBlocking(subscription);
+        val decision     = tenantPdp.decideOnceBlocking(subscription, tenantPdpId);
 
         assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
     }

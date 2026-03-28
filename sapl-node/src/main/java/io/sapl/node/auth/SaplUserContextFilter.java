@@ -17,7 +17,8 @@
  */
 package io.sapl.node.auth;
 
-import static io.sapl.node.SaplNodeProperties.DEFAULT_PDP_ID;
+import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID;
+import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.REACTOR_CONTEXT_PDP_ID_KEY;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.Authentication;
@@ -43,11 +44,6 @@ import reactor.util.context.Context;
 @RequiredArgsConstructor
 public class SaplUserContextFilter implements WebFilter {
 
-    /**
-     * Context key for the PDP ID.
-     */
-    public static final String PDP_ID_KEY = "sapl.pdp.id";
-
     private final SaplReactiveUserDetailsService userDetailsService;
 
     @Override
@@ -59,12 +55,15 @@ public class SaplUserContextFilter implements WebFilter {
             }
             return extractPdpId(authentication).defaultIfEmpty(DEFAULT_PDP_ID);
         }).defaultIfEmpty(DEFAULT_PDP_ID)
-                .flatMap(pdpId -> chain.filter(exchange).contextWrite(Context.of(PDP_ID_KEY, pdpId)));
+                .flatMap(pdpId -> chain.filter(exchange).contextWrite(Context.of(REACTOR_CONTEXT_PDP_ID_KEY, pdpId)));
     }
 
     private Mono<String> extractPdpId(Authentication authentication) {
         if (authentication instanceof SaplAuthenticationToken saplAuth) {
             return Mono.just(saplAuth.getPdpId());
+        }
+        if (authentication instanceof SaplJwtAuthenticationToken jwtAuth) {
+            return Mono.just(jwtAuth.getPdpId());
         }
 
         val principal = authentication.getPrincipal();

@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 
 /**
  * Configuration for the protobuf-based RSocket PDP server.
@@ -51,7 +51,7 @@ public class ProtobufRSocketServerConfiguration {
     ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:false}") boolean enabled,
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
             @Value("${sapl.pdp.rsocket.max-connection-lifetime:#{null}}") @Nullable Duration maxConnectionLifetime,
-            PolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
+            MultiTenantPolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
         return new ProtobufRSocketServerLifecycle(enabled, port, maxConnectionLifetime, pdp, authenticator);
     }
 

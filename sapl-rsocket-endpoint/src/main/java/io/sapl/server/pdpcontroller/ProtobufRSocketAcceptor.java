@@ -23,9 +23,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.Executors;
 
-import io.sapl.api.pdp.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
@@ -33,10 +34,11 @@ import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.rsocket.util.DefaultPayload;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -50,8 +52,8 @@ import reactor.core.scheduler.Schedulers;
  * <p>
  * Authentication is performed once per connection via the
  * {@link RSocketConnectionAuthenticator}. The authenticated PDP ID is stored on
- * the per-connection {@code RSocket} instance and propagated to the PDP via a
- * {@link ThreadLocal} for blocking calls.
+ * the per-connection {@code RSocket} instance and passed explicitly to the
+ * {@link MultiTenantPolicyDecisionPoint} for tenant routing.
  * <p>
  * Connection lifetime is bounded by the credential expiry (JWT {@code exp}
  * claim) and an optional maximum connection lifetime. When a connection exceeds
@@ -59,8 +61,9 @@ import reactor.core.scheduler.Schedulers;
  * with fresh credentials.
  * <p>
  * Request-response operations ({@code decide-once}) use
- * {@link PolicyDecisionPoint#decideOnceBlocking} on virtual threads for maximum
- * throughput. Streaming operations use the reactive PDP methods directly.
+ * {@link MultiTenantPolicyDecisionPoint#decideOnceBlocking} on virtual threads
+ * for maximum throughput. Streaming operations use the reactive PDP methods
+ * directly.
  */
 @Slf4j
 public class ProtobufRSocketAcceptor implements SocketAcceptor {
@@ -78,14 +81,12 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final String ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED     = "Failed to parse multi-subscription: {}";
     private static final String ERROR_PARSE_SUBSCRIPTION_FAILED           = "Failed to parse subscription: {}";
 
-    private static final ThreadLocal<String> PDP_ID_HOLDER = new ThreadLocal<>();
-
     // Virtual thread executor creates threads on demand with no pool to shut down.
     // Static is safe here - no resource leak on application shutdown.
     private static final Scheduler VIRTUAL_THREAD_SCHEDULER = Schedulers
             .fromExecutorService(Executors.newVirtualThreadPerTaskExecutor());
 
-    private final PolicyDecisionPoint                      pdp;
+    private final MultiTenantPolicyDecisionPoint           pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
     private final @Nullable Duration                       maxConnectionLifetime;
 
@@ -93,13 +94,13 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      * Creates an acceptor with authentication and optional connection lifetime
      * limit.
      *
-     * @param pdp the policy decision point
+     * @param pdp the multi-tenant policy decision point
      * @param authenticator the connection authenticator, or null for
      * unauthenticated access
      * @param maxConnectionLifetime maximum connection lifetime, or null for
      * unlimited (JWT expiry still enforced)
      */
-    public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp,
+    public ProtobufRSocketAcceptor(MultiTenantPolicyDecisionPoint pdp,
             @Nullable RSocketConnectionAuthenticator authenticator,
             @Nullable Duration maxConnectionLifetime) {
         this.pdp                   = pdp;
@@ -110,39 +111,28 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     /**
      * Creates an acceptor with authentication and no connection lifetime limit.
      *
-     * @param pdp the policy decision point
+     * @param pdp the multi-tenant policy decision point
      * @param authenticator the connection authenticator, or null for
      * unauthenticated access
      */
-    public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
+    public ProtobufRSocketAcceptor(MultiTenantPolicyDecisionPoint pdp,
+            @Nullable RSocketConnectionAuthenticator authenticator) {
         this(pdp, authenticator, null);
     }
 
     /**
      * Creates an acceptor without authentication (development only).
      *
-     * @param pdp the policy decision point
+     * @param pdp the multi-tenant policy decision point
      */
-    public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp) {
+    public ProtobufRSocketAcceptor(MultiTenantPolicyDecisionPoint pdp) {
         this(pdp, null, null);
-    }
-
-    /**
-     * Returns the PDP ID set by the current RSocket request thread. Used by
-     * {@link BlockingPdpIdSource} implementations to route
-     * blocking decisions to the correct tenant.
-     *
-     * @return the PDP ID for the current thread, or null if not in an RSocket
-     * context
-     */
-    public static @Nullable String getCurrentPdpId() {
-        return PDP_ID_HOLDER.get();
     }
 
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
         if (authenticator == null) {
-            return Mono.just(createRSocket("default", null, sendingSocket));
+            return Mono.just(createRSocket(MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID, null, sendingSocket));
         }
         return authenticator.authenticate(setup)
                 .<RSocket>map(result -> createRSocket(result.pdpId(), result.expiresAt(), sendingSocket))
@@ -232,14 +222,8 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             val data  = extractData(payload);
             payload.release();
 
-            return Mono.fromCallable(() -> {
-                PDP_ID_HOLDER.set(pdpId);
-                try {
-                    return handleBlockingRequestResponse(route, data);
-                } finally {
-                    PDP_ID_HOLDER.remove();
-                }
-            }).subscribeOn(VIRTUAL_THREAD_SCHEDULER);
+            return Mono.fromCallable(() -> handleBlockingRequestResponse(route, data))
+                    .subscribeOn(VIRTUAL_THREAD_SCHEDULER);
         }
 
         @Override
@@ -273,7 +257,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Payload handleDecideOnceBlocking(byte[] data) {
             try {
                 val subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
-                val decision     = pdp.decideOnceBlocking(subscription);
+                val decision     = pdp.decideOnceBlocking(subscription, pdpId);
                 return encodeDecision(decision);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
@@ -284,7 +268,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Payload handleMultiDecideAllOnceBlocking(byte[] data) {
             try {
                 val subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-                val decision     = pdp.decideAll(subscription).blockFirst();
+                val decision     = pdp.decideAll(subscription, pdpId).blockFirst();
                 return encodeMultiDecision(decision != null ? decision : MultiAuthorizationDecision.indeterminate());
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
@@ -295,7 +279,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Flux<Payload> handleDecide(byte[] data) {
             try {
                 val subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
-                return pdp.decide(subscription).onErrorResume(error -> {
+                return pdp.decide(subscription, pdpId).onErrorResume(error -> {
                     log.debug(ERROR_IN_ROUTE, ROUTE_DECIDE, error.getMessage());
                     return Flux.just(AuthorizationDecision.INDETERMINATE);
                 }).map(this::encodeDecision);
@@ -308,7 +292,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Flux<Payload> handleMultiDecide(byte[] data) {
             try {
                 val subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-                return pdp.decide(subscription).onErrorResume(error -> {
+                return pdp.decide(subscription, pdpId).onErrorResume(error -> {
                     log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE, error.getMessage());
                     return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
                 }).map(this::encodeIdentifiableDecision);
@@ -321,7 +305,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Flux<Payload> handleMultiDecideAll(byte[] data) {
             try {
                 val subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-                return pdp.decideAll(subscription).onErrorResume(error -> {
+                return pdp.decideAll(subscription, pdpId).onErrorResume(error -> {
                     log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE_ALL, error.getMessage());
                     return Flux.just(MultiAuthorizationDecision.indeterminate());
                 }).map(this::encodeMultiDecision);

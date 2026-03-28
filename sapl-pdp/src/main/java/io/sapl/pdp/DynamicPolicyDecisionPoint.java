@@ -19,12 +19,11 @@ package io.sapl.pdp;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.function.Supplier;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.Vote;
@@ -33,18 +32,13 @@ import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
-
-    public static final String DEFAULT_PDP_ID = "default";
+public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoint {
 
     public static final String ERROR_NO_PDP_CONFIGURATION = "No PDP configuration found.";
 
     private final PdpVoterSource        pdpConfigurationSource;
     private final IdFactory             idFactory;
-    private final Mono<String> reactivePdpId;
-    private final Supplier<String>      blockingPdpIdSource;
     private final List<VoteInterceptor> interceptors;
 
     /**
@@ -52,12 +46,9 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      *
      * @param pdpConfigurationSource the source of PDP configurations
      * @param idFactory factory for generating subscription IDs
-     * @param reactivePdpId reactive extractor for the PDP identifier
      */
-    public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
-            IdFactory idFactory,
-            Mono<String> reactivePdpId) {
-        this(pdpConfigurationSource, idFactory, reactivePdpId, List.of(), () -> DEFAULT_PDP_ID);
+    public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource, IdFactory idFactory) {
+        this(pdpConfigurationSource, idFactory, List.of());
     }
 
     /**
@@ -65,36 +56,25 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      *
      * @param pdpConfigurationSource the source of PDP configurations
      * @param idFactory factory for generating subscription IDs
-     * @param reactivePdpId reactive extractor for the PDP identifier
      * @param interceptors interceptors invoked on each vote, sorted by priority
      */
     public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
-            Mono<String> reactivePdpId,
             List<VoteInterceptor> interceptors) {
-        this(pdpConfigurationSource, idFactory, reactivePdpId, interceptors, () -> DEFAULT_PDP_ID);
-    }
-
-    /**
-     * Creates a PDP with vote interceptors and a blocking PDP ID supplier.
-     *
-     * @param pdpConfigurationSource the source of PDP configurations
-     * @param idFactory factory for generating subscription IDs
-     * @param reactivePdpId reactive extractor for the PDP identifier
-     * @param interceptors interceptors invoked on each vote, sorted by priority
-     * @param blockingPdpIdSource supplier for the PDP ID in blocking contexts
-     */
-    public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
-            IdFactory idFactory,
-            Mono<String> reactivePdpId,
-            List<VoteInterceptor> interceptors,
-            Supplier<String> blockingPdpIdSource) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.idFactory              = idFactory;
-        this.reactivePdpId = reactivePdpId;
-        this.blockingPdpIdSource = blockingPdpIdSource;
-        // Sort interceptors by priority (lower values execute first)
-        this.interceptors = interceptors.stream().sorted().toList();
+        this.interceptors           = interceptors.stream().sorted().toList();
+    }
+
+    @Override
+    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId) {
+        return gatherVotes(authorizationSubscription, pdpId).map(tv -> tv.vote().authorizationDecision())
+                .distinctUntilChanged();
+    }
+
+    @Override
+    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription, String pdpId) {
+        return voteOnce(authorizationSubscription, pdpId).vote().authorizationDecision();
     }
 
     /**
@@ -102,29 +82,37 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      * Returns INDETERMINATE if no configuration is loaded.
      *
      * @param authorizationSubscription the authorization subscription to evaluate
+     * @param pdpId the PDP identifier for tenant routing
      * @return a flux of timestamped votes
      */
-    public Flux<TimestampedVote> gatherVotes(AuthorizationSubscription authorizationSubscription) {
+    public Flux<TimestampedVote> gatherVotes(AuthorizationSubscription authorizationSubscription, String pdpId) {
         val subscriptionId = idFactory.newRandom();
-        return reactivePdpId
-                .flatMapMany(pdpId -> pdpConfigurationSource.getPDPConfigurations(pdpId)
-                        .switchMap(optionalConfig -> optionalConfig
-                                .map(config -> config.vote(authorizationSubscription, subscriptionId))
-                                .orElseGet(() -> Flux.just(noConfigurationVote(pdpId)))))
+        return pdpConfigurationSource.getPDPConfigurations(pdpId)
+                .switchMap(optionalConfig -> optionalConfig
+                        .map(config -> config.vote(authorizationSubscription, subscriptionId))
+                        .orElseGet(() -> Flux.just(noConfigurationVote(pdpId))))
                 .doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, authorizationSubscription))
                 .doOnNext(tv -> invokeInterceptors(tv, subscriptionId, authorizationSubscription))
                 .doFinally(signal -> invokeOnUnsubscribe(subscriptionId));
     }
 
-    @Override
-    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
-        return gatherVotes(authorizationSubscription).map(tv -> tv.vote().authorizationDecision())
-                .distinctUntilChanged();
-    }
-
-    @Override
-    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
-        return voteOnce(authorizationSubscription).vote().authorizationDecision();
+    /**
+     * Evaluates a subscription once and returns the vote synchronously.
+     * Returns an INDETERMINATE vote if no configuration is loaded.
+     *
+     * @param authorizationSubscription the authorization subscription to evaluate
+     * @param pdpId the PDP identifier for tenant routing
+     * @return the timestamped vote
+     */
+    public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription, String pdpId) {
+        val subscriptionId   = idFactory.newRandom();
+        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+        if (pdpConfiguration.isEmpty()) {
+            return noConfigurationVote(pdpId);
+        }
+        val timestampedVote = pdpConfiguration.get().voteOnce(authorizationSubscription, subscriptionId);
+        invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);
+        return timestampedVote;
     }
 
     /**
@@ -141,25 +129,6 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
                 .switchMap(optionalConfig -> optionalConfig
                         .map(config -> config.voteWithCoverage(authorizationSubscription, subscriptionId))
                         .orElseGet(Flux::empty));
-    }
-
-    /**
-     * Evaluates a subscription once and returns the vote synchronously.
-     * Returns an INDETERMINATE vote if no configuration is loaded.
-     *
-     * @param authorizationSubscription the authorization subscription to evaluate
-     * @return the timestamped vote
-     */
-    public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription) {
-        val subscriptionId   = idFactory.newRandom();
-        val pdpId            = blockingPdpIdSource.get();
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            return noConfigurationVote(pdpId);
-        }
-        val timestampedVote = pdpConfiguration.get().voteOnce(authorizationSubscription, subscriptionId);
-        invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);
-        return timestampedVote;
     }
 
     private static TimestampedVote noConfigurationVote(String pdpId) {

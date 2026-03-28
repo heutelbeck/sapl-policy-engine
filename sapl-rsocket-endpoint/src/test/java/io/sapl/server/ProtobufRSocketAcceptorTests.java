@@ -44,7 +44,7 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import io.sapl.server.pdpcontroller.ProtobufRSocketAcceptor;
 import io.sapl.server.pdpcontroller.RSocketConnectionAuthenticator.AuthenticationResult;
@@ -60,15 +60,15 @@ class ProtobufRSocketAcceptorTests {
     @Nested
     @DisplayName("connection authentication")
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    class ConnectionAuthTests {ProtobufRSocketAcceptor.getCurrentPdpId
+    class ConnectionAuthTests {
 
         private final int  port = TestSocketUtils.findAvailableTcpPort();
         private Disposable server;
 
         @BeforeAll
         void startServer() {
-            val pdp = mock(PolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            val pdp = mock(MultiTenantPolicyDecisionPoint.class);
+            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
             val acceptor = new ProtobufRSocketAcceptor(pdp, setup -> {
                 val metadata = setup.metadata();
@@ -143,8 +143,8 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
-            val pdp = mock(PolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            val pdp = mock(MultiTenantPolicyDecisionPoint.class);
+            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
             val acceptor = new ProtobufRSocketAcceptor(pdp, setup -> {
                 val metadata = setup.metadata();
@@ -206,8 +206,8 @@ class ProtobufRSocketAcceptorTests {
         @Test
         @DisplayName("max-connection-lifetime enforced for non-expiring credentials")
         void whenMaxLifetimeThenConnectionDisposed() throws IOException {
-            val pdp = mock(PolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            val pdp = mock(MultiTenantPolicyDecisionPoint.class);
+            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
             val localPort = TestSocketUtils.findAvailableTcpPort();
             val acceptor  = new ProtobufRSocketAcceptor(pdp, setup -> {
@@ -249,9 +249,9 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
-            val pdp = mock(PolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
-            when(pdp.decide(any(AuthorizationSubscription.class)))
+            val pdp = mock(MultiTenantPolicyDecisionPoint.class);
+            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decide(any(AuthorizationSubscription.class), any()))
                     .thenReturn(Flux.just(AuthorizationDecision.PERMIT, AuthorizationDecision.DENY));
 
             val acceptor = new ProtobufRSocketAcceptor(pdp);
