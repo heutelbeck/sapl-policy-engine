@@ -1,0 +1,20 @@
+# SAPL 4.0 Native Benchmark Results
+# Scenario: rbac
+# Method: decideOnceBlocking
+# Threads: 8
+# Runtime: native
+# Warmup: 1 x 3s
+# Measurement: 10s
+# Convergence: CoV < 50% over 2 forks
+# Mean: 13948349.60 ops/s
+# StdDev: 507603.39 ops/s
+# CoV: 3.64%
+# Forks: 2
+# Latency p50 (ns): 477
+# Latency p90 (ns): 889
+# Latency p99 (ns): 1018
+# Latency p99.9 (ns): 3505
+# Latency max (ns): 4075519
+fork,throughput_ops_s
+1,13589419.80
+2,14307279.40

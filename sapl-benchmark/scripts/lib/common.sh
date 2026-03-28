@@ -59,7 +59,7 @@ profile_defaults() {
             THREAD_SWEEP=(1 2 4 8)
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
             METHODS=(decideOnceBlocking)
-            LATENCY=false
+            LATENCY=true
             ;;
         base)
             WARMUP_ITERATIONS=1
