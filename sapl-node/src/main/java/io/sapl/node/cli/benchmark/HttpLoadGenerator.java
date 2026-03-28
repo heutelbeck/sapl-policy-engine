@@ -100,7 +100,6 @@ public class HttpLoadGenerator {
     private static void warmupUntilConverged(HttpClient client, HttpRequest request, int concurrency, PrintWriter out) {
         out.print("  Warmup: ");
         val samples = new long[MAX_WARMUP_ITERATIONS];
-        var stable  = 0;
         for (int i = 0; i < MAX_WARMUP_ITERATIONS; i++) {
             val ops = new AtomicLong(0);
             runPhase(client, request, concurrency, WARMUP_INTERVAL_SECS, ops, null);
@@ -109,22 +108,26 @@ public class HttpLoadGenerator {
             out.flush();
             samples[i] = rps;
 
-            if (i >= CONVERGENCE_WINDOW - 1) {
-                var converged = true;
-                for (int j = 1; j < CONVERGENCE_WINDOW; j++) {
-                    val prev = samples[i - j];
-                    if (prev > 0 && Math.abs(rps - prev) * 100 / prev > CONVERGENCE_THRESHOLD) {
-                        converged = false;
-                        break;
-                    }
-                }
-                if (converged) {
-                    out.println("(converged)");
-                    return;
-                }
+            if (isConverged(samples, i)) {
+                out.println("(converged)");
+                return;
             }
         }
         out.println("(max iterations)");
+    }
+
+    private static boolean isConverged(long[] samples, int currentIndex) {
+        if (currentIndex < CONVERGENCE_WINDOW - 1) {
+            return false;
+        }
+        val current = samples[currentIndex];
+        for (int j = 1; j < CONVERGENCE_WINDOW; j++) {
+            val prev = samples[currentIndex - j];
+            if (prev > 0 && Math.abs(current - prev) * 100 / prev > CONVERGENCE_THRESHOLD) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void runPhase(HttpClient client, HttpRequest request, int concurrency, int seconds, AtomicLong ops,
@@ -154,7 +157,7 @@ public class HttpLoadGenerator {
         client.sendAsync(request, BodyHandlers.discarding()).whenComplete((response, error) -> {
             if (error == null) {
                 if (latency != null) {
-                    latency.record(System.nanoTime() - sendTime);
+                    latency.addSample(System.nanoTime() - sendTime);
                 }
                 ops.incrementAndGet();
             }

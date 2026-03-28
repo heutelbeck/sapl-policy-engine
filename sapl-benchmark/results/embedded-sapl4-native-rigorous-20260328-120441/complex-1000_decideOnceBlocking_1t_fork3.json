@@ -1,0 +1,18 @@
+[
+    {
+        "benchmark": "decideOnceBlocking",
+        "mode": "thrpt",
+        "threads": 1,
+        "runtime": "native",
+        "warmupIterations": 1,
+        "warmupTime": "3 s",
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "complex-1000"
+        },
+        "primaryMetric": {
+            "score": 31588.5,
+            "scoreUnit": "ops/s"
+        }
+    }
+]

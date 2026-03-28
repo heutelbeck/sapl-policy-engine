@@ -1,0 +1,18 @@
+[
+    {
+        "benchmark": "decideStreamFirst",
+        "mode": "thrpt",
+        "threads": 4,
+        "runtime": "native",
+        "warmupIterations": 1,
+        "warmupTime": "3 s",
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "rbac"
+        },
+        "primaryMetric": {
+            "score": 2555561.97,
+            "scoreUnit": "ops/s"
+        }
+    }
+]

@@ -19,8 +19,11 @@ package io.sapl.server.pdpcontroller;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.Executors;
 
+import io.sapl.api.pdp.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -30,11 +33,10 @@ import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.rsocket.util.DefaultPayload;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -50,6 +52,11 @@ import reactor.core.scheduler.Schedulers;
  * {@link RSocketConnectionAuthenticator}. The authenticated PDP ID is stored on
  * the per-connection {@code RSocket} instance and propagated to the PDP via a
  * {@link ThreadLocal} for blocking calls.
+ * <p>
+ * Connection lifetime is bounded by the credential expiry (JWT {@code exp}
+ * claim) and an optional maximum connection lifetime. When a connection exceeds
+ * its lifetime, the server disposes it and the client is expected to reconnect
+ * with fresh credentials.
  * <p>
  * Request-response operations ({@code decide-once}) use
  * {@link PolicyDecisionPoint#decideOnceBlocking} on virtual threads for maximum
@@ -80,17 +87,35 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
     private final PolicyDecisionPoint                      pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
+    private final @Nullable Duration                       maxConnectionLifetime;
 
     /**
-     * Creates an acceptor with authentication.
+     * Creates an acceptor with authentication and optional connection lifetime
+     * limit.
+     *
+     * @param pdp the policy decision point
+     * @param authenticator the connection authenticator, or null for
+     * unauthenticated access
+     * @param maxConnectionLifetime maximum connection lifetime, or null for
+     * unlimited (JWT expiry still enforced)
+     */
+    public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp,
+            @Nullable RSocketConnectionAuthenticator authenticator,
+            @Nullable Duration maxConnectionLifetime) {
+        this.pdp                   = pdp;
+        this.authenticator         = authenticator;
+        this.maxConnectionLifetime = maxConnectionLifetime;
+    }
+
+    /**
+     * Creates an acceptor with authentication and no connection lifetime limit.
      *
      * @param pdp the policy decision point
      * @param authenticator the connection authenticator, or null for
      * unauthenticated access
      */
     public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
-        this.pdp           = pdp;
-        this.authenticator = authenticator;
+        this(pdp, authenticator, null);
     }
 
     /**
@@ -99,12 +124,12 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      * @param pdp the policy decision point
      */
     public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp) {
-        this(pdp, null);
+        this(pdp, null, null);
     }
 
     /**
      * Returns the PDP ID set by the current RSocket request thread. Used by
-     * {@link io.sapl.api.pdp.BlockingPdpIdSupplier} implementations to route
+     * {@link BlockingPdpIdSource} implementations to route
      * blocking decisions to the correct tenant.
      *
      * @return the PDP ID for the current thread, or null if not in an RSocket
@@ -117,10 +142,80 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
         if (authenticator == null) {
-            return Mono.just((RSocket) new ProtobufRSocket("default"));
+            return Mono.just(createRSocket("default", null, sendingSocket));
         }
-        return authenticator.authenticate(setup).<RSocket>map(ProtobufRSocket::new)
+        return authenticator.authenticate(setup)
+                .<RSocket>map(result -> createRSocket(result.pdpId(), result.expiresAt(), sendingSocket))
                 .onErrorMap(e -> new RejectedSetupException("Authentication failed: " + e.getMessage()));
+    }
+
+    private RSocket createRSocket(String pdpId, @Nullable Instant credentialExpiry, RSocket sendingSocket) {
+        val effectiveLifetime = computeEffectiveLifetime(credentialExpiry);
+        val rsocket           = new ProtobufRSocket(pdpId);
+        if (effectiveLifetime != null) {
+            scheduleDisposal(sendingSocket, rsocket, effectiveLifetime, pdpId);
+        }
+        return rsocket;
+    }
+
+    @Nullable
+    private Duration computeEffectiveLifetime(@Nullable Instant credentialExpiry) {
+        Duration tokenTtl  = credentialExpiry != null ? Duration.between(Instant.now(), credentialExpiry) : null;
+        Duration staticCap = maxConnectionLifetime;
+
+        if (tokenTtl != null && staticCap != null) {
+            return tokenTtl.compareTo(staticCap) < 0 ? tokenTtl : staticCap;
+        }
+        if (tokenTtl != null) {
+            return tokenTtl;
+        }
+        return staticCap;
+    }
+
+    private void scheduleDisposal(RSocket sendingSocket, ProtobufRSocket serverSocket, Duration lifetime,
+            String pdpId) {
+        if (lifetime.isNegative() || lifetime.isZero()) {
+            log.warn("Connection for pdpId={} has expired credential, disposing immediately", pdpId);
+            sendingSocket.dispose();
+            return;
+        }
+        log.debug("Connection for pdpId={} will expire in {}", pdpId, lifetime);
+        Mono.delay(lifetime).subscribe(new ConnectionExpirySubscriber(sendingSocket, serverSocket, pdpId));
+    }
+
+    private static final class ConnectionExpirySubscriber implements Subscriber<Long> {
+
+        private final RSocket         sendingSocket;
+        private final ProtobufRSocket serverSocket;
+        private final String          pdpId;
+
+        ConnectionExpirySubscriber(RSocket sendingSocket, ProtobufRSocket serverSocket, String pdpId) {
+            this.sendingSocket = sendingSocket;
+            this.serverSocket  = serverSocket;
+            this.pdpId         = pdpId;
+        }
+
+        @Override
+        public void onSubscribe(@NonNull Subscription s) {
+            s.request(1);
+        }
+
+        @Override
+        public void onNext(@NonNull Long tick) {
+            log.info("Connection expired for pdpId={}, disposing", pdpId);
+            sendingSocket.dispose();
+            serverSocket.dispose();
+        }
+
+        @Override
+        public void onError(@NonNull Throwable t) {
+            log.debug("Connection expiry timer error for pdpId={}: {}", pdpId, t.getMessage());
+        }
+
+        @Override
+        public void onComplete() {
+            // Timer completed after emitting
+        }
     }
 
     private final class ProtobufRSocket implements RSocket {

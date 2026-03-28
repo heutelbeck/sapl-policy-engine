@@ -1,0 +1,18 @@
+[
+    {
+        "benchmark": "decideStreamFirst",
+        "mode": "thrpt",
+        "threads": 8,
+        "runtime": "native",
+        "warmupIterations": 1,
+        "warmupTime": "3 s",
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "complex-1"
+        },
+        "primaryMetric": {
+            "score": 5167494.57,
+            "scoreUnit": "ops/s"
+        }
+    }
+]

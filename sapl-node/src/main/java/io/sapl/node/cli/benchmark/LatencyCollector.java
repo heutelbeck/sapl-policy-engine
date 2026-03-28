@@ -49,7 +49,7 @@ class LatencyCollector {
      *
      * @param nanos the latency in nanoseconds
      */
-    void record(long nanos) {
+    void addSample(long nanos) {
         val i = index.getAndIncrement();
         samples[i % samples.length] = nanos;
     }

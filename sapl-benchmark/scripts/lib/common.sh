@@ -57,6 +57,7 @@ profile_defaults() {
             CORE_SWEEP=(1 2 4 6 8)
             CONN_SWEEP=(32 64 128 256)
             THREAD_SWEEP=(1 2 4 8)
+            RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
             METHODS=(decideOnceBlocking)
             LATENCY=true
@@ -74,6 +75,7 @@ profile_defaults() {
             CORE_SWEEP=(1 2 4 6 8)
             CONN_SWEEP=(32 64 128 256)
             THREAD_SWEEP=(1 2 4 8)
+            RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
             METHODS=(decideOnceBlocking)
             LATENCY=true
@@ -91,6 +93,7 @@ profile_defaults() {
             CORE_SWEEP=(1 2 4 6 8)
             CONN_SWEEP=(32 64 128 256)
             THREAD_SWEEP=(1 2 4 8)
+            RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
             METHODS=(decideOnceBlocking)
             LATENCY=true
@@ -304,11 +307,12 @@ converge_wrk() {
     local connections=$1
     local url=$2
     local lua_script=$3
+    local sub_file=$4
     local client_cpu=$(client_cpus)
     local samples=()
 
     for i in $(seq 1 $MAX_WARMUP_ITERS); do
-        local rps=$(SUBSCRIPTION_FILE=$CONFIG_DIR/subscription.json run_pinned "$client_cpu" wrk -t2 -c"$connections" -d${WRK_WARMUP_TIME}s -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
+        local rps=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk -t2 -c"$connections" -d${WRK_WARMUP_TIME}s -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
         samples+=("$rps")
         local n=${#samples[@]}
         if [ "$n" -ge 3 ]; then
@@ -330,6 +334,32 @@ converge_wrk() {
 }
 
 MAX_WARMUP_ITERS=15
+
+parse_wrk_rps() {
+    echo "$1" | grep "Requests/sec" | awk '{printf "%.2f", $2}'
+}
+
+wrk_latency_to_ns() {
+    local val="$1"
+    python3 -c "
+v = '$val'
+if v.endswith('us'): print(int(float(v[:-2]) * 1000))
+elif v.endswith('ms'): print(int(float(v[:-2]) * 1000000))
+elif v.endswith('s'): print(int(float(v[:-1]) * 1000000000))
+else: print(0)
+"
+}
+
+parse_wrk_latency() {
+    local output="$1"
+    local p50=$(echo "$output" | awk '/Latency Distribution/{found=1} found && /50%/{print $2; exit}')
+    local p90=$(echo "$output" | awk '/Latency Distribution/{found=1} found && /90%/{print $2; exit}')
+    local p99=$(echo "$output" | awk '/Latency Distribution/{found=1} found && /99%/{print $2; exit}')
+    local p50_ns=$(wrk_latency_to_ns "$p50")
+    local p90_ns=$(wrk_latency_to_ns "$p90")
+    local p99_ns=$(wrk_latency_to_ns "$p99")
+    echo "$p50_ns:$p90_ns:$p99_ns"
+}
 
 # ---------------------------------------------------------------------------
 # Reporting

@@ -1,0 +1,18 @@
+[
+    {
+        "benchmark": "noOp",
+        "mode": "thrpt",
+        "threads": 1,
+        "runtime": "native",
+        "warmupIterations": 1,
+        "warmupTime": "3 s",
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "rbac"
+        },
+        "primaryMetric": {
+            "score": 1935166.0,
+            "scoreUnit": "ops/s"
+        }
+    }
+]

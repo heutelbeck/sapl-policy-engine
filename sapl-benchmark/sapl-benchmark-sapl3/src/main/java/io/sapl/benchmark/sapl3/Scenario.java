@@ -17,14 +17,13 @@
  */
 package io.sapl.benchmark.sapl3;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -44,7 +43,7 @@ enum Scenario {
             """), AuthorizationDecision.DENY) {
 
         @Override
-        PolicyDecisionPoint buildPdp() throws Exception {
+        PolicyDecisionPoint buildPdp() throws IOException {
             var variables = new HashMap<String, Val>();
             variables.put("permissions", Val.of(MAPPER.readTree("""
                     {
@@ -84,9 +83,9 @@ enum Scenario {
      * Builds a SAPL 3 embedded PDP configured for this scenario.
      *
      * @return the PDP instance (caller should close if AutoCloseable)
-     * @throws Exception if PDP initialization fails
+     * @throws IOException if PDP initialization fails
      */
-    abstract PolicyDecisionPoint buildPdp() throws Exception;
+    abstract PolicyDecisionPoint buildPdp() throws IOException;
 
     /**
      * @return the authorization subscription for this scenario
@@ -114,7 +113,7 @@ enum Scenario {
         try {
             return valueOf(name.toUpperCase().replace('-', '_'));
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException(ERROR_UNKNOWN_SCENARIO.formatted(name, AVAILABLE_NAMES));
+            throw new IllegalArgumentException(ERROR_UNKNOWN_SCENARIO.formatted(name, AVAILABLE_NAMES), exception);
         }
     }
 

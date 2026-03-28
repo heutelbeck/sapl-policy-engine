@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.api.pdp.*;
 import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.*;
@@ -28,10 +29,6 @@ import io.sapl.api.attributes.AttributeBrokerException;
 import io.sapl.api.attributes.AttributeStorage;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
@@ -285,7 +282,7 @@ public class PolicyDecisionPointBuilder {
      *
      * @return this builder
      *
-     * @see io.sapl.api.pdp.PdpIdExtractor
+     * @see ReactivePdpIdSource
      */
     public PolicyDecisionPointBuilder withPdpIdExtractor(Mono<String> pdpIdExtractor) {
         this.pdpIdExtractor = pdpIdExtractor;
@@ -305,7 +302,7 @@ public class PolicyDecisionPointBuilder {
      *
      * @return this builder
      *
-     * @see io.sapl.api.pdp.BlockingPdpIdSupplier
+     * @see BlockingPdpIdSource
      */
     public PolicyDecisionPointBuilder withBlockingPdpIdSupplier(Supplier<String> blockingPdpIdSupplier) {
         this.blockingPdpIdSupplier = blockingPdpIdSupplier;

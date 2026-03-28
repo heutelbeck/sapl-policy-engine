@@ -27,6 +27,7 @@ target/
 **/gen/
 
 # Vaadin
+**/frontend/generated/
 **/dev-bundle/
 **/node_modules/
 **/package.json

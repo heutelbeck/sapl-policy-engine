@@ -58,7 +58,7 @@ class LatencyCollectorTests {
         @DisplayName("all percentiles equal the single sample value")
         void whenOneSample_thenAllPercentilesEqual() {
             val collector = new LatencyCollector(100);
-            collector.record(5000);
+            collector.addSample(5000);
             val latency = collector.toLatency();
             assertThat(latency).satisfies(l -> {
                 assertThat(l.mean()).isCloseTo(5000.0, within(0.1));
@@ -81,7 +81,7 @@ class LatencyCollectorTests {
             val collector = new LatencyCollector(1000);
             // Record 100 samples: 1000, 2000, 3000, ..., 100000
             for (int i = 1; i <= 100; i++) {
-                collector.record(i * 1000L);
+                collector.addSample(i * 1000L);
             }
             val latency = collector.toLatency();
             assertThat(latency).satisfies(l -> {
@@ -98,9 +98,9 @@ class LatencyCollectorTests {
         void whenSkewedDistribution_thenP99HigherThanP50() {
             val collector = new LatencyCollector(1000);
             for (int i = 0; i < 99; i++) {
-                collector.record(100);
+                collector.addSample(100);
             }
-            collector.record(10000);
+            collector.addSample(10000);
             val latency = collector.toLatency();
             assertThat(latency.p99()).isGreaterThan(latency.p50());
         }
@@ -115,7 +115,7 @@ class LatencyCollectorTests {
         void whenOverflow_thenCountCapsAtCapacity() {
             val collector = new LatencyCollector(10);
             for (int i = 0; i < 25; i++) {
-                collector.record(i * 100L);
+                collector.addSample(i * 100L);
             }
             assertThat(collector.count()).isEqualTo(10);
         }
@@ -126,10 +126,10 @@ class LatencyCollectorTests {
             val collector = new LatencyCollector(5);
             // Record 1,2,3,4,5 then 100,200,300,400,500
             for (int i = 1; i <= 5; i++) {
-                collector.record(i);
+                collector.addSample(i);
             }
             for (int i = 1; i <= 5; i++) {
-                collector.record(i * 100L);
+                collector.addSample(i * 100L);
             }
             val latency = collector.toLatency();
             // After overwrite, buffer contains 100,200,300,400,500
@@ -145,15 +145,15 @@ class LatencyCollectorTests {
         @DisplayName("reset clears count and allows reuse")
         void whenReset_thenCountZeroAndReusable() {
             val collector = new LatencyCollector(100);
-            collector.record(1000);
-            collector.record(2000);
+            collector.addSample(1000);
+            collector.addSample(2000);
             assertThat(collector.count()).isEqualTo(2);
 
             collector.reset();
             assertThat(collector.count()).isZero();
             assertThat(collector.toLatency()).isNull();
 
-            collector.record(5000);
+            collector.addSample(5000);
             assertThat(collector.count()).isEqualTo(1);
             assertThat(collector.toLatency()).isNotNull();
         }
@@ -174,7 +174,7 @@ class LatencyCollectorTests {
             for (int t = 0; t < threads; t++) {
                 Thread.ofVirtual().start(() -> {
                     for (int i = 0; i < perThread; i++) {
-                        collector.record(100);
+                        collector.addSample(100);
                     }
                     latch.countDown();
                 });

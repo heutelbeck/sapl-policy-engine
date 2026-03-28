@@ -43,12 +43,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-rsocket</artifactId>
 		</dependency>
-		<!-- jauntsdn rsocket-jvm for benchmarking comparison -->
-		<dependency>
-			<groupId>com.jauntsdn.rsocket</groupId>
-			<artifactId>rsocket-reactor</artifactId>
-			<version>1.6.0</version>
-		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-api</artifactId>

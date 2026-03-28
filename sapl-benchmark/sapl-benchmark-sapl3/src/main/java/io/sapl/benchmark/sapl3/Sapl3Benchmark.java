@@ -52,6 +52,7 @@ class Sapl3Benchmark implements Callable<Integer> {
 
     private static final String ERROR_CONVERGENCE_FAILED = "FAILED: did not converge after %d forks (CoV %.2f%%, threshold %.1f%%).";
     private static final String ERROR_SANITY_CHECK       = "Sanity check failed: scenario '%s' produced %s but expected %s.";
+    private static final String PROPERTY_UNKNOWN         = PROPERTY_UNKNOWN;
     private static final String ERROR_UNKNOWN_METHOD     = "Unknown method: %s. Valid methods: %s.";
 
     private static final double[] T_CRITICAL_95 = { 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262,
@@ -117,7 +118,7 @@ class Sapl3Benchmark implements Callable<Integer> {
         printHeader(out);
 
         var forkResults = runConvergenceForks(out, err);
-        if (forkResults == null) {
+        if (forkResults.isEmpty()) {
             return 1;
         }
 
@@ -155,8 +156,8 @@ class Sapl3Benchmark implements Callable<Integer> {
     }
 
     private void printHeader(PrintWriter out) {
-        var jvmVersion = System.getProperty("java.version", "unknown") + " ("
-                + System.getProperty("java.vm.name", "unknown") + ")";
+        var jvmVersion = System.getProperty("java.version", PROPERTY_UNKNOWN) + " ("
+                + System.getProperty("java.vm.name", PROPERTY_UNKNOWN) + ")";
 
         out.println("SAPL 3.0 Benchmark");
         out.println("  Command:     " + commandLine);
@@ -200,7 +201,7 @@ class Sapl3Benchmark implements Callable<Integer> {
 
         err.println(String.format(Locale.US, ERROR_CONVERGENCE_FAILED, maxForks, computeCoV(forkThroughputs),
                 convergenceThresholdPercent));
-        return null;
+        return List.of();
     }
 
     private double runSingleFork(String includePattern, int forkIndex) throws RunnerException {
@@ -265,7 +266,7 @@ class Sapl3Benchmark implements Callable<Integer> {
             var csv     = new StringBuilder();
             csv.append("# SAPL 3.0 Benchmark Results\n");
             csv.append("# Command: ").append(commandLine).append('\n');
-            csv.append("# JVM: ").append(System.getProperty("java.version", "unknown")).append('\n');
+            csv.append("# JVM: ").append(System.getProperty("java.version", PROPERTY_UNKNOWN)).append('\n');
             csv.append("# Scenario: ").append(scenario).append('\n');
             csv.append("# Method: ").append(method).append('\n');
             csv.append("# Threads: ").append(threads).append('\n');

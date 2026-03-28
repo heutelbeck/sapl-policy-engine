@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.sapl.api.model.ObjectValue;
@@ -160,7 +161,7 @@ final class ScenarioFactory {
             COMPLEX_100, COMPLEX_1000 };
 
     static final Map<String, Scenario> SCENARIOS = Arrays.stream(ALL)
-            .collect(Collectors.toUnmodifiableMap(Scenario::name, scenario -> scenario));
+            .collect(Collectors.toUnmodifiableMap(Scenario::name, Function.identity()));
 
     private ScenarioFactory() {
     }

@@ -17,6 +17,8 @@
  */
 package io.sapl.server.pdpcontroller;
 
+import java.time.Duration;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.SmartLifecycle;
 
@@ -42,6 +44,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
     private final boolean                                  enabled;
     private final int                                      port;
+    private final @Nullable Duration                       maxConnectionLifetime;
     private final PolicyDecisionPoint                      pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
 
@@ -58,7 +61,10 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         } else {
             log.warn("RSocket server has no authentication configured");
         }
-        val acceptor = new ProtobufRSocketAcceptor(pdp, authenticator);
+        if (maxConnectionLifetime != null) {
+            log.info("RSocket max connection lifetime: {}", maxConnectionLifetime);
+        }
+        val acceptor = new ProtobufRSocketAcceptor(pdp, authenticator, maxConnectionLifetime);
         server  = RSocketServer.create(acceptor).bindNow(TcpServerTransport.create(port));
         running = true;
         log.info("Protobuf RSocket PDP server started on port {}", port);

@@ -1,0 +1,21 @@
+# SAPL 4.0 Native Benchmark Results
+# Scenario: simple-500
+# Method: decideOnceBlocking
+# Threads: 8
+# Runtime: native
+# Warmup: 1 x 3s
+# Measurement: 30s
+# Convergence: CoV < 2% over 3 forks
+# Mean: 472954.00 ops/s
+# StdDev: 3970.06 ops/s
+# CoV: 0.84%
+# Forks: 3
+# Latency p50 (ns): 14327
+# Latency p90 (ns): 23215
+# Latency p99 (ns): 29071
+# Latency p99.9 (ns): 408319
+# Latency max (ns): 8486911
+fork,throughput_ops_s
+1,470288.37
+2,471056.93
+3,477516.70

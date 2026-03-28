@@ -22,8 +22,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
-import io.sapl.api.pdp.BlockingPdpIdSupplier;
-import io.sapl.api.pdp.PdpIdExtractor;
+import io.sapl.api.pdp.BlockingPdpIdSource;
+import io.sapl.api.pdp.ReactivePdpIdSource;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -51,7 +51,6 @@ import org.springframework.context.annotation.Role;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -80,7 +79,7 @@ import java.util.Set;
  * <li>Decision interceptors (beans implementing
  * {@link VoteInterceptor})</li>
  * <li>PDP ID extractor for multi-tenant routing (beans implementing
- * {@link PdpIdExtractor})</li>
+ * {@link ReactivePdpIdSource})</li>
  * </ul>
  * <p>
  * Configuration is controlled via {@link EmbeddedPDPProperties} with prefix
@@ -106,11 +105,11 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PolicyDecisionPoint policyDecisionPoint(JsonMapper mapper, Clock clock,
-            ObjectProvider<VoteInterceptor> interceptorProvider,
-            ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
-            ObjectProvider<PdpIdExtractor> pdpIdExtractorProvider,
-            ObjectProvider<BlockingPdpIdSupplier> blockingPdpIdSupplierProvider, ApplicationContext applicationContext,
-            EmbeddedPDPProperties properties) {
+                                            ObjectProvider<VoteInterceptor> interceptorProvider,
+                                            ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
+                                            ObjectProvider<ReactivePdpIdSource> reactivePdpIdSource,
+                                            ObjectProvider<BlockingPdpIdSource> blockingPdpIdSource, ApplicationContext applicationContext,
+                                            EmbeddedPDPProperties properties) {
 
         log.info("Deploying embedded Policy Decision Point. Source: {}, Path: {}", properties.getPdpConfigType(),
                 properties.getPoliciesPath());
@@ -118,15 +117,15 @@ public class PDPAutoConfiguration {
         val builder = PolicyDecisionPointBuilder.withDefaults(mapper, clock);
 
         // Configure PDP ID extractor for multi-tenant routing (reactive)
-        pdpIdExtractorProvider.ifAvailable(extractor -> {
+        reactivePdpIdSource.ifAvailable(extractor -> {
             log.debug("Registering custom PDP ID extractor: {}", extractor.getClass().getSimpleName());
-            builder.withPdpIdExtractor(extractor.extract());
+            builder.withPdpIdExtractor(extractor.pdpId());
         });
 
         // Configure blocking PDP ID supplier for multi-tenant routing (synchronous)
-        blockingPdpIdSupplierProvider.ifAvailable(supplier -> {
+        blockingPdpIdSource.ifAvailable(supplier -> {
             log.debug("Registering custom blocking PDP ID supplier: {}", supplier.getClass().getSimpleName());
-            builder.withBlockingPdpIdSupplier(supplier::get);
+            builder.withBlockingPdpIdSupplier(supplier::pdpId);
         });
 
         // Collect static function library classes from providers

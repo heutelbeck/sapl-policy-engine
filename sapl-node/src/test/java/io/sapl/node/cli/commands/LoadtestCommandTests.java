@@ -90,6 +90,22 @@ class LoadtestCommandTests {
             assertThat(cmd.warmupSeconds).isEqualTo(10);
             assertThat(cmd.measureSeconds).isEqualTo(30);
         }
+
+        @Test
+        @DisplayName("machine-readable defaults to false")
+        void whenDefault_thenMachineReadableFalse() {
+            val cmd = new LoadtestCommand();
+            new CommandLine(cmd).parseArgs("-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
+            assertThat(cmd.machineReadable).isFalse();
+        }
+
+        @Test
+        @DisplayName("parses machine-readable flag")
+        void whenMachineReadable_thenTrue() {
+            val cmd = new LoadtestCommand();
+            new CommandLine(cmd).parseArgs("--machine-readable", "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
+            assertThat(cmd.machineReadable).isTrue();
+        }
     }
 
     @Nested

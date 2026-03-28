@@ -20,6 +20,7 @@ package io.sapl.node.cli.benchmark;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -57,7 +58,8 @@ public class EmbeddedBenchmarkRunner {
     static final String WARN_BENCHMARK_THREADS = "Benchmark threads did not complete within timeout.";
     static final String WARN_JSON_WRITE_FAILED = "Warning: Failed to write JSON results: %s.";
 
-    private static final PrintWriter SILENT_OUT = new PrintWriter(OutputStream.nullOutputStream());
+    private static final PrintWriter SILENT_OUT = new PrintWriter(OutputStream.nullOutputStream(), false,
+            StandardCharsets.UTF_8);
 
     record BenchmarkMethod(Supplier<Object> method, int opsPerInvocation) {}
 
@@ -101,8 +103,7 @@ public class EmbeddedBenchmarkRunner {
         for (val entry : methods.entrySet()) {
             val bm = entry.getValue();
 
-            runPhase("Warmup", cfg.warmupIterations(), cfg.warmupTimeSeconds(), threads, bm.method(), SILENT_OUT, false,
-                    bm.opsPerInvocation());
+            runPhase("Warmup", cfg.warmupIterations(), cfg.warmupTimeSeconds(), threads, bm, SILENT_OUT, false);
 
             val opsCount   = runThroughputIteration(cfg.measurementTimeSeconds(), threads, bm.method())
                     * bm.opsPerInvocation();
@@ -137,12 +138,12 @@ public class EmbeddedBenchmarkRunner {
             val bm = entry.getValue();
             out.println("--- %s ---".formatted(entry.getKey()));
 
-            val warmupData = runPhase("Warmup", cfg.warmupIterations(), cfg.warmupTimeSeconds(), threads, bm.method(),
-                    out, true, bm.opsPerInvocation());
+            val warmupData = runPhase("Warmup", cfg.warmupIterations(), cfg.warmupTimeSeconds(), threads, bm, out,
+                    true);
             checkWarmupConvergence(warmupData, out);
 
             val iterationData = runPhase("Iteration", cfg.measurementIterations(), cfg.measurementTimeSeconds(),
-                    threads, bm.method(), out, true, bm.opsPerInvocation());
+                    threads, bm, out, true);
             val latency       = measureLatency(cfg, threads, bm.method());
 
             if (latency != null) {
@@ -199,14 +200,14 @@ public class EmbeddedBenchmarkRunner {
         return filtered.isEmpty() ? all : filtered;
     }
 
-    private static List<Double> runPhase(String phaseName, int iterations, int timePerIterationSeconds, int threads,
-            Supplier<Object> method, PrintWriter out, boolean collect, int opsPerInvocation) {
+    private static List<Double> runPhase(String phaseName, int iterations, int seconds, int threads, BenchmarkMethod bm,
+            PrintWriter out, boolean collect) {
         val results = collect ? new ArrayList<Double>(iterations) : null;
         for (int i = 0; i < iterations; i++) {
             System.gc();
-            val opsCount   = runThroughputIteration(timePerIterationSeconds, threads, method) * opsPerInvocation;
-            val throughput = (double) opsCount / timePerIterationSeconds;
-            val nsPerOp    = timePerIterationSeconds * 1_000_000_000.0 / opsCount;
+            val opsCount   = runThroughputIteration(seconds, threads, bm.method()) * bm.opsPerInvocation();
+            val throughput = (double) opsCount / seconds;
+            val nsPerOp    = seconds * 1_000_000_000.0 / opsCount;
             out.println("%s %d: %,.1f ops/s  (%.0f ns/op)".formatted(phaseName, i + 1, throughput, nsPerOp));
             out.flush();
             if (collect) {

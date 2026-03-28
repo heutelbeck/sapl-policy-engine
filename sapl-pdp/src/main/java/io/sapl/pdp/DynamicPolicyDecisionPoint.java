@@ -43,8 +43,8 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
     private final PdpVoterSource        pdpConfigurationSource;
     private final IdFactory             idFactory;
-    private final Mono<String>          pdpIdExtractor;
-    private final Supplier<String>      blockingPdpIdSupplier;
+    private final Mono<String> reactivePdpId;
+    private final Supplier<String>      blockingPdpIdSource;
     private final List<VoteInterceptor> interceptors;
 
     /**
@@ -52,12 +52,12 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      *
      * @param pdpConfigurationSource the source of PDP configurations
      * @param idFactory factory for generating subscription IDs
-     * @param pdpIdExtractor reactive extractor for the PDP identifier
+     * @param reactivePdpId reactive extractor for the PDP identifier
      */
     public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
-            Mono<String> pdpIdExtractor) {
-        this(pdpConfigurationSource, idFactory, pdpIdExtractor, List.of(), () -> DEFAULT_PDP_ID);
+            Mono<String> reactivePdpId) {
+        this(pdpConfigurationSource, idFactory, reactivePdpId, List.of(), () -> DEFAULT_PDP_ID);
     }
 
     /**
@@ -65,14 +65,14 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      *
      * @param pdpConfigurationSource the source of PDP configurations
      * @param idFactory factory for generating subscription IDs
-     * @param pdpIdExtractor reactive extractor for the PDP identifier
+     * @param reactivePdpId reactive extractor for the PDP identifier
      * @param interceptors interceptors invoked on each vote, sorted by priority
      */
     public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
-            Mono<String> pdpIdExtractor,
+            Mono<String> reactivePdpId,
             List<VoteInterceptor> interceptors) {
-        this(pdpConfigurationSource, idFactory, pdpIdExtractor, interceptors, () -> DEFAULT_PDP_ID);
+        this(pdpConfigurationSource, idFactory, reactivePdpId, interceptors, () -> DEFAULT_PDP_ID);
     }
 
     /**
@@ -80,19 +80,19 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      *
      * @param pdpConfigurationSource the source of PDP configurations
      * @param idFactory factory for generating subscription IDs
-     * @param pdpIdExtractor reactive extractor for the PDP identifier
+     * @param reactivePdpId reactive extractor for the PDP identifier
      * @param interceptors interceptors invoked on each vote, sorted by priority
-     * @param blockingPdpIdSupplier supplier for the PDP ID in blocking contexts
+     * @param blockingPdpIdSource supplier for the PDP ID in blocking contexts
      */
     public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
-            Mono<String> pdpIdExtractor,
+            Mono<String> reactivePdpId,
             List<VoteInterceptor> interceptors,
-            Supplier<String> blockingPdpIdSupplier) {
+            Supplier<String> blockingPdpIdSource) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.idFactory              = idFactory;
-        this.pdpIdExtractor         = pdpIdExtractor;
-        this.blockingPdpIdSupplier  = blockingPdpIdSupplier;
+        this.reactivePdpId = reactivePdpId;
+        this.blockingPdpIdSource = blockingPdpIdSource;
         // Sort interceptors by priority (lower values execute first)
         this.interceptors = interceptors.stream().sorted().toList();
     }
@@ -106,7 +106,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      */
     public Flux<TimestampedVote> gatherVotes(AuthorizationSubscription authorizationSubscription) {
         val subscriptionId = idFactory.newRandom();
-        return pdpIdExtractor
+        return reactivePdpId
                 .flatMapMany(pdpId -> pdpConfigurationSource.getPDPConfigurations(pdpId)
                         .switchMap(optionalConfig -> optionalConfig
                                 .map(config -> config.vote(authorizationSubscription, subscriptionId))
@@ -152,7 +152,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
      */
     public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription) {
         val subscriptionId   = idFactory.newRandom();
-        val pdpId            = blockingPdpIdSupplier.get();
+        val pdpId            = blockingPdpIdSource.get();
         val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
         if (pdpConfiguration.isEmpty()) {
             return noConfigurationVote(pdpId);

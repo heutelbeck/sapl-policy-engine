@@ -17,6 +17,8 @@
  */
 package io.sapl.server.pdpcontroller;
 
+import java.time.Duration;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +32,11 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
  * Enable with property {@code sapl.pdp.rsocket.enabled=true} and configure
  * the port with {@code sapl.pdp.rsocket.port} (default: 7000).
  * <p>
+ * Optionally set {@code sapl.pdp.rsocket.max-connection-lifetime} to limit
+ * connection duration for non-expiring credentials (API key, basic auth). JWT
+ * connections are always bounded by the token's {@code exp} claim. The
+ * effective lifetime is {@code min(token_expiry, max_connection_lifetime)}.
+ * <p>
  * If a {@link RSocketConnectionAuthenticator} bean is present, connections
  * are authenticated via the RSocket setup frame. Otherwise, all connections
  * are accepted without authentication.
@@ -42,9 +49,10 @@ public class ProtobufRSocketServerConfiguration {
 
     @Bean
     ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:false}") boolean enabled,
-            @Value("${sapl.pdp.rsocket.port:7000}") int port, PolicyDecisionPoint pdp,
-            @Nullable RSocketConnectionAuthenticator authenticator) {
-        return new ProtobufRSocketServerLifecycle(enabled, port, pdp, authenticator);
+            @Value("${sapl.pdp.rsocket.port:7000}") int port,
+            @Value("${sapl.pdp.rsocket.max-connection-lifetime:#{null}}") @Nullable Duration maxConnectionLifetime,
+            PolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
+        return new ProtobufRSocketServerLifecycle(enabled, port, maxConnectionLifetime, pdp, authenticator);
     }
 
 }

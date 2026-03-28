@@ -1,0 +1,21 @@
+# SAPL 4.0 Native Benchmark Results
+# Scenario: simple-500
+# Method: decideStreamFirst
+# Threads: 8
+# Runtime: native
+# Warmup: 1 x 3s
+# Measurement: 30s
+# Convergence: CoV < 2% over 3 forks
+# Mean: 458282.71 ops/s
+# StdDev: 4474.26 ops/s
+# CoV: 0.98%
+# Forks: 3
+# Latency p50 (ns): 15207
+# Latency p90 (ns): 21711
+# Latency p99 (ns): 29759
+# Latency p99.9 (ns): 450815
+# Latency max (ns): 7438335
+fork,throughput_ops_s
+1,455615.77
+2,455784.13
+3,463448.23

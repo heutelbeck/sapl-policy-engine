@@ -52,14 +52,17 @@ public record BenchmarkContext(String subscriptionJson, @Nullable String policie
 
     static final String RBAC_CONFIG_TYPE = "RBAC";
 
+    private static final String RBAC_ACTION = "action";
+    private static final String RBAC_RESOURCE = "foo123";
+
     static final String RBAC_POLICY = """
             policy "RBAC"
             permit
                 { "type" : resource.type, "action": action } in permissions[(subject.role)];
             """;
 
-    static final String RBAC_SUBSCRIPTION = """
-            {"subject":{"username":"bob","role":"test"},"action":"write","resource":{"type":"foo123"}}""";
+    static final String RBAC_SUBSCRIPTION = "{\"subject\":{\"username\":\"bob\",\"role\":\"test\"},\"action\":\"write\",\"resource\":{\"type\":\""
+            + RBAC_RESOURCE + "\"}}";
 
     /**
      * Creates a context for the built-in RBAC benchmark preset. User "bob"
@@ -95,12 +98,12 @@ public record BenchmarkContext(String subscriptionJson, @Nullable String policie
     private static PDPComponents buildRbacPdp() {
         val algorithm   = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
                 ErrorHandling.PROPAGATE);
-        val permissions = ObjectValue.builder()
-                .put("dev",
-                        Value.ofArray(Value.ofObject(Map.of("type", Value.of("foo123"), "action", Value.of("write"))),
-                                Value.ofObject(Map.of("type", Value.of("foo123"), "action", Value.of("read")))))
+        val permissions = ObjectValue.builder().put("dev",
+                Value.ofArray(Value.ofObject(Map.of("type", Value.of(RBAC_RESOURCE), RBAC_ACTION, Value.of("write"))),
+                        Value.ofObject(Map.of("type", Value.of(RBAC_RESOURCE), RBAC_ACTION, Value.of("read")))))
                 .put("test",
-                        Value.ofArray(Value.ofObject(Map.of("type", Value.of("foo123"), "action", Value.of("read")))))
+                        Value.ofArray(
+                                Value.ofObject(Map.of("type", Value.of(RBAC_RESOURCE), RBAC_ACTION, Value.of("read")))))
                 .build();
         val variables   = ObjectValue.builder().put("permissions", permissions).build();
         val data        = new PdpData(variables, Value.EMPTY_OBJECT);

@@ -29,6 +29,7 @@ import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
 import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
+import org.springframework.security.config.web.server.ServerHttpSecurity.HttpBasicSpec;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsPasswordService;
@@ -40,7 +41,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.server.ServerWebExchange;
 
-import io.sapl.api.pdp.PdpIdExtractor;
+import io.sapl.api.pdp.ReactivePdpIdSource;
 import io.sapl.node.apikey.ApiKeyReactiveAuthenticationManager;
 import io.sapl.node.apikey.ApiKeyService;
 import io.sapl.node.auth.SaplAuthenticationToken;
@@ -97,7 +98,7 @@ public class SecurityConfiguration {
      * @return the PDP ID extractor
      */
     @Bean
-    PdpIdExtractor pdpIdExtractor() {
+    ReactivePdpIdSource pdpIdExtractor() {
         return () -> ReactiveSecurityContextHolder.getContext()
                 .flatMap(ctx -> Mono.justOrEmpty(ctx.getAuthentication())).flatMap(this::extractPdpId)
                 .defaultIfEmpty(pdpProperties.getDefaultPdpId());
@@ -141,7 +142,7 @@ public class SecurityConfiguration {
                 && !pdpProperties.isAllowOauth2Auth()) {
             // No authentication at all: minimize security filter chain overhead
             log.warn("Server has been configured to reply to requests without authentication.");
-            return http.csrf(CsrfSpec::disable).formLogin(FormLoginSpec::disable).httpBasic(spec -> spec.disable())
+            return http.csrf(CsrfSpec::disable).formLogin(FormLoginSpec::disable).httpBasic(HttpBasicSpec::disable)
                     .requestCache(spec -> spec.disable())
                     .authorizeExchange(exchange -> exchange.anyExchange().permitAll()).build();
         }

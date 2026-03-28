@@ -1,0 +1,18 @@
+[
+    {
+        "benchmark": "decideOnceBlocking",
+        "mode": "thrpt",
+        "threads": 4,
+        "runtime": "native",
+        "warmupIterations": 1,
+        "warmupTime": "3 s",
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "rbac-large"
+        },
+        "primaryMetric": {
+            "score": 6522951.13,
+            "scoreUnit": "ops/s"
+        }
+    }
+]

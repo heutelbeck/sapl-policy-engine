@@ -18,12 +18,15 @@
 package io.sapl.node.cli.commands;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -134,6 +137,9 @@ public class LoadtestCommand implements Callable<Integer> {
     @Option(names = "--label", description = "Label for the report (e.g., 'Server pinned to CPUs 0-7')")
     String label;
 
+    @Option(names = "--machine-readable", defaultValue = "false", description = "Output single-line parseable results for script integration")
+    boolean machineReadable;
+
     @ArgGroup(exclusive = true, multiplicity = "0..1", heading = "%nSubscription Input:%n")
     SubscriptionInputOptions subscriptionInput;
 
@@ -163,28 +169,40 @@ public class LoadtestCommand implements Callable<Integer> {
             BenchmarkResult result;
             LoadtestContext ctx;
 
+            val progressOut = machineReadable ? new PrintWriter(OutputStream.nullOutputStream()) : out;
+
             if (rsocket) {
                 val protoPayload = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
                 ctx = LoadtestContext.rsocket(rsocketHost, rsocketPort, connections, vtPerConnection, warmupSeconds,
                         measureSeconds, timestamp, label);
-                out.println("RSocket load test: rsocket://%s:%d".formatted(rsocketHost, rsocketPort));
+                if (!machineReadable) {
+                    out.println("RSocket load test: rsocket://%s:%d".formatted(rsocketHost, rsocketPort));
+                }
                 result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, protoPayload, connections, vtPerConnection,
-                        warmupSeconds, measureSeconds, out);
+                        warmupSeconds, measureSeconds, progressOut);
             } else {
                 val body = mapper.writeValueAsString(subscription).getBytes(StandardCharsets.UTF_8);
                 ctx = LoadtestContext.http(url, concurrency, warmupSeconds, measureSeconds, timestamp, label);
-                out.println("HTTP load test: %s".formatted(url));
-                result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, out);
+                if (!machineReadable) {
+                    out.println("HTTP load test: %s".formatted(url));
+                }
+                result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, progressOut);
             }
 
             val results = new ArrayList<BenchmarkResult>();
             results.add(result);
 
-            printLatency(result, out);
+            if (machineReadable) {
+                printMachineReadable(result, out);
+            } else {
+                printLatency(result, out);
+            }
 
             if (output != null) {
                 BenchmarkReportWriter.writeLoadtestReports(results, ctx, output, err);
-                out.println("Results written to: " + output);
+                if (!machineReadable) {
+                    out.println("Results written to: " + output);
+                }
             }
 
             return 0;
@@ -197,17 +215,27 @@ public class LoadtestCommand implements Callable<Integer> {
         }
     }
 
-    private static void printLatency(BenchmarkResult result, java.io.PrintWriter out) {
+    private static void printMachineReadable(BenchmarkResult result, PrintWriter out) {
+        out.println(String.format(Locale.US, "THROUGHPUT:%.2f", result.mean()));
+        val latency = result.latency();
+        if (latency != null) {
+            out.println(String.format(Locale.US, "LATENCY:%.0f:%.0f:%.0f:%.0f:%.0f", latency.p50(), latency.p90(),
+                    latency.p99(), latency.p999(), latency.max()));
+        }
+        out.flush();
+    }
+
+    private static void printLatency(BenchmarkResult result, PrintWriter out) {
         val latency = result.latency();
         if (latency == null) {
             return;
         }
         out.println("  Latency:");
-        out.printf("    p50:   %,.0f us%n", latency.p50() / 1000.0);
-        out.printf("    p90:   %,.0f us%n", latency.p90() / 1000.0);
-        out.printf("    p99:   %,.0f us%n", latency.p99() / 1000.0);
-        out.printf("    p99.9: %,.0f us%n", latency.p999() / 1000.0);
-        out.printf("    max:   %,.0f us%n", latency.max() / 1000.0);
+        out.printf(Locale.US, "    p50:   %,.0f us%n", latency.p50() / 1000.0);
+        out.printf(Locale.US, "    p90:   %,.0f us%n", latency.p90() / 1000.0);
+        out.printf(Locale.US, "    p99:   %,.0f us%n", latency.p99() / 1000.0);
+        out.printf(Locale.US, "    p99.9: %,.0f us%n", latency.p999() / 1000.0);
+        out.printf(Locale.US, "    max:   %,.0f us%n", latency.max() / 1000.0);
         out.flush();
     }
 }

@@ -139,7 +139,7 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
         val resolved = resolveCredentials(auth);
         if (resolved.basicAuth != null) {
             val parsed = parseBasicAuth(resolved.basicAuth);
-            builder.basicAuth(parsed[0], parsed[1]);
+            builder.basicAuth(parsed.username(), parsed.password());
         } else if (resolved.token != null) {
             builder.apiKey(resolved.token);
         }
@@ -150,7 +150,7 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
         val resolved = resolveCredentials(auth);
         if (resolved.basicAuth != null) {
             val parsed = parseBasicAuth(resolved.basicAuth);
-            builder.basicAuth(parsed[0], parsed[1]);
+            builder.basicAuth(parsed.username(), parsed.password());
         } else if (resolved.token != null) {
             builder.apiKey(resolved.token);
         }
@@ -178,12 +178,28 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
         return new ResolvedCredentials(null, null);
     }
 
-    public static String[] parseBasicAuth(String credentials) {
+    /**
+     * Parsed basic authentication credentials.
+     *
+     * @param username the username
+     * @param password the password
+     */
+    public record BasicAuthCredentials(String username, String password) {}
+
+    /**
+     * Parses a "username:password" string into its components.
+     *
+     * @param credentials the credentials string
+     * @return parsed credentials
+     * @throws IllegalArgumentException if the format is invalid
+     */
+    public static BasicAuthCredentials parseBasicAuth(String credentials) {
         val separatorIndex = credentials.indexOf(':');
         if (separatorIndex < 0) {
             throw new IllegalArgumentException(ERROR_BASIC_AUTH_FORMAT);
         }
-        return new String[] { credentials.substring(0, separatorIndex), credentials.substring(separatorIndex + 1) };
+        return new BasicAuthCredentials(credentials.substring(0, separatorIndex),
+                credentials.substring(separatorIndex + 1));
     }
 
     private static String resolveWithEnv(String flagValue, String envVar, String defaultValue) {
