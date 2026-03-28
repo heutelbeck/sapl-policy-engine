@@ -43,7 +43,7 @@ enum Scenario {
             """), AuthorizationDecision.DENY) {
 
         @Override
-        PolicyDecisionPoint buildPdp() throws IOException {
+        PolicyDecisionPoint buildPdp() throws IOException, io.sapl.interpreter.InitializationException {
             var variables = new HashMap<String, Val>();
             variables.put("permissions", Val.of(MAPPER.readTree("""
                     {
@@ -85,7 +85,7 @@ enum Scenario {
      * @return the PDP instance (caller should close if AutoCloseable)
      * @throws IOException if PDP initialization fails
      */
-    abstract PolicyDecisionPoint buildPdp() throws IOException;
+    abstract PolicyDecisionPoint buildPdp() throws IOException, io.sapl.interpreter.InitializationException;
 
     /**
      * @return the authorization subscription for this scenario

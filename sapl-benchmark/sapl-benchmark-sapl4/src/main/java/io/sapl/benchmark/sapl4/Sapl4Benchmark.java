@@ -62,7 +62,7 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     private static final String ERROR_CONVERGENCE_FAILED = "FAILED: did not converge after %d forks (CoV %.2f%%, threshold %.1f%%).";
     private static final String ERROR_SANITY_CHECK       = "Sanity check failed: scenario '%s' produced %s but expected %s.";
-    private static final String PROPERTY_UNKNOWN         = PROPERTY_UNKNOWN;
+    private static final String PROPERTY_UNKNOWN         = "unknown";
     private static final String ERROR_UNKNOWN_METHOD     = "Unknown method: %s. Valid methods: %s.";
     private static final String WARN_WRITE_FAILED        = "Warning: failed to write results: %s.";
 
@@ -236,7 +236,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         out.flush();
     }
 
-    private ArrayList<Double> runConvergenceForks(PrintWriter out, PrintWriter err) throws RunnerException {
+    private List<Double> runConvergenceForks(PrintWriter out, PrintWriter err) throws RunnerException {
         var forkThroughputs = new ArrayList<Double>();
         var includePattern  = EmbeddedPdpBenchmark.class.getName() + "\\." + method;
 
