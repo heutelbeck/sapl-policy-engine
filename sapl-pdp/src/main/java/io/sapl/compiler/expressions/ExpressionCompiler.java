@@ -36,7 +36,7 @@ import io.sapl.ast.FunctionCall;
 import io.sapl.ast.Identifier;
 import io.sapl.ast.Literal;
 import io.sapl.ast.ObjectExpression;
-import io.sapl.ast.Parenthesized;
+
 import io.sapl.ast.Product;
 import io.sapl.ast.RelativeReference;
 import io.sapl.ast.SimpleFilter;
@@ -53,7 +53,6 @@ public class ExpressionCompiler {
     public CompiledExpression compile(Expression expression, CompilationContext ctx) {
         return switch (expression) {
         case Literal(var value, var ignored)           -> value;
-        case Parenthesized(var inner, var ignored)     -> compile(inner, ctx);
         case Identifier identifier                     -> compileIdentifier(identifier, ctx);
         case RelativeReference(var type, var location) -> switch (type) {
                                                    case VALUE        -> new RelativeValueOp(location);
