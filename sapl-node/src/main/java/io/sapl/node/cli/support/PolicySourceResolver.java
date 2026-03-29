@@ -17,9 +17,12 @@
  */
 package io.sapl.node.cli.support;
 
-import static io.sapl.pdp.configuration.source.PdpIdValidator.resolveHomeFolderIfPresent;
-import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.BUNDLES;
-import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.DIRECTORY;
+import io.sapl.node.cli.commands.BundleCommand;
+import io.sapl.node.cli.options.BundleVerificationOptions;
+import io.sapl.node.cli.options.PolicySourceOptions;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
+import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -27,12 +30,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
-import io.sapl.node.cli.commands.BundleCommand;
-import io.sapl.node.cli.options.BundleVerificationOptions;
-import io.sapl.node.cli.options.PolicySourceOptions;
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
-import lombok.experimental.UtilityClass;
-import lombok.val;
+import static io.sapl.pdp.configuration.source.PdpIdValidator.resolveHomeFolderIfPresent;
+import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.BUNDLES;
+import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.DIRECTORY;
 
 @UtilityClass
 public class PolicySourceResolver {

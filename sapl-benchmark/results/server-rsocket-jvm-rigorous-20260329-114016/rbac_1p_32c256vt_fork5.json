@@ -1,0 +1,19 @@
+[
+    {
+        "benchmark": "rsocket-decide-once",
+        "mode": "thrpt",
+        "transport": "rsocket",
+        "cores": 1,
+        "connections": 32,
+        "vtPerConnection": 256,
+        "warmupSeconds": 5,
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "rbac"
+        },
+        "primaryMetric": {
+            "score": 191166.4,
+            "scoreUnit": "req/s"
+        }
+    }
+]

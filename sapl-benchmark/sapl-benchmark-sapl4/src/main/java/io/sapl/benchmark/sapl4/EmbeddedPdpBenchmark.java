@@ -17,18 +17,11 @@
  */
 package io.sapl.benchmark.sapl4;
 
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Level;
-import org.openjdk.jmh.annotations.Param;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import org.openjdk.jmh.annotations.*;
 
 /**
  * JMH benchmark for the embedded Policy Decision Point. Each trial builds a

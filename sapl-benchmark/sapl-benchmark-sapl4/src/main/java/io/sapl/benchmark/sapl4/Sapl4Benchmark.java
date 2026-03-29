@@ -17,6 +17,19 @@
  */
 package io.sapl.benchmark.sapl4;
 
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.results.format.ResultFormatType;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.management.GarbageCollectorMXBean;
@@ -30,20 +43,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.results.format.ResultFormatType;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
-import org.openjdk.jmh.runner.options.TimeValue;
-
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Spec;
 
 /**
  * Rigorous JMH benchmark runner for SAPL 4.0. Uses a multi-level
@@ -412,13 +411,17 @@ class Sapl4Benchmark implements Callable<Integer> {
         if (parallelPoolSize != null) {
             args.add("-Dreactor.schedulers.defaultPoolSize=" + parallelPoolSize);
         }
+        appendExtraJvmArgs(args);
+        if (!args.isEmpty()) {
+            builder.jvmArgsAppend(args.toArray(String[]::new));
+        }
+    }
+
+    private void appendExtraJvmArgs(List<String> args) {
         if (jvmArgs != null) {
             for (var arg : jvmArgs.split(",")) {
                 args.add(arg.trim());
             }
-        }
-        if (!args.isEmpty()) {
-            builder.jvmArgsAppend(args.toArray(String[]::new));
         }
     }
 

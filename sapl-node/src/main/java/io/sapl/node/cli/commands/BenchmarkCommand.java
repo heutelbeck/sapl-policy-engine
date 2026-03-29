@@ -17,19 +17,8 @@
  */
 package io.sapl.node.cli.commands;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
-
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.node.cli.benchmark.BenchmarkContext;
-import io.sapl.node.cli.benchmark.BenchmarkReportWriter;
-import io.sapl.node.cli.benchmark.BenchmarkResult;
-import io.sapl.node.cli.benchmark.BenchmarkRunConfig;
-import io.sapl.node.cli.benchmark.EmbeddedBenchmarkRunner;
+import io.sapl.node.cli.benchmark.*;
 import io.sapl.node.cli.options.BenchmarkOptions;
 import io.sapl.node.cli.options.BundleVerificationOptions;
 import io.sapl.node.cli.options.PolicySourceOptions;
@@ -37,13 +26,16 @@ import io.sapl.node.cli.options.SubscriptionInputOptions;
 import io.sapl.node.cli.support.PolicySourceResolver;
 import io.sapl.node.cli.support.SubscriptionResolver;
 import lombok.val;
-import picocli.CommandLine.ArgGroup;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Mixin;
+import picocli.CommandLine.*;
 import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Spec;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Quick assessment tool for embedded PDP evaluation performance. Uses a

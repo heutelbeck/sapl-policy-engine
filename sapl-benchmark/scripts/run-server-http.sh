@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 PROFILE=${1:-quick}
-OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/$PROFILE-$(timestamp)}
+OUTPUT_DIR=${2:-$SCRIPT_DIR/../results}
 
 profile_defaults "$PROFILE"
 log_env
@@ -143,7 +143,8 @@ with open('$fork_json', 'w') as f:
         local converged
         converged=$(check_convergence "$CONVERGENCE_WINDOW" "${throughputs[@]}")
         if [ "$converged" = "true" ]; then
-            echo "    Converged after $fork_index forks (CoV ${cov}% < ${CONVERGENCE_THRESHOLD}%)"
+            local window_cov=$(compute_cov "${throughputs[@]:$((${#throughputs[@]} - CONVERGENCE_WINDOW))}")
+            printf "    Converged after %d forks (last %d: CoV %.2f%% < %s%%)\n" "$fork_index" "$CONVERGENCE_WINDOW" "$window_cov" "$CONVERGENCE_THRESHOLD"
             if [ -n "$last_latency" ]; then
                 IFS=: read -ra lparts <<< "$last_latency"
                 printf "    Latency: p50=%s ns  p90=%s ns  p99=%s ns\n" "${lparts[0]}" "${lparts[1]}" "${lparts[2]}"
@@ -214,6 +215,7 @@ CURRENT_STEP=0
 for runtime in "${RUNTIMES[@]}"; do
     RUN_TIMESTAMP=$(timestamp)
     OUTDIR="$OUTPUT_DIR/server-http-${runtime}-${PROFILE}-${RUN_TIMESTAMP}"
+
     mkdir -p "$OUTDIR"
 
     if [ "$runtime" = "jvm" ]; then
@@ -251,7 +253,7 @@ for runtime in "${RUNTIMES[@]}"; do
                 >/dev/null 2>&1 &
             SERVER_PID=$!
 
-            local max_wait=30
+            max_wait=30
             for i in $(seq 1 $max_wait); do
                 if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
                     echo "  Server started (PID $SERVER_PID)"

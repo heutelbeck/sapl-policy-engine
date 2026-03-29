@@ -17,6 +17,19 @@
  */
 package io.sapl.node.cli.commands;
 
+import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.api.proto.SaplProtobufCodec;
+import io.sapl.node.cli.benchmark.*;
+import io.sapl.node.cli.options.SubscriptionInputOptions;
+import io.sapl.node.cli.support.SubscriptionResolver;
+import lombok.val;
+import picocli.CommandLine.ArgGroup;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
+import tools.jackson.databind.json.JsonMapper;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -28,24 +41,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.Callable;
-
-import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.proto.SaplProtobufCodec;
-import io.sapl.node.cli.benchmark.BenchmarkReportWriter;
-import io.sapl.node.cli.benchmark.BenchmarkResult;
-import io.sapl.node.cli.benchmark.HttpLoadGenerator;
-import io.sapl.node.cli.benchmark.LoadtestContext;
-import io.sapl.node.cli.benchmark.RSocketLoadGenerator;
-import io.sapl.node.cli.options.SubscriptionInputOptions;
-import io.sapl.node.cli.support.SubscriptionResolver;
-import lombok.val;
-import picocli.CommandLine.ArgGroup;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Spec;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Load tests a running SAPL PDP server via HTTP or RSocket. Measures server
@@ -169,7 +164,9 @@ public class LoadtestCommand implements Callable<Integer> {
             BenchmarkResult result;
             LoadtestContext ctx;
 
-            val progressOut = machineReadable ? new PrintWriter(OutputStream.nullOutputStream()) : out;
+            val progressOut = machineReadable
+                    ? new PrintWriter(OutputStream.nullOutputStream(), false, StandardCharsets.UTF_8)
+                    : out;
 
             if (rsocket) {
                 val protoPayload = SaplProtobufCodec.writeAuthorizationSubscription(subscription);

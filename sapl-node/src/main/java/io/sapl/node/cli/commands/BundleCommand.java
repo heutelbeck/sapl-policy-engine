@@ -17,25 +17,6 @@
  */
 package io.sapl.node.cli.commands;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleManifest;
@@ -46,6 +27,21 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.*;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
 
 /**
  * Bundle operations for policy management.

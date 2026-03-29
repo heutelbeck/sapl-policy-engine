@@ -17,15 +17,14 @@
  */
 package io.sapl.node.cli.benchmark;
 
+import lombok.val;
+import org.jspecify.annotations.Nullable;
+
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
-import org.jspecify.annotations.Nullable;
-
-import lombok.val;
 
 /**
  * Statistical summary of a single benchmark method run at a given thread count.

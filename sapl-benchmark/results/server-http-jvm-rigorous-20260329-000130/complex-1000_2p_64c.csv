@@ -1,0 +1,17 @@
+# SAPL 4.0 Server HTTP Benchmark Results
+# Scenario: complex-1000
+# Cores: 2 P-cores
+# Connections: 64
+# Measurement: 30s
+# Convergence: CoV < 2% over 3 forks
+# Mean: 15588.71 req/s
+# StdDev: 41.87 req/s
+# CoV: 0.27%
+# Forks: 3
+# Latency p50 (ns): 3970000
+# Latency p90 (ns): 6110000
+# Latency p99 (ns): 8960000
+fork,throughput_req_s
+1,15580.48
+2,15551.57
+3,15634.09

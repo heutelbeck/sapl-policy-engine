@@ -1,0 +1,17 @@
+[
+    {
+        "benchmark": "http-decide-once",
+        "mode": "thrpt",
+        "transport": "http",
+        "cores": 8,
+        "connections": 128,
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "complex-1000"
+        },
+        "primaryMetric": {
+            "score": 16061.93,
+            "scoreUnit": "req/s"
+        }
+    }
+]

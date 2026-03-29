@@ -17,20 +17,19 @@
  */
 package io.sapl.benchmark.sapl3;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.PolicyDecisionPointFactory;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Self-contained benchmark scenarios for SAPL 3.0. Uses {@code where} keyword

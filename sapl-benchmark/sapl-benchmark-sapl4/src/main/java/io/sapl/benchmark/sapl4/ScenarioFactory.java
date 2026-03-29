@@ -17,16 +17,6 @@
  */
 package io.sapl.benchmark.sapl4;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -38,6 +28,16 @@ import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Factory that builds {@link Scenario} instances by name. Each scenario is

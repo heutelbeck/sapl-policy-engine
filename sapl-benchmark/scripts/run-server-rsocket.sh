@@ -26,7 +26,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 PROFILE=${1:-quick}
-OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/$PROFILE-$(timestamp)}
+OUTPUT_DIR=${2:-$SCRIPT_DIR/../results}
 
 profile_defaults "$PROFILE"
 log_env
@@ -152,7 +152,8 @@ with open('$fork_json', 'w') as f:
         local converged
         converged=$(check_convergence "$CONVERGENCE_WINDOW" "${throughputs[@]}")
         if [ "$converged" = "true" ]; then
-            echo "    Converged after $fork_index forks (CoV ${cov}% < ${CONVERGENCE_THRESHOLD}%)"
+            local window_cov=$(compute_cov "${throughputs[@]:$((${#throughputs[@]} - CONVERGENCE_WINDOW))}")
+            printf "    Converged after %d forks (last %d: CoV %.2f%% < %s%%)\n" "$fork_index" "$CONVERGENCE_WINDOW" "$window_cov" "$CONVERGENCE_THRESHOLD"
             if [ -n "$last_latency" ]; then
                 IFS=: read -ra lparts <<< "$last_latency"
                 printf "    Latency: p50=%s ns  p90=%s ns  p99=%s ns  p99.9=%s ns  max=%s ns\n" \
@@ -258,7 +259,7 @@ for runtime in "${RUNTIMES[@]}"; do
             wait_cool
 
             echo "  Starting $runtime server (RSocket): $scenario on CPUs $cpu_range"
-            local rsocket_args="--sapl.pdp.rsocket.enabled=true --sapl.pdp.rsocket.port=7000"
+            rsocket_args="--sapl.pdp.rsocket.enabled=true --sapl.pdp.rsocket.port=7000"
             run_pinned "$cpu_range" $SERVER_CMD server \
                 --io.sapl.node.allow-no-auth=true \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
@@ -269,8 +270,8 @@ for runtime in "${RUNTIMES[@]}"; do
                 >/dev/null 2>&1 &
             SERVER_PID=$!
 
-            local max_wait=30
-            local started=false
+            max_wait=30
+            started=false
             for i in $(seq 1 $max_wait); do
                 if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
                     if ss -tln | grep -q ":7000 " 2>/dev/null; then

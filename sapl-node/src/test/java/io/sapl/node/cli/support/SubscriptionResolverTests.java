@@ -131,7 +131,7 @@ class SubscriptionResolverTests {
         @Test
         @DisplayName("missing subscription file throws IllegalArgumentException")
         void whenFileMissing_thenThrowsIllegalArgument() {
-            val input = inputWithFile(Path.of("/nonexistent/file.json"));
+            val input = inputWithFile(Path.of("nonexistent", "file.json"));
             assertThatThrownBy(() -> SubscriptionResolver.resolve(input, MAPPER))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Subscription file not found");
         }

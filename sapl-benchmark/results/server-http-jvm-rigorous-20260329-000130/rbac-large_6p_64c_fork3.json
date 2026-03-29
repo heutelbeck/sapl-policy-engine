@@ -1,0 +1,17 @@
+[
+    {
+        "benchmark": "http-decide-once",
+        "mode": "thrpt",
+        "transport": "http",
+        "cores": 6,
+        "connections": 64,
+        "measurementTime": "30 s",
+        "params": {
+            "scenarioName": "rbac-large"
+        },
+        "primaryMetric": {
+            "score": 15442.45,
+            "scoreUnit": "req/s"
+        }
+    }
+]

@@ -17,10 +17,10 @@
  */
 package io.sapl.node.cli.options;
 
-import java.nio.file.Path;
-
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Option;
+
+import java.nio.file.Path;
 
 /**
  * Shared CLI options for commands that evaluate authorization subscriptions.

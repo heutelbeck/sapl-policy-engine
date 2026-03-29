@@ -17,12 +17,6 @@
  */
 package io.sapl.node.cli.commands;
 
-import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
-
-import java.util.concurrent.Callable;
-
-import javax.net.ssl.SSLException;
-
 import io.sapl.node.cli.options.PdpOptions;
 import io.sapl.node.cli.support.PdpSetup;
 import io.sapl.node.cli.support.SubscriptionResolver;
@@ -31,6 +25,11 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
+
+import javax.net.ssl.SSLException;
+import java.util.concurrent.Callable;
+
+import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 
 /**
  * Evaluates a single authorization subscription against policies and prints the

@@ -59,7 +59,7 @@ class PolicySourceResolverTests {
         @DisplayName("non-existent directory returns null with error message")
         void whenNonExistentDirectory_thenReturnsNullWithError() {
             val err    = new StringWriter();
-            val result = PolicySourceResolver.resolve(policySourceWithDir(Path.of("/nonexistent/path")), null, null,
+            val result = PolicySourceResolver.resolve(policySourceWithDir(Path.of("nonexistent", "path")), null, null,
                     new PrintWriter(err));
             assertThat(result).isNull();
             assertThat(err.toString()).contains("Policy directory not found");
@@ -75,7 +75,7 @@ class PolicySourceResolverTests {
         @DisplayName("non-existent bundle file returns null with error message")
         void whenNonExistentBundle_thenReturnsNullWithError() {
             val err    = new StringWriter();
-            val result = PolicySourceResolver.resolve(policySourceWithBundle(Path.of("/nonexistent/file.saplbundle")),
+            val result = PolicySourceResolver.resolve(policySourceWithBundle(Path.of("nonexistent", "file.saplbundle")),
                     null, null, new PrintWriter(err));
             assertThat(result).isNull();
             assertThat(err.toString()).contains("Bundle file not found");
@@ -115,7 +115,7 @@ class PolicySourceResolverTests {
             val err    = new StringWriter();
             val bundle = createFile(tempDir, "test.saplbundle");
             val result = PolicySourceResolver.resolve(policySourceWithBundle(bundle),
-                    bundleVerificationWithKey(Path.of("/nonexistent/key.pem")), null, new PrintWriter(err));
+                    bundleVerificationWithKey(Path.of("nonexistent", "key.pem")), null, new PrintWriter(err));
             assertThat(result).isNull();
             assertThat(err.toString()).contains("Public key file not found");
         }
@@ -152,7 +152,7 @@ class PolicySourceResolverTests {
             val bundle       = createFile(tempDir, "test.saplbundle");
             val verification = new BundleVerificationOptions();
             val result       = PolicySourceResolver.resolve(policySourceWithBundle(bundle), verification,
-                    Path.of("/nonexistent/sapl-home"), new PrintWriter(err));
+                    Path.of("nonexistent", "sapl-home"), new PrintWriter(err));
             assertThat(result).isNull();
             assertThat(err.toString()).contains("Bundle signature verification required");
         }
@@ -167,7 +167,7 @@ class PolicySourceResolverTests {
         @DisplayName("non-existent sapl home returns null with error")
         void whenSaplHomeNotFound_thenReturnsNullWithError() {
             val err    = new StringWriter();
-            val result = PolicySourceResolver.resolve(null, null, Path.of("/nonexistent/sapl-home"),
+            val result = PolicySourceResolver.resolve(null, null, Path.of("nonexistent", "sapl-home"),
                     new PrintWriter(err));
             assertThat(result).isNull();
             assertThat(err.toString()).contains("~/.sapl/ directory not found");

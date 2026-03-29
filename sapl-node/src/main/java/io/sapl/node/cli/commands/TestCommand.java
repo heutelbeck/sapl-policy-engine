@@ -17,6 +17,19 @@
  */
 package io.sapl.node.cli.commands;
 
+import io.sapl.test.coverage.AggregatedCoverageData;
+import io.sapl.test.coverage.CoverageWriter;
+import io.sapl.test.coverage.SonarQubeCoverageReportGenerator;
+import io.sapl.test.coverage.report.html.HtmlLineCoverageReportGenerator;
+import io.sapl.test.coverage.report.html.PolicySourcePopulator;
+import io.sapl.test.plain.*;
+import lombok.val;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Help.Ansi;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -27,25 +40,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
-
-import io.sapl.test.coverage.AggregatedCoverageData;
-import io.sapl.test.coverage.CoverageWriter;
-import io.sapl.test.coverage.SonarQubeCoverageReportGenerator;
-import io.sapl.test.coverage.report.html.HtmlLineCoverageReportGenerator;
-import io.sapl.test.coverage.report.html.PolicySourcePopulator;
-import io.sapl.test.plain.PlainTestAdapter;
-import io.sapl.test.plain.PlainTestResults;
-import io.sapl.test.plain.SaplDocument;
-import io.sapl.test.plain.SaplTestDocument;
-import io.sapl.test.plain.TestConfiguration;
-import io.sapl.test.plain.ScenarioResult;
-import io.sapl.test.plain.TestStatus;
-import lombok.val;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Help.Ansi;
-import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Spec;
 
 /**
  * Discovers .sapl and .sapltest files, runs all test scenarios, and generates

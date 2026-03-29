@@ -17,9 +17,9 @@
  */
 package io.sapl.node.cli.options;
 
-import java.nio.file.Path;
-
 import picocli.CommandLine.Option;
+
+import java.nio.file.Path;
 
 /**
  * CLI options for the benchmark command controlling warmup, measurement, and

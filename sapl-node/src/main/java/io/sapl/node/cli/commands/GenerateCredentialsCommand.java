@@ -17,18 +17,15 @@
  */
 package io.sapl.node.cli.commands;
 
-import static io.sapl.node.SecretGenerator.encodeWithArgon2;
-import static io.sapl.node.SecretGenerator.newApiKey;
-import static io.sapl.node.SecretGenerator.newKey;
-import static io.sapl.node.SecretGenerator.newSecret;
-
-import java.util.concurrent.Callable;
-
 import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
+
+import java.util.concurrent.Callable;
+
+import static io.sapl.node.SecretGenerator.*;
 
 /**
  * Commands for generating authentication credentials.

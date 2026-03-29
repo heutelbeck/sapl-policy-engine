@@ -17,19 +17,6 @@
  */
 package io.sapl.node.cli.support;
 
-import java.io.PrintWriter;
-import java.util.Map;
-
-import javax.net.ssl.SSLException;
-
-import org.jspecify.annotations.Nullable;
-
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.Banner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.context.ConfigurableApplicationContext;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -41,7 +28,17 @@ import io.sapl.pdp.remote.ProtobufRemotePolicyDecisionPoint;
 import io.sapl.pdp.remote.RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.Banner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.context.ConfigurableApplicationContext;
 import tools.jackson.databind.json.JsonMapper;
+
+import javax.net.ssl.SSLException;
+import java.io.PrintWriter;
+import java.util.Map;
 
 /**
  * Sets up a {@link PolicyDecisionPoint} and {@link JsonMapper} for CLI

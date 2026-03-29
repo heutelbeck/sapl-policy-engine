@@ -17,11 +17,6 @@
  */
 package io.sapl.node.cli.support;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.node.cli.options.NamedSubscriptionOptions;
 import io.sapl.node.cli.options.SubscriptionInputOptions;
@@ -30,6 +25,11 @@ import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @UtilityClass
 public class SubscriptionResolver {

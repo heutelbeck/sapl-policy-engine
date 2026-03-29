@@ -17,9 +17,9 @@
  */
 package io.sapl.node.cli.commands;
 
-import java.util.concurrent.Callable;
-
 import picocli.CommandLine.Command;
+
+import java.util.concurrent.Callable;
 
 /**
  * Starts the SAPL PDP server. This is the default behavior when no subcommand

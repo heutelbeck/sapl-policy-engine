@@ -17,11 +17,11 @@
  */
 package io.sapl.node.cli.support;
 
-import java.util.ArrayList;
-
 import io.sapl.node.cli.support.PolicySourceResolver.ResolvedPolicy;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.ArrayList;
 
 @UtilityClass
 public class SpringArgsBuilder {

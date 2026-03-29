@@ -17,18 +17,14 @@
  */
 package io.sapl.benchmark.sapl4;
 
-import java.util.List;
-import java.util.function.Supplier;
-
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.*;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+
+import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * A benchmark scenario: policies, variables, subscription, and expected
