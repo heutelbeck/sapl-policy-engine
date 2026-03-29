@@ -42,8 +42,12 @@ import org.springframework.web.server.ServerWebExchange;
 
 import io.sapl.node.apikey.ApiKeyReactiveAuthenticationManager;
 import io.sapl.node.apikey.ApiKeyService;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.spring.config.PdpIdAuthenticationExtractor;
+import io.sapl.node.auth.SaplAuthenticationToken;
 import io.sapl.node.auth.SaplJwtAuthenticationConverter;
-import io.sapl.node.auth.SaplUserContextFilter;
+import io.sapl.node.auth.SaplJwtAuthenticationToken;
+import io.sapl.node.auth.SaplUser;
 import io.sapl.node.auth.SaplReactiveUserDetailsService;
 import io.sapl.node.auth.UserLookupService;
 import lombok.RequiredArgsConstructor;
@@ -81,8 +85,21 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    SaplUserContextFilter saplUserContextFilter() {
-        return new SaplUserContextFilter(saplUserDetailsService());
+    PdpIdAuthenticationExtractor pdpIdAuthenticationExtractor() {
+        val userDetailsService = saplUserDetailsService();
+        return authentication -> {
+            if (authentication instanceof SaplAuthenticationToken saplAuth) {
+                return Mono.just(saplAuth.getPdpId());
+            }
+            if (authentication instanceof SaplJwtAuthenticationToken jwtAuth) {
+                return Mono.just(jwtAuth.getPdpId());
+            }
+            val principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails userDetails) {
+                return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId);
+            }
+            return Mono.just(MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID);
+        };
     }
 
     /**

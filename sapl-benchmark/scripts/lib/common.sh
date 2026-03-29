@@ -48,14 +48,14 @@ profile_defaults() {
             WARMUP_ITERATIONS=1
             WARMUP_TIME=3
             MEASUREMENT_TIME=10
-            CONVERGENCE_THRESHOLD=50
+            CONVERGENCE_THRESHOLD=10
             CONVERGENCE_WINDOW=2
             MAX_FORKS=2
             WRK_WARMUP_TIME=3
             WRK_MEASURE_TIME=10
-            WRK_CONVERGE=false
+            WRK_CONVERGE=true
             CORE_SWEEP=(1 2 4 6 8)
-            CONN_SWEEP=(32 64 128 256)
+            CONN_SWEEP=(128)
             THREAD_SWEEP=(1 2 4 8)
             RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
@@ -281,7 +281,11 @@ stop_server() {
         SERVER_PID=""
     fi
     pkill -f "opa run" 2>/dev/null || true
-    sleep 1
+    # Wait until server ports are released before starting a new server
+    for _i in $(seq 1 15); do
+        ss -tln | grep -qE ":8443 |:7000 " || break
+        sleep 1
+    done
 }
 
 trap_cleanup() {

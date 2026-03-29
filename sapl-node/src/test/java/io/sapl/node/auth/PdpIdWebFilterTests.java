@@ -18,13 +18,10 @@
 package io.sapl.node.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicReference;
-
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,20 +35,36 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.web.server.WebFilterChain;
 
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.spring.config.PdpIdAuthenticationExtractor;
+import io.sapl.spring.config.PdpIdWebFilter;
 import lombok.val;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
-@DisplayName("SaplUserContextFilter")
-class SaplUserContextFilterTests {
+@DisplayName("PdpIdWebFilter with sapl-node extractor")
+class PdpIdWebFilterTests {
 
     private SaplReactiveUserDetailsService userDetailsService;
-    private SaplUserContextFilter          filter;
+    private PdpIdWebFilter                 filter;
 
     @BeforeEach
     void setUp() {
         userDetailsService = mock(SaplReactiveUserDetailsService.class);
-        filter             = new SaplUserContextFilter(userDetailsService);
+        PdpIdAuthenticationExtractor extractor = authentication -> {
+            if (authentication instanceof SaplAuthenticationToken saplAuth) {
+                return Mono.just(saplAuth.getPdpId());
+            }
+            if (authentication instanceof SaplJwtAuthenticationToken jwtAuth) {
+                return Mono.just(jwtAuth.getPdpId());
+            }
+            val principal = authentication.getPrincipal();
+            if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+                return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId);
+            }
+            return Mono.just(MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID);
+        };
+        filter = new PdpIdWebFilter(extractor);
     }
 
     @Nested
@@ -60,7 +73,7 @@ class SaplUserContextFilterTests {
 
         @Test
         @DisplayName("propagates pdpId from SaplAuthenticationToken to context")
-        void whenSaplAuthenticationToken_thenPropagatesPdpId() {
+        void whenSaplAuthenticationTokenThenPropagatesPdpId() {
             val saplUser        = new SaplUser("user-1", "production");
             val authentication  = new SaplAuthenticationToken(saplUser);
             val securityContext = new SecurityContextImpl(authentication);
@@ -77,7 +90,7 @@ class SaplUserContextFilterTests {
 
         @Test
         @DisplayName("resolves pdpId from UserDetails via userDetailsService")
-        void whenUserDetails_thenResolvesPdpIdViaService() {
+        void whenUserDetailsThenResolvesPdpIdViaService() {
             val userDetails     = User.builder().username("admin").password("pass").roles("USER").build();
             val authentication  = new PreAuthenticatedAuthenticationToken(userDetails, null);
             val securityContext = new SecurityContextImpl(authentication);
@@ -97,7 +110,7 @@ class SaplUserContextFilterTests {
 
         @Test
         @DisplayName("uses default pdpId when no authentication present")
-        void whenNoAuthentication_thenUsesDefaultPdpId() {
+        void whenNoAuthenticationThenUsesDefaultPdpId() {
             val securityContext = new SecurityContextImpl();
 
             val capturedPdpId = new AtomicReference<String>();
@@ -112,7 +125,7 @@ class SaplUserContextFilterTests {
 
         @Test
         @DisplayName("uses default pdpId when user not found")
-        void whenUserNotFound_thenUsesDefaultPdpId() {
+        void whenUserNotFoundThenUsesDefaultPdpId() {
             val userDetails     = User.builder().username("unknown").password("pass").roles("USER").build();
             val authentication  = new PreAuthenticatedAuthenticationToken(userDetails, null);
             val securityContext = new SecurityContextImpl(authentication);

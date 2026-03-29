@@ -261,8 +261,7 @@ for runtime in "${RUNTIMES[@]}"; do
             wait_cool
 
             echo "  Starting $runtime server (RSocket): $scenario on CPUs $cpu_range"
-            rsocket_args="--sapl.pdp.rsocket.enabled=true --sapl.pdp.rsocket.port=7000"
-            run_pinned "$cpu_range" $SERVER_CMD server \
+            taskset -c "$cpu_range" $SERVER_CMD server \
                 --io.sapl.node.allow-no-auth=true \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \

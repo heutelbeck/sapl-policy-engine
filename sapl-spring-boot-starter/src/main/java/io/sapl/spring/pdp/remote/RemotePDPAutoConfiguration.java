@@ -17,17 +17,20 @@
  */
 package io.sapl.spring.pdp.remote;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import javax.net.ssl.SSLException;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.net.ssl.SSLException;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 @Configuration
@@ -46,7 +49,10 @@ public class RemotePDPAutoConfiguration {
         if ("http".equals(configuration.getType())) {
             log.info("Binding to http remote PDP server: {}", configuration.getHost());
             final var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
-            if (!configuration.getKey().isEmpty()) {
+            if (configuration.isTokenRelay()) {
+                log.info("Connecting with token relay (forwarding user credential per request)");
+                builder.tokenRelay(RemotePDPAutoConfiguration::extractCurrentToken);
+            } else if (!configuration.getKey().isEmpty()) {
                 log.info("Connecting with basic authentication");
                 builder.basicAuth(configuration.getKey(), configuration.getSecret());
             } else if (!configuration.getApiKey().isEmpty()) {
@@ -61,6 +67,14 @@ public class RemotePDPAutoConfiguration {
             throw new IllegalStateException(
                     ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE.formatted(configuration.getType()));
         }
+    }
+
+    private static String extractCurrentToken() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getCredentials() instanceof String token) {
+            return token;
+        }
+        return null;
     }
 
 }

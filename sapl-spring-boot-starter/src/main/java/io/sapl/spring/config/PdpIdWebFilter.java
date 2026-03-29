@@ -15,63 +15,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.node.auth;
+package io.sapl.spring.config;
 
 import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID;
 import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.REACTOR_CONTEXT_PDP_ID_KEY;
 
 import org.jspecify.annotations.NonNull;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 /**
- * WebFilter that propagates the authenticated user's pdpId into the Reactor
- * Context.
+ * WebFilter that propagates the authenticated user's PDP ID into the Reactor
+ * Context for multi-tenant routing.
  * <p>
- * This allows downstream components (like DynamicPolicyDecisionPoint) to access
- * the
- * pdpId without explicit parameter passing.
+ * Uses the provided {@link PdpIdAuthenticationExtractor} to extract the PDP
+ * ID from the current authentication. The extracted ID is written to the
+ * Reactor Context under
+ * {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint#REACTOR_CONTEXT_PDP_ID_KEY},
+ * where the {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint} default
+ * methods read it automatically.
  */
 @RequiredArgsConstructor
-public class SaplUserContextFilter implements WebFilter {
+public class PdpIdWebFilter implements WebFilter {
 
-    private final SaplReactiveUserDetailsService userDetailsService;
+    private final PdpIdAuthenticationExtractor extractor;
 
     @Override
     public @NonNull Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
         return ReactiveSecurityContextHolder.getContext().flatMap(securityContext -> {
-            val authentication = securityContext.getAuthentication();
+            var authentication = securityContext.getAuthentication();
             if (authentication == null) {
                 return Mono.just(DEFAULT_PDP_ID);
             }
-            return extractPdpId(authentication).defaultIfEmpty(DEFAULT_PDP_ID);
+            return extractor.extractPdpId(authentication).defaultIfEmpty(DEFAULT_PDP_ID);
         }).defaultIfEmpty(DEFAULT_PDP_ID)
                 .flatMap(pdpId -> chain.filter(exchange).contextWrite(Context.of(REACTOR_CONTEXT_PDP_ID_KEY, pdpId)));
-    }
-
-    private Mono<String> extractPdpId(Authentication authentication) {
-        if (authentication instanceof SaplAuthenticationToken saplAuth) {
-            return Mono.just(saplAuth.getPdpId());
-        }
-        if (authentication instanceof SaplJwtAuthenticationToken jwtAuth) {
-            return Mono.just(jwtAuth.getPdpId());
-        }
-
-        val principal = authentication.getPrincipal();
-        if (principal instanceof UserDetails userDetails) {
-            return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId);
-        }
-
-        return Mono.just(DEFAULT_PDP_ID);
     }
 
 }

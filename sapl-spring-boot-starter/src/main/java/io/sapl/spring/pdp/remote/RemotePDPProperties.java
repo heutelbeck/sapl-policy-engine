@@ -49,6 +49,9 @@ public class RemotePDPProperties implements Validator {
     // api_key authentication
     private String apiKey = "";
 
+    // token relay (forward current user's JWT per request)
+    private boolean tokenRelay = false;
+
     @Override
     public boolean supports(Class<?> clazz) {
         return RemotePDPProperties.class.isAssignableFrom(clazz);
@@ -64,14 +67,19 @@ public class RemotePDPProperties implements Validator {
                     "Invalid type specified, valid value is \"http\"");
         }
 
-        // ensure that exactly one authentication mecanisn is specified
-        if (apiKey.isEmpty() ^ key.isEmpty()) {
+        // ensure that exactly one authentication mechanism is specified
+        if (properties.tokenRelay) {
+            if (!key.isEmpty() || !apiKey.isEmpty()) {
+                errors.rejectValue("tokenRelay", "token-relay-conflict",
+                        "token-relay cannot be combined with key/secret or api-key authentication");
+            }
+        } else if (apiKey.isEmpty() ^ key.isEmpty()) {
             if (!key.isEmpty()) {
                 ValidationUtils.rejectIfEmpty(errors, "secret", "requires-secret", "\"secret\" must not be empty");
             }
         } else {
             errors.rejectValue("key", "key-invalid", new String[] { properties.key },
-                    "At least one authentication mechanismn needed \"key\" and \"secret\" or \"api_key\"");
+                    "At least one authentication mechanism needed: \"key\" and \"secret\", \"api-key\", or \"token-relay\"");
         }
 
     }

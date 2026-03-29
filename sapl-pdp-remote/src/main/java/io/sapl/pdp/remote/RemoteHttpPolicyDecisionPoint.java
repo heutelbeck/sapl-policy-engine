@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.remote;
 
+import java.util.function.Supplier;
+
 import tools.jackson.databind.json.JsonMapper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
@@ -29,6 +31,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ServerSentEvent;
@@ -258,6 +261,27 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         public RemoteHttpPolicyDecisionPointBuilder apiKey(String apikey) {
             setApplyAuthenticationFunction(
                     builder -> builder.defaultHeaders(header -> header.add("Authorization", "Bearer " + apikey)));
+            return this;
+        }
+
+        /**
+         * Configure per-request bearer token relay. The supplier is called on
+         * each request to obtain the current token (e.g., from a security
+         * context). If the supplier returns null, no Authorization header is
+         * added.
+         *
+         * @param tokenSupplier supplies the bearer token for the current
+         * request
+         * @return this builder
+         */
+        public RemoteHttpPolicyDecisionPointBuilder tokenRelay(Supplier<String> tokenSupplier) {
+            setApplyAuthenticationFunction(builder -> builder.filter((request, next) -> {
+                val token = tokenSupplier.get();
+                if (token != null) {
+                    return next.exchange(ClientRequest.from(request).headers(h -> h.setBearerAuth(token)).build());
+                }
+                return next.exchange(request);
+            }));
             return this;
         }
 
