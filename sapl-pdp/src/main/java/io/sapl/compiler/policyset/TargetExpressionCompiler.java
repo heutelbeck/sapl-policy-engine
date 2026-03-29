@@ -22,10 +22,11 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
+import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.expressions.LazyBooleanOperationCompiler;
+import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.policybody.BooleanGuardCompiler;
 import lombok.experimental.UtilityClass;
@@ -56,8 +57,8 @@ public class TargetExpressionCompiler {
             if (targetExpression == null) {
                 return schemaValidator;
             }
-            return LazyBooleanOperationCompiler.compile(schemaValidator, compiledTarget, true,
-                    targetExpression.location());
+            return StratifiedBooleanOperationCompiler.compile(schemaValidator, compiledTarget,
+                    BinaryOperatorType.LAZY_AND, targetExpression.location());
         }
 
         return compiledTarget;

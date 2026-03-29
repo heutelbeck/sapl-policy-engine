@@ -28,8 +28,10 @@ package io.sapl.ast;
  */
 public enum BinaryOperatorType {
     // Logical (all use cost-stratified short-circuit evaluation)
-    OR,
-    AND,
+    EAGER_OR,
+    LAZY_OR,
+    EAGER_AND,
+    LAZY_AND,
     XOR,
     // Equality
     EQ,
@@ -50,9 +52,9 @@ public enum BinaryOperatorType {
     // Subtemplate
     SUBTEMPLATE;
 
-    /** @return true for short-circuit logical operator (OR, AND) */
-    public boolean isLazy() {
-        return this == OR || this == AND;
+    /** @return true for any AND/OR operator (lazy or eager) */
+    public boolean isBooleanAndOr() {
+        return this == LAZY_AND || this == LAZY_OR || this == EAGER_AND || this == EAGER_OR;
     }
 
     /** @return true for XOR (the only non-short-circuit logical operator) */
@@ -62,7 +64,7 @@ public enum BinaryOperatorType {
 
     /** @return true for any logical operator */
     public boolean isLogical() {
-        return this == OR || this == AND || this == XOR;
+        return this == LAZY_OR || this == LAZY_AND || this == XOR;
     }
 
     /** @return true for arithmetic operator */

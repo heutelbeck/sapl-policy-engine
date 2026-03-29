@@ -492,7 +492,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         }
         val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperator(BinaryOperatorType.OR, exprs.get(0), exprs.get(1), fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.LAZY_OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
         return new Disjunction(exprs, fromContext(ctx));
     }
@@ -505,22 +505,20 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         }
         val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperator(BinaryOperatorType.AND, exprs.get(0), exprs.get(1), fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.LAZY_AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
         return new Conjunction(exprs, fromContext(ctx));
     }
 
     @Override
     public AstNode visitEagerOr(EagerOrContext ctx) {
-        // Eager OR (|) is treated as alias for lazy OR (||) since SAPL is side-effect
-        // free
         val operands = ctx.exclusiveOr();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
         val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperator(BinaryOperatorType.OR, exprs.get(0), exprs.get(1), fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.EAGER_OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
         return new Disjunction(exprs, fromContext(ctx));
     }
@@ -540,15 +538,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitEagerAnd(EagerAndContext ctx) {
-        // Eager AND (&) is treated as alias for lazy AND (&&) since SAPL is side-effect
-        // free
         val operands = ctx.equality();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
         val exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperator(BinaryOperatorType.AND, exprs.get(0), exprs.get(1), fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.EAGER_AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
         return new Conjunction(exprs, fromContext(ctx));
     }

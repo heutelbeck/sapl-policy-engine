@@ -42,8 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.DisplayName;
 
-@DisplayName("LazyBooleanOperationCompiler")
-class LazyBooleanOperationCompilerTests {
+@DisplayName("StratifiedBooleanOperationCompiler")
+class StratifiedBooleanOperationCompilerTests {
 
     @Nested
     class AndConstantFolding {
@@ -184,6 +184,76 @@ class LazyBooleanOperationCompilerTests {
                     .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))  // true && true
                     .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)) // false short-circuits
                     .verifyComplete();
+        }
+    }
+
+    @Nested
+    @DisplayName("Eager stream operators")
+    class EagerStreamOperators {
+
+        @Test
+        @DisplayName("& with two streams uses combineLatest and evaluates both sides")
+        void whenEagerAndWithTwoStreamsThenBothSubscribed() {
+            var broker   = sequenceBroker(Map.of("test.left", List.of(Value.TRUE), "test.right", List.of(Value.TRUE)));
+            var ctx      = compilationContext(broker);
+            var compiled = compileExpression("<test.left> & <test.right>", ctx);
+
+            assertThat(compiled).isInstanceOf(StreamOperator.class);
+
+            var evalCtx = evaluationContext(broker);
+            var stream  = ((StreamOperator) compiled).stream();
+
+            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
+                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("| with two streams uses combineLatest and evaluates both sides")
+        void whenEagerOrWithTwoStreamsThenBothSubscribed() {
+            var broker   = sequenceBroker(
+                    Map.of("test.left", List.of(Value.FALSE), "test.right", List.of(Value.FALSE)));
+            var ctx      = compilationContext(broker);
+            var compiled = compileExpression("<test.left> | <test.right>", ctx);
+
+            assertThat(compiled).isInstanceOf(StreamOperator.class);
+
+            var evalCtx = evaluationContext(broker);
+            var stream  = ((StreamOperator) compiled).stream();
+
+            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
+                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("& does not short-circuit when left is false")
+        void whenEagerAndLeftFalseThenRightStillEvaluated() {
+            var broker   = sequenceBroker(Map.of("test.left", List.of(Value.FALSE), "test.right", List.of(Value.TRUE)));
+            var ctx      = compilationContext(broker);
+            var compiled = compileExpression("<test.left> & <test.right>", ctx);
+
+            assertThat(compiled).isInstanceOf(StreamOperator.class);
+
+            var evalCtx = evaluationContext(broker);
+            var stream  = ((StreamOperator) compiled).stream();
+
+            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
+                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("| does not short-circuit when left is true")
+        void whenEagerOrLeftTrueThenRightStillEvaluated() {
+            var broker   = sequenceBroker(Map.of("test.left", List.of(Value.TRUE), "test.right", List.of(Value.FALSE)));
+            var ctx      = compilationContext(broker);
+            var compiled = compileExpression("<test.left> | <test.right>", ctx);
+
+            assertThat(compiled).isInstanceOf(StreamOperator.class);
+
+            var evalCtx = evaluationContext(broker);
+            var stream  = ((StreamOperator) compiled).stream();
+
+            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
+                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
         }
     }
 

@@ -84,8 +84,8 @@ public class BinaryOperationCompiler {
             return SubtemplateCompiler.compile(binaryOperation, ctx);
         }
 
-        if (binaryOperation.op().isLazy()) {
-            return LazyBooleanOperationCompiler.compile(binaryOperation, ctx);
+        if (binaryOperation.op().isBooleanAndOr()) {
+            return StratifiedBooleanOperationCompiler.compile(binaryOperation, ctx);
         }
 
         val op = BINARY_OPERATIONS.get(binaryOperation.op());

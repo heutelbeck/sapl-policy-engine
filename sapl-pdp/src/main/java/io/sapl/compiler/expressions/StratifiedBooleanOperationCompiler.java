@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -37,36 +36,36 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Compiler for lazy (short-circuit) boolean operators: AND ({@code &&}) and OR
- * ({@code ||}).
+ * Compiler for boolean operators AND ({@code &&}, {@code &}) and OR
+ * ({@code ||}, {@code |}).
  * <p>
- * Unlike eager operators, lazy operators may skip evaluation of the right
- * operand:
+ * On the value and pure strata, lazy and eager variants behave identically.
+ * On the streaming stratum they differ:
  * <ul>
- * <li>AND: if left is false, return false without evaluating right</li>
- * <li>OR: if left is true, return true without evaluating right</li>
+ * <li>Lazy ({@code &&}, {@code ||}): uses switchMap for short-circuit
+ * evaluation, avoiding unnecessary subscriptions.</li>
+ * <li>Eager ({@code &}, {@code |}): uses combineLatest, keeping both
+ * subscriptions active for lower latency.</li>
  * </ul>
- * <p>
- * For streams, this means using switchMap instead of combineLatest to avoid
- * subscribing to the right stream when short-circuit occurs.
  */
 @UtilityClass
-public class LazyBooleanOperationCompiler {
+public class StratifiedBooleanOperationCompiler {
 
-    public static final String ERROR_TYPE_MISMATCH = "Expected BOOLEAN but got: %s.";
+    public static final String ERROR_NOT_A_BOOLEAN_OPERATOR = "Not a boolean operator: %s.";
+    public static final String ERROR_TYPE_MISMATCH          = "Expected BOOLEAN but got: %s.";
 
     public static CompiledExpression compile(BinaryOperator expr, CompilationContext ctx) {
         val op       = expr.op();
         val location = expr.location();
-        val isAnd    = op == BinaryOperatorType.AND;
 
         val left  = ExpressionCompiler.compile(expr.left(), ctx);
         val right = ExpressionCompiler.compile(expr.right(), ctx);
-        return compile(left, right, isAnd, location);
+        return compile(left, right, op, location);
     }
 
-    public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, boolean isAnd,
+    public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, BinaryOperatorType op,
             SourceLocation location) {
+        val isAnd = op == BinaryOperatorType.LAZY_AND || op == BinaryOperatorType.EAGER_AND;
         if (left instanceof ErrorValue) {
             return left;
         }
@@ -106,7 +105,7 @@ public class LazyBooleanOperationCompiler {
         case StreamOperator ls -> switch (right) {
                            case Value rv              -> compileValueStream(rv, ls, isAnd, location);
                            case PureOperator rp       -> compilePureStream(rp, ls, isAnd, location);
-                           case StreamOperator rs     -> compileStreamStream(ls, rs, isAnd, location);
+                           case StreamOperator rs     -> compileStreamStream(ls, rs, op, location);
                            };
         };
     }
@@ -164,9 +163,15 @@ public class LazyBooleanOperationCompiler {
         return isAnd ? new LazyAndPureStream(p, s, location) : new LazyOrPureStream(p, s, location);
     }
 
-    private CompiledExpression compileStreamStream(StreamOperator s1, StreamOperator s2, boolean isAnd,
+    private CompiledExpression compileStreamStream(StreamOperator s1, StreamOperator s2, BinaryOperatorType op,
             SourceLocation location) {
-        return isAnd ? new LazyAndStreamStream(s1, s2, location) : new LazyOrStreamStream(s1, s2, location);
+        return switch (op) {
+        case EAGER_AND -> new EagerAndStreamStream(s1, s2, location);
+        case EAGER_OR  -> new EagerOrStreamStream(s1, s2, location);
+        case LAZY_AND  -> new LazyAndStreamStream(s1, s2, location);
+        case LAZY_OR   -> new LazyOrStreamStream(s1, s2, location);
+        default        -> throw new SaplCompilerException(ERROR_NOT_A_BOOLEAN_OPERATOR.formatted(op));
+        };
     }
 
     private static Value asBoolean(Value v, SourceLocation location) {
@@ -276,7 +281,7 @@ public class LazyBooleanOperationCompiler {
                         return Flux.just(new TracedValue(Value.FALSE, tv1.contributingAttributes()));
                     }
                     return s2.stream().map(tv2 -> {
-                        val combined = new ArrayList<AttributeRecord>(tv1.contributingAttributes());
+                        val combined = new ArrayList<>(tv1.contributingAttributes());
                         combined.addAll(tv2.contributingAttributes());
                         return new TracedValue(asBoolean(tv2.value(), location), combined);
                     });
@@ -298,7 +303,7 @@ public class LazyBooleanOperationCompiler {
                         return Flux.just(new TracedValue(Value.TRUE, tv1.contributingAttributes()));
                     }
                     return s2.stream().map(tv2 -> {
-                        val combined = new ArrayList<AttributeRecord>(tv1.contributingAttributes());
+                        val combined = new ArrayList<>(tv1.contributingAttributes());
                         combined.addAll(tv2.contributingAttributes());
                         return new TracedValue(asBoolean(tv2.value(), location), combined);
                     });
@@ -306,6 +311,52 @@ public class LazyBooleanOperationCompiler {
                 return Flux.just(new TracedValue(
                         Value.errorAt(location, ERROR_TYPE_MISMATCH, tv1.value().getClass().getSimpleName()),
                         tv1.contributingAttributes()));
+            });
+        }
+    }
+
+    public record EagerAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.combineLatest(s1.stream(), s2.stream(), (tv1, tv2) -> {
+                val combined = new ArrayList<>(tv1.contributingAttributes());
+                combined.addAll(tv2.contributingAttributes());
+                if (tv1.value() instanceof BooleanValue(var b1) && tv2.value() instanceof BooleanValue(var b2)) {
+                    return new TracedValue(b1 && b2 ? Value.TRUE : Value.FALSE, combined);
+                }
+                if (tv1.value() instanceof ErrorValue) {
+                    return new TracedValue(tv1.value(), combined);
+                }
+                if (tv2.value() instanceof ErrorValue) {
+                    return new TracedValue(tv2.value(), combined);
+                }
+                val bad = !(tv1.value() instanceof BooleanValue) ? tv1.value() : tv2.value();
+                return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, bad.getClass().getSimpleName()),
+                        combined);
+            });
+        }
+    }
+
+    public record EagerOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.combineLatest(s1.stream(), s2.stream(), (tv1, tv2) -> {
+                val combined = new ArrayList<>(tv1.contributingAttributes());
+                combined.addAll(tv2.contributingAttributes());
+                if (tv1.value() instanceof BooleanValue(var b1) && tv2.value() instanceof BooleanValue(var b2)) {
+                    return new TracedValue(b1 || b2 ? Value.TRUE : Value.FALSE, combined);
+                }
+                if (tv1.value() instanceof ErrorValue) {
+                    return new TracedValue(tv1.value(), combined);
+                }
+                if (tv2.value() instanceof ErrorValue) {
+                    return new TracedValue(tv2.value(), combined);
+                }
+                val bad = !(tv1.value() instanceof BooleanValue) ? tv1.value() : tv2.value();
+                return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, bad.getClass().getSimpleName()),
+                        combined);
             });
         }
     }
