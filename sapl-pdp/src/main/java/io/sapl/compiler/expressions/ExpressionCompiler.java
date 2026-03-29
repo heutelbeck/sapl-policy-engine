@@ -67,8 +67,8 @@ public class ExpressionCompiler {
         // N-ary operations
         case ArrayExpression a       -> ArrayCompiler.compile(a, ctx);
         case ObjectExpression o      -> ObjectCompiler.compile(o, ctx);
-        case Conjunction c           -> LazyNaryBooleanCompiler.compileConjunction(c, ctx);
-        case Disjunction d           -> LazyNaryBooleanCompiler.compileDisjunction(d, ctx);
+        case Conjunction c           -> NaryBooleanCompiler.compileConjunction(c, ctx);
+        case Disjunction d           -> NaryBooleanCompiler.compileDisjunction(d, ctx);
         case ExclusiveDisjunction xd -> NaryOperatorCompiler.compileXor(xd, ctx);
         case Sum s                   -> NaryOperatorCompiler.compileSum(s, ctx);
         case Product p               -> NaryOperatorCompiler.compileProduct(p, ctx);

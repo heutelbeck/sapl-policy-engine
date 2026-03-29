@@ -21,6 +21,8 @@
 # Sweeps: runtime (JVM/native) x scenarios x P-core counts x connection counts.
 # Usage: run-server-http.sh [quick|base|rigorous] [output-dir]
 
+export LC_NUMERIC=C
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 

@@ -494,7 +494,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.LAZY_OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new Disjunction(exprs, fromContext(ctx));
+        return new Disjunction(exprs, false, fromContext(ctx));
     }
 
     @Override
@@ -507,7 +507,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.LAZY_AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new Conjunction(exprs, fromContext(ctx));
+        return new Conjunction(exprs, false, fromContext(ctx));
     }
 
     @Override
@@ -520,7 +520,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.EAGER_OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new Disjunction(exprs, fromContext(ctx));
+        return new Disjunction(exprs, true, fromContext(ctx));
     }
 
     @Override
@@ -546,7 +546,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (exprs.size() == 2) {
             return new BinaryOperator(BinaryOperatorType.EAGER_AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new Conjunction(exprs, fromContext(ctx));
+        return new Conjunction(exprs, true, fromContext(ctx));
     }
 
     @Override

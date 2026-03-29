@@ -22,6 +22,8 @@
 # Client always runs from JVM JAR (needs full Java RSocket stack).
 # Usage: run-server-rsocket.sh [quick|base|rigorous] [output-dir]
 
+export LC_NUMERIC=C
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 

@@ -105,14 +105,19 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
      * @return the timestamped vote
      */
     public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        val subscriptionId   = idFactory.newRandom();
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            return noConfigurationVote(pdpId);
+        val subscriptionId = idFactory.newRandom();
+        invokeOnSubscribe(subscriptionId, authorizationSubscription);
+        try {
+            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+            if (pdpConfiguration.isEmpty()) {
+                return noConfigurationVote(pdpId);
+            }
+            val timestampedVote = pdpConfiguration.get().voteOnce(authorizationSubscription, subscriptionId);
+            invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);
+            return timestampedVote;
+        } finally {
+            invokeOnUnsubscribe(subscriptionId);
         }
-        val timestampedVote = pdpConfiguration.get().voteOnce(authorizationSubscription, subscriptionId);
-        invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);
-        return timestampedVote;
     }
 
     /**

@@ -251,9 +251,13 @@ Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the 
 - `exp1 && exp2` (AND), precedence **2**
 - `exp1 || exp2` (OR), precedence **1** (lowest)
 
-SAPL provides two forms of AND (`&`, `&&`) and two forms of OR (`|`, `||`). Both forms of each operator use the same [cost-stratified short-circuit evaluation](../2_11_EvaluationSemantics/#cost-stratified-short-circuit-evaluation). The **only current difference is precedence**: `&` and `|` bind tighter than `&&` and `||`. For example, `a && b | c` is parsed as `a && (b | c)`, not `(a && b) | c`.
+SAPL provides two forms of AND (`&`, `&&`) and two forms of OR (`|`, `||`). Both forms produce identical authorization decisions. They differ in two ways: precedence and streaming stratum behavior.
 
-This precedence difference allows policy authors to group conditions naturally without parentheses. For example:
+#### Precedence
+
+`&` and `|` bind tighter than `&&` and `||`. For example, `a && b | c` is parsed as `a && (b | c)`, not `(a && b) | c`.
+
+This allows policy authors to group conditions naturally without parentheses. For example:
 
 ```sapl
 (subject.role == "doctor" | subject.role == "nurse") && resource.type == "patient_record"
@@ -271,21 +275,37 @@ The XOR operator (`^`) always evaluates both operands since both are needed to d
 
 `&&`, `||`, `&`, `|`, and `^` are left-associative. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
 
-#### Why Two Forms Exist
-
-The two AND/OR forms exist to support a future optimization for the streaming evaluation stratum. Currently, when an expression involves attribute finder subscriptions (the streaming stratum), the engine optimizes for **subscription and resource consumption**: it avoids subscribing to attribute finders whose values are not needed for the result. This is the behavior for both `&&`/`||` and `&`/`|`.
-
-In a future version, `&`/`|` will select an alternative evaluation strategy for the streaming stratum that optimizes for **latency**: eagerly subscribing to all attribute sources in parallel and returning the result as soon as it can be determined, at the cost of maintaining more concurrent subscriptions. The `&&`/`||` operators will retain the current resource-optimized strategy.
-
-This distinction does not affect the **semantics** of a policy. A policy using `&` produces the same authorization decisions as one using `&&` (given the same precedence grouping). The difference is purely in runtime behavior: how the engine manages subscriptions and how quickly it can deliver a result. Choosing between the two forms will never change whether access is granted or denied.
-
-Until the latency-optimized strategy is implemented, choosing between the two forms is purely a matter of precedence preference.
-
 #### Cost-Stratified Short-Circuit Evaluation
 
 All AND and OR operators (`&`, `&&`, `|`, `||`) use **cost-stratified short-circuit evaluation**. The engine categorizes operands into three cost strata (constants, pure expressions, streaming expressions) and evaluates cheaper strata first, regardless of operand position in the source. If a cheaper operand short-circuits the result, more expensive operands are never evaluated and their subscriptions are never created.
 
+This cross-strata short-circuit applies equally to all four operators. There is no way to override it, and no reason to: if a constant or pure expression already determines the result, subscribing to an attribute finder would be wasted work.
+
+```sapl
+false & <pip.a> & <pip.b>
+```
+
+Neither PIP is ever contacted. The constant `false` short-circuits the AND across strata, regardless of whether `&` or `&&` is used.
+
 For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
+
+#### Lazy vs Eager: Subscription Strategy Within the Streaming Stratum
+
+The `&`/`|` vs `&&`/`||` choice only matters when multiple attribute finder subscriptions survive the cross-strata gate. When the engine has determined that it needs to subscribe to multiple streaming sources, the operator form controls how it manages those subscriptions:
+
+- `&&` / `||` (**lazy**, resource-optimized): Subscribes to attribute sources one at a time. If one source short-circuits the result, the next source is never subscribed to. This minimizes the number of concurrent PDP connections and network resources consumed.
+
+- `&` / `|` (**eager**, latency-optimized): Subscribes to all attribute sources in parallel immediately. The result is updated as soon as any source emits a new value. This trades higher resource consumption for lower latency.
+
+```sapl
+subject.isActive & <pip.a> & <pip.b>
+```
+
+If `subject.isActive` is `false` at runtime, neither PIP is contacted (pure gates streaming, same as `&&`). If `subject.isActive` is `true`, both PIPs are subscribed in parallel. With `&&` instead, PIP A would be subscribed first, and PIP B only if A does not short-circuit.
+
+A policy using `&` produces the same authorization decisions as one using `&&` (given the same precedence grouping). The difference is purely in runtime behavior. Choosing between the two forms will never change whether access is granted or denied.
+
+**When to use which form:** Use `&&` / `||` when minimizing concurrent attribute subscriptions is important, for example when attribute finders connect to rate-limited external services. Use `&` / `|` when low decision latency matters more than connection count, for example when combining multiple fast attribute sources where waiting sequentially would add unnecessary delay.
 
 ### String Concatenation
 

@@ -15,6 +15,8 @@ For how individual policies and policy sets map evaluation results to decision v
 
 All AND and OR operators (`&`, `&&`, `|`, `||`) use **cost-stratified short-circuit evaluation**. The compiler flattens chains of AND/OR operators into N-ary operations. For example, `a && b && c && d` is compiled into a single conjunction rather than a chain of nested binary operations. This enables the engine to sort all operands by cost stratum, regardless of how many there are. If any operand in a lower (cheaper) stratum short-circuits the result, all operands in higher (more expensive) strata are never evaluated and their subscriptions are never created.
 
+Within the streaming stratum, the two operator forms differ in their subscription strategy. `&&`/`||` (lazy) subscribe to attribute sources sequentially, while `&`/`|` (eager) subscribe to all sources in parallel. See [Lazy vs Eager](../2_7_Expressions/#lazy-vs-eager-subscription-strategy-within-the-streaming-stratum) for details.
+
 ### The Three Strata
 
 SAPL categorizes expressions into three strata based on their evaluation cost:
@@ -91,6 +93,6 @@ Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a
 
 ### Body Condition Evaluation
 
-Each semicolon-terminated statement in a policy body is an operand of an implicit conjunction. The body is equivalent to connecting all its conditions with `&`. The compiler flattens them into a single N-ary AND operation, exactly like an explicit `a & b & c` expression. This means body conditions participate fully in cost-stratified short-circuit evaluation: all conditions are sorted by cost stratum, and if any condition in a cheaper stratum evaluates to `false`, conditions in more expensive strata are never evaluated and their subscriptions are never created.
+Each semicolon-terminated statement in a policy body is an operand of an implicit conjunction. The body is equivalent to connecting all its conditions with `&&` (lazy AND). The compiler flattens them into a single N-ary AND operation, exactly like an explicit `a && b && c` expression. This means body conditions participate fully in cost-stratified short-circuit evaluation: all conditions are sorted by cost stratum, and if any condition in a cheaper stratum evaluates to `false`, conditions in more expensive strata are never evaluated and their subscriptions are never created. On the streaming stratum, body conditions use the lazy (resource-optimized) subscription strategy. To use eager (latency-optimized) evaluation, combine conditions explicitly using `&` within a single expression.
 
 Combined with the [recommended condition ordering](../2_8_FunctionsAndAttributes/#structuring-policy-conditions) (fast local checks first, PIP lookups later), this ensures that expensive external calls are avoided whenever possible.

@@ -20,11 +20,10 @@ package io.sapl.ast;
 /**
  * Binary operator ordered by precedence (lowest to highest).
  * <p>
- * Note: SAPL is side-effect free, so eager operators ({@code &}, {@code |}) are
- * treated as
- * aliases for their lazy counterparts ({@code &&}, {@code ||}) during AST
- * transformation.
- * Only XOR ({@code ^}) remains as a distinct eager operator.
+ * Lazy ({@code &&}, {@code ||}) and eager ({@code &}, {@code |}) boolean
+ * operators behave identically on the value and pure strata. On the streaming
+ * stratum, lazy operators use switchMap (short-circuit), while eager operators
+ * use combineLatest (both subscriptions always active).
  */
 public enum BinaryOperatorType {
     // Logical (all use cost-stratified short-circuit evaluation)
@@ -64,7 +63,7 @@ public enum BinaryOperatorType {
 
     /** @return true for any logical operator */
     public boolean isLogical() {
-        return this == LAZY_OR || this == LAZY_AND || this == XOR;
+        return this == LAZY_OR || this == LAZY_AND || this == EAGER_OR || this == EAGER_AND || this == XOR;
     }
 
     /** @return true for arithmetic operator */

@@ -32,7 +32,7 @@ import io.sapl.ast.Statement;
 import io.sapl.ast.VarDef;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.expressions.LazyNaryBooleanCompiler;
+import io.sapl.compiler.expressions.NaryBooleanCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
@@ -65,14 +65,14 @@ public class PolicyBodyCompiler {
             PolicyBody policyBody) {
         val streamConditions = conditions.stream().map(IndexedCompiledCondition::expression)
                 .filter(StreamOperator.class::isInstance).toList();
-        return LazyNaryBooleanCompiler.compile(streamConditions, policyBody.location(), Value.FALSE, Value.TRUE);
+        return NaryBooleanCompiler.compile(streamConditions, policyBody.location(), Value.FALSE, Value.TRUE);
     }
 
     private CompiledExpression compilePureSectionOfBodyExpression(List<IndexedCompiledCondition> conditions,
             PolicyBody body) {
         val pureConditions = conditions.stream().map(IndexedCompiledCondition::expression)
                 .filter(expression -> expression instanceof Value || expression instanceof PureOperator).toList();
-        return LazyNaryBooleanCompiler.compile(pureConditions, body.location(), Value.FALSE, Value.TRUE);
+        return NaryBooleanCompiler.compile(pureConditions, body.location(), Value.FALSE, Value.TRUE);
     }
 
     record IndexedCompiledCondition(CompiledExpression expression, SourceLocation location, long statementId) {}
@@ -152,7 +152,7 @@ public class PolicyBodyCompiler {
                 return Flux.just(result);
             }
             return next.map(nextTv -> {
-                val value = LazyNaryBooleanCompiler.mergeAttributes(currentContributingAttributes, nextTv.value());
+                val value = NaryBooleanCompiler.mergeAttributes(currentContributingAttributes, nextTv.value());
                 val hits  = nextTv.bodyCoverage().with(hit);
                 return new TracedValueAndBodyCoverage(value, hits);
             });

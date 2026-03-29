@@ -24,13 +24,17 @@ import lombok.NonNull;
 import java.util.List;
 
 /**
- * N-ary lazy conjunction (AND) for 3+ operands.
+ * N-ary conjunction (AND) for 3+ operands.
  * Enables pure-first evaluation and error absorption optimizations.
  *
  * @param operands list of operands (at least 3)
+ * @param isEager if true, uses combineLatest on the streaming stratum instead
+ * of
+ * short-circuit switchMap
  * @param location source location spanning all operands
  */
-public record Conjunction(@NonNull List<Expression> operands, @NonNull SourceLocation location) implements Expression {
+public record Conjunction(@NonNull List<Expression> operands, boolean isEager, @NonNull SourceLocation location)
+        implements Expression {
 
     private static final String ERROR_REQUIRES_AT_LEAST_3_OPERANDS = "Conjunction requires at least 3 operands, use BinaryOperator for 2";
 
