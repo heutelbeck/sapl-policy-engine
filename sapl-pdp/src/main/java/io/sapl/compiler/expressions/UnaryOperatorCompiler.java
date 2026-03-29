@@ -60,12 +60,13 @@ public class UnaryOperatorCompiler {
 
         return switch (operand) {
         case Value v          -> op.apply(v, location);
-        case PureOperator p   -> new UnaryPure(op, p, location, p.isDependingOnSubscription());
+        case PureOperator p   -> new UnaryPure(unaryOp.op(), op, p, location, p.isDependingOnSubscription());
         case StreamOperator s -> new UnaryStream(op, s, location);
         };
     }
 
     public record UnaryPure(
+            UnaryOperatorType opType,
             UnaryOperation op,
             PureOperator operand,
             SourceLocation location,
