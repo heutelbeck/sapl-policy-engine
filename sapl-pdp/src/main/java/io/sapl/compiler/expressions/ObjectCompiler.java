@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.expressions;
 
+import java.util.Arrays;
+
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -29,6 +31,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.ObjectExpression;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -125,6 +128,7 @@ public class ObjectCompiler {
             PureOperator[] pureOperators,
             int totalEntries,
             SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(AllPureObject.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -160,6 +164,16 @@ public class ObjectCompiler {
                 }
             }
             return false;
+        }
+
+        @Override
+        public long semanticHash() {
+            long hash = SemanticHashing.ordered(KIND, Arrays.hashCode(keys), Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), totalEntries);
+            for (var po : pureOperators) {
+                hash = SemanticHashing.ordered(hash, po.semanticHash());
+            }
+            return hash;
         }
     }
 

@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -150,10 +151,21 @@ public class ExtendedFilterCompiler {
 
     record ExtendedFilterValueValue(Value base, Value filterValue, List<PathElement> path, PathAnalysis pathAnalysis)
             implements ExtendedFilterPureOperator {
+        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterValueValue.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val initialCtx = ctx.withRelativeValue(base);
             return navigateAndApply(base, current -> filterValue, path, pathAnalysis, initialCtx);
+        }
+
+        @Override
+        public long semanticHash() {
+            // PathAnalysis contains compiledElements (semantic), isDependingOnSubscription
+            // (derived), and filterLocation (non-semantic). Only compiledElements affects
+            // evaluation outcome, so only it is included in the hash.
+            return SemanticHashing.ordered(KIND, base.hashCode(), filterValue.hashCode(), path.hashCode(),
+                    pathAnalysis.compiledElements().hashCode());
         }
     }
 
@@ -162,11 +174,19 @@ public class ExtendedFilterCompiler {
             PureOperator filterOperator,
             List<PathElement> path,
             PathAnalysis pathAnalysis) implements ExtendedFilterPureOperator {
+        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterValuePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val initialCtx = ctx.withRelativeValue(base);
             return navigateAndApply(base, current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)),
                     path, pathAnalysis, initialCtx);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.hashCode(), filterOperator.semanticHash(), path.hashCode(),
+                    pathAnalysis.compiledElements().hashCode());
         }
     }
 
@@ -175,11 +195,19 @@ public class ExtendedFilterCompiler {
             Value filterValue,
             List<PathElement> path,
             PathAnalysis pathAnalysis) implements ExtendedFilterPureOperator {
+        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterPureValue.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val base       = baseOperator.evaluate(ctx);
             val initialCtx = ctx.withRelativeValue(base);
             return navigateAndApply(base, current -> filterValue, path, pathAnalysis, initialCtx);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterValue.hashCode(), path.hashCode(),
+                    pathAnalysis.compiledElements().hashCode());
         }
     }
 
@@ -188,12 +216,20 @@ public class ExtendedFilterCompiler {
             PureOperator filterOperator,
             List<PathElement> path,
             PathAnalysis pathAnalysis) implements ExtendedFilterPureOperator {
+        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterPurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val base       = baseOperator.evaluate(ctx);
             val initialCtx = ctx.withRelativeValue(base);
             return navigateAndApply(base, current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)),
                     path, pathAnalysis, initialCtx);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterOperator.semanticHash(),
+                    path.hashCode(), pathAnalysis.compiledElements().hashCode());
         }
     }
 

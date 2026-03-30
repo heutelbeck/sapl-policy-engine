@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.AttributeRecord;
+import io.sapl.ast.BinaryOperatorType;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -30,6 +31,7 @@ import io.sapl.ast.ExclusiveDisjunction;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Product;
 import io.sapl.ast.Sum;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
@@ -61,19 +63,19 @@ public class NaryOperatorCompiler {
     private static final String ERROR_EMPTY_NARY_EXPRESSION = "Empty N-ary expression.";
 
     public CompiledExpression compileXor(ExclusiveDisjunction xd, CompilationContext ctx) {
-        return compile(xd.operands(), ctx, xd.location(), BooleanOperators::xor);
+        return compile(xd.operands(), ctx, xd.location(), BinaryOperatorType.XOR, BooleanOperators::xor);
     }
 
     public CompiledExpression compileSum(Sum s, CompilationContext ctx) {
-        return compile(s.operands(), ctx, s.location(), ArithmeticOperators::add);
+        return compile(s.operands(), ctx, s.location(), BinaryOperatorType.ADD, ArithmeticOperators::add);
     }
 
     public CompiledExpression compileProduct(Product p, CompilationContext ctx) {
-        return compile(p.operands(), ctx, p.location(), ArithmeticOperators::multiply);
+        return compile(p.operands(), ctx, p.location(), BinaryOperatorType.MUL, ArithmeticOperators::multiply);
     }
 
     private CompiledExpression compile(List<Expression> operands, CompilationContext ctx, SourceLocation location,
-            BinaryOperation op) {
+            BinaryOperatorType opType, BinaryOperation op) {
 
         // Compile all operands and categorize by strata
         var values  = new ArrayList<Value>();
@@ -104,7 +106,7 @@ public class NaryOperatorCompiler {
         if (streams.isEmpty()) {
             // Values + Pures only: return PureOperator
             boolean dependsOnSubscription = pures.stream().anyMatch(PureOperator::isDependingOnSubscription);
-            return new NaryPure(op, valueResult, pures, location, dependsOnSubscription);
+            return new NaryPure(opType, op, valueResult, pures, location, dependsOnSubscription);
         }
 
         // Has streams: return StreamOperator
@@ -191,6 +193,7 @@ public class NaryOperatorCompiler {
      * Returns early on any error (type mismatch or propagated error).
      */
     record NaryPure(
+            BinaryOperatorType opType,
             BinaryOperation op,
             Value valueResult,
             List<PureOperator> pures,
@@ -200,6 +203,19 @@ public class NaryOperatorCompiler {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return evaluateAndFoldPures(valueResult, pures, op, location, ctx);
+        }
+
+        @Override
+        public long semanticHash() {
+            val kind        = (long) opType.hashCode();
+            val childHashes = pures.stream().mapToLong(PureOperator::semanticHash).toArray();
+            if (valueResult == null) {
+                return SemanticHashing.commutative(kind, childHashes);
+            }
+            val allHashes = new long[childHashes.length + 1];
+            allHashes[0] = valueResult.hashCode();
+            System.arraycopy(childHashes, 0, allHashes, 1, childHashes.length);
+            return SemanticHashing.commutative(kind, allHashes);
         }
     }
 

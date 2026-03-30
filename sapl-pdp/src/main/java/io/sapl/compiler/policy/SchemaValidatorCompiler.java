@@ -38,6 +38,7 @@ import io.sapl.ast.SubscriptionElement;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -129,7 +130,7 @@ public class SchemaValidatorCompiler {
             val schemaNode        = ValueJsonMarshaller.toJsonNode(constantSchema);
             val precompiledSchema = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             precompiledSchema.initializeValidators();
-            return new PrecompiledSchemaValidator(element, precompiledSchema, location);
+            return new PrecompiledSchemaValidator(element, constantSchema, precompiledSchema, location);
         } catch (SchemaException e) {
             throw new SaplCompilerException(ERROR_SCHEMA_INVALID_JSON_SCHEMA.formatted(e.getMessage()), e, location);
         }
@@ -157,8 +158,12 @@ public class SchemaValidatorCompiler {
                 builder -> builder.schemas(schemaMap));
     }
 
-    record PrecompiledSchemaValidator(SubscriptionElement element, Schema schema, SourceLocation location)
-            implements PureOperator {
+    record PrecompiledSchemaValidator(
+            SubscriptionElement element,
+            ObjectValue schemaSource,
+            Schema schema,
+            SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(PrecompiledSchemaValidator.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -184,6 +189,11 @@ public class SchemaValidatorCompiler {
         public boolean isDependingOnSubscription() {
             return true;
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, element.hashCode(), schemaSource.hashCode());
+        }
     }
 
     /**
@@ -191,6 +201,8 @@ public class SchemaValidatorCompiler {
      * pass.
      */
     record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(ElementSchemaValidator.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             for (val validator : validators) {
@@ -214,12 +226,23 @@ public class SchemaValidatorCompiler {
         public boolean isDependingOnSubscription() {
             return true;
         }
+
+        @Override
+        public long semanticHash() {
+            long hash = KIND;
+            for (var v : validators) {
+                hash = SemanticHashing.ordered(hash, v.semanticHash());
+            }
+            return hash;
+        }
     }
 
     /**
      * AND semantics: all element validators must pass.
      */
     record CombinedElementValidator(List<PureOperator> elementValidators) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(CombinedElementValidator.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             for (val validator : elementValidators) {
@@ -239,6 +262,15 @@ public class SchemaValidatorCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return true;
+        }
+
+        @Override
+        public long semanticHash() {
+            long hash = KIND;
+            for (var v : elementValidators) {
+                hash = SemanticHashing.ordered(hash, v.semanticHash());
+            }
+            return hash;
         }
     }
 }

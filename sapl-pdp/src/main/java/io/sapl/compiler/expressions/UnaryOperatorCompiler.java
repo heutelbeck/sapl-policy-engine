@@ -27,6 +27,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
@@ -78,6 +79,11 @@ public class UnaryOperatorCompiler {
                 return v;
             }
             return op.apply(v, location);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(opType.hashCode(), operand.semanticHash());
         }
     }
 

@@ -27,6 +27,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -74,7 +75,7 @@ public class RegexCompiler {
             }
             return switch (left) {
             case Value lv         -> matchRegex(lv, matcher);
-            case PureOperator lp  -> new RegexPrecompiledPure(lp, matcher, loc);
+            case PureOperator lp  -> new RegexPrecompiledPure(lp, value, matcher, loc);
             case StreamOperator s -> new RegexPrecompiledStream(s, matcher, loc);
             };
         }
@@ -124,8 +125,13 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexPrecompiledPure(PureOperator input, Predicate<String> matcher, SourceLocation location)
-            implements PureOperator {
+    public record RegexPrecompiledPure(
+            PureOperator input,
+            String patternSource,
+            Predicate<String> matcher,
+            SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RegexPrecompiledPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val v = input.evaluate(ctx);
@@ -138,6 +144,11 @@ public class RegexCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return input.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, input.semanticHash(), patternSource.hashCode());
         }
     }
 
@@ -156,6 +167,8 @@ public class RegexCompiler {
     }
 
     public record RegexValuePure(Value input, PureOperator pattern, SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RegexValuePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val p = pattern.evaluate(ctx);
@@ -169,10 +182,17 @@ public class RegexCompiler {
         public boolean isDependingOnSubscription() {
             return pattern.isDependingOnSubscription();
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, input.hashCode(), pattern.semanticHash());
+        }
     }
 
     public record RegexPurePure(PureOperator input, PureOperator pattern, SourceLocation location)
             implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RegexPurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val i = input.evaluate(ctx);
@@ -189,6 +209,11 @@ public class RegexCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return input.isDependingOnSubscription() || pattern.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, input.semanticHash(), pattern.semanticHash());
         }
     }
 

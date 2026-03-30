@@ -30,6 +30,7 @@ import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.ast.AttributeStep;
 import io.sapl.ast.AttributeUnionStep;
 import io.sapl.ast.ConditionStep;
@@ -52,6 +53,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.IntFunction;
 
 /**
@@ -144,6 +146,9 @@ public class StepCompiler {
     }
 
     record KeyStepPure(PureOperator base, String key, SourceLocation location) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(KeyStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyKeyStep(base.evaluate(ctx), key);
@@ -152,6 +157,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
         }
     }
 
@@ -190,6 +200,9 @@ public class StepCompiler {
     }
 
     record IndexStepPure(PureOperator base, int index, SourceLocation location) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(IndexStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyIndexStep(base.evaluate(ctx), index, location);
@@ -198,6 +211,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), index);
         }
     }
 
@@ -231,6 +249,9 @@ public class StepCompiler {
     }
 
     record WildcardStepPure(PureOperator base, SourceLocation location) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(WildcardStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyWildcardStep(base.evaluate(ctx), location);
@@ -239,6 +260,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash());
         }
     }
 
@@ -295,6 +321,9 @@ public class StepCompiler {
 
     record IndexUnionStepPure(PureOperator base, List<Integer> indices, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(IndexUnionStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyIndexUnionStep(base.evaluate(ctx), indices, location);
@@ -303,6 +332,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), indices.hashCode());
         }
     }
 
@@ -347,6 +381,9 @@ public class StepCompiler {
 
     record AttributeUnionStepPure(PureOperator base, List<String> attributes, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(AttributeUnionStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyAttributeUnionStep(base.evaluate(ctx), attributes, location);
@@ -355,6 +392,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), attributes.hashCode());
         }
     }
 
@@ -429,6 +471,9 @@ public class StepCompiler {
 
     record SliceStepPure(PureOperator base, Integer from, Integer to, Integer step, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(SliceStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applySliceStep(base.evaluate(ctx), from, to, step, location);
@@ -437,6 +482,12 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), Objects.hashCode(from), Objects.hashCode(to),
+                    Objects.hashCode(step));
         }
     }
 
@@ -509,6 +560,9 @@ public class StepCompiler {
 
     record ExpressionStepPure(Value baseValue, PureOperator baseOp, CompiledExpression expr, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(ExpressionStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val base    = baseValue != null ? baseValue : baseOp.evaluate(ctx);
@@ -522,10 +576,20 @@ public class StepCompiler {
             boolean exprDep = expr instanceof PureOperator po && po.isDependingOnSubscription();
             return baseDep || exprDep;
         }
+
+        @Override
+        public long semanticHash() {
+            long baseHash = baseValue != null ? baseValue.hashCode() : baseOp.semanticHash();
+            long exprHash = expr instanceof PureOperator po ? po.semanticHash() : expr.hashCode();
+            return SemanticHashing.ordered(KIND, baseHash, exprHash);
+        }
     }
 
     record ExpressionStepPurePure(PureOperator base, PureOperator expr, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(ExpressionStepPurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyExpressionStep(base.evaluate(ctx), expr.evaluate(ctx), location);
@@ -534,6 +598,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription() || expr.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), expr.semanticHash());
         }
     }
 
@@ -659,6 +728,9 @@ public class StepCompiler {
 
     record ConditionStepConstBasePure(Value base, PureOperator condition, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(ConditionStepConstBasePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyConditionStep(base, null, condition, ctx, location);
@@ -668,10 +740,18 @@ public class StepCompiler {
         public boolean isDependingOnSubscription() {
             return condition.isDependingOnSubscription();
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.hashCode(), condition.semanticHash());
+        }
     }
 
     record ConditionStepPureConstCond(PureOperator base, Value condition, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(ConditionStepPureConstCond.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyConditionStep(base.evaluate(ctx), condition, null, ctx, location);
@@ -681,10 +761,18 @@ public class StepCompiler {
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), condition.hashCode());
+        }
     }
 
     record ConditionStepPurePure(PureOperator base, PureOperator condition, SourceLocation location)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(ConditionStepPurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyConditionStep(base.evaluate(ctx), null, condition, ctx, location);
@@ -693,6 +781,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription() || condition.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), condition.semanticHash());
         }
     }
 
@@ -774,6 +867,9 @@ public class StepCompiler {
     }
 
     record RecursiveKeyStepPure(PureOperator base, String key, SourceLocation location) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(RecursiveKeyStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyRecursiveKeyStep(base.evaluate(ctx), key, location);
@@ -782,6 +878,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
         }
     }
 
@@ -846,6 +947,9 @@ public class StepCompiler {
     }
 
     record RecursiveIndexStepPure(PureOperator base, int index, SourceLocation location) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(RecursiveIndexStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyRecursiveIndexStep(base.evaluate(ctx), index, location);
@@ -854,6 +958,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash(), index);
         }
     }
 
@@ -915,6 +1024,9 @@ public class StepCompiler {
     }
 
     record RecursiveWildcardStepPure(PureOperator base, SourceLocation location) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(RecursiveWildcardStepPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyRecursiveWildcardStep(base.evaluate(ctx), location);
@@ -923,6 +1035,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.semanticHash());
         }
     }
 

@@ -27,6 +27,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;
@@ -144,6 +145,11 @@ public class BinaryOperationCompiler {
             }
             return op.apply(lv, rv, location);
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.binaryOp(opType, lp.semanticHash(), rp.semanticHash());
+        }
     }
 
     public record BinaryValuePure(
@@ -161,6 +167,11 @@ public class BinaryOperationCompiler {
             }
             return op.apply(lv, rv, location);
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.binaryOp(opType, lv.hashCode(), rp.semanticHash());
+        }
     }
 
     public record BinaryPureValue(
@@ -177,6 +188,11 @@ public class BinaryOperationCompiler {
                 return lv;
             }
             return op.apply(lv, rv, location);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.binaryOp(opType, lp.semanticHash(), rv.hashCode());
         }
     }
 

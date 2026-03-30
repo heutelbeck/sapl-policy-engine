@@ -43,6 +43,7 @@ import io.sapl.ast.SimpleFilter;
 import io.sapl.ast.Step;
 import io.sapl.ast.Sum;
 import io.sapl.ast.UnaryOperator;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -93,6 +94,8 @@ public class ExpressionCompiler {
     }
 
     record IdentifierOp(String name, SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(IdentifierOp.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return ctx.get(name);
@@ -101,6 +104,11 @@ public class ExpressionCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return true;
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, name.hashCode());
         }
     }
 
@@ -119,6 +127,8 @@ public class ExpressionCompiler {
     }
 
     public record RelativeValueOp(SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RelativeValueOp.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return ctx.relativeValue();
@@ -128,9 +138,16 @@ public class ExpressionCompiler {
         public boolean isDependingOnSubscription() {
             return false;
         }
+
+        @Override
+        public long semanticHash() {
+            return KIND;
+        }
     }
 
     record RelativeLocationOp(SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RelativeLocationOp.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return ctx.relativeLocation();
@@ -139,6 +156,11 @@ public class ExpressionCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return false;
+        }
+
+        @Override
+        public long semanticHash() {
+            return KIND;
         }
     }
 

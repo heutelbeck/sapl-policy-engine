@@ -32,6 +32,7 @@ import io.sapl.ast.Expression;
 import io.sapl.ast.RelativeReference;
 import io.sapl.ast.RelativeType;
 import io.sapl.ast.SimpleFilter;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.SimpleStreamOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
@@ -103,9 +104,16 @@ public class FilterCompiler {
             PureOperator filterOperator,
             SourceLocation location,
             boolean isDependingOnSubscription) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachValuePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return evaluateEachValuePure(base, filterOperator, ctx);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, base.hashCode(), filterOperator.semanticHash());
         }
     }
 
@@ -123,9 +131,16 @@ public class FilterCompiler {
             Value filterResult,
             SourceLocation location,
             boolean isDependingOnSubscription) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachPureValue.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return evaluateEachValueValue(baseOperator.evaluate(ctx), filterResult);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterResult.hashCode());
         }
     }
 
@@ -134,9 +149,16 @@ public class FilterCompiler {
             PureOperator filterOperator,
             SourceLocation location,
             boolean isDependingOnSubscription) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachPurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return evaluateEachValuePure(baseOperator.evaluate(ctx), filterOperator, ctx);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterOperator.semanticHash());
         }
     }
 

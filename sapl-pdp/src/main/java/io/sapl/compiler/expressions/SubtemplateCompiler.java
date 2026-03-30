@@ -29,6 +29,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -228,6 +229,8 @@ public class SubtemplateCompiler {
 
     public record SubtemplateValuePure(Value parent, PureOperator template, SourceLocation location)
             implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(SubtemplateValuePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return applyPureTemplate(parent, template, ctx);
@@ -237,10 +240,17 @@ public class SubtemplateCompiler {
         public boolean isDependingOnSubscription() {
             return template.isDependingOnSubscription();
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, parent.hashCode(), template.semanticHash());
+        }
     }
 
     public record SubtemplatePureValue(PureOperator parent, Value template, SourceLocation location)
             implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(SubtemplatePureValue.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val parentValue = parent.evaluate(ctx);
@@ -251,10 +261,17 @@ public class SubtemplateCompiler {
         public boolean isDependingOnSubscription() {
             return parent.isDependingOnSubscription();
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, parent.semanticHash(), template.hashCode());
+        }
     }
 
     public record SubtemplatePurePure(PureOperator parent, PureOperator template, SourceLocation location)
             implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(SubtemplatePurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val parentValue = parent.evaluate(ctx);
@@ -264,6 +281,11 @@ public class SubtemplateCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return parent.isDependingOnSubscription() || template.isDependingOnSubscription();
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, parent.semanticHash(), template.semanticHash());
         }
     }
 

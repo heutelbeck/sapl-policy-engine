@@ -29,6 +29,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -274,6 +275,15 @@ public class NaryBooleanCompiler {
                 }
             }
             return identityValue;
+        }
+
+        // Eager and lazy AND/OR produce the same hash because on the pure
+        // stratum they evaluate identically. The isEager flag only affects
+        // the streaming stratum.
+        @Override
+        public long semanticHash() {
+            val childHashes = operands.stream().mapToLong(PureOperator::semanticHash).toArray();
+            return SemanticHashing.commutative(shortCircuitValue.hashCode(), childHashes);
         }
     }
 
