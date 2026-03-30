@@ -21,6 +21,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.ast.BinaryOperatorType;
+
+import static io.sapl.compiler.index.SemanticHashing.binaryOp;
 import static io.sapl.compiler.index.SemanticHashing.commutative;
 import static io.sapl.compiler.index.SemanticHashing.kindHash;
 import static io.sapl.compiler.index.SemanticHashing.ordered;
@@ -154,6 +157,29 @@ class SemanticHashingTests {
         void whenReorderedThenCommutativeMatchesButOrderedDoesNot() {
             assertThat(commutative(1L, 2L, 3L)).isEqualTo(commutative(1L, 3L, 2L));
             assertThat(ordered(1L, 2L, 3L)).isNotEqualTo(ordered(1L, 3L, 2L));
+        }
+    }
+
+    @Nested
+    @DisplayName("binaryOp")
+    class BinaryOpTests {
+
+        @Test
+        @DisplayName("commutative operator produces same hash regardless of operand order")
+        void whenCommutativeOpThenOrderIndependent() {
+            assertThat(binaryOp(BinaryOperatorType.EQ, 1L, 2L)).isEqualTo(binaryOp(BinaryOperatorType.EQ, 2L, 1L));
+        }
+
+        @Test
+        @DisplayName("non-commutative operator produces different hash for different order")
+        void whenNonCommutativeOpThenOrderDependent() {
+            assertThat(binaryOp(BinaryOperatorType.LT, 1L, 2L)).isNotEqualTo(binaryOp(BinaryOperatorType.LT, 2L, 1L));
+        }
+
+        @Test
+        @DisplayName("different operators produce different hashes")
+        void whenDifferentOpsThenDifferentHash() {
+            assertThat(binaryOp(BinaryOperatorType.EQ, 1L, 2L)).isNotEqualTo(binaryOp(BinaryOperatorType.NE, 1L, 2L));
         }
     }
 
