@@ -17,12 +17,23 @@
  */
 package io.sapl.compiler.index;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
+import io.sapl.ast.Outcome;
+import io.sapl.ast.VoterMetadata;
+import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.index.BooleanExpression.Atom;
 import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
 
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
 
@@ -30,10 +41,16 @@ import static io.sapl.util.SaplTesting.TEST_LOCATION;
  * Test factory methods for creating index representation objects.
  */
 @UtilityClass
-class IndexTestFixtures {
+public class IndexTestFixtures {
+
+    public static final Map<Long, Value> PREDICATE_RESULTS = new ConcurrentHashMap<>();
 
     static IndexPredicate predicate(long hash) {
         return new IndexPredicate(hash, stubOperator(hash));
+    }
+
+    public static IndexPredicate configurablePredicate(long hash) {
+        return new IndexPredicate(hash, configurableOperator(hash));
     }
 
     static Literal positiveLiteral(long hash) {
@@ -46,6 +63,39 @@ class IndexTestFixtures {
 
     static Atom atom(long hash) {
         return new Atom(predicate(hash));
+    }
+
+    public static CompiledDocument stubDocument(String name) {
+        return new StubDocument(name, Value.TRUE, Vote.abstain(stubMetadata(name)));
+    }
+
+    static VoterMetadata stubMetadata(String name) {
+        return new VoterMetadata() {
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String pdpId() {
+                return "testPdp";
+            }
+
+            @Override
+            public String configurationId() {
+                return "testConfig";
+            }
+
+            @Override
+            public Outcome outcome() {
+                return Outcome.PERMIT;
+            }
+
+            @Override
+            public boolean hasConstraints() {
+                return false;
+            }
+        };
     }
 
     private static PureOperator stubOperator(long hash) {
@@ -70,6 +120,47 @@ class IndexTestFixtures {
                 return hash;
             }
         };
+    }
+
+    private static PureOperator configurableOperator(long hash) {
+        return new PureOperator() {
+            @Override
+            public Value evaluate(EvaluationContext ctx) {
+                return PREDICATE_RESULTS.getOrDefault(hash, Value.FALSE);
+            }
+
+            @Override
+            public SourceLocation location() {
+                return TEST_LOCATION;
+            }
+
+            @Override
+            public boolean isDependingOnSubscription() {
+                return true;
+            }
+
+            @Override
+            public long semanticHash() {
+                return hash;
+            }
+        };
+    }
+
+    private record StubDocument(String name, CompiledExpression isApplicable, Voter voter) implements CompiledDocument {
+        @Override
+        public VoterMetadata metadata() {
+            return stubMetadata(name);
+        }
+
+        @Override
+        public Voter applicabilityAndVote() {
+            return voter;
+        }
+
+        @Override
+        public Flux<VoteWithCoverage> coverage() {
+            return Flux.empty();
+        }
     }
 
 }
