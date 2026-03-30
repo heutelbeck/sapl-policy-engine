@@ -20,11 +20,13 @@ package io.sapl.compiler.index;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.sapl.compiler.index.BooleanExpression.And;
-import io.sapl.compiler.index.BooleanExpression.Atom;
-import io.sapl.compiler.index.BooleanExpression.Constant;
-import io.sapl.compiler.index.BooleanExpression.Not;
-import io.sapl.compiler.index.BooleanExpression.Or;
+import io.sapl.api.model.BooleanExpression;
+import io.sapl.api.model.BooleanExpression.And;
+import io.sapl.api.model.BooleanExpression.Atom;
+import io.sapl.api.model.BooleanExpression.Constant;
+import io.sapl.api.model.BooleanExpression.Not;
+import io.sapl.api.model.BooleanExpression.Or;
+import io.sapl.api.model.IndexPredicate;
 import lombok.experimental.UtilityClass;
 
 /**

@@ -31,7 +31,8 @@ import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.document.VoteWithCoverage;
-import io.sapl.compiler.index.BooleanExpression.Atom;
+import io.sapl.api.model.BooleanExpression.Atom;
+import io.sapl.api.model.IndexPredicate;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 

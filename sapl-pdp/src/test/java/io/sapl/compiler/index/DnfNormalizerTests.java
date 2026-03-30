@@ -17,10 +17,11 @@
  */
 package io.sapl.compiler.index;
 
-import io.sapl.compiler.index.BooleanExpression.And;
-import io.sapl.compiler.index.BooleanExpression.Constant;
-import io.sapl.compiler.index.BooleanExpression.Not;
-import io.sapl.compiler.index.BooleanExpression.Or;
+import io.sapl.api.model.BooleanExpression;
+import io.sapl.api.model.BooleanExpression.And;
+import io.sapl.api.model.BooleanExpression.Constant;
+import io.sapl.api.model.BooleanExpression.Not;
+import io.sapl.api.model.BooleanExpression.Or;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;

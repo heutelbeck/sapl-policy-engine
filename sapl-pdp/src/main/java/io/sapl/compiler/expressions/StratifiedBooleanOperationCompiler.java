@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -224,6 +225,11 @@ public class StratifiedBooleanOperationCompiler {
         public long semanticHash() {
             return SemanticHashing.commutative(KIND, p1.semanticHash(), p2.semanticHash());
         }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            return new BooleanExpression.And(p1.booleanExpression(), p2.booleanExpression());
+        }
     }
 
     public record LazyOrPurePure(
@@ -248,6 +254,11 @@ public class StratifiedBooleanOperationCompiler {
         @Override
         public long semanticHash() {
             return SemanticHashing.commutative(KIND, p1.semanticHash(), p2.semanticHash());
+        }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            return new BooleanExpression.Or(p1.booleanExpression(), p2.booleanExpression());
         }
     }
 

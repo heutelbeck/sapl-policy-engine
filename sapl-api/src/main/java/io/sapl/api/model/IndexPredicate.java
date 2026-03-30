@@ -15,9 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.index;
-
-import io.sapl.api.model.PureOperator;
+package io.sapl.api.model;
 
 /**
  * A predicate in the canonical policy index. Wraps a {@link PureOperator} with

@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -84,6 +85,14 @@ public class UnaryOperatorCompiler {
         @Override
         public long semanticHash() {
             return SemanticHashing.ordered(opType.hashCode(), operand.semanticHash());
+        }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            if (opType == UnaryOperatorType.NOT) {
+                return new BooleanExpression.Not(operand.booleanExpression());
+            }
+            return PureOperator.super.booleanExpression();
         }
     }
 

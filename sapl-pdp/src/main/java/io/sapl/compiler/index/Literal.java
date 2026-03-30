@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.index;
 
+import io.sapl.api.model.IndexPredicate;
+
 /**
  * A literal in the canonical policy index: a predicate or its negation.
  * <p>

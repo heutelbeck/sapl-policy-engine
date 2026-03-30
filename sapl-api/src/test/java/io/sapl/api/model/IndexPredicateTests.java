@@ -15,12 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.index;
+package io.sapl.api.model;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static io.sapl.compiler.index.IndexTestFixtures.predicate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("IndexPredicate")
@@ -51,6 +50,30 @@ class IndexPredicateTests {
     @DisplayName("predicate is not equal to non-predicate")
     void whenComparedToOtherTypeThenNotEqual() {
         assertThat(predicate(1L)).isNotEqualTo("not a predicate");
+    }
+
+    private static IndexPredicate predicate(long hash) {
+        return new IndexPredicate(hash, new PureOperator() {
+            @Override
+            public Value evaluate(EvaluationContext ctx) {
+                return Value.TRUE;
+            }
+
+            @Override
+            public SourceLocation location() {
+                return new SourceLocation("test", "", 0, 0, 1, 1, 1, 1);
+            }
+
+            @Override
+            public boolean isDependingOnSubscription() {
+                return false;
+            }
+
+            @Override
+            public long semanticHash() {
+                return hash;
+            }
+        });
     }
 
 }

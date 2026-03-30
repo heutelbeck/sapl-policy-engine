@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -284,6 +285,15 @@ public class NaryBooleanCompiler {
         public long semanticHash() {
             val childHashes = operands.stream().mapToLong(PureOperator::semanticHash).toArray();
             return SemanticHashing.commutative(shortCircuitValue.hashCode(), childHashes);
+        }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            val children = operands.stream().map(PureOperator::booleanExpression).toList();
+            if (Value.FALSE.equals(shortCircuitValue)) {
+                return new BooleanExpression.And(children);
+            }
+            return new BooleanExpression.Or(children);
         }
     }
 

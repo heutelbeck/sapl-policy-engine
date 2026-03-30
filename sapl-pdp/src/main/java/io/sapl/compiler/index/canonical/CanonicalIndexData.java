@@ -24,7 +24,7 @@ import java.util.Set;
 
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.index.DisjunctiveFormula;
-import io.sapl.compiler.index.IndexPredicate;
+import io.sapl.api.model.IndexPredicate;
 
 /**
  * Precomputed data structures for the canonical policy index, built at compile
