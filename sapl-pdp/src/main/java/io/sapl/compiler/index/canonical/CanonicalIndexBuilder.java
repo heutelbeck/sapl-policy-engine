@@ -57,9 +57,10 @@ class CanonicalIndexBuilder {
         val conjunctionToIndex = new HashMap<ConjunctiveClause, Integer>();
 
         val formulaConjunctionIndicesList = new ArrayList<int[]>();
+        val conjunctionIndices            = new ArrayList<Integer>();
 
         for (val formula : formulas) {
-            val conjunctionIndices = new ArrayList<Integer>();
+            conjunctionIndices.clear();
             for (val clause : formula.clauses()) {
                 val clauseIndex = conjunctionToIndex.computeIfAbsent(clause, k -> conjunctionToIndex.size());
                 conjunctionIndices.add(clauseIndex);

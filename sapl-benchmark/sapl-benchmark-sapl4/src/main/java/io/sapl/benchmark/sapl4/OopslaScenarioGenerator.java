@@ -66,14 +66,17 @@ final class OopslaScenarioGenerator {
     private static final String PREFIX_REPO   = "repo_";
     private static final String PREFIX_TEAM   = "team_";
     private static final String PREFIX_USER   = "user_";
+    private static final String PREFIX_VIEW   = "view_";
+
+    private static final String ROLE_READERS = "readers";
 
     private static final String[] GDRIVE_ACTIONS   = { "read", "write", "share", "changeOwner", "createDocument" };
     private static final String[] GITHUB_ACTIONS   = { "read", "triage", "write", "maintain", "admin" };
     private static final String[] TINYTODO_ACTIONS = { "CreateList", "GetLists", "GetList", "UpdateList", "CreateTask",
             "UpdateTask", "DeleteTask", "EditShares" };
 
-    private static final String[] GITHUB_REPO_ROLES = { "readers", "triagers", "writers", "maintainers", "admins" };
-    private static final String[] GITHUB_ORG_ROLES  = { "readers", "writers", "admins" };
+    private static final String[] GITHUB_REPO_ROLES = { ROLE_READERS, "triagers", "writers", "maintainers", "admins" };
+    private static final String[] GITHUB_ORG_ROLES  = { ROLE_READERS, "writers", "admins" };
 
     private OopslaScenarioGenerator() {
     }
@@ -232,7 +235,7 @@ final class OopslaScenarioGenerator {
         var ownedDocs    = collectEdges(rng, n, PREFIX_DOC);
         var ownedFolders = collectEdges(rng, n, PREFIX_FOLDER);
 
-        var subject  = Value.ofObject(Map.of("id", Value.of(userId), "viewEntity", Value.of("view_" + userId),
+        var subject  = Value.ofObject(Map.of("id", Value.of(userId), "viewEntity", Value.of(PREFIX_VIEW + userId),
                 "ownedDocuments", ownedDocs, "ownedFolders", ownedFolders));
         var resource = Value.ofObject(Map.of("id", Value.of(resId), "isPublic", Value.of(rng.nextInt(2) == 0)));
 
@@ -242,11 +245,11 @@ final class OopslaScenarioGenerator {
     private static Value buildGdriveEnvironment(int n, Random rng) {
         var viewAccess = ObjectValue.builder();
         for (int u = 0; u < n; u++) {
-            viewAccess.put("view_" + PREFIX_USER + u, buildDocFolderEdges(n, rng));
+            viewAccess.put(PREFIX_VIEW + PREFIX_USER + u, buildDocFolderEdges(n, rng));
         }
         for (int g = 0; g < n; g++) {
             var reachable    = buildDocFolderEdgeList(n, rng);
-            var groupMembers = collectEdgeList(rng, n, "view_" + PREFIX_USER);
+            var groupMembers = collectEdgeList(rng, n, PREFIX_VIEW + PREFIX_USER);
             reachable.addAll(groupMembers);
             viewAccess.put("view_group_group_" + g, Value.ofArray(reachable.toArray(Value[]::new)));
         }
@@ -323,7 +326,7 @@ final class OopslaScenarioGenerator {
             resource = Value.ofObject(Map.of("type", Value.of("Application")));
         } else {
             resource = Value.ofObject(Map.of("id", Value.of(PREFIX_LIST + rng.nextInt(n)), "owner",
-                    Value.of(PREFIX_USER + rng.nextInt(n)), "readers", Value.of(PREFIX_TEAM + rng.nextInt(n)),
+                    Value.of(PREFIX_USER + rng.nextInt(n)), ROLE_READERS, Value.of(PREFIX_TEAM + rng.nextInt(n)),
                     "editors", Value.of(PREFIX_TEAM + rng.nextInt(n))));
         }
 
@@ -336,8 +339,9 @@ final class OopslaScenarioGenerator {
 
     private static ObjectValue buildHierarchy(int n, Random rng, String prefix) {
         var hierarchy = ObjectValue.builder();
+        var children  = new ArrayList<Value>();
         for (int t = 0; t < n; t++) {
-            var children = new ArrayList<Value>();
+            children.clear();
             for (int c = 0; c < t; c++) {
                 if (rng.nextDouble() < EDGE_PROBABILITY) {
                     children.add(Value.of(prefix + c));

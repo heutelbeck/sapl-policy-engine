@@ -229,8 +229,9 @@ public class GraphFunctionLibrary {
         }
 
         val pathsBuilder = ArrayValue.builder();
+        val steps        = new ArrayList<String>();
         for (val nodeId : visited) {
-            val steps = new ArrayList<String>();
+            steps.clear();
             for (var c = nodeId; c != null; c = predecessors.get(c)) {
                 steps.add(c);
             }
