@@ -1,0 +1,21 @@
+# SAPL 4.0 Server RSocket Benchmark Results
+# Scenario: simple-500
+# Cores: 6 P-cores
+# Connections: 64
+# VT/connection: 256
+# Warmup: 5s (built-in per fork)
+# Measurement: 30s
+# Convergence: CoV < 2% over 3 forks
+# Mean: 512417.12 req/s
+# StdDev: 2167.86 req/s
+# CoV: 0.42%
+# Forks: 3
+# Latency p50 (ns): 28120576
+# Latency p90 (ns): 56865873
+# Latency p99 (ns): 98475115
+# Latency p99.9 (ns): 166076989
+# Latency max (ns): 252809699
+fork,throughput_req_s
+1,510325.93
+2,512271.14
+3,514654.28

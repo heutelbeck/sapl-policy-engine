@@ -54,6 +54,7 @@ profile_defaults() {
             WRK_WARMUP_TIME=3
             WRK_MEASURE_TIME=10
             WRK_CONVERGE=true
+            COOL_TARGET=60
             CORE_SWEEP=(1 2 4 6 8)
             CONN_SWEEP=(128)
             THREAD_SWEEP=(1 2 4 8)
@@ -72,8 +73,9 @@ profile_defaults() {
             WRK_WARMUP_TIME=3
             WRK_MEASURE_TIME=30
             WRK_CONVERGE=true
+            COOL_TARGET=60
             CORE_SWEEP=(1 2 4 6 8)
-            CONN_SWEEP=(32 64 128 256)
+            CONN_SWEEP=(32 64)
             THREAD_SWEEP=(1 2 4 8)
             RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
