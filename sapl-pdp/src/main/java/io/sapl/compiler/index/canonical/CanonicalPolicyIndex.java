@@ -127,17 +127,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
             }
         }
         if (indexData != null) {
-            val indexResult = CanonicalIndexSearch.search(indexData, ctx);
-            for (val errorVote : indexResult.errorVotes()) {
-                if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(errorVote)))) {
-                    return;
-                }
-            }
-            for (val document : indexResult.matchingDocuments()) {
-                if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
-                    return;
-                }
-            }
+            CanonicalIndexSearch.searchWhile(indexData, ctx, shouldContinue);
         }
     }
 

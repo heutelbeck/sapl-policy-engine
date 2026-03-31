@@ -22,6 +22,7 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
@@ -105,6 +106,101 @@ class CanonicalIndexSearch {
         }
 
         return buildResult(matchedFormulas, errorFormulas, data, errorVotes);
+    }
+
+    /**
+     * Incremental search: yields matches and errors to the callback after each
+     * predicate evaluation. Stops when the callback returns false.
+     *
+     * @param data the precomputed index data structures
+     * @param ctx the evaluation context for predicate evaluation
+     * @param shouldContinue called with incremental results after each predicate
+     * step; returns false to stop
+     */
+    static void searchWhile(CanonicalIndexData data, EvaluationContext ctx,
+            Predicate<PolicyIndexResult> shouldContinue) {
+        val numberOfConjunctions = data.numberOfConjunctions();
+
+        val trueLiteralCount      = new int[numberOfConjunctions];
+        val candidateConjunctions = new BitSet(numberOfConjunctions);
+        candidateConjunctions.set(0, numberOfConjunctions);
+
+        val remainingFormulasWithConjunction = data.numberOfFormulasWithConjunction().clone();
+
+        val matchedFormulas = new HashSet<Integer>();
+        val errorFormulas   = new HashSet<Integer>();
+
+        for (val predicate : data.predicateOrder()) {
+            val p = data.predicateToIndex().get(predicate);
+
+            val relevantConjunctions = (BitSet) data.conjunctionsWithPredicate()[p].clone();
+            relevantConjunctions.and(candidateConjunctions);
+            if (relevantConjunctions.isEmpty()) {
+                continue;
+            }
+
+            val evaluationResult = predicate.operator().evaluate(ctx);
+
+            if (evaluationResult instanceof ErrorValue error) {
+                if (!yieldErrors(error, p, data, matchedFormulas, errorFormulas, shouldContinue)) {
+                    return;
+                }
+                eliminateAllPredicateConjunctions(p, data, candidateConjunctions, remainingFormulasWithConjunction,
+                        matchedFormulas);
+                continue;
+            }
+
+            val predicateTrue = evaluationResult instanceof BooleanValue(var b) && b;
+
+            val satisfied = findSatisfied(p, predicateTrue, data, candidateConjunctions, trueLiteralCount);
+
+            if (!yieldMatches(satisfied, data, matchedFormulas, errorFormulas, candidateConjunctions,
+                    remainingFormulasWithConjunction, shouldContinue)) {
+                return;
+            }
+
+            val unsatisfied = findUnsatisfied(p, predicateTrue, data, candidateConjunctions);
+
+            candidateConjunctions.andNot(satisfied);
+            candidateConjunctions.andNot(unsatisfied);
+        }
+    }
+
+    private static boolean yieldErrors(ErrorValue error, int p, CanonicalIndexData data, Set<Integer> matchedFormulas,
+            Set<Integer> errorFormulas, Predicate<PolicyIndexResult> shouldContinue) {
+        for (val formulaIndex : data.relatedFormulas().get(p)) {
+            if (!matchedFormulas.contains(formulaIndex) && errorFormulas.add(formulaIndex)) {
+                val formula   = data.formulas().get(formulaIndex);
+                val documents = data.formulaToDocuments().get(formula);
+                if (documents != null) {
+                    val errorVotes = documents.stream().map(doc -> Vote.error(error, doc.metadata())).toList();
+                    if (!shouldContinue.test(new PolicyIndexResult(List.of(), errorVotes))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean yieldMatches(BitSet satisfied, CanonicalIndexData data, Set<Integer> matchedFormulas,
+            Set<Integer> errorFormulas, BitSet candidateConjunctions, int[] remainingFormulasWithConjunction,
+            Predicate<PolicyIndexResult> shouldContinue) {
+        for (var c = satisfied.nextSetBit(0); c >= 0; c = satisfied.nextSetBit(c + 1)) {
+            for (val f : data.conjunctionToFormulaIndices()[c]) {
+                if (!errorFormulas.contains(f) && matchedFormulas.add(f)) {
+                    orphanSiblingConjunctions(f, data, candidateConjunctions, remainingFormulasWithConjunction);
+                    val formula   = data.formulas().get(f);
+                    val documents = data.formulaToDocuments().get(formula);
+                    if (documents != null) {
+                        if (!shouldContinue.test(new PolicyIndexResult(documents, List.of()))) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     private static BitSet findSatisfied(int p, boolean predicateTrue, CanonicalIndexData data,
