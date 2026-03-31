@@ -57,6 +57,23 @@ final class OopslaScenarioGenerator {
     private static final int    DATASTORES_PER_SCENARIO = 200;
     private static final int    REQUESTS_PER_DATASTORE  = 500;
     private static final double EDGE_PROBABILITY        = 0.05;
+    private static final long   BASE_SEED               = 42L;
+
+    private static final String PREFIX_DOC    = "doc_";
+    private static final String PREFIX_FOLDER = "folder_";
+    private static final String PREFIX_LIST   = "list_";
+    private static final String PREFIX_ORG    = "org_";
+    private static final String PREFIX_REPO   = "repo_";
+    private static final String PREFIX_TEAM   = "team_";
+    private static final String PREFIX_USER   = "user_";
+
+    private static final String[] GDRIVE_ACTIONS   = { "read", "write", "share", "changeOwner", "createDocument" };
+    private static final String[] GITHUB_ACTIONS   = { "read", "triage", "write", "maintain", "admin" };
+    private static final String[] TINYTODO_ACTIONS = { "CreateList", "GetLists", "GetList", "UpdateList", "CreateTask",
+            "UpdateTask", "DeleteTask", "EditShares" };
+
+    private static final String[] GITHUB_REPO_ROLES = { "readers", "triagers", "writers", "maintainers", "admins" };
+    private static final String[] GITHUB_ORG_ROLES  = { "readers", "writers", "admins" };
 
     private OopslaScenarioGenerator() {
     }
@@ -195,102 +212,61 @@ final class OopslaScenarioGenerator {
                 AuthorizationDecision.DENY);
     }
 
-    // ---- gdrive ----
-
     private static List<AuthorizationSubscription> generateGdriveSubscriptions(int n) {
         var subscriptions = new ArrayList<AuthorizationSubscription>(DATASTORES_PER_SCENARIO * REQUESTS_PER_DATASTORE);
-        var actions       = new String[] { "read", "write", "share", "changeOwner", "createDocument" };
-
         for (int ds = 0; ds < DATASTORES_PER_SCENARIO; ds++) {
-            var rng = new Random(42L + ds);
+            var rng = new Random(BASE_SEED + ds);
             var env = buildGdriveEnvironment(n, rng);
-
             for (int req = 0; req < REQUESTS_PER_DATASTORE; req++) {
-                var userId = "user_" + rng.nextInt(n);
-                var action = actions[rng.nextInt(actions.length)];
-                var isDoc  = rng.nextBoolean();
-                var resId  = isDoc ? "doc_" + rng.nextInt(n) : "folder_" + rng.nextInt(n);
-
-                var ownedDocs    = new ArrayList<Value>();
-                var ownedFolders = new ArrayList<Value>();
-                for (int j = 0; j < n; j++) {
-                    if (rng.nextDouble() < EDGE_PROBABILITY) {
-                        ownedDocs.add(Value.of("doc_" + j));
-                    }
-                    if (rng.nextDouble() < EDGE_PROBABILITY) {
-                        ownedFolders.add(Value.of("folder_" + j));
-                    }
-                }
-
-                var subject  = Value
-                        .ofObject(Map.of("id", Value.of(userId), "viewEntity", Value.of("view_user_" + userId),
-                                "ownedDocuments", Value.ofArray(ownedDocs.toArray(Value[]::new)), "ownedFolders",
-                                Value.ofArray(ownedFolders.toArray(Value[]::new))));
-                var resource = Value.ofObject(Map.of("id", Value.of(resId), "isPublic", Value.of(rng.nextInt(2) == 0)));
-
-                subscriptions.add(AuthorizationSubscription.of(subject, Value.of(action), resource, env));
+                subscriptions.add(buildGdriveRequest(n, rng, env));
             }
         }
         return subscriptions;
     }
 
+    private static AuthorizationSubscription buildGdriveRequest(int n, Random rng, Value env) {
+        var userId = PREFIX_USER + rng.nextInt(n);
+        var action = GDRIVE_ACTIONS[rng.nextInt(GDRIVE_ACTIONS.length)];
+        var resId  = rng.nextBoolean() ? PREFIX_DOC + rng.nextInt(n) : PREFIX_FOLDER + rng.nextInt(n);
+
+        var ownedDocs    = collectEdges(rng, n, PREFIX_DOC);
+        var ownedFolders = collectEdges(rng, n, PREFIX_FOLDER);
+
+        var subject  = Value.ofObject(Map.of("id", Value.of(userId), "viewEntity", Value.of("view_" + userId),
+                "ownedDocuments", ownedDocs, "ownedFolders", ownedFolders));
+        var resource = Value.ofObject(Map.of("id", Value.of(resId), "isPublic", Value.of(rng.nextInt(2) == 0)));
+
+        return AuthorizationSubscription.of(subject, Value.of(action), resource, env);
+    }
+
     private static Value buildGdriveEnvironment(int n, Random rng) {
         var viewAccess = ObjectValue.builder();
         for (int u = 0; u < n; u++) {
-            var reachable = new ArrayList<Value>();
-            for (int d = 0; d < n; d++) {
-                if (rng.nextDouble() < EDGE_PROBABILITY) {
-                    reachable.add(Value.of("doc_" + d));
-                }
-                if (rng.nextDouble() < EDGE_PROBABILITY) {
-                    reachable.add(Value.of("folder_" + d));
-                }
-            }
-            viewAccess.put("view_user_user_" + u, Value.ofArray(reachable.toArray(Value[]::new)));
+            viewAccess.put("view_" + PREFIX_USER + u, buildDocFolderEdges(n, rng));
         }
         for (int g = 0; g < n; g++) {
-            var reachable = new ArrayList<Value>();
-            for (int d = 0; d < n; d++) {
-                if (rng.nextDouble() < EDGE_PROBABILITY) {
-                    reachable.add(Value.of("doc_" + d));
-                }
-                if (rng.nextDouble() < EDGE_PROBABILITY) {
-                    reachable.add(Value.of("folder_" + d));
-                }
-            }
+            var reachable    = buildDocFolderEdgeList(n, rng);
+            var groupMembers = collectEdgeList(rng, n, "view_" + PREFIX_USER);
+            reachable.addAll(groupMembers);
             viewAccess.put("view_group_group_" + g, Value.ofArray(reachable.toArray(Value[]::new)));
-            var groupMembers = new ArrayList<Value>();
-            for (int u = 0; u < n; u++) {
-                if (rng.nextDouble() < EDGE_PROBABILITY) {
-                    groupMembers.add(Value.of("view_user_user_" + u));
-                }
-            }
-            viewAccess.put("view_group_group_" + g,
-                    Value.ofArray(concatArrays(reachable, groupMembers).toArray(Value[]::new)));
         }
         return Value.ofObject(Map.of("viewAccess", viewAccess.build()));
     }
 
-    // ---- github ----
-
     private static List<AuthorizationSubscription> generateGithubSubscriptions(int n) {
         var subscriptions = new ArrayList<AuthorizationSubscription>(DATASTORES_PER_SCENARIO * REQUESTS_PER_DATASTORE);
-        var actions       = new String[] { "read", "triage", "write", "maintain", "admin" };
         var orgCount      = Math.max(1, n);
-
         for (int ds = 0; ds < DATASTORES_PER_SCENARIO; ds++) {
-            var rng = new Random(42L + ds);
+            var rng = new Random(BASE_SEED + ds);
             var env = buildGithubEnvironment(n, orgCount, rng);
-
             for (int req = 0; req < REQUESTS_PER_DATASTORE; req++) {
-                var userId = "user_" + rng.nextInt(n);
-                var action = actions[rng.nextInt(actions.length)];
-                var repoId = "repo_" + rng.nextInt(n);
-                var owner  = "org_" + rng.nextInt(orgCount);
+                var userId = PREFIX_USER + rng.nextInt(n);
+                var action = GITHUB_ACTIONS[rng.nextInt(GITHUB_ACTIONS.length)];
+                var repoId = PREFIX_REPO + rng.nextInt(n);
+                var owner  = PREFIX_ORG + rng.nextInt(orgCount);
 
                 var subject  = Value.ofObject(Map.of("id", Value.of(userId)));
                 var resource = Value.ofObject(Map.of("id", Value.of(repoId), "owner", Value.of(owner)));
-
                 subscriptions.add(AuthorizationSubscription.of(subject, Value.of(action), resource, env));
             }
         }
@@ -298,121 +274,115 @@ final class OopslaScenarioGenerator {
     }
 
     private static Value buildGithubEnvironment(int n, int orgCount, Random rng) {
-        var roles      = new String[] { "readers", "triagers", "writers", "maintainers", "admins" };
         var envBuilder = ObjectValue.builder();
-
-        for (var role : roles) {
-            var repoRole = ObjectValue.builder();
-            for (int r = 0; r < n; r++) {
-                var members = new ArrayList<Value>();
-                for (int u = 0; u < n; u++) {
-                    if (rng.nextDouble() < EDGE_PROBABILITY) {
-                        members.add(Value.of("user_" + u));
-                    }
-                }
-                for (int t = 0; t < n; t++) {
-                    if (rng.nextDouble() < EDGE_PROBABILITY) {
-                        members.add(Value.of("team_" + t));
-                    }
-                }
-                repoRole.put("repo_" + r, Value.ofArray(members.toArray(Value[]::new)));
-            }
-            envBuilder.put("repo" + capitalize(role), repoRole.build());
+        for (var role : GITHUB_REPO_ROLES) {
+            envBuilder.put("repo" + capitalize(role),
+                    buildRoleMembership(n, n, rng, PREFIX_USER, PREFIX_TEAM, PREFIX_REPO));
         }
-
-        var orgRoles = new String[] { "readers", "writers", "admins" };
-        for (var role : orgRoles) {
-            var orgRole = ObjectValue.builder();
-            for (int o = 0; o < orgCount; o++) {
-                var members = new ArrayList<Value>();
-                for (int u = 0; u < n; u++) {
-                    if (rng.nextDouble() < EDGE_PROBABILITY) {
-                        members.add(Value.of("user_" + u));
-                    }
-                }
-                orgRole.put("org_" + o, Value.ofArray(members.toArray(Value[]::new)));
-            }
-            envBuilder.put("org" + capitalize(role), orgRole.build());
+        for (var role : GITHUB_ORG_ROLES) {
+            envBuilder.put("org" + capitalize(role),
+                    buildRoleMembership(n, orgCount, rng, PREFIX_USER, null, PREFIX_ORG));
         }
-
-        var teamHierarchy = ObjectValue.builder();
-        for (int t = 0; t < n; t++) {
-            var children = new ArrayList<Value>();
-            for (int c = 0; c < t; c++) {
-                if (rng.nextDouble() < EDGE_PROBABILITY) {
-                    children.add(Value.of("team_" + c));
-                }
-            }
-            teamHierarchy.put("team_" + t, Value.ofArray(children.toArray(Value[]::new)));
-        }
-        envBuilder.put("teamHierarchy", teamHierarchy.build());
-
+        envBuilder.put("teamHierarchy", buildHierarchy(n, rng, PREFIX_TEAM));
         return envBuilder.build();
     }
 
-    // ---- tinytodo ----
+    private static ObjectValue buildRoleMembership(int memberCount, int entityCount, Random rng, String memberPrefix,
+            String teamPrefix, String entityPrefix) {
+        var role = ObjectValue.builder();
+        for (int e = 0; e < entityCount; e++) {
+            var members = collectEdgeList(rng, memberCount, memberPrefix);
+            if (teamPrefix != null) {
+                members.addAll(collectEdgeList(rng, memberCount, teamPrefix));
+            }
+            role.put(entityPrefix + e, Value.ofArray(members.toArray(Value[]::new)));
+        }
+        return role.build();
+    }
 
     private static List<AuthorizationSubscription> generateTinytodoSubscriptions(int n) {
         var subscriptions = new ArrayList<AuthorizationSubscription>(DATASTORES_PER_SCENARIO * REQUESTS_PER_DATASTORE);
-        var actions       = new String[] { "CreateList", "GetLists", "GetList", "UpdateList", "CreateTask",
-                "UpdateTask", "DeleteTask", "EditShares" };
-
         for (int ds = 0; ds < DATASTORES_PER_SCENARIO; ds++) {
-            var rng = new Random(42L + ds);
+            var rng = new Random(BASE_SEED + ds);
             var env = buildTinytodoEnvironment(n, rng);
-
             for (int req = 0; req < REQUESTS_PER_DATASTORE; req++) {
-                var userId = "user_" + rng.nextInt(n);
-                var teamId = "team_" + rng.nextInt(n);
-                var action = actions[rng.nextInt(actions.length)];
-
-                Value subject;
-                Value resource;
-
-                if (action.equals("CreateList") || action.equals("GetLists")) {
-                    subject  = Value.ofObject(Map.of("id", Value.of(userId), "teams", Value.ofArray(Value.of(teamId))));
-                    resource = Value.ofObject(Map.of("type", Value.of("Application")));
-                } else {
-                    var listId  = "list_" + rng.nextInt(n);
-                    var ownerId = "user_" + rng.nextInt(n);
-                    var readers = "team_" + rng.nextInt(n);
-                    var editors = "team_" + rng.nextInt(n);
-                    subject  = Value.ofObject(Map.of("id", Value.of(userId), "teams", Value.ofArray(Value.of(teamId))));
-                    resource = Value.ofObject(Map.of("id", Value.of(listId), "owner", Value.of(ownerId), "readers",
-                            Value.of(readers), "editors", Value.of(editors)));
-                }
-
-                subscriptions.add(AuthorizationSubscription.of(subject, Value.of(action), resource, env));
+                subscriptions.add(buildTinytodoRequest(n, rng, env));
             }
         }
         return subscriptions;
     }
 
+    private static AuthorizationSubscription buildTinytodoRequest(int n, Random rng, Value env) {
+        var userId  = PREFIX_USER + rng.nextInt(n);
+        var teamId  = PREFIX_TEAM + rng.nextInt(n);
+        var action  = TINYTODO_ACTIONS[rng.nextInt(TINYTODO_ACTIONS.length)];
+        var subject = Value.ofObject(Map.of("id", Value.of(userId), "teams", Value.ofArray(Value.of(teamId))));
+
+        Value resource;
+        if ("CreateList".equals(action) || "GetLists".equals(action)) {
+            resource = Value.ofObject(Map.of("type", Value.of("Application")));
+        } else {
+            resource = Value.ofObject(Map.of("id", Value.of(PREFIX_LIST + rng.nextInt(n)), "owner",
+                    Value.of(PREFIX_USER + rng.nextInt(n)), "readers", Value.of(PREFIX_TEAM + rng.nextInt(n)),
+                    "editors", Value.of(PREFIX_TEAM + rng.nextInt(n))));
+        }
+
+        return AuthorizationSubscription.of(subject, Value.of(action), resource, env);
+    }
+
     private static Value buildTinytodoEnvironment(int n, Random rng) {
-        var teamHierarchy = ObjectValue.builder();
+        return Value.ofObject(Map.of("teamHierarchy", buildHierarchy(n, rng, PREFIX_TEAM)));
+    }
+
+    private static ObjectValue buildHierarchy(int n, Random rng, String prefix) {
+        var hierarchy = ObjectValue.builder();
         for (int t = 0; t < n; t++) {
             var children = new ArrayList<Value>();
             for (int c = 0; c < t; c++) {
                 if (rng.nextDouble() < EDGE_PROBABILITY) {
-                    children.add(Value.of("team_" + c));
+                    children.add(Value.of(prefix + c));
                 }
             }
-            teamHierarchy.put("team_" + t, Value.ofArray(children.toArray(Value[]::new)));
+            hierarchy.put(prefix + t, Value.ofArray(children.toArray(Value[]::new)));
         }
-        return Value.ofObject(Map.of("teamHierarchy", teamHierarchy.build()));
+        return hierarchy.build();
     }
 
-    // ---- helpers ----
+    private static Value collectEdges(Random rng, int n, String prefix) {
+        var edges = collectEdgeList(rng, n, prefix);
+        return Value.ofArray(edges.toArray(Value[]::new));
+    }
+
+    private static ArrayList<Value> collectEdgeList(Random rng, int n, String prefix) {
+        var edges = new ArrayList<Value>();
+        for (int i = 0; i < n; i++) {
+            if (rng.nextDouble() < EDGE_PROBABILITY) {
+                edges.add(Value.of(prefix + i));
+            }
+        }
+        return edges;
+    }
+
+    private static Value buildDocFolderEdges(int n, Random rng) {
+        var edges = buildDocFolderEdgeList(n, rng);
+        return Value.ofArray(edges.toArray(Value[]::new));
+    }
+
+    private static ArrayList<Value> buildDocFolderEdgeList(int n, Random rng) {
+        var edges = new ArrayList<Value>();
+        for (int d = 0; d < n; d++) {
+            if (rng.nextDouble() < EDGE_PROBABILITY) {
+                edges.add(Value.of(PREFIX_DOC + d));
+            }
+            if (rng.nextDouble() < EDGE_PROBABILITY) {
+                edges.add(Value.of(PREFIX_FOLDER + d));
+            }
+        }
+        return edges;
+    }
 
     private static String capitalize(String s) {
         return s.substring(0, 1).toUpperCase() + s.substring(1);
-    }
-
-    private static List<Value> concatArrays(List<Value> a, List<Value> b) {
-        var result = new ArrayList<Value>(a.size() + b.size());
-        result.addAll(a);
-        result.addAll(b);
-        return result;
     }
 
 }

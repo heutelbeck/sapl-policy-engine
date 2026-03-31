@@ -74,15 +74,12 @@ public class NaivePolicyIndex implements PolicyIndex {
     public void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue) {
         for (val document : documents) {
             val isApplicable = evaluateApplicability(document, ctx);
-            if (isApplicable instanceof ErrorValue error) {
-                if (!shouldContinue
-                        .test(new PolicyIndexResult(List.of(), List.of(Vote.error(error, document.metadata()))))) {
-                    return;
-                }
-            } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
-                    return;
-                }
+            if (isApplicable instanceof ErrorValue error && !shouldContinue
+                    .test(new PolicyIndexResult(List.of(), List.of(Vote.error(error, document.metadata()))))) {
+                return;
+            } else if (isApplicable instanceof BooleanValue(var b) && b
+                    && !shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
+                return;
             }
         }
     }

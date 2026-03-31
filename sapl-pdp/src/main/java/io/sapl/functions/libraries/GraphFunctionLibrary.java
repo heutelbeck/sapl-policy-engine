@@ -281,12 +281,12 @@ public class GraphFunctionLibrary {
      * counter to avoid passing 8 parameters through recursive DFS.
      */
     private static class TarjanState {
-        private final Map<String, Integer> index   = new HashMap<>();
-        private final Map<String, Integer> lowlink = new HashMap<>();
-        private final Set<String>          onStack = new HashSet<>();
-        private final ArrayDeque<String>   stack   = new ArrayDeque<>();
-        private final List<Set<String>>    sccs    = new ArrayList<>();
-        private int                        counter = 0;
+        private final Map<String, Integer> index       = new HashMap<>();
+        private final Map<String, Integer> lowlink     = new HashMap<>();
+        private final Set<String>          activeInDfs = new HashSet<>();
+        private final ArrayDeque<String>   stack       = new ArrayDeque<>();
+        private final List<Set<String>>    sccs        = new ArrayList<>();
+        private int                        counter     = 0;
 
         /**
          * Finds all SCCs via Tarjan's algorithm (1972). O(V + E). Returns SCCs
@@ -313,13 +313,13 @@ public class GraphFunctionLibrary {
             index.put(node, idx);
             lowlink.put(node, idx);
             stack.push(node);
-            onStack.add(node);
+            activeInDfs.add(node);
 
             for (val neighbor : adjacency.getOrDefault(node, Set.of())) {
                 if (!index.containsKey(neighbor)) {
                     dfs(neighbor, adjacency);
                     lowlink.put(node, Math.min(lowlink.get(node), lowlink.get(neighbor)));
-                } else if (onStack.contains(neighbor)) {
+                } else if (activeInDfs.contains(neighbor)) {
                     lowlink.put(node, Math.min(lowlink.get(node), index.get(neighbor)));
                 }
             }
@@ -329,7 +329,7 @@ public class GraphFunctionLibrary {
                 String w;
                 do {
                     w = stack.pop();
-                    onStack.remove(w);
+                    activeInDfs.remove(w);
                     scc.add(w);
                 } while (!w.equals(node));
                 sccs.add(scc);
@@ -403,7 +403,14 @@ public class GraphFunctionLibrary {
         if (nodeValue == null) {
             return;
         }
-        val edgesValue = edgeKey == null ? nodeValue : (nodeValue instanceof ObjectValue obj ? obj.get(edgeKey) : null);
+        Value edgesValue;
+        if (edgeKey == null) {
+            edgesValue = nodeValue;
+        } else if (nodeValue instanceof ObjectValue obj) {
+            edgesValue = obj.get(edgeKey);
+        } else {
+            edgesValue = null;
+        }
         if (edgesValue instanceof ArrayValue edgesArray) {
             for (val neighbor : edgesArray) {
                 consumer.accept(nodeIdOf(neighbor));
@@ -436,15 +443,7 @@ public class GraphFunctionLibrary {
     private static Value collectAttribute(ObjectValue graph, Set<String> reachableIds, String attrKey) {
         val collected = new ArrayList<Value>();
         for (val nodeId : reachableIds) {
-            val nodeValue = graph.get(nodeId);
-            if (!(nodeValue instanceof ObjectValue nodeObj)) {
-                continue;
-            }
-            val attrs = nodeObj.get("attributes");
-            if (!(attrs instanceof ObjectValue attrsObj)) {
-                continue;
-            }
-            val attrValue = attrsObj.get(attrKey);
+            val attrValue = resolveAttribute(graph, nodeId, attrKey);
             if (attrValue instanceof ArrayValue arrayAttr) {
                 for (val element : arrayAttr) {
                     collected.add(element);
@@ -454,6 +453,18 @@ public class GraphFunctionLibrary {
             }
         }
         return Value.ofArray(collected.toArray(Value[]::new));
+    }
+
+    private static Value resolveAttribute(ObjectValue graph, String nodeId, String attrKey) {
+        val nodeValue = graph.get(nodeId);
+        if (!(nodeValue instanceof ObjectValue nodeObj)) {
+            return null;
+        }
+        val attrs = nodeObj.get("attributes");
+        if (!(attrs instanceof ObjectValue attrsObj)) {
+            return null;
+        }
+        return attrsObj.get(attrKey);
     }
 
     private static ArrayValue toArrayValue(Set<String> nodeIds) {

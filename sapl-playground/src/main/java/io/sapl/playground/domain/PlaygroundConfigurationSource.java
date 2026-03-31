@@ -106,7 +106,7 @@ public class PlaygroundConfigurationSource {
      * @return the current PDP status
      */
     public PdpStatus getPdpStatus() {
-        return pdpVoterSource.getPdpStatus(PDP_ID).orElse(PdpStatus.initial());
+        return pdpVoterSource.getPdpStatus(PDP_ID).orElseGet(PdpStatus::initial);
     }
 
     private void emitConfiguration() {
