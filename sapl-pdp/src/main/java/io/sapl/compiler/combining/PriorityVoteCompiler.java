@@ -17,9 +17,7 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
@@ -33,6 +31,9 @@ import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.index.IndexFactory;
+import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
@@ -45,15 +46,15 @@ import java.util.function.Function;
 
 import static io.sapl.compiler.combining.CombiningUtils.asTypedList;
 import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
-import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
 
 @UtilityClass
 public class PriorityVoteCompiler {
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, Decision priorityDecision, DefaultDecision defaultDecision,
-            ErrorHandling errorHandling) {
-        val voter    = compileVoter(compiledPolicies, voterMetadata, priorityDecision, defaultDecision, errorHandling);
+            ErrorHandling errorHandling, CompilationContext ctx) {
+        val voter    = compileVoter(compiledPolicies, voterMetadata, priorityDecision, defaultDecision, errorHandling,
+                ctx);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, priorityDecision,
                 defaultDecision, errorHandling);
         return new VoterAndCoverage(voter, coverage);
@@ -117,7 +118,8 @@ public class PriorityVoteCompiler {
     }
 
     public static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
-            Decision priorityDecision, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+            Decision priorityDecision, DefaultDecision defaultDecision, ErrorHandling errorHandling,
+            CompilationContext ctx) {
 
         val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);
         val accumulatorVote = PriorityBasedVoteCombiner.combineMultipleVotes(classified.foldableVotes(),
@@ -127,32 +129,35 @@ public class PriorityVoteCompiler {
             return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
+        val pureIndex = IndexFactory.createIndex(classified.purePolicies(), ctx);
+
         if (classified.streamPolicies().isEmpty()) {
-            return new PurePriorityVoter(accumulatorVote, classified.purePolicies(), priorityDecision, defaultDecision,
-                    errorHandling, voterMetadata);
+            return new PurePriorityVoter(accumulatorVote, pureIndex, priorityDecision, defaultDecision, errorHandling,
+                    voterMetadata);
         }
-        return new StreamPriorityVoter(accumulatorVote, classified.purePolicies(), classified.streamPolicies(),
-                priorityDecision, defaultDecision, errorHandling, voterMetadata);
+        val streamIndex = IndexFactory.createIndex(classified.streamPolicies(), ctx);
+        return new StreamPriorityVoter(accumulatorVote, pureIndex, streamIndex, priorityDecision, defaultDecision,
+                errorHandling, voterMetadata);
     }
 
     record PurePriorityVoter(
             Vote accumulatorVote,
-            List<CompiledDocument> documents,
+            PolicyIndex index,
             Decision priorityDecision,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata) implements PureVoter {
         @Override
         public Vote vote(EvaluationContext ctx) {
-            val vote = combinePureVoters(accumulatorVote, documents, priorityDecision, voterMetadata, ctx);
+            val vote = combinePureVoters(accumulatorVote, index, priorityDecision, voterMetadata, ctx);
             return vote.finalizeVote(defaultDecision, errorHandling);
         }
     }
 
     record StreamPriorityVoter(
             Vote accumulatorVote,
-            List<CompiledDocument> pureDocuments,
-            List<CompiledDocument> streamDocuments,
+            PolicyIndex pureIndex,
+            PolicyIndex streamIndex,
             Decision priorityDecision,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
@@ -160,20 +165,19 @@ public class PriorityVoteCompiler {
         @Override
         public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
-                val evalCtx      = ctxView.get(EvaluationContext.class);
-                var pureVote     = combinePureVoters(accumulatorVote, pureDocuments, priorityDecision, voterMetadata,
-                        evalCtx);
-                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size());
-                for (CompiledDocument document : streamDocuments) {
-                    val isApplicable = evaluateApplicability(document.isApplicable(), evalCtx);
-                    if (isApplicable instanceof ErrorValue error) {
-                        val errorVote = Vote.error(error, document.metadata());
-                        pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, errorVote, priorityDecision,
-                                voterMetadata);
-                    } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                        streamVoters.add(((StreamVoter) document.voter()).vote());
-                    }
+                val evalCtx  = ctxView.get(EvaluationContext.class);
+                var pureVote = combinePureVoters(accumulatorVote, pureIndex, priorityDecision, voterMetadata, evalCtx);
+
+                val streamResult = streamIndex.match(evalCtx);
+                for (val errorVote : streamResult.errorVotes()) {
+                    pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, errorVote, priorityDecision,
+                            voterMetadata);
                 }
+                val streamVoters = new ArrayList<Flux<Vote>>(streamResult.matchingDocuments().size());
+                for (val document : streamResult.matchingDocuments()) {
+                    streamVoters.add(((StreamVoter) document.voter()).vote());
+                }
+
                 if (streamVoters.isEmpty()) {
                     return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }
@@ -187,24 +191,22 @@ public class PriorityVoteCompiler {
         }
     }
 
-    private static Vote combinePureVoters(Vote accumulatorVote, List<CompiledDocument> documents,
-            Decision priorityDecision, VoterMetadata voterMetadata, EvaluationContext ctx) {
-        var vote = accumulatorVote;
-        for (val document : documents) {
-            val isApplicable = evaluateApplicability(document.isApplicable(), ctx);
-            if (isApplicable instanceof ErrorValue error) {
-                val errorVote = Vote.error(error, document.metadata());
-                vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
-            } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                val  voter = document.voter();
-                Vote newVote;
-                if (voter instanceof Vote constantVote) {
-                    newVote = constantVote;
-                } else {
-                    newVote = ((PureVoter) voter).vote(ctx);
-                }
-                vote = PriorityBasedVoteCombiner.combineVotes(vote, newVote, priorityDecision, voterMetadata);
+    private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, Decision priorityDecision,
+            VoterMetadata voterMetadata, EvaluationContext ctx) {
+        val result = index.match(ctx);
+        var vote   = accumulatorVote;
+        for (val errorVote : result.errorVotes()) {
+            vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
+        }
+        for (val document : result.matchingDocuments()) {
+            val  voter = document.voter();
+            Vote newVote;
+            if (voter instanceof Vote constantVote) {
+                newVote = constantVote;
+            } else {
+                newVote = ((PureVoter) voter).vote(ctx);
             }
+            vote = PriorityBasedVoteCombiner.combineVotes(vote, newVote, priorityDecision, voterMetadata);
         }
         return vote;
     }

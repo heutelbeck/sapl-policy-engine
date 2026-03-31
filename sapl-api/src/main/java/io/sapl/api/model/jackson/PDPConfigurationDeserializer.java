@@ -24,6 +24,7 @@ import tools.jackson.databind.deser.std.StdDeserializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 
@@ -49,6 +50,11 @@ import lombok.val;
  * <li>variables - object mapping variable names to Values</li>
  * <li>secrets - object mapping secret names to Values</li>
  * </ul>
+ * Optional fields:
+ * <ul>
+ * <li>indexing - policy index strategy (AUTO, NAIVE, CANONICAL); defaults
+ * to AUTO</li>
+ * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {
 
@@ -64,6 +70,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_EXPECTED_START_ARRAY         = "Expected START_ARRAY for saplDocuments.";
     private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
+    private static final String ERROR_INVALID_INDEXING_STRATEGY    = "Invalid indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
@@ -78,6 +85,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         String             pdpId              = null;
         String             configurationId    = null;
         CombiningAlgorithm combiningAlgorithm = null;
+        IndexingStrategy   indexing           = IndexingStrategy.AUTO;
         List<String>       saplDocuments      = List.of();
         ObjectValue        variables          = Value.EMPTY_OBJECT;
         ObjectValue        secrets            = Value.EMPTY_OBJECT;
@@ -91,6 +99,14 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             case "configurationId"    -> configurationId = parser.getString();
             case "combiningAlgorithm" ->
                 combiningAlgorithm = combiningAlgorithmDeserializer.deserialize(parser, context);
+            case "indexing"           -> {
+                try {
+                    indexing = IndexingStrategy.valueOf(parser.getString().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    return context.reportInputMismatch(PDPConfiguration.class,
+                            ERROR_INVALID_INDEXING_STRATEGY.formatted(parser.getString()));
+                }
+            }
             case "saplDocuments"      -> saplDocuments = deserializeStringList(parser, context);
             case "variables"          -> variables = deserializeObjectValue(parser, context);
             case "secrets"            -> secrets = deserializeObjectValue(parser, context);
@@ -108,7 +124,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             return context.reportInputMismatch(PDPConfiguration.class, ERROR_COMBINING_ALGORITHM_REQUIRED);
         }
 
-        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, saplDocuments,
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, indexing, saplDocuments,
                 new PdpData(variables, secrets));
     }
 

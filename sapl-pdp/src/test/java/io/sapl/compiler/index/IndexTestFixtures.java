@@ -70,6 +70,14 @@ public class IndexTestFixtures {
         return new StubDocument(name, Value.TRUE, Vote.abstain(stubMetadata(name)));
     }
 
+    public static CompiledDocument stubDocumentWithApplicability(String name, PureOperator isApplicable) {
+        return new StubDocument(name, isApplicable, Vote.abstain(stubMetadata(name)));
+    }
+
+    public static CompiledDocument stubDocumentWithConstantApplicability(String name, Value isApplicable) {
+        return new StubDocument(name, isApplicable, Vote.abstain(stubMetadata(name)));
+    }
+
     static VoterMetadata stubMetadata(String name) {
         return new VoterMetadata() {
             @Override

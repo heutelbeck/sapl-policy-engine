@@ -23,12 +23,35 @@ import java.util.List;
 
 import io.sapl.api.SaplVersion;
 
+/**
+ * Immutable configuration for a Policy Decision Point.
+ *
+ * @param pdpId the PDP identifier
+ * @param configurationId the configuration version identifier
+ * @param combiningAlgorithm the policy combining algorithm
+ * @param indexing the policy index strategy; defaults to
+ * {@link IndexingStrategy#AUTO} when not specified in pdp.json
+ * @param saplDocuments the SAPL document source strings
+ * @param data PDP-level variables and secrets
+ */
 public record PDPConfiguration(
         String pdpId,
         String configurationId,
         CombiningAlgorithm combiningAlgorithm,
+        IndexingStrategy indexing,
         List<String> saplDocuments,
         PdpData data) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    /**
+     * Convenience constructor defaulting indexing to {@link IndexingStrategy#AUTO}.
+     */
+    public PDPConfiguration(String pdpId,
+            String configurationId,
+            CombiningAlgorithm combiningAlgorithm,
+            List<String> saplDocuments,
+            PdpData data) {
+        this(pdpId, configurationId, combiningAlgorithm, IndexingStrategy.AUTO, saplDocuments, data);
+    }
 }

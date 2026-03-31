@@ -25,6 +25,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import lombok.experimental.UtilityClass;
@@ -105,6 +106,7 @@ public class PDPConfigurationLoader {
     private static final String ERROR_FAILED_TO_READ_PDP_JSON         = "Failed to read pdp.json from '%s'.";
     private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT    = "Failed to read SAPL document '%s'.";
     private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
+    private static final String ERROR_INVALID_INDEXING_STRATEGY       = "Invalid indexing strategy in pdp.json: '%s'. Valid values: AUTO, NAIVE, CANONICAL.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED       = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED      = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
     private static final String ERROR_SHA256_NOT_AVAILABLE            = "SHA-256 algorithm not available.";
@@ -154,7 +156,7 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path, pdpJson, saplContents);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents,
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.indexing(), documents,
                 new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -188,7 +190,7 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateResourceConfigurationId(sourcePath, pdpJson, saplDocuments);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents,
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.indexing(), documents,
                 new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -223,8 +225,8 @@ public class PDPConfigurationLoader {
         }
 
         val documents = new ArrayList<>(saplDocuments.values());
-        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), documents,
-                new PdpData(pdpJson.variables(), pdpJson.secrets()));
+        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.indexing(),
+                documents, new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
     private static String generateDirectoryConfigurationId(Path path, PdpJsonContent pdpJson,
@@ -321,10 +323,20 @@ public class PDPConfigurationLoader {
                 }
             }
 
+            var indexing = IndexingStrategy.AUTO;
+            if (node.has("indexing")) {
+                try {
+                    indexing = IndexingStrategy.valueOf(node.get("indexing").asString().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new PDPConfigurationException(
+                            ERROR_INVALID_INDEXING_STRATEGY.formatted(node.get("indexing").asString()));
+                }
+            }
+
             val variables = parseValueSection(node, "variables");
             val secrets   = parseValueSection(node, "secrets");
 
-            return new PdpJsonContent(algorithm, configurationId, variables, secrets);
+            return new PdpJsonContent(algorithm, indexing, configurationId, variables, secrets);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
@@ -386,8 +398,17 @@ public class PDPConfigurationLoader {
 
     private record PdpJsonContent(
             CombiningAlgorithm algorithm,
+            IndexingStrategy indexing,
             String configurationId,
             ObjectValue variables,
-            ObjectValue secrets) {}
+            ObjectValue secrets) {
+
+        PdpJsonContent(CombiningAlgorithm algorithm,
+                String configurationId,
+                ObjectValue variables,
+                ObjectValue secrets) {
+            this(algorithm, IndexingStrategy.AUTO, configurationId, variables, secrets);
+        }
+    }
 
 }

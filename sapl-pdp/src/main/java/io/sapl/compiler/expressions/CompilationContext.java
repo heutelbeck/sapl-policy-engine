@@ -23,6 +23,7 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.compiler.document.Document;
+import io.sapl.api.pdp.IndexingStrategy;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -62,6 +63,7 @@ public class CompilationContext {
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
     private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
+    private IndexingStrategy                indexingStrategy         = IndexingStrategy.AUTO;
 
     public CompilationContext(String pdpId,
             String configurationId,

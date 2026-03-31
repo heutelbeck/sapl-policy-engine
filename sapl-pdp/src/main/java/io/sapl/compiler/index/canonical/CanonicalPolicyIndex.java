@@ -18,16 +18,18 @@
 package io.sapl.compiler.index.canonical;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.index.DnfNormalizer;
 import io.sapl.compiler.index.DisjunctiveFormula;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
@@ -37,38 +39,71 @@ import lombok.val;
  * Canonical policy index implementation using the count-and-eliminate algorithm
  * from the SACMAT '21 paper.
  * <p>
- * Holds both indexed formulas (searched via {@link CanonicalIndexSearch}) and a
- * fallback list of non-indexable documents that are evaluated linearly. In the
- * worst case (nothing indexable), this degrades to exactly the pre-index linear
- * scan behavior.
+ * Documents are partitioned at build time:
+ * <ul>
+ * <li>Constant true applicability: always included in results without
+ * evaluation</li>
+ * <li>Constant error applicability: always produce error votes</li>
+ * <li>PureOperator applicability: indexed via DNF for efficient lookup</li>
+ * <li>Constant false or other: dropped (never applicable)</li>
+ * </ul>
  */
 public class CanonicalPolicyIndex implements PolicyIndex {
 
-    private final CanonicalIndexData     indexData;
-    private final List<CompiledDocument> fallbackDocuments;
+    private static final String ERROR_NON_BOOLEAN_APPLICABILITY = "Document applicability is a non-boolean constant value: %s. This violates the compilation contract.";
 
-    private CanonicalPolicyIndex(CanonicalIndexData indexData, List<CompiledDocument> fallbackDocuments) {
-        this.indexData         = indexData;
-        this.fallbackDocuments = List.copyOf(fallbackDocuments);
+    private final CanonicalIndexData     indexData;
+    private final List<CompiledDocument> alwaysApplicable;
+    private final List<Vote>             alwaysErrorVotes;
+
+    private CanonicalPolicyIndex(CanonicalIndexData indexData,
+            List<CompiledDocument> alwaysApplicable,
+            List<Vote> alwaysErrorVotes) {
+        this.indexData        = indexData;
+        this.alwaysApplicable = List.copyOf(alwaysApplicable);
+        this.alwaysErrorVotes = List.copyOf(alwaysErrorVotes);
     }
 
     /**
-     * Creates an index from indexed formulas and fallback documents.
+     * Creates an index from compiled documents. Partitions documents by
+     * applicability type, extracts boolean expressions from pure operators,
+     * normalizes to DNF, and builds the index data structures.
      *
-     * @param formulaToDocuments mapping from DNF formulas to their documents
-     * @param fallbackDocuments documents that could not be indexed
-     * @return a policy index
+     * @param documents the compiled documents to index
+     * @return a canonical policy index
      */
-    public static CanonicalPolicyIndex create(Map<DisjunctiveFormula, List<CompiledDocument>> formulaToDocuments,
-            List<CompiledDocument> fallbackDocuments) {
+    public static CanonicalPolicyIndex create(List<CompiledDocument> documents) {
+        val formulaToDocuments = new HashMap<DisjunctiveFormula, List<CompiledDocument>>();
+        val alwaysApplicable   = new ArrayList<CompiledDocument>();
+        val alwaysErrorVotes   = new ArrayList<Vote>();
+
+        for (val document : documents) {
+            val expression = document.isApplicable();
+            switch (expression) {
+            case BooleanValue(var b) when b -> alwaysApplicable.add(document);
+            case BooleanValue ignored       -> { /* constant false, drop */ }
+            case ErrorValue error           -> alwaysErrorVotes.add(Vote.error(error, document.metadata()));
+            case PureOperator pureOp        -> {
+                val formula = DnfNormalizer.normalize(pureOp.booleanExpression());
+                formulaToDocuments.computeIfAbsent(formula, k -> new ArrayList<>()).add(document);
+            }
+            default                         ->
+                throw new IllegalStateException(ERROR_NON_BOOLEAN_APPLICABILITY.formatted(expression));
+            }
+        }
+
         val indexData = formulaToDocuments.isEmpty() ? null : CanonicalIndexBuilder.build(formulaToDocuments);
-        return new CanonicalPolicyIndex(indexData, fallbackDocuments);
+        return new CanonicalPolicyIndex(indexData, alwaysApplicable, alwaysErrorVotes);
+    }
+
+    static CanonicalPolicyIndex createFromFormulas(Map<DisjunctiveFormula, List<CompiledDocument>> formulaToDocuments) {
+        return new CanonicalPolicyIndex(CanonicalIndexBuilder.build(formulaToDocuments), List.of(), List.of());
     }
 
     @Override
     public PolicyIndexResult match(EvaluationContext ctx) {
-        val matchingDocuments = new ArrayList<CompiledDocument>();
-        val errorVotes        = new ArrayList<Vote>();
+        val matchingDocuments = new ArrayList<>(alwaysApplicable);
+        val errorVotes        = new ArrayList<>(alwaysErrorVotes);
 
         if (indexData != null) {
             val indexResult = CanonicalIndexSearch.search(indexData, ctx);
@@ -76,29 +111,34 @@ public class CanonicalPolicyIndex implements PolicyIndex {
             errorVotes.addAll(indexResult.errorVotes());
         }
 
-        evaluateFallbackDocuments(ctx, matchingDocuments, errorVotes);
-
         return new PolicyIndexResult(matchingDocuments, errorVotes);
     }
 
-    private void evaluateFallbackDocuments(EvaluationContext ctx, List<CompiledDocument> matchingDocuments,
-            List<Vote> errorVotes) {
-        for (val document : fallbackDocuments) {
-            val isApplicable = evaluateApplicability(document, ctx);
-            if (isApplicable instanceof ErrorValue error) {
-                errorVotes.add(Vote.error(error, document.metadata()));
-            } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                matchingDocuments.add(document);
+    @Override
+    public void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue) {
+        for (val errorVote : alwaysErrorVotes) {
+            if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(errorVote)))) {
+                return;
             }
         }
-    }
-
-    private static Value evaluateApplicability(CompiledDocument document, EvaluationContext ctx) {
-        val expression = document.isApplicable();
-        if (expression instanceof Value v) {
-            return v;
+        for (val document : alwaysApplicable) {
+            if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
+                return;
+            }
         }
-        return ((PureOperator) expression).evaluate(ctx);
+        if (indexData != null) {
+            val indexResult = CanonicalIndexSearch.search(indexData, ctx);
+            for (val errorVote : indexResult.errorVotes()) {
+                if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(errorVote)))) {
+                    return;
+                }
+            }
+            for (val document : indexResult.matchingDocuments()) {
+                if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
+                    return;
+                }
+            }
+        }
     }
 
 }

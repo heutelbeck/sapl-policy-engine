@@ -32,6 +32,9 @@ import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.index.IndexFactory;
+import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
@@ -70,8 +73,8 @@ public class UnanimousVoteCompiler {
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
-            boolean strictMode) {
-        val voter    = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling, strictMode);
+            boolean strictMode, CompilationContext ctx) {
+        val voter    = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling, strictMode, ctx);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, defaultDecision,
                 errorHandling, strictMode);
         return new VoterAndCoverage(voter, coverage);
@@ -130,7 +133,7 @@ public class UnanimousVoteCompiler {
     }
 
     public static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
-            DefaultDecision defaultDecision, ErrorHandling errorHandling, boolean strictMode) {
+            DefaultDecision defaultDecision, ErrorHandling errorHandling, boolean strictMode, CompilationContext ctx) {
 
         val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);
         val accumulatorVote = UnanimousVoteCombiner.combineMultipleVotes(classified.foldableVotes(), voterMetadata,
@@ -140,41 +143,39 @@ public class UnanimousVoteCompiler {
             return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
+        val pureIndex = IndexFactory.createIndex(classified.purePolicies(), ctx);
+
         if (classified.streamPolicies().isEmpty()) {
-            return new PureUnanimousVoter(accumulatorVote, classified.purePolicies(), defaultDecision, errorHandling,
-                    voterMetadata, strictMode);
+            return new PureUnanimousVoter(accumulatorVote, pureIndex, defaultDecision, errorHandling, voterMetadata,
+                    strictMode);
         }
-        return new StreamUnanimousVoter(accumulatorVote, classified.purePolicies(), classified.streamPolicies(),
-                defaultDecision, errorHandling, voterMetadata, strictMode);
+        val streamIndex = IndexFactory.createIndex(classified.streamPolicies(), ctx);
+        return new StreamUnanimousVoter(accumulatorVote, pureIndex, streamIndex, defaultDecision, errorHandling,
+                voterMetadata, strictMode);
     }
 
     record PureUnanimousVoter(
             Vote accumulatorVote,
-            List<CompiledDocument> documents,
+            PolicyIndex index,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata,
             boolean strictMode) implements PureVoter {
         @Override
         public Vote vote(EvaluationContext ctx) {
-            val vote = combinePureVoters(accumulatorVote, documents, voterMetadata, strictMode, ctx);
+            val vote = combinePureVoters(accumulatorVote, index, voterMetadata, strictMode, ctx);
             return vote.finalizeVote(defaultDecision, errorHandling);
         }
     }
 
-    private static Vote combinePureVoters(Vote accumulatorVote, List<CompiledDocument> documents,
-            VoterMetadata voterMetadata, boolean strictMode, EvaluationContext ctx) {
-        var vote = accumulatorVote;
-        for (val document : documents) {
-            // Short-circuit on terminal INDETERMINATE
-            if (UnanimousVoteCombiner.isTerminal(vote, strictMode)) {
-                break;
+    private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, VoterMetadata voterMetadata,
+            boolean strictMode, EvaluationContext ctx) {
+        var holder = new Vote[] { accumulatorVote };
+        index.matchWhile(ctx, stepResult -> {
+            for (val errorVote : stepResult.errorVotes()) {
+                holder[0] = UnanimousVoteCombiner.combineVotes(holder[0], errorVote, voterMetadata, strictMode);
             }
-            val isApplicable = evaluateApplicability(document.isApplicable(), ctx);
-            if (isApplicable instanceof ErrorValue error) {
-                val errorVote = Vote.error(error, document.metadata());
-                vote = UnanimousVoteCombiner.combineVotes(vote, errorVote, voterMetadata, strictMode);
-            } else if (isApplicable instanceof BooleanValue(var b) && b) {
+            for (val document : stepResult.matchingDocuments()) {
                 val  voter = document.voter();
                 Vote newVote;
                 if (voter instanceof Vote constantVote) {
@@ -182,16 +183,17 @@ public class UnanimousVoteCompiler {
                 } else {
                     newVote = ((PureVoter) voter).vote(ctx);
                 }
-                vote = UnanimousVoteCombiner.combineVotes(vote, newVote, voterMetadata, strictMode);
+                holder[0] = UnanimousVoteCombiner.combineVotes(holder[0], newVote, voterMetadata, strictMode);
             }
-        }
-        return vote;
+            return !UnanimousVoteCombiner.isTerminal(holder[0], strictMode);
+        });
+        return holder[0];
     }
 
     record StreamUnanimousVoter(
             Vote accumulatorVote,
-            List<CompiledDocument> pureDocuments,
-            List<CompiledDocument> streamDocuments,
+            PolicyIndex pureIndex,
+            PolicyIndex streamIndex,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata,
@@ -200,27 +202,24 @@ public class UnanimousVoteCompiler {
         public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
                 val evalCtx  = ctxView.get(EvaluationContext.class);
-                var pureVote = combinePureVoters(accumulatorVote, pureDocuments, voterMetadata, strictMode, evalCtx);
+                var pureVote = combinePureVoters(accumulatorVote, pureIndex, voterMetadata, strictMode, evalCtx);
 
-                // Short-circuit if already terminal - no need to evaluate streams
                 if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
                     return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }
 
-                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size());
-                for (CompiledDocument document : streamDocuments) {
-                    // Short-circuit on terminal INDETERMINATE
-                    if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
-                        break;
-                    }
-                    val isApplicable = evaluateApplicability(document.isApplicable(), evalCtx);
-                    if (isApplicable instanceof ErrorValue error) {
-                        val errorVote = Vote.error(error, document.metadata());
-                        pureVote = UnanimousVoteCombiner.combineVotes(pureVote, errorVote, voterMetadata, strictMode);
-                    } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                        streamVoters.add(((StreamVoter) document.voter()).vote());
-                    }
+                val streamResult = streamIndex.match(evalCtx);
+                for (val errorVote : streamResult.errorVotes()) {
+                    pureVote = UnanimousVoteCombiner.combineVotes(pureVote, errorVote, voterMetadata, strictMode);
                 }
+                if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
+                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
+                }
+                val streamVoters = new ArrayList<Flux<Vote>>(streamResult.matchingDocuments().size());
+                for (val document : streamResult.matchingDocuments()) {
+                    streamVoters.add(((StreamVoter) document.voter()).vote());
+                }
+
                 if (streamVoters.isEmpty()) {
                     return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }

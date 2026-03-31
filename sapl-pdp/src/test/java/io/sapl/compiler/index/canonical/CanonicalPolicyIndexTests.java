@@ -64,7 +64,7 @@ class CanonicalPolicyIndexTests {
             val p1       = configurablePredicate(1L);
             val formula  = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, negated))));
             val document = stubDocument("policy1");
-            val index    = CanonicalPolicyIndex.create(Map.of(formula, List.of(document)), List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, predicateResult);
             val result = index.match(evaluationContext());
@@ -98,7 +98,7 @@ class CanonicalPolicyIndexTests {
             val formula  = new DisjunctiveFormula(
                     new ConjunctiveClause(List.of(new Literal(p1, false), new Literal(p2, false))));
             val document = stubDocument("policy1");
-            val index    = CanonicalPolicyIndex.create(Map.of(formula, List.of(document)), List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, p1Result);
             PREDICATE_RESULTS.put(2L, p2Result);
@@ -129,7 +129,7 @@ class CanonicalPolicyIndexTests {
             val formula  = new DisjunctiveFormula(List.of(new ConjunctiveClause(List.of(new Literal(p1, false))),
                     new ConjunctiveClause(List.of(new Literal(p2, false)))));
             val document = stubDocument("policy1");
-            val index    = CanonicalPolicyIndex.create(Map.of(formula, List.of(document)), List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, p1Result);
             PREDICATE_RESULTS.put(2L, p2Result);
@@ -165,7 +165,7 @@ class CanonicalPolicyIndexTests {
             val formulaMap = new LinkedHashMap<DisjunctiveFormula, List<CompiledDocument>>();
             formulaMap.put(formula1, List.of(doc1));
             formulaMap.put(formula2, List.of(doc2));
-            val index = CanonicalPolicyIndex.create(formulaMap, List.of());
+            val index = CanonicalPolicyIndex.createFromFormulas(formulaMap);
 
             PREDICATE_RESULTS.put(1L, Value.TRUE);
             PREDICATE_RESULTS.put(2L, Value.FALSE);
@@ -189,7 +189,7 @@ class CanonicalPolicyIndexTests {
             val formulaMap = new LinkedHashMap<DisjunctiveFormula, List<CompiledDocument>>();
             formulaMap.put(formula1, List.of(doc1));
             formulaMap.put(formula2, List.of(doc2));
-            val index = CanonicalPolicyIndex.create(formulaMap, List.of());
+            val index = CanonicalPolicyIndex.createFromFormulas(formulaMap);
 
             PREDICATE_RESULTS.put(1L, Value.TRUE);
             PREDICATE_RESULTS.put(2L, Value.TRUE);
@@ -207,7 +207,7 @@ class CanonicalPolicyIndexTests {
             val doc1    = stubDocument("policy1");
             val doc2    = stubDocument("policy2");
 
-            val index = CanonicalPolicyIndex.create(Map.of(formula, List.of(doc1, doc2)), List.of());
+            val index = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(doc1, doc2)));
 
             PREDICATE_RESULTS.put(1L, Value.TRUE);
             val result = index.match(evaluationContext());
@@ -226,7 +226,7 @@ class CanonicalPolicyIndexTests {
             val p1       = configurablePredicate(1L);
             val formula  = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, false))));
             val document = stubDocument("policy1");
-            val index    = CanonicalPolicyIndex.create(Map.of(formula, List.of(document)), List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, new ErrorValue("evaluation failed"));
             val result = index.match(evaluationContext());
@@ -251,7 +251,7 @@ class CanonicalPolicyIndexTests {
             val formulaMap = new LinkedHashMap<DisjunctiveFormula, List<CompiledDocument>>();
             formulaMap.put(formula1, List.of(doc1));
             formulaMap.put(formula2, List.of(doc2));
-            val index = CanonicalPolicyIndex.create(formulaMap, List.of());
+            val index = CanonicalPolicyIndex.createFromFormulas(formulaMap);
 
             PREDICATE_RESULTS.put(1L, new ErrorValue("broken"));
             PREDICATE_RESULTS.put(2L, Value.TRUE);
@@ -261,57 +261,6 @@ class CanonicalPolicyIndexTests {
                 assertThat(r.matchingDocuments()).extracting(CompiledDocument::metadata).extracting(m -> m.name())
                         .containsExactly("policy2");
                 assertThat(r.errorVotes()).hasSize(1);
-            });
-        }
-    }
-
-    @Nested
-    @DisplayName("fallback documents")
-    class FallbackDocuments {
-
-        @Test
-        @DisplayName("fallback documents evaluated linearly")
-        void whenFallbackDocumentsThenEvaluatedLinearly() {
-            val fallbackDoc = stubDocument("fallback1");
-            val index       = CanonicalPolicyIndex.create(Map.of(), List.of(fallbackDoc));
-
-            val result = index.match(evaluationContext());
-
-            assertThat(result.matchingDocuments()).extracting(CompiledDocument::metadata).extracting(m -> m.name())
-                    .containsExactly("fallback1");
-        }
-
-        @Test
-        @DisplayName("indexed and fallback documents combined in result")
-        void whenBothIndexedAndFallbackThenCombined() {
-            val p1          = configurablePredicate(1L);
-            val formula     = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, false))));
-            val indexedDoc  = stubDocument("indexed1");
-            val fallbackDoc = stubDocument("fallback1");
-            val index       = CanonicalPolicyIndex.create(Map.of(formula, List.of(indexedDoc)), List.of(fallbackDoc));
-
-            PREDICATE_RESULTS.put(1L, Value.TRUE);
-            val result = index.match(evaluationContext());
-
-            assertThat(result.matchingDocuments()).extracting(CompiledDocument::metadata).extracting(m -> m.name())
-                    .containsExactlyInAnyOrder("indexed1", "fallback1");
-        }
-    }
-
-    @Nested
-    @DisplayName("empty index")
-    class EmptyIndex {
-
-        @Test
-        @DisplayName("empty index with no documents returns empty result")
-        void whenEmptyIndexThenEmptyResult() {
-            val index = CanonicalPolicyIndex.create(Map.of(), List.of());
-
-            val result = index.match(evaluationContext());
-
-            assertThat(result).satisfies(r -> {
-                assertThat(r.matchingDocuments()).isEmpty();
-                assertThat(r.errorVotes()).isEmpty();
             });
         }
     }
@@ -328,7 +277,7 @@ class CanonicalPolicyIndexTests {
             val formula  = new DisjunctiveFormula(
                     new ConjunctiveClause(List.of(new Literal(p1, false), new Literal(p2, true))));
             val document = stubDocument("policy1");
-            val index    = CanonicalPolicyIndex.create(Map.of(formula, List.of(document)), List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, Value.TRUE);
             PREDICATE_RESULTS.put(2L, Value.FALSE);
@@ -347,7 +296,7 @@ class CanonicalPolicyIndexTests {
                     List.of(new ConjunctiveClause(List.of(new Literal(p1, false), new Literal(p2, false))),
                             new ConjunctiveClause(List.of(new Literal(p1, false), new Literal(p3, false)))));
             val document = stubDocument("policy1");
-            val index    = CanonicalPolicyIndex.create(Map.of(formula, List.of(document)), List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, Value.TRUE);
             PREDICATE_RESULTS.put(2L, Value.FALSE);
@@ -363,7 +312,7 @@ class CanonicalPolicyIndexTests {
             val p1       = configurablePredicate(1L);
             val formula  = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, false))));
             val document = stubDocument("policy1");
-            val index    = CanonicalPolicyIndex.create(Map.of(formula, List.of(document)), List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, Value.of("not a boolean"));
             val result = index.match(evaluationContext());
@@ -375,18 +324,126 @@ class CanonicalPolicyIndexTests {
         @DisplayName("predicate skipped when not referenced by remaining candidates")
         void whenPredicateNotReferencedThenSkipped() {
             val p1       = configurablePredicate(1L);
-            val p2       = configurablePredicate(2L);
             val formula  = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, false))));
             val document = stubDocument("policy1");
-
-            val formulaMap = new LinkedHashMap<DisjunctiveFormula, List<CompiledDocument>>();
-            formulaMap.put(formula, List.of(document));
-            val index = CanonicalPolicyIndex.create(formulaMap, List.of());
+            val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, Value.TRUE);
             val result = index.match(evaluationContext());
 
             assertThat(result.matchingDocuments()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("document list factory")
+    class DocumentListFactory {
+
+        @Test
+        @DisplayName("constant TRUE applicability document always matches")
+        void whenConstantTrueThenAlwaysMatches() {
+            val index  = CanonicalPolicyIndex.create(List.of(stubDocument("always")));
+            val result = index.match(evaluationContext());
+
+            assertThat(result.matchingDocuments()).extracting(CompiledDocument::metadata).extracting(m -> m.name())
+                    .containsExactly("always");
+        }
+
+        @Test
+        @DisplayName("constant FALSE applicability document is dropped")
+        void whenConstantFalseThenDropped() {
+            val doc    = IndexTestFixtures.stubDocumentWithConstantApplicability("never", Value.FALSE);
+            val index  = CanonicalPolicyIndex.create(List.of(doc));
+            val result = index.match(evaluationContext());
+
+            assertThat(result.matchingDocuments()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("error applicability document produces error vote")
+        void whenErrorApplicabilityThenErrorVote() {
+            val doc    = IndexTestFixtures.stubDocumentWithConstantApplicability("broken", new ErrorValue("fail"));
+            val index  = CanonicalPolicyIndex.create(List.of(doc));
+            val result = index.match(evaluationContext());
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.matchingDocuments()).isEmpty();
+                assertThat(r.errorVotes()).hasSize(1);
+            });
+        }
+
+        @Test
+        @DisplayName("PureOperator applicability document is indexed")
+        void whenPureOperatorThenIndexed() {
+            val p1    = configurablePredicate(1L);
+            val doc   = IndexTestFixtures.stubDocumentWithApplicability("indexed", p1.operator());
+            val index = CanonicalPolicyIndex.create(List.of(doc));
+
+            PREDICATE_RESULTS.put(1L, Value.TRUE);
+            val result = index.match(evaluationContext());
+
+            assertThat(result.matchingDocuments()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("mixed constant and indexed documents partitioned correctly")
+        void whenMixedThenPartitionedCorrectly() {
+            val p1         = configurablePredicate(1L);
+            val alwaysDoc  = stubDocument("always");
+            val indexedDoc = IndexTestFixtures.stubDocumentWithApplicability("indexed", p1.operator());
+            val neverDoc   = IndexTestFixtures.stubDocumentWithConstantApplicability("never", Value.FALSE);
+            val index      = CanonicalPolicyIndex.create(List.of(alwaysDoc, indexedDoc, neverDoc));
+
+            PREDICATE_RESULTS.put(1L, Value.TRUE);
+            val result = index.match(evaluationContext());
+
+            assertThat(result.matchingDocuments()).extracting(CompiledDocument::metadata).extracting(m -> m.name())
+                    .containsExactlyInAnyOrder("always", "indexed");
+        }
+    }
+
+    @Nested
+    @DisplayName("matchWhile")
+    class MatchWhileTests {
+
+        @Test
+        @DisplayName("stops when consumer returns false")
+        void whenConsumerStopsThenStops() {
+            val p1    = configurablePredicate(1L);
+            val p2    = configurablePredicate(2L);
+            val doc1  = stubDocument("always1");
+            val doc2  = stubDocument("always2");
+            val doc3  = IndexTestFixtures.stubDocumentWithApplicability("indexed", p1.operator());
+            val index = CanonicalPolicyIndex.create(List.of(doc1, doc2, doc3));
+
+            PREDICATE_RESULTS.put(1L, Value.TRUE);
+            val received = new java.util.ArrayList<String>();
+
+            index.matchWhile(evaluationContext(), step -> {
+                step.matchingDocuments().forEach(d -> received.add(d.metadata().name()));
+                return received.size() < 2;
+            });
+
+            assertThat(received).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("yields all when consumer always continues")
+        void whenAlwaysContinueThenAll() {
+            val p1    = configurablePredicate(1L);
+            val doc1  = stubDocument("always");
+            val doc2  = IndexTestFixtures.stubDocumentWithApplicability("indexed", p1.operator());
+            val index = CanonicalPolicyIndex.create(List.of(doc1, doc2));
+
+            PREDICATE_RESULTS.put(1L, Value.TRUE);
+            val received = new java.util.ArrayList<String>();
+
+            index.matchWhile(evaluationContext(), step -> {
+                step.matchingDocuments().forEach(d -> received.add(d.metadata().name()));
+                return true;
+            });
+
+            assertThat(received).containsExactlyInAnyOrder("always", "indexed");
         }
     }
 

@@ -17,18 +17,18 @@
  */
 package io.sapl.compiler.index;
 
+import java.util.function.Predicate;
+
 import io.sapl.api.model.EvaluationContext;
 
 /**
  * Determines which compiled documents are applicable for a given authorization
- * subscription using the canonical policy index algorithm.
+ * subscription.
  * <p>
  * Replaces the linear applicability evaluation loop in PDP-level combining
- * algorithms. The index evaluates shared predicates once and uses the
- * count-and-eliminate algorithm to find matching documents.
- * <p>
- * Implementations may include a fallback list of non-indexable documents that
- * are evaluated linearly, degrading gracefully to the pre-index behavior.
+ * algorithms. Implementations range from naive linear scan
+ * ({@link NaivePolicyIndex}) to the count-and-eliminate algorithm
+ * ({@link io.sapl.compiler.index.canonical.CanonicalPolicyIndex}).
  */
 public interface PolicyIndex {
 
@@ -39,5 +39,17 @@ public interface PolicyIndex {
      * @return matching documents and any error votes from predicate evaluation
      */
     PolicyIndexResult match(EvaluationContext ctx);
+
+    /**
+     * Incrementally finds applicable documents, stopping when the consumer
+     * signals completion. After each evaluation step, newly matched documents
+     * and error votes are passed to {@code shouldContinue}. If it returns
+     * {@code false}, evaluation stops immediately.
+     *
+     * @param ctx the evaluation context containing the authorization subscription
+     * @param shouldContinue predicate called after each step with incremental
+     * results; returns false to stop
+     */
+    void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue);
 
 }
