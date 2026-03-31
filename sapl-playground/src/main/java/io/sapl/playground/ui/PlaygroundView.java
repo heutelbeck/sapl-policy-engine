@@ -152,9 +152,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final String EDITOR_CONFIGURATION_ID = "playground";
 
-    private static final String COLOR_GREEN  = "var(--aura-green, green)";
-    private static final String COLOR_ORANGE = "orange";
-    private static final String COLOR_RED    = "var(--aura-red, red)";
+    private static final String COLOR_GREEN  = "var(--aura-green)";
+    private static final String COLOR_ORANGE = "var(--aura-orange)";
+    private static final String COLOR_RED    = "var(--aura-red)";
 
     private static final String CSS_BACKGROUND_COLOR = "background-color";
     private static final String CSS_BORDER_BOTTOM    = "border-bottom";
@@ -182,8 +182,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_ABSOLUTE            = "absolute";
     private static final String CSS_VALUE_AUTO                = "auto";
     private static final String CSS_VALUE_BREAK_WORD          = "break-word";
-    private static final String CSS_VALUE_CONTRAST_5PCT       = "var(--lumo-contrast-5pct)";
-    private static final String CSS_VALUE_CONTRAST_10PCT_LINE = "1px solid var(--lumo-contrast-10pct)";
+    private static final String CSS_VALUE_CONTRAST_5PCT       = "var(--sapl-contrast-5pct)";
+    private static final String CSS_VALUE_CONTRAST_10PCT_LINE = "1px solid var(--sapl-contrast-10pct)";
     private static final String CSS_VALUE_ERROR_BG            = "#282a36";
     private static final String CSS_VALUE_ERROR_FG            = "#f8f8f2";
     private static final String CSS_VALUE_MONOSPACE           = "monospace";
@@ -621,7 +621,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         val infoIcon = VaadinIcon.INFO_CIRCLE.create();
         infoIcon.setSize(CSS_VALUE_SIZE_15PX);
-        infoIcon.setColor("var(--lumo-contrast-50pct)");
+        infoIcon.setColor("var(--vaadin-text-color-secondary)");
         infoIcon.setTooltipText(TOOLTIP_DECISIONS_INFO);
 
         headerLayout.add(header, infoIcon);
@@ -1775,7 +1775,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         val logoSubtitle = new Span("Playground");
         logoSubtitle.getStyle().set(CSS_FONT_SIZE, "0.55rem").set(CSS_FONT_WEIGHT, "500")
-                .set(CSS_COLOR, "var(--lumo-secondary-text-color)").set("letter-spacing", "0.04em")
+                .set(CSS_COLOR, "var(--vaadin-text-color-secondary)").set("letter-spacing", "0.04em")
                 .set(CSS_MARGIN_TOP, "-2px");
 
         val logoText = new Div(logoTitle, logoSubtitle);

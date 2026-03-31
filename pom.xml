@@ -96,7 +96,7 @@
 		<vaadin.version>25.1.1</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.44</lombok.version>
-		<jupiter.version>6.0.2</jupiter.version>
+		<jupiter.version>6.0.3</jupiter.version>
 		<guava.version>33.5.0-jre</guava.version>
 		<assertj.version>3.27.7</assertj.version>
 		<jspecify.version>1.0.0</jspecify.version>

@@ -10,7 +10,7 @@ html[color-scheme="dark"] .logo-light { display: none; }
 .playground-main vaadin-tabsheet {
   --vaadin-tabsheet-gap: 0.25rem;
   --vaadin-tabsheet-padding: 0.25rem 0 0 0;
-  border-top: 1px solid var(--lumo-contrast-10pct);
+  border-top: 1px solid var(--sapl-contrast-10pct);
 }
 
 .playground-main vaadin-tabs {

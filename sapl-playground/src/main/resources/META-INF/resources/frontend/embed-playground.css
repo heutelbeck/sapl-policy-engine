@@ -10,5 +10,10 @@
     --aura-accent-color-dark: hsl(179, 43%, 44%);
     --aura-accent-text-color-dark: rgb(64, 160, 159);
     --aura-red: hsl(3, 68%, 60%);
+    --aura-orange: hsl(25, 95%, 53%);
     --aura-green: hsl(145, 49%, 42%);
+    --sapl-contrast-5pct: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+    --sapl-contrast-10pct: light-dark(rgba(0, 0, 0, 0.10), rgba(255, 255, 255, 0.10));
+    --sapl-contrast-20pct: light-dark(rgba(0, 0, 0, 0.20), rgba(255, 255, 255, 0.20));
+    --sapl-contrast-50pct: light-dark(rgba(0, 0, 0, 0.50), rgba(255, 255, 255, 0.50));
 }
