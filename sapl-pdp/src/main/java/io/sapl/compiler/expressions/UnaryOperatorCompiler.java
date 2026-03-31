@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -27,6 +28,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
@@ -60,12 +62,13 @@ public class UnaryOperatorCompiler {
 
         return switch (operand) {
         case Value v          -> op.apply(v, location);
-        case PureOperator p   -> new UnaryPure(op, p, location, p.isDependingOnSubscription());
+        case PureOperator p   -> new UnaryPure(unaryOp.op(), op, p, location, p.isDependingOnSubscription());
         case StreamOperator s -> new UnaryStream(op, s, location);
         };
     }
 
     public record UnaryPure(
+            UnaryOperatorType opType,
             UnaryOperation op,
             PureOperator operand,
             SourceLocation location,
@@ -77,6 +80,19 @@ public class UnaryOperatorCompiler {
                 return v;
             }
             return op.apply(v, location);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(opType.hashCode(), operand.semanticHash());
+        }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            if (opType == UnaryOperatorType.NOT) {
+                return new BooleanExpression.Not(operand.booleanExpression());
+            }
+            return PureOperator.super.booleanExpression();
         }
     }
 

@@ -36,13 +36,14 @@ import io.sapl.ast.FunctionCall;
 import io.sapl.ast.Identifier;
 import io.sapl.ast.Literal;
 import io.sapl.ast.ObjectExpression;
-import io.sapl.ast.Parenthesized;
+
 import io.sapl.ast.Product;
 import io.sapl.ast.RelativeReference;
 import io.sapl.ast.SimpleFilter;
 import io.sapl.ast.Step;
 import io.sapl.ast.Sum;
 import io.sapl.ast.UnaryOperator;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -51,9 +52,8 @@ import lombok.val;
 public class ExpressionCompiler {
 
     public CompiledExpression compile(Expression expression, CompilationContext ctx) {
-        return switch (expression) {
+        val result = switch (expression) {
         case Literal(var value, var ignored)           -> value;
-        case Parenthesized(var inner, var ignored)     -> compile(inner, ctx);
         case Identifier identifier                     -> compileIdentifier(identifier, ctx);
         case RelativeReference(var type, var location) -> switch (type) {
                                                    case VALUE        -> new RelativeValueOp(location);
@@ -82,6 +82,7 @@ public class ExpressionCompiler {
         case SimpleFilter sf   -> FilterCompiler.compileSimple(sf, ctx);
         case ExtendedFilter ef -> ExtendedFilterCompiler.compile(ef, ctx);
         };
+        return ctx.dedupe(result);
     }
 
     public CompiledExpression compileIdentifier(Identifier identifier, CompilationContext ctx) {
@@ -94,6 +95,8 @@ public class ExpressionCompiler {
     }
 
     record IdentifierOp(String name, SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(IdentifierOp.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return ctx.get(name);
@@ -102,6 +105,11 @@ public class ExpressionCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return true;
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, name.hashCode());
         }
     }
 
@@ -120,6 +128,8 @@ public class ExpressionCompiler {
     }
 
     public record RelativeValueOp(SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RelativeValueOp.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return ctx.relativeValue();
@@ -129,9 +139,16 @@ public class ExpressionCompiler {
         public boolean isDependingOnSubscription() {
             return false;
         }
+
+        @Override
+        public long semanticHash() {
+            return KIND;
+        }
     }
 
     record RelativeLocationOp(SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RelativeLocationOp.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return ctx.relativeLocation();
@@ -140,6 +157,11 @@ public class ExpressionCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return false;
+        }
+
+        @Override
+        public long semanticHash() {
+            return KIND;
         }
     }
 

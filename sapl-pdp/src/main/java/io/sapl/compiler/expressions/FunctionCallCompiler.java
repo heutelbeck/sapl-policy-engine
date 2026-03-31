@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.expressions;
 
+import java.util.Arrays;
+
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
@@ -30,6 +32,7 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import io.sapl.ast.FunctionCall;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -228,6 +231,7 @@ public class FunctionCallCompiler {
      * Function with no arguments - simplest case.
      */
     public record NoArgsFunction(String functionName, SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(NoArgsFunction.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -237,6 +241,11 @@ public class FunctionCallCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return false;
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, functionName.hashCode());
         }
     }
 
@@ -251,6 +260,7 @@ public class FunctionCallCompiler {
             PureOperator[] pureOperators,
             int totalArgs,
             SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(AllPureFunction.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -266,6 +276,16 @@ public class FunctionCallCompiler {
                 }
             }
             return false;
+        }
+
+        @Override
+        public long semanticHash() {
+            long hash = SemanticHashing.ordered(KIND, functionName.hashCode(), Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), totalArgs);
+            for (var po : pureOperators) {
+                hash = SemanticHashing.ordered(hash, po.semanticHash());
+            }
+            return hash;
         }
     }
 

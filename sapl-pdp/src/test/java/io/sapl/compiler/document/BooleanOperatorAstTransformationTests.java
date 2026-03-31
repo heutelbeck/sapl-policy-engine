@@ -21,14 +21,16 @@ import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
-import io.sapl.ast.Expression;
-import io.sapl.ast.Parenthesized;
+import io.sapl.ast.Identifier;
+import io.sapl.ast.UnaryOperator;
+import io.sapl.ast.UnaryOperatorType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
@@ -38,13 +40,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("Boolean operator AST transformation")
 class BooleanOperatorAstTransformationTests {
-
-    private static Expression unwrap(Expression expr) {
-        if (expr instanceof Parenthesized(var inner, var ignored)) {
-            return unwrap(inner);
-        }
-        return expr;
-    }
 
     @Nested
     @DisplayName("Binary (2 operands) produces BinaryOperator with correct type")
@@ -329,39 +324,37 @@ class BooleanOperatorAstTransformationTests {
     }
 
     @Nested
-    @DisplayName("Explicit parentheses create Parenthesized wrappers and prevent n-ary flattening")
+    @DisplayName("Explicit parentheses are transparent (no Parenthesized wrapper nodes)")
     class ParenthesizedBehavior {
 
         @Test
-        @DisplayName("(a & b) is wrapped in Parenthesized containing EAGER_AND")
-        void whenParenthesizedEagerAndThenWrapped() {
+        @DisplayName("(a & b) produces EAGER_AND directly without wrapper")
+        void whenParenthesizedEagerAndThenNoWrapper() {
             var ast = parseExpression("(true & false)");
-            assertThat(ast).isInstanceOfSatisfying(Parenthesized.class,
-                    p -> assertThat(p.expression()).isInstanceOfSatisfying(BinaryOperator.class,
-                            bin -> assertThat(bin.op()).isEqualTo(BinaryOperatorType.EAGER_AND)));
+            assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class,
+                    bin -> assertThat(bin.op()).isEqualTo(BinaryOperatorType.EAGER_AND));
         }
 
         @Test
-        @DisplayName("(a & b) & c -> EAGER_AND(Parenthesized, c) - parens prevent 3-way flattening")
+        @DisplayName("(a & b) & c -> EAGER_AND(EAGER_AND, c) - parens prevent 3-way flattening")
         void whenParensPreventFlatteningThenBinaryNotConjunction() {
             var ast = parseExpression("(true & false) & true");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
                 assertThat(bin.op()).isEqualTo(BinaryOperatorType.EAGER_AND);
-                assertThat(bin.left()).isInstanceOf(Parenthesized.class);
-                assertThat(unwrap(bin.left())).isInstanceOfSatisfying(BinaryOperator.class,
+                assertThat(bin.left()).isInstanceOfSatisfying(BinaryOperator.class,
                         inner -> assertThat(inner.op()).isEqualTo(BinaryOperatorType.EAGER_AND));
             });
         }
 
         @Test
-        @DisplayName("(a || b) & (c || d) -> EAGER_AND of two Parenthesized(LAZY_OR) - parens override precedence")
+        @DisplayName("(a || b) & (c || d) -> EAGER_AND of two LAZY_OR - parens override precedence")
         void whenParensOverridePrecedenceThenCorrectNesting() {
             var ast = parseExpression("(true || false) & (true || false)");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
                 assertThat(bin.op()).isEqualTo(BinaryOperatorType.EAGER_AND);
-                assertThat(unwrap(bin.left())).isInstanceOfSatisfying(BinaryOperator.class,
+                assertThat(bin.left()).isInstanceOfSatisfying(BinaryOperator.class,
                         left -> assertThat(left.op()).isEqualTo(BinaryOperatorType.LAZY_OR));
-                assertThat(unwrap(bin.right())).isInstanceOfSatisfying(BinaryOperator.class,
+                assertThat(bin.right()).isInstanceOfSatisfying(BinaryOperator.class,
                         right -> assertThat(right.op()).isEqualTo(BinaryOperatorType.LAZY_OR));
             });
         }
@@ -468,6 +461,48 @@ class BooleanOperatorAstTransformationTests {
                             assertThat(inner.isEager()).isTrue();
                         }));
             });
+        }
+    }
+
+    @Nested
+    @DisplayName("Negation normalization")
+    class NegationNormalization {
+
+        @ParameterizedTest(name = "!({0}) normalizes to {1}")
+        @MethodSource
+        void whenNegatedComparisonThenFlipped(String inner, BinaryOperatorType expectedOp) {
+            var ast = parseExpression("!(" + inner + ")");
+            assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class,
+                    bin -> assertThat(bin.op()).isEqualTo(expectedOp));
+        }
+
+        static Stream<Arguments> whenNegatedComparisonThenFlipped() {
+            return Stream.of(arguments("a == b", BinaryOperatorType.NE), arguments("a != b", BinaryOperatorType.EQ),
+                    arguments("a < b", BinaryOperatorType.GE), arguments("a > b", BinaryOperatorType.LE),
+                    arguments("a <= b", BinaryOperatorType.GT), arguments("a >= b", BinaryOperatorType.LT));
+        }
+
+        @Test
+        @DisplayName("!!a normalizes to a")
+        void whenDoubleNegationThenStripped() {
+            var ast = parseExpression("!!a");
+            assertThat(ast).isInstanceOfSatisfying(Identifier.class, id -> assertThat(id.name()).isEqualTo("a"));
+        }
+
+        @Test
+        @DisplayName("!!!a normalizes to !a")
+        void whenTripleNegationThenSingleNot() {
+            var ast = parseExpression("!!!a");
+            assertThat(ast).isInstanceOfSatisfying(UnaryOperator.class,
+                    u -> assertThat(u.op()).isEqualTo(UnaryOperatorType.NOT));
+        }
+
+        @ParameterizedTest(name = "!({0}) is unchanged")
+        @ValueSource(strings = { "a + b", "a in b" })
+        void whenNegatedNonNegatableThenUnchanged(String inner) {
+            var ast = parseExpression("!(" + inner + ")");
+            assertThat(ast).isInstanceOfSatisfying(UnaryOperator.class,
+                    u -> assertThat(u.op()).isEqualTo(UnaryOperatorType.NOT));
         }
     }
 }

@@ -42,6 +42,7 @@ import lombok.val;
  *     "defaultDecision": "ABSTAIN",
  *     "errorHandling": "PROPAGATE"
  *   },
+ *   "indexing": "AUTO",
  *   "saplDocuments": ["policy access-control...", "policy audit-log..."],
  *   "variables": {
  *     "serverUrl": "https://api.example.com",
@@ -70,6 +71,8 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
 
         generator.writeName("combiningAlgorithm");
         serializeCombiningAlgorithm(configuration.combiningAlgorithm(), generator);
+
+        generator.writeStringProperty("indexing", configuration.indexing().name());
 
         generator.writeName("saplDocuments");
         serializeStringList(configuration.saplDocuments(), generator);

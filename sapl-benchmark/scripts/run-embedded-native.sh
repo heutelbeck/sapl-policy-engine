@@ -48,6 +48,7 @@ echo "  Profile:   $PROFILE"
 echo "  Binary:    $SAPL_NATIVE"
 echo "  Scenarios: ${SCENARIOS[*]}"
 echo "  Methods:   ${METHODS[*]}"
+echo "  Indexing:  ${INDEXING_SWEEP[*]}"
 echo "  Threads:   ${THREAD_SWEEP[*]}"
 echo "  Warmup:    ${WARMUP_ITERATIONS} x ${WARMUP_TIME}s"
 echo "  Measure:   ${MEASUREMENT_TIME}s"
@@ -57,9 +58,11 @@ echo "================================================================"
 echo ""
 
 echo "Exporting scenarios..."
-for scenario in "${SCENARIOS[@]}"; do
-    java -jar "$SAPL4_BENCH_JAR" --scenario="$scenario" --export="$SCENARIO_DIR/$scenario" 2>/dev/null
-    echo "  $scenario -> $SCENARIO_DIR/$scenario"
+for indexing in "${INDEXING_SWEEP[@]}"; do
+    for scenario in "${SCENARIOS[@]}"; do
+        java -jar "$SAPL4_BENCH_JAR" --scenario="$scenario" --indexing="$indexing" --export="$SCENARIO_DIR/${scenario}-${indexing}" 2>/dev/null
+        echo "  $scenario/$indexing -> $SCENARIO_DIR/${scenario}-${indexing}"
+    done
 done
 echo ""
 
@@ -98,7 +101,8 @@ run_single_fork() {
     local method=$2
     local threads=$3
     local cpu_range=$4
-    local scenario_dir="$SCENARIO_DIR/$scenario"
+    local indexing=$5
+    local scenario_dir="$SCENARIO_DIR/${scenario}-${indexing}"
     local latency_flag=""
     if [ "$LATENCY" = "true" ]; then
         latency_flag="--latency=true"
@@ -127,7 +131,8 @@ run_converging() {
     local method=$2
     local threads=$3
     local cpu_range=$4
-    local prefix="${scenario}_${method}_${threads}t"
+    local indexing=$5
+    local prefix="${scenario}_${indexing}_${method}_${threads}t"
 
     local throughputs=()
     local last_latency=""
@@ -136,7 +141,7 @@ run_converging() {
         wait_cool
 
         local output
-        output=$(run_single_fork "$scenario" "$method" "$threads" "$cpu_range")
+        output=$(run_single_fork "$scenario" "$method" "$threads" "$cpu_range" "$indexing")
 
         local throughput
         throughput=$(echo "$output" | grep '^THROUGHPUT:' | head -1 | cut -d: -f2)
@@ -244,7 +249,7 @@ for i, v in enumerate(vals, 1):
 }
 
 # Count total steps
-MAIN_STEPS=$(( ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
+MAIN_STEPS=$(( ${#INDEXING_SWEEP[@]} * ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
 EXTRA_STEPS=0
 if [ "$PROFILE" = "rigorous" ]; then
     EXTRA_STEPS=$(( ${#SCENARIOS[@]} * ${#THREAD_SWEEP[@]} + ${#THREAD_SWEEP[@]} ))
@@ -257,40 +262,44 @@ echo "  Output:    $OUTDIR"
 echo "================================================================"
 echo ""
 
-for scenario in "${SCENARIOS[@]}"; do
-    for method in "${METHODS[@]}"; do
-        for threads in "${THREAD_SWEEP[@]}"; do
-            CURRENT_STEP=$((CURRENT_STEP + 1))
-            pcores=$threads
-            cpu_range=$(server_cpus "$pcores")
-            pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+for indexing in "${INDEXING_SWEEP[@]}"; do
+    for scenario in "${SCENARIOS[@]}"; do
+        for method in "${METHODS[@]}"; do
+            for threads in "${THREAD_SWEEP[@]}"; do
+                CURRENT_STEP=$((CURRENT_STEP + 1))
+                pcores=$threads
+                cpu_range=$(server_cpus "$pcores")
+                pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
 
-            echo "================================================================"
-            echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-            echo "  $scenario / $method / ${threads}t pinned to CPUs $cpu_range"
-            echo "================================================================"
+                echo "================================================================"
+                echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
+                echo "  $scenario / $method / ${threads}t / $indexing pinned to CPUs $cpu_range"
+                echo "================================================================"
 
-            run_converging "$scenario" "$method" "$threads" "$cpu_range"
-            echo ""
+                run_converging "$scenario" "$method" "$threads" "$cpu_range" "$indexing"
+                echo ""
+            done
         done
     done
 done
 
 if [ "$PROFILE" = "rigorous" ]; then
-    for scenario in "${SCENARIOS[@]}"; do
-        for threads in "${THREAD_SWEEP[@]}"; do
-            CURRENT_STEP=$((CURRENT_STEP + 1))
-            pcores=$threads
-            cpu_range=$(server_cpus "$pcores")
-            pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+    for indexing in "${INDEXING_SWEEP[@]}"; do
+        for scenario in "${SCENARIOS[@]}"; do
+            for threads in "${THREAD_SWEEP[@]}"; do
+                CURRENT_STEP=$((CURRENT_STEP + 1))
+                pcores=$threads
+                cpu_range=$(server_cpus "$pcores")
+                pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
 
-            echo "================================================================"
-            echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-            echo "  $scenario / decideStreamFirst / ${threads}t pinned to CPUs $cpu_range"
-            echo "================================================================"
+                echo "================================================================"
+                echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
+                echo "  $scenario / decideStreamFirst / ${threads}t / $indexing pinned to CPUs $cpu_range"
+                echo "================================================================"
 
-            run_converging "$scenario" "decideStreamFirst" "$threads" "$cpu_range"
-            echo ""
+                run_converging "$scenario" "decideStreamFirst" "$threads" "$cpu_range" "$indexing"
+                echo ""
+            done
         done
     done
 
@@ -305,7 +314,7 @@ if [ "$PROFILE" = "rigorous" ]; then
         echo "  noOp / ${threads}t pinned to CPUs $cpu_range"
         echo "================================================================"
 
-        run_converging "rbac" "noOp" "$threads" "$cpu_range"
+        run_converging "rbac" "noOp" "$threads" "$cpu_range" "AUTO"
         echo ""
     done
 fi

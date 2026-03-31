@@ -55,22 +55,22 @@ public class MarkdownGenerator {
             .sapl-docs { padding: 1rem 1.5rem; line-height: 1.6; }
             .sapl-docs table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
             .sapl-docs th, .sapl-docs td {
-                border: 1px solid var(--lumo-contrast-20pct, rgba(255, 255, 255, 0.2));
+                border: 1px solid var(--sapl-contrast-20pct);
                 padding: 0.5rem 0.75rem; text-align: left;
             }
             .sapl-docs th {
-                background-color: var(--lumo-contrast-5pct, rgba(255, 255, 255, 0.05));
+                background-color: var(--sapl-contrast-5pct);
                 font-weight: 600;
             }
             .sapl-docs pre {
-                background-color: var(--lumo-contrast-5pct, rgba(255, 255, 255, 0.05));
+                background-color: var(--sapl-contrast-5pct);
                 padding: 0.75rem 1rem; border-radius: 4px; overflow-x: auto;
             }
             .sapl-docs code { font-size: 0.875em; }
             .sapl-docs h1, .sapl-docs h2, .sapl-docs h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
             .sapl-docs hr {
                 border: none;
-                border-top: 1px solid var(--lumo-contrast-10pct, rgba(255, 255, 255, 0.1));
+                border-top: 1px solid var(--sapl-contrast-10pct);
                 margin: 1.5rem 0;
             }
             </style>""";

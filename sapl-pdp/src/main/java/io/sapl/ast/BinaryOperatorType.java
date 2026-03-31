@@ -80,4 +80,13 @@ public enum BinaryOperatorType {
     public boolean isEquality() {
         return this == EQ || this == NE || this == REGEX;
     }
+
+    /**
+     * @return true if the operator is commutative (operand order does not affect
+     * the result)
+     */
+    public boolean isCommutative() {
+        return this == EQ || this == NE || this == ADD || this == MUL || this == EAGER_AND || this == LAZY_AND
+                || this == EAGER_OR || this == LAZY_OR || this == XOR;
+    }
 }

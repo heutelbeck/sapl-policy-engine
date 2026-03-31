@@ -217,7 +217,7 @@ public class ExamplesCollection {
                     permit
                         // Policy is applicable for the 'access' action
                         action == "access";
-                        // Containment check: subject.location âˆˆ resource.perimeter
+                        // Containment check: subject.location in resource.perimeter
                         geo.within(subject.location, resource.perimeter);
                     """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
@@ -232,7 +232,7 @@ public class ExamplesCollection {
                     """, DEFAULT_VARIABLES);
 
     static final Example GEOGRAPHIC_NEAR_FACILITY = new Example("geo-permit-near-facility",
-            "Proximity: geodesic distance â‰¤ 200 m",
+            "Proximity: geodesic distance 200 m",
             "Permit when the subject is within 200 meters (WGS84) of the facility.", List.of("""
                     // Grants access if the geodesic distance on WGS84 between the subject position and
                     // the facility location is at most 200 meters. Uses geo.isWithinGeodesicDistance.
@@ -249,7 +249,7 @@ public class ExamplesCollection {
                                                       "coordinates": [13.4050, 52.5200] } },
                       "action"      : "access",
                       "resource"    : { "facility": { "location": { "type": "Point",
-                                                                     "coordinates": [13.4065, 52.5210] } } }
+                                                                      "coordinates": [13.4065, 52.5210] } } }
                     }
                     """, DEFAULT_VARIABLES);
 
@@ -787,19 +787,23 @@ public class ExamplesCollection {
                     """);
 
     static final Example ACCESS_CONTROL_HIERARCHICAL_RBAC = new Example("hierarchical-role-based-access-control",
-            "Hierarchical RBAC", "Hierarchical Demonstrates implementing RBAC in SAPL", List.of("""
+            "Hierarchical RBAC",
+            "Demonstrates implementing hierarchical RBAC in SAPL with compile-time optimized role graph traversal",
+            List.of("""
                     policy "Hierarchical RBAC"
                     permit
-                      // take the role graph from the variables and calculate the reachable roles
-                      var effectiveRoles = graph.reachable(rolesHierarchy, subject.roles);
+                      // Precompute the transitive closure of the role hierarchy.
+                      // Since rolesHierarchy is a PDP variable (constant), this folds at compile time.
+                      var closedRoles = graph.transitiveClosure(rolesHierarchy);
 
-                      // from the permission filter the assignments whose role name is contained in the
-                      // list of effective permissions and take the permissions of that assignment
-                      // then flatten re resulting array of arrays.
+                      // Look up all effective roles for the subject. On the precomputed closure,
+                      // this is a series of O(1) lookups instead of BFS traversal.
+                      var effectiveRoles = graph.reachable(closedRoles, subject.roles);
+
+                      // Filter permissions by effective roles and flatten.
                       var effectivePermissions = array.flatten(permissions[?(@.role in effectiveRoles)]..permissions);
 
-                      // Finally check if the required permission action is contained in the
-                      // effectivePermission of the subject.
+                      // Check if the required permission is in the effective permissions.
                       { "action" : action, "type" : resource.type } in effectivePermissions;
                     """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
@@ -913,10 +917,124 @@ public class ExamplesCollection {
             List.of(GEOGRAPHIC_INSIDE_PERIMETER, GEOGRAPHIC_NEAR_FACILITY, GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED,
                     GEOGRAPHIC_WAYPOINTS_SUBSET, GEOGRAPHIC_BUFFER_TOUCH, GEOGRAPHIC_WKT_INSIDE_ZONE));
 
+    static final Example ACCESS_CONTROL_HIERARCHICAL_RBAC_PROJECTION = new Example("hierarchical-rbac-projection",
+            "Hierarchical RBAC (Entity Graph)",
+            "Hierarchical RBAC using entity graph with compile-time permission projection. Zero runtime graph traversal.",
+            List.of("""
+                    policy "Hierarchical RBAC with Permission Projection"
+                    permit
+                      // Precompute permissions reachable through the role hierarchy.
+                      // roleEntities is a PDP variable, so this folds entirely at compile time.
+                      // At runtime, only a lookup and an 'in' check remain.
+                      var closedPermissions = graph.transitiveClosureProjection(roleEntities, "children", "permissions");
+
+                      // Collect effective permissions for all of the subject's roles.
+                      // The condition step selects entries whose key (#) is in the roles array,
+                      // then flatten merges the per-role permission arrays.
+                      var effectivePermissions = array.flatten(closedPermissions[?(# in subject.roles)]);
+
+                      // Check if the required permission is in the effective permissions.
+                      { "action" : action, "type" : resource.type } in effectivePermissions;
+                    """),
+            new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
+                    {
+                       "subject"     : { "username": "alice", "roles": [ "cso", "market-analyst" ] },
+                       "action"      : "read",
+                       "resource"    : { "type" : "alerts"}
+                    }
+                    """, """
+                    {
+                      "roleEntities": {
+                        "cso": {
+                          "children": ["security-manager", "it-operations-manager", "compliance-manager"],
+                          "attributes": { "permissions": [
+                            { "type": "policies", "action": "approve" },
+                            { "type": "risk register", "action": "approve" },
+                            { "type": "audit reports", "action": "approve" }
+                          ]}
+                        },
+                        "security-manager": {
+                          "children": ["secops-analyst", "threat-hunter"],
+                          "attributes": { "permissions": [
+                            { "type": "incidents", "action": "close" },
+                            { "type": "policies", "action": "approve" }
+                          ]}
+                        },
+                        "it-operations-manager": {
+                          "children": ["site-reliability-engineer", "platform-admin"],
+                          "attributes": { "permissions": [
+                            { "type": "service", "action": "approve-deployment" }
+                          ]}
+                        },
+                        "compliance-manager": {
+                          "children": ["internal-auditor", "risk-analyst"],
+                          "attributes": { "permissions": [
+                            { "type": "audit reports", "action": "approve" },
+                            { "type": "exceptions", "action": "approve" }
+                          ]}
+                        },
+                        "secops-analyst": {
+                          "children": [],
+                          "attributes": { "permissions": [
+                            { "type": "alerts", "action": "read" },
+                            { "type": "incidents", "action": "update" },
+                            { "type": "service logs", "action": "read" }
+                          ]}
+                        },
+                        "threat-hunter": {
+                          "children": [],
+                          "attributes": { "permissions": [
+                            { "type": "service logs", "action": "read" },
+                            { "type": "alerts", "action": "read" },
+                            { "type": "hunt reports", "action": "create" }
+                          ]}
+                        },
+                        "site-reliability-engineer": {
+                          "children": [],
+                          "attributes": { "permissions": [
+                            { "type": "service", "action": "deploy" },
+                            { "type": "service", "action": "rollback" },
+                            { "type": "service logs", "action": "read" }
+                          ]}
+                        },
+                        "platform-admin": {
+                          "children": [],
+                          "attributes": { "permissions": [
+                            { "type": "service config", "action": "update" },
+                            { "type": "service", "action": "restart" }
+                          ]}
+                        },
+                        "internal-auditor": {
+                          "children": [],
+                          "attributes": { "permissions": [
+                            { "type": "audit logs", "action": "read" },
+                            { "type": "audit logs", "action": "export" },
+                            { "type": "audit reports", "action": "read" }
+                          ]}
+                        },
+                        "risk-analyst": {
+                          "children": [],
+                          "attributes": { "permissions": [
+                            { "type": "risk register", "action": "read" },
+                            { "type": "risk register", "action": "update" },
+                            { "type": "policies", "action": "read" }
+                          ]}
+                        },
+                        "market-analyst": {
+                          "children": [],
+                          "attributes": { "permissions": [
+                            { "type": "customer statistics", "action": "read" }
+                          ]}
+                        }
+                      }
+                    }
+                    """);
+
     static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", "LOCK", 5,
-            List.of(ACCESS_CONTROL_RBAC, ACCESS_CONTROL_HIERARCHICAL_RBAC, ACCESS_CONTROL_BELL_LAPADULA_BASIC,
-                    ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS, ACCESS_CONTROL_BREWER_NASH_FINANCIAL,
-                    ACCESS_CONTROL_BREWER_NASH_CONSULTING, ACCESS_CONTROL_BIBA_INTEGRITY));
+            List.of(ACCESS_CONTROL_RBAC, ACCESS_CONTROL_HIERARCHICAL_RBAC, ACCESS_CONTROL_HIERARCHICAL_RBAC_PROJECTION,
+                    ACCESS_CONTROL_BELL_LAPADULA_BASIC, ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS,
+                    ACCESS_CONTROL_BREWER_NASH_FINANCIAL, ACCESS_CONTROL_BREWER_NASH_CONSULTING,
+                    ACCESS_CONTROL_BIBA_INTEGRITY));
 
     static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL, GEOGRAPHIC);
 

@@ -61,6 +61,7 @@ profile_defaults() {
             RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
             METHODS=(decideOnceBlocking)
+            INDEXING_SWEEP=(AUTO)
             LATENCY=true
             ;;
         base)
@@ -80,6 +81,7 @@ profile_defaults() {
             RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
             METHODS=(decideOnceBlocking)
+            INDEXING_SWEEP=(NAIVE CANONICAL)
             LATENCY=true
             ;;
         rigorous)
@@ -98,6 +100,7 @@ profile_defaults() {
             RSOCKET_VT=256
             SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
             METHODS=(decideOnceBlocking)
+            INDEXING_SWEEP=(NAIVE CANONICAL)
             LATENCY=true
             ;;
         *)

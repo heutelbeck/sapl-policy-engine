@@ -23,4 +23,29 @@ public non-sealed interface PureOperator extends CompiledExpression {
     SourceLocation location();
 
     boolean isDependingOnSubscription();
+
+    /**
+     * Returns a hash that identifies the semantic content of this operator,
+     * ignoring source location and other non-semantic fields. Two operators
+     * representing the same computation produce the same hash, even if they
+     * were compiled from different source locations.
+     * <p>
+     * Used by the canonical policy index to identify equivalent predicates
+     * across policies.
+     *
+     * @return semantic hash of this operator
+     */
+    long semanticHash();
+
+    /**
+     * Returns the boolean expression structure of this operator for the
+     * policy index. Boolean operators (AND, OR, NOT) override this to expose
+     * their structure. All other operators inherit the default, which returns
+     * an opaque atomic predicate.
+     *
+     * @return the boolean expression representation
+     */
+    default BooleanExpression booleanExpression() {
+        return new BooleanExpression.Atom(new IndexPredicate(semanticHash(), this));
+    }
 }

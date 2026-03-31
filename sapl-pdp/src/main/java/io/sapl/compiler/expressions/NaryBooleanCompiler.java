@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.AttributeRecord;
+import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -29,6 +30,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -274,6 +276,24 @@ public class NaryBooleanCompiler {
                 }
             }
             return identityValue;
+        }
+
+        // Eager and lazy AND/OR produce the same hash because on the pure
+        // stratum they evaluate identically. The isEager flag only affects
+        // the streaming stratum.
+        @Override
+        public long semanticHash() {
+            val childHashes = operands.stream().mapToLong(PureOperator::semanticHash).toArray();
+            return SemanticHashing.commutative(shortCircuitValue.hashCode(), childHashes);
+        }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            val children = operands.stream().map(PureOperator::booleanExpression).toList();
+            if (Value.FALSE.equals(shortCircuitValue)) {
+                return new BooleanExpression.And(children);
+            }
+            return new BooleanExpression.Or(children);
         }
     }
 

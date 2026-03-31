@@ -33,6 +33,9 @@ import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.expressions.CompilationContext;
+import io.sapl.compiler.index.IndexFactory;
+import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
@@ -64,8 +67,9 @@ public class UniqueVoteCompiler {
 
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
-            VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        val voter    = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling);
+            VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
+            CompilationContext ctx) {
+        val voter    = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling, ctx);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, defaultDecision,
                 errorHandling);
         return new VoterAndCoverage(voter, coverage);
@@ -123,7 +127,7 @@ public class UniqueVoteCompiler {
     }
 
     public static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
-            DefaultDecision defaultDecision, ErrorHandling errorHandling) {
+            DefaultDecision defaultDecision, ErrorHandling errorHandling, CompilationContext ctx) {
 
         val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);
         val accumulatorVote = UniqueVoteCombiner.combineMultipleVotes(classified.foldableVotes(), voterMetadata);
@@ -132,40 +136,37 @@ public class UniqueVoteCompiler {
             return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
+        val pureIndex = IndexFactory.createIndex(classified.purePolicies(), ctx);
+
         if (classified.streamPolicies().isEmpty()) {
-            return new PureUniqueVoter(accumulatorVote, classified.purePolicies(), defaultDecision, errorHandling,
-                    voterMetadata);
+            return new PureUniqueVoter(accumulatorVote, pureIndex, defaultDecision, errorHandling, voterMetadata);
         }
-        return new StreamUniqueVoter(accumulatorVote, classified.purePolicies(), classified.streamPolicies(),
-                defaultDecision, errorHandling, voterMetadata);
+        val streamIndex = IndexFactory.createIndex(classified.streamPolicies(), ctx);
+        return new StreamUniqueVoter(accumulatorVote, pureIndex, streamIndex, defaultDecision, errorHandling,
+                voterMetadata);
     }
 
     record PureUniqueVoter(
             Vote accumulatorVote,
-            List<CompiledDocument> documents,
+            PolicyIndex index,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata) implements PureVoter {
         @Override
         public Vote vote(EvaluationContext ctx) {
-            val vote = combinePureVoters(accumulatorVote, documents, voterMetadata, ctx);
+            val vote = combinePureVoters(accumulatorVote, index, voterMetadata, ctx);
             return vote.finalizeVote(defaultDecision, errorHandling);
         }
     }
 
-    private static Vote combinePureVoters(Vote accumulatorVote, List<CompiledDocument> documents,
-            VoterMetadata voterMetadata, EvaluationContext ctx) {
-        var vote = accumulatorVote;
-        for (val document : documents) {
-            // Short-circuit on INDETERMINATE - uniqueness cannot be determined
-            if (vote.authorizationDecision().decision() == Decision.INDETERMINATE) {
-                break;
+    private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, VoterMetadata voterMetadata,
+            EvaluationContext ctx) {
+        var holder = new Vote[] { accumulatorVote };
+        index.matchWhile(ctx, stepResult -> {
+            for (val errorVote : stepResult.errorVotes()) {
+                holder[0] = UniqueVoteCombiner.combineVotes(holder[0], errorVote, voterMetadata);
             }
-            val isApplicable = evaluateApplicability(document.isApplicable(), ctx);
-            if (isApplicable instanceof ErrorValue error) {
-                val errorVote = Vote.error(error, document.metadata());
-                vote = UniqueVoteCombiner.combineVotes(vote, errorVote, voterMetadata);
-            } else if (isApplicable instanceof BooleanValue(var b) && b) {
+            for (val document : stepResult.matchingDocuments()) {
                 val  voter = document.voter();
                 Vote newVote;
                 if (voter instanceof Vote constantVote) {
@@ -173,16 +174,17 @@ public class UniqueVoteCompiler {
                 } else {
                     newVote = ((PureVoter) voter).vote(ctx);
                 }
-                vote = UniqueVoteCombiner.combineVotes(vote, newVote, voterMetadata);
+                holder[0] = UniqueVoteCombiner.combineVotes(holder[0], newVote, voterMetadata);
             }
-        }
-        return vote;
+            return holder[0].authorizationDecision().decision() != Decision.INDETERMINATE;
+        });
+        return holder[0];
     }
 
     record StreamUniqueVoter(
             Vote accumulatorVote,
-            List<CompiledDocument> pureDocuments,
-            List<CompiledDocument> streamDocuments,
+            PolicyIndex pureIndex,
+            PolicyIndex streamIndex,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata) implements StreamVoter {
@@ -190,27 +192,24 @@ public class UniqueVoteCompiler {
         public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
                 val evalCtx  = ctxView.get(EvaluationContext.class);
-                var pureVote = combinePureVoters(accumulatorVote, pureDocuments, voterMetadata, evalCtx);
+                var pureVote = combinePureVoters(accumulatorVote, pureIndex, voterMetadata, evalCtx);
 
-                // Short-circuit if already INDETERMINATE - no need to evaluate streams
                 if (pureVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
                     return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }
 
-                val streamVoters = new ArrayList<Flux<Vote>>(streamDocuments.size());
-                for (CompiledDocument document : streamDocuments) {
-                    // Short-circuit on INDETERMINATE - uniqueness cannot be determined
-                    if (pureVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
-                        break;
-                    }
-                    val isApplicable = evaluateApplicability(document.isApplicable(), evalCtx);
-                    if (isApplicable instanceof ErrorValue error) {
-                        val errorVote = Vote.error(error, document.metadata());
-                        pureVote = UniqueVoteCombiner.combineVotes(pureVote, errorVote, voterMetadata);
-                    } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                        streamVoters.add(((StreamVoter) document.voter()).vote());
-                    }
+                val streamResult = streamIndex.match(evalCtx);
+                for (val errorVote : streamResult.errorVotes()) {
+                    pureVote = UniqueVoteCombiner.combineVotes(pureVote, errorVote, voterMetadata);
                 }
+                if (pureVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
+                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
+                }
+                val streamVoters = new ArrayList<Flux<Vote>>(streamResult.matchingDocuments().size());
+                for (val document : streamResult.matchingDocuments()) {
+                    streamVoters.add(((StreamVoter) document.voter()).vote());
+                }
+
                 if (streamVoters.isEmpty()) {
                     return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
                 }

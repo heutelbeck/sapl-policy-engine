@@ -26,6 +26,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -49,6 +50,8 @@ public class BooleanGuardCompiler {
             SourceLocation location,
             boolean isDependingOnSubscription,
             String errorMessage) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(PureBooleanTypeCheck.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val result = operator.evaluate(ctx);
@@ -57,6 +60,11 @@ public class BooleanGuardCompiler {
             case ErrorValue e   -> e;
             default             -> Value.errorAt(location, errorMessage.formatted(result));
             };
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, operator.semanticHash());
         }
     }
 

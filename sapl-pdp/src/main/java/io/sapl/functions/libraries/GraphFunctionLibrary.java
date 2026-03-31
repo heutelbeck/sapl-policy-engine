@@ -28,233 +28,454 @@ import lombok.val;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.function.Consumer;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Graph utilities for reachability and shortest paths.
+ * Graph utilities for reachability, transitive closure, and shortest paths.
+ * <p>
+ * Supports two graph formats:
+ * <ul>
+ * <li><b>Adjacency list:</b> {@code { nodeId: [neighborIds...] }}</li>
+ * <li><b>Entity graph:</b> {@code { nodeId: { edgeKey: [neighborIds...],
+ * "attributes": { ... } } }}</li>
+ * </ul>
+ * Transitive closure uses Tarjan's SCC decomposition (1972) + memoized DAG
+ * closure. O(V + E + S) where S = total output size. Functions fold at compile
+ * time when the input is a PDP variable.
  */
 @UtilityClass
 @FunctionLibrary(name = GraphFunctionLibrary.NAME, description = GraphFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphFunctionLibrary.DOCUMENTATION)
 public class GraphFunctionLibrary {
 
     public static final String NAME          = "graph";
-    public static final String DESCRIPTION   = "Graph functions: reachability and shortest paths.";
+    public static final String DESCRIPTION   = "Graph functions: reachability, transitive closure, and shortest paths.";
     public static final String DOCUMENTATION = """
             # Graph Function Library (name: graph)
 
-            This library provides functions for working with graphs represented as JSON objects.
-            Use these functions when authorization decisions depend on reachability or path analysis
-            in hierarchical structures such as role hierarchies, organizational charts, or resource trees.
+            Functions for working with graphs represented as JSON objects.
 
-            ## Design rationale
+            ## Graph formats
 
-            Graphs are plain JSON objects, so policies can pass them without adapters. Missing nodes
-            are treated like leaves. Unknown roots still produce a result. Traversal uses breadth-first
-            search with a visited set, so cycles do not cause loops.
+            **Adjacency list:** ``{ "admin": ["manager", "auditor"], "manager": ["viewer"] }``
 
-            ## Graph object format
+            **Entity graph:** ``{ "admin": { "children": ["manager"], "attributes": { "permissions": ["approve"] } } }``
 
-            A graph is a JSON object where each key is a node identifier and each value is an array
-            of neighbor identifiers. The neighbors represent the outgoing edges of the node.
+            ## Compile-time optimization
 
-            Example using hierarchical role inheritance (each role grants permissions of subordinate roles):
-
-            ```json
-            {
-              "system-admin" : [ "db-admin", "security-admin", "app-admin" ],
-              "db-admin" : [ "db-operator", "backup-operator" ],
-              "security-admin" : [ "security-analyst", "audit-viewer" ],
-              "app-admin" : [ "app-operator", "app-viewer" ],
-              "db-operator" : [ "db-viewer" ],
-              "backup-operator" : [ "backup-viewer" ],
-              "security-analyst" : [ "log-viewer" ],
-              "audit-viewer" : [],
-              "app-operator" : [ "app-viewer" ],
-              "app-viewer" : [],
-              "db-viewer" : [],
-              "backup-viewer" : [],
-              "log-viewer" : []
-            }
-            ```
-
-            ## Notes on encoding
-
-            Edges are directed: neighbors are outgoing edges.
-            A node is a leaf if it is missing or mapped to an empty array.
-            Use strings for node ids to avoid confusion.
-            Only arrays are treated as adjacency lists; any other value is ignored for expansion.
-            Initial roots can be a single id or an array of ids.
-
-            ## Example (reachable)
-
-            Check which roles are effectively granted when a user has the system-admin role:
-
-            ```sapl
-            policy "evaluate-effective-permissions"
-            permit
-              var effectiveRoles = graph.reachable(roleHierarchy, subject.assignedRoles);
-              "db-viewer" in effectiveRoles;
-            ```
-
-            ## Example (reachable_paths)
-
-            Audit the delegation chain from a high-privilege role to a specific permission:
-
-            ```sapl
-            policy "audit-permission-delegation"
-            permit
-              var delegationPaths = graph.reachable_paths(roleHierarchy, ["system-admin"]);
-              ["system-admin","db-admin","db-operator","db-viewer"] in delegationPaths;
-            ```
+            When the graph is a PDP variable, transitive closure functions fold at compile time.
             """;
 
-    private static final String NODE_ID_NULL = "null";
-
-    private static final String SCHEMA_RETURNS_ARRAY = """
+    private static final String NODE_ID_NULL          = "null";
+    private static final String SCHEMA_RETURNS_ARRAY  = """
             { "type": "array" }
+            """;
+    private static final String SCHEMA_RETURNS_OBJECT = """
+            { "type": "object" }
             """;
 
     /**
-     * Computes the set of nodes reachable from the initial roots in a directed
-     * graph.
+     * Single-source BFS reachability. O(V + E).
      *
-     * @param graph
-     * JSON object mapping node identifiers to arrays of neighbor identifiers
-     * @param initial
-     * a single node identifier or an array of identifiers to seed the search
-     *
-     * @return array of unique node identifiers in discovery order
+     * @param graph adjacency list
+     * @param initial root node(s) for BFS
+     * @return array of reachable node IDs in discovery order
      */
     @Function(name = "reachable", docs = """
-            ```graph.reachable(OBJECT graph, STRING|ARRAY initial)```: Computes the reachable nodes in a
-            directed graph when starting at the given list of nodes or a single node identifier.
-
-            Performs breadth-first search to discover all nodes that can be reached by following
-            directed edges in the graph.
-
-            ## Parameters
-
-            - graph: JSON object where each key is a node identifier and each value is an array of
-              neighbor identifiers (see library documentation for structure)
-            - initial: a single node identifier or an array of identifiers
-
-            ## Returns
-
-            - Array of unique node identifiers in the order they were discovered by breadth-first traversal
-
-            ## Behavior
-
-            - Missing nodes are treated as leaves and do not expand further
-            - Unknown roots are returned as reachable; they yield single-node results if no adjacency exists
-            - Non-array adjacency values are ignored
-            - Cycles are handled via visited set
-            - Time complexity is O(V + E) with V nodes and E edges
-
-            ## Example
-
-            Using the roleHierarchy graph from library documentation, determine all roles a user
-            effectively has through inheritance:
-
-            ```sapl
-            policy "require-elevated-access"
-            permit
-              var effectiveRoles = graph.reachable(roleHierarchy, subject.assignedRoles);
-              "security-analyst" in effectiveRoles;
-            ```
+            ```graph.reachable(OBJECT graph, STRING|ARRAY initial)```: Single-source BFS reachability.
+            Returns array of reachable node IDs in BFS discovery order. O(V + E).
             """, schema = SCHEMA_RETURNS_ARRAY)
     public static Value reachable(ObjectValue graph, Value initial) {
-        val traversalState = newTraversalState(initial);
-
-        while (!traversalState.queue().isEmpty()) {
-            val currentNodeId = traversalState.queue().removeFirst();
-            forEachNeighbor(graph, currentNodeId, neighborId -> {
-                if (traversalState.visited().add(neighborId)) {
-                    traversalState.queue().addLast(neighborId);
-                }
-            });
-        }
-
-        val resultBuilder = ArrayValue.builder();
-        for (val nodeId : traversalState.visited()) {
-            resultBuilder.add(Value.of(nodeId));
-        }
-        return resultBuilder.build();
+        return toArrayValue(bfs(graph, initial, null, true));
     }
 
     /**
-     * Computes one shortest path per reachable node starting from the given roots.
-     * The path for a root is the
-     * single-element array containing just the root.
+     * All-pairs transitive closure (adjacency list). O(V + E + S).
      *
-     * @param graph
-     * JSON object mapping node identifiers to arrays of neighbor identifiers
-     * @param initial
-     * a single node identifier or an array of identifiers to seed the search
-     *
-     * @return array of paths; each path is an array of node identifiers from a root
-     * to a node
+     * @param graph adjacency list
+     * @return closure where each node maps to array of reachable nodes
      */
-    @Function(name = "reachable_paths", docs = """
-            ```graph.reachable_paths(OBJECT graph, STRING|ARRAY initial)```: Builds one shortest path per
-            discovered node by performing breadth-first traversal from the given roots.
-
-            Each root contributes a single-element path containing just the root. Each reachable node
-            yields exactly one path (the first encountered by BFS).
-
-            ## Parameters
-
-            - graph: JSON object mapping node identifiers to arrays of neighbor identifiers
-            - initial: a single node identifier or an array of identifiers
-
-            ## Returns
-
-            - Array of paths where each path is an array of node identifiers from a root to a reachable node
-
-            ## Behavior
-
-            - Missing nodes are treated as leaves (no expansion)
-            - Cycles are handled via visited set; the first discovered path is kept
-            - Unknown roots produce a single-node path
-
-            ## Example
-
-            Using the roleHierarchy graph from library documentation, verify the delegation chain
-            for audit purposes:
+    @Function(name = "transitiveClosure", docs = """
+            ```graph.transitiveClosure(OBJECT graph)```: All-pairs transitive closure via Tarjan's SCC
+            + memoized DAG closure. O(V + E + S).
 
             ```sapl
-            policy "audit-role-delegation-path"
-            permit
-              var delegationPaths = graph.reachable_paths(roleHierarchy, subject.primaryRole);
-              ["db-admin","db-operator","db-viewer"] in delegationPaths;
+            var closed = graph.transitiveClosure(rolesHierarchy);
+            "viewer" in closed[(subject.role)];
             ```
+            """, schema = SCHEMA_RETURNS_OBJECT)
+    public static Value transitiveClosure(ObjectValue graph) {
+        return buildClosureArray(graph, null);
+    }
+
+    /**
+     * All-pairs transitive closure (entity graph). O(V + E + S).
+     *
+     * @param graph entity graph
+     * @param edgeKey field name for neighbor references
+     * @return closure where each node maps to array of reachable nodes
+     */
+    @Function(name = "transitiveClosure", docs = """
+            ```graph.transitiveClosure(OBJECT entityGraph, STRING edgeKey)```: All-pairs transitive
+            closure of entity graph. Tarjan's SCC + memoized DAG closure. O(V + E + S).
+
+            ```sapl
+            var closed = graph.transitiveClosure(roleEntities, "children");
+            "viewer" in closed[(subject.role)];
+            ```
+            """, schema = SCHEMA_RETURNS_OBJECT)
+    public static Value transitiveClosure(ObjectValue graph, TextValue edgeKey) {
+        return buildClosureArray(graph, edgeKey.value());
+    }
+
+    /**
+     * All-pairs transitive closure with O(1) membership lookup. O(V + E + S).
+     *
+     * @param graph adjacency list
+     * @return closure where each node maps to object with reachable nodes as keys
+     */
+    @Function(name = "transitiveClosureSet", docs = """
+            ```graph.transitiveClosureSet(OBJECT graph)```: Transitive closure with O(1) key lookup.
+            Tarjan's SCC + memoized DAG closure. O(V + E + S).
+
+            ```sapl
+            var closed = graph.transitiveClosureSet(rolesHierarchy);
+            closed[(subject.role)]["viewer"] != undefined;
+            ```
+            """, schema = SCHEMA_RETURNS_OBJECT)
+    public static Value transitiveClosureSet(ObjectValue graph) {
+        return buildClosureSet(graph, null);
+    }
+
+    /**
+     * All-pairs transitive closure with O(1) membership lookup (entity graph).
+     * O(V + E + S).
+     *
+     * @param graph entity graph
+     * @param edgeKey field name for neighbor references
+     * @return closure where each node maps to object with reachable nodes as keys
+     */
+    @Function(name = "transitiveClosureSet", docs = """
+            ```graph.transitiveClosureSet(OBJECT entityGraph, STRING edgeKey)```: Transitive closure of
+            entity graph with O(1) key lookup. Tarjan's SCC + memoized DAG closure. O(V + E + S).
+
+            ```sapl
+            var closed = graph.transitiveClosureSet(roleEntities, "children");
+            closed[(subject.role)]["viewer"] != undefined;
+            ```
+            """, schema = SCHEMA_RETURNS_OBJECT)
+    public static Value transitiveClosureSet(ObjectValue graph, TextValue edgeKey) {
+        return buildClosureSet(graph, edgeKey.value());
+    }
+
+    /**
+     * All-pairs transitive closure with attribute projection. O(V + E + S).
+     *
+     * @param graph entity graph
+     * @param edgeKey field name for neighbor references
+     * @param attrKey field name within attributes to collect
+     * @return closure where each node maps to collected attribute values
+     */
+    @Function(name = "transitiveClosureProjection", docs = """
+            ```graph.transitiveClosureProjection(OBJECT entityGraph, STRING edgeKey, STRING attrKey)```:
+            Walks edges via Tarjan's SCC + memoized DAG closure, collects a named attribute from all
+            reachable nodes. Array attributes are flattened. O(V + E + S).
+
+            ```sapl
+            var perms = graph.transitiveClosureProjection(roleEntities, "children", "permissions");
+            { "action": action, "type": resource.type } in perms[(subject.role)];
+            ```
+            """, schema = SCHEMA_RETURNS_OBJECT)
+    public static Value transitiveClosureProjection(ObjectValue graph, TextValue edgeKey, TextValue attrKey) {
+        val closure = computeAllPairsClosure(graph, edgeKey.value());
+        val attr    = attrKey.value();
+        val result  = ObjectValue.builder();
+        for (val entry : closure.entrySet()) {
+            result.put(entry.getKey(), collectAttribute(graph, entry.getValue(), attr));
+        }
+        return result.build();
+    }
+
+    /**
+     * Single-source shortest paths via BFS. O(V + E).
+     *
+     * @param graph adjacency list
+     * @param initial root node(s) for BFS
+     * @return array of shortest paths from roots to all reachable nodes
+     */
+    @Function(name = "reachable_paths", docs = """
+            ```graph.reachable_paths(OBJECT graph, STRING|ARRAY initial)```: Single-source shortest
+            paths via BFS. O(V + E). Returns array of paths (each an array of node IDs).
             """, schema = SCHEMA_RETURNS_ARRAY)
     public static Value reachablePaths(ObjectValue graph, Value initial) {
-        val traversalState      = newTraversalState(initial);
-        val predecessorByNodeId = new LinkedHashMap<String, String>();
+        val visited      = new LinkedHashSet<String>();
+        val queue        = new ArrayDeque<String>();
+        val predecessors = new LinkedHashMap<String, String>();
+        seedQueue(initial, visited, queue);
 
-        while (!traversalState.queue().isEmpty()) {
-            val currentNodeId = traversalState.queue().removeFirst();
-            forEachNeighbor(graph, currentNodeId, neighborId -> {
-                if (traversalState.visited().add(neighborId)) {
-                    predecessorByNodeId.put(neighborId, currentNodeId);
-                    traversalState.queue().addLast(neighborId);
+        while (!queue.isEmpty()) {
+            val current = queue.removeFirst();
+            forEachNeighbor(graph, current, null, neighbor -> {
+                if (visited.add(neighbor)) {
+                    predecessors.put(neighbor, current);
+                    queue.addLast(neighbor);
                 }
             });
         }
 
         val pathsBuilder = ArrayValue.builder();
-        for (val nodeId : traversalState.visited()) {
-            pathsBuilder.add(buildPath(nodeId, predecessorByNodeId));
+        for (val nodeId : visited) {
+            val steps = new ArrayList<String>();
+            for (var c = nodeId; c != null; c = predecessors.get(c)) {
+                steps.add(c);
+            }
+            val pathBuilder = ArrayValue.builder();
+            for (val step : steps.reversed()) {
+                pathBuilder.add(Value.of(step));
+            }
+            pathsBuilder.add(pathBuilder.build());
         }
         return pathsBuilder.build();
     }
 
-    private static TraversalState newTraversalState(Value initial) {
-        val visited = new LinkedHashSet<String>();
-        val queue   = new ArrayDeque<String>();
+    /**
+     * Tarjan's SCC (1972) + condensation to DAG + bottom-up memoized closure.
+     * O(V + E + S) where S = total output size.
+     */
+    private static Map<String, Set<String>> computeAllPairsClosure(ObjectValue graph, String edgeKey) {
+        val nodeIds    = new ArrayList<>(graph.keySet());
+        val adjacency  = buildAdjacency(graph, edgeKey, nodeIds);
+        val tarjan     = new TarjanState();
+        val sccs       = tarjan.findSccs(nodeIds, adjacency);
+        val nodeToScc  = mapNodesToScc(sccs);
+        val dagAdj     = buildDagAdjacency(sccs, adjacency, nodeToScc);
+        val dagClosure = memoizedDagClosure(sccs, dagAdj);
 
+        val result = new HashMap<String, Set<String>>();
+        for (var i = 0; i < sccs.size(); i++) {
+            val reachable = dagClosure.get(i);
+            for (val nodeId : sccs.get(i)) {
+                result.put(nodeId, reachable);
+            }
+        }
+        return result;
+    }
+
+    private static Map<String, Set<String>> buildAdjacency(ObjectValue graph, String edgeKey, List<String> nodeIds) {
+        val adjacency = new HashMap<String, Set<String>>();
+        for (val nodeId : nodeIds) {
+            val neighbors = new HashSet<String>();
+            forEachNeighbor(graph, nodeId, edgeKey, neighbors::add);
+            adjacency.put(nodeId, neighbors);
+        }
+        return adjacency;
+    }
+
+    /**
+     * Tarjan's SCC algorithm state. Encapsulates index, lowlink, stack, and
+     * counter to avoid passing 8 parameters through recursive DFS.
+     */
+    private static class TarjanState {
+        private final Map<String, Integer> index       = new HashMap<>();
+        private final Map<String, Integer> lowlink     = new HashMap<>();
+        private final Set<String>          activeInDfs = new HashSet<>();
+        private final ArrayDeque<String>   stack       = new ArrayDeque<>();
+        private final List<Set<String>>    sccs        = new ArrayList<>();
+        private int                        counter     = 0;
+
+        /**
+         * Finds all SCCs via Tarjan's algorithm (1972). O(V + E). Returns SCCs
+         * in reverse topological order.
+         */
+        List<Set<String>> findSccs(List<String> nodeIds, Map<String, Set<String>> adjacency) {
+            for (val nodeId : nodeIds) {
+                if (!index.containsKey(nodeId)) {
+                    dfs(nodeId, adjacency);
+                }
+            }
+            for (val neighbors : adjacency.values()) {
+                for (val neighbor : neighbors) {
+                    if (!index.containsKey(neighbor)) {
+                        dfs(neighbor, adjacency);
+                    }
+                }
+            }
+            return sccs;
+        }
+
+        private void dfs(String node, Map<String, Set<String>> adjacency) {
+            val idx = counter++;
+            index.put(node, idx);
+            lowlink.put(node, idx);
+            stack.push(node);
+            activeInDfs.add(node);
+
+            for (val neighbor : adjacency.getOrDefault(node, Set.of())) {
+                if (!index.containsKey(neighbor)) {
+                    dfs(neighbor, adjacency);
+                    lowlink.put(node, Math.min(lowlink.get(node), lowlink.get(neighbor)));
+                } else if (activeInDfs.contains(neighbor)) {
+                    lowlink.put(node, Math.min(lowlink.get(node), index.get(neighbor)));
+                }
+            }
+
+            if (lowlink.get(node).equals(index.get(node))) {
+                val    scc = new HashSet<String>();
+                String w;
+                do {
+                    w = stack.pop();
+                    activeInDfs.remove(w);
+                    scc.add(w);
+                } while (!w.equals(node));
+                sccs.add(scc);
+            }
+        }
+    }
+
+    private static Map<String, Integer> mapNodesToScc(List<Set<String>> sccs) {
+        val nodeToScc = new HashMap<String, Integer>();
+        for (var i = 0; i < sccs.size(); i++) {
+            for (val nodeId : sccs.get(i)) {
+                nodeToScc.put(nodeId, i);
+            }
+        }
+        return nodeToScc;
+    }
+
+    private static Map<Integer, Set<Integer>> buildDagAdjacency(List<Set<String>> sccs,
+            Map<String, Set<String>> adjacency, Map<String, Integer> nodeToScc) {
+        val dagAdj = new HashMap<Integer, Set<Integer>>();
+        for (var i = 0; i < sccs.size(); i++) {
+            val dagNeighbors = new HashSet<Integer>();
+            for (val nodeId : sccs.get(i)) {
+                for (val neighbor : adjacency.getOrDefault(nodeId, Set.of())) {
+                    val neighborScc = nodeToScc.get(neighbor);
+                    if (neighborScc != null && neighborScc != i) {
+                        dagNeighbors.add(neighborScc);
+                    }
+                }
+            }
+            dagAdj.put(i, dagNeighbors);
+        }
+        return dagAdj;
+    }
+
+    /**
+     * Bottom-up memoized closure on the condensed DAG. Tarjan returns SCCs in
+     * reverse topological order, so forward iteration visits children before
+     * parents. O(S) where S = total output size.
+     */
+    private static List<Set<String>> memoizedDagClosure(List<Set<String>> sccs, Map<Integer, Set<Integer>> dagAdj) {
+        val closures = new ArrayList<Set<String>>(sccs.size());
+        for (var i = 0; i < sccs.size(); i++) {
+            val reachable = new HashSet<>(sccs.get(i));
+            for (val childScc : dagAdj.getOrDefault(i, Set.of())) {
+                reachable.addAll(closures.get(childScc));
+            }
+            closures.add(reachable);
+        }
+        return closures;
+    }
+
+    private static Set<String> bfs(ObjectValue graph, Value initial, String edgeKey, boolean ordered) {
+        Set<String> visited = ordered ? new LinkedHashSet<>() : new HashSet<>();
+        val         queue   = new ArrayDeque<String>();
+        seedQueue(initial, visited, queue);
+        while (!queue.isEmpty()) {
+            val current = queue.removeFirst();
+            forEachNeighbor(graph, current, edgeKey, neighbor -> {
+                if (visited.add(neighbor)) {
+                    queue.addLast(neighbor);
+                }
+            });
+        }
+        return visited;
+    }
+
+    private static void forEachNeighbor(ObjectValue graph, String nodeId, String edgeKey,
+            java.util.function.Consumer<String> consumer) {
+        val nodeValue = graph.get(nodeId);
+        if (nodeValue == null) {
+            return;
+        }
+        Value edgesValue;
+        if (edgeKey == null) {
+            edgesValue = nodeValue;
+        } else if (nodeValue instanceof ObjectValue obj) {
+            edgesValue = obj.get(edgeKey);
+        } else {
+            edgesValue = null;
+        }
+        if (edgesValue instanceof ArrayValue edgesArray) {
+            for (val neighbor : edgesArray) {
+                consumer.accept(nodeIdOf(neighbor));
+            }
+        }
+    }
+
+    private static Value buildClosureArray(ObjectValue graph, String edgeKey) {
+        val closure = computeAllPairsClosure(graph, edgeKey);
+        val result  = ObjectValue.builder();
+        for (val entry : graph.entrySet()) {
+            result.put(entry.getKey(), toArrayValue(closure.getOrDefault(entry.getKey(), Set.of())));
+        }
+        return result.build();
+    }
+
+    private static Value buildClosureSet(ObjectValue graph, String edgeKey) {
+        val closure = computeAllPairsClosure(graph, edgeKey);
+        val result  = ObjectValue.builder();
+        for (val entry : graph.entrySet()) {
+            val setBuilder = ObjectValue.builder();
+            for (val nodeId : closure.getOrDefault(entry.getKey(), Set.of())) {
+                setBuilder.put(nodeId, Value.TRUE);
+            }
+            result.put(entry.getKey(), setBuilder.build());
+        }
+        return result.build();
+    }
+
+    private static Value collectAttribute(ObjectValue graph, Set<String> reachableIds, String attrKey) {
+        val collected = new ArrayList<Value>();
+        for (val nodeId : reachableIds) {
+            val attrValue = resolveAttribute(graph, nodeId, attrKey);
+            if (attrValue instanceof ArrayValue arrayAttr) {
+                for (val element : arrayAttr) {
+                    collected.add(element);
+                }
+            } else if (attrValue != null) {
+                collected.add(attrValue);
+            }
+        }
+        return Value.ofArray(collected.toArray(Value[]::new));
+    }
+
+    private static Value resolveAttribute(ObjectValue graph, String nodeId, String attrKey) {
+        val nodeValue = graph.get(nodeId);
+        if (!(nodeValue instanceof ObjectValue nodeObj)) {
+            return null;
+        }
+        val attrs = nodeObj.get("attributes");
+        if (!(attrs instanceof ObjectValue attrsObj)) {
+            return null;
+        }
+        return attrsObj.get(attrKey);
+    }
+
+    private static ArrayValue toArrayValue(Set<String> nodeIds) {
+        val builder = ArrayValue.builder();
+        for (val nodeId : nodeIds) {
+            builder.add(Value.of(nodeId));
+        }
+        return builder.build();
+    }
+
+    private static void seedQueue(Value initial, Set<String> visited, ArrayDeque<String> queue) {
         if (initial instanceof ArrayValue arrayValue) {
             for (val element : arrayValue) {
                 val rootId = nodeIdOf(element);
@@ -262,25 +483,11 @@ public class GraphFunctionLibrary {
                     queue.addLast(rootId);
                 }
             }
-            return new TraversalState(queue, visited);
-        }
-
-        if (initial instanceof TextValue textValue) {
+        } else if (initial instanceof TextValue textValue) {
             val rootId = textValue.value();
             if (visited.add(rootId)) {
                 queue.addLast(rootId);
             }
-        }
-        return new TraversalState(queue, visited);
-    }
-
-    private static void forEachNeighbor(ObjectValue graph, String nodeId, Consumer<String> neighborConsumer) {
-        val neighborsValue = graph.get(nodeId);
-        if (!(neighborsValue instanceof ArrayValue neighborsArray)) {
-            return;
-        }
-        for (val neighbor : neighborsArray) {
-            neighborConsumer.accept(nodeIdOf(neighbor));
         }
     }
 
@@ -288,29 +495,7 @@ public class GraphFunctionLibrary {
         if (value == null || value == Value.UNDEFINED || value == Value.NULL) {
             return NODE_ID_NULL;
         }
-        if (value instanceof TextValue textValue) {
-            return textValue.value();
-        }
-        return value.toString();
+        return value instanceof TextValue textValue ? textValue.value() : value.toString();
     }
 
-    private static ArrayValue buildPath(String targetNodeId, LinkedHashMap<String, String> predecessorByNodeId) {
-        val pathSteps = new ArrayList<String>();
-        var current   = targetNodeId;
-        while (current != null) {
-            pathSteps.add(current);
-            current = predecessorByNodeId.get(current);
-        }
-
-        val pathBuilder = ArrayValue.builder();
-        for (val step : pathSteps.reversed()) {
-            pathBuilder.add(Value.of(step));
-        }
-        return pathBuilder.build();
-    }
-
-    /**
-     * Maintains BFS traversal state with discovery queue and visited tracking.
-     */
-    private record TraversalState(ArrayDeque<String> queue, LinkedHashSet<String> visited) {}
 }

@@ -27,6 +27,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;
@@ -101,18 +102,19 @@ public class BinaryOperationCompiler {
         if (right instanceof ErrorValue) {
             return right;
         }
-        var loc = binaryOperation.location();
+        var loc    = binaryOperation.location();
+        val opType = binaryOperation.op();
         return switch (left) {
         case Value lv          -> switch (right) {
                            case Value rv              -> op.apply(lv, rv, loc);
                            case PureOperator rp       ->
-                               new BinaryValuePure(op, lv, rp, loc, rp.isDependingOnSubscription());
+                               new BinaryValuePure(opType, op, lv, rp, loc, rp.isDependingOnSubscription());
                            case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, loc);
                            };
         case PureOperator lp   -> switch (right) {
                            case Value rv              ->
-                               new BinaryPureValue(op, lp, rv, loc, lp.isDependingOnSubscription());
-                           case PureOperator rp       -> new BinaryPurePure(op, lp, rp, loc,
+                               new BinaryPureValue(opType, op, lp, rv, loc, lp.isDependingOnSubscription());
+                           case PureOperator rp       -> new BinaryPurePure(opType, op, lp, rp, loc,
                                    lp.isDependingOnSubscription() || rp.isDependingOnSubscription());
                            case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, loc);
                            };
@@ -125,6 +127,7 @@ public class BinaryOperationCompiler {
     }
 
     public record BinaryPurePure(
+            BinaryOperatorType opType,
             BinaryOperation op,
             PureOperator lp,
             PureOperator rp,
@@ -142,9 +145,15 @@ public class BinaryOperationCompiler {
             }
             return op.apply(lv, rv, location);
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.binaryOp(opType, lp.semanticHash(), rp.semanticHash());
+        }
     }
 
     public record BinaryValuePure(
+            BinaryOperatorType opType,
             BinaryOperation op,
             Value lv,
             PureOperator rp,
@@ -158,9 +167,15 @@ public class BinaryOperationCompiler {
             }
             return op.apply(lv, rv, location);
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.binaryOp(opType, lv.hashCode(), rp.semanticHash());
+        }
     }
 
     public record BinaryPureValue(
+            BinaryOperatorType opType,
             BinaryOperation op,
             PureOperator lp,
             Value rv,
@@ -173,6 +188,11 @@ public class BinaryOperationCompiler {
                 return lv;
             }
             return op.apply(lv, rv, location);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.binaryOp(opType, lp.semanticHash(), rv.hashCode());
         }
     }
 

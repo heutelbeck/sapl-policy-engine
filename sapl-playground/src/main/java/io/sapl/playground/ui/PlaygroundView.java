@@ -48,7 +48,6 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.IconFactory;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
-import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -76,6 +75,7 @@ import io.sapl.compiler.document.Document;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.Vote;
+import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
@@ -152,9 +152,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final String EDITOR_CONFIGURATION_ID = "playground";
 
-    private static final String COLOR_GREEN  = "green";
-    private static final String COLOR_ORANGE = "orange";
-    private static final String COLOR_RED    = "red";
+    private static final String COLOR_GREEN  = "var(--aura-green)";
+    private static final String COLOR_ORANGE = "var(--aura-orange)";
+    private static final String COLOR_RED    = "var(--aura-red)";
 
     private static final String CSS_BACKGROUND_COLOR = "background-color";
     private static final String CSS_BORDER_BOTTOM    = "border-bottom";
@@ -182,8 +182,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_ABSOLUTE            = "absolute";
     private static final String CSS_VALUE_AUTO                = "auto";
     private static final String CSS_VALUE_BREAK_WORD          = "break-word";
-    private static final String CSS_VALUE_CONTRAST_5PCT       = "rgba(255, 255, 255, 0.05)";
-    private static final String CSS_VALUE_CONTRAST_10PCT_LINE = "1px solid rgba(255, 255, 255, 0.10)";
+    private static final String CSS_VALUE_CONTRAST_5PCT       = "var(--sapl-contrast-5pct)";
+    private static final String CSS_VALUE_CONTRAST_10PCT_LINE = "1px solid var(--sapl-contrast-10pct)";
     private static final String CSS_VALUE_ERROR_BG            = "#282a36";
     private static final String CSS_VALUE_ERROR_FG            = "#f8f8f2";
     private static final String CSS_VALUE_MONOSPACE           = "monospace";
@@ -283,6 +283,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String TARGET_BLANK = "_blank";
 
     private static final String TOOLTIP_COPY_TO_CLIPBOARD      = "Copy to clipboard.";
+    private static final String TOOLTIP_DECISIONS_INFO         = "PDP internal decisions. A client will only see distinct decisions. Here you can see also decisions based on new attributes or configurations for more detailed auditing.";
     private static final String TOOLTIP_CREATE_SHAREABLE_LINK  = "Create shareable link";
     private static final String TOOLTIP_FOLLOW_LATEST_ACTIVE   = "Follow Latest active. New decisions are automatically selected and displayed.";
     private static final String TOOLTIP_FOLLOW_LATEST_INACTIVE = "Follow Latest inactive. Selection remains on manually selected decision.";
@@ -317,6 +318,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private JsonEditor              subscriptionEditor;
     private ValidationStatusDisplay subscriptionValidationDisplay;
+    private ValidationStatusDisplay pdpStatusDisplay;
 
     private Button                            playStopButton;
     private Button                            scrollLockButton;
@@ -527,15 +529,28 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * the subscription section.
      */
     private Component buildRightPanel() {
+        pdpStatusDisplay = new ValidationStatusDisplay();
+        pdpStatusDisplay.setWidthFull();
+        updatePdpStatusDisplay();
+
         val subscriptionSection = buildSubscriptionSection();
         val decisionsSection    = buildDecisionsSection();
+
+        val rightPanel = new VerticalLayout();
+        rightPanel.setSizeFull();
+        rightPanel.setPadding(false);
+        rightPanel.setSpacing(false);
 
         val rightSplitLayout = new SplitLayout(subscriptionSection, decisionsSection);
         rightSplitLayout.setSizeFull();
         rightSplitLayout.setOrientation(Orientation.VERTICAL);
         rightSplitLayout.setSplitterPosition(SUBSCRIPTION_SECTION_HEIGHT);
 
-        return rightSplitLayout;
+        rightPanel.add(pdpStatusDisplay, rightSplitLayout);
+        rightPanel.setFlexGrow(0, pdpStatusDisplay);
+        rightPanel.setFlexGrow(1, rightSplitLayout);
+
+        return rightPanel;
     }
 
     /*
@@ -604,7 +619,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val header = new H5(LABEL_DECISIONS);
         header.getStyle().set(CSS_MARGIN, CSS_VALUE_ZERO);
 
-        headerLayout.add(header);
+        val infoIcon = VaadinIcon.INFO_CIRCLE.create();
+        infoIcon.setSize(CSS_VALUE_SIZE_15PX);
+        infoIcon.setColor("var(--vaadin-text-color-secondary)");
+        infoIcon.setTooltipText(TOOLTIP_DECISIONS_INFO);
+
+        headerLayout.add(header, infoIcon);
 
         decisionsGrid     = new DecisionsGrid();
         decisionsGridView = decisionsGrid.setItems(decisionBuffer);
@@ -1370,6 +1390,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         if (validationResult.isValid()) {
             this.policyDecisionPoint.setVariables(parseVariablesFromJson(event.getNewValue()));
+            updatePdpStatusDisplay();
         }
     }
 
@@ -1591,6 +1612,24 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void updatePolicyRetrievalPoint() {
         val documents = collectAllPolicyDocuments();
         this.policyDecisionPoint.updatePolicyRetrievalPoint(documents);
+        updatePdpStatusDisplay();
+    }
+
+    /*
+     * Updates the PDP status display based on the current PDP state from the
+     * voter source. Shows state and error message when the configuration is
+     * rejected.
+     */
+    private void updatePdpStatusDisplay() {
+        val status = policyDecisionPoint.getPdpStatus();
+        switch (status.state()) {
+        case LOADED -> pdpStatusDisplay.setIssues(List.of());
+        case STALE  -> pdpStatusDisplay
+                .setIssues(List.of(new Issue("PDP STALE - Using last valid configuration. " + status.lastError(),
+                        IssueSeverity.WARNING, null, null, null, null)));
+        case ERROR  -> pdpStatusDisplay.setIssues(
+                List.of(new Issue("PDP ERROR - " + status.lastError(), IssueSeverity.ERROR, null, null, null, null)));
+        }
     }
 
     /*
@@ -1736,7 +1775,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         val logoSubtitle = new Span("Playground");
         logoSubtitle.getStyle().set(CSS_FONT_SIZE, "0.55rem").set(CSS_FONT_WEIGHT, "500")
-                .set(CSS_COLOR, "var(--lumo-secondary-text-color)").set("letter-spacing", "0.04em")
+                .set(CSS_COLOR, "var(--vaadin-text-color-secondary)").set("letter-spacing", "0.04em")
                 .set(CSS_MARGIN_TOP, "-2px");
 
         val logoText = new Div(logoTitle, logoSubtitle);
@@ -2193,6 +2232,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             defaultDecisionComboBox.setValue(algorithm.defaultDecision());
             errorHandlingComboBox.setValue(algorithm.errorHandling());
             policyDecisionPoint.setCombiningAlgorithm(algorithm);
+            updatePdpStatusDisplay();
         }
     }
 
@@ -2216,6 +2256,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void handleAlgorithmComponentChange() {
         this.policyDecisionPoint.setCombiningAlgorithm(getCurrentCombiningAlgorithm());
+        updatePdpStatusDisplay();
     }
 
     /*

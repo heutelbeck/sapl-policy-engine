@@ -40,9 +40,9 @@ public class ValidationStatusDisplay extends VerticalLayout {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    private static final String COLOR_GREEN  = "var(--lumo-success-color, green)";
-    private static final String COLOR_RED    = "var(--lumo-error-color, red)";
-    private static final String COLOR_ORANGE = "var(--lumo-warning-color, orange)";
+    private static final String COLOR_GREEN  = "var(--aura-green)";
+    private static final String COLOR_RED    = "var(--aura-red)";
+    private static final String COLOR_ORANGE = "var(--aura-orange)";
     public static final String  PADDING      = "padding";
 
     private final Icon statusIcon;
@@ -59,8 +59,8 @@ public class ValidationStatusDisplay extends VerticalLayout {
         setPadding(false);
         setSpacing(false);
         setWidthFull();
-        getStyle().set("background", "var(--lumo-contrast-5pct)").set("border-radius", "var(--lumo-border-radius-s)")
-                .set("font-family", "var(--lumo-font-family)").set("font-size", "var(--lumo-font-size-s)");
+        getStyle().set("background", "var(--sapl-contrast-5pct)").set("border-radius", "var(--vaadin-radius-s)")
+                .set("font-family", "var(--aura-font-family)").set("font-size", "var(--aura-font-size-s)");
 
         // Summary row
         var summaryRow = new HorizontalLayout();
@@ -68,7 +68,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
         summaryRow.setPadding(false);
         summaryRow.setSpacing(true);
         summaryRow.setAlignItems(Alignment.CENTER);
-        summaryRow.getStyle().set(PADDING, "var(--lumo-space-xs) var(--lumo-space-s)").set("cursor", "pointer");
+        summaryRow.getStyle().set(PADDING, "var(--vaadin-gap-xs) var(--vaadin-gap-s)").set("cursor", "pointer");
 
         statusIcon = VaadinIcon.CHECK.create();
         statusIcon.setSize("16px");
@@ -78,7 +78,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
         summaryText.getStyle().set("flex-grow", "1");
 
         expandIndicator = new Span("");
-        expandIndicator.getStyle().set("color", "var(--lumo-tertiary-text-color)");
+        expandIndicator.getStyle().set("color", "var(--vaadin-text-color-secondary)");
 
         summaryRow.add(statusIcon, summaryText, expandIndicator);
         summaryRow.addClickListener(event -> toggleExpanded());
@@ -86,8 +86,8 @@ public class ValidationStatusDisplay extends VerticalLayout {
         // Details panel (hidden by default)
         detailsPanel = new Div();
         detailsPanel.setWidthFull();
-        detailsPanel.getStyle().set(PADDING, "0 var(--lumo-space-s) var(--lumo-space-xs)")
-                .set("border-top", "1px solid var(--lumo-contrast-10pct)").set("max-height", "150px")
+        detailsPanel.getStyle().set(PADDING, "0 var(--vaadin-gap-s) var(--vaadin-gap-xs)")
+                .set("border-top", "1px solid var(--sapl-contrast-10pct)").set("max-height", "150px")
                 .set("overflow-y", "auto");
         detailsPanel.setVisible(false);
 
@@ -197,12 +197,12 @@ public class ValidationStatusDisplay extends VerticalLayout {
 
         for (var issue : currentIssues) {
             var issueDiv = new Div();
-            issueDiv.getStyle().set(PADDING, "var(--lumo-space-xs) 0").set("border-bottom",
-                    "1px solid var(--lumo-contrast-5pct)");
+            issueDiv.getStyle().set(PADDING, "var(--vaadin-gap-xs) 0").set("border-bottom",
+                    "1px solid var(--sapl-contrast-5pct)");
 
             var icon = createIssueIcon(issue.getSeverity());
             icon.setSize("14px");
-            icon.getStyle().set("margin-right", "var(--lumo-space-xs)");
+            icon.getStyle().set("margin-right", "var(--vaadin-gap-xs)");
 
             var locationText = formatLocation(issue);
             var descText     = issue.getDescription() != null ? issue.getDescription() : "Unknown issue";
@@ -215,8 +215,8 @@ public class ValidationStatusDisplay extends VerticalLayout {
             var textSpan = new Span();
             if (!locationText.isEmpty()) {
                 var locationSpan = new Span(locationText);
-                locationSpan.getStyle().set("color", "var(--lumo-tertiary-text-color)").set("margin-right",
-                        "var(--lumo-space-xs)");
+                locationSpan.getStyle().set("color", "var(--vaadin-text-color-secondary)").set("margin-right",
+                        "var(--vaadin-gap-xs)");
                 textSpan.add(locationSpan);
             }
             textSpan.add(new Span(descText));
@@ -257,7 +257,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
     private Icon createIssueIcon(IssueSeverity severity) {
         if (severity == null) {
             var icon = VaadinIcon.INFO_CIRCLE.create();
-            icon.setColor("var(--lumo-primary-color)");
+            icon.setColor("var(--aura-accent-color)");
             return icon;
         }
         return switch (severity) {
@@ -273,7 +273,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
         }
         default      -> {
             var icon = VaadinIcon.INFO_CIRCLE.create();
-            icon.setColor("var(--lumo-primary-color)");
+            icon.setColor("var(--aura-accent-color)");
             yield icon;
         }
         };

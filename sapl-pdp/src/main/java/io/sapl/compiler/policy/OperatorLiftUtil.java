@@ -25,6 +25,7 @@ import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -77,6 +78,8 @@ public class OperatorLiftUtil {
      * Wraps a constant value as a pure operator.
      */
     record ConstantPure(Value value, SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(ConstantPure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return value;
@@ -85,6 +88,11 @@ public class OperatorLiftUtil {
         @Override
         public boolean isDependingOnSubscription() {
             return false;
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, value.hashCode());
         }
     }
 

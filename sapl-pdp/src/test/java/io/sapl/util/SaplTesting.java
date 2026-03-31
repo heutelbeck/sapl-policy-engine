@@ -51,6 +51,7 @@ import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
+import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.policy.CompiledPolicy;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policyset.CompiledPolicySet;
@@ -998,6 +999,7 @@ public class SaplTesting {
 
     public record TestPureOperator(Function<EvaluationContext, Value> evaluator, boolean isDependingOnSubscription)
             implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(TestPureOperator.class);
 
         public TestPureOperator(Function<EvaluationContext, Value> evaluator) {
             this(evaluator, false);
@@ -1011,6 +1013,11 @@ public class SaplTesting {
         @Override
         public SourceLocation location() {
             return TEST_LOCATION;
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, System.identityHashCode(evaluator));
         }
     }
 

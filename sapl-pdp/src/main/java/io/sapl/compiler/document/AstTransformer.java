@@ -56,7 +56,7 @@ import io.sapl.ast.Literal;
 import io.sapl.ast.ObjectEntry;
 import io.sapl.ast.ObjectExpression;
 import io.sapl.ast.Outcome;
-import io.sapl.ast.Parenthesized;
+
 import io.sapl.ast.PathElement;
 import io.sapl.ast.Policy;
 import io.sapl.ast.PolicyBody;
@@ -236,6 +236,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private static final String DEFAULT_PDP_ID           = "defaultPdpId";
     private static final String DEFAULT_CONFIGURATION_ID = "defaultConfigurationId";
+
+    private static final Map<BinaryOperatorType, BinaryOperatorType> NEGATION_MAP = Map.of(BinaryOperatorType.EQ,
+            BinaryOperatorType.NE, BinaryOperatorType.NE, BinaryOperatorType.EQ, BinaryOperatorType.LT,
+            BinaryOperatorType.GE, BinaryOperatorType.GE, BinaryOperatorType.LT, BinaryOperatorType.GT,
+            BinaryOperatorType.LE, BinaryOperatorType.LE, BinaryOperatorType.GT);
 
     private Map<String, List<String>> importMap;
     private String                    pdpId           = DEFAULT_PDP_ID;
@@ -644,8 +649,15 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitNotExpression(NotExpressionContext ctx) {
-        val operand = expr(ctx.unaryExpression());
-        return new UnaryOperator(UnaryOperatorType.NOT, operand, fromContext(ctx));
+        val operand  = expr(ctx.unaryExpression());
+        val location = fromContext(ctx);
+        return switch (operand) {
+        case BinaryOperator(var op, var l, var r, var ignored) when NEGATION_MAP.containsKey(op) ->
+            new BinaryOperator(NEGATION_MAP.get(op), l, r, location);
+        case UnaryOperator(var op, var inner, var ignored) when op == UnaryOperatorType.NOT      -> inner;
+        default                                                                                  ->
+            new UnaryOperator(UnaryOperatorType.NOT, operand, location);
+        };
     }
 
     @Override
@@ -719,8 +731,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public AstNode visitGroupBasic(GroupBasicContext ctx) {
         val group      = ctx.basicGroup();
         val expression = expr(group.expression());
-        val base       = new Parenthesized(expression, fromContext(ctx));
-        return wrapWithSteps(base, group.step());
+        return wrapWithSteps(expression, group.step());
     }
 
     @Override

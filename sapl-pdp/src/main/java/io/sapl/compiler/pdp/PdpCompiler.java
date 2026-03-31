@@ -100,15 +100,15 @@ public class PdpCompiler {
         case FIRST            ->
             throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
         case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.DENY,
-                defaultDecision, errorHandling);
+                defaultDecision, errorHandling, ctx);
         case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.PERMIT,
-                defaultDecision, errorHandling);
-        case UNANIMOUS        ->
-            UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling, false);
-        case UNANIMOUS_STRICT ->
-            UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling, true);
+                defaultDecision, errorHandling, ctx);
+        case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision,
+                errorHandling, false, ctx);
+        case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision,
+                errorHandling, true, ctx);
         case UNIQUE           ->
-            UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling);
+            UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling, ctx);
         };
 
         val coverageStream = switch (algorithm.votingMode()) {

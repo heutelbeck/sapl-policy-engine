@@ -27,6 +27,7 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import org.springframework.stereotype.Component;
@@ -121,6 +122,16 @@ public class PlaygroundPolicyDecisionPoint {
      */
     public void setCombiningAlgorithm(CombiningAlgorithm algorithm) {
         configurationSource.setCombiningAlgorithm(algorithm);
+    }
+
+    /**
+     * Returns the current PDP status, including state, error messages, and load
+     * timestamps.
+     *
+     * @return the current PDP status
+     */
+    public PdpStatus getPdpStatus() {
+        return configurationSource.getPdpStatus();
     }
 
     /**

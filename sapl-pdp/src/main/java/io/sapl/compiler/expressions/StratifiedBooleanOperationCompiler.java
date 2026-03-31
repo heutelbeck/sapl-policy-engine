@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -28,6 +29,7 @@ import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
+import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -186,9 +188,17 @@ public class StratifiedBooleanOperationCompiler {
 
     public record LazyValuePure(PureOperator p, SourceLocation location, boolean isDependingOnSubscription)
             implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(LazyValuePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return asBoolean(p.evaluate(ctx), location);
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.ordered(KIND, p.semanticHash());
         }
     }
 
@@ -197,6 +207,9 @@ public class StratifiedBooleanOperationCompiler {
             PureOperator p2,
             SourceLocation location,
             boolean isDependingOnSubscription) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(LazyAndPurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             if (p1.evaluate(ctx) instanceof BooleanValue(var b1)) {
@@ -207,6 +220,16 @@ public class StratifiedBooleanOperationCompiler {
             }
             return Value.errorAt(location, ERROR_TYPE_MISMATCH, p1.getClass().getSimpleName());
         }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.commutative(KIND, p1.semanticHash(), p2.semanticHash());
+        }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            return new BooleanExpression.And(p1.booleanExpression(), p2.booleanExpression());
+        }
     }
 
     public record LazyOrPurePure(
@@ -214,6 +237,9 @@ public class StratifiedBooleanOperationCompiler {
             PureOperator p2,
             SourceLocation location,
             boolean isDependingOnSubscription) implements PureOperator {
+
+        private static final long KIND = SemanticHashing.kindHash(LazyOrPurePure.class);
+
         @Override
         public Value evaluate(EvaluationContext ctx) {
             if (p1.evaluate(ctx) instanceof BooleanValue(var b1)) {
@@ -223,6 +249,16 @@ public class StratifiedBooleanOperationCompiler {
                 return asBoolean(p2.evaluate(ctx), location);
             }
             return Value.errorAt(location, ERROR_TYPE_MISMATCH, p1.getClass().getSimpleName());
+        }
+
+        @Override
+        public long semanticHash() {
+            return SemanticHashing.commutative(KIND, p1.semanticHash(), p2.semanticHash());
+        }
+
+        @Override
+        public BooleanExpression booleanExpression() {
+            return new BooleanExpression.Or(p1.booleanExpression(), p2.booleanExpression());
         }
     }
 
