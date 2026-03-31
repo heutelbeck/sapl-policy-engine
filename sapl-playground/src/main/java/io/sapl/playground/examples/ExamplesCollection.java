@@ -217,7 +217,7 @@ public class ExamplesCollection {
                     permit
                         // Policy is applicable for the 'access' action
                         action == "access";
-                        // Containment check: subject.location âˆˆ resource.perimeter
+                        // Containment check: subject.location in resource.perimeter
                         geo.within(subject.location, resource.perimeter);
                     """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
@@ -249,7 +249,7 @@ public class ExamplesCollection {
                                                       "coordinates": [13.4050, 52.5200] } },
                       "action"      : "access",
                       "resource"    : { "facility": { "location": { "type": "Point",
-                                            â‰¤                         "coordinates": [13.4065, 52.5210] } } }
+                                                                      "coordinates": [13.4065, 52.5210] } } }
                     }
                     """, DEFAULT_VARIABLES);
 
@@ -928,12 +928,17 @@ public class ExamplesCollection {
                       // At runtime, only a lookup and an 'in' check remain.
                       var closedPermissions = graph.transitiveClosureProjection(roleEntities, "children", "permissions");
 
-                      // Look up effective permissions for the subject's role.
-                      { "action" : action, "type" : resource.type } in closedPermissions[(subject.role)];
+                      // Collect effective permissions for all of the subject's roles.
+                      // The condition step selects entries whose key (#) is in the roles array,
+                      // then flatten merges the per-role permission arrays.
+                      var effectivePermissions = array.flatten(closedPermissions[?(# in subject.roles)]);
+
+                      // Check if the required permission is in the effective permissions.
+                      { "action" : action, "type" : resource.type } in effectivePermissions;
                     """),
             new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
-                       "subject"     : { "username": "alice", "role": "cso" },
+                       "subject"     : { "username": "alice", "roles": [ "cso", "market-analyst" ] },
                        "action"      : "read",
                        "resource"    : { "type" : "alerts"}
                     }
