@@ -59,25 +59,22 @@ class PredicateOrderStrategy {
      * @param falseForFalsePredicate per-predicate bitmask (Def 3.3)
      * @param conjunctionsWithPredicate per-predicate bitmask (Def 3.6)
      * @param relatedFormulas per-predicate formula sets (Def 3.7)
-     * @param numberOfConjunctions total conjunction count
      * @return predicates ordered by descending priority
      */
     static List<IndexPredicate> order(List<IndexPredicate> predicates, Map<IndexPredicate, Integer> predicateToIndex,
             Map<ConjunctiveClause, Integer> conjunctionToIndex, BitSet[] falseForTruePredicate,
-            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, List<Set<Integer>> relatedFormulas,
-            int numberOfConjunctions) {
+            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, List<Set<Integer>> relatedFormulas) {
         val ordered = new ArrayList<>(predicates);
-        ordered.sort(Comparator.comparingDouble(
-                (IndexPredicate p) -> priority(p, predicateToIndex, conjunctionToIndex, falseForTruePredicate,
-                        falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas, numberOfConjunctions))
+        ordered.sort(Comparator
+                .comparingDouble((IndexPredicate p) -> priority(p, predicateToIndex, conjunctionToIndex,
+                        falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas))
                 .reversed());
         return List.copyOf(ordered);
     }
 
     private static double priority(IndexPredicate predicate, Map<IndexPredicate, Integer> predicateToIndex,
             Map<ConjunctiveClause, Integer> conjunctionToIndex, BitSet[] falseForTruePredicate,
-            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, List<Set<Integer>> relatedFormulas,
-            int numberOfConjunctions) {
+            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, List<Set<Integer>> relatedFormulas) {
         val p = predicateToIndex.get(predicate);
 
         val funCount = relatedFormulas.get(p).size();
@@ -85,7 +82,7 @@ class PredicateOrderStrategy {
             return 0.0;
         }
 
-        val splitC  = splitC(p, falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate);
+        val splitC  = splitC(p, falseForTruePredicate, falseForFalsePredicate);
         val contrib = contrib(p, conjunctionsWithPredicate, conjunctionToIndex);
 
         val funCountSq  = (double) funCount * funCount;
@@ -95,8 +92,7 @@ class PredicateOrderStrategy {
         return funCountSq * splitPart * contribPart / DEFAULT_COST;
     }
 
-    private static double splitC(int p, BitSet[] falseForTruePredicate, BitSet[] falseForFalsePredicate,
-            BitSet[] conjunctionsWithPredicate) {
+    private static double splitC(int p, BitSet[] falseForTruePredicate, BitSet[] falseForFalsePredicate) {
         val positive = falseForFalsePredicate[p].cardinality();
         val negative = falseForTruePredicate[p].cardinality();
         val total    = positive + negative;

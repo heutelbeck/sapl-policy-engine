@@ -92,6 +92,7 @@ import java.util.stream.Stream;
 @UtilityClass
 public class PDPConfigurationLoader {
 
+    private static final String FIELD_INDEXING = "indexing";
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
 
@@ -323,15 +324,7 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            var indexing = IndexingStrategy.AUTO;
-            if (node.has("indexing")) {
-                try {
-                    indexing = IndexingStrategy.valueOf(node.get("indexing").asString().toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    throw new PDPConfigurationException(
-                            ERROR_INVALID_INDEXING_STRATEGY.formatted(node.get("indexing").asString()));
-                }
-            }
+            val indexing = parseIndexingStrategy(node);
 
             val variables = parseValueSection(node, "variables");
             val secrets   = parseValueSection(node, "secrets");
@@ -339,6 +332,18 @@ public class PDPConfigurationLoader {
             return new PdpJsonContent(algorithm, indexing, configurationId, variables, secrets);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
+        }
+    }
+
+    private static IndexingStrategy parseIndexingStrategy(JsonNode node) {
+        if (!node.has(FIELD_INDEXING)) {
+            return IndexingStrategy.AUTO;
+        }
+        val value = node.get(FIELD_INDEXING).asString();
+        try {
+            return IndexingStrategy.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new PDPConfigurationException(ERROR_INVALID_INDEXING_STRATEGY.formatted(value), e);
         }
     }
 

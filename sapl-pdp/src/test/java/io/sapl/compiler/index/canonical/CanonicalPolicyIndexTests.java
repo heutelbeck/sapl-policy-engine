@@ -410,7 +410,6 @@ class CanonicalPolicyIndexTests {
         @DisplayName("stops when consumer returns false")
         void whenConsumerStopsThenStops() {
             val p1    = configurablePredicate(1L);
-            val p2    = configurablePredicate(2L);
             val doc1  = stubDocument("always1");
             val doc2  = stubDocument("always2");
             val doc3  = IndexTestFixtures.stubDocumentWithApplicability("indexed", p1.operator());

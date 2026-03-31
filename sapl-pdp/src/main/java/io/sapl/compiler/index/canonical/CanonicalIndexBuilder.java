@@ -93,12 +93,11 @@ class CanonicalIndexBuilder {
             relatedFormulas.add(new HashSet<>());
         }
 
-        buildPredicateData(formulas, formulaConjunctionIndicesList, conjunctionToIndex, predicateToIndex,
-                falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas);
+        buildPredicateData(formulas, conjunctionToIndex, predicateToIndex, falseForTruePredicate,
+                falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas);
 
         val predicateOrder = PredicateOrderStrategy.order(predicates, predicateToIndex, conjunctionToIndex,
-                falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas,
-                numberOfConjunctions);
+                falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas);
 
         return new CanonicalIndexData(predicateOrder, Map.copyOf(predicateToIndex), numberOfConjunctions,
                 numberOfLiteralsInConjunction, numberOfFormulasWithConjunction, conjunctionToFormulaIndices,
@@ -143,7 +142,7 @@ class CanonicalIndexBuilder {
         return result;
     }
 
-    private static void buildPredicateData(List<DisjunctiveFormula> formulas, List<int[]> formulaConjunctionIndices,
+    private static void buildPredicateData(List<DisjunctiveFormula> formulas,
             Map<ConjunctiveClause, Integer> conjunctionToIndex, Map<IndexPredicate, Integer> predicateToIndex,
             BitSet[] falseForTruePredicate, BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate,
             List<Set<Integer>> relatedFormulas) {
