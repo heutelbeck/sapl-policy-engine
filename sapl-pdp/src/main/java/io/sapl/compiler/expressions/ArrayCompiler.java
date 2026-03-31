@@ -91,9 +91,12 @@ public class ArrayCompiler {
                 cat.streamIndices(), cat.streams(), cat.totalCount());
     }
 
-    private static ArrayValue buildArrayFromValues(List<Value> values) {
+    private static Value buildArrayFromValues(List<Value> values) {
         val builder = ArrayValue.builder();
         for (var v : values) {
+            if (v instanceof ErrorValue) {
+                return v;
+            }
             if (!(v instanceof UndefinedValue)) {
                 builder.add(v);
             }

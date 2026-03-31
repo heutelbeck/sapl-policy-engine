@@ -46,8 +46,12 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachableWhenMultipleRootsIncludingUnknownThenReturnsAllReachableNodes() {
-        val graph   = ObjectValue.builder().put("necronomicon", Value.ofArray(Value.of("pnakotic-manuscripts")))
-                .put("pnakotic-manuscripts", Value.ofArray(Value.of("rlyeh-text"))).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "necronomicon":          ["pnakotic-manuscripts"],
+                  "pnakotic-manuscripts":  ["rlyeh-text"]
+                }
+                """);
         val initial = Value.ofArray(Value.of("necronomicon"), Value.of("miskatonic-journal"));
 
         val result = GraphFunctionLibrary.reachable(graph, initial);
@@ -60,11 +64,14 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachablePathsWhenSingleRootThenBuildsShortestPaths() {
-        val graph   = ObjectValue.builder()
-                .put("azathoth", Value.ofArray(Value.of("nyarlathotep"), Value.of("shub-niggurath")))
-                .put("nyarlathotep", Value.ofArray(Value.of("haunter-of-the-dark")))
-                .put("haunter-of-the-dark", Value.EMPTY_ARRAY)
-                .put("shub-niggurath", Value.ofArray(Value.of("dark-young"))).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "azathoth":            ["nyarlathotep", "shub-niggurath"],
+                  "nyarlathotep":        ["haunter-of-the-dark"],
+                  "haunter-of-the-dark": [],
+                  "shub-niggurath":      ["dark-young"]
+                }
+                """);
         val initial = Value.of("azathoth");
 
         val result = GraphFunctionLibrary.reachablePaths(graph, initial);
@@ -78,9 +85,13 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachableWhenGraphHasCyclesThenHandlesWithoutInfiniteLoop() {
-        val graph   = ObjectValue.builder().put("necronomicon", Value.ofArray(Value.of("book-of-eibon")))
-                .put("book-of-eibon", Value.ofArray(Value.of("necronomicon"), Value.of("unaussprechlichen-kulten")))
-                .put("unaussprechlichen-kulten", Value.EMPTY_ARRAY).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "necronomicon":             ["book-of-eibon"],
+                  "book-of-eibon":            ["necronomicon", "unaussprechlichen-kulten"],
+                  "unaussprechlichen-kulten":  []
+                }
+                """);
         val initial = Value.of("necronomicon");
 
         val result = GraphFunctionLibrary.reachable(graph, initial);
@@ -102,20 +113,26 @@ class GraphFunctionLibraryTests {
     }
 
     private static Stream<Arguments> emptyInputCases() {
-        return Stream.of(arguments("empty graph with empty initial",
-                ObjectValue.builder().put("celaeno-fragments", Value.EMPTY_ARRAY).build(), Value.EMPTY_ARRAY, 0),
+        return Stream.of(arguments("empty graph with empty initial", Value.ofJson("""
+                { "celaeno-fragments": [] }
+                """), Value.EMPTY_ARRAY, 0),
                 arguments("empty graph with unknown root", Value.EMPTY_OBJECT,
                         Value.ofArray(Value.of("king-in-yellow")), 1),
-                arguments(
-                        "graph with nodes but empty initial", ObjectValue.builder()
-                                .put("pnakotic-manuscripts", Value.ofArray(Value.of("rlyeh-text"))).build(),
-                        Value.EMPTY_ARRAY, 0));
+                arguments("graph with nodes but empty initial", Value.ofJson("""
+                        { "pnakotic-manuscripts": ["rlyeh-text"] }
+                        """), Value.EMPTY_ARRAY, 0));
     }
 
     @Test
     void reachableWhenNumericNodeIdsThenHandlesCorrectly() {
-        val graph   = ObjectValue.builder().put("1", Value.ofArray(Value.of("2"), Value.of("3")))
-                .put("2", Value.ofArray(Value.of("4"))).put("3", Value.EMPTY_ARRAY).put("4", Value.EMPTY_ARRAY).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "1": ["2", "3"],
+                  "2": ["4"],
+                  "3": [],
+                  "4": []
+                }
+                """);
         val initial = Value.of("1");
 
         val result = GraphFunctionLibrary.reachable(graph, initial);
@@ -144,10 +161,14 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachableWhenDisconnectedComponentsThenOnlyReachesConnectedNodes() {
-        val graph   = ObjectValue.builder().put("innsmouth-cult-texts", Value.ofArray(Value.of("dagon-liturgy")))
-                .put("dagon-liturgy", Value.EMPTY_ARRAY)
-                .put("arkham-lodge-records", Value.ofArray(Value.of("yog-sothoth-rituals")))
-                .put("yog-sothoth-rituals", Value.EMPTY_ARRAY).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "innsmouth-cult-texts":  ["dagon-liturgy"],
+                  "dagon-liturgy":         [],
+                  "arkham-lodge-records":   ["yog-sothoth-rituals"],
+                  "yog-sothoth-rituals":   []
+                }
+                """);
         val initial = Value.of("innsmouth-cult-texts");
 
         val result = GraphFunctionLibrary.reachable(graph, initial);
@@ -160,10 +181,12 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachableWhenSelfLoopsThenHandlesCorrectly() {
-        val graph   = ObjectValue.builder()
-                .put("de-vermis-mysteriis",
-                        Value.ofArray(Value.of("de-vermis-mysteriis"), Value.of("cultes-des-goules")))
-                .put("cultes-des-goules", Value.EMPTY_ARRAY).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "de-vermis-mysteriis": ["de-vermis-mysteriis", "cultes-des-goules"],
+                  "cultes-des-goules":   []
+                }
+                """);
         val initial = Value.of("de-vermis-mysteriis");
 
         val result = GraphFunctionLibrary.reachable(graph, initial);
@@ -176,10 +199,14 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachablePathsWhenMultipleRootsThenBuildsPathsForAll() {
-        val graph   = ObjectValue.builder().put("pnakotic-manuscripts", Value.ofArray(Value.of("rlyeh-text")))
-                .put("rlyeh-text", Value.EMPTY_ARRAY)
-                .put("book-of-eibon", Value.ofArray(Value.of("testaments-of-carnamagos")))
-                .put("testaments-of-carnamagos", Value.EMPTY_ARRAY).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "pnakotic-manuscripts":      ["rlyeh-text"],
+                  "rlyeh-text":                [],
+                  "book-of-eibon":             ["testaments-of-carnamagos"],
+                  "testaments-of-carnamagos":  []
+                }
+                """);
         val initial = Value.ofArray(Value.of("pnakotic-manuscripts"), Value.of("book-of-eibon"));
 
         val result = GraphFunctionLibrary.reachablePaths(graph, initial);
@@ -194,11 +221,13 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachablePathsWhenCyclesThenReturnsShortestPath() {
-        val graph   = ObjectValue.builder()
-                .put("miskatonic-library-catalog", Value.ofArray(Value.of("restricted-section")))
-                .put("restricted-section",
-                        Value.ofArray(Value.of("miskatonic-library-catalog"), Value.of("necronomicon-translation")))
-                .put("necronomicon-translation", Value.EMPTY_ARRAY).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "miskatonic-library-catalog": ["restricted-section"],
+                  "restricted-section":         ["miskatonic-library-catalog", "necronomicon-translation"],
+                  "necronomicon-translation":   []
+                }
+                """);
         val initial = Value.of("miskatonic-library-catalog");
 
         val result = GraphFunctionLibrary.reachablePaths(graph, initial);
@@ -213,8 +242,12 @@ class GraphFunctionLibraryTests {
 
     @Test
     void reachablePathsWhenNonArrayAdjacenciesThenIgnoresThem() {
-        val graph   = ObjectValue.builder().put("r-lyeh-text", Value.ofArray(Value.of("sussex-manuscript")))
-                .put("sussex-manuscript", Value.of("damaged-catalog-entry")).build();
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "r-lyeh-text":       ["sussex-manuscript"],
+                  "sussex-manuscript": "damaged-catalog-entry"
+                }
+                """);
         val initial = Value.of("r-lyeh-text");
 
         val result = GraphFunctionLibrary.reachablePaths(graph, initial);
@@ -236,10 +269,205 @@ class GraphFunctionLibraryTests {
     }
 
     private static Stream<Arguments> emptyPathInputCases() {
-        return Stream.of(
-                arguments("empty initial array", ObjectValue.builder().put("sign-of-koth", Value.EMPTY_ARRAY).build(),
-                        Value.EMPTY_ARRAY, 0),
-                arguments("unknown root in empty graph", Value.EMPTY_OBJECT,
-                        Value.ofArray(Value.of("nyarlathotep-testament")), 1));
+        return Stream.of(arguments("empty initial array", Value.ofJson("""
+                { "sign-of-koth": [] }
+                """), Value.EMPTY_ARRAY, 0), arguments("unknown root in empty graph", Value.EMPTY_OBJECT,
+                Value.ofArray(Value.of("nyarlathotep-testament")), 1));
+    }
+
+    @Test
+    @DisplayName("transitiveClosure precomputes reachable sets for all nodes")
+    void transitiveClosureWhenLinearChainThenEachNodeMapsToAllDescendants() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {
+                  "elder-god":     ["great-old-one"],
+                  "great-old-one": ["outer-god"],
+                  "outer-god":     []
+                }
+                """);
+
+        val closure = (ObjectValue) GraphFunctionLibrary.transitiveClosure(graph);
+
+        assertThat((ArrayValue) closure.get("elder-god")).containsExactlyInAnyOrder(Value.of("elder-god"),
+                Value.of("great-old-one"), Value.of("outer-god"));
+        assertThat((ArrayValue) closure.get("great-old-one")).containsExactlyInAnyOrder(Value.of("great-old-one"),
+                Value.of("outer-god"));
+        assertThat((ArrayValue) closure.get("outer-god")).containsExactlyInAnyOrder(Value.of("outer-god"));
+    }
+
+    @Test
+    @DisplayName("transitiveClosure handles cycles without infinite loop")
+    void transitiveClosureWhenCycleThenAllNodesReachEachOther() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {
+                  "yog-sothoth": ["azathoth"],
+                  "azathoth":    ["yog-sothoth"]
+                }
+                """);
+
+        val closure = (ObjectValue) GraphFunctionLibrary.transitiveClosure(graph);
+
+        assertThat((ArrayValue) closure.get("yog-sothoth")).containsExactlyInAnyOrder(Value.of("yog-sothoth"),
+                Value.of("azathoth"));
+        assertThat((ArrayValue) closure.get("azathoth")).containsExactlyInAnyOrder(Value.of("azathoth"),
+                Value.of("yog-sothoth"));
+    }
+
+    @Test
+    @DisplayName("transitiveClosure on empty graph returns empty object")
+    void transitiveClosureWhenEmptyGraphThenEmptyResult() {
+        assertThat(GraphFunctionLibrary.transitiveClosure(Value.EMPTY_OBJECT)).isEqualTo(Value.EMPTY_OBJECT);
+    }
+
+    @Test
+    @DisplayName("transitiveClosure enables O(1) role hierarchy lookup")
+    void transitiveClosureWhenUsedForRoleLookupThenCorrect() {
+        val hierarchy = (ObjectValue) Value.ofJson("""
+                {
+                  "admin":   ["manager"],
+                  "manager": ["viewer"],
+                  "viewer":  []
+                }
+                """);
+
+        val closure    = (ObjectValue) GraphFunctionLibrary.transitiveClosure(hierarchy);
+        val adminRoles = (ArrayValue) closure.get("admin");
+
+        assertThat(adminRoles).contains(Value.of("admin"), Value.of("manager"), Value.of("viewer"));
+        assertThat(adminRoles.contains(Value.of("viewer"))).isTrue();
+    }
+
+    @Test
+    @DisplayName("transitiveClosureSet returns object-valued reachable sets for O(1) lookup")
+    void transitiveClosureSetWhenLinearChainThenKeysAreReachableNodes() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {
+                  "admin":   ["manager"],
+                  "manager": ["viewer"],
+                  "viewer":  []
+                }
+                """);
+
+        val closure  = (ObjectValue) GraphFunctionLibrary.transitiveClosureSet(graph);
+        val adminSet = (ObjectValue) closure.get("admin");
+
+        assertThat(adminSet.get("admin")).isEqualTo(Value.TRUE);
+        assertThat(adminSet.get("manager")).isEqualTo(Value.TRUE);
+        assertThat(adminSet.get("viewer")).isEqualTo(Value.TRUE);
+        assertThat(adminSet.get("nonexistent")).isNull();
+    }
+
+    @Test
+    @DisplayName("transitiveClosureSet on empty graph returns empty object")
+    void transitiveClosureSetWhenEmptyThenEmpty() {
+        assertThat(GraphFunctionLibrary.transitiveClosureSet(Value.EMPTY_OBJECT)).isEqualTo(Value.EMPTY_OBJECT);
+    }
+
+    private static ObjectValue entityGraph() {
+        return (ObjectValue) Value.ofJson("""
+                {
+                  "elder-thing": {
+                    "servants": ["shoggoth"],
+                    "attributes": { "type": "Ancient", "powers": ["telepathy", "architecture"] }
+                  },
+                  "shoggoth": {
+                    "servants": [],
+                    "attributes": { "type": "Servitor", "powers": ["shapeshifting"] }
+                  }
+                }
+                """);
+    }
+
+    @Test
+    @DisplayName("transitiveClosure with edge key follows named edge field")
+    void transitiveClosureWithEdgeKeyWhenEntityGraphThenFollowsNamedEdges() {
+        val closure = (ObjectValue) GraphFunctionLibrary.transitiveClosure(entityGraph(), Value.of("servants"));
+
+        assertThat((ArrayValue) closure.get("elder-thing")).containsExactlyInAnyOrder(Value.of("elder-thing"),
+                Value.of("shoggoth"));
+        assertThat((ArrayValue) closure.get("shoggoth")).containsExactlyInAnyOrder(Value.of("shoggoth"));
+    }
+
+    @Test
+    @DisplayName("transitiveClosureSet with edge key returns object-keyed sets")
+    void transitiveClosureSetWithEdgeKeyWhenEntityGraphThenObjectKeys() {
+        val closure  = (ObjectValue) GraphFunctionLibrary.transitiveClosureSet(entityGraph(), Value.of("servants"));
+        val elderSet = (ObjectValue) closure.get("elder-thing");
+
+        assertThat(elderSet.get("elder-thing")).isEqualTo(Value.TRUE);
+        assertThat(elderSet.get("shoggoth")).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    @DisplayName("transitiveClosureProjection collects attributes from reached nodes")
+    void transitiveClosureProjectionWhenEntityGraphThenCollectsAttributes() {
+        val projection = (ObjectValue) GraphFunctionLibrary.transitiveClosureProjection(entityGraph(),
+                Value.of("servants"), Value.of("powers"));
+
+        assertThat((ArrayValue) projection.get("elder-thing")).containsExactlyInAnyOrder(Value.of("telepathy"),
+                Value.of("architecture"), Value.of("shapeshifting"));
+        assertThat((ArrayValue) projection.get("shoggoth")).containsExactlyInAnyOrder(Value.of("shapeshifting"));
+    }
+
+    @Test
+    @DisplayName("transitiveClosureProjection with Cedar-style RBAC hierarchy")
+    void transitiveClosureProjectionWhenRbacHierarchyThenCollectsPermissions() {
+        val roles = (ObjectValue) Value.ofJson("""
+                {
+                  "admin":   { "children": ["manager"], "attributes": { "permissions": ["approve", "delete"] } },
+                  "manager": { "children": ["viewer"],  "attributes": { "permissions": ["write"] } },
+                  "viewer":  { "children": [],          "attributes": { "permissions": ["read"] } }
+                }
+                """);
+
+        val perms = (ObjectValue) GraphFunctionLibrary.transitiveClosureProjection(roles, Value.of("children"),
+                Value.of("permissions"));
+
+        assertThat((ArrayValue) perms.get("admin")).containsExactlyInAnyOrder(Value.of("approve"), Value.of("delete"),
+                Value.of("write"), Value.of("read"));
+        assertThat((ArrayValue) perms.get("manager")).containsExactlyInAnyOrder(Value.of("write"), Value.of("read"));
+        assertThat((ArrayValue) perms.get("viewer")).containsExactlyInAnyOrder(Value.of("read"));
+    }
+
+    @Test
+    @DisplayName("playground hierarchical RBAC example: closure + multi-root reachable")
+    void playgroundHierarchicalRbacExampleWithTransitiveClosure() {
+        val rolesHierarchy = (ObjectValue) Value.ofJson("""
+                {
+                  "cso":                       ["security-manager", "it-operations-manager", "compliance-manager"],
+                  "security-manager":          ["secops-analyst", "threat-hunter"],
+                  "it-operations-manager":     ["site-reliability-engineer", "platform-admin"],
+                  "compliance-manager":        ["internal-auditor", "risk-analyst"]
+                }
+                """);
+
+        val closure        = (ObjectValue) GraphFunctionLibrary.transitiveClosure(rolesHierarchy);
+        val subjectRoles   = Value.ofArray(Value.of("cso"), Value.of("market-analyst"));
+        val effectiveRoles = (ArrayValue) GraphFunctionLibrary.reachable(closure, subjectRoles);
+
+        assertThat(effectiveRoles).containsExactlyInAnyOrder(Value.of("cso"), Value.of("market-analyst"),
+                Value.of("security-manager"), Value.of("it-operations-manager"), Value.of("compliance-manager"),
+                Value.of("secops-analyst"), Value.of("threat-hunter"), Value.of("site-reliability-engineer"),
+                Value.of("platform-admin"), Value.of("internal-auditor"), Value.of("risk-analyst"));
+    }
+
+    @Test
+    @DisplayName("reachable on transitiveClosure with multiple roots returns union")
+    void reachableOnClosureWhenMultipleRootsThenUnion() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {
+                  "cso":              ["security-manager"],
+                  "security-manager": ["analyst"],
+                  "analyst":          [],
+                  "market-analyst":   []
+                }
+                """);
+
+        val closure = (ObjectValue) GraphFunctionLibrary.transitiveClosure(graph);
+        val roots   = Value.ofArray(Value.of("cso"), Value.of("market-analyst"));
+        val result  = (ArrayValue) GraphFunctionLibrary.reachable(closure, roots);
+
+        assertThat(result).containsExactlyInAnyOrder(Value.of("cso"), Value.of("security-manager"), Value.of("analyst"),
+                Value.of("market-analyst"));
     }
 }

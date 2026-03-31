@@ -19,7 +19,12 @@ package io.sapl.benchmark.sapl4;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.IndexingStrategy;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 
@@ -27,32 +32,56 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * A benchmark scenario: policies, variables, subscription, and expected
+ * A benchmark scenario: policies, variables, subscriptions, and expected
  * decision.
  *
  * @param name scenario name (e.g., "rbac", "simple-100")
  * @param policies SAPL policy document strings
  * @param variables PDP variables
  * @param algorithm combining algorithm
- * @param subscription the authorization subscription to evaluate
- * @param expectedDecision expected result for sanity checking
+ * @param subscriptions authorization subscriptions to cycle through during
+ * benchmarking; the first is used for sanity checking
+ * @param expectedDecision expected result of the first subscription for sanity
+ * checking
  */
 record Scenario(
         String name,
         Supplier<List<String>> policies,
         ObjectValue variables,
         CombiningAlgorithm algorithm,
-        AuthorizationSubscription subscription,
+        List<AuthorizationSubscription> subscriptions,
         AuthorizationDecision expectedDecision) {
+
+    /**
+     * Convenience constructor for scenarios with a single subscription.
+     */
+    Scenario(String name,
+            Supplier<List<String>> policies,
+            ObjectValue variables,
+            CombiningAlgorithm algorithm,
+            AuthorizationSubscription subscription,
+            AuthorizationDecision expectedDecision) {
+        this(name, policies, variables, algorithm, List.of(subscription), expectedDecision);
+    }
+
+    /**
+     * Returns the first subscription, used for sanity checking.
+     *
+     * @return the sanity check subscription
+     */
+    AuthorizationSubscription subscription() {
+        return subscriptions.getFirst();
+    }
 
     /**
      * Builds an embedded PDP configured for this scenario.
      *
+     * @param indexing the indexing strategy to use
      * @return the PDP components (caller must dispose)
      */
-    PDPComponents buildPdp() {
+    PDPComponents buildPdp(IndexingStrategy indexing) {
         var pdpData          = new PdpData(variables, Value.EMPTY_OBJECT);
-        var pdpConfiguration = new PDPConfiguration("default", name, algorithm, policies.get(), pdpData);
+        var pdpConfiguration = new PDPConfiguration("default", name, algorithm, indexing, policies.get(), pdpData);
         return PolicyDecisionPointBuilder.withDefaults().withConfiguration(pdpConfiguration).build();
     }
 

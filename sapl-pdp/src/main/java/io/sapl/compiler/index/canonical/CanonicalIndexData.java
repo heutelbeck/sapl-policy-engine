@@ -19,8 +19,6 @@ package io.sapl.compiler.index.canonical;
 
 import java.util.BitSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.index.DisjunctiveFormula;
@@ -37,8 +35,8 @@ import io.sapl.api.model.IndexPredicate;
  * evaluation order.
  *
  * @param predicateOrder ordered list of predicates by evaluation priority
- * @param predicateToIndex maps each predicate to its array index for bitmask
- * lookups
+ * @param predicateOriginalIndices maps priority position to original predicate
+ * index for bitmask array lookups
  * @param numberOfConjunctions total number of conjunctions across all formulas
  * @param numberOfLiteralsInConjunction literal count per conjunction (Def 3.2)
  * @param numberOfFormulasWithConjunction how many formulas contain each
@@ -59,11 +57,11 @@ import io.sapl.api.model.IndexPredicate;
  * @param relatedFormulas per-predicate: formula indices that reference this
  * predicate (Def 3.7)
  * @param formulas all indexed formulas in order
- * @param formulaToDocuments maps each formula to its compiled documents
+ * @param formulaDocuments documents per formula, indexed by formula index
  */
 record CanonicalIndexData(
         List<IndexPredicate> predicateOrder,
-        Map<IndexPredicate, Integer> predicateToIndex,
+        int[] predicateOriginalIndices,
         int numberOfConjunctions,
         int[] numberOfLiteralsInConjunction,
         int[] numberOfFormulasWithConjunction,
@@ -72,6 +70,25 @@ record CanonicalIndexData(
         BitSet[] falseForTruePredicate,
         BitSet[] falseForFalsePredicate,
         BitSet[] conjunctionsWithPredicate,
-        List<Set<Integer>> relatedFormulas,
+        int[][] relatedFormulas,
         List<DisjunctiveFormula> formulas,
-        Map<DisjunctiveFormula, List<CompiledDocument>> formulaToDocuments) {}
+        List<List<CompiledDocument>> formulaDocuments) {
+
+    /**
+     * Average number of formulas per predicate. Values close to 1.0 indicate
+     * no predicate sharing (each predicate is unique to one formula). Higher
+     * values indicate shared predicates where the canonical index benefits.
+     *
+     * @return average formulas per predicate
+     */
+    double averageFormulasPerPredicate() {
+        if (relatedFormulas.length == 0) {
+            return 0.0;
+        }
+        var total = 0;
+        for (var rf : relatedFormulas) {
+            total += rf.length;
+        }
+        return (double) total / relatedFormulas.length;
+    }
+}

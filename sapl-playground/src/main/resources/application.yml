@@ -24,6 +24,7 @@ logging:
     io.sapl.lsp.core.document.DocumentManager: warn
     io.sapl.lsp.server.SAPLLanguageServer: warn
     io.sapl.pdp.configuration.PdpVoterSource: error
+    org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer: error
     io.sapl.vaadin: info
     io.sapl.vaadin.lsp.LspWebSocketEndpoint: off
     io.sapl.playground.ui: info

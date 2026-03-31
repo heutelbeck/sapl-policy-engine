@@ -62,6 +62,7 @@ public class CompilationContext {
     final PdpData                           data;
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
+    private final Map<Value, Value>         valueDedup               = new HashMap<>();
     private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
     private IndexingStrategy                indexingStrategy         = IndexingStrategy.AUTO;
 
@@ -161,6 +162,23 @@ public class CompilationContext {
     }
 
     /**
+     * Deduplicates constant values across compiled expressions. If the
+     * expression is a {@link Value}, returns the canonical instance from the
+     * dedup set (inserting if absent). Non-value expressions pass through
+     * unchanged. Reduces memory and improves JIT identity-based fast paths.
+     *
+     * @param expression the compiled expression
+     * @return the deduplicated expression
+     */
+    public CompiledExpression dedupe(CompiledExpression expression) {
+        if (!(expression instanceof Value value)) {
+            return expression;
+        }
+        val existing = valueDedup.putIfAbsent(value, value);
+        return existing != null ? existing : value;
+    }
+
+    /**
      * Retrieves a variable by name from the current scope.
      *
      * @param variableName the variable name
@@ -175,7 +193,7 @@ public class CompilationContext {
         if (variable != null) {
             return variable;
         }
-        log.warn(
+        log.debug(
                 "While compiling, a policy was detected trying to access the undefined environment variable {} this will always evaluate to 'undefined'",
                 variableName);
         return Value.UNDEFINED;

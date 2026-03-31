@@ -274,6 +274,16 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
+     * Parses a JSON string into a Value. Returns an ErrorValue if parsing fails.
+     *
+     * @param json the JSON string
+     * @return the parsed Value
+     */
+    static Value ofJson(String json) {
+        return ValueJsonMarshaller.json(json);
+    }
+
+    /**
      * Creates an error value with a message.
      *
      * @param message

@@ -33,17 +33,4 @@ import io.sapl.compiler.document.Vote;
  * @param matchingDocuments documents whose applicability evaluated to true
  * @param errorVotes votes produced by predicate evaluation errors
  */
-public record PolicyIndexResult(List<CompiledDocument> matchingDocuments, List<Vote> errorVotes) {
-
-    /**
-     * Creates an index result with defensive copies.
-     *
-     * @param matchingDocuments documents whose applicability evaluated to true
-     * @param errorVotes votes produced by predicate evaluation errors
-     */
-    public PolicyIndexResult(List<CompiledDocument> matchingDocuments, List<Vote> errorVotes) {
-        this.matchingDocuments = List.copyOf(matchingDocuments);
-        this.errorVotes        = List.copyOf(errorVotes);
-    }
-
-}
+public record PolicyIndexResult(List<CompiledDocument> matchingDocuments, List<Vote> errorVotes) {}

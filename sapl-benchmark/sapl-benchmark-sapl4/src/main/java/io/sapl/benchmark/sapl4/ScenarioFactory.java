@@ -80,6 +80,30 @@ final class ScenarioFactory {
                 "role-%04d" in subject.roles;
             """;
 
+    private static final String MATCHING_SHARED = """
+            policy "matching-shared"
+            permit
+                action == "read";
+                resource.type == "document";
+            """;
+
+    private static final String FILLER_SHARED = """
+            policy "filler-shared-%04d"
+            permit
+                action == "%s";
+                resource.type == "type-%04d";
+            """;
+
+    private static final String[] SHARED_ACTIONS = { "read", "write", "delete", "update" };
+
+    private static final AuthorizationSubscription SHARED_SUB = MAPPER.readValue("""
+            {
+              "subject":  "alice",
+              "action":   "read",
+              "resource": {"type":"document"}
+            }
+            """, AuthorizationSubscription.class);
+
     private static final String[] DEPARTMENTS = { "engineering", "qa", "sales", "marketing", "finance", "hr", "ops",
             "legal", "security", "support" };
     private static final String[] LOCATIONS   = { "london", "berlin", "new-york", "singapore", "sydney" };
@@ -93,6 +117,7 @@ final class ScenarioFactory {
                 "defaultDecision": "DENY",
                 "errorHandling": "PROPAGATE"
               },
+              "indexing": "%s",
               "variables": %s
             }
             """;
@@ -156,9 +181,26 @@ final class ScenarioFactory {
     private static final Scenario COMPLEX_1    = complexScenario(1);
     private static final Scenario COMPLEX_100  = complexScenario(100);
     private static final Scenario COMPLEX_1000 = complexScenario(1000);
+    private static final Scenario SHARED_100   = sharedScenario(100);
+    private static final Scenario SHARED_500   = sharedScenario(500);
+    private static final Scenario SHARED_1000  = sharedScenario(1000);
+
+    private static final Scenario GDRIVE_5    = OopslaScenarioGenerator.gdrive(5);
+    private static final Scenario GDRIVE_10   = OopslaScenarioGenerator.gdrive(10);
+    private static final Scenario GDRIVE_25   = OopslaScenarioGenerator.gdrive(25);
+    private static final Scenario GDRIVE_50   = OopslaScenarioGenerator.gdrive(50);
+    private static final Scenario GITHUB_5    = OopslaScenarioGenerator.github(5);
+    private static final Scenario GITHUB_10   = OopslaScenarioGenerator.github(10);
+    private static final Scenario GITHUB_25   = OopslaScenarioGenerator.github(25);
+    private static final Scenario GITHUB_50   = OopslaScenarioGenerator.github(50);
+    private static final Scenario TINYTODO_5  = OopslaScenarioGenerator.tinytodo(5);
+    private static final Scenario TINYTODO_10 = OopslaScenarioGenerator.tinytodo(10);
+    private static final Scenario TINYTODO_25 = OopslaScenarioGenerator.tinytodo(25);
+    private static final Scenario TINYTODO_50 = OopslaScenarioGenerator.tinytodo(50);
 
     private static final Scenario[] ALL = { RBAC, RBAC_LARGE, SIMPLE_1, SIMPLE_100, SIMPLE_500, SIMPLE_1000, COMPLEX_1,
-            COMPLEX_100, COMPLEX_1000 };
+            COMPLEX_100, COMPLEX_1000, SHARED_100, SHARED_500, SHARED_1000, GDRIVE_5, GDRIVE_10, GDRIVE_25, GDRIVE_50,
+            GITHUB_5, GITHUB_10, GITHUB_25, GITHUB_50, TINYTODO_5, TINYTODO_10, TINYTODO_25, TINYTODO_50 };
 
     static final Map<String, Scenario> SCENARIOS = Arrays.stream(ALL)
             .collect(Collectors.toUnmodifiableMap(Scenario::name, Function.identity()));
@@ -187,14 +229,19 @@ final class ScenarioFactory {
      *
      * @param scenario the scenario to export
      * @param directory target directory (created if needed)
+     * @param indexingStrategy the indexing strategy to write into pdp.json
      * @throws IOException if writing fails
      */
-    static void exportScenario(Scenario scenario, Path directory) throws IOException {
+    static void exportScenario(Scenario scenario, Path directory, String indexingStrategy) throws IOException {
         Files.createDirectories(directory);
         var variablesJson = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(scenario.variables());
-        Files.writeString(directory.resolve("pdp.json"), PDP_JSON_TEMPLATE.formatted(variablesJson));
+        Files.writeString(directory.resolve("pdp.json"), PDP_JSON_TEMPLATE.formatted(indexingStrategy, variablesJson));
         Files.writeString(directory.resolve("subscription.json"),
                 MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(scenario.subscription()));
+        if (scenario.subscriptions().size() > 1) {
+            Files.writeString(directory.resolve("subscriptions.json"),
+                    MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(scenario.subscriptions()));
+        }
         var policies = scenario.policies().get();
         for (int i = 0; i < policies.size(); i++) {
             Files.writeString(directory.resolve("policy-%04d.sapl".formatted(i + 1)), policies.get(i));
@@ -221,6 +268,18 @@ final class ScenarioFactory {
             }
             return policies;
         }, Value.EMPTY_OBJECT, ALGORITHM, COMPLEX_SUB, AuthorizationDecision.PERMIT);
+    }
+
+    private static Scenario sharedScenario(int policyCount) {
+        return new Scenario("shared-" + policyCount, () -> {
+            var policies = new ArrayList<String>();
+            policies.add(MATCHING_SHARED);
+            for (int i = 2; i <= policyCount; i++) {
+                var action = SHARED_ACTIONS[i % SHARED_ACTIONS.length];
+                policies.add(FILLER_SHARED.formatted(i, action, i));
+            }
+            return policies;
+        }, Value.EMPTY_OBJECT, ALGORITHM, SHARED_SUB, AuthorizationDecision.PERMIT);
     }
 
     /**

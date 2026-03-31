@@ -24,6 +24,7 @@ import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 /**
  * Creates a {@link PolicyIndex} based on the configured
@@ -31,6 +32,9 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class IndexFactory {
+
+    private static final int    MIN_POLICIES_FOR_CANONICAL = 5;
+    private static final double MIN_SHARING_FOR_CANONICAL  = 1.5;
 
     /**
      * Creates a policy index for the given documents using the strategy from the
@@ -55,8 +59,19 @@ public class IndexFactory {
         return switch (strategy) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
         case CANONICAL -> CanonicalPolicyIndex.create(documents);
-        case AUTO      -> CanonicalPolicyIndex.create(documents);
+        case AUTO      -> autoSelect(documents);
         };
+    }
+
+    private static PolicyIndex autoSelect(List<CompiledDocument> documents) {
+        if (documents.size() < MIN_POLICIES_FOR_CANONICAL) {
+            return NaivePolicyIndex.create(documents);
+        }
+        val canonical = CanonicalPolicyIndex.create(documents);
+        if (canonical.averageFormulasPerPredicate() < MIN_SHARING_FOR_CANONICAL) {
+            return NaivePolicyIndex.create(documents);
+        }
+        return canonical;
     }
 
 }

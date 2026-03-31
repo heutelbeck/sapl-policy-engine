@@ -57,7 +57,7 @@ public class ConfigurationManager {
      */
     public ConfigurationManager(ConfigurationProvider configurationProvider) {
         this.configurationProvider = configurationProvider;
-        log.info("ConfigurationManager initialized with provider: {}",
+        log.debug("ConfigurationManager initialized with provider: {}",
                 configurationProvider.getClass().getSimpleName());
     }
 

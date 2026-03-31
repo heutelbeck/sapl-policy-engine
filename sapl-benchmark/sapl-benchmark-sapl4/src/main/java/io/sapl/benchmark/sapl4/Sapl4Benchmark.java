@@ -17,6 +17,7 @@
  */
 package io.sapl.benchmark.sapl4;
 
+import io.sapl.api.pdp.IndexingStrategy;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -78,6 +79,9 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     @Option(names = "--scenario", defaultValue = "rbac", description = "Benchmark scenario (use --help-scenarios to list).")
     private String scenario;
+
+    @Option(names = "--indexing", defaultValue = "AUTO", description = "Indexing strategy: AUTO, NAIVE, CANONICAL.")
+    private String indexing;
 
     @Option(names = "--method", defaultValue = "decideOnceBlocking", description = "Benchmark method: decideOnceBlocking, decideStreamFirst, noOp.")
     private String method;
@@ -148,7 +152,7 @@ class Sapl4Benchmark implements Callable<Integer> {
 
         if (export != null) {
             var resolvedScenario = ScenarioFactory.create(scenario);
-            ScenarioFactory.exportScenario(resolvedScenario, export);
+            ScenarioFactory.exportScenario(resolvedScenario, export, indexing);
             out.println("Exported scenario '" + scenario + "' to " + export);
             out.flush();
             return 0;
@@ -192,7 +196,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         }
         try {
             var resolvedScenario = ScenarioFactory.create(scenario);
-            var components       = resolvedScenario.buildPdp();
+            var components       = resolvedScenario.buildPdp(IndexingStrategy.valueOf(indexing.toUpperCase()));
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
             components.dispose();
@@ -266,13 +270,14 @@ class Sapl4Benchmark implements Callable<Integer> {
         var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
                 .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
                 .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).mode(Mode.Throughput).timeUnit(TimeUnit.SECONDS).shouldDoGC(true)
-                .syncIterations(true);
+                .param("scenarioName", scenario).param("indexingStrategy", indexing).mode(Mode.Throughput)
+                .timeUnit(TimeUnit.SECONDS).shouldDoGC(true).syncIterations(true);
 
         buildJvmArgs(builder);
 
         if (output != null) {
-            var resultPath = output.resolve(scenario + "_" + method + "_" + threads + "t_fork" + forkIndex + ".json")
+            var resultPath = output
+                    .resolve(scenario + "_" + indexing + "_" + method + "_" + threads + "t_fork" + forkIndex + ".json")
                     .toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
@@ -381,13 +386,14 @@ class Sapl4Benchmark implements Callable<Integer> {
         var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
                 .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
                 .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).mode(Mode.SampleTime).timeUnit(TimeUnit.NANOSECONDS).shouldDoGC(true)
-                .syncIterations(true);
+                .param("scenarioName", scenario).param("indexingStrategy", indexing).mode(Mode.SampleTime)
+                .timeUnit(TimeUnit.NANOSECONDS).shouldDoGC(true).syncIterations(true);
 
         buildJvmArgs(builder);
 
         if (output != null) {
-            var resultPath = output.resolve(scenario + "_" + method + "_" + threads + "t_latency.json").toString();
+            var resultPath = output.resolve(scenario + "_" + indexing + "_" + method + "_" + threads + "t_latency.json")
+                    .toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
 

@@ -34,7 +34,7 @@ OUTDIR="$OUTPUT_DIR/embedded-sapl4-jvm-${PROFILE}-${RUN_TIMESTAMP}"
 mkdir -p "$OUTDIR"
 
 # Count total steps
-MAIN_STEPS=$(( ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
+MAIN_STEPS=$(( ${#INDEXING_SWEEP[@]} * ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
 EXTRA_STEPS=0
 if [ "$PROFILE" = "rigorous" ]; then
     EXTRA_STEPS=$(( ${#SCENARIOS[@]} * ${#THREAD_SWEEP[@]} + ${#THREAD_SWEEP[@]} ))
@@ -47,6 +47,7 @@ echo "  SAPL 4 Embedded Benchmark (JMH forks(1))"
 echo "  Profile:   $PROFILE"
 echo "  Scenarios: ${SCENARIOS[*]}"
 echo "  Methods:   ${METHODS[*]}"
+echo "  Indexing:  ${INDEXING_SWEEP[*]}"
 echo "  Threads:   ${THREAD_SWEEP[*]}"
 echo "  Warmup:    ${WARMUP_ITERATIONS} x ${WARMUP_TIME}s"
 echo "  Measure:   ${MEASUREMENT_TIME}s"
@@ -56,68 +57,74 @@ echo "  Output:    $OUTDIR"
 echo "================================================================"
 echo ""
 
-for scenario in "${SCENARIOS[@]}"; do
-    for method in "${METHODS[@]}"; do
-        for threads in "${THREAD_SWEEP[@]}"; do
-            CURRENT_STEP=$((CURRENT_STEP + 1))
-            pcores=$threads
-            cpu_range=$(server_cpus "$pcores")
-            pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+for indexing in "${INDEXING_SWEEP[@]}"; do
+    for scenario in "${SCENARIOS[@]}"; do
+        for method in "${METHODS[@]}"; do
+            for threads in "${THREAD_SWEEP[@]}"; do
+                CURRENT_STEP=$((CURRENT_STEP + 1))
+                pcores=$threads
+                cpu_range=$(server_cpus "$pcores")
+                pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
 
-            echo "================================================================"
-            echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-            echo "  $scenario / $method / ${threads}t pinned to CPUs $cpu_range"
-            echo "================================================================"
-            wait_cool
+                echo "================================================================"
+                echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
+                echo "  $scenario / $method / ${threads}t / $indexing pinned to CPUs $cpu_range"
+                echo "================================================================"
+                wait_cool
 
-            run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
-                --scenario="$scenario" \
-                --method="$method" \
-                -t "$threads" \
-                --warmup-iterations="$WARMUP_ITERATIONS" \
-                --warmup-time="$WARMUP_TIME" \
-                --measurement-time="$MEASUREMENT_TIME" \
-                --convergence-threshold="$CONVERGENCE_THRESHOLD" \
-                --convergence-window="$CONVERGENCE_WINDOW" \
-                --max-forks="$MAX_FORKS" \
-                --latency="$LATENCY" \
-                --heap=32g \
-                -o "$OUTDIR"
+                run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
+                    --scenario="$scenario" \
+                    --method="$method" \
+                    --indexing="$indexing" \
+                    -t "$threads" \
+                    --warmup-iterations="$WARMUP_ITERATIONS" \
+                    --warmup-time="$WARMUP_TIME" \
+                    --measurement-time="$MEASUREMENT_TIME" \
+                    --convergence-threshold="$CONVERGENCE_THRESHOLD" \
+                    --convergence-window="$CONVERGENCE_WINDOW" \
+                    --max-forks="$MAX_FORKS" \
+                    --latency="$LATENCY" \
+                    --heap=32g \
+                    -o "$OUTDIR"
 
-            echo ""
+                echo ""
+            done
         done
     done
 done
 
 if [ "$PROFILE" = "rigorous" ]; then
-    for scenario in "${SCENARIOS[@]}"; do
-        for threads in "${THREAD_SWEEP[@]}"; do
-            CURRENT_STEP=$((CURRENT_STEP + 1))
-            pcores=$threads
-            cpu_range=$(server_cpus "$pcores")
-            pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+    for indexing in "${INDEXING_SWEEP[@]}"; do
+        for scenario in "${SCENARIOS[@]}"; do
+            for threads in "${THREAD_SWEEP[@]}"; do
+                CURRENT_STEP=$((CURRENT_STEP + 1))
+                pcores=$threads
+                cpu_range=$(server_cpus "$pcores")
+                pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
 
-            echo "================================================================"
-            echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-            echo "  $scenario / decideStreamFirst / ${threads}t pinned to CPUs $cpu_range"
-            echo "================================================================"
-            wait_cool
+                echo "================================================================"
+                echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
+                echo "  $scenario / decideStreamFirst / ${threads}t / $indexing pinned to CPUs $cpu_range"
+                echo "================================================================"
+                wait_cool
 
-            run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
-                --scenario="$scenario" \
-                --method=decideStreamFirst \
-                -t "$threads" \
-                --warmup-iterations="$WARMUP_ITERATIONS" \
-                --warmup-time="$WARMUP_TIME" \
-                --measurement-time="$MEASUREMENT_TIME" \
-                --convergence-threshold="$CONVERGENCE_THRESHOLD" \
-                --convergence-window="$CONVERGENCE_WINDOW" \
-                --max-forks="$MAX_FORKS" \
-                --latency="$LATENCY" \
-                --heap=32g \
-                -o "$OUTDIR"
+                run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
+                    --scenario="$scenario" \
+                    --method=decideStreamFirst \
+                    --indexing="$indexing" \
+                    -t "$threads" \
+                    --warmup-iterations="$WARMUP_ITERATIONS" \
+                    --warmup-time="$WARMUP_TIME" \
+                    --measurement-time="$MEASUREMENT_TIME" \
+                    --convergence-threshold="$CONVERGENCE_THRESHOLD" \
+                    --convergence-window="$CONVERGENCE_WINDOW" \
+                    --max-forks="$MAX_FORKS" \
+                    --latency="$LATENCY" \
+                    --heap=32g \
+                    -o "$OUTDIR"
 
-            echo ""
+                echo ""
+            done
         done
     done
 

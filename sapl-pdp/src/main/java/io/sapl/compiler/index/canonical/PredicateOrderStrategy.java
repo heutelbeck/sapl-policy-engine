@@ -22,7 +22,6 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import io.sapl.compiler.index.ConjunctiveClause;
 import io.sapl.api.model.IndexPredicate;
@@ -63,7 +62,7 @@ class PredicateOrderStrategy {
      */
     static List<IndexPredicate> order(List<IndexPredicate> predicates, Map<IndexPredicate, Integer> predicateToIndex,
             Map<ConjunctiveClause, Integer> conjunctionToIndex, BitSet[] falseForTruePredicate,
-            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, List<Set<Integer>> relatedFormulas) {
+            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, int[][] relatedFormulas) {
         val ordered = new ArrayList<>(predicates);
         ordered.sort(Comparator
                 .comparingDouble((IndexPredicate p) -> priority(p, predicateToIndex, conjunctionToIndex,
@@ -74,10 +73,10 @@ class PredicateOrderStrategy {
 
     private static double priority(IndexPredicate predicate, Map<IndexPredicate, Integer> predicateToIndex,
             Map<ConjunctiveClause, Integer> conjunctionToIndex, BitSet[] falseForTruePredicate,
-            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, List<Set<Integer>> relatedFormulas) {
+            BitSet[] falseForFalsePredicate, BitSet[] conjunctionsWithPredicate, int[][] relatedFormulas) {
         val p = predicateToIndex.get(predicate);
 
-        val funCount = relatedFormulas.get(p).size();
+        val funCount = relatedFormulas[p].length;
         if (funCount == 0) {
             return 0.0;
         }

@@ -24,12 +24,13 @@ import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
-import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.compiler.pdp.PdpCompiler;
+import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -99,15 +100,20 @@ public class PlaygroundConfigurationSource {
         emitConfiguration();
     }
 
+    /**
+     * Returns the current PDP status from the voter source.
+     *
+     * @return the current PDP status
+     */
+    public PdpStatus getPdpStatus() {
+        return pdpVoterSource.getPdpStatus(PDP_ID).orElse(PdpStatus.initial());
+    }
+
     private void emitConfiguration() {
         val configId      = String.valueOf(configurationVersion.incrementAndGet());
         val configuration = new PDPConfiguration(PDP_ID, configId, currentAlgorithm.get(), currentPolicySources.get(),
                 buildPdpData());
-        try {
-            pdpVoterSource.loadConfiguration(configuration, true);
-        } catch (IllegalArgumentException e) {
-            log.debug("Failed to compile PDP configuration: {}", e.getMessage());
-        }
+        pdpVoterSource.loadConfiguration(configuration, true);
     }
 
     /**
@@ -120,11 +126,12 @@ public class PlaygroundConfigurationSource {
      * successful
      */
     public Optional<SaplCompilerException> tryCompile(String source) {
-        val compilationContext = new CompilationContext(new PdpData(varablesAsObjectValue(), Value.EMPTY_OBJECT),
+        val compilationContext = new CompilationContext(PDP_ID, "validation", buildPdpData(),
                 pdpVoterSource.getFunctionBroker(), pdpVoterSource.getAttributeBroker());
+        val configuration      = new PDPConfiguration(PDP_ID, "validation", currentAlgorithm.get(), List.of(source),
+                buildPdpData());
         try {
-            compilationContext.resetForNextDocument();
-            DocumentCompiler.compileDocument(source, compilationContext);
+            PdpCompiler.compilePDPConfiguration(configuration, compilationContext);
             return Optional.empty();
         } catch (SaplCompilerException exception) {
             return Optional.of(exception);

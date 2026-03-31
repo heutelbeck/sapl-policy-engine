@@ -52,7 +52,7 @@ import lombok.val;
 public class ExpressionCompiler {
 
     public CompiledExpression compile(Expression expression, CompilationContext ctx) {
-        return switch (expression) {
+        val result = switch (expression) {
         case Literal(var value, var ignored)           -> value;
         case Identifier identifier                     -> compileIdentifier(identifier, ctx);
         case RelativeReference(var type, var location) -> switch (type) {
@@ -82,6 +82,7 @@ public class ExpressionCompiler {
         case SimpleFilter sf   -> FilterCompiler.compileSimple(sf, ctx);
         case ExtendedFilter ef -> ExtendedFilterCompiler.compile(ef, ctx);
         };
+        return ctx.dedupe(result);
     }
 
     public CompiledExpression compileIdentifier(Identifier identifier, CompilationContext ctx) {

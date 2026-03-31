@@ -96,21 +96,33 @@ public class CanonicalPolicyIndex implements PolicyIndex {
         return new CanonicalPolicyIndex(indexData, alwaysApplicable, alwaysErrorVotes);
     }
 
+    /**
+     * @return average formulas per predicate, or 0 if no indexed data
+     */
+    public double averageFormulasPerPredicate() {
+        return indexData != null ? indexData.averageFormulasPerPredicate() : 0.0;
+    }
+
     static CanonicalPolicyIndex createFromFormulas(Map<DisjunctiveFormula, List<CompiledDocument>> formulaToDocuments) {
         return new CanonicalPolicyIndex(CanonicalIndexBuilder.build(formulaToDocuments), List.of(), List.of());
     }
 
     @Override
     public PolicyIndexResult match(EvaluationContext ctx) {
-        val matchingDocuments = new ArrayList<>(alwaysApplicable);
-        val errorVotes        = new ArrayList<>(alwaysErrorVotes);
-
-        if (indexData != null) {
-            val indexResult = CanonicalIndexSearch.search(indexData, ctx);
-            matchingDocuments.addAll(indexResult.matchingDocuments());
-            errorVotes.addAll(indexResult.errorVotes());
+        if (indexData == null) {
+            return new PolicyIndexResult(alwaysApplicable, alwaysErrorVotes);
         }
-
+        val indexResult = CanonicalIndexSearch.search(indexData, ctx);
+        if (alwaysApplicable.isEmpty() && alwaysErrorVotes.isEmpty()) {
+            return indexResult;
+        }
+        val matchingDocuments = new ArrayList<CompiledDocument>(
+                alwaysApplicable.size() + indexResult.matchingDocuments().size());
+        matchingDocuments.addAll(alwaysApplicable);
+        matchingDocuments.addAll(indexResult.matchingDocuments());
+        val errorVotes = new ArrayList<Vote>(alwaysErrorVotes.size() + indexResult.errorVotes().size());
+        errorVotes.addAll(alwaysErrorVotes);
+        errorVotes.addAll(indexResult.errorVotes());
         return new PolicyIndexResult(matchingDocuments, errorVotes);
     }
 

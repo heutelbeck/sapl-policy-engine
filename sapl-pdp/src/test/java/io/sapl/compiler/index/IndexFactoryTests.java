@@ -46,7 +46,7 @@ class IndexFactoryTests {
     static Stream<Arguments> whenStrategyThenCorrectImplementation() {
         return Stream.of(arguments(IndexingStrategy.NAIVE, NaivePolicyIndex.class),
                 arguments(IndexingStrategy.CANONICAL, CanonicalPolicyIndex.class),
-                arguments(IndexingStrategy.AUTO, CanonicalPolicyIndex.class));
+                arguments(IndexingStrategy.AUTO, NaivePolicyIndex.class));
     }
 
 }

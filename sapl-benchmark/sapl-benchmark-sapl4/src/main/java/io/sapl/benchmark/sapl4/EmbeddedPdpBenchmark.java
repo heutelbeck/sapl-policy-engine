@@ -19,14 +19,17 @@ package io.sapl.benchmark.sapl4;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import org.openjdk.jmh.annotations.*;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * JMH benchmark for the embedded Policy Decision Point. Each trial builds a
- * fresh PDP from the selected scenario. The scenario name is passed via JMH's
- * {@code @Param} mechanism from the runner.
+ * fresh PDP from the selected scenario. Subscriptions are cycled round-robin
+ * across iterations to avoid JIT optimizing for a single constant input.
  * <p>
  * This class is public because JMH's code generator requires public access to
  * {@code @State} classes and {@code @Benchmark} methods.
@@ -37,16 +40,21 @@ public class EmbeddedPdpBenchmark {
     @Param({})
     public String scenarioName;
 
-    private PolicyDecisionPoint       pdp;
-    private AuthorizationSubscription subscription;
-    private PDPComponents             components;
+    @Param({ "AUTO" })
+    public String indexingStrategy;
+
+    private PolicyDecisionPoint         pdp;
+    private AuthorizationSubscription[] subscriptions;
+    private PDPComponents               components;
+    private final AtomicInteger         subscriptionIndex = new AtomicInteger(0);
 
     @Setup(Level.Trial)
     public void setup() {
         var scenario = ScenarioFactory.create(scenarioName);
-        components   = scenario.buildPdp();
-        pdp          = components.pdp();
-        subscription = scenario.subscription();
+        var strategy = IndexingStrategy.valueOf(indexingStrategy.toUpperCase());
+        components    = scenario.buildPdp(strategy);
+        pdp           = components.pdp();
+        subscriptions = scenario.subscriptions().toArray(AuthorizationSubscription[]::new);
     }
 
     @TearDown(Level.Trial)
@@ -69,12 +77,13 @@ public class EmbeddedPdpBenchmark {
 
     /**
      * Evaluates a single authorization decision using the blocking API.
+     * Cycles through subscriptions round-robin.
      *
      * @return the authorization decision
      */
     @Benchmark
     public AuthorizationDecision decideOnceBlocking() {
-        return pdp.decideOnceBlocking(subscription);
+        return pdp.decideOnceBlocking(nextSubscription());
     }
 
     /**
@@ -85,7 +94,12 @@ public class EmbeddedPdpBenchmark {
      */
     @Benchmark
     public AuthorizationDecision decideStreamFirst() {
-        return pdp.decide(subscription).blockFirst();
+        return pdp.decide(nextSubscription()).blockFirst();
+    }
+
+    private AuthorizationSubscription nextSubscription() {
+        var index = subscriptionIndex.getAndIncrement();
+        return subscriptions[Integer.remainderUnsigned(index, subscriptions.length)];
     }
 
 }

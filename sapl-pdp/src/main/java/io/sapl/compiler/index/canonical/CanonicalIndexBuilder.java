@@ -96,13 +96,22 @@ class CanonicalIndexBuilder {
         buildPredicateData(formulas, conjunctionToIndex, predicateToIndex, falseForTruePredicate,
                 falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas);
 
-        val predicateOrder = PredicateOrderStrategy.order(predicates, predicateToIndex, conjunctionToIndex,
-                falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulas);
+        val relatedFormulasArrays = new int[numberOfPredicates][];
+        for (var p = 0; p < numberOfPredicates; p++) {
+            relatedFormulasArrays[p] = relatedFormulas.get(p).stream().mapToInt(Integer::intValue).toArray();
+        }
 
-        return new CanonicalIndexData(predicateOrder, Map.copyOf(predicateToIndex), numberOfConjunctions,
+        val predicateOrder = PredicateOrderStrategy.order(predicates, predicateToIndex, conjunctionToIndex,
+                falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate, relatedFormulasArrays);
+
+        val predicateOriginalIndices = predicateOrder.stream().mapToInt(predicateToIndex::get).toArray();
+
+        val formulaDocuments = formulas.stream().map(f -> formulaToDocuments.getOrDefault(f, List.of())).toList();
+
+        return new CanonicalIndexData(predicateOrder, predicateOriginalIndices, numberOfConjunctions,
                 numberOfLiteralsInConjunction, numberOfFormulasWithConjunction, conjunctionToFormulaIndices,
                 formulaConjunctionIndices, falseForTruePredicate, falseForFalsePredicate, conjunctionsWithPredicate,
-                relatedFormulas, formulas, formulaToDocuments);
+                relatedFormulasArrays, formulas, formulaDocuments);
     }
 
     private static int[] buildLiteralCounts(Map<ConjunctiveClause, Integer> conjunctionToIndex,
