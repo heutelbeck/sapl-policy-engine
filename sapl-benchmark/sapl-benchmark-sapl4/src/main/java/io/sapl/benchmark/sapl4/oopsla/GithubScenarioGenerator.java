@@ -19,7 +19,6 @@ package io.sapl.benchmark.sapl4.oopsla;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.benchmark.sapl4.Scenario;
 
@@ -309,8 +308,7 @@ public final class GithubScenarioGenerator {
             subscriptions.add(buildRequest(n, requestRng));
         }
 
-        return new Scenario("github-" + n, () -> POLICIES, variables, OopslaConstants.ALGORITHM, subscriptions,
-                AuthorizationDecision.DENY);
+        return new Scenario("github-" + n, () -> POLICIES, variables, OopslaConstants.ALGORITHM, subscriptions, null);
     }
 
     private static AuthorizationSubscription buildRequest(int n, Random rng) {
