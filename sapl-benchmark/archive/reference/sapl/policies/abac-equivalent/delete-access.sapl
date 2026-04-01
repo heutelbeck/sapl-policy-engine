@@ -1,6 +1,0 @@
-policy "delete access"
-permit
-    action == "delete";
-    subject.department == resource.department;
-    resource.location == subject.location;
-    subject.seniority in ["lead", "director"];

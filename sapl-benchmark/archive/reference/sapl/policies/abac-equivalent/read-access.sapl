@@ -1,5 +1,0 @@
-policy "read access"
-permit
-    action == "read";
-    subject.department == resource.department;
-    resource.location == subject.location;

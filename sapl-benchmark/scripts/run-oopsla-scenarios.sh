@@ -103,14 +103,15 @@ echo "  Output:        $OUTDIR"
 echo "================================================================"
 echo ""
 
-for gc in "${GC_SWEEP[@]}"; do
-    for app in "${APPS[@]}"; do
-        for n in "${ENTITY_COUNTS[@]}"; do
-            scenario="${app}-${n}"
-            pcores=1
-            cpu_range=$(server_cpus "$pcores")
+SUMMARIZE="$SCRIPT_DIR/summarize-oopsla.sh"
 
-            for seed in $(seq 0 $((SEEDS - 1))); do
+for gc in "${GC_SWEEP[@]}"; do
+    for seed in $(seq 0 $((SEEDS - 1))); do
+        for app in "${APPS[@]}"; do
+            for n in "${ENTITY_COUNTS[@]}"; do
+                scenario="${app}-${n}"
+                pcores=1
+                cpu_range=$(server_cpus "$pcores")
                 CURRENT_STEP=$((CURRENT_STEP + 1))
                 pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
 
@@ -144,14 +145,22 @@ for gc in "${GC_SWEEP[@]}"; do
 
                 echo ""
             done
-
-            echo "  Completed $SEEDS seeds for $scenario ($gc)"
-            echo ""
         done
+
+        # Update summary after each complete seed
+        "$SUMMARIZE" "$OUTDIR" > /dev/null
+        echo "  Completed seed $seed across all apps and entity counts ($gc)"
+        echo "  Summary updated: $OUTDIR/summary.md"
+        echo ""
     done
 done
+
+# Final summary
+"$SUMMARIZE" "$OUTDIR"
 
 echo "================================================================"
 echo "  OOPSLA 2024 Scenario Benchmark Complete"
 echo "  Results: $OUTDIR"
+echo "  Summary: $OUTDIR/summary.md"
+echo "  CSV:     $OUTDIR/summary.csv"
 echo "================================================================"

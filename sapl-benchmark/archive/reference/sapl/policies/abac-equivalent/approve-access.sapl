@@ -1,6 +1,0 @@
-policy "approve access"
-permit
-    action == "approve";
-    subject.department == resource.department;
-    resource.location == subject.location;
-    subject.seniority == "director";

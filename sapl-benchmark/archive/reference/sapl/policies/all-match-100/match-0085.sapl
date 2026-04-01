@@ -1,4 +1,0 @@
-policy "match-all-0085"
-permit
-    action == "read";
-    resource == "document";

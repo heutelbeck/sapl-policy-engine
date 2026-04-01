@@ -1,8 +1,0 @@
-{
-  "algorithm": {
-    "votingMode": "PRIORITY_DENY",
-    "defaultDecision": "ABSTAIN",
-    "errorHandling": "PROPAGATE"
-  },
-  "variables": {}
-}

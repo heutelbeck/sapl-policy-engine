@@ -1,4 +1,0 @@
-policy "filler-0250"
-permit
-    action == "action-0250";
-    resource == "resource-0250";

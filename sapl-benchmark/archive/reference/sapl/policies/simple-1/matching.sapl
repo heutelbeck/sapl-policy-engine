@@ -1,4 +1,0 @@
-policy "matching-policy"
-permit
-    action == "read";
-    resource == "document";
