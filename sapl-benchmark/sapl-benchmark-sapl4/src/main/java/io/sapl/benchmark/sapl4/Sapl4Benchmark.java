@@ -113,7 +113,10 @@ class Sapl4Benchmark implements Callable<Integer> {
     @Option(names = "--latency", defaultValue = "false", description = "Run a SampleTime latency pass after throughput measurement.")
     private boolean latency;
 
-    @Option(names = "--gc", description = "GC algorithm (e.g., G1, Shenandoah, ZGC). Passed as -XX:+Use<name>GC to the forked JVM.")
+    @Option(names = "--latency-only", defaultValue = "false", description = "Run only the SampleTime latency pass, skip throughput convergence forks.")
+    private boolean latencyOnly;
+
+    @Option(names = "--gc", description = "GC algorithm (e.g., G1, Shenandoah, ZGC). Passed as -XX:+Use<name> to the forked JVM.")
     private String gc;
 
     @Option(names = "--virtual-threads", defaultValue = "false", description = "Enable virtual threads for Reactor's boundedElastic scheduler.")
@@ -171,14 +174,19 @@ class Sapl4Benchmark implements Callable<Integer> {
 
         printHeader(out);
 
-        var forkResults = runConvergenceForks(out, err);
-        if (forkResults.isEmpty()) {
-            return 1;
-        }
-
+        List<Double>  forkResults   = List.of();
         LatencyResult latencyResult = null;
-        if (latency) {
+
+        if (latencyOnly) {
             latencyResult = runLatencyPass(out);
+        } else {
+            forkResults = runConvergenceForks(out, err);
+            if (forkResults.isEmpty()) {
+                return 1;
+            }
+            if (latency) {
+                latencyResult = runLatencyPass(out);
+            }
         }
 
         printResults(forkResults, latencyResult, out);
@@ -203,7 +211,8 @@ class Sapl4Benchmark implements Callable<Integer> {
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
             components.dispose();
-            if (decision.decision() != resolvedScenario.expectedDecision().decision()) {
+            if (resolvedScenario.expectedDecision() != null
+                    && decision.decision() != resolvedScenario.expectedDecision().decision()) {
                 err.println(ERROR_SANITY_CHECK.formatted(scenario, decision, resolvedScenario.expectedDecision()));
                 return false;
             }
@@ -280,12 +289,16 @@ class Sapl4Benchmark implements Callable<Integer> {
         buildJvmArgs(builder);
 
         if (output != null) {
-            var resultPath = output.resolve(scenario + "_seed" + seed + "_" + indexing + "_" + method + "_" + threads
-                    + "t_fork" + forkIndex + ".json").toString();
+            var gcLabel    = gc != null ? "_" + gc : "";
+            var resultPath = output.resolve(scenario + "_seed" + seed + gcLabel + "_" + indexing + "_" + method + "_"
+                    + threads + "t_fork" + forkIndex + ".json").toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
 
         var runResults = new Runner(builder.build()).run();
+        if (runResults.isEmpty()) {
+            throw new RunnerException("Fork " + forkIndex + " produced no results (forked VM may have failed).");
+        }
         return runResults.iterator().next().getPrimaryResult().getScore();
     }
 
@@ -306,24 +319,27 @@ class Sapl4Benchmark implements Callable<Integer> {
     }
 
     private void printResults(List<Double> forkThroughputs, LatencyResult latencyResult, PrintWriter out) {
-        var mean                   = forkThroughputs.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-        var count                  = forkThroughputs.size();
-        var sumSquaredDeviation    = forkThroughputs.stream().mapToDouble(value -> (value - mean) * (value - mean))
-                .sum();
-        var standardDeviation      = count > 1 ? Math.sqrt(sumSquaredDeviation / (count - 1)) : 0.0;
-        var coefficientOfVariation = mean > 0 ? (standardDeviation / mean) * 100.0 : 0.0;
-        var confidenceInterval95   = count > 1 ? tCritical95(count - 1) * standardDeviation / Math.sqrt(count) : 0.0;
-
         out.println();
         out.println("Result:");
-        out.println(String.format(Locale.US, "  Mean:    %,.0f ops/s", mean));
-        out.println(String.format(Locale.US, "  StdDev:  %,.0f ops/s", standardDeviation));
-        out.println(String.format(Locale.US, "  CoV:     %.2f%%", coefficientOfVariation));
-        out.println(String.format(Locale.US, "  95%% CI:  +/- %,.0f ops/s (t-distribution, df=%d)",
-                confidenceInterval95, count - 1));
-        out.println(String.format(Locale.US, "  Forks:   %d", count));
-        out.println(String.format(Locale.US, "  Per fork: %s", forkThroughputs.stream()
-                .map(value -> String.format(Locale.US, "%,.0f", value)).collect(Collectors.joining(", "))));
+        if (!forkThroughputs.isEmpty()) {
+            var mean                   = forkThroughputs.stream().mapToDouble(Double::doubleValue).average()
+                    .orElse(0.0);
+            var count                  = forkThroughputs.size();
+            var sumSquaredDeviation    = forkThroughputs.stream().mapToDouble(value -> (value - mean) * (value - mean))
+                    .sum();
+            var standardDeviation      = count > 1 ? Math.sqrt(sumSquaredDeviation / (count - 1)) : 0.0;
+            var coefficientOfVariation = mean > 0 ? (standardDeviation / mean) * 100.0 : 0.0;
+            var confidenceInterval95   = count > 1 ? tCritical95(count - 1) * standardDeviation / Math.sqrt(count)
+                    : 0.0;
+            out.println(String.format(Locale.US, "  Mean:    %,.0f ops/s", mean));
+            out.println(String.format(Locale.US, "  StdDev:  %,.0f ops/s", standardDeviation));
+            out.println(String.format(Locale.US, "  CoV:     %.2f%%", coefficientOfVariation));
+            out.println(String.format(Locale.US, "  95%% CI:  +/- %,.0f ops/s (t-distribution, df=%d)",
+                    confidenceInterval95, count - 1));
+            out.println(String.format(Locale.US, "  Forks:   %d", count));
+            out.println(String.format(Locale.US, "  Per fork: %s", forkThroughputs.stream()
+                    .map(value -> String.format(Locale.US, "%,.0f", value)).collect(Collectors.joining(", "))));
+        }
         if (latencyResult != null) {
             out.println(String.format(Locale.US,
                     "  Latency: p50=%.0f ns  p90=%.0f ns  p99=%.0f ns  p99.9=%.0f ns  max=%.0f ns", latencyResult.p50(),
@@ -335,7 +351,8 @@ class Sapl4Benchmark implements Callable<Integer> {
     private void writeResults(List<Double> forkThroughputs, LatencyResult latencyResult, PrintWriter out) {
         try {
             Files.createDirectories(output);
-            var csvPath = output.resolve(scenario + "_seed" + seed + "_" + method + "_" + threads + "t.csv");
+            var gcLabel = gc != null ? "_" + gc : "";
+            var csvPath = output.resolve(scenario + "_seed" + seed + gcLabel + "_" + method + "_" + threads + "t.csv");
             var csv     = new StringBuilder();
             csv.append("# SAPL 4.0 Benchmark Results\n");
             csv.append("# Command: ").append(commandLine).append('\n');
@@ -396,9 +413,9 @@ class Sapl4Benchmark implements Callable<Integer> {
         buildJvmArgs(builder);
 
         if (output != null) {
-            var resultPath = output.resolve(
-                    scenario + "_seed" + seed + "_" + indexing + "_" + method + "_" + threads + "t_latency.json")
-                    .toString();
+            var gcLabel    = gc != null ? "_" + gc : "";
+            var resultPath = output.resolve(scenario + "_seed" + seed + gcLabel + "_" + indexing + "_" + method + "_"
+                    + threads + "t_latency.json").toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
 
@@ -414,7 +431,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         args.add("-Xmx" + heap);
         args.add("-Dorg.slf4j.simpleLogger.defaultLogLevel=WARN");
         if (gc != null) {
-            args.add("-XX:+Use" + gc + "GC");
+            args.add("-XX:+Use" + gc);
         }
         if (virtualThreads) {
             args.add("-Dreactor.schedulers.defaultBoundedElasticOnVirtualThreads=true");

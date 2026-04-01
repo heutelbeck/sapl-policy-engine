@@ -1058,8 +1058,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void displayDecisionJson(TimestampedVote timestampedVote) {
         try {
-            val prettyJson = mapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(timestampedVote.vote().authorizationDecision());
+            val json       = mapper.valueToTree(timestampedVote.vote().authorizationDecision());
+            val prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
             decisionJsonEditor.setDocument(prettyJson);
         } catch (JacksonException exception) {
             decisionJsonEditor.setDocument(MESSAGE_ERROR_READING_DECISION + timestampedVote);
@@ -1319,6 +1319,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         variablesEditor = createJsonEditorLsp(true);
         variablesEditor.setSizeFull();
+        variablesEditor.getStyle().set(CSS_MIN_HEIGHT, CSS_VALUE_ZERO);
 
         variablesValidationDisplay = new ValidationStatusDisplay();
         variablesValidationDisplay.setWidthFull();
@@ -1326,6 +1327,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val controlsLayout = createVariablesControlsLayout();
 
         layout.add(variablesEditor, controlsLayout);
+        layout.setFlexGrow(1, variablesEditor);
+        layout.setFlexGrow(0, controlsLayout);
 
         variablesEditor.addDocumentChangedListener(this::handleVariablesDocumentChanged);
 
@@ -1502,7 +1505,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         controlsLayout.add(formatButton, validationDisplay);
         controlsLayout.setFlexGrow(1, validationDisplay);
 
+        editor.setSizeFull();
+        editor.getStyle().set(CSS_MIN_HEIGHT, CSS_VALUE_ZERO);
         editorLayout.add(editor, controlsLayout);
+        editorLayout.setFlexGrow(1, editor);
+        editorLayout.setFlexGrow(0, controlsLayout);
 
         val statusIcon = createIcon(VaadinIcon.QUESTION_CIRCLE, COLOR_ORANGE);
         statusIcon.setSize(CSS_VALUE_SIZE_0_875EM);

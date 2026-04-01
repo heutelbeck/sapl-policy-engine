@@ -489,8 +489,8 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
 
     private void displayDecision(TimestampedVote timestampedVote) {
         try {
-            val prettyJson = mapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(timestampedVote.vote().authorizationDecision());
+            val json       = mapper.valueToTree(timestampedVote.vote().authorizationDecision());
+            val prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
             decisionEditor.setDocument(prettyJson);
         } catch (JacksonException exception) {
             decisionEditor.setDocument("\"Error reading decision\"");
