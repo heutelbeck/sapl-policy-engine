@@ -27,6 +27,9 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.benchmark.sapl4.oopsla.GdriveScenarioGenerator;
+import io.sapl.benchmark.sapl4.oopsla.GithubScenarioGenerator;
+import io.sapl.benchmark.sapl4.oopsla.TinytodoScenarioGenerator;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -185,42 +188,82 @@ final class ScenarioFactory {
     private static final Scenario SHARED_500   = sharedScenario(500);
     private static final Scenario SHARED_1000  = sharedScenario(1000);
 
-    private static final Scenario GDRIVE_5    = OopslaScenarioGenerator.gdrive(5);
-    private static final Scenario GDRIVE_10   = OopslaScenarioGenerator.gdrive(10);
-    private static final Scenario GDRIVE_25   = OopslaScenarioGenerator.gdrive(25);
-    private static final Scenario GDRIVE_50   = OopslaScenarioGenerator.gdrive(50);
-    private static final Scenario GITHUB_5    = OopslaScenarioGenerator.github(5);
-    private static final Scenario GITHUB_10   = OopslaScenarioGenerator.github(10);
-    private static final Scenario GITHUB_25   = OopslaScenarioGenerator.github(25);
-    private static final Scenario GITHUB_50   = OopslaScenarioGenerator.github(50);
-    private static final Scenario TINYTODO_5  = OopslaScenarioGenerator.tinytodo(5);
-    private static final Scenario TINYTODO_10 = OopslaScenarioGenerator.tinytodo(10);
-    private static final Scenario TINYTODO_25 = OopslaScenarioGenerator.tinytodo(25);
-    private static final Scenario TINYTODO_50 = OopslaScenarioGenerator.tinytodo(50);
+    private static final Scenario[] STATIC_SCENARIOS = { RBAC, RBAC_LARGE, SIMPLE_1, SIMPLE_100, SIMPLE_500,
+            SIMPLE_1000, COMPLEX_1, COMPLEX_100, COMPLEX_1000, SHARED_100, SHARED_500, SHARED_1000 };
 
-    private static final Scenario[] ALL = { RBAC, RBAC_LARGE, SIMPLE_1, SIMPLE_100, SIMPLE_500, SIMPLE_1000, COMPLEX_1,
-            COMPLEX_100, COMPLEX_1000, SHARED_100, SHARED_500, SHARED_1000, GDRIVE_5, GDRIVE_10, GDRIVE_25, GDRIVE_50,
-            GITHUB_5, GITHUB_10, GITHUB_25, GITHUB_50, TINYTODO_5, TINYTODO_10, TINYTODO_25, TINYTODO_50 };
-
-    static final Map<String, Scenario> SCENARIOS = Arrays.stream(ALL)
+    private static final Map<String, Scenario> STATIC_MAP = Arrays.stream(STATIC_SCENARIOS)
             .collect(Collectors.toUnmodifiableMap(Scenario::name, Function.identity()));
+
+    private static final int[] OOPSLA_ENTITY_COUNTS = { 5, 10, 25, 50 };
+
+    private static final long DEFAULT_SEED = 42L;
+
+    static final List<String> ALL_SCENARIO_NAMES;
+
+    static {
+        var names = new ArrayList<>(STATIC_MAP.keySet());
+        for (var n : OOPSLA_ENTITY_COUNTS) {
+            names.add("gdrive-" + n);
+            names.add("github-" + n);
+            names.add("tinytodo-" + n);
+        }
+        ALL_SCENARIO_NAMES = List.copyOf(names);
+    }
 
     private ScenarioFactory() {
     }
 
     /**
-     * Gets a scenario by name.
+     * Gets a scenario by name using the default seed (42).
      *
-     * @param name the scenario name (case-insensitive, hyphens)
+     * @param name the scenario name (case-insensitive)
      * @return the scenario
      * @throws IllegalArgumentException if no scenario matches
      */
     static Scenario create(String name) {
-        var scenario = SCENARIOS.get(name.toLowerCase());
-        if (scenario == null) {
-            throw new IllegalArgumentException(ERROR_UNKNOWN_SCENARIO.formatted(name, SCENARIOS.keySet()));
+        return create(name, DEFAULT_SEED);
+    }
+
+    /**
+     * Gets a scenario by name. OOPSLA scenarios (gdrive-N, github-N,
+     * tinytodo-N) are built on demand with the given seed, producing a unique
+     * entity graph per seed. Non-OOPSLA scenarios ignore the seed.
+     *
+     * @param name the scenario name (case-insensitive)
+     * @param seed RNG seed for OOPSLA entity graph generation
+     * @return the scenario
+     * @throws IllegalArgumentException if no scenario matches
+     */
+    static Scenario create(String name, long seed) {
+        var lower    = name.toLowerCase();
+        var scenario = STATIC_MAP.get(lower);
+        if (scenario != null) {
+            return scenario;
         }
-        return scenario;
+        var oopsla = createOopslaScenario(lower, seed);
+        if (oopsla != null) {
+            return oopsla;
+        }
+        throw new IllegalArgumentException(ERROR_UNKNOWN_SCENARIO.formatted(name, ALL_SCENARIO_NAMES));
+    }
+
+    private static Scenario createOopslaScenario(String name, long seed) {
+        var parts = name.split("-", 2);
+        if (parts.length != 2) {
+            return null;
+        }
+        int entityCount;
+        try {
+            entityCount = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        return switch (parts[0]) {
+        case "gdrive"   -> GdriveScenarioGenerator.generate(entityCount, seed);
+        case "github"   -> GithubScenarioGenerator.generate(entityCount, seed);
+        case "tinytodo" -> TinytodoScenarioGenerator.generate(entityCount, seed);
+        default         -> null;
+        };
     }
 
     /**

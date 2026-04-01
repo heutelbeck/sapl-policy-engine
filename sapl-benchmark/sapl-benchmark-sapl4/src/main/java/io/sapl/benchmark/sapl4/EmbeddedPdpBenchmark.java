@@ -43,6 +43,9 @@ public class EmbeddedPdpBenchmark {
     @Param({ "AUTO" })
     public String indexingStrategy;
 
+    @Param({ "42" })
+    public String seed;
+
     private PolicyDecisionPoint         pdp;
     private AuthorizationSubscription[] subscriptions;
     private PDPComponents               components;
@@ -50,7 +53,7 @@ public class EmbeddedPdpBenchmark {
 
     @Setup(Level.Trial)
     public void setup() {
-        var scenario = ScenarioFactory.create(scenarioName);
+        var scenario = ScenarioFactory.create(scenarioName, Long.parseLong(seed));
         var strategy = IndexingStrategy.valueOf(indexingStrategy.toUpperCase());
         components    = scenario.buildPdp(strategy);
         pdp           = components.pdp();

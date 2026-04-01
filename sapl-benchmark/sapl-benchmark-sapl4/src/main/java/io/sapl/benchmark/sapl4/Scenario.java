@@ -44,7 +44,7 @@ import java.util.function.Supplier;
  * @param expectedDecision expected result of the first subscription for sanity
  * checking
  */
-record Scenario(
+public record Scenario(
         String name,
         Supplier<List<String>> policies,
         ObjectValue variables,

@@ -80,6 +80,9 @@ class Sapl4Benchmark implements Callable<Integer> {
     @Option(names = "--scenario", defaultValue = "rbac", description = "Benchmark scenario (use --help-scenarios to list).")
     private String scenario;
 
+    @Option(names = "--seed", defaultValue = "42", description = "RNG seed for OOPSLA entity graph generation. Ignored for non-OOPSLA scenarios.")
+    private long seed;
+
     @Option(names = "--indexing", defaultValue = "AUTO", description = "Indexing strategy: AUTO, NAIVE, CANONICAL.")
     private String indexing;
 
@@ -151,7 +154,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         commandLine = String.join(" ", spec.commandLine().getParseResult().originalArgs());
 
         if (export != null) {
-            var resolvedScenario = ScenarioFactory.create(scenario);
+            var resolvedScenario = ScenarioFactory.create(scenario, seed);
             ScenarioFactory.exportScenario(resolvedScenario, export, indexing);
             out.println("Exported scenario '" + scenario + "' to " + export);
             out.flush();
@@ -195,7 +198,7 @@ class Sapl4Benchmark implements Callable<Integer> {
             return false;
         }
         try {
-            var resolvedScenario = ScenarioFactory.create(scenario);
+            var resolvedScenario = ScenarioFactory.create(scenario, seed);
             var components       = resolvedScenario.buildPdp(IndexingStrategy.valueOf(indexing.toUpperCase()));
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
@@ -226,6 +229,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         out.println("  Pool size:   " + (parallelPoolSize != null ? parallelPoolSize
                 : "default (" + Runtime.getRuntime().availableProcessors() + ")"));
         out.println("  Scenario:    " + scenario);
+        out.println("  Seed:        " + seed);
         out.println("  Method:      " + method);
         out.println("  Threads:     " + threads);
         out.println("  Warmup:      " + warmupIterations + " x " + warmupTimeSeconds + "s per fork");
@@ -270,15 +274,14 @@ class Sapl4Benchmark implements Callable<Integer> {
         var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
                 .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
                 .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).param("indexingStrategy", indexing).mode(Mode.Throughput)
-                .timeUnit(TimeUnit.SECONDS).shouldDoGC(true).syncIterations(true);
+                .param("scenarioName", scenario).param("indexingStrategy", indexing).param("seed", String.valueOf(seed))
+                .mode(Mode.Throughput).timeUnit(TimeUnit.SECONDS).shouldDoGC(true).syncIterations(true);
 
         buildJvmArgs(builder);
 
         if (output != null) {
-            var resultPath = output
-                    .resolve(scenario + "_" + indexing + "_" + method + "_" + threads + "t_fork" + forkIndex + ".json")
-                    .toString();
+            var resultPath = output.resolve(scenario + "_seed" + seed + "_" + indexing + "_" + method + "_" + threads
+                    + "t_fork" + forkIndex + ".json").toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
 
@@ -332,7 +335,7 @@ class Sapl4Benchmark implements Callable<Integer> {
     private void writeResults(List<Double> forkThroughputs, LatencyResult latencyResult, PrintWriter out) {
         try {
             Files.createDirectories(output);
-            var csvPath = output.resolve(scenario + "_" + method + "_" + threads + "t.csv");
+            var csvPath = output.resolve(scenario + "_seed" + seed + "_" + method + "_" + threads + "t.csv");
             var csv     = new StringBuilder();
             csv.append("# SAPL 4.0 Benchmark Results\n");
             csv.append("# Command: ").append(commandLine).append('\n');
@@ -340,6 +343,7 @@ class Sapl4Benchmark implements Callable<Integer> {
                     .append(System.getProperty("java.vm.name", PROPERTY_UNKNOWN)).append(")\n");
             csv.append("# GC: ").append(gc != null ? gc : "default").append('\n');
             csv.append("# Scenario: ").append(scenario).append('\n');
+            csv.append("# Seed: ").append(seed).append('\n');
             csv.append("# Method: ").append(method).append('\n');
             csv.append("# Threads: ").append(threads).append('\n');
             csv.append("# Warmup: ").append(warmupIterations).append(" x ").append(warmupTimeSeconds).append("s\n");
@@ -386,13 +390,14 @@ class Sapl4Benchmark implements Callable<Integer> {
         var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
                 .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
                 .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).param("indexingStrategy", indexing).mode(Mode.SampleTime)
-                .timeUnit(TimeUnit.NANOSECONDS).shouldDoGC(true).syncIterations(true);
+                .param("scenarioName", scenario).param("indexingStrategy", indexing).param("seed", String.valueOf(seed))
+                .mode(Mode.SampleTime).timeUnit(TimeUnit.NANOSECONDS).shouldDoGC(true).syncIterations(true);
 
         buildJvmArgs(builder);
 
         if (output != null) {
-            var resultPath = output.resolve(scenario + "_" + indexing + "_" + method + "_" + threads + "t_latency.json")
+            var resultPath = output.resolve(
+                    scenario + "_seed" + seed + "_" + indexing + "_" + method + "_" + threads + "t_latency.json")
                     .toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
