@@ -168,7 +168,7 @@ public class CompilationContext {
      * Deduplicates constant values across compiled expressions. If the
      * expression is a {@link Value}, returns the canonical instance from the
      * dedup set (inserting if absent). Non-value expressions pass through
-     * unchanged. Reduces memory and improves JIT identity-based fast paths.
+     * unchanged.
      *
      * @param expression the compiled expression
      * @return the deduplicated expression
@@ -181,16 +181,24 @@ public class CompilationContext {
         return existing != null ? existing : value;
     }
 
-    public Value cacheOrFold(PureOperator compiledExpression, CompilationContext ctx) {
-        val cacheHit = foldingCache.get(compiledExpression.semanticHash());
+    /**
+     * Evaluates a non-subscription-dependent PureOperator at compile time,
+     * caching the result by semantic hash. Subsequent calls with the same
+     * semantic hash return the cached result without re-evaluation.
+     *
+     * @param po the pure operator to fold
+     * @param ctx the compilation context (for dummy evaluation context)
+     * @return the folded Value
+     */
+    public Value cacheOrFold(PureOperator po, CompilationContext ctx) {
+        val hash     = po.semanticHash();
+        val cacheHit = foldingCache.get(hash);
         if (cacheHit != null) {
-            System.out.println("cache hit for: " + compiledExpression.semanticHash() + " - " + compiledExpression);
             return cacheHit;
         }
         val foldingContext = DummyEvaluationContextFactory.dummyContext(ctx);
-        val result         = compiledExpression.evaluate(foldingContext);
-        foldingCache.put(compiledExpression.semanticHash(), result);
-        System.out.println("cache miss for: " + compiledExpression.semanticHash() + " - " + result);
+        val result         = po.evaluate(foldingContext);
+        foldingCache.put(hash, result);
         return result;
     }
 

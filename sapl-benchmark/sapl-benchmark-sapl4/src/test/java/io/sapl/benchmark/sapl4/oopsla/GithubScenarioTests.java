@@ -186,10 +186,10 @@ class GithubScenarioTests {
         }
 
         @Test
-        @DisplayName("nonexistent repo is indeterminate (repos lookup fails, error propagates)")
-        void whenRepoDoesNotExist_thenIndeterminate() {
-            fixture().whenDecide(AuthorizationSubscription.of("User::alice", "read", "nonexistent"))
-                    .expectIndeterminate().verify();
+        @DisplayName("nonexistent repo is indeterminate (repos lookup fails, error maps to deny)")
+        void whenRepoDoesNotExist_thenDeny() {
+            fixture().whenDecide(AuthorizationSubscription.of("User::alice", "read", "nonexistent")).expectDeny()
+                    .verify();
         }
     }
 }
