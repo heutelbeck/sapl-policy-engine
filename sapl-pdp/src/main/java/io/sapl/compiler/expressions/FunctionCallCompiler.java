@@ -71,7 +71,7 @@ public class FunctionCallCompiler {
 
         // Compile all arguments
         val compiledArgs = new ArrayList<CompiledExpression>(arguments.size());
-        for (var argExpr : arguments) {
+        for (val argExpr : arguments) {
             val compiled = ExpressionCompiler.compile(argExpr, ctx);
             if (compiled instanceof ErrorValue err) {
                 return err;
@@ -140,7 +140,7 @@ public class FunctionCallCompiler {
 
     private static Object buildArgumentArray(int[] valueIndices, Value[] values, int[] pureIndices,
             PureOperator[] pureOperators, int totalArgs, EvaluationContext ctx) {
-        var args = new ArrayList<Value>(totalArgs);
+        val args = new ArrayList<Value>(totalArgs);
         for (int i = 0; i < totalArgs; i++) {
             args.add(null);
         }
@@ -150,7 +150,7 @@ public class FunctionCallCompiler {
         }
 
         for (int i = 0; i < pureIndices.length; i++) {
-            var value = pureOperators[i].evaluate(ctx);
+            val value = pureOperators[i].evaluate(ctx);
             if (value instanceof ErrorValue) {
                 return value;
             }
@@ -162,7 +162,7 @@ public class FunctionCallCompiler {
 
     private static Object buildArgumentArrayWithStreamValue(int[] valueIndices, Value[] values, int[] pureIndices,
             PureOperator[] pureOperators, int streamIndex, Value streamValue, int totalArgs, EvaluationContext ctx) {
-        var args = new ArrayList<Value>(totalArgs);
+        val args = new ArrayList<Value>(totalArgs);
         for (int i = 0; i < totalArgs; i++) {
             args.add(null);
         }
@@ -172,7 +172,7 @@ public class FunctionCallCompiler {
         }
 
         for (int i = 0; i < pureIndices.length; i++) {
-            var value = pureOperators[i].evaluate(ctx);
+            val value = pureOperators[i].evaluate(ctx);
             if (value instanceof ErrorValue) {
                 return value;
             }
@@ -187,7 +187,7 @@ public class FunctionCallCompiler {
     private static Object buildArgumentArrayWithMultipleStreams(int[] valueIndices, Value[] values, int[] pureIndices,
             PureOperator[] pureOperators, int[] streamIndices, TracedValue[] streamValues, int totalArgs,
             EvaluationContext ctx) {
-        var args = new ArrayList<Value>(totalArgs);
+        val args = new ArrayList<Value>(totalArgs);
         for (int i = 0; i < totalArgs; i++) {
             args.add(null);
         }
@@ -197,7 +197,7 @@ public class FunctionCallCompiler {
         }
 
         for (int i = 0; i < pureIndices.length; i++) {
-            var value = pureOperators[i].evaluate(ctx);
+            val value = pureOperators[i].evaluate(ctx);
             if (value instanceof ErrorValue) {
                 return value;
             }
@@ -214,7 +214,7 @@ public class FunctionCallCompiler {
     /**
      * Function with no arguments - simplest case.
      */
-    public record NoArgsFunction(String functionName, SourceLocation location) implements PureOperator {
+    record NoArgsFunction(String functionName, SourceLocation location) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(NoArgsFunction.class);
 
         @Override
@@ -236,7 +236,7 @@ public class FunctionCallCompiler {
     /**
      * All arguments are Value or PureOperator - evaluates synchronously at runtime.
      */
-    public record AllPureFunction(
+    record AllPureFunction(
             String functionName,
             int[] valueIndices,
             Value[] values,
@@ -248,13 +248,13 @@ public class FunctionCallCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            var args = buildArgumentArray(valueIndices, values, pureIndices, pureOperators, totalArgs, ctx);
+            val args = buildArgumentArray(valueIndices, values, pureIndices, pureOperators, totalArgs, ctx);
             return invokeFunction(functionName, args, ctx);
         }
 
         @Override
         public boolean isDependingOnSubscription() {
-            for (var p : pureOperators) {
+            for (val p : pureOperators) {
                 if (p.isDependingOnSubscription()) {
                     return true;
                 }
@@ -264,7 +264,7 @@ public class FunctionCallCompiler {
 
         @Override
         public boolean isRelativeExpression() {
-            for (var p : pureOperators) {
+            for (val p : pureOperators) {
                 if (p.isRelativeExpression()) {
                     return true;
                 }
@@ -276,7 +276,7 @@ public class FunctionCallCompiler {
         public long semanticHash() {
             long hash = SemanticHashing.ordered(KIND, functionName.hashCode(), Arrays.hashCode(valueIndices),
                     Arrays.hashCode(values), Arrays.hashCode(pureIndices), totalArgs);
-            for (var po : pureOperators) {
+            for (val po : pureOperators) {
                 hash = SemanticHashing.ordered(hash, po.semanticHash());
             }
             return hash;
@@ -286,7 +286,7 @@ public class FunctionCallCompiler {
     /**
      * Exactly one argument is a StreamOperator.
      */
-    public record SingleStreamFunction(
+    record SingleStreamFunction(
             String functionName,
             int[] valueIndices,
             Value[] values,
@@ -300,16 +300,16 @@ public class FunctionCallCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return argStream.stream().switchMap(tracedArg -> {
-                var argVal = tracedArg.value();
+                val argVal = tracedArg.value();
                 if (argVal instanceof ErrorValue) {
                     return Flux.just(tracedArg);
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx = ctx.get(EvaluationContext.class);
-                    var args    = buildArgumentArrayWithStreamValue(valueIndices, values, pureIndices, pureOperators,
+                    val evalCtx = ctx.get(EvaluationContext.class);
+                    val args    = buildArgumentArrayWithStreamValue(valueIndices, values, pureIndices, pureOperators,
                             streamIndex, argVal, totalArgs, evalCtx);
-                    var result  = invokeFunction(functionName, args, evalCtx);
+                    val result  = invokeFunction(functionName, args, evalCtx);
                     return Flux.just(new TracedValue(result, tracedArg.contributingAttributes()));
                 });
             });
@@ -319,7 +319,7 @@ public class FunctionCallCompiler {
     /**
      * Multiple arguments are StreamOperators.
      */
-    public record MultiStreamFunction(
+    record MultiStreamFunction(
             String functionName,
             int[] valueIndices,
             Value[] values,
@@ -333,30 +333,30 @@ public class FunctionCallCompiler {
         @Override
         public Flux<TracedValue> stream() {
             List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
-            for (var s : streams) {
+            for (val s : streams) {
                 fluxList.add(s.stream());
             }
 
             return Flux.combineLatest(fluxList, arr -> {
-                var combinedTraces = new ArrayList<AttributeRecord>();
-                var streamValues   = new TracedValue[arr.length];
+                val combinedTraces = new ArrayList<AttributeRecord>();
+                val streamValues   = new TracedValue[arr.length];
                 for (int i = 0; i < arr.length; i++) {
                     streamValues[i] = (TracedValue) arr[i];
                     combinedTraces.addAll(streamValues[i].contributingAttributes());
                 }
                 return new CombinedStreams(streamValues, combinedTraces);
             }).switchMap(combined -> {
-                for (var tv : combined.values) {
+                for (val tv : combined.values) {
                     if (tv.value() instanceof ErrorValue) {
                         return Flux.just(new TracedValue(tv.value(), combined.traces));
                     }
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx = ctx.get(EvaluationContext.class);
-                    var args    = buildArgumentArrayWithMultipleStreams(valueIndices, values, pureIndices,
+                    val evalCtx = ctx.get(EvaluationContext.class);
+                    val args    = buildArgumentArrayWithMultipleStreams(valueIndices, values, pureIndices,
                             pureOperators, streamIndices, combined.values, totalArgs, evalCtx);
-                    var result  = invokeFunction(functionName, args, evalCtx);
+                    val result  = invokeFunction(functionName, args, evalCtx);
                     return Flux.just(new TracedValue(result, combined.traces));
                 });
             });

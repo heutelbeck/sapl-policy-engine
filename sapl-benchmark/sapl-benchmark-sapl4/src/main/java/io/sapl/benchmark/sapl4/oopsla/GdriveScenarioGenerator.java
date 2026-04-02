@@ -22,6 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.benchmark.sapl4.Scenario;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -142,13 +143,13 @@ public class GdriveScenarioGenerator {
      * @return scenario with 5 policies and 500 subscriptions
      */
     public static Scenario generate(int n, long seed) {
-        var rng = new Random(seed);
+        val rng = new Random(seed);
 
-        var entityGraph = ObjectValue.builder();
-        var users       = ObjectValue.builder();
-        var docs        = ObjectValue.builder();
+        val entityGraph = ObjectValue.builder();
+        val users       = ObjectValue.builder();
+        val docs        = ObjectValue.builder();
 
-        var groupMembership = new ArrayList<List<Integer>>(n);
+        val groupMembership = new ArrayList<List<Integer>>(n);
         for (int g = 0; g < n; g++) {
             groupMembership.add(new ArrayList<>());
         }
@@ -165,7 +166,7 @@ public class GdriveScenarioGenerator {
         // parents=Group parents
         // View("User X") entity: attrs={}, parents=[]
         for (int i = 0; i < n; i++) {
-            var userParents = new ArrayList<Value>();
+            val userParents = new ArrayList<Value>();
             for (int j = 0; j < n; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     userParents.add(Value.of(OopslaConstants.PREFIX_GROUP + j));
@@ -174,9 +175,9 @@ public class GdriveScenarioGenerator {
             }
             entityGraph.put(OopslaConstants.PREFIX_USER + i, Value.ofArray(userParents.toArray(Value[]::new)));
 
-            var ownedDocs    = collectEdges(n, OopslaConstants.PREFIX_DOC, rng);
-            var ownedFolders = collectEdges(n, OopslaConstants.PREFIX_FOLDER, rng);
-            var viewEntity   = VIEW_USER_PREFIX + i;
+            val ownedDocs    = collectEdges(n, OopslaConstants.PREFIX_DOC, rng);
+            val ownedFolders = collectEdges(n, OopslaConstants.PREFIX_FOLDER, rng);
+            val viewEntity   = VIEW_USER_PREFIX + i;
             users.put(OopslaConstants.PREFIX_USER + i, Value.ofObject(Map.of("documentsAndFoldersWithViewAccess",
                     Value.of(viewEntity), "ownedDocuments", ownedDocs, "ownedFolders", ownedFolders)));
 
@@ -192,8 +193,8 @@ public class GdriveScenarioGenerator {
         for (int g = 0; g < n; g++) {
             entityGraph.put(OopslaConstants.PREFIX_GROUP + g, Value.ofArray());
 
-            var viewParents = new ArrayList<Value>();
-            for (var userId : groupMembership.get(g)) {
+            val viewParents = new ArrayList<Value>();
+            for (val userId : groupMembership.get(g)) {
                 viewParents.add(Value.of(VIEW_USER_PREFIX + userId));
             }
             entityGraph.put(VIEW_GROUP_PREFIX + g, Value.ofArray(viewParents.toArray(Value[]::new)));
@@ -209,9 +210,9 @@ public class GdriveScenarioGenerator {
         // for j in range(num_groups): if random.random() < p:
         // parents.append(View("Group group_"+str(j)))
         for (int i = 0; i < n; i++) {
-            var isPublic = rng.nextInt(2) + 1 == 1;
+            val isPublic = rng.nextInt(2) + 1 == 1;
 
-            var docParents = new ArrayList<Value>();
+            val docParents = new ArrayList<Value>();
             for (int j = 0; j < n; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     docParents.add(Value.of(OopslaConstants.PREFIX_FOLDER + j));
@@ -239,7 +240,7 @@ public class GdriveScenarioGenerator {
         // for j in range(num_groups): if random.random() < p:
         // parents.append(View("Group group_"+str(j)))
         for (int i = 0; i < n; i++) {
-            var folderParents = new ArrayList<Value>();
+            val folderParents = new ArrayList<Value>();
             for (int j = 0; j < i; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     folderParents.add(Value.of(OopslaConstants.PREFIX_FOLDER + j));
@@ -258,11 +259,11 @@ public class GdriveScenarioGenerator {
             entityGraph.put(OopslaConstants.PREFIX_FOLDER + i, Value.ofArray(folderParents.toArray(Value[]::new)));
         }
 
-        var variables = ObjectValue.builder().put("entityGraph", entityGraph.build()).put("users", users.build())
+        val variables = ObjectValue.builder().put("entityGraph", entityGraph.build()).put("users", users.build())
                 .put("docs", docs.build()).build();
 
-        var requestRng    = new Random(seed + 1_000_000L);
-        var subscriptions = new ArrayList<AuthorizationSubscription>(OopslaConstants.REQUESTS_PER_GRAPH);
+        val requestRng    = new Random(seed + OopslaConstants.REQUEST_RNG_SEED_OFFSET);
+        val subscriptions = new ArrayList<AuthorizationSubscription>(OopslaConstants.REQUESTS_PER_GRAPH);
         // First subscription: guaranteed DENY (nonexistent resource, not public, not
         // owned)
         subscriptions
@@ -275,16 +276,16 @@ public class GdriveScenarioGenerator {
     }
 
     private static AuthorizationSubscription buildRequest(int n, Random rng) {
-        var subject  = OopslaConstants.PREFIX_USER + rng.nextInt(n);
-        var action   = ACTIONS[rng.nextInt(ACTIONS.length)];
-        var isDoc    = rng.nextBoolean();
-        var idx      = rng.nextInt(n);
-        var resource = isDoc ? OopslaConstants.PREFIX_DOC + idx : OopslaConstants.PREFIX_FOLDER + idx;
+        val subject  = OopslaConstants.PREFIX_USER + rng.nextInt(n);
+        val action   = ACTIONS[rng.nextInt(ACTIONS.length)];
+        val isDoc    = rng.nextBoolean();
+        val idx      = rng.nextInt(n);
+        val resource = isDoc ? OopslaConstants.PREFIX_DOC + idx : OopslaConstants.PREFIX_FOLDER + idx;
         return AuthorizationSubscription.of(subject, action, resource);
     }
 
     private static Value collectEdges(int n, String prefix, Random rng) {
-        var edges = new ArrayList<Value>();
+        val edges = new ArrayList<Value>();
         for (int i = 0; i < n; i++) {
             if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                 edges.add(Value.of(prefix + i));

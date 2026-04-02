@@ -25,7 +25,9 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.benchmark.sapl4.oopsla.OopslaConstants;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
@@ -70,8 +72,6 @@ public class HospitalScenarioGenerator {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
-    // --- Fixed Vocabulary (shared predicates across all policies) ---
-
     private static final String[] ROLES = { "attending", "resident", "nurse", "labTech", "pharmacist", "admin",
             "billing", "auditor", "researcher" };
 
@@ -80,22 +80,6 @@ public class HospitalScenarioGenerator {
 
     private static final String[] RESOURCE_TYPES = { "PatientRecord", "LabResult", "Prescription", "Imaging",
             "BillingRecord", "Schedule", "CareNote", "Referral", "Consent", "AuditLog" };
-
-    // --- Permission Matrix ---
-    //
-    // 9 roles, 32 (role, resourceType) pairs total.
-    //
-    // Single-action entries produce action == "X" (individual predicates).
-    // Multi-action entries produce action in ["X", "Y", ...] (IN-list predicates).
-    //
-    // Overlap design: "read" appears as explicit == in 10 single-action policies
-    // per department (resident-LabResult, resident-Prescription, pharmacist-
-    // PatientRecord, admin-AuditLog, billing-PatientRecord, auditor-PatientRecord,
-    // auditor-BillingRecord, researcher-PatientRecord, researcher-LabResult,
-    // researcher-Imaging) AND inside IN-lists in 12 multi-action policies per
-    // department (all attending, some resident, nurse, labTech entries). When the
-    // compiler unrolls IN-lists, both produce action == "read" predicates that
-    // the canonical index can share.
 
     private record Permission(String resourceType, String[] actions) {}
 
@@ -166,8 +150,6 @@ public class HospitalScenarioGenerator {
     private static final String[] EMERGENCY_RESOURCE_TYPES = { "PatientRecord", "LabResult", "Prescription", "Imaging",
             "CareNote" };
 
-    // --- Entity Constants ---
-
     static final int            STAFF_PER_DEPARTMENT   = 5;
     static final int            TEAMS_PER_DEPARTMENT   = 2;
     private static final double CROSS_DEPT_PROBABILITY = 0.05;
@@ -203,9 +185,9 @@ public class HospitalScenarioGenerator {
      * @return scenario with 33*n + 5 policies and 500 subscriptions
      */
     public static Scenario generate(int numDepartments, long seed) {
-        var rng          = new Random(seed);
-        var staffGraph   = ObjectValue.builder();
-        var staffMembers = new ArrayList<StaffMember>();
+        val rng          = new Random(seed);
+        val staffGraph   = ObjectValue.builder();
+        val staffMembers = new ArrayList<StaffMember>();
         var totalStaff   = 0;
 
         // Departments (no parents in the graph)
@@ -224,11 +206,11 @@ public class HospitalScenarioGenerator {
         // cross-department memberships
         for (int d = 0; d < numDepartments; d++) {
             for (int s = 0; s < STAFF_PER_DEPARTMENT; s++) {
-                var staffId     = PREFIX_STAFF + totalStaff;
-                var roleSpec    = ROLE_SPECS[rng.nextInt(ROLE_SPECS.length)];
-                var primaryTeam = globalTeamIndex(d, rng.nextInt(TEAMS_PER_DEPARTMENT));
+                val staffId     = PREFIX_STAFF + totalStaff;
+                val roleSpec    = ROLE_SPECS[rng.nextInt(ROLE_SPECS.length)];
+                val primaryTeam = globalTeamIndex(d, rng.nextInt(TEAMS_PER_DEPARTMENT));
 
-                var parents = new ArrayList<Value>();
+                val parents = new ArrayList<Value>();
                 parents.add(Value.of(PREFIX_TEAM + primaryTeam));
 
                 for (int od = 0; od < numDepartments; od++) {
@@ -243,12 +225,12 @@ public class HospitalScenarioGenerator {
             }
         }
 
-        var policies = generatePolicies(numDepartments);
+        val policies = generatePolicies(numDepartments);
 
-        var requestRng    = new Random(seed + 1_000_000L);
-        var subscriptions = generateSubscriptions(numDepartments, staffMembers, requestRng);
+        val requestRng    = new Random(seed + OopslaConstants.REQUEST_RNG_SEED_OFFSET);
+        val subscriptions = generateSubscriptions(numDepartments, staffMembers, requestRng);
 
-        var variables = ObjectValue.builder().put("staffGraph", staffGraph.build()).build();
+        val variables = ObjectValue.builder().put("staffGraph", staffGraph.build()).build();
 
         return new Scenario("hospital-" + numDepartments, () -> policies, variables, ALGORITHM, subscriptions, null);
     }
@@ -257,21 +239,19 @@ public class HospitalScenarioGenerator {
         return dept * TEAMS_PER_DEPARTMENT + localTeam;
     }
 
-    // --- Policy Generation ---
-
     private static List<String> generatePolicies(int numDepartments) {
-        var policies = new ArrayList<String>(POLICIES_PER_DEPARTMENT * numDepartments + GLOBAL_POLICIES);
+        val policies = new ArrayList<String>(POLICIES_PER_DEPARTMENT * numDepartments + GLOBAL_POLICIES);
 
         for (int d = 0; d < numDepartments; d++) {
-            for (var roleSpec : ROLE_SPECS) {
-                for (var perm : roleSpec.permissions()) {
+            for (val roleSpec : ROLE_SPECS) {
+                for (val perm : roleSpec.permissions()) {
                     policies.add(departmentPermitPolicy(d, roleSpec.role(), perm));
                 }
             }
             policies.add(sensitivityDenyPolicy(d));
         }
 
-        for (var resourceType : EMERGENCY_RESOURCE_TYPES) {
+        for (val resourceType : EMERGENCY_RESOURCE_TYPES) {
             policies.add(emergencyPolicy(resourceType));
         }
 
@@ -288,8 +268,8 @@ public class HospitalScenarioGenerator {
      * {@code action in ["X", "Y", ...]} (multi-action IN-list).
      */
     private static String departmentPermitPolicy(int dept, String role, Permission perm) {
-        var deptId          = PREFIX_DEPT + dept;
-        var actionCondition = perm.actions().length == 1 ? "action == \"%s\"".formatted(perm.actions()[0])
+        val deptId          = PREFIX_DEPT + dept;
+        val actionCondition = perm.actions().length == 1 ? "action == \"%s\"".formatted(perm.actions()[0])
                 : "action in [%s]".formatted(actionList(perm.actions()));
 
         return """
@@ -339,7 +319,7 @@ public class HospitalScenarioGenerator {
     }
 
     private static String actionList(String[] actions) {
-        var sb = new StringBuilder();
+        val sb = new StringBuilder();
         for (int i = 0; i < actions.length; i++) {
             if (i > 0) {
                 sb.append(", ");
@@ -348,8 +328,6 @@ public class HospitalScenarioGenerator {
         }
         return sb.toString();
     }
-
-    // --- Subscription Generation ---
 
     // Actions weighted toward those that appear in more policies.
     // "read" appears in nearly every role, "write"/"create" in most, others are
@@ -365,13 +343,13 @@ public class HospitalScenarioGenerator {
 
     private static List<AuthorizationSubscription> generateSubscriptions(int numDepartments, List<StaffMember> staff,
             Random rng) {
-        var subscriptions = new ArrayList<AuthorizationSubscription>(REQUESTS);
+        val subscriptions = new ArrayList<AuthorizationSubscription>(REQUESTS);
         for (int i = 0; i < REQUESTS; i++) {
-            var s            = staff.get(rng.nextInt(staff.size()));
-            var action       = WEIGHTED_ACTIONS[rng.nextInt(WEIGHTED_ACTIONS.length)];
-            var resourceType = WEIGHTED_RESOURCE_TYPES[rng.nextInt(WEIGHTED_RESOURCE_TYPES.length)];
-            var resourceDept = rng.nextDouble() < 0.8 ? s.departmentIndex() : rng.nextInt(numDepartments);
-            var sensitivity  = rng.nextDouble() < 0.7 ? 1 : rng.nextInt(4) + 1;
+            val s            = staff.get(rng.nextInt(staff.size()));
+            val action       = WEIGHTED_ACTIONS[rng.nextInt(WEIGHTED_ACTIONS.length)];
+            val resourceType = WEIGHTED_RESOURCE_TYPES[rng.nextInt(WEIGHTED_RESOURCE_TYPES.length)];
+            val resourceDept = rng.nextDouble() < 0.8 ? s.departmentIndex() : rng.nextInt(numDepartments);
+            val sensitivity  = rng.nextDouble() < 0.7 ? 1 : rng.nextInt(4) + 1;
             subscriptions.add(buildSubscription(s, action, resourceType, resourceDept, sensitivity));
         }
         return subscriptions;

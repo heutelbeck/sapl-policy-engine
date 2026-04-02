@@ -288,12 +288,7 @@ class Sapl4Benchmark implements Callable<Integer> {
     }
 
     private double runSingleFork(String includePattern, int forkIndex) throws RunnerException {
-        var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
-                .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
-                .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).param("indexingStrategy", indexing)
-                .param("unrollInOperator", String.valueOf(unroll)).param("seed", String.valueOf(seed))
-                .mode(Mode.Throughput).timeUnit(TimeUnit.SECONDS).shouldDoGC(true).syncIterations(true);
+        var builder = baseOptions(includePattern).mode(Mode.Throughput).timeUnit(TimeUnit.SECONDS);
 
         buildJvmArgs(builder);
 
@@ -416,12 +411,7 @@ class Sapl4Benchmark implements Callable<Integer> {
 
         var includePattern = EmbeddedPdpBenchmark.class.getName() + "\\." + method;
 
-        var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
-                .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
-                .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).param("indexingStrategy", indexing)
-                .param("unrollInOperator", String.valueOf(unroll)).param("seed", String.valueOf(seed))
-                .mode(Mode.SampleTime).timeUnit(TimeUnit.NANOSECONDS).shouldDoGC(true).syncIterations(true);
+        var builder = baseOptions(includePattern).mode(Mode.SampleTime).timeUnit(TimeUnit.NANOSECONDS);
 
         buildJvmArgs(builder);
 
@@ -436,6 +426,15 @@ class Sapl4Benchmark implements Callable<Integer> {
         var statistics = result.getStatistics();
         return new LatencyResult(statistics.getPercentile(50.0), statistics.getPercentile(90.0),
                 statistics.getPercentile(99.0), statistics.getPercentile(99.9), statistics.getMax());
+    }
+
+    private ChainedOptionsBuilder baseOptions(String includePattern) {
+        return new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
+                .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
+                .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
+                .param("scenarioName", scenario).param("indexingStrategy", indexing)
+                .param("unrollInOperator", String.valueOf(unroll)).param("seed", String.valueOf(seed)).shouldDoGC(true)
+                .syncIterations(true);
     }
 
     private void buildJvmArgs(ChainedOptionsBuilder builder) {

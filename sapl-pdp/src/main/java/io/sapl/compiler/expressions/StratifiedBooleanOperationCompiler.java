@@ -187,7 +187,7 @@ public class StratifiedBooleanOperationCompiler {
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
     }
 
-    public record LazyValuePure(
+    record LazyValuePure(
             PureOperator p,
             SourceLocation location,
             boolean isDependingOnSubscription,
@@ -237,7 +237,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    public record LazyOrPurePure(
+    record LazyOrPurePure(
             PureOperator p1,
             PureOperator p2,
             SourceLocation location,
@@ -268,15 +268,14 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    public record LazyValueStream(StreamOperator s, SourceLocation location) implements StreamOperator {
+    record LazyValueStream(StreamOperator s, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return s.stream().map(tv -> new TracedValue(asBoolean(tv.value(), location), tv.contributingAttributes()));
         }
     }
 
-    public record LazyAndPureStream(PureOperator p, StreamOperator s, SourceLocation location)
-            implements StreamOperator {
+    record LazyAndPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -294,8 +293,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    public record LazyOrPureStream(PureOperator p, StreamOperator s, SourceLocation location)
-            implements StreamOperator {
+    record LazyOrPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -313,7 +311,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    public record LazyAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
+    record LazyAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -335,8 +333,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    public record LazyOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
-            implements StreamOperator {
+    record LazyOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return s1.stream().switchMap(tv1 -> {
@@ -357,7 +354,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    public record EagerAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
+    record EagerAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -380,7 +377,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    public record EagerOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
+    record EagerOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {

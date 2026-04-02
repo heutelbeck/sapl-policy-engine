@@ -22,6 +22,7 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.PDPConfiguration;
 
 import java.util.List;
@@ -92,7 +93,7 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeEndObject();
     }
 
-    private void serializeCompilerFlags(io.sapl.api.pdp.CompilerFlags flags, JsonGenerator generator) {
+    private void serializeCompilerFlags(CompilerFlags flags, JsonGenerator generator) {
         generator.writeStartObject();
         generator.writeStringProperty("indexing", flags.indexing().name());
         generator.writeBooleanProperty("unrollInOperator", flags.unrollInOperator());

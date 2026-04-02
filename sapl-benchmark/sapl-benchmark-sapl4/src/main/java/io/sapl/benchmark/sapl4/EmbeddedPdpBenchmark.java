@@ -23,7 +23,14 @@ import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
-import org.openjdk.jmh.annotations.*;
+import lombok.val;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Param;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -57,8 +64,8 @@ public class EmbeddedPdpBenchmark {
 
     @Setup(Level.Trial)
     public void setup() {
-        var scenario = ScenarioFactory.create(scenarioName, Long.parseLong(seed));
-        var flags    = new CompilerFlags(IndexingStrategy.valueOf(indexingStrategy.toUpperCase()),
+        val scenario = ScenarioFactory.create(scenarioName, Long.parseLong(seed));
+        val flags    = new CompilerFlags(IndexingStrategy.valueOf(indexingStrategy.toUpperCase()),
                 Boolean.parseBoolean(unrollInOperator), 10, 1.5);
         components    = scenario.buildPdp(flags);
         pdp           = components.pdp();
@@ -106,7 +113,7 @@ public class EmbeddedPdpBenchmark {
     }
 
     private AuthorizationSubscription nextSubscription() {
-        var index = subscriptionIndex.getAndIncrement();
+        val index = subscriptionIndex.getAndIncrement();
         return subscriptions[Integer.remainderUnsigned(index, subscriptions.length)];
     }
 

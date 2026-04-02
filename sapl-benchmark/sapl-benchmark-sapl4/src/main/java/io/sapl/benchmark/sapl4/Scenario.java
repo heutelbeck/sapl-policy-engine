@@ -27,6 +27,7 @@ import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import lombok.val;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -80,8 +81,8 @@ public record Scenario(
      * @return the PDP components (caller must dispose)
      */
     PDPComponents buildPdp(CompilerFlags compilerFlags) {
-        var pdpData          = new PdpData(variables, Value.EMPTY_OBJECT);
-        var pdpConfiguration = new PDPConfiguration("default", name, algorithm, compilerFlags, policies.get(), pdpData);
+        val pdpData          = new PdpData(variables, Value.EMPTY_OBJECT);
+        val pdpConfiguration = new PDPConfiguration("default", name, algorithm, compilerFlags, policies.get(), pdpData);
         return PolicyDecisionPointBuilder.withDefaults().withConfiguration(pdpConfiguration).build();
     }
 

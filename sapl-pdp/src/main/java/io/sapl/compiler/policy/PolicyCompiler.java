@@ -314,7 +314,7 @@ public class PolicyCompiler {
      * @param advice the compiled advice array
      * @param resource the compiled transformation expression
      */
-    public record CompiledConstraints(
+    record CompiledConstraints(
             Nature nature,
             CompiledExpression obligations,
             CompiledExpression advice,
@@ -330,7 +330,7 @@ public class PolicyCompiler {
      * @param resource the transformation expression
      * @param metadata the policy voterMetadata
      */
-    public record SimplePureVoter(
+    record SimplePureVoter(
             Decision decision,
             CompiledExpression obligations,
             CompiledExpression advice,
@@ -373,7 +373,7 @@ public class PolicyCompiler {
      * @param resource the transformation stream operator
      * @param voterMetadata the policy voterMetadata
      */
-    public record SimpleStreamVoter(
+    record SimpleStreamVoter(
             Decision decision,
             StreamOperator obligations,
             StreamOperator advice,
@@ -394,7 +394,7 @@ public class PolicyCompiler {
      * @param voter the underlying vote maker
      * @param voterMetadata the policy voterMetadata
      */
-    public record ApplicabilityCheckingPureVoter(PureOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
+    record ApplicabilityCheckingPureVoter(PureOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
             implements PureVoter {
 
         @Override
@@ -424,10 +424,8 @@ public class PolicyCompiler {
      * @param voter the underlying vote maker
      * @param voterMetadata the policy voterMetadata
      */
-    public record ApplicabilityCheckingStreamVoter(
-            StreamOperator isApplicable,
-            Voter voter,
-            VoterMetadata voterMetadata) implements StreamVoter {
+    record ApplicabilityCheckingStreamVoter(StreamOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
+            implements StreamVoter {
 
         @Override
         public Flux<Vote> vote() {
@@ -467,10 +465,8 @@ public class PolicyCompiler {
      * @param streamVoter the streaming vote maker for constraints
      * @param metadata the policy voterMetadata
      */
-    public record PureBodyStreamConstraintsVoter(
-            PureOperator isApplicable,
-            StreamVoter streamVoter,
-            VoterMetadata metadata) implements StreamVoter {
+    record PureBodyStreamConstraintsVoter(PureOperator isApplicable, StreamVoter streamVoter, VoterMetadata metadata)
+            implements StreamVoter {
 
         @Override
         public Flux<Vote> vote() {

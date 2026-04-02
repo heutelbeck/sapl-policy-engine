@@ -125,7 +125,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexPrecompiledPure(
+    record RegexPrecompiledPure(
             PureOperator input,
             String patternSource,
             Predicate<String> matcher,
@@ -157,7 +157,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexPrecompiledStream(StreamOperator input, Predicate<String> matcher, SourceLocation location)
+    record RegexPrecompiledStream(StreamOperator input, Predicate<String> matcher, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -171,7 +171,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexValuePure(Value input, PureOperator pattern, SourceLocation location) implements PureOperator {
+    record RegexValuePure(Value input, PureOperator pattern, SourceLocation location) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(RegexValuePure.class);
 
         @Override
@@ -199,8 +199,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexPurePure(PureOperator input, PureOperator pattern, SourceLocation location)
-            implements PureOperator {
+    record RegexPurePure(PureOperator input, PureOperator pattern, SourceLocation location) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(RegexPurePure.class);
 
         @Override
@@ -232,8 +231,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexValueStream(Value input, StreamOperator pattern, SourceLocation location)
-            implements StreamOperator {
+    record RegexValueStream(Value input, StreamOperator pattern, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return pattern.stream().map(tv -> {
@@ -246,7 +244,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexPureStream(PureOperator input, StreamOperator pattern, SourceLocation location)
+    record RegexPureStream(PureOperator input, StreamOperator pattern, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -266,7 +264,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexStreamPure(StreamOperator input, PureOperator pattern, SourceLocation location)
+    record RegexStreamPure(StreamOperator input, PureOperator pattern, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -286,7 +284,7 @@ public class RegexCompiler {
         }
     }
 
-    public record RegexStreamStream(StreamOperator input, StreamOperator pattern, SourceLocation location)
+    record RegexStreamStream(StreamOperator input, StreamOperator pattern, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {

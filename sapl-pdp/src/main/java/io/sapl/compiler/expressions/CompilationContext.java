@@ -56,10 +56,10 @@ import java.util.function.Supplier;
 @Setter
 @ToString
 public class CompilationContext {
-    String                                  pdpId                    = "defaultPdp";
-    String                                  configurationId          = "defaultConfiguration";
-    Document                                document;
-    String                                  documentSource;
+    private String                          pdpId                    = "defaultPdp";
+    private String                          configurationId          = "defaultConfiguration";
+    private Document                        document;
+    private String                          documentSource;
     final FunctionBroker                    functionBroker;
     final AttributeBroker                   attributeBroker;
     final PdpData                           data;
@@ -205,7 +205,7 @@ public class CompilationContext {
      * or relative context)
      * @return the folded Value
      */
-    public Value cacheOrFold(PureOperator po) {
+    private Value cacheOrFold(PureOperator po) {
         val hash     = po.semanticHash();
         val cacheHit = foldingCache.get(hash);
         if (cacheHit != null) {

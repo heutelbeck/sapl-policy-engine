@@ -100,7 +100,7 @@ case "$PROFILE" in
         SCALING_FACTORS=(5 50 100 300)
         APPS=(hospital)
         INDEXING_SWEEP=(NAIVE CANONICAL AUTO)
-        UNROLL_SWEEP=(false)
+        UNROLL_SWEEP=(false true)
         WARMUP_ITERATIONS=1
         WARMUP_TIME=10
         MEASUREMENT_TIME=10

@@ -110,19 +110,18 @@ public class BinaryOperationCompiler {
         if (right instanceof ErrorValue) {
             return right;
         }
-        var loc    = binaryOperation.location();
-        val opType = operatorType;
+        val loc = binaryOperation.location();
         return switch (left) {
         case Value lv          -> switch (right) {
                            case Value rv              -> op.apply(lv, rv, loc);
-                           case PureOperator rp       -> new BinaryValuePure(opType, op, lv, rp, loc,
+                           case PureOperator rp       -> new BinaryValuePure(operatorType, op, lv, rp, loc,
                                    rp.isDependingOnSubscription(), rp.isRelativeExpression());
                            case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, loc);
                            };
         case PureOperator lp   -> switch (right) {
-                           case Value rv              -> new BinaryPureValue(opType, op, lp, rv, loc,
+                           case Value rv              -> new BinaryPureValue(operatorType, op, lp, rv, loc,
                                    lp.isDependingOnSubscription(), lp.isRelativeExpression());
-                           case PureOperator rp       -> new BinaryPurePure(opType, op, lp, rp, loc,
+                           case PureOperator rp       -> new BinaryPurePure(operatorType, op, lp, rp, loc,
                                    lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
                                    lp.isRelativeExpression() || rp.isRelativeExpression());
                            case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, loc);
@@ -135,7 +134,7 @@ public class BinaryOperationCompiler {
         };
     }
 
-    public record BinaryPurePure(
+    record BinaryPurePure(
             BinaryOperatorType opType,
             BinaryOperation op,
             PureOperator lp,
@@ -162,7 +161,7 @@ public class BinaryOperationCompiler {
         }
     }
 
-    public record BinaryValuePure(
+    record BinaryValuePure(
             BinaryOperatorType opType,
             BinaryOperation op,
             Value lv,
@@ -208,7 +207,7 @@ public class BinaryOperationCompiler {
         }
     }
 
-    public record BinaryValueStream(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
+    record BinaryValueStream(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -236,7 +235,7 @@ public class BinaryOperationCompiler {
         }
     }
 
-    public record BinaryPureStream(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
+    record BinaryPureStream(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -256,7 +255,7 @@ public class BinaryOperationCompiler {
         }
     }
 
-    public record BinaryStreamPure(BinaryOperation op, StreamOperator ls, PureOperator rp, SourceLocation location)
+    record BinaryStreamPure(BinaryOperation op, StreamOperator ls, PureOperator rp, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -276,12 +275,12 @@ public class BinaryOperationCompiler {
         }
     }
 
-    public record BinaryStreamStream(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
+    record BinaryStreamStream(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.combineLatest(ls.stream(), rs.stream(), (tlv, trv) -> {
-                var combined = new ArrayList<>(trv.contributingAttributes());
+                val combined = new ArrayList<>(trv.contributingAttributes());
                 combined.addAll(tlv.contributingAttributes());
                 val lv = tlv.value();
                 if (lv instanceof ErrorValue) {

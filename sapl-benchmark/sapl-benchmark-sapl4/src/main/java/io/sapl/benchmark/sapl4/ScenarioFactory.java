@@ -31,6 +31,7 @@ import io.sapl.benchmark.sapl4.oopsla.GdriveScenarioGenerator;
 import io.sapl.benchmark.sapl4.oopsla.GithubScenarioGenerator;
 import io.sapl.benchmark.sapl4.oopsla.TinytodoScenarioGenerator;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -207,13 +208,13 @@ class ScenarioFactory {
     private static final int[] HOSPITAL_DEPARTMENT_COUNTS = { 5, 10, 50, 100, 300 };
 
     static {
-        var names = new ArrayList<>(STATIC_MAP.keySet());
-        for (var n : OOPSLA_ENTITY_COUNTS) {
+        val names = new ArrayList<>(STATIC_MAP.keySet());
+        for (val n : OOPSLA_ENTITY_COUNTS) {
             names.add("gdrive-" + n);
             names.add("github-" + n);
             names.add("tinytodo-" + n);
         }
-        for (var n : HOSPITAL_DEPARTMENT_COUNTS) {
+        for (val n : HOSPITAL_DEPARTMENT_COUNTS) {
             names.add("hospital-" + n);
         }
         ALL_SCENARIO_NAMES = List.copyOf(names);
@@ -241,12 +242,12 @@ class ScenarioFactory {
      * @throws IllegalArgumentException if no scenario matches
      */
     static Scenario create(String name, long seed) {
-        var lower    = name.toLowerCase();
-        var scenario = STATIC_MAP.get(lower);
+        val lower    = name.toLowerCase();
+        val scenario = STATIC_MAP.get(lower);
         if (scenario != null) {
             return scenario;
         }
-        var oopsla = createOopslaScenario(lower, seed);
+        val oopsla = createOopslaScenario(lower, seed);
         if (oopsla != null) {
             return oopsla;
         }
@@ -254,7 +255,7 @@ class ScenarioFactory {
     }
 
     private static Scenario createOopslaScenario(String name, long seed) {
-        var parts = name.split("-", 2);
+        val parts = name.split("-", 2);
         if (parts.length != 2) {
             return null;
         }
@@ -284,7 +285,7 @@ class ScenarioFactory {
      */
     static void exportScenario(Scenario scenario, Path directory, String indexingStrategy) throws IOException {
         Files.createDirectories(directory);
-        var variablesJson = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(scenario.variables());
+        val variablesJson = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(scenario.variables());
         Files.writeString(directory.resolve("pdp.json"), PDP_JSON_TEMPLATE.formatted(indexingStrategy, variablesJson));
         Files.writeString(directory.resolve("subscription.json"),
                 MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(scenario.subscription()));
@@ -292,7 +293,7 @@ class ScenarioFactory {
             Files.writeString(directory.resolve("subscriptions.json"),
                     MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(scenario.subscriptions()));
         }
-        var policies = scenario.policies().get();
+        val policies = scenario.policies().get();
         for (int i = 0; i < policies.size(); i++) {
             Files.writeString(directory.resolve("policy-%04d.sapl".formatted(i + 1)), policies.get(i));
         }
@@ -300,7 +301,7 @@ class ScenarioFactory {
 
     private static Scenario simpleScenario(int policyCount) {
         return new Scenario("simple-" + policyCount, () -> {
-            var policies = new ArrayList<String>();
+            val policies = new ArrayList<String>();
             policies.add(MATCHING_SIMPLE);
             for (int i = 2; i <= policyCount; i++) {
                 policies.add(FILLER_SIMPLE.formatted(i, i, i));
@@ -311,7 +312,7 @@ class ScenarioFactory {
 
     private static Scenario complexScenario(int policyCount) {
         return new Scenario("complex-" + policyCount, () -> {
-            var policies = new ArrayList<String>();
+            val policies = new ArrayList<String>();
             policies.add(MATCHING_COMPLEX);
             for (int i = 2; i <= policyCount; i++) {
                 policies.add(FILLER_COMPLEX.formatted(i, i, i, i));
@@ -322,10 +323,10 @@ class ScenarioFactory {
 
     private static Scenario sharedScenario(int policyCount) {
         return new Scenario("shared-" + policyCount, () -> {
-            var policies = new ArrayList<String>();
+            val policies = new ArrayList<String>();
             policies.add(MATCHING_SHARED);
             for (int i = 2; i <= policyCount; i++) {
-                var action = SHARED_ACTIONS[i % SHARED_ACTIONS.length];
+                val action = SHARED_ACTIONS[i % SHARED_ACTIONS.length];
                 policies.add(FILLER_SHARED.formatted(i, action, i));
             }
             return policies;
@@ -337,13 +338,13 @@ class ScenarioFactory {
      * locations x 4 seniority levels). Each seniority gets 1-4 actions.
      */
     private static ObjectValue buildLargePermissions() {
-        var permissionsByRole = ObjectValue.builder();
-        for (var department : DEPARTMENTS) {
-            for (var location : LOCATIONS) {
+        val permissionsByRole = ObjectValue.builder();
+        for (val department : DEPARTMENTS) {
+            for (val location : LOCATIONS) {
                 for (int seniorityIndex = 0; seniorityIndex < SENIORITIES.length; seniorityIndex++) {
-                    var roleName        = department + "-" + location + "-" + SENIORITIES[seniorityIndex];
-                    var actionCount     = seniorityIndex + 1;
-                    var rolePermissions = new Value[actionCount];
+                    val roleName        = department + "-" + location + "-" + SENIORITIES[seniorityIndex];
+                    val actionCount     = seniorityIndex + 1;
+                    val rolePermissions = new Value[actionCount];
                     for (int actionIndex = 0; actionIndex < actionCount; actionIndex++) {
                         rolePermissions[actionIndex] = Value.ofObject(Map.of("type",
                                 Value.of(department + "-" + location), "action", Value.of(ACTIONS[actionIndex])));

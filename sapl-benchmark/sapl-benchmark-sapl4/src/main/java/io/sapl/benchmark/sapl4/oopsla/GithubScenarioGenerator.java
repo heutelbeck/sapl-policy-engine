@@ -22,6 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.benchmark.sapl4.Scenario;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -200,11 +201,11 @@ public class GithubScenarioGenerator {
      * @return scenario with 8 policies and 500 subscriptions
      */
     public static Scenario generate(int n, long seed) {
-        var rng = new Random(seed);
+        val rng = new Random(seed);
 
-        var entityGraph = ObjectValue.builder();
-        var orgs        = ObjectValue.builder();
-        var repos       = ObjectValue.builder();
+        val entityGraph = ObjectValue.builder();
+        val orgs        = ObjectValue.builder();
+        val repos       = ObjectValue.builder();
 
         // Step 1: Orgs. Cedar: lines 106-112.
         // for i in range(num_orgs):
@@ -216,7 +217,7 @@ public class GithubScenarioGenerator {
         // Org entity: attrs={readers, writers, admins: OrgPermission refs}
         // 3 OrgPermission entities (no attrs, no parents)
         for (int o = 0; o < n; o++) {
-            var orgParents = new ArrayList<Value>();
+            val orgParents = new ArrayList<Value>();
             for (int j = 0; j < n; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     orgParents.add(Value.of(ORG_PERM_PREFIX + j + "_" + randomOrgRole(rng)));
@@ -242,12 +243,12 @@ public class GithubScenarioGenerator {
         // Repo entity: attrs={readers,triagers,writers,maintainers,admins, owner}
         // 5 RepoPermission entities (no attrs, no parents)
         for (int r = 0; r < n; r++) {
-            var owner = OopslaConstants.PREFIX_ORG + rng.nextInt(n);
+            val owner = OopslaConstants.PREFIX_ORG + rng.nextInt(n);
 
             entityGraph.put(OopslaConstants.PREFIX_REPO + r, Value.ofArray());
 
             // 5 RepoPermission entities: no parents
-            for (var role : REPO_ROLES) {
+            for (val role : REPO_ROLES) {
                 entityGraph.put(REPO_PERM_PREFIX + r + "_" + role, Value.ofArray());
             }
 
@@ -265,7 +266,7 @@ public class GithubScenarioGenerator {
         // for j in range(num_repos): if random.random() < p:
         // parents.append(RepoPermission("repo_"+j+random_role_str()))
         for (int t = 0; t < n; t++) {
-            var teamParents = new ArrayList<Value>();
+            val teamParents = new ArrayList<Value>();
             for (int j = 0; j < t; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     teamParents.add(Value.of(OopslaConstants.PREFIX_TEAM + j));
@@ -289,7 +290,7 @@ public class GithubScenarioGenerator {
         // if random.random() < p:
         // parents.append(OrgPermission("org_"+j+random_org_role_str()))
         for (int u = 0; u < n; u++) {
-            var userParents = new ArrayList<Value>();
+            val userParents = new ArrayList<Value>();
             for (int j = 0; j < n; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     userParents.add(Value.of(REPO_PERM_PREFIX + j + "_" + randomRepoRole(rng)));
@@ -311,11 +312,11 @@ public class GithubScenarioGenerator {
             entityGraph.put(OopslaConstants.PREFIX_USER + u, Value.ofArray(userParents.toArray(Value[]::new)));
         }
 
-        var variables = ObjectValue.builder().put("entityGraph", entityGraph.build()).put("orgs", orgs.build())
+        val variables = ObjectValue.builder().put("entityGraph", entityGraph.build()).put("orgs", orgs.build())
                 .put("repos", repos.build()).build();
 
-        var requestRng    = new Random(seed + 1_000_000L);
-        var subscriptions = new ArrayList<AuthorizationSubscription>(OopslaConstants.REQUESTS_PER_GRAPH);
+        val requestRng    = new Random(seed + OopslaConstants.REQUEST_RNG_SEED_OFFSET);
+        val subscriptions = new ArrayList<AuthorizationSubscription>(OopslaConstants.REQUESTS_PER_GRAPH);
         // First subscription: guaranteed DENY (nonexistent repo)
         subscriptions.add(AuthorizationSubscription.of(OopslaConstants.PREFIX_USER + "0", "read", "nonexistent"));
         for (int i = 1; i < OopslaConstants.REQUESTS_PER_GRAPH; i++) {
@@ -326,9 +327,9 @@ public class GithubScenarioGenerator {
     }
 
     private static AuthorizationSubscription buildRequest(int n, Random rng) {
-        var subject  = OopslaConstants.PREFIX_USER + rng.nextInt(n);
-        var action   = ACTIONS[rng.nextInt(ACTIONS.length)];
-        var resource = OopslaConstants.PREFIX_REPO + rng.nextInt(n);
+        val subject  = OopslaConstants.PREFIX_USER + rng.nextInt(n);
+        val action   = ACTIONS[rng.nextInt(ACTIONS.length)];
+        val resource = OopslaConstants.PREFIX_REPO + rng.nextInt(n);
         return AuthorizationSubscription.of(subject, action, resource);
     }
 

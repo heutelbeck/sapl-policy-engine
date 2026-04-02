@@ -22,6 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.benchmark.sapl4.Scenario;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,6 @@ import java.util.Random;
  * compatible with {@code graph.transitiveClosure()} /
  * {@code graph.transitiveClosureSet()}.
  * <p>
- * <b>Policies are placeholders</b> pending SAPL 4 semantic review.
  *
  * @see <a href="https://arxiv.org/pdf/2403.04651">Cedar OOPSLA 2024 paper</a>
  */
@@ -104,12 +104,6 @@ public class TinytodoScenarioGenerator {
                         var closed = graph.transitiveClosureSet(entityGraph);
                         var list = lists[(resource)];
                         closed[(subject)][(list.readers)] != undefined || closed[(subject)][(list.editors)] != undefined;
-
-                        // Readable alternative using transitiveClosure (arrays) + in:
-                        // var closed = graph.transitiveClosure(entityGraph);
-                        // lists[(resource)].readers in closed[(subject)]
-                        // This is semantically easier to read but O(n) per lookup.
-                        // The transitiveClosureSet variant above is O(1) per lookup.
                     """,
             """
                     // Policy 3: A user can modify a list (UpdateList, CreateTask, UpdateTask, DeleteTask)
@@ -156,10 +150,10 @@ public class TinytodoScenarioGenerator {
      * @return scenario with 4 policies and 500 subscriptions
      */
     public static Scenario generate(int n, long seed) {
-        var rng = new Random(seed);
+        val rng = new Random(seed);
 
-        var entityGraph = ObjectValue.builder();
-        var lists       = ObjectValue.builder();
+        val entityGraph = ObjectValue.builder();
+        val lists       = ObjectValue.builder();
 
         // Application entity: no parents.
         // Cedar: app_entity() -> entity(app_euid(), attrs={}, parents=[])
@@ -171,7 +165,7 @@ public class TinytodoScenarioGenerator {
         // if random.random() < chance_user_in_team: parents.append(team_j)
         // user_entity(name, parents) adds [app_euid()] to parents
         for (int i = 0; i < n; i++) {
-            var parents = new ArrayList<Value>();
+            val parents = new ArrayList<Value>();
             for (int j = 0; j < n; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     parents.add(Value.of(OopslaConstants.PREFIX_TEAM + j));
@@ -187,7 +181,7 @@ public class TinytodoScenarioGenerator {
         // if random.random() < chance_team_in_team: parents.append(team_j)
         // team_entity(name, parents) adds [app_euid()] to parents
         for (int i = 0; i < n; i++) {
-            var parents = new ArrayList<Value>();
+            val parents = new ArrayList<Value>();
             for (int j = 0; j < i; j++) {
                 if (rng.nextDouble() < OopslaConstants.EDGE_PROBABILITY) {
                     parents.add(Value.of(OopslaConstants.PREFIX_TEAM + j));
@@ -206,20 +200,20 @@ public class TinytodoScenarioGenerator {
         // -> tasks = [task() for _ in range(random.randint(0, 50))]
         // -> task(): name=randint(1,1e6), id=randint(1,1e6), state=randint(1,2)
         for (int i = 0; i < n; i++) {
-            var owner   = OopslaConstants.PREFIX_USER + rng.nextInt(n);
-            var readers = OopslaConstants.PREFIX_TEAM + rng.nextInt(n);
-            var editors = OopslaConstants.PREFIX_TEAM + rng.nextInt(n);
+            val owner   = OopslaConstants.PREFIX_USER + rng.nextInt(n);
+            val readers = OopslaConstants.PREFIX_TEAM + rng.nextInt(n);
+            val editors = OopslaConstants.PREFIX_TEAM + rng.nextInt(n);
 
             // Cedar: list_entity parents = [app_euid()]
             entityGraph.put(OopslaConstants.PREFIX_LIST + i, Value.ofArray(Value.of(APPLICATION)));
 
             // Cedar: tasks = [task() for _ in range(random.randint(0, 50))]
-            var taskCount = rng.nextInt(51);
-            var tasks     = new Value[taskCount];
+            val taskCount = rng.nextInt(51);
+            val tasks     = new Value[taskCount];
             for (int t = 0; t < taskCount; t++) {
-                var taskName  = "task_" + (rng.nextInt(1_000_000) + 1);
-                var taskId    = rng.nextInt(1_000_000) + 1;
-                var taskState = rng.nextInt(2) + 1 == 1 ? "Checked" : "Unchecked";
+                val taskName  = "task_" + (rng.nextInt(1_000_000) + 1);
+                val taskId    = rng.nextInt(1_000_000) + 1;
+                val taskState = rng.nextInt(2) + 1 == 1 ? "Checked" : "Unchecked";
                 tasks[t] = Value.ofObject(
                         Map.of("name", Value.of(taskName), "id", Value.of(taskId), "state", Value.of(taskState)));
             }
@@ -230,11 +224,11 @@ public class TinytodoScenarioGenerator {
                             Value.ofArray(tasks))));
         }
 
-        var variables = ObjectValue.builder().put("entityGraph", entityGraph.build()).put("lists", lists.build())
+        val variables = ObjectValue.builder().put("entityGraph", entityGraph.build()).put("lists", lists.build())
                 .build();
 
-        var requestRng    = new Random(seed + 1_000_000L);
-        var subscriptions = new ArrayList<AuthorizationSubscription>(OopslaConstants.REQUESTS_PER_GRAPH);
+        val requestRng    = new Random(seed + OopslaConstants.REQUEST_RNG_SEED_OFFSET);
+        val subscriptions = new ArrayList<AuthorizationSubscription>(OopslaConstants.REQUESTS_PER_GRAPH);
         // First subscription: guaranteed DENY (DeleteList is not in any policy)
         subscriptions.add(AuthorizationSubscription.of(OopslaConstants.PREFIX_USER + "0", "DeleteList",
                 OopslaConstants.PREFIX_LIST + "0"));
@@ -246,8 +240,8 @@ public class TinytodoScenarioGenerator {
     }
 
     private static AuthorizationSubscription buildRequest(int n, Random rng) {
-        var subject = OopslaConstants.PREFIX_USER + rng.nextInt(n);
-        var action  = ACTIONS[rng.nextInt(ACTIONS.length)];
+        val subject = OopslaConstants.PREFIX_USER + rng.nextInt(n);
+        val action  = ACTIONS[rng.nextInt(ACTIONS.length)];
 
         String resource;
         if ("CreateList".equals(action) || "GetLists".equals(action)) {

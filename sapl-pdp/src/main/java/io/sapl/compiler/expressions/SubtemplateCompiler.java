@@ -227,8 +227,7 @@ public class SubtemplateCompiler {
         return template.evaluate(elemCtx);
     }
 
-    public record SubtemplateValuePure(Value parent, PureOperator template, SourceLocation location)
-            implements PureOperator {
+    record SubtemplateValuePure(Value parent, PureOperator template, SourceLocation location) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(SubtemplateValuePure.class);
 
         @Override
@@ -252,8 +251,7 @@ public class SubtemplateCompiler {
         }
     }
 
-    public record SubtemplatePureValue(PureOperator parent, Value template, SourceLocation location)
-            implements PureOperator {
+    record SubtemplatePureValue(PureOperator parent, Value template, SourceLocation location) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(SubtemplatePureValue.class);
 
         @Override
@@ -278,7 +276,7 @@ public class SubtemplateCompiler {
         }
     }
 
-    public record SubtemplatePurePure(PureOperator parent, PureOperator template, SourceLocation location)
+    record SubtemplatePurePure(PureOperator parent, PureOperator template, SourceLocation location)
             implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(SubtemplatePurePure.class);
 
@@ -304,7 +302,7 @@ public class SubtemplateCompiler {
         }
     }
 
-    public record SubtemplateStreamValue(StreamOperator parent, Value template, SourceLocation location)
+    record SubtemplateStreamValue(StreamOperator parent, Value template, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
@@ -316,7 +314,7 @@ public class SubtemplateCompiler {
         }
     }
 
-    public record SubtemplateStreamPure(StreamOperator parent, PureOperator template, SourceLocation location)
+    record SubtemplateStreamPure(StreamOperator parent, PureOperator template, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {

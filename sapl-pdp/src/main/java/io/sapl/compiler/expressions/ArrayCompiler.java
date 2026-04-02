@@ -172,7 +172,7 @@ public class ArrayCompiler {
     /**
      * Array with all pure elements (values and pure operators, no streams).
      */
-    public record AllPureArray(
+    record AllPureArray(
             int[] valueIndices,
             Value[] values,
             int[] pureIndices,
@@ -240,7 +240,7 @@ public class ArrayCompiler {
     /**
      * Array with exactly one stream element.
      */
-    public record SingleStreamArray(
+    record SingleStreamArray(
             int[] valueIndices,
             Value[] values,
             int[] pureIndices,
@@ -252,13 +252,13 @@ public class ArrayCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return streamOp.stream().switchMap(tracedValue -> {
-                var streamVal = tracedValue.value();
+                val streamVal = tracedValue.value();
                 if (streamVal instanceof ErrorValue) {
                     return Flux.just(tracedValue);
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx  = ctx.get(EvaluationContext.class);
+                    val evalCtx  = ctx.get(EvaluationContext.class);
                     val elements = new Value[totalElements];
 
                     for (int i = 0; i < valueIndices.length; i++) {
@@ -266,7 +266,7 @@ public class ArrayCompiler {
                     }
 
                     for (int i = 0; i < pureIndices.length; i++) {
-                        var value = pureOperators[i].evaluate(evalCtx);
+                        val value = pureOperators[i].evaluate(evalCtx);
                         if (value instanceof ErrorValue) {
                             return Flux.just(new TracedValue(value, tracedValue.contributingAttributes()));
                         }
@@ -290,7 +290,7 @@ public class ArrayCompiler {
     /**
      * Array with multiple stream elements.
      */
-    public record MultiStreamArray(
+    record MultiStreamArray(
             int[] valueIndices,
             Value[] values,
             int[] pureIndices,
@@ -322,7 +322,7 @@ public class ArrayCompiler {
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx  = ctx.get(EvaluationContext.class);
+                    val evalCtx  = ctx.get(EvaluationContext.class);
                     val elements = new Value[totalElements];
 
                     for (int i = 0; i < valueIndices.length; i++) {
@@ -330,7 +330,7 @@ public class ArrayCompiler {
                     }
 
                     for (int i = 0; i < pureIndices.length; i++) {
-                        var value = pureOperators[i].evaluate(evalCtx);
+                        val value = pureOperators[i].evaluate(evalCtx);
                         if (value instanceof ErrorValue) {
                             return Flux.just(new TracedValue(value, combined.traces));
                         }

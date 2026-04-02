@@ -120,7 +120,7 @@ public class ObjectCompiler {
     /**
      * Object with all pure values (values and pure operators, no streams).
      */
-    public record AllPureObject(
+    record AllPureObject(
             String[] keys,
             int[] valueIndices,
             Value[] values,
@@ -190,7 +190,7 @@ public class ObjectCompiler {
     /**
      * Object with exactly one stream value.
      */
-    public record SingleStreamObject(
+    record SingleStreamObject(
             String[] keys,
             int[] valueIndices,
             Value[] values,
@@ -203,13 +203,13 @@ public class ObjectCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return streamOp.stream().switchMap(tracedValue -> {
-                var streamVal = tracedValue.value();
+                val streamVal = tracedValue.value();
                 if (streamVal instanceof ErrorValue) {
                     return Flux.just(tracedValue);
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx     = ctx.get(EvaluationContext.class);
+                    val evalCtx     = ctx.get(EvaluationContext.class);
                     val entryValues = new Value[totalEntries];
 
                     for (int i = 0; i < valueIndices.length; i++) {
@@ -217,7 +217,7 @@ public class ObjectCompiler {
                     }
 
                     for (int i = 0; i < pureIndices.length; i++) {
-                        var value = pureOperators[i].evaluate(evalCtx);
+                        val value = pureOperators[i].evaluate(evalCtx);
                         if (value instanceof ErrorValue) {
                             return Flux.just(new TracedValue(value, tracedValue.contributingAttributes()));
                         }
@@ -242,7 +242,7 @@ public class ObjectCompiler {
     /**
      * Object with multiple stream values.
      */
-    public record MultiStreamObject(
+    record MultiStreamObject(
             String[] keys,
             int[] valueIndices,
             Value[] values,
@@ -275,7 +275,7 @@ public class ObjectCompiler {
                 }
 
                 return Flux.deferContextual(ctx -> {
-                    var evalCtx     = ctx.get(EvaluationContext.class);
+                    val evalCtx     = ctx.get(EvaluationContext.class);
                     val entryValues = new Value[totalEntries];
 
                     for (int i = 0; i < valueIndices.length; i++) {
@@ -283,7 +283,7 @@ public class ObjectCompiler {
                     }
 
                     for (int i = 0; i < pureIndices.length; i++) {
-                        var value = pureOperators[i].evaluate(evalCtx);
+                        val value = pureOperators[i].evaluate(evalCtx);
                         if (value instanceof ErrorValue) {
                             return Flux.just(new TracedValue(value, combined.traces));
                         }

@@ -78,12 +78,12 @@ public class NaryOperatorCompiler {
             BinaryOperatorType opType, BinaryOperation op) {
 
         // Compile all operands and categorize by strata
-        var values  = new ArrayList<Value>();
-        var pures   = new ArrayList<PureOperator>();
-        var streams = new ArrayList<StreamOperator>();
+        val values  = new ArrayList<Value>();
+        val pures   = new ArrayList<PureOperator>();
+        val streams = new ArrayList<StreamOperator>();
 
-        for (var operand : operands) {
-            var compiled = ExpressionCompiler.compile(operand, ctx);
+        for (val operand : operands) {
+            val compiled = ExpressionCompiler.compile(operand, ctx);
             switch (compiled) {
             case Value v          -> values.add(v);
             case PureOperator p   -> pures.add(p);
@@ -148,8 +148,8 @@ public class NaryOperatorCompiler {
     private static Value evaluateAndFoldPures(Value initial, List<PureOperator> pures, BinaryOperation op,
             SourceLocation location, EvaluationContext ctx) {
         Value result = initial;
-        for (var pure : pures) {
-            var pv = pure.evaluate(ctx);
+        for (val pure : pures) {
+            val pv = pure.evaluate(ctx);
             if (pv instanceof ErrorValue) {
                 return pv;
             }
@@ -169,13 +169,13 @@ public class NaryOperatorCompiler {
      */
     private static TracedValue foldStreamValues(Value initial, Object[] emittedValues, BinaryOperation op,
             SourceLocation location) {
-        var   attributes = new ArrayList<AttributeRecord>();
+        val   attributes = new ArrayList<AttributeRecord>();
         Value result     = initial;
 
-        for (var obj : emittedValues) {
-            var tv = (TracedValue) obj;
+        for (val obj : emittedValues) {
+            val tv = (TracedValue) obj;
             attributes.addAll(tv.contributingAttributes());
-            var v = tv.value();
+            val v = tv.value();
             if (v instanceof ErrorValue) {
                 return new TracedValue(v, attributes);
             }
@@ -249,7 +249,7 @@ public class NaryOperatorCompiler {
                 }
 
                 // Subscribe to all streams with combineLatest
-                var streamFluxes     = streams.stream().map(StreamOperator::stream).toList();
+                val streamFluxes     = streams.stream().map(StreamOperator::stream).toList();
                 val finalPreCombined = preCombined;
 
                 return Flux.combineLatest(streamFluxes,

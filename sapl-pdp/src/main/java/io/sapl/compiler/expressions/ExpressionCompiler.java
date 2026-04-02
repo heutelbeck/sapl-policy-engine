@@ -111,7 +111,7 @@ public class ExpressionCompiler {
         }
     }
 
-    public record RelativeValueOp(SourceLocation location) implements PureOperator {
+    record RelativeValueOp(SourceLocation location) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(RelativeValueOp.class);
 
         @Override

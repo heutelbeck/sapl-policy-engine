@@ -29,13 +29,15 @@ import lombok.experimental.UtilityClass;
  * (cedar-examples/oopsla2024-benchmarks/).
  */
 @UtilityClass
-public final class OopslaConstants {
+public class OopslaConstants {
 
     // Cedar: 500 requests per hierarchy (main.rs --num-requests 500)
     public static final int REQUESTS_PER_GRAPH = 500;
 
     // Cedar: connection_probability = 0.05 for all generators (apps.rs)
     public static final double EDGE_PROBABILITY = 0.05;
+
+    public static final long REQUEST_RNG_SEED_OFFSET = 1_000_000L;
 
     public static final CombiningAlgorithm ALGORITHM = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
             DefaultDecision.DENY, ErrorHandling.PROPAGATE);
