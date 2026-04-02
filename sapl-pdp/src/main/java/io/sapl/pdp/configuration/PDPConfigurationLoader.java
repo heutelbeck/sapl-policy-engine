@@ -25,6 +25,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
@@ -92,9 +93,9 @@ import java.util.stream.Stream;
 @UtilityClass
 public class PDPConfigurationLoader {
 
-    private static final String FIELD_INDEXING = "indexing";
-    private static final String PDP_JSON       = "pdp.json";
-    private static final String SAPL_EXTENSION = ".sapl";
+    private static final String FIELD_COMPILER_FLAGS = "compilerFlags";
+    private static final String PDP_JSON             = "pdp.json";
+    private static final String SAPL_EXTENSION       = ".sapl";
 
     private static final int  MAX_FILE_COUNT           = 1000;
     private static final long MAX_TOTAL_SIZE_BYTES     = 10L * 1024 * 1024;
@@ -157,7 +158,7 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path, pdpJson, saplContents);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.indexing(), documents,
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerFlags(), documents,
                 new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -191,7 +192,7 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateResourceConfigurationId(sourcePath, pdpJson, saplDocuments);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.indexing(), documents,
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerFlags(), documents,
                 new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -226,7 +227,7 @@ public class PDPConfigurationLoader {
         }
 
         val documents = new ArrayList<>(saplDocuments.values());
-        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.indexing(),
+        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.compilerFlags(),
                 documents, new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -324,27 +325,48 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            val indexing = parseIndexingStrategy(node);
+            val compilerFlags = parseCompilerFlags(node);
 
             val variables = parseValueSection(node, "variables");
             val secrets   = parseValueSection(node, "secrets");
 
-            return new PdpJsonContent(algorithm, indexing, configurationId, variables, secrets);
+            return new PdpJsonContent(algorithm, compilerFlags, configurationId, variables, secrets);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
     }
 
-    private static IndexingStrategy parseIndexingStrategy(JsonNode node) {
-        if (!node.has(FIELD_INDEXING)) {
-            return IndexingStrategy.AUTO;
+    private static CompilerFlags parseCompilerFlags(JsonNode node) {
+        if (!node.has(FIELD_COMPILER_FLAGS)) {
+            return CompilerFlags.defaults();
         }
-        val value = node.get(FIELD_INDEXING).asString();
-        try {
-            return IndexingStrategy.valueOf(value.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new PDPConfigurationException(ERROR_INVALID_INDEXING_STRATEGY.formatted(value), e);
+        val flagsNode = node.get(FIELD_COMPILER_FLAGS);
+        val defaults  = CompilerFlags.defaults();
+
+        var indexing                = defaults.indexing();
+        var unrollInOperator        = defaults.unrollInOperator();
+        var minPoliciesForCanonical = defaults.minPoliciesForCanonical();
+        var minSharingForCanonical  = defaults.minSharingForCanonical();
+
+        if (flagsNode.has("indexing")) {
+            val value = flagsNode.get("indexing").asString();
+            try {
+                indexing = IndexingStrategy.valueOf(value.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new PDPConfigurationException(ERROR_INVALID_INDEXING_STRATEGY.formatted(value), e);
+            }
         }
+        if (flagsNode.has("unrollInOperator")) {
+            unrollInOperator = flagsNode.get("unrollInOperator").asBoolean();
+        }
+        if (flagsNode.has("minPoliciesForCanonical")) {
+            minPoliciesForCanonical = flagsNode.get("minPoliciesForCanonical").asInt();
+        }
+        if (flagsNode.has("minSharingForCanonical")) {
+            minSharingForCanonical = flagsNode.get("minSharingForCanonical").numberValue().doubleValue();
+        }
+
+        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical);
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {
@@ -403,7 +425,7 @@ public class PDPConfigurationLoader {
 
     private record PdpJsonContent(
             CombiningAlgorithm algorithm,
-            IndexingStrategy indexing,
+            CompilerFlags compilerFlags,
             String configurationId,
             ObjectValue variables,
             ObjectValue secrets) {
@@ -412,7 +434,7 @@ public class PDPConfigurationLoader {
                 String configurationId,
                 ObjectValue variables,
                 ObjectValue secrets) {
-            this(algorithm, IndexingStrategy.AUTO, configurationId, variables, secrets);
+            this(algorithm, CompilerFlags.defaults(), configurationId, variables, secrets);
         }
     }
 

@@ -97,65 +97,80 @@ public final class GithubScenarioGenerator {
             policy "repo-read"
             permit
                 action == "read";
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(repos[(resource)].readers)] != undefined;
+                closed[(subject)][(repo.readers)] != undefined;
             """, """
             // Policy 1: Users with repo triage permission can triage and read.
             // Cedar: principal in resource.triagers (action hierarchy includes read)
             policy "repo-triage"
             permit
                 action in ["triage", "read"];
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(repos[(resource)].triagers)] != undefined;
+                closed[(subject)][(repo.triagers)] != undefined;
             """, """
             // Policy 2: Users with repo write permission can write, triage, and read.
             // Cedar: principal in resource.writers
             policy "repo-write"
             permit
                 action in ["write", "triage", "read"];
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(repos[(resource)].writers)] != undefined;
+                closed[(subject)][(repo.writers)] != undefined;
             """, """
             // Policy 3: Users with repo maintain permission.
             // Cedar: principal in resource.maintainers
             policy "repo-maintain"
             permit
                 action in ["maintain", "write", "triage", "read"];
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(repos[(resource)].maintainers)] != undefined;
+                closed[(subject)][(repo.maintainers)] != undefined;
             """, """
             // Policy 4: Users with repo admin permission.
             // Cedar: principal in resource.admins
             policy "repo-admin"
             permit
                 action in ["admin", "maintain", "write", "triage", "read"];
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(repos[(resource)].admins)] != undefined;
+                closed[(subject)][(repo.admins)] != undefined;
             """, """
             // Policy 5: Users with org read permission can read repos owned by that org.
             // Cedar: principal in resource.owner.readers
-            // Two lookups: repos[(resource)].owner -> org, orgs[(org)].readers -> OrgPermission
             policy "org-read"
             permit
                 action == "read";
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(orgs[(repos[(resource)].owner)].readers)] != undefined;
+                closed[(subject)][(orgs[(repo.owner)].readers)] != undefined;
             """, """
             // Policy 6: Users with org write permission.
             // Cedar: principal in resource.owner.writers
             policy "org-write"
             permit
                 action in ["write", "triage", "read"];
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(orgs[(repos[(resource)].owner)].writers)] != undefined;
+                closed[(subject)][(orgs[(repo.owner)].writers)] != undefined;
             """, """
             // Policy 7: Users with org admin permission.
             // Cedar: principal in resource.owner.admins
             policy "org-admin"
             permit
                 action in ["admin", "maintain", "write", "triage", "read"];
+                var repo = repos[(resource)];
+                repo != undefined;
                 var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(subject)][(orgs[(repos[(resource)].owner)].admins)] != undefined;
+                closed[(subject)][(orgs[(repo.owner)].admins)] != undefined;
             """);
 
     private GithubScenarioGenerator() {

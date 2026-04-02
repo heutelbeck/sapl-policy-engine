@@ -120,7 +120,9 @@ final class ScenarioFactory {
                 "defaultDecision": "DENY",
                 "errorHandling": "PROPAGATE"
               },
-              "indexing": "%s",
+              "compilerFlags": {
+                "indexing": "%s"
+              },
               "variables": %s
             }
             """;

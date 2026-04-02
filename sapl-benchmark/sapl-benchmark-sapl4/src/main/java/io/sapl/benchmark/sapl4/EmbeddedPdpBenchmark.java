@@ -19,6 +19,7 @@ package io.sapl.benchmark.sapl4;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
@@ -43,6 +44,9 @@ public class EmbeddedPdpBenchmark {
     @Param({ "AUTO" })
     public String indexingStrategy;
 
+    @Param({ "false" })
+    public String unrollInOperator;
+
     @Param({ "42" })
     public String seed;
 
@@ -54,8 +58,9 @@ public class EmbeddedPdpBenchmark {
     @Setup(Level.Trial)
     public void setup() {
         var scenario = ScenarioFactory.create(scenarioName, Long.parseLong(seed));
-        var strategy = IndexingStrategy.valueOf(indexingStrategy.toUpperCase());
-        components    = scenario.buildPdp(strategy);
+        var flags    = new CompilerFlags(IndexingStrategy.valueOf(indexingStrategy.toUpperCase()),
+                Boolean.parseBoolean(unrollInOperator), 10, 1.5);
+        components    = scenario.buildPdp(flags);
         pdp           = components.pdp();
         subscriptions = scenario.subscriptions().toArray(AuthorizationSubscription[]::new);
     }

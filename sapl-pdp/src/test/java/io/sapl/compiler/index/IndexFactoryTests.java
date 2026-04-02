@@ -20,8 +20,10 @@ package io.sapl.compiler.index;
 import java.util.List;
 import java.util.stream.Stream;
 
+import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
+import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,8 +40,10 @@ class IndexFactoryTests {
     @ParameterizedTest(name = "{0} -> {1}")
     @MethodSource
     void whenStrategyThenCorrectImplementation(IndexingStrategy strategy, Class<?> expectedType) {
-        val docs  = List.of(stubDocument("p1"));
-        val index = IndexFactory.createIndex(docs, strategy);
+        val docs = List.of(stubDocument("p1"));
+        val ctx  = SaplTesting.compilationContext();
+        ctx.setCompilerFlags(new CompilerFlags(strategy, false, 10, 1.5));
+        val index = IndexFactory.createIndex(docs, ctx);
         assertThat(index).isInstanceOf(expectedType);
     }
 

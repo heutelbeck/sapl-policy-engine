@@ -29,8 +29,8 @@ import io.sapl.api.SaplVersion;
  * @param pdpId the PDP identifier
  * @param configurationId the configuration version identifier
  * @param combiningAlgorithm the policy combining algorithm
- * @param indexing the policy index strategy; defaults to
- * {@link IndexingStrategy#AUTO} when not specified in pdp.json
+ * @param compilerFlags compiler tuning flags (indexing, unrolling, thresholds);
+ * defaults to {@link CompilerFlags#defaults()} when not specified in pdp.json
  * @param saplDocuments the SAPL document source strings
  * @param data PDP-level variables and secrets
  */
@@ -38,20 +38,21 @@ public record PDPConfiguration(
         String pdpId,
         String configurationId,
         CombiningAlgorithm combiningAlgorithm,
-        IndexingStrategy indexing,
+        CompilerFlags compilerFlags,
         List<String> saplDocuments,
         PdpData data) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Convenience constructor defaulting indexing to {@link IndexingStrategy#AUTO}.
+     * Convenience constructor defaulting compiler flags to
+     * {@link CompilerFlags#defaults()}.
      */
     public PDPConfiguration(String pdpId,
             String configurationId,
             CombiningAlgorithm combiningAlgorithm,
             List<String> saplDocuments,
             PdpData data) {
-        this(pdpId, configurationId, combiningAlgorithm, IndexingStrategy.AUTO, saplDocuments, data);
+        this(pdpId, configurationId, combiningAlgorithm, CompilerFlags.defaults(), saplDocuments, data);
     }
 }

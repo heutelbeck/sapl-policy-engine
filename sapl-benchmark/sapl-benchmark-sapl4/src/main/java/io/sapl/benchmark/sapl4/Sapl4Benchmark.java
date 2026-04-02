@@ -17,6 +17,8 @@
  */
 package io.sapl.benchmark.sapl4;
 
+import io.sapl.api.pdp.CompilerFlags;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.IndexingStrategy;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
@@ -38,8 +40,10 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -85,6 +89,9 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     @Option(names = "--indexing", defaultValue = "AUTO", description = "Indexing strategy: AUTO, NAIVE, CANONICAL.")
     private String indexing;
+
+    @Option(names = "--unroll", defaultValue = "false", description = "Enable IN-operator unrolling for index matching.")
+    private boolean unroll;
 
     @Option(names = "--method", defaultValue = "decideOnceBlocking", description = "Benchmark method: decideOnceBlocking, decideStreamFirst, noOp.")
     private String method;
@@ -207,7 +214,8 @@ class Sapl4Benchmark implements Callable<Integer> {
         }
         try {
             var resolvedScenario = ScenarioFactory.create(scenario, seed);
-            var components       = resolvedScenario.buildPdp(IndexingStrategy.valueOf(indexing.toUpperCase()));
+            var flags            = new CompilerFlags(IndexingStrategy.valueOf(indexing.toUpperCase()), unroll, 10, 1.5);
+            var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
             components.dispose();
@@ -283,15 +291,15 @@ class Sapl4Benchmark implements Callable<Integer> {
         var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
                 .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
                 .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).param("indexingStrategy", indexing).param("seed", String.valueOf(seed))
+                .param("scenarioName", scenario).param("indexingStrategy", indexing)
+                .param("unrollInOperator", String.valueOf(unroll)).param("seed", String.valueOf(seed))
                 .mode(Mode.Throughput).timeUnit(TimeUnit.SECONDS).shouldDoGC(true).syncIterations(true);
 
         buildJvmArgs(builder);
 
         if (output != null) {
-            var gcLabel    = gc != null ? "_" + gc : "";
-            var resultPath = output.resolve(scenario + "_seed" + seed + gcLabel + "_" + indexing + "_" + method + "_"
-                    + threads + "t_fork" + forkIndex + ".json").toString();
+            var resultPath = output
+                    .resolve(baseFileName() + "_" + method + "_" + threads + "t_fork" + forkIndex + ".json").toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
 
@@ -351,8 +359,7 @@ class Sapl4Benchmark implements Callable<Integer> {
     private void writeResults(List<Double> forkThroughputs, LatencyResult latencyResult, PrintWriter out) {
         try {
             Files.createDirectories(output);
-            var gcLabel = gc != null ? "_" + gc : "";
-            var csvPath = output.resolve(scenario + "_seed" + seed + gcLabel + "_" + method + "_" + threads + "t.csv");
+            var csvPath = output.resolve(baseFileName() + "_" + method + "_" + threads + "t.csv");
             var csv     = new StringBuilder();
             csv.append("# SAPL 4.0 Benchmark Results\n");
             csv.append("# Command: ").append(commandLine).append('\n');
@@ -386,6 +393,11 @@ class Sapl4Benchmark implements Callable<Integer> {
                 csv.append("# Latency max (ns): ").append(String.format(Locale.US, "%.0f", latencyResult.max()))
                         .append('\n');
             }
+            var decisions = countDecisions();
+            csv.append("# Decisions PERMIT: ").append(decisions.get(Decision.PERMIT)).append('\n');
+            csv.append("# Decisions DENY: ").append(decisions.get(Decision.DENY)).append('\n');
+            csv.append("# Decisions INDETERMINATE: ").append(decisions.get(Decision.INDETERMINATE)).append('\n');
+            csv.append("# Decisions NOT_APPLICABLE: ").append(decisions.get(Decision.NOT_APPLICABLE)).append('\n');
             csv.append("fork,throughput_ops_s\n");
             for (int i = 0; i < forkThroughputs.size(); i++) {
                 csv.append(String.format(Locale.US, "%d,%.2f%n", i + 1, forkThroughputs.get(i)));
@@ -407,15 +419,15 @@ class Sapl4Benchmark implements Callable<Integer> {
         var builder = new OptionsBuilder().include(includePattern).forks(1).warmupIterations(warmupIterations)
                 .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
                 .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
-                .param("scenarioName", scenario).param("indexingStrategy", indexing).param("seed", String.valueOf(seed))
+                .param("scenarioName", scenario).param("indexingStrategy", indexing)
+                .param("unrollInOperator", String.valueOf(unroll)).param("seed", String.valueOf(seed))
                 .mode(Mode.SampleTime).timeUnit(TimeUnit.NANOSECONDS).shouldDoGC(true).syncIterations(true);
 
         buildJvmArgs(builder);
 
         if (output != null) {
-            var gcLabel    = gc != null ? "_" + gc : "";
-            var resultPath = output.resolve(scenario + "_seed" + seed + gcLabel + "_" + indexing + "_" + method + "_"
-                    + threads + "t_latency.json").toString();
+            var resultPath = output.resolve(baseFileName() + "_" + method + "_" + threads + "t_latency.json")
+                    .toString();
             builder.resultFormat(ResultFormatType.JSON).result(resultPath);
         }
 
@@ -461,6 +473,29 @@ class Sapl4Benchmark implements Callable<Integer> {
             return T_CRITICAL_95[degreesOfFreedom - 1];
         }
         return 1.96;
+    }
+
+    private String baseFileName() {
+        var gcLabel     = gc != null ? "_" + gc : "";
+        var unrollLabel = unroll ? "_unroll" : "";
+        return scenario + "_seed" + seed + gcLabel + "_" + indexing + unrollLabel;
+    }
+
+    private Map<Decision, Integer> countDecisions() {
+        var resolvedScenario = ScenarioFactory.create(scenario, seed);
+        var flags            = new CompilerFlags(IndexingStrategy.valueOf(indexing.toUpperCase()), unroll, 10, 1.5);
+        var components       = resolvedScenario.buildPdp(flags);
+        var pdp              = components.pdp();
+        var counts           = new EnumMap<Decision, Integer>(Decision.class);
+        for (var d : Decision.values()) {
+            counts.put(d, 0);
+        }
+        for (var sub : resolvedScenario.subscriptions()) {
+            var decision = pdp.decideOnceBlocking(sub).decision();
+            counts.merge(decision, 1, Integer::sum);
+        }
+        components.dispose();
+        return counts;
     }
 
     public static void main(String[] args) {

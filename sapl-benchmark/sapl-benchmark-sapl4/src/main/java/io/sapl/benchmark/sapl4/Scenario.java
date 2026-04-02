@@ -22,7 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.IndexingStrategy;
+import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -76,12 +76,12 @@ public record Scenario(
     /**
      * Builds an embedded PDP configured for this scenario.
      *
-     * @param indexing the indexing strategy to use
+     * @param compilerFlags compiler flags including indexing strategy
      * @return the PDP components (caller must dispose)
      */
-    PDPComponents buildPdp(IndexingStrategy indexing) {
+    PDPComponents buildPdp(CompilerFlags compilerFlags) {
         var pdpData          = new PdpData(variables, Value.EMPTY_OBJECT);
-        var pdpConfiguration = new PDPConfiguration("default", name, algorithm, indexing, policies.get(), pdpData);
+        var pdpConfiguration = new PDPConfiguration("default", name, algorithm, compilerFlags, policies.get(), pdpData);
         return PolicyDecisionPointBuilder.withDefaults().withConfiguration(pdpConfiguration).build();
     }
 

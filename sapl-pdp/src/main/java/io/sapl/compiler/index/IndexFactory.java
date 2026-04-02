@@ -19,7 +19,6 @@ package io.sapl.compiler.index;
 
 import java.util.List;
 
-import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
@@ -42,7 +41,7 @@ public class IndexFactory {
      * @return a policy index
      */
     public static PolicyIndex createIndex(List<CompiledDocument> documents, CompilationContext ctx) {
-        return switch (ctx.getIndexingStrategy()) {
+        return switch (ctx.getCompilerFlags().indexing()) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
         case CANONICAL -> CanonicalPolicyIndex.create(documents);
         case AUTO      -> autoSelect(documents, ctx);

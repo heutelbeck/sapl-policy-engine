@@ -20,10 +20,12 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.compiler.document.Document;
-import io.sapl.api.pdp.IndexingStrategy;
+import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -64,16 +66,8 @@ public class CompilationContext {
     private Set<String>                     localVariableNames       = new HashSet<>();
     private final Map<Value, Value>         valueDedup               = new HashMap<>();
     private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
-    private IndexingStrategy                indexingStrategy         = IndexingStrategy.AUTO;
-
-    private CompilerFlags compilerFlags = CompilerFlags.defaults();
-
-    public record CompilerFlags(boolean unrollInOperator, int minPoliciesForCanonical, double minSharingForCanonical) {
-
-        static CompilerFlags defaults() {
-            return new CompilerFlags(false, 10, 1.5);
-        }
-    }
+    private CompilerFlags                   compilerFlags            = CompilerFlags.defaults();
+    private Map<Long, Value>                foldingCache             = new HashMap<>();
 
     public CompilationContext(String pdpId,
             String configurationId,
@@ -185,6 +179,19 @@ public class CompilationContext {
         }
         val existing = valueDedup.putIfAbsent(value, value);
         return existing != null ? existing : value;
+    }
+
+    public Value cacheOrFold(PureOperator compiledExpression, CompilationContext ctx) {
+        val cacheHit = foldingCache.get(compiledExpression.semanticHash());
+        if (cacheHit != null) {
+            System.out.println("cache hit for: " + compiledExpression.semanticHash() + " - " + compiledExpression);
+            return cacheHit;
+        }
+        val foldingContext = DummyEvaluationContextFactory.dummyContext(ctx);
+        val result         = compiledExpression.evaluate(foldingContext);
+        foldingCache.put(compiledExpression.semanticHash(), result);
+        System.out.println("cache miss for: " + compiledExpression.semanticHash() + " - " + result);
+        return result;
     }
 
     /**

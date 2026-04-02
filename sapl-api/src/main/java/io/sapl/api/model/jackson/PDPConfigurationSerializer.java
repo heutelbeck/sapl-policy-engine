@@ -42,7 +42,12 @@ import lombok.val;
  *     "defaultDecision": "ABSTAIN",
  *     "errorHandling": "PROPAGATE"
  *   },
- *   "indexing": "AUTO",
+ *   "compilerFlags": {
+ *     "indexing": "AUTO",
+ *     "unrollInOperator": false,
+ *     "minPoliciesForCanonical": 10,
+ *     "minSharingForCanonical": 1.5
+ *   },
  *   "saplDocuments": ["policy access-control...", "policy audit-log..."],
  *   "variables": {
  *     "serverUrl": "https://api.example.com",
@@ -72,7 +77,8 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeName("combiningAlgorithm");
         serializeCombiningAlgorithm(configuration.combiningAlgorithm(), generator);
 
-        generator.writeStringProperty("indexing", configuration.indexing().name());
+        generator.writeName("compilerFlags");
+        serializeCompilerFlags(configuration.compilerFlags(), generator);
 
         generator.writeName("saplDocuments");
         serializeStringList(configuration.saplDocuments(), generator);
@@ -83,6 +89,15 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeName("secrets");
         serializeValueMap(configuration.data().secrets(), generator, serializers);
 
+        generator.writeEndObject();
+    }
+
+    private void serializeCompilerFlags(io.sapl.api.pdp.CompilerFlags flags, JsonGenerator generator) {
+        generator.writeStartObject();
+        generator.writeStringProperty("indexing", flags.indexing().name());
+        generator.writeBooleanProperty("unrollInOperator", flags.unrollInOperator());
+        generator.writeNumberProperty("minPoliciesForCanonical", flags.minPoliciesForCanonical());
+        generator.writeNumberProperty("minSharingForCanonical", flags.minSharingForCanonical());
         generator.writeEndObject();
     }
 

@@ -117,14 +117,9 @@ public class ExpressionCompiler {
         return switch (compiledExpression) {
         case Value value                                         -> value;
         case PureOperator po when po.isDependingOnSubscription() -> po;
-        case PureOperator po                                     -> foldPure(po, ctx);
+        case PureOperator po                                     -> ctx.cacheOrFold(po, ctx);
         case StreamOperator sto                                  -> sto;
         };
-    }
-
-    private static CompiledExpression foldPure(PureOperator po, CompilationContext ctx) {
-        val foldingContext = DummyEvaluationContextFactory.dummyContext(ctx);
-        return po.evaluate(foldingContext);
     }
 
     public record RelativeValueOp(SourceLocation location) implements PureOperator {

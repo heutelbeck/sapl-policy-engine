@@ -121,7 +121,7 @@ public class PdpVoterSource {
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
                 pdpConfiguration.data(), functionBroker, attributeBroker);
-        compilationContext.setIndexingStrategy(pdpConfiguration.indexing());
+        compilationContext.setCompilerFlags(pdpConfiguration.compilerFlags());
         CompiledPdpVoter newConfiguration;
         try {
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext);
