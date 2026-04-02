@@ -21,6 +21,7 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.PdpData;
@@ -165,39 +166,53 @@ public class CompilationContext {
     }
 
     /**
-     * Deduplicates constant values across compiled expressions. If the
-     * expression is a {@link Value}, returns the canonical instance from the
-     * dedup set (inserting if absent). Non-value expressions pass through
-     * unchanged.
+     * Central compile-time optimization: folds, caches, and deduplicates.
+     * <ul>
+     * <li>Value: deduplicates via identity map</li>
+     * <li>StreamOperator: returns as-is</li>
+     * <li>PureOperator depending on subscription or relative context:
+     * returns as-is (cannot fold outside its context)</li>
+     * <li>PureOperator that is foldable: checks semantic hash cache,
+     * evaluates on miss, caches and deduplicates result</li>
+     * </ul>
      *
      * @param expression the compiled expression
-     * @return the deduplicated expression
+     * @return the folded/cached/deduped expression
      */
-    public CompiledExpression dedupe(CompiledExpression expression) {
-        if (!(expression instanceof Value value)) {
-            return expression;
-        }
+    public CompiledExpression foldCacheDedupe(CompiledExpression expression) {
+        return switch (expression) {
+        case Value value       -> dedupeValue(value);
+        case StreamOperator so -> so;
+        case PureOperator po   -> canFold(po) ? cacheOrFold(po) : po;
+        };
+    }
+
+    private static boolean canFold(PureOperator po) {
+        return !po.isDependingOnSubscription() && !po.isRelativeExpression();
+    }
+
+    private Value dedupeValue(Value value) {
         val existing = valueDedup.putIfAbsent(value, value);
         return existing != null ? existing : value;
     }
 
     /**
-     * Evaluates a non-subscription-dependent PureOperator at compile time,
-     * caching the result by semantic hash. Subsequent calls with the same
-     * semantic hash return the cached result without re-evaluation.
+     * Evaluates a foldable PureOperator at compile time, caching the result
+     * by semantic hash. Subsequent calls with the same semantic hash return
+     * the cached result without re-evaluation.
      *
-     * @param po the pure operator to fold
-     * @param ctx the compilation context (for dummy evaluation context)
+     * @param po the pure operator to fold (must not depend on subscription
+     * or relative context)
      * @return the folded Value
      */
-    public Value cacheOrFold(PureOperator po, CompilationContext ctx) {
+    public Value cacheOrFold(PureOperator po) {
         val hash     = po.semanticHash();
         val cacheHit = foldingCache.get(hash);
         if (cacheHit != null) {
             return cacheHit;
         }
-        val foldingContext = DummyEvaluationContextFactory.dummyContext(ctx);
-        val result         = po.evaluate(foldingContext);
+        val foldingContext = DummyEvaluationContextFactory.dummyContext(this);
+        val result         = dedupeValue(po.evaluate(foldingContext));
         foldingCache.put(hash, result);
         return result;
     }

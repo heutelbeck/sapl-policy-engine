@@ -22,7 +22,6 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
 import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
@@ -44,7 +43,6 @@ import io.sapl.ast.Step;
 import io.sapl.ast.Sum;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -82,7 +80,7 @@ public class ExpressionCompiler {
         case SimpleFilter sf   -> FilterCompiler.compileSimple(sf, ctx);
         case ExtendedFilter ef -> ExtendedFilterCompiler.compile(ef, ctx);
         };
-        return ctx.dedupe(result);
+        return ctx.foldCacheDedupe(result);
     }
 
     public CompiledExpression compileIdentifier(Identifier identifier, CompilationContext ctx) {
@@ -111,15 +109,6 @@ public class ExpressionCompiler {
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, name.hashCode());
         }
-    }
-
-    public static CompiledExpression fold(CompiledExpression compiledExpression, CompilationContext ctx) {
-        return switch (compiledExpression) {
-        case Value value                                         -> value;
-        case PureOperator po when po.isDependingOnSubscription() -> po;
-        case PureOperator po                                     -> ctx.cacheOrFold(po, ctx);
-        case StreamOperator sto                                  -> sto;
-        };
     }
 
     public record RelativeValueOp(SourceLocation location) implements PureOperator {

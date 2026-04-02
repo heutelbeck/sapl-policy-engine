@@ -102,9 +102,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
      * Blocks until completion. Must be called before accepting connections.
      */
     private void initialize() {
-        log.info("Initializing attribute repository with storage: {}", storage.getClass().getSimpleName());
+        log.debug("Initializing attribute repository with storage: {}", storage.getClass().getSimpleName());
         recoverTimeouts().block(); // Must complete before accepting connections
-        log.info("Attribute repository initialized. Scheduled timeouts: {}", scheduledTimeouts.size());
+        log.debug("Attribute repository initialized. Scheduled timeouts: {}", scheduledTimeouts.size());
     }
 
     private Mono<Void> recoverTimeouts() {
@@ -125,7 +125,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             } else {
                 if (timeout.isBefore(clock.instant())) {
                     staleAttributes.incrementAndGet();
-                    log.info("Removing stale attribute from storage; {}", key);
+                    log.debug("Removing stale attribute from storage; {}", key);
                     return storage.remove(key);
                 } else {
                     scheduledAttributes.incrementAndGet();
@@ -135,7 +135,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                 }
             }
         }).then()
-                .doOnSuccess(v -> log.info("Timeout recovery complete. Scheduled: {}, Permanent: {}, Stale: {}",
+                .doOnSuccess(v -> log.debug("Timeout recovery complete. Scheduled: {}, Permanent: {}, Stale: {}",
                         scheduledAttributes.get(), permanentAttributes.get(), staleAttributes.get()))
                 .doOnError(error -> log.error("Failed to recover timeouts", error));
     }
@@ -149,7 +149,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             log.warn("Delay is excessive. Fall back to default max delay of 292years");
         }
 
-        log.info("Scheduling timeout for key: {} at deadline: {} (delay: {})", key, deadline, practicalTTL);
+        log.debug("Scheduling timeout for key: {} at deadline: {} (delay: {})", key, deadline, practicalTTL);
 
         val subscriptionRef = new AtomicReference<Disposable>();
 

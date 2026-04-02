@@ -21,6 +21,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.benchmark.sapl4.Scenario;
+import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,8 @@ import java.util.Random;
  *
  * @see <a href="https://arxiv.org/pdf/2403.04651">Cedar OOPSLA 2024 paper</a>
  */
-public final class GdriveScenarioGenerator {
+@UtilityClass
+public class GdriveScenarioGenerator {
 
     // Cedar gdrive: 5 actions (gdrive_entity_generator.py action_entities())
     private static final String[] ACTIONS = { "read", "write", "share", "changeOwner", "createDocument" };
@@ -115,9 +117,6 @@ public final class GdriveScenarioGenerator {
                 action == "createDocument";
                 resource in users[(subject)].ownedFolders;
             """);
-
-    private GdriveScenarioGenerator() {
-    }
 
     /**
      * Generates the GDrive scenario.

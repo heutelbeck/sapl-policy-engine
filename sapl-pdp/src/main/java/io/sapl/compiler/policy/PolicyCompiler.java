@@ -202,7 +202,7 @@ public class PolicyCompiler {
                 || resource instanceof PureOperator) {
             nature = Nature.PURE;
         }
-        return new CompiledConstraints(nature, obligations, advice, ExpressionCompiler.fold(resource, ctx));
+        return new CompiledConstraints(nature, obligations, advice, ctx.foldCacheDedupe(resource));
     }
 
     /**
@@ -221,7 +221,7 @@ public class PolicyCompiler {
         if (result instanceof PureOperator po && !po.isDependingOnSubscription()) {
             throw new SaplCompilerException(ERROR_CONSTRAINT_RELATIVE_ACCESSOR.formatted(name), location);
         }
-        return ExpressionCompiler.fold(result, ctx);
+        return ctx.foldCacheDedupe(result);
     }
 
     /**

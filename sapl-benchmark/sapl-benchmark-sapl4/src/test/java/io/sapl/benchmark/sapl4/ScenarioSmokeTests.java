@@ -57,7 +57,7 @@ class ScenarioSmokeTests {
             var startCompile = System.nanoTime();
             var components   = scenario.buildPdp(flags);
             var compileTime  = System.nanoTime() - startCompile;
-            System.out.println("Compiled %s-%d in %d ms".formatted(scenarioName, seed, compileTime / 1_000_000));
+            System.out.printf("Compiled %s-%d in %d ms%n", scenarioName, seed, compileTime / 1_000_000);
             var pdp = components.pdp();
 
             var counts = new EnumMap<Decision, Integer>(Decision.class);

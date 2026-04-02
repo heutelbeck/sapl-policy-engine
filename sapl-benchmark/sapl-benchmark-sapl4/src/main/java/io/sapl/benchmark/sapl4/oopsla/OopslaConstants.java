@@ -21,12 +21,14 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import lombok.experimental.UtilityClass;
 
 /**
  * Constants shared across all OOPSLA 2024 Cedar-equivalent scenario
  * generators. Values match Cedar's benchmark configuration
  * (cedar-examples/oopsla2024-benchmarks/).
  */
+@UtilityClass
 public final class OopslaConstants {
 
     // Cedar: 500 requests per hierarchy (main.rs --num-requests 500)
@@ -46,9 +48,5 @@ public final class OopslaConstants {
     public static final String PREFIX_REPO   = "Repository::repo_";
     public static final String PREFIX_TEAM   = "Team::team_";
     public static final String PREFIX_USER   = "User::user_";
-    public static final String PREFIX_VIEW   = "View::view_";
-
-    private OopslaConstants() {
-    }
 
 }

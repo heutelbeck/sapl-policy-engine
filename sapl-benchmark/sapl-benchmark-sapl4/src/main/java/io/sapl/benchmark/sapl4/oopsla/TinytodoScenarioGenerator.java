@@ -21,6 +21,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.benchmark.sapl4.Scenario;
+import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +47,8 @@ import java.util.Random;
  *
  * @see <a href="https://arxiv.org/pdf/2403.04651">Cedar OOPSLA 2024 paper</a>
  */
-public final class TinytodoScenarioGenerator {
+@UtilityClass
+public class TinytodoScenarioGenerator {
 
     // Cedar: Application::"TinyTodo" is the singleton app container entity
     private static final String APPLICATION = "Application::TinyTodo";
@@ -133,9 +135,6 @@ public final class TinytodoScenarioGenerator {
                     """);
 
     // Cedar Policies 4-5 are commented out in the original Cedar benchmark.
-
-    private TinytodoScenarioGenerator() {
-    }
 
     /**
      * Generates the TinyTodo scenario.

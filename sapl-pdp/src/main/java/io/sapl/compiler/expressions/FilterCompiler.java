@@ -45,7 +45,7 @@ import java.util.ArrayList;
 public class FilterCompiler {
 
     public static CompiledExpression compileSimple(SimpleFilter sf, CompilationContext ctx) {
-        return ExpressionCompiler.fold(compileSimpleUnfolded(sf, ctx), ctx);
+        return ctx.foldCacheDedupe(compileSimpleUnfolded(sf, ctx));
     }
 
     public static CompiledExpression compileSimpleUnfolded(SimpleFilter sf, CompilationContext ctx) {

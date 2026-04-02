@@ -30,6 +30,7 @@ import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
 import io.sapl.benchmark.sapl4.oopsla.GdriveScenarioGenerator;
 import io.sapl.benchmark.sapl4.oopsla.GithubScenarioGenerator;
 import io.sapl.benchmark.sapl4.oopsla.TinytodoScenarioGenerator;
+import lombok.experimental.UtilityClass;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -46,7 +47,8 @@ import java.util.stream.Collectors;
  * Factory that builds {@link Scenario} instances by name. Each scenario is
  * constructed on demand with no static initialization tricks.
  */
-final class ScenarioFactory {
+@UtilityClass
+class ScenarioFactory {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
@@ -215,9 +217,6 @@ final class ScenarioFactory {
             names.add("hospital-" + n);
         }
         ALL_SCENARIO_NAMES = List.copyOf(names);
-    }
-
-    private ScenarioFactory() {
     }
 
     /**

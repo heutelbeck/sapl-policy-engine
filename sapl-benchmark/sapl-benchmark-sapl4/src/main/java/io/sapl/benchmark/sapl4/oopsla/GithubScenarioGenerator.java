@@ -21,6 +21,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.benchmark.sapl4.Scenario;
+import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,8 @@ import java.util.Random;
  *
  * @see <a href="https://arxiv.org/pdf/2403.04651">Cedar OOPSLA 2024 paper</a>
  */
-public final class GithubScenarioGenerator {
+@UtilityClass
+public class GithubScenarioGenerator {
 
     // Cedar github: 5 actions with hierarchy read < triage < write < maintain <
     // admin
@@ -172,9 +174,6 @@ public final class GithubScenarioGenerator {
                 var closed = graph.transitiveClosureSet(entityGraph);
                 closed[(subject)][(orgs[(repo.owner)].admins)] != undefined;
             """);
-
-    private GithubScenarioGenerator() {
-    }
 
     /**
      * Generates the GitHub scenario.

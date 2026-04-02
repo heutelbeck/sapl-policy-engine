@@ -25,6 +25,7 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import lombok.experimental.UtilityClass;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
@@ -64,7 +65,8 @@ import java.util.Random;
  *
  * @see io.sapl.benchmark.sapl4.oopsla.GithubScenarioGenerator
  */
-public final class HospitalScenarioGenerator {
+@UtilityClass
+public class HospitalScenarioGenerator {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
@@ -184,9 +186,6 @@ public final class HospitalScenarioGenerator {
     static final int PERMITS_PER_DEPARTMENT  = 32;
     static final int POLICIES_PER_DEPARTMENT = PERMITS_PER_DEPARTMENT + 1;
     static final int GLOBAL_POLICIES         = EMERGENCY_RESOURCE_TYPES.length;
-
-    private HospitalScenarioGenerator() {
-    }
 
     /**
      * Generates the hospital scenario.
@@ -352,15 +351,27 @@ public final class HospitalScenarioGenerator {
 
     // --- Subscription Generation ---
 
+    // Actions weighted toward those that appear in more policies.
+    // "read" appears in nearly every role, "write"/"create" in most, others are
+    // rare.
+    private static final String[] WEIGHTED_ACTIONS = { "read", "read", "read", "read", "read", "read", "read", "write",
+            "write", "write", "create", "create", "order", "prescribe", "approve", "bill", "audit", "delete" };
+
+    // Resource types weighted toward those accessed by more roles.
+    // PatientRecord: 7 roles, LabResult/CareNote: 5, others fewer.
+    private static final String[] WEIGHTED_RESOURCE_TYPES = { "PatientRecord", "PatientRecord", "PatientRecord",
+            "LabResult", "LabResult", "CareNote", "CareNote", "Prescription", "Imaging", "Schedule", "BillingRecord",
+            "AuditLog", "Referral" };
+
     private static List<AuthorizationSubscription> generateSubscriptions(int numDepartments, List<StaffMember> staff,
             Random rng) {
         var subscriptions = new ArrayList<AuthorizationSubscription>(REQUESTS);
         for (int i = 0; i < REQUESTS; i++) {
             var s            = staff.get(rng.nextInt(staff.size()));
-            var action       = ALL_ACTIONS[rng.nextInt(ALL_ACTIONS.length)];
-            var resourceType = RESOURCE_TYPES[rng.nextInt(RESOURCE_TYPES.length)];
-            var resourceDept = rng.nextInt(numDepartments);
-            var sensitivity  = rng.nextInt(4) + 1;
+            var action       = WEIGHTED_ACTIONS[rng.nextInt(WEIGHTED_ACTIONS.length)];
+            var resourceType = WEIGHTED_RESOURCE_TYPES[rng.nextInt(WEIGHTED_RESOURCE_TYPES.length)];
+            var resourceDept = rng.nextDouble() < 0.8 ? s.departmentIndex() : rng.nextInt(numDepartments);
+            var sensitivity  = rng.nextDouble() < 0.7 ? 1 : rng.nextInt(4) + 1;
             subscriptions.add(buildSubscription(s, action, resourceType, resourceDept, sensitivity));
         }
         return subscriptions;

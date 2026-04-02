@@ -66,7 +66,7 @@ public class FunctionCallCompiler {
             CompilationContext ctx) {
         // Zero arguments - use simple record
         if (arguments.isEmpty()) {
-            return compileNoArgs(functionName, ctx);
+            return new NoArgsFunction(functionName, location);
         }
 
         // Compile all arguments
@@ -107,12 +107,7 @@ public class FunctionCallCompiler {
         int totalArgs   = compiledArgs.size();
         int streamCount = streams.size();
 
-        // All values - constant fold at compile time
-        if (streamCount == 0 && pureOperators.isEmpty()) {
-            return evaluateConstant(functionName, values, ctx);
-        }
-
-        // No streams - return PureOperator
+        // No streams - return PureOperator (folded and cached by ExpressionCompiler)
         if (streamCount == 0) {
             return new AllPureFunction(functionName, ArrayCompiler.toIntArray(valueIndices),
                     values.toArray(Value[]::new), ArrayCompiler.toIntArray(pureIndices),
@@ -132,17 +127,6 @@ public class FunctionCallCompiler {
                 values.toArray(Value[]::new), ArrayCompiler.toIntArray(pureIndices),
                 pureOperators.toArray(PureOperator[]::new), ArrayCompiler.toIntArray(streamIndices),
                 streams.toArray(StreamOperator[]::new), totalArgs, location);
-    }
-
-    private static CompiledExpression compileNoArgs(String functionName, CompilationContext ctx) {
-        val invocation = new FunctionInvocation(functionName, List.of());
-        return ctx.getFunctionBroker().evaluateFunction(invocation);
-    }
-
-    private static Value evaluateConstant(String functionName, List<Value> values, CompilationContext ctx) {
-        val args       = values.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
-        val invocation = new FunctionInvocation(functionName, args);
-        return ctx.getFunctionBroker().evaluateFunction(invocation);
     }
 
     @SuppressWarnings("unchecked")
