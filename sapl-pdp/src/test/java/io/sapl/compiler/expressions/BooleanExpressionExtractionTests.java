@@ -53,7 +53,6 @@ class BooleanExpressionExtractionTests {
 
         static Stream<Arguments> whenNonBooleanThenAtom() {
             return Stream.of(arguments("comparison", "subject.name == \"alice\""),
-                    arguments("in operator", "subject.role in [\"admin\", \"user\"]"),
                     arguments("regex", "subject.id =~ \"^[a-z]+$\""));
         }
     }

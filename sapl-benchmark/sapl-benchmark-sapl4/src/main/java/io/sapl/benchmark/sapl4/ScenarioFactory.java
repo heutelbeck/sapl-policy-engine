@@ -200,12 +200,17 @@ final class ScenarioFactory {
 
     static final List<String> ALL_SCENARIO_NAMES;
 
+    private static final int[] HOSPITAL_DEPARTMENT_COUNTS = { 5, 10, 50, 100, 300 };
+
     static {
         var names = new ArrayList<>(STATIC_MAP.keySet());
         for (var n : OOPSLA_ENTITY_COUNTS) {
             names.add("gdrive-" + n);
             names.add("github-" + n);
             names.add("tinytodo-" + n);
+        }
+        for (var n : HOSPITAL_DEPARTMENT_COUNTS) {
+            names.add("hospital-" + n);
         }
         ALL_SCENARIO_NAMES = List.copyOf(names);
     }
@@ -262,6 +267,7 @@ final class ScenarioFactory {
         case "gdrive"   -> GdriveScenarioGenerator.generate(entityCount, seed);
         case "github"   -> GithubScenarioGenerator.generate(entityCount, seed);
         case "tinytodo" -> TinytodoScenarioGenerator.generate(entityCount, seed);
+        case "hospital" -> HospitalScenarioGenerator.generate(entityCount, seed);
         default         -> null;
         };
     }

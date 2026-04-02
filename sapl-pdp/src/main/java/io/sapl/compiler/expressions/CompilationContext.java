@@ -66,6 +66,15 @@ public class CompilationContext {
     private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
     private IndexingStrategy                indexingStrategy         = IndexingStrategy.AUTO;
 
+    private CompilerFlags compilerFlags = CompilerFlags.defaults();
+
+    public record CompilerFlags(boolean unrollInOperator, int minPoliciesForCanonical, double minSharingForCanonical) {
+
+        static CompilerFlags defaults() {
+            return new CompilerFlags(false, 10, 1.5);
+        }
+    }
+
     public CompilationContext(String pdpId,
             String configurationId,
             PdpData data,

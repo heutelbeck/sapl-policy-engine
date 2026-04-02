@@ -77,21 +77,29 @@ public class BinaryOperationCompiler {
             Map.entry(XOR, BooleanOperators::xor));
 
     public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
-        if (binaryOperation.op() == REGEX) {
+        val operatorType = binaryOperation.op();
+        if (operatorType == REGEX) {
             return RegexCompiler.compile(binaryOperation, ctx);
         }
 
-        if (binaryOperation.op() == SUBTEMPLATE) {
+        if (operatorType == SUBTEMPLATE) {
             return SubtemplateCompiler.compile(binaryOperation, ctx);
         }
 
-        if (binaryOperation.op().isBooleanAndOr()) {
+        if (ctx.getCompilerFlags().unrollInOperator() && operatorType == IN) {
+            val unrolled = InArrayUnrollingCompiler.tryCompile(binaryOperation, ctx);
+            if (unrolled != null) {
+                return unrolled;
+            }
+        }
+
+        if (operatorType.isBooleanAndOr()) {
             return StratifiedBooleanOperationCompiler.compile(binaryOperation, ctx);
         }
 
-        val op = BINARY_OPERATIONS.get(binaryOperation.op());
+        val op = BINARY_OPERATIONS.get(operatorType);
         if (op == null) {
-            throw new SaplCompilerException(ERROR_UNIMPLEMENTED_BINARY_OPERATOR.formatted(binaryOperation.op()),
+            throw new SaplCompilerException(ERROR_UNIMPLEMENTED_BINARY_OPERATOR.formatted(operatorType),
                     binaryOperation);
         }
         val left = ExpressionCompiler.compile(binaryOperation.left(), ctx);
@@ -103,7 +111,7 @@ public class BinaryOperationCompiler {
             return right;
         }
         var loc    = binaryOperation.location();
-        val opType = binaryOperation.op();
+        val opType = operatorType;
         return switch (left) {
         case Value lv          -> switch (right) {
                            case Value rv              -> op.apply(lv, rv, loc);
