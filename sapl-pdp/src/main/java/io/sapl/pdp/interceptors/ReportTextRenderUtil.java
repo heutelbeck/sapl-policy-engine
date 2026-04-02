@@ -54,7 +54,7 @@ public class ReportTextRenderUtil {
     }
 
     private static void appendHeader(StringBuilder sb, VoteReport report) {
-        sb.append("--- PDP Decision ---\n");
+        sb.append("=== PDP Decision ===\n");
         sb.append("Timestamp      : ").append(formatTimestamp(report.timestamp())).append('\n');
         sb.append("Subscription Id: ").append(report.subscriptionId()).append('\n');
         sb.append("Subscription   : ").append(report.authorizationSubscription()).append('\n');

@@ -242,6 +242,11 @@ public class SubtemplateCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return false;
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, parent.hashCode(), template.semanticHash());
         }
@@ -263,6 +268,11 @@ public class SubtemplateCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return parent.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, parent.semanticHash(), template.hashCode());
         }
@@ -281,6 +291,11 @@ public class SubtemplateCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return parent.isDependingOnSubscription() || template.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return parent.isRelativeExpression();
         }
 
         @Override

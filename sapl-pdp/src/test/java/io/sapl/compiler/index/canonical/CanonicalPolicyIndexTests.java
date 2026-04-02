@@ -464,7 +464,7 @@ class CanonicalPolicyIndexTests {
             val p2    = configurablePredicate(2L);
             val doc1  = IndexTestFixtures.stubDocumentWithApplicability("uses-p1", p1.operator());
             val doc2  = IndexTestFixtures.stubDocumentWithApplicability("uses-p1-and-p2",
-                    new LazyAndPurePure(p1.operator(), p2.operator(), TEST_LOCATION, true));
+                    new LazyAndPurePure(p1.operator(), p2.operator(), TEST_LOCATION, true, false));
             val doc3  = IndexTestFixtures.stubDocumentWithApplicability("uses-p2-only", p2.operator());
             val index = CanonicalPolicyIndex.create(List.of(doc1, doc2, doc3));
 

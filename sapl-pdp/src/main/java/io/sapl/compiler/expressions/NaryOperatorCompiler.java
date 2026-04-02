@@ -106,7 +106,8 @@ public class NaryOperatorCompiler {
         if (streams.isEmpty()) {
             // Values + Pures only: return PureOperator
             boolean dependsOnSubscription = pures.stream().anyMatch(PureOperator::isDependingOnSubscription);
-            return new NaryPure(opType, op, valueResult, pures, location, dependsOnSubscription);
+            boolean isRelative            = pures.stream().anyMatch(PureOperator::isRelativeExpression);
+            return new NaryPure(opType, op, valueResult, pures, location, dependsOnSubscription, isRelative);
         }
 
         // Has streams: return StreamOperator
@@ -198,7 +199,8 @@ public class NaryOperatorCompiler {
             Value valueResult,
             List<PureOperator> pures,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {

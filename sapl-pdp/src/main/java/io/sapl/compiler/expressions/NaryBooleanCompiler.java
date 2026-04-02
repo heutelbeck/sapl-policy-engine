@@ -125,7 +125,9 @@ public class NaryBooleanCompiler {
         // 3. Pure-only: simple loop at runtime
         if (streams.isEmpty()) {
             val dependsOnSubscription = pures.stream().anyMatch(PureOperator::isDependingOnSubscription);
-            return new NaryBooleanPure(pures, shortCircuitValue, identityValue, location, dependsOnSubscription);
+            val isRelative            = pures.stream().anyMatch(PureOperator::isRelativeExpression);
+            return new NaryBooleanPure(pures, shortCircuitValue, identityValue, location, dependsOnSubscription,
+                    isRelative);
         }
 
         // 4. Streams present: build deferContextual with pure gate + stream composition
@@ -259,7 +261,8 @@ public class NaryBooleanCompiler {
             Value shortCircuitValue,
             Value identityValue,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {

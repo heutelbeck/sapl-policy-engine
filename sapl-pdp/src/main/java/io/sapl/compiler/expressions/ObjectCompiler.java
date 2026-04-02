@@ -167,6 +167,16 @@ public class ObjectCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            for (var op : pureOperators) {
+                if (op.isRelativeExpression()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
         public long semanticHash() {
             long hash = SemanticHashing.ordered(KIND, Arrays.hashCode(keys), Arrays.hashCode(valueIndices),
                     Arrays.hashCode(values), Arrays.hashCode(pureIndices), totalEntries);

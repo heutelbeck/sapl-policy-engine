@@ -113,7 +113,7 @@ class BooleanGuardCompilerTests {
     @DisplayName("PureBooleanTypeCheck: when evaluates to boolean then returns unchanged")
     void pureBooleanTypeCheckWhenEvaluatesToBooleanThenReturnsUnchanged(BooleanValue input) {
         val pureOp = new TestPureOperator(ctx -> input);
-        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
+        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, false, ERROR_TEMPLATE);
         val result = guard.evaluate(evaluationContext());
         assertThat(result).isEqualTo(input);
     }
@@ -123,7 +123,7 @@ class BooleanGuardCompilerTests {
     void pureBooleanTypeCheckWhenEvaluatesToErrorThenReturnsError() {
         val error  = Value.error("inner errors");
         val pureOp = new TestPureOperator(ctx -> error);
-        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
+        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, false, ERROR_TEMPLATE);
         val result = guard.evaluate(evaluationContext());
         assertThat(result).isSameAs(error);
     }
@@ -133,7 +133,7 @@ class BooleanGuardCompilerTests {
     @DisplayName("PureBooleanTypeCheck: when evaluates to non-boolean then returns errors")
     void pureBooleanTypeCheckWhenEvaluatesToNonBooleanThenReturnsError(Value nonBoolean) {
         val pureOp = new TestPureOperator(ctx -> nonBoolean);
-        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
+        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, false, ERROR_TEMPLATE);
         val result = guard.evaluate(evaluationContext());
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(nonBoolean.toString());
@@ -143,7 +143,7 @@ class BooleanGuardCompilerTests {
     @DisplayName("PureBooleanTypeCheck: location returns guard location")
     void pureBooleanTypeCheckLocationReturnsGuardLocation() {
         val pureOp = new TestPureOperator(ctx -> Value.TRUE);
-        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, ERROR_TEMPLATE);
+        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, false, false, ERROR_TEMPLATE);
         assertThat(guard.location()).isSameAs(TEST_LOCATION);
     }
 
@@ -152,7 +152,7 @@ class BooleanGuardCompilerTests {
     @DisplayName("PureBooleanTypeCheck: isDependingOnSubscription returns configured value")
     void pureBooleanTypeCheckIsDependingOnSubscriptionReturnsConfiguredValue(boolean flag) {
         val pureOp = new TestPureOperator(ctx -> Value.TRUE);
-        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, flag, ERROR_TEMPLATE);
+        val guard  = new PureBooleanTypeCheck(pureOp, TEST_LOCATION, flag, false, ERROR_TEMPLATE);
         assertThat(guard.isDependingOnSubscription()).isEqualTo(flag);
     }
 

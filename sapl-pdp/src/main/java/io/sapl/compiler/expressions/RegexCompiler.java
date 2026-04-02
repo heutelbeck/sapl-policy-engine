@@ -147,6 +147,11 @@ public class RegexCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return input.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, input.semanticHash(), patternSource.hashCode());
         }
@@ -184,6 +189,11 @@ public class RegexCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return pattern.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, input.hashCode(), pattern.semanticHash());
         }
@@ -209,6 +219,11 @@ public class RegexCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return input.isDependingOnSubscription() || pattern.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return input.isRelativeExpression() || pattern.isRelativeExpression();
         }
 
         @Override

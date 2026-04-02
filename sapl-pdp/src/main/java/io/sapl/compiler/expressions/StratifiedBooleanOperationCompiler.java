@@ -132,7 +132,7 @@ public class StratifiedBooleanOperationCompiler {
             if ((isAnd && !b) || (!isAnd && b)) {
                 return b ? Value.TRUE : Value.FALSE;
             }
-            return new LazyValuePure(p, location, p.isDependingOnSubscription());
+            return new LazyValuePure(p, location, p.isDependingOnSubscription(), p.isRelativeExpression());
         }
         if (v instanceof ErrorValue) {
             return v;
@@ -155,9 +155,10 @@ public class StratifiedBooleanOperationCompiler {
 
     private CompiledExpression compilePurePure(PureOperator p1, PureOperator p2, boolean isAnd,
             SourceLocation location) {
-        val depending = p1.isDependingOnSubscription() || p2.isDependingOnSubscription();
-        return isAnd ? new LazyAndPurePure(p1, p2, location, depending)
-                : new LazyOrPurePure(p1, p2, location, depending);
+        val depending  = p1.isDependingOnSubscription() || p2.isDependingOnSubscription();
+        val isRelative = p1.isRelativeExpression() || p2.isRelativeExpression();
+        return isAnd ? new LazyAndPurePure(p1, p2, location, depending, isRelative)
+                : new LazyOrPurePure(p1, p2, location, depending, isRelative);
     }
 
     private CompiledExpression compilePureStream(PureOperator p, StreamOperator s, boolean isAnd,
@@ -186,8 +187,11 @@ public class StratifiedBooleanOperationCompiler {
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
     }
 
-    public record LazyValuePure(PureOperator p, SourceLocation location, boolean isDependingOnSubscription)
-            implements PureOperator {
+    public record LazyValuePure(
+            PureOperator p,
+            SourceLocation location,
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
 
         private static final long KIND = SemanticHashing.kindHash(LazyValuePure.class);
 
@@ -206,7 +210,8 @@ public class StratifiedBooleanOperationCompiler {
             PureOperator p1,
             PureOperator p2,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
 
         private static final long KIND = SemanticHashing.kindHash(LazyAndPurePure.class);
 
@@ -236,7 +241,8 @@ public class StratifiedBooleanOperationCompiler {
             PureOperator p1,
             PureOperator p2,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
 
         private static final long KIND = SemanticHashing.kindHash(LazyOrPurePure.class);
 

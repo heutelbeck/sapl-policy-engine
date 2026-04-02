@@ -115,15 +115,16 @@ public class BinaryOperationCompiler {
         return switch (left) {
         case Value lv          -> switch (right) {
                            case Value rv              -> op.apply(lv, rv, loc);
-                           case PureOperator rp       ->
-                               new BinaryValuePure(opType, op, lv, rp, loc, rp.isDependingOnSubscription());
+                           case PureOperator rp       -> new BinaryValuePure(opType, op, lv, rp, loc,
+                                   rp.isDependingOnSubscription(), rp.isRelativeExpression());
                            case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, loc);
                            };
         case PureOperator lp   -> switch (right) {
-                           case Value rv              ->
-                               new BinaryPureValue(opType, op, lp, rv, loc, lp.isDependingOnSubscription());
+                           case Value rv              -> new BinaryPureValue(opType, op, lp, rv, loc,
+                                   lp.isDependingOnSubscription(), lp.isRelativeExpression());
                            case PureOperator rp       -> new BinaryPurePure(opType, op, lp, rp, loc,
-                                   lp.isDependingOnSubscription() || rp.isDependingOnSubscription());
+                                   lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
+                                   lp.isRelativeExpression() || rp.isRelativeExpression());
                            case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, loc);
                            };
         case StreamOperator ls -> switch (right) {
@@ -140,7 +141,8 @@ public class BinaryOperationCompiler {
             PureOperator lp,
             PureOperator rp,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val lv = lp.evaluate(ctx);
@@ -166,7 +168,8 @@ public class BinaryOperationCompiler {
             Value lv,
             PureOperator rp,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val rv = rp.evaluate(ctx);
@@ -188,7 +191,8 @@ public class BinaryOperationCompiler {
             PureOperator lp,
             Value rv,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val lv = lp.evaluate(ctx);

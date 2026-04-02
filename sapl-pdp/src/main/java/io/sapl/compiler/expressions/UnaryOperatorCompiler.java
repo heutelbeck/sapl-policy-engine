@@ -62,7 +62,8 @@ public class UnaryOperatorCompiler {
 
         return switch (operand) {
         case Value v          -> op.apply(v, location);
-        case PureOperator p   -> new UnaryPure(unaryOp.op(), op, p, location, p.isDependingOnSubscription());
+        case PureOperator p   ->
+            new UnaryPure(unaryOp.op(), op, p, location, p.isDependingOnSubscription(), p.isRelativeExpression());
         case StreamOperator s -> new UnaryStream(op, s, location);
         };
     }
@@ -72,7 +73,8 @@ public class UnaryOperatorCompiler {
             UnaryOperation op,
             PureOperator operand,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val v = operand.evaluate(ctx);

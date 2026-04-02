@@ -25,6 +25,18 @@ public non-sealed interface PureOperator extends CompiledExpression {
     boolean isDependingOnSubscription();
 
     /**
+     * Returns true if this operator or any of its children depends on a
+     * relative value context ({@code @} or {@code @location}). Relative
+     * expressions are not subscription-dependent but cannot be folded at
+     * compile time outside of their filter/subtemplate context.
+     *
+     * @return true if this operator uses relative references
+     */
+    default boolean isRelativeExpression() {
+        return false;
+    }
+
+    /**
      * Returns a hash that identifies the semantic content of this operator,
      * ignoring source location and other non-semantic fields. Two operators
      * representing the same computation produce the same hash, even if they

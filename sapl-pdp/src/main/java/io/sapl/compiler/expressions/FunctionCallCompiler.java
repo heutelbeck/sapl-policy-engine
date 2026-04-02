@@ -279,6 +279,16 @@ public class FunctionCallCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            for (var p : pureOperators) {
+                if (p.isRelativeExpression()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
         public long semanticHash() {
             long hash = SemanticHashing.ordered(KIND, functionName.hashCode(), Arrays.hashCode(valueIndices),
                     Arrays.hashCode(values), Arrays.hashCode(pureIndices), totalArgs);

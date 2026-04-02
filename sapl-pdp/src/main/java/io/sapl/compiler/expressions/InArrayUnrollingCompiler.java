@@ -104,7 +104,7 @@ class InArrayUnrollingCompiler {
         } else {
             val p = (PureOperator) compiledNeedle;
             undefinedGuard = new BinaryOperationCompiler.BinaryPureValue(BinaryOperatorType.NE, neOp, p,
-                    Value.UNDEFINED, location, p.isDependingOnSubscription());
+                    Value.UNDEFINED, location, p.isDependingOnSubscription(), p.isRelativeExpression());
         }
         return StratifiedBooleanOperationCompiler.compile(undefinedGuard, orChain, BinaryOperatorType.LAZY_AND,
                 location);

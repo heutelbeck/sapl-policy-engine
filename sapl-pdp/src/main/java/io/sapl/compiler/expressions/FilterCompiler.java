@@ -78,17 +78,18 @@ public class FilterCompiler {
                             case Value vf                                                  ->
                                 evaluateEachValueValue(vb, vf);
                             case PureOperator pof when pof.isDependingOnSubscription()     ->
-                                new SimpleFilterEachValuePure(vb, pof, location, true);
+                                new SimpleFilterEachValuePure(vb, pof, location, true, false);
                             case PureOperator pof                                          ->
                                 compileEachValuePureFold(vb, pof, ctx);
                             case StreamOperator sof                                        ->
                                 new SimpleFilterEachValueStream(vb, sof, location);
                             };
         case PureOperator pob   -> switch (function) {
-                            case Value vf               ->
-                                new SimpleFilterEachPureValue(pob, vf, location, pob.isDependingOnSubscription());
+                            case Value vf               -> new SimpleFilterEachPureValue(pob, vf, location,
+                                    pob.isDependingOnSubscription(), pob.isRelativeExpression());
                             case PureOperator pof       -> new SimpleFilterEachPurePure(pob, pof, location,
-                                    pob.isDependingOnSubscription() || pof.isDependingOnSubscription());
+                                    pob.isDependingOnSubscription() || pof.isDependingOnSubscription(),
+                                    pob.isRelativeExpression());
                             case StreamOperator sof     -> new SimpleFilterEachPureStream(pob, sof, location);
                             };
         case StreamOperator sob -> switch (function) {
@@ -103,7 +104,8 @@ public class FilterCompiler {
             Value base,
             PureOperator filterOperator,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachValuePure.class);
 
         @Override
@@ -130,7 +132,8 @@ public class FilterCompiler {
             PureOperator baseOperator,
             Value filterResult,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachPureValue.class);
 
         @Override
@@ -148,7 +151,8 @@ public class FilterCompiler {
             PureOperator baseOperator,
             PureOperator filterOperator,
             SourceLocation location,
-            boolean isDependingOnSubscription) implements PureOperator {
+            boolean isDependingOnSubscription,
+            boolean isRelativeExpression) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachPurePure.class);
 
         @Override

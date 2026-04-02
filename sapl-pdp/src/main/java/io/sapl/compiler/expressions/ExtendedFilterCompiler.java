@@ -184,6 +184,11 @@ public class ExtendedFilterCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return false;
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.hashCode(), filterOperator.semanticHash(), path.hashCode(),
                     pathAnalysis.compiledElements().hashCode());
@@ -202,6 +207,11 @@ public class ExtendedFilterCompiler {
             val base       = baseOperator.evaluate(ctx);
             val initialCtx = ctx.withRelativeValue(base);
             return navigateAndApply(base, current -> filterValue, path, pathAnalysis, initialCtx);
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return baseOperator.isRelativeExpression();
         }
 
         @Override
@@ -224,6 +234,11 @@ public class ExtendedFilterCompiler {
             val initialCtx = ctx.withRelativeValue(base);
             return navigateAndApply(base, current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)),
                     path, pathAnalysis, initialCtx);
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return baseOperator.isRelativeExpression();
         }
 
         @Override

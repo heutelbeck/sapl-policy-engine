@@ -39,8 +39,8 @@ public class BooleanGuardCompiler {
         case BooleanValue b    -> b;
         case ErrorValue e      -> e;
         case Value v           -> Value.errorAt(location, errorMessageTemplate, v);
-        case PureOperator po   ->
-            new PureBooleanTypeCheck(po, location, po.isDependingOnSubscription(), errorMessageTemplate);
+        case PureOperator po   -> new PureBooleanTypeCheck(po, location, po.isDependingOnSubscription(),
+                po.isRelativeExpression(), errorMessageTemplate);
         case StreamOperator so -> new StreamBooleanTypeCheck(so, location, errorMessageTemplate);
         };
     }
@@ -49,6 +49,7 @@ public class BooleanGuardCompiler {
             PureOperator operator,
             SourceLocation location,
             boolean isDependingOnSubscription,
+            boolean isRelativeExpression,
             String errorMessage) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(PureBooleanTypeCheck.class);
 

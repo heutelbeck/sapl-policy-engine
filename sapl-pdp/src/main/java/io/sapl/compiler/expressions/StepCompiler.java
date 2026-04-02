@@ -160,6 +160,11 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
         }
@@ -214,6 +219,11 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.semanticHash(), index);
         }
@@ -260,6 +270,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
         }
 
         @Override
@@ -335,6 +350,11 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.semanticHash(), indices.hashCode());
         }
@@ -392,6 +412,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
         }
 
         @Override
@@ -482,6 +507,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
         }
 
         @Override
@@ -578,6 +608,13 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            boolean baseRel = baseOp != null && baseOp.isRelativeExpression();
+            boolean exprRel = expr instanceof PureOperator po && po.isRelativeExpression();
+            return baseRel || exprRel;
+        }
+
+        @Override
         public long semanticHash() {
             long baseHash = baseValue != null ? baseValue.hashCode() : baseOp.semanticHash();
             long exprHash = expr instanceof PureOperator po ? po.semanticHash() : expr.hashCode();
@@ -598,6 +635,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription() || expr.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression() || expr.isRelativeExpression();
         }
 
         @Override
@@ -742,6 +784,11 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return false;
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.hashCode(), condition.semanticHash());
         }
@@ -763,6 +810,11 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.semanticHash(), condition.hashCode());
         }
@@ -781,6 +833,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription() || condition.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
         }
 
         @Override
@@ -881,6 +938,11 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
         }
@@ -961,6 +1023,11 @@ public class StepCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
+        }
+
+        @Override
         public long semanticHash() {
             return SemanticHashing.ordered(KIND, base.semanticHash(), index);
         }
@@ -1035,6 +1102,11 @@ public class StepCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return base.isDependingOnSubscription();
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return base.isRelativeExpression();
         }
 
         @Override

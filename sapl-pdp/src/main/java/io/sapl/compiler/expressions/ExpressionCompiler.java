@@ -136,6 +136,11 @@ public class ExpressionCompiler {
         }
 
         @Override
+        public boolean isRelativeExpression() {
+            return true;
+        }
+
+        @Override
         public long semanticHash() {
             return KIND;
         }
@@ -152,6 +157,11 @@ public class ExpressionCompiler {
         @Override
         public boolean isDependingOnSubscription() {
             return false;
+        }
+
+        @Override
+        public boolean isRelativeExpression() {
+            return true;
         }
 
         @Override
