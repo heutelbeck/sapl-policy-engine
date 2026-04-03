@@ -48,18 +48,6 @@ public class ObjectFunctionLibrary {
             }
             """;
 
-    private static final String SCHEMA_RETURNS_BOOLEAN = """
-            {
-                "type": "boolean"
-            }
-            """;
-
-    private static final String SCHEMA_RETURNS_INTEGER = """
-            {
-                "type": "integer"
-            }
-            """;
-
     /**
      * Extracts all keys from a JSON object and returns them as an array of strings.
      * The order of keys matches the

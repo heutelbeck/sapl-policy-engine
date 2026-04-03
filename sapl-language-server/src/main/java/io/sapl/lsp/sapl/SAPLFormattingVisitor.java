@@ -273,9 +273,16 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         if (ctx.HAS() == null) {
             return visit(ctx.comparison(0));
         }
-        val left     = visit(ctx.comparison(0));
-        val right    = visit(ctx.comparison(1));
-        val modifier = ctx.ANY() != null ? " has any " : ctx.ALL() != null ? " has all " : " has ";
+        val    left  = visit(ctx.comparison(0));
+        val    right = visit(ctx.comparison(1));
+        String modifier;
+        if (ctx.ANY() != null) {
+            modifier = " has any ";
+        } else if (ctx.ALL() != null) {
+            modifier = " has all ";
+        } else {
+            modifier = " has ";
+        }
         return left + modifier + right;
     }
 

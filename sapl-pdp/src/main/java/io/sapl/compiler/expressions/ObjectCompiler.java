@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
@@ -185,6 +186,21 @@ public class ObjectCompiler {
             }
             return hash;
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(keys), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
+                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), totalEntries,
+                    Objects.hashCode(location));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof AllPureObject r && Arrays.equals(keys, r.keys)
+                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
+                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
+                    && totalEntries == r.totalEntries && Objects.equals(location, r.location));
+        }
     }
 
     /**
@@ -236,6 +252,22 @@ public class ObjectCompiler {
                     return Flux.just(new TracedValue(builder.build(), tracedValue.contributingAttributes()));
                 });
             });
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(keys), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
+                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
+                    Objects.hashCode(streamOp), totalEntries);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof SingleStreamObject r && Arrays.equals(keys, r.keys)
+                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
+                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
+                    && streamIndex == r.streamIndex && Objects.equals(streamOp, r.streamOp)
+                    && totalEntries == r.totalEntries);
         }
     }
 
@@ -306,7 +338,35 @@ public class ObjectCompiler {
             });
         }
 
-        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {}
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(keys), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
+                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices),
+                    Arrays.hashCode(streams), totalEntries);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof MultiStreamObject r && Arrays.equals(keys, r.keys)
+                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
+                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
+                    && Arrays.equals(streamIndices, r.streamIndices) && Arrays.equals(streams, r.streams)
+                    && totalEntries == r.totalEntries);
+        }
+
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(Arrays.hashCode(values), Objects.hashCode(traces));
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                return this == o || (o instanceof CombinedStreams r && Arrays.equals(values, r.values)
+                        && Objects.equals(traces, r.traces));
+            }
+        }
     }
 
 }

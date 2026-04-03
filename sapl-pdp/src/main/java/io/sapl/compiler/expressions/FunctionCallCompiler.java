@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.AttributeRecord;
@@ -281,6 +282,21 @@ public class FunctionCallCompiler {
             }
             return hash;
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Objects.hashCode(functionName), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
+                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), totalArgs,
+                    Objects.hashCode(location));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof AllPureFunction r && Objects.equals(functionName, r.functionName)
+                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
+                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
+                    && totalArgs == r.totalArgs && Objects.equals(location, r.location));
+        }
     }
 
     /**
@@ -313,6 +329,22 @@ public class FunctionCallCompiler {
                     return Flux.just(new TracedValue(result, tracedArg.contributingAttributes()));
                 });
             });
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Objects.hashCode(functionName), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
+                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
+                    Objects.hashCode(argStream), totalArgs, Objects.hashCode(location));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof SingleStreamFunction r && Objects.equals(functionName, r.functionName)
+                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
+                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
+                    && streamIndex == r.streamIndex && Objects.equals(argStream, r.argStream)
+                    && totalArgs == r.totalArgs && Objects.equals(location, r.location));
         }
     }
 
@@ -362,7 +394,35 @@ public class FunctionCallCompiler {
             });
         }
 
-        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {}
+        @Override
+        public int hashCode() {
+            return Objects.hash(Objects.hashCode(functionName), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
+                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices),
+                    Arrays.hashCode(streams), totalArgs, Objects.hashCode(location));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof MultiStreamFunction r && Objects.equals(functionName, r.functionName)
+                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
+                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
+                    && Arrays.equals(streamIndices, r.streamIndices) && Arrays.equals(streams, r.streams)
+                    && totalArgs == r.totalArgs && Objects.equals(location, r.location));
+        }
+
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(Arrays.hashCode(values), Objects.hashCode(traces));
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                return this == o || (o instanceof CombinedStreams r && Arrays.equals(values, r.values)
+                        && Objects.equals(traces, r.traces));
+            }
+        }
     }
 
 }

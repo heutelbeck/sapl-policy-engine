@@ -72,14 +72,25 @@ public class HospitalScenarioGenerator {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
-    private static final String[] ROLES = { "attending", "resident", "nurse", "labTech", "pharmacist", "admin",
-            "billing", "auditor", "researcher" };
+    private static final String ACTION_APPROVE   = "approve";
+    private static final String ACTION_AUDIT     = "audit";
+    private static final String ACTION_BILL      = "bill";
+    private static final String ACTION_CREATE    = "create";
+    private static final String ACTION_DELETE    = "delete";
+    private static final String ACTION_ORDER     = "order";
+    private static final String ACTION_PRESCRIBE = "prescribe";
+    private static final String ACTION_READ      = "read";
+    private static final String ACTION_WRITE     = "write";
 
-    private static final String[] ALL_ACTIONS = { "read", "write", "create", "delete", "prescribe", "order",
-            "discharge", "transfer", "bill", "audit", "approve", "override" };
-
-    private static final String[] RESOURCE_TYPES = { "PatientRecord", "LabResult", "Prescription", "Imaging",
-            "BillingRecord", "Schedule", "CareNote", "Referral", "Consent", "AuditLog" };
+    private static final String RESOURCE_AUDIT_LOG      = "AuditLog";
+    private static final String RESOURCE_BILLING_RECORD = "BillingRecord";
+    private static final String RESOURCE_CARE_NOTE      = "CareNote";
+    private static final String RESOURCE_IMAGING        = "Imaging";
+    private static final String RESOURCE_LAB_RESULT     = "LabResult";
+    private static final String RESOURCE_PATIENT_RECORD = "PatientRecord";
+    private static final String RESOURCE_PRESCRIPTION   = "Prescription";
+    private static final String RESOURCE_REFERRAL       = "Referral";
+    private static final String RESOURCE_SCHEDULE       = "Schedule";
 
     private record Permission(String resourceType, String[] actions) {}
 
@@ -87,68 +98,79 @@ public class HospitalScenarioGenerator {
 
     private static final RoleSpec[] ROLE_SPECS = {
             // attending (clearance 4): 6 resource types, all multi-action IN-lists
-            new RoleSpec("attending", 4,
-                    new Permission[] { new Permission("PatientRecord", new String[] { "read", "write", "create" }),
-                            new Permission("LabResult", new String[] { "read", "order" }),
-                            new Permission("Prescription", new String[] { "read", "write", "prescribe" }),
-                            new Permission("Imaging", new String[] { "read", "order" }),
-                            new Permission("CareNote", new String[] { "read", "write", "create" }),
-                            new Permission("Referral", new String[] { "read", "write", "create" }) }),
+            new RoleSpec("attending", 4, new Permission[] {
+                    new Permission(RESOURCE_PATIENT_RECORD, new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE }),
+                    new Permission(RESOURCE_LAB_RESULT, new String[] { ACTION_READ, ACTION_ORDER }),
+                    new Permission(RESOURCE_PRESCRIPTION, new String[] { ACTION_READ, ACTION_WRITE, ACTION_PRESCRIBE }),
+                    new Permission(RESOURCE_IMAGING, new String[] { ACTION_READ, ACTION_ORDER }),
+                    new Permission(RESOURCE_CARE_NOTE, new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE }),
+                    new Permission(RESOURCE_REFERRAL, new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE }) }),
 
             // resident (clearance 3): mix of single-action == and multi-action IN
             new RoleSpec("resident", 3,
-                    new Permission[] { new Permission("PatientRecord", new String[] { "read", "write" }),
-                            new Permission("LabResult", new String[] { "read" }),
-                            new Permission("Prescription", new String[] { "read" }),
-                            new Permission("Imaging", new String[] { "read", "order" }),
-                            new Permission("CareNote", new String[] { "read", "write", "create" }),
-                            new Permission("Referral", new String[] { "read", "create" }) }),
+                    new Permission[] {
+                            new Permission(RESOURCE_PATIENT_RECORD, new String[] { ACTION_READ, ACTION_WRITE }),
+                            new Permission(RESOURCE_LAB_RESULT, new String[] { ACTION_READ }),
+                            new Permission(RESOURCE_PRESCRIPTION, new String[] { ACTION_READ }),
+                            new Permission(RESOURCE_IMAGING, new String[] { ACTION_READ, ACTION_ORDER }),
+                            new Permission(RESOURCE_CARE_NOTE,
+                                    new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE }),
+                            new Permission(RESOURCE_REFERRAL, new String[] { ACTION_READ, ACTION_CREATE }) }),
 
             // nurse (clearance 3): mix of single == and multi-action IN
             new RoleSpec("nurse", 3,
-                    new Permission[] { new Permission("PatientRecord", new String[] { "read", "write" }),
-                            new Permission("LabResult", new String[] { "read" }),
-                            new Permission("Prescription", new String[] { "read" }),
-                            new Permission("CareNote", new String[] { "read", "write", "create" }),
-                            new Permission("Schedule", new String[] { "read", "write" }) }),
+                    new Permission[] {
+                            new Permission(RESOURCE_PATIENT_RECORD, new String[] { ACTION_READ, ACTION_WRITE }),
+                            new Permission(RESOURCE_LAB_RESULT, new String[] { ACTION_READ }),
+                            new Permission(RESOURCE_PRESCRIPTION, new String[] { ACTION_READ }),
+                            new Permission(RESOURCE_CARE_NOTE,
+                                    new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE }),
+                            new Permission(RESOURCE_SCHEDULE, new String[] { ACTION_READ, ACTION_WRITE }) }),
 
             // labTech (clearance 2): multi-action IN only
-            new RoleSpec("labTech", 2,
-                    new Permission[] { new Permission("LabResult", new String[] { "read", "write", "create" }),
-                            new Permission("Imaging", new String[] { "read", "write", "create" }) }),
+            new RoleSpec("labTech", 2, new Permission[] {
+                    new Permission(RESOURCE_LAB_RESULT, new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE }),
+                    new Permission(RESOURCE_IMAGING, new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE }) }),
 
             // pharmacist (clearance 3): one IN-list, one single ==
             new RoleSpec("pharmacist", 3,
-                    new Permission[] { new Permission("Prescription", new String[] { "read", "write", "approve" }),
-                            new Permission("PatientRecord", new String[] { "read" }) }),
+                    new Permission[] {
+                            new Permission(RESOURCE_PRESCRIPTION,
+                                    new String[] { ACTION_READ, ACTION_WRITE, ACTION_APPROVE }),
+                            new Permission(RESOURCE_PATIENT_RECORD, new String[] { ACTION_READ }) }),
 
             // admin (clearance 2): one 4-element IN, one 2-element IN, one single ==
             new RoleSpec("admin", 2,
-                    new Permission[] { new Permission("Schedule", new String[] { "read", "write", "create", "delete" }),
-                            new Permission("BillingRecord", new String[] { "read", "write" }),
-                            new Permission("AuditLog", new String[] { "read" }) }),
+                    new Permission[] {
+                            new Permission(RESOURCE_SCHEDULE,
+                                    new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE, ACTION_DELETE }),
+                            new Permission(RESOURCE_BILLING_RECORD, new String[] { ACTION_READ, ACTION_WRITE }),
+                            new Permission(RESOURCE_AUDIT_LOG, new String[] { ACTION_READ }) }),
 
             // billing (clearance 2): one 4-element IN, one single ==
             new RoleSpec("billing", 2,
                     new Permission[] {
-                            new Permission("BillingRecord", new String[] { "read", "write", "create", "bill" }),
-                            new Permission("PatientRecord", new String[] { "read" }) }),
+                            new Permission(RESOURCE_BILLING_RECORD,
+                                    new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE, ACTION_BILL }),
+                            new Permission(RESOURCE_PATIENT_RECORD, new String[] { ACTION_READ }) }),
 
             // auditor (clearance 4): one 4-element IN, two single ==
             new RoleSpec("auditor", 4,
-                    new Permission[] { new Permission("AuditLog", new String[] { "read", "write", "create", "audit" }),
-                            new Permission("PatientRecord", new String[] { "read" }),
-                            new Permission("BillingRecord", new String[] { "read" }) }),
+                    new Permission[] {
+                            new Permission(RESOURCE_AUDIT_LOG,
+                                    new String[] { ACTION_READ, ACTION_WRITE, ACTION_CREATE, ACTION_AUDIT }),
+                            new Permission(RESOURCE_PATIENT_RECORD, new String[] { ACTION_READ }),
+                            new Permission(RESOURCE_BILLING_RECORD, new String[] { ACTION_READ }) }),
 
             // researcher (clearance 1): all single == "read"
             new RoleSpec("researcher", 1,
-                    new Permission[] { new Permission("PatientRecord", new String[] { "read" }),
-                            new Permission("LabResult", new String[] { "read" }),
-                            new Permission("Imaging", new String[] { "read" }) }) };
+                    new Permission[] { new Permission(RESOURCE_PATIENT_RECORD, new String[] { ACTION_READ }),
+                            new Permission(RESOURCE_LAB_RESULT, new String[] { ACTION_READ }),
+                            new Permission(RESOURCE_IMAGING, new String[] { ACTION_READ }) }) };
 
     // Resource types accessible during emergencies
-    private static final String[] EMERGENCY_RESOURCE_TYPES = { "PatientRecord", "LabResult", "Prescription", "Imaging",
-            "CareNote" };
+    private static final String[] EMERGENCY_RESOURCE_TYPES = { RESOURCE_PATIENT_RECORD, RESOURCE_LAB_RESULT,
+            RESOURCE_PRESCRIPTION, RESOURCE_IMAGING, RESOURCE_CARE_NOTE };
 
     static final int            STAFF_PER_DEPARTMENT   = 5;
     static final int            TEAMS_PER_DEPARTMENT   = 2;
@@ -204,13 +226,14 @@ public class HospitalScenarioGenerator {
 
         // Staff: random role, primary team in home department, optional
         // cross-department memberships
+        val parents = new ArrayList<Value>();
         for (int d = 0; d < numDepartments; d++) {
             for (int s = 0; s < STAFF_PER_DEPARTMENT; s++) {
                 val staffId     = PREFIX_STAFF + totalStaff;
                 val roleSpec    = ROLE_SPECS[rng.nextInt(ROLE_SPECS.length)];
                 val primaryTeam = globalTeamIndex(d, rng.nextInt(TEAMS_PER_DEPARTMENT));
 
-                val parents = new ArrayList<Value>();
+                parents.clear();
                 parents.add(Value.of(PREFIX_TEAM + primaryTeam));
 
                 for (int od = 0; od < numDepartments; od++) {
@@ -332,14 +355,16 @@ public class HospitalScenarioGenerator {
     // Actions weighted toward those that appear in more policies.
     // "read" appears in nearly every role, "write"/"create" in most, others are
     // rare.
-    private static final String[] WEIGHTED_ACTIONS = { "read", "read", "read", "read", "read", "read", "read", "write",
-            "write", "write", "create", "create", "order", "prescribe", "approve", "bill", "audit", "delete" };
+    private static final String[] WEIGHTED_ACTIONS = { ACTION_READ, ACTION_READ, ACTION_READ, ACTION_READ, ACTION_READ,
+            ACTION_READ, ACTION_READ, ACTION_WRITE, ACTION_WRITE, ACTION_WRITE, ACTION_CREATE, ACTION_CREATE,
+            ACTION_ORDER, ACTION_PRESCRIBE, ACTION_APPROVE, ACTION_BILL, ACTION_AUDIT, ACTION_DELETE };
 
     // Resource types weighted toward those accessed by more roles.
     // PatientRecord: 7 roles, LabResult/CareNote: 5, others fewer.
-    private static final String[] WEIGHTED_RESOURCE_TYPES = { "PatientRecord", "PatientRecord", "PatientRecord",
-            "LabResult", "LabResult", "CareNote", "CareNote", "Prescription", "Imaging", "Schedule", "BillingRecord",
-            "AuditLog", "Referral" };
+    private static final String[] WEIGHTED_RESOURCE_TYPES = { RESOURCE_PATIENT_RECORD, RESOURCE_PATIENT_RECORD,
+            RESOURCE_PATIENT_RECORD, RESOURCE_LAB_RESULT, RESOURCE_LAB_RESULT, RESOURCE_CARE_NOTE, RESOURCE_CARE_NOTE,
+            RESOURCE_PRESCRIPTION, RESOURCE_IMAGING, RESOURCE_SCHEDULE, RESOURCE_BILLING_RECORD, RESOURCE_AUDIT_LOG,
+            RESOURCE_REFERRAL };
 
     private static List<AuthorizationSubscription> generateSubscriptions(int numDepartments, List<StaffMember> staff,
             Random rng) {

@@ -296,5 +296,24 @@ public class MethodSignatureProcessor {
                             ? ERROR_VARARG_TYPE_TEMPLATE.formatted(parameterInfo.varArgsParameterType.getSimpleName())
                             : null);
         }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(minArgCount, hasVarArgs, methodParameterCount, parameterTypes,
+                    varArgsParameterType, java.util.Arrays.hashCode(fixedParamErrorTemplates), exactArgCountError,
+                    minArgCountError, varArgErrorTemplate);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof InvocationConfig r && minArgCount == r.minArgCount
+                    && hasVarArgs == r.hasVarArgs && methodParameterCount == r.methodParameterCount
+                    && java.util.Objects.equals(parameterTypes, r.parameterTypes)
+                    && java.util.Objects.equals(varArgsParameterType, r.varArgsParameterType)
+                    && java.util.Arrays.equals(fixedParamErrorTemplates, r.fixedParamErrorTemplates)
+                    && java.util.Objects.equals(exactArgCountError, r.exactArgCountError)
+                    && java.util.Objects.equals(minArgCountError, r.minArgCountError)
+                    && java.util.Objects.equals(varArgErrorTemplate, r.varArgErrorTemplate));
+        }
     }
 }

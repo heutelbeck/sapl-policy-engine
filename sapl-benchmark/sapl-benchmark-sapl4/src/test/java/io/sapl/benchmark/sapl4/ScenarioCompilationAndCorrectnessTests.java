@@ -56,10 +56,7 @@ class ScenarioCompilationAndCorrectnessTests {
             val scenario = ScenarioFactory.create(scenarioName, seed);
             val flags    = CompilerFlags.defaults();
 
-            val startCompile = System.nanoTime();
             val components   = scenario.buildPdp(flags);
-            val compileTime  = System.nanoTime() - startCompile;
-            System.out.printf("Compiled %s-%d in %d ms%n", scenarioName, seed, compileTime / 1_000_000);
             val pdp = components.pdp();
 
             val counts = new EnumMap<Decision, Integer>(Decision.class);
@@ -103,8 +100,7 @@ class ScenarioCompilationAndCorrectnessTests {
                 val       sub           = subs.get(i);
                 val       naiveDecision = naivePdp.decideOnceBlocking(sub).decision();
                 val       canonDecision = canonPdp.decideOnceBlocking(sub).decision();
-                final int idx           = i;
-                assertThat(canonDecision).as("subscription[%d] %s", idx, sub).isEqualTo(naiveDecision);
+                assertThat(canonDecision).as("subscription[%d] %s", i, sub).isEqualTo(naiveDecision);
             }
 
             naiveComponents.dispose();

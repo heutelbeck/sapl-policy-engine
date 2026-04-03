@@ -51,10 +51,18 @@ public class GithubScenarioGenerator {
 
     // Cedar: 5 repo permission levels (random_role_str(), uniform 20% each, lines
     // 72-83)
-    private static final String[] REPO_ROLES = { "readers", "triagers", "writers", "maintainers", "admins" };
+    private static final String ADMINS  = "admins";
+    private static final String READERS = "readers";
+    private static final String WRITERS = "writers";
+
+    private static final String SUFFIX_ADMINS  = "_admins";
+    private static final String SUFFIX_READERS = "_readers";
+    private static final String SUFFIX_WRITERS = "_writers";
+
+    private static final String[] REPO_ROLES = { READERS, "triagers", WRITERS, "maintainers", ADMINS };
     // Cedar: 3 org permission levels (random_org_role_str(), uniform 33% each,
     // lines 85-92)
-    private static final String[] ORG_ROLES = { "readers", "writers", "admins" };
+    private static final String[] ORG_ROLES = { READERS, WRITERS, ADMINS };
 
     // Cedar permission entity type prefixes
     // Cedar: euid("RepoPermission", name+"_readers") ->
@@ -226,14 +234,14 @@ public class GithubScenarioGenerator {
             entityGraph.put(OopslaConstants.PREFIX_ORG + o, Value.ofArray(orgParents.toArray(Value[]::new)));
 
             // 3 OrgPermission entities: no parents
-            entityGraph.put(ORG_PERM_PREFIX + o + "_readers", Value.ofArray());
-            entityGraph.put(ORG_PERM_PREFIX + o + "_writers", Value.ofArray());
-            entityGraph.put(ORG_PERM_PREFIX + o + "_admins", Value.ofArray());
+            entityGraph.put(ORG_PERM_PREFIX + o + SUFFIX_READERS, Value.ofArray());
+            entityGraph.put(ORG_PERM_PREFIX + o + SUFFIX_WRITERS, Value.ofArray());
+            entityGraph.put(ORG_PERM_PREFIX + o + SUFFIX_ADMINS, Value.ofArray());
 
             orgs.put(OopslaConstants.PREFIX_ORG + o,
-                    Value.ofObject(Map.of("readers", Value.of(ORG_PERM_PREFIX + o + "_readers"), "writers",
-                            Value.of(ORG_PERM_PREFIX + o + "_writers"), "admins",
-                            Value.of(ORG_PERM_PREFIX + o + "_admins"))));
+                    Value.ofObject(Map.of(READERS, Value.of(ORG_PERM_PREFIX + o + SUFFIX_READERS), WRITERS,
+                            Value.of(ORG_PERM_PREFIX + o + SUFFIX_WRITERS), ADMINS,
+                            Value.of(ORG_PERM_PREFIX + o + SUFFIX_ADMINS))));
         }
 
         // Step 2: Repos. Cedar: lines 113-116.
@@ -253,11 +261,11 @@ public class GithubScenarioGenerator {
             }
 
             repos.put(OopslaConstants.PREFIX_REPO + r,
-                    Value.ofObject(Map.of("readers", Value.of(REPO_PERM_PREFIX + r + "_readers"), "triagers",
-                            Value.of(REPO_PERM_PREFIX + r + "_triagers"), "writers",
-                            Value.of(REPO_PERM_PREFIX + r + "_writers"), "maintainers",
-                            Value.of(REPO_PERM_PREFIX + r + "_maintainers"), "admins",
-                            Value.of(REPO_PERM_PREFIX + r + "_admins"), "owner", Value.of(owner))));
+                    Value.ofObject(Map.of(READERS, Value.of(REPO_PERM_PREFIX + r + SUFFIX_READERS), "triagers",
+                            Value.of(REPO_PERM_PREFIX + r + "_triagers"), WRITERS,
+                            Value.of(REPO_PERM_PREFIX + r + SUFFIX_WRITERS), "maintainers",
+                            Value.of(REPO_PERM_PREFIX + r + "_maintainers"), ADMINS,
+                            Value.of(REPO_PERM_PREFIX + r + SUFFIX_ADMINS), "owner", Value.of(owner))));
         }
 
         // Step 3: Teams. Cedar: lines 117-126.

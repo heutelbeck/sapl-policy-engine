@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.AttributeRecord;
@@ -167,6 +168,21 @@ public class ArrayCompiler {
         boolean hasSingleStream() {
             return streams.length == 1;
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
+                    Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices), Arrays.hashCode(streams),
+                    totalCount);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof CategorizedExpressions r && Arrays.equals(valueIndices, r.valueIndices)
+                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
+                    && Arrays.equals(pureOperators, r.pureOperators) && Arrays.equals(streamIndices, r.streamIndices)
+                    && Arrays.equals(streams, r.streams) && totalCount == r.totalCount);
+        }
     }
 
     /**
@@ -235,6 +251,20 @@ public class ArrayCompiler {
             }
             return hash;
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
+                    Arrays.hashCode(pureOperators), totalElements, Objects.hashCode(location));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof AllPureArray r && Arrays.equals(valueIndices, r.valueIndices)
+                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
+                    && Arrays.equals(pureOperators, r.pureOperators) && totalElements == r.totalElements
+                    && Objects.equals(location, r.location));
+        }
     }
 
     /**
@@ -284,6 +314,20 @@ public class ArrayCompiler {
                     return Flux.just(new TracedValue(builder.build(), tracedValue.contributingAttributes()));
                 });
             });
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
+                    Arrays.hashCode(pureOperators), streamIndex, Objects.hashCode(streamOp), totalElements);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof SingleStreamArray r && Arrays.equals(valueIndices, r.valueIndices)
+                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
+                    && Arrays.equals(pureOperators, r.pureOperators) && streamIndex == r.streamIndex
+                    && Objects.equals(streamOp, r.streamOp) && totalElements == r.totalElements);
         }
     }
 
@@ -352,7 +396,34 @@ public class ArrayCompiler {
             });
         }
 
-        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {}
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
+                    Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices), Arrays.hashCode(streams),
+                    totalElements);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof MultiStreamArray r && Arrays.equals(valueIndices, r.valueIndices)
+                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
+                    && Arrays.equals(pureOperators, r.pureOperators) && Arrays.equals(streamIndices, r.streamIndices)
+                    && Arrays.equals(streams, r.streams) && totalElements == r.totalElements);
+        }
+
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(Arrays.hashCode(values), Objects.hashCode(traces));
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                return this == o || (o instanceof CombinedStreams r && Arrays.equals(values, r.values)
+                        && Objects.equals(traces, r.traces));
+            }
+        }
     }
 
 }

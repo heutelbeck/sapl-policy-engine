@@ -17,8 +17,10 @@
  */
 package io.sapl.compiler.index.canonical;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
 
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.index.DisjunctiveFormula;
@@ -73,6 +75,32 @@ record CanonicalIndexData(
         int[][] relatedFormulas,
         List<DisjunctiveFormula> formulas,
         List<List<CompiledDocument>> formulaDocuments) {
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(predicateOrder, Arrays.hashCode(predicateOriginalIndices), numberOfConjunctions,
+                Arrays.hashCode(numberOfLiteralsInConjunction), Arrays.hashCode(numberOfFormulasWithConjunction),
+                Arrays.deepHashCode(conjunctionToFormulaIndices), Arrays.deepHashCode(formulaConjunctionIndices),
+                Arrays.hashCode(falseForTruePredicate), Arrays.hashCode(falseForFalsePredicate),
+                Arrays.hashCode(conjunctionsWithPredicate), Arrays.deepHashCode(relatedFormulas), formulas,
+                formulaDocuments);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return this == o || (o instanceof CanonicalIndexData r && Objects.equals(predicateOrder, r.predicateOrder)
+                && Arrays.equals(predicateOriginalIndices, r.predicateOriginalIndices)
+                && numberOfConjunctions == r.numberOfConjunctions
+                && Arrays.equals(numberOfLiteralsInConjunction, r.numberOfLiteralsInConjunction)
+                && Arrays.equals(numberOfFormulasWithConjunction, r.numberOfFormulasWithConjunction)
+                && Arrays.deepEquals(conjunctionToFormulaIndices, r.conjunctionToFormulaIndices)
+                && Arrays.deepEquals(formulaConjunctionIndices, r.formulaConjunctionIndices)
+                && Arrays.equals(falseForTruePredicate, r.falseForTruePredicate)
+                && Arrays.equals(falseForFalsePredicate, r.falseForFalsePredicate)
+                && Arrays.equals(conjunctionsWithPredicate, r.conjunctionsWithPredicate)
+                && Arrays.deepEquals(relatedFormulas, r.relatedFormulas) && Objects.equals(formulas, r.formulas)
+                && Objects.equals(formulaDocuments, r.formulaDocuments));
+    }
 
     /**
      * Average number of formulas per predicate. Values close to 1.0 indicate

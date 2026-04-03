@@ -45,7 +45,9 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
@@ -170,6 +172,23 @@ public class AttributeCompiler {
             SourceLocation location) implements StreamOperator {
 
         @Override
+        public int hashCode() {
+            return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), totalArgs,
+                    options, head, location);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof AllPureAttribute r && Objects.equals(attributeName, r.attributeName)
+                    && Objects.equals(entityValue, r.entityValue) && Objects.equals(pdpData, r.pdpData)
+                    && Objects.equals(entityPure, r.entityPure) && Arrays.equals(valueIndices, r.valueIndices)
+                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
+                    && Arrays.equals(pureOperators, r.pureOperators) && totalArgs == r.totalArgs
+                    && Objects.equals(options, r.options) && head == r.head && Objects.equals(location, r.location));
+        }
+
+        @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
                 val evalCtx = ctx.get(EvaluationContext.class);
@@ -214,6 +233,23 @@ public class AttributeCompiler {
             CompiledExpression options,
             boolean head,
             SourceLocation location) implements StreamOperator {
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(attributeName, pdpData, entityStream, Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), totalArgs,
+                    options, head, location);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof EntityStreamAttribute r && Objects.equals(attributeName, r.attributeName)
+                    && Objects.equals(pdpData, r.pdpData) && Objects.equals(entityStream, r.entityStream)
+                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
+                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
+                    && totalArgs == r.totalArgs && Objects.equals(options, r.options) && head == r.head
+                    && Objects.equals(location, r.location));
+        }
 
         @Override
         public Flux<TracedValue> stream() {
@@ -263,6 +299,24 @@ public class AttributeCompiler {
             CompiledExpression options,
             boolean head,
             SourceLocation location) implements StreamOperator {
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
+                    argStream, totalArgs, options, head, location);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof SingleStreamAttribute r && Objects.equals(attributeName, r.attributeName)
+                    && Objects.equals(entityValue, r.entityValue) && Objects.equals(pdpData, r.pdpData)
+                    && Objects.equals(entityPure, r.entityPure) && Arrays.equals(valueIndices, r.valueIndices)
+                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
+                    && Arrays.equals(pureOperators, r.pureOperators) && streamIndex == r.streamIndex
+                    && Objects.equals(argStream, r.argStream) && totalArgs == r.totalArgs
+                    && Objects.equals(options, r.options) && head == r.head && Objects.equals(location, r.location));
+        }
 
         @Override
         public Flux<TracedValue> stream() {
@@ -320,6 +374,24 @@ public class AttributeCompiler {
             SourceLocation location) implements StreamOperator {
 
         @Override
+        public int hashCode() {
+            return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators),
+                    Arrays.hashCode(streamIndices), Arrays.hashCode(streams), totalArgs, options, head, location);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o || (o instanceof MultiStreamAttribute r && Objects.equals(attributeName, r.attributeName)
+                    && Objects.equals(entityValue, r.entityValue) && Objects.equals(pdpData, r.pdpData)
+                    && Objects.equals(entityPure, r.entityPure) && Arrays.equals(valueIndices, r.valueIndices)
+                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
+                    && Arrays.equals(pureOperators, r.pureOperators) && Arrays.equals(streamIndices, r.streamIndices)
+                    && Arrays.equals(streams, r.streams) && totalArgs == r.totalArgs
+                    && Objects.equals(options, r.options) && head == r.head && Objects.equals(location, r.location));
+        }
+
+        @Override
         public Flux<TracedValue> stream() {
             List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
             for (val s : streams) {
@@ -372,7 +444,18 @@ public class AttributeCompiler {
             });
         }
 
-        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {}
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
+            @Override
+            public int hashCode() {
+                return Objects.hash(Arrays.hashCode(values), traces);
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                return this == o || (o instanceof CombinedStreams r && Arrays.equals(values, r.values)
+                        && Objects.equals(traces, r.traces));
+            }
+        }
     }
 
     private static Value evaluateOptions(CompiledExpression options, EvaluationContext ctx) {
