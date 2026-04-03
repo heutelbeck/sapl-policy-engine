@@ -97,7 +97,7 @@ public class PDPConfigurationLoader {
     private static final String PDP_JSON             = "pdp.json";
     private static final String SAPL_EXTENSION       = ".sapl";
 
-    private static final int  MAX_FILE_COUNT           = 1000;
+    private static final int  DEFAULT_MAX_FILE_COUNT   = 10_000;
     private static final long MAX_TOTAL_SIZE_BYTES     = 10L * 1024 * 1024;
     private static final long MAX_TOTAL_SIZE_MEGABYTES = MAX_TOTAL_SIZE_BYTES / (1024 * 1024);
 
@@ -152,7 +152,9 @@ public class PDPConfigurationLoader {
     public static PDPConfiguration loadFromDirectory(Path path, String pdpId) {
         val pdpJsonPath  = path.resolve(PDP_JSON);
         val pdpJson      = loadPdpJson(pdpJsonPath);
-        val saplContents = loadSaplDocumentsAsMap(path);
+        val maxDocuments = pdpJson.compilerFlags() != null ? pdpJson.compilerFlags().maxPolicyDocuments()
+                : DEFAULT_MAX_FILE_COUNT;
+        val saplContents = loadSaplDocumentsAsMap(path, maxDocuments);
         val documents    = new ArrayList<>(saplContents.values());
 
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
@@ -347,6 +349,7 @@ public class PDPConfigurationLoader {
         var unrollInOperator        = defaults.unrollInOperator();
         var minPoliciesForCanonical = defaults.minPoliciesForCanonical();
         var minSharingForCanonical  = defaults.minSharingForCanonical();
+        var maxPolicyDocuments      = defaults.maxPolicyDocuments();
 
         if (flagsNode.has("indexing")) {
             val value = flagsNode.get("indexing").asString();
@@ -365,8 +368,12 @@ public class PDPConfigurationLoader {
         if (flagsNode.has("minSharingForCanonical")) {
             minSharingForCanonical = flagsNode.get("minSharingForCanonical").numberValue().doubleValue();
         }
+        if (flagsNode.has("maxPolicyDocuments")) {
+            maxPolicyDocuments = flagsNode.get("maxPolicyDocuments").asInt();
+        }
 
-        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical);
+        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical,
+                maxPolicyDocuments);
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {
@@ -381,7 +388,7 @@ public class PDPConfigurationLoader {
         return builder.build();
     }
 
-    private static Map<String, String> loadSaplDocumentsAsMap(Path directory) {
+    private static Map<String, String> loadSaplDocumentsAsMap(Path directory, int maxFileCount) {
         List<Path> saplPaths;
         try (Stream<Path> paths = Files.list(directory)) {
             saplPaths = paths.filter(p -> p.toString().endsWith(SAPL_EXTENSION)).filter(Files::isRegularFile).toList();
@@ -389,8 +396,8 @@ public class PDPConfigurationLoader {
             throw new PDPConfigurationException(ERROR_FAILED_TO_LIST_SAPL_FILES, e);
         }
 
-        if (saplPaths.size() > MAX_FILE_COUNT) {
-            throw new PDPConfigurationException(ERROR_FILE_COUNT_EXCEEDS_MAXIMUM.formatted(MAX_FILE_COUNT));
+        if (saplPaths.size() > maxFileCount) {
+            throw new PDPConfigurationException(ERROR_FILE_COUNT_EXCEEDS_MAXIMUM.formatted(maxFileCount));
         }
 
         // Read files and validate size atomically to prevent TOCTOU attacks.

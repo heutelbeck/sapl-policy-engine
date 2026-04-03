@@ -36,22 +36,27 @@ import io.sapl.api.SaplVersion;
  * considers the canonical index
  * @param minSharingForCanonical minimum average formulas-per-predicate ratio
  * for AUTO mode to keep the canonical index
+ * @param maxPolicyDocuments maximum number of policy documents loaded from
+ * a directory or bundle. Safety limit against excessive file counts.
  */
 public record CompilerFlags(
         IndexingStrategy indexing,
         boolean unrollInOperator,
         int minPoliciesForCanonical,
-        double minSharingForCanonical) implements Serializable {
+        double minSharingForCanonical,
+        int maxPolicyDocuments) implements Serializable {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    private static final int DEFAULT_MAX_POLICY_DOCUMENTS = 10_000;
+
     /**
      * @return default compiler flags (AUTO indexing, no unrolling, thresholds
-     * 10 policies / 1.5 sharing ratio)
+     * 10 policies / 1.5 sharing ratio, 10000 max documents)
      */
     public static CompilerFlags defaults() {
-        return new CompilerFlags(IndexingStrategy.AUTO, false, 10, 1.5);
+        return new CompilerFlags(IndexingStrategy.AUTO, false, 10, 1.5, DEFAULT_MAX_POLICY_DOCUMENTS);
     }
 
 }

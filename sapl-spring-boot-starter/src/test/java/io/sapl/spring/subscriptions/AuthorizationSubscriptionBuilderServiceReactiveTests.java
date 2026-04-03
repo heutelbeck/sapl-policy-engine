@@ -51,6 +51,8 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+import java.io.Serial;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
@@ -294,6 +296,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
     static class MockSecurityContext implements SecurityContext {
 
+        @Serial
         private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         private Authentication authentication;

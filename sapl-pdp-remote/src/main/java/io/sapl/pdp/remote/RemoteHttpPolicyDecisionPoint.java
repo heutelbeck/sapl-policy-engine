@@ -17,8 +17,10 @@
  */
 package io.sapl.pdp.remote;
 
+import java.io.Serial;
 import java.util.function.Supplier;
 
+import io.sapl.api.SaplVersion;
 import tools.jackson.databind.json.JsonMapper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
@@ -315,7 +317,8 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     private static final class StreamEndedException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
+        @Serial
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         StreamEndedException() {
             super("PDP decision stream ended");

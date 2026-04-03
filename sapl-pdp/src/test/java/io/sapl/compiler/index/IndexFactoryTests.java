@@ -42,7 +42,7 @@ class IndexFactoryTests {
     void whenStrategyThenCorrectImplementation(IndexingStrategy strategy, Class<?> expectedType) {
         val docs = List.of(stubDocument("p1"));
         val ctx  = SaplTesting.compilationContext();
-        ctx.setCompilerFlags(new CompilerFlags(strategy, false, 10, 1.5));
+        ctx.setCompilerFlags(new CompilerFlags(strategy, false, 10, 1.5, 10_000));
         val index = IndexFactory.createIndex(docs, ctx);
         assertThat(index).isInstanceOf(expectedType);
     }

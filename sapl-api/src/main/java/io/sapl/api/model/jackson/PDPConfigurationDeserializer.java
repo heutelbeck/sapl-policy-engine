@@ -133,6 +133,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         var unrollInOperator        = defaults.unrollInOperator();
         var minPoliciesForCanonical = defaults.minPoliciesForCanonical();
         var minSharingForCanonical  = defaults.minSharingForCanonical();
+        var maxPolicyDocuments      = defaults.maxPolicyDocuments();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val flagName = parser.currentName();
@@ -150,11 +151,13 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             case "unrollInOperator"        -> unrollInOperator = parser.getBooleanValue();
             case "minPoliciesForCanonical" -> minPoliciesForCanonical = parser.getIntValue();
             case "minSharingForCanonical"  -> minSharingForCanonical = parser.getDoubleValue();
+            case "maxPolicyDocuments"      -> maxPolicyDocuments = parser.getIntValue();
             default                        -> parser.skipChildren();
             }
         }
 
-        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical);
+        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical,
+                maxPolicyDocuments);
     }
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {

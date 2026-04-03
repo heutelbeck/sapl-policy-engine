@@ -20,6 +20,7 @@ package io.sapl.playground.embed;
 import com.vaadin.flow.component.WebComponentExporter;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.webcomponent.WebComponent;
+import io.sapl.api.SaplVersion;
 
 import java.io.Serial;
 
@@ -34,7 +35,7 @@ import java.io.Serial;
 @CssImport("./embed-playground.css")
 public class EmbeddedSaplPlaygroundExporter extends WebComponentExporter<EmbeddedSaplPlayground> {
     @Serial
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public EmbeddedSaplPlaygroundExporter() {
         super("sapl-playground");

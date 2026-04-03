@@ -19,7 +19,7 @@
 # Experiment: embedded JVM and native benchmarks
 # Scenarios x threads x indexing strategies
 
-SCENARIOS=(baseline rbac hospital-1 hospital-5 hospital-50 hospital-100)
+SCENARIOS=(baseline rbac hospital-1 hospital-5 hospital-50 hospital-100 hospital-300)
 METHODS=(decideOnceBlocking)
 THREAD_SWEEP=(1 2 4 8)
 INDEXING_SWEEP=(AUTO)

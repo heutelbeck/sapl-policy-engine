@@ -87,8 +87,8 @@ class ScenarioCompilationAndCorrectnessTests {
         @MethodSource("io.sapl.benchmark.sapl4.ScenarioCompilationAndCorrectnessTests#scenarioArguments")
         void whenDifferentIndexThenSameDecisions(String scenarioName, long seed) {
             val scenario = ScenarioFactory.create(scenarioName, seed);
-            val naive    = new CompilerFlags(IndexingStrategy.NAIVE, false, 10, 1.5);
-            val canon    = new CompilerFlags(IndexingStrategy.CANONICAL, false, 10, 1.5);
+            val naive    = new CompilerFlags(IndexingStrategy.NAIVE, false, 10, 1.5, 10_000);
+            val canon    = new CompilerFlags(IndexingStrategy.CANONICAL, false, 10, 1.5, 10_000);
 
             val naiveComponents = scenario.buildPdp(naive);
             val canonComponents = scenario.buildPdp(canon);
