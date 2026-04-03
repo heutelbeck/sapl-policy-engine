@@ -334,6 +334,14 @@ public class EmbeddedPDPProperties {
     }
 
     /**
+     * Maximum number of entries in the function result cache. SAPL functions
+     * are pure and side-effect-free, so results are cached across evaluations
+     * using Window-TinyLFU eviction. Set to 0 to disable caching.
+     * Default: 10000.
+     */
+    private int functionCacheSize = 10_000;
+
+    /**
      * If this property is set to true, PDP decision metrics are recorded for
      * Prometheus via Micrometer.
      */

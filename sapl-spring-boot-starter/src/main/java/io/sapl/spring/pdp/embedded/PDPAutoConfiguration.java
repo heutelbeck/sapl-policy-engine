@@ -112,6 +112,10 @@ public class PDPAutoConfiguration {
 
         val builder = PolicyDecisionPointBuilder.withDefaults(mapper, clock);
 
+        if (properties.getFunctionCacheSize() > 0) {
+            builder.withFunctionCacheSize(properties.getFunctionCacheSize());
+        }
+
         // Collect static function library classes from providers
         val functionLibraryClasses = collectFunctionLibraryClasses(functionLibraryClassProviders);
         if (!functionLibraryClasses.isEmpty()) {

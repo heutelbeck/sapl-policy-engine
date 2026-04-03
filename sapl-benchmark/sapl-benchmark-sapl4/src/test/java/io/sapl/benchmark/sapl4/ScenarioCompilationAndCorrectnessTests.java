@@ -56,8 +56,8 @@ class ScenarioCompilationAndCorrectnessTests {
             val scenario = ScenarioFactory.create(scenarioName, seed);
             val flags    = CompilerFlags.defaults();
 
-            val components   = scenario.buildPdp(flags);
-            val pdp = components.pdp();
+            val components = scenario.buildPdp(flags);
+            val pdp        = components.pdp();
 
             val counts = new EnumMap<Decision, Integer>(Decision.class);
             for (val d : Decision.values()) {
@@ -97,9 +97,9 @@ class ScenarioCompilationAndCorrectnessTests {
 
             val subs = scenario.subscriptions();
             for (int i = 0; i < subs.size(); i++) {
-                val       sub           = subs.get(i);
-                val       naiveDecision = naivePdp.decideOnceBlocking(sub).decision();
-                val       canonDecision = canonPdp.decideOnceBlocking(sub).decision();
+                val sub           = subs.get(i);
+                val naiveDecision = naivePdp.decideOnceBlocking(sub).decision();
+                val canonDecision = canonPdp.decideOnceBlocking(sub).decision();
                 assertThat(canonDecision).as("subscription[%d] %s", i, sub).isEqualTo(naiveDecision);
             }
 

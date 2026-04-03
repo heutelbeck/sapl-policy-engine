@@ -17,6 +17,8 @@
  */
 package io.sapl.functions;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
@@ -64,7 +66,18 @@ public class DefaultFunctionBroker implements FunctionBroker {
     private static final String ERROR_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
     private static final String ERROR_NO_MATCHING_FUNCTION_FOUND     = "No matching function found for %s.";
 
+    private static final int DEFAULT_CACHE_SIZE = 10_000;
+
     private final Map<String, List<FunctionSpecification>> functionIndex = new ConcurrentHashMap<>();
+    private final Cache<FunctionInvocation, Value>         functionCache;
+
+    public DefaultFunctionBroker() {
+        this(DEFAULT_CACHE_SIZE);
+    }
+
+    public DefaultFunctionBroker(int functionCacheSize) {
+        this.functionCache = Caffeine.newBuilder().maximumSize(functionCacheSize).build();
+    }
 
     @Getter
     private final List<Class<?>> registeredLibraries = new CopyOnWriteArrayList<>();
@@ -187,7 +200,10 @@ public class DefaultFunctionBroker implements FunctionBroker {
         if (invocation == null) {
             throw new IllegalArgumentException(ERROR_INVOCATION_NULL);
         }
+        return functionCache.get(invocation, this::invokeFunction);
+    }
 
+    private Value invokeFunction(FunctionInvocation invocation) {
         val specs = functionIndex.get(invocation.functionName());
 
         if (specs != null) {

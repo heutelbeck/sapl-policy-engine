@@ -161,6 +161,7 @@ public class PolicyDecisionPointBuilder {
     private IdFactory         idFactory;
     private WebClient.Builder webClientBuilder;
 
+    private int             functionCacheSize = -1;
     private FunctionBroker  externalFunctionBroker;
     private AttributeBroker externalAttributeBroker;
 
@@ -359,6 +360,20 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withFunctionBroker(FunctionBroker functionBroker) {
         this.externalFunctionBroker = functionBroker;
+        return this;
+    }
+
+    /**
+     * Sets the maximum number of entries in the function result cache.
+     * SAPL functions are pure and side-effect-free, so results are cached
+     * across evaluations. Uses Window-TinyLFU eviction via Caffeine.
+     * Default is 10,000 entries.
+     *
+     * @param size maximum cache entries
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withFunctionCacheSize(int size) {
+        this.functionCacheSize = size;
         return this;
     }
 
@@ -814,7 +829,8 @@ public class PolicyDecisionPointBuilder {
     }
 
     private FunctionBroker buildFunctionBroker() {
-        val functionBroker = new DefaultFunctionBroker();
+        val functionBroker = functionCacheSize > 0 ? new DefaultFunctionBroker(functionCacheSize)
+                : new DefaultFunctionBroker();
 
         if (includeDefaultFunctionLibraries) {
             for (val lib : DefaultLibraries.STATIC_LIBRARIES) {
