@@ -23,7 +23,7 @@ java -jar target/sapl-benchmark-sapl4-4.0.0-SNAPSHOT.jar \
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--scenario` | `rbac` | Scenario name (see Scenarios below) |
+| `--scenario` | `baseline` | Scenario name (see Scenarios below) |
 | `--seed` | `42` | RNG seed for entity graph and subscription generation |
 | `--indexing` | `AUTO` | Indexing strategy: `AUTO`, `NAIVE`, `CANONICAL` |
 | `--unroll` | `false` | Enable IN-operator unrolling for index matching |
@@ -44,15 +44,11 @@ java -jar target/sapl-benchmark-sapl4-4.0.0-SNAPSHOT.jar \
 
 ## Scenarios
 
-### Static Scenarios
+### Baseline
 
 | Name | Policies | Description |
 |------|----------|-------------|
-| `rbac` | 1 | Single RBAC policy with permission map lookup. Expected: DENY. |
-| `rbac-large` | 1 | Same RBAC policy, 200 roles (10 depts x 5 locations x 4 seniority). Expected: PERMIT. |
-| `simple-1/100/500/1000` | N | Baseline scaling. One matching policy, N-1 fillers with unique predicates. |
-| `complex-1/100/1000` | N | Attribute-heavy scaling. Regex, array membership, nested access. |
-| `shared-100/500/1000` | N | Shared action predicates across fillers, cycling through 4 actions. |
+| `baseline` | 1 | Bare `permit` policy. Compiles to constant PERMIT voter. Theoretical evaluation ceiling. |
 
 ### Cedar OOPSLA Scenarios (seeded)
 
@@ -118,14 +114,12 @@ scripts/run-latency-bench.sh [profile] [output-dir]
 
 | Script | Purpose |
 |--------|---------|
-| `run-embedded-sapl4.sh` | Full embedded benchmark (scenarios x threads) |
+| `run-embedded-jvm.sh` | Full embedded benchmark (scenarios x threads) |
 | `run-embedded-native.sh` | GraalVM native image benchmark |
 | `run-server-http.sh` | HTTP server throughput via wrk |
 | `run-server-rsocket.sh` | RSocket server throughput |
-| `run-rigour-sweep.sh` | Warmup parameter calibration |
-| `run-measurement-sweep.sh` | Measurement time calibration |
-| `run-index-shared.sh` | NAIVE vs CANONICAL with shared predicates |
-| `run-index-worst-case.sh` | NAIVE vs CANONICAL worst case |
+| `calibrate-warmup-time.sh` | Find minimum warmup for stable throughput |
+| `calibrate-measurement-time.sh` | Find minimum measurement duration for stable CoV |
 | `setup-cpu.sh` / `reset-cpu.sh` | CPU frequency pinning for reproducible benchmarks |
 | `summarize-latency.sh` | Aggregates latency results into summary.csv and summary.md |
 

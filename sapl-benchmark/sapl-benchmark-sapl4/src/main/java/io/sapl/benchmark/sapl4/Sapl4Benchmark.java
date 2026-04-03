@@ -81,7 +81,7 @@ class Sapl4Benchmark implements Callable<Integer> {
     @Spec
     CommandSpec spec;
 
-    @Option(names = "--scenario", defaultValue = "rbac", description = "Benchmark scenario (use --help-scenarios to list).")
+    @Option(names = "--scenario", defaultValue = "baseline", description = "Benchmark scenario (use --help-scenarios to list).")
     private String scenario;
 
     @Option(names = "--seed", defaultValue = "42", description = "RNG seed for OOPSLA entity graph generation. Ignored for non-OOPSLA scenarios.")

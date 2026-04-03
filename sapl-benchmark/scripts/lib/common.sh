@@ -59,7 +59,7 @@ profile_defaults() {
             CONN_SWEEP=(128)
             THREAD_SWEEP=(1 2 4 8)
             RSOCKET_VT=256
-            SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
+            SCENARIOS=(baseline hospital-1 hospital-5 hospital-50 hospital-100)
             METHODS=(decideOnceBlocking)
             INDEXING_SWEEP=(AUTO)
             LATENCY=true
@@ -79,7 +79,7 @@ profile_defaults() {
             CONN_SWEEP=(32 64)
             THREAD_SWEEP=(1 2 4 8)
             RSOCKET_VT=256
-            SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
+            SCENARIOS=(baseline hospital-1 hospital-5 hospital-50 hospital-100)
             METHODS=(decideOnceBlocking)
             INDEXING_SWEEP=(NAIVE CANONICAL)
             LATENCY=true
@@ -98,7 +98,7 @@ profile_defaults() {
             CONN_SWEEP=(32 64 128 256)
             THREAD_SWEEP=(1 2 4 8)
             RSOCKET_VT=256
-            SCENARIOS=(rbac rbac-large simple-1 simple-100 simple-500 simple-1000 complex-1 complex-100 complex-1000)
+            SCENARIOS=(baseline hospital-1 hospital-5 hospital-50 hospital-100)
             METHODS=(decideOnceBlocking)
             INDEXING_SWEEP=(NAIVE CANONICAL)
             LATENCY=true

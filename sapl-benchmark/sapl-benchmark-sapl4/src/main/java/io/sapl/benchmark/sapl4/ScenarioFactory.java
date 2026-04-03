@@ -55,67 +55,6 @@ class ScenarioFactory {
 
     private static final String ERROR_UNKNOWN_SCENARIO = "Unknown scenario: %s. Available: %s.";
 
-    private static final String MATCHING_SIMPLE = """
-            policy "matching"
-            permit
-                action == "read";
-                resource == "document";
-            """;
-
-    private static final String FILLER_SIMPLE = """
-            policy "filler-%04d"
-            permit
-                action == "action-%04d";
-                resource == "resource-%04d";
-            """;
-
-    private static final String MATCHING_COMPLEX = """
-            policy "matching-complex"
-            permit
-                action == "read";
-                resource == "document";
-                "admin" in subject.roles;
-                subject.department =~ "^engineering.*";
-            """;
-
-    private static final String FILLER_COMPLEX = """
-            policy "filler-complex-%04d"
-            permit
-                action == "action-%04d";
-                resource == "resource-%04d";
-                "role-%04d" in subject.roles;
-            """;
-
-    private static final String MATCHING_SHARED = """
-            policy "matching-shared"
-            permit
-                action == "read";
-                resource.type == "document";
-            """;
-
-    private static final String FILLER_SHARED = """
-            policy "filler-shared-%04d"
-            permit
-                action == "%s";
-                resource.type == "type-%04d";
-            """;
-
-    private static final String[] SHARED_ACTIONS = { "read", "write", "delete", "update" };
-
-    private static final AuthorizationSubscription SHARED_SUB = MAPPER.readValue("""
-            {
-              "subject":  "alice",
-              "action":   "read",
-              "resource": {"type":"document"}
-            }
-            """, AuthorizationSubscription.class);
-
-    private static final String[] DEPARTMENTS = { "engineering", "qa", "sales", "marketing", "finance", "hr", "ops",
-            "legal", "security", "support" };
-    private static final String[] LOCATIONS   = { "london", "berlin", "new-york", "singapore", "sydney" };
-    private static final String[] SENIORITIES = { "junior", "senior", "lead", "director" };
-    private static final String[] ACTIONS     = { "read", "write", "delete", "approve" };
-
     private static final String PDP_JSON_TEMPLATE = """
             {
               "algorithm": {
@@ -133,29 +72,11 @@ class ScenarioFactory {
     private static final CombiningAlgorithm ALGORITHM = new CombiningAlgorithm(VotingMode.PRIORITY_DENY,
             DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
-    private static final AuthorizationSubscription RBAC_SUB = MAPPER.readValue("""
-            {
-              "subject":  {"username":"bob","role":"test"},
-              "action":   "write",
-              "resource": {"type":"foo123"}
-            }
-            """, AuthorizationSubscription.class);
-
-    private static final AuthorizationSubscription SIMPLE_SUB = MAPPER.readValue("""
-            {
-              "subject":  "alice",
-              "action":   "read",
-              "resource": "document"
-            }
-            """, AuthorizationSubscription.class);
-
-    private static final AuthorizationSubscription COMPLEX_SUB = MAPPER.readValue("""
-            {
-              "subject":  {"name":"alice","roles":["admin"],"department":"engineering"},
-              "action":   "read",
-              "resource": "document"
-            }
-            """, AuthorizationSubscription.class);
+    private static final Scenario BASELINE = new Scenario("baseline", () -> List.of("""
+            policy "baseline"
+            permit
+            """), Value.EMPTY_OBJECT, ALGORITHM, AuthorizationSubscription.of("alice", "read", "document"),
+            AuthorizationDecision.PERMIT);
 
     private static final Scenario RBAC = new Scenario("rbac", () -> List.of("""
             policy "RBAC"
@@ -168,33 +89,15 @@ class ScenarioFactory {
                 "test": [{"type":"foo123","action":"read"}]
               }
             }
-            """), ALGORITHM, RBAC_SUB, AuthorizationDecision.DENY);
-
-    private static final Scenario RBAC_LARGE = new Scenario("rbac-large", () -> List.of("""
-            policy "RBAC"
-            permit
-                { "type" : resource.type, "action": action } in permissions[(subject.role)];
-            """), buildLargePermissions(), ALGORITHM, MAPPER.readValue("""
+            """), ALGORITHM, MAPPER.readValue("""
             {
-              "subject":  {"username":"bob","role":"engineering-london-senior"},
+              "subject":  {"username":"bob","role":"test"},
               "action":   "write",
-              "resource": {"type":"engineering-london"}
+              "resource": {"type":"foo123"}
             }
-            """, AuthorizationSubscription.class), AuthorizationDecision.PERMIT);
+            """, AuthorizationSubscription.class), AuthorizationDecision.DENY);
 
-    private static final Scenario SIMPLE_1     = simpleScenario(1);
-    private static final Scenario SIMPLE_100   = simpleScenario(100);
-    private static final Scenario SIMPLE_500   = simpleScenario(500);
-    private static final Scenario SIMPLE_1000  = simpleScenario(1000);
-    private static final Scenario COMPLEX_1    = complexScenario(1);
-    private static final Scenario COMPLEX_100  = complexScenario(100);
-    private static final Scenario COMPLEX_1000 = complexScenario(1000);
-    private static final Scenario SHARED_100   = sharedScenario(100);
-    private static final Scenario SHARED_500   = sharedScenario(500);
-    private static final Scenario SHARED_1000  = sharedScenario(1000);
-
-    private static final Scenario[] STATIC_SCENARIOS = { RBAC, RBAC_LARGE, SIMPLE_1, SIMPLE_100, SIMPLE_500,
-            SIMPLE_1000, COMPLEX_1, COMPLEX_100, COMPLEX_1000, SHARED_100, SHARED_500, SHARED_1000 };
+    private static final Scenario[] STATIC_SCENARIOS = { BASELINE, RBAC };
 
     private static final Map<String, Scenario> STATIC_MAP = Arrays.stream(STATIC_SCENARIOS)
             .collect(Collectors.toUnmodifiableMap(Scenario::name, Function.identity()));
@@ -205,7 +108,7 @@ class ScenarioFactory {
 
     static final List<String> ALL_SCENARIO_NAMES;
 
-    private static final int[] HOSPITAL_DEPARTMENT_COUNTS = { 5, 10, 50, 100, 300 };
+    private static final int[] HOSPITAL_DEPARTMENT_COUNTS = { 1, 5, 10, 50, 100, 300 };
 
     static {
         val names = new ArrayList<>(STATIC_MAP.keySet());
@@ -297,63 +200,6 @@ class ScenarioFactory {
         for (int i = 0; i < policies.size(); i++) {
             Files.writeString(directory.resolve("policy-%04d.sapl".formatted(i + 1)), policies.get(i));
         }
-    }
-
-    private static Scenario simpleScenario(int policyCount) {
-        return new Scenario("simple-" + policyCount, () -> {
-            val policies = new ArrayList<String>();
-            policies.add(MATCHING_SIMPLE);
-            for (int i = 2; i <= policyCount; i++) {
-                policies.add(FILLER_SIMPLE.formatted(i, i, i));
-            }
-            return policies;
-        }, Value.EMPTY_OBJECT, ALGORITHM, SIMPLE_SUB, AuthorizationDecision.PERMIT);
-    }
-
-    private static Scenario complexScenario(int policyCount) {
-        return new Scenario("complex-" + policyCount, () -> {
-            val policies = new ArrayList<String>();
-            policies.add(MATCHING_COMPLEX);
-            for (int i = 2; i <= policyCount; i++) {
-                policies.add(FILLER_COMPLEX.formatted(i, i, i, i));
-            }
-            return policies;
-        }, Value.EMPTY_OBJECT, ALGORITHM, COMPLEX_SUB, AuthorizationDecision.PERMIT);
-    }
-
-    private static Scenario sharedScenario(int policyCount) {
-        return new Scenario("shared-" + policyCount, () -> {
-            val policies = new ArrayList<String>();
-            policies.add(MATCHING_SHARED);
-            for (int i = 2; i <= policyCount; i++) {
-                val action = SHARED_ACTIONS[i % SHARED_ACTIONS.length];
-                policies.add(FILLER_SHARED.formatted(i, action, i));
-            }
-            return policies;
-        }, Value.EMPTY_OBJECT, ALGORITHM, SHARED_SUB, AuthorizationDecision.PERMIT);
-    }
-
-    /**
-     * Generates an RBAC permissions map with 200 roles (10 departments x 5
-     * locations x 4 seniority levels). Each seniority gets 1-4 actions.
-     */
-    private static ObjectValue buildLargePermissions() {
-        val permissionsByRole = ObjectValue.builder();
-        for (val department : DEPARTMENTS) {
-            for (val location : LOCATIONS) {
-                for (int seniorityIndex = 0; seniorityIndex < SENIORITIES.length; seniorityIndex++) {
-                    val roleName        = department + "-" + location + "-" + SENIORITIES[seniorityIndex];
-                    val actionCount     = seniorityIndex + 1;
-                    val rolePermissions = new Value[actionCount];
-                    for (int actionIndex = 0; actionIndex < actionCount; actionIndex++) {
-                        rolePermissions[actionIndex] = Value.ofObject(Map.of("type",
-                                Value.of(department + "-" + location), "action", Value.of(ACTIONS[actionIndex])));
-                    }
-                    permissionsByRole.put(roleName, Value.ofArray(rolePermissions));
-                }
-            }
-        }
-        return ObjectValue.builder().put("permissions", permissionsByRole.build()).build();
     }
 
 }

@@ -36,7 +36,7 @@ import java.util.function.Supplier;
  * A benchmark scenario: policies, variables, subscriptions, and expected
  * decision.
  *
- * @param name scenario name (e.g., "rbac", "simple-100")
+ * @param name scenario name (e.g., "rbac", "hospital-100")
  * @param policies SAPL policy document strings
  * @param variables PDP variables
  * @param algorithm combining algorithm

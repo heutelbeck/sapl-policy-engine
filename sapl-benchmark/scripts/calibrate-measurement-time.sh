@@ -17,16 +17,16 @@
 # limitations under the License.
 #
 
-# Measurement time sweep: find minimum measurement duration for stable results.
-# Reference: rbac/decideOnceBlocking/8t rigorous = 26,797,842 ops/s (5x45s+300s)
+# Measurement calibration: find minimum measurement duration for stable CoV.
 # Fixed warmup 1x3s, sweeps measurement time with 3 forks for CoV calculation.
+# Usage: calibrate-measurement-time.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 REFERENCE_OPS=26797842
 
-OUTDIR="$SCRIPT_DIR/../results/measurement-sweep-$(timestamp)"
+OUTDIR="$SCRIPT_DIR/../results/calibrate-measurement-$(timestamp)"
 mkdir -p "$OUTDIR"
 LOGFILE="$OUTDIR/output.log"
 
@@ -44,12 +44,12 @@ log() {
 }
 
 log "================================================================"
-log "  Measurement Time Sweep"
-log "  Reference:    $REFERENCE_OPS ops/s (rbac/8t, 5x45s+300s)"
-log "  Scenario:     rbac / decideOnceBlocking / ${THREADS}t"
+log "  Measurement Calibration: minimum duration for stable CoV"
+log "  Scenario:     baseline / decideOnceBlocking / ${THREADS}t"
 log "  Warmup:       ${WARMUP_ITERS} x ${WARMUP_TIME}s (fixed)"
 log "  Measurement:  ${MEASURE_SWEEP[*]}s"
 log "  Forks:        $FORKS per config"
+log "  Reference:    $REFERENCE_OPS ops/s"
 log "  Total runs:   $TOTAL_STEPS"
 log "  Output:       $OUTDIR"
 log "================================================================"
@@ -72,7 +72,7 @@ for mt in "${MEASURE_SWEEP[@]}"; do
     wait_cool
 
     run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
-        --scenario=rbac \
+        --scenario=baseline \
         --method=decideOnceBlocking \
         -t "$THREADS" \
         --warmup-iterations="$WARMUP_ITERS" \
@@ -86,7 +86,7 @@ for mt in "${MEASURE_SWEEP[@]}"; do
 
     scores=""
     for i in $(seq 1 $FORKS); do
-        s=$(python3 -c "import json; d=json.load(open('$run_dir/rbac_decideOnceBlocking_8t_fork${i}.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
+        s=$(python3 -c "import json; d=json.load(open('$run_dir/baseline_decideOnceBlocking_8t_fork${i}.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
         scores="$scores $s"
     done
 
@@ -109,7 +109,7 @@ print(f'$mt,{vals},{mean:.0f},{cov:.2f},{diff:+.1f}')
 done
 
 log "================================================================"
-log "  Measurement Time Sweep Complete"
+log "  Measurement Calibration Complete"
 log "  Summary: $SUMMARY"
 log "================================================================"
 log ""

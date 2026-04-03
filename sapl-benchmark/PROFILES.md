@@ -10,11 +10,11 @@ scripts/
     opa-wrk.lua        # wrk POST with subscription wrapped in {"input":...}
   setup-cpu.sh         # disable turbo, fix 4GHz, performance profile (run manually)
   reset-cpu.sh         # restore CPU defaults (run manually)
-  run-embedded-sapl4.sh  # JMH forks(1) benchmark per scenario
-  run-embedded-sapl3.sh  # SAPL 3 JMH benchmark (rbac only)
+  run-embedded-jvm.sh  # JMH forks(1) benchmark per scenario
+  run-embedded-sapl3.sh  # SAPL 3 JMH benchmark (baseline only)
   run-embedded-native.sh # sapl-node native benchmark per scenario
   run-http-sapl.sh       # SAPL server + wrk core sweep per scenario
-  run-http-opa.sh        # OPA server + wrk core sweep (rbac only)
+  run-http-opa.sh        # OPA server + wrk core sweep (baseline only)
   run-rsocket-sapl.sh    # SAPL RSocket server + loadtest core sweep per scenario
   run-all.sh             # orchestrator: run-all.sh [quick|base|rigorous]
 ```
@@ -48,12 +48,12 @@ OPA_BINARY      # opa binary (default: opa, must be in PATH)
 
 ### run-all.sh sequence
 1. Validate all scenario sanity checks (fail fast)
-2. Phase 1: OPA HTTP baseline (rbac, core sweep)
+2. Phase 1: OPA HTTP baseline (baseline, core sweep)
 3. Phase 2: SAPL HTTP sweep (per scenario, JVM + Native, core sweep + unpinned)
 4. Phase 3: SAPL RSocket sweep (per scenario, JVM + Native, core sweep + unpinned)
 5. Phase 4: Embedded SAPL 4 JVM sweep (per scenario, JMH forks(1), core/thread sweep)
 6. Phase 5: Embedded SAPL 4 Native sweep (per scenario, core/thread sweep)
-7. Phase 6: Embedded SAPL 3 baseline (rbac only, core/thread sweep)
+7. Phase 6: Embedded SAPL 3 baseline (baseline only, core/thread sweep)
 
 ## Output Structure
 
@@ -81,7 +81,7 @@ Purpose: validate that all scenarios, benchmarks, scripts, and infrastructure wo
 | Measurement | 5s/fork | 10s | 10s |
 | Convergence | 2 forks, 5% | n/a | n/a |
 | Max forks | 3 | n/a | n/a |
-| Scenarios | rbac | rbac | rbac |
+| Scenarios | baseline | baseline | baseline |
 | Methods | decideOnceBlocking | n/a | n/a |
 | Threads/cores | 1t/1P | 4P, 64c | 4P, 4x256VT |
 | Latency | no | no | no |
@@ -99,11 +99,11 @@ Purpose: first meaningful data for development decisions.
 | Measurement | 30s/fork | 30s | 30s |
 | Convergence | 3 forks, 2% | n/a | n/a |
 | Max forks | 5 | n/a | n/a |
-| Scenarios | rbac, simple-1, simple-100, complex-1, complex-100 | rbac | rbac |
+| Scenarios | baseline, hospital-1, hospital-5, hospital-50, hospital-100 | baseline | baseline |
 | Methods | decideOnceBlocking | n/a | n/a |
 | Threads/cores | 1t/1P, 8t/8P | 1P, 4P, 8P; 64c, 128c | 1P, 4P, 8P; 4x256VT |
 | Latency | yes | yes (wrk --latency) | no |
-| Engines | SAPL4 JVM, SAPL4 Native, SAPL3 JVM (rbac only) | SAPL JVM, SAPL Native, OPA | SAPL JVM, SAPL Native |
+| Engines | SAPL4 JVM, SAPL4 Native, SAPL3 JVM (baseline only) | SAPL JVM, SAPL Native, OPA | SAPL JVM, SAPL Native |
 | + unpinned | no | yes (per engine) | yes (per runtime) |
 
 Estimated: ~2.5 hours
@@ -118,21 +118,21 @@ Purpose: final reference data. Statistically sound.
 | Measurement | 300s/fork | 30s | 30s |
 | Convergence | 3 forks, 2% | n/a | n/a |
 | Max forks | 10 | n/a | n/a |
-| Scenarios | all 9 | all 9 | all 9 |
+| Scenarios | all | all | all |
 | Methods | decideOnceBlocking (all), decideStreamFirst (all), noOp (once) | n/a | n/a |
 | Threads/cores | 1t/1P, 2t/2P, 4t/4P, 8t/8P | 1P, 2P, 4P, 6P, 8P; 32c, 64c, 128c, 256c | 1P, 2P, 4P, 6P, 8P; 4x256VT |
 | Latency | yes (1-thread only) | yes (wrk --latency) | no |
 | Cooldown | 40C between configs | 40C between configs | 40C between configs |
-| Engines | SAPL4 JVM, SAPL4 Native, SAPL3 JVM (rbac only) | SAPL JVM, SAPL Native, OPA | SAPL JVM, SAPL Native |
+| Engines | SAPL4 JVM, SAPL4 Native, SAPL3 JVM (baseline only) | SAPL JVM, SAPL Native, OPA | SAPL JVM, SAPL Native |
 | + unpinned | no | yes (per engine) | yes (per runtime) |
-| + GC comparison | G1, Shenandoah, ZGC (rbac, 1t+8t) | no | no |
-| + fork validation | forks(0) vs forks(1) (rbac, 1t+8t) | no | no |
+| + GC comparison | G1, Shenandoah, ZGC (baseline, 1t+8t) | no | no |
+| + fork validation | forks(0) vs forks(1) (baseline, 1t+8t) | no | no |
 
 Estimated: ~24 hours (run overnight, console boot, fixed frequency, no turbo)
 
-## All 9 scenarios
+## Static scenarios
 
-rbac, rbac-large, simple-1, simple-100, simple-500, simple-1000, complex-1, complex-100, complex-1000
+baseline
 
 ## Environment checklist
 

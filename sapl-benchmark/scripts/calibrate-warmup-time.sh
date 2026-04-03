@@ -17,16 +17,16 @@
 # limitations under the License.
 #
 
-# Warmup parameter sweep: find minimum warmup needed to match rigorous results.
-# Reference: rbac/decideOnceBlocking/8t rigorous = 26,797,842 ops/s (5x45s+300s)
+# Warmup calibration: find minimum warmup for stable throughput.
 # Sweeps warmup iterations (1-5) x warmup time (3-45s) with fixed 30s measurement.
+# Usage: calibrate-warmup-time.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 REFERENCE_OPS=26797842
 
-OUTDIR="$SCRIPT_DIR/../results/rigour-sweep-$(timestamp)"
+OUTDIR="$SCRIPT_DIR/../results/calibrate-warmup-$(timestamp)"
 mkdir -p "$OUTDIR"
 LOGFILE="$OUTDIR/output.log"
 
@@ -43,12 +43,12 @@ log() {
 }
 
 log "================================================================"
-log "  Rigour Sweep: warmup parameter search"
-log "  Reference:    $REFERENCE_OPS ops/s (rbac/8t, 5x45s+300s)"
-log "  Scenario:     rbac / decideOnceBlocking / ${THREADS}t"
+log "  Warmup Calibration: minimum warmup for stable throughput"
+log "  Scenario:     baseline / decideOnceBlocking / ${THREADS}t"
 log "  Warmup iters: ${WARMUP_ITERS_SWEEP[*]}"
 log "  Warmup times: ${WARMUP_TIME_SWEEP[*]}s"
-log "  Measurement:  ${MEASURE_TIME}s"
+log "  Measurement:  ${MEASURE_TIME}s (fixed)"
+log "  Reference:    $REFERENCE_OPS ops/s"
 log "  Total runs:   $TOTAL_STEPS"
 log "  Output:       $OUTDIR"
 log "================================================================"
@@ -72,7 +72,7 @@ for wi in "${WARMUP_ITERS_SWEEP[@]}"; do
         wait_cool
 
         run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
-            --scenario=rbac \
+            --scenario=baseline \
             --method=decideOnceBlocking \
             -t "$THREADS" \
             --warmup-iterations="$wi" \
@@ -84,8 +84,8 @@ for wi in "${WARMUP_ITERS_SWEEP[@]}"; do
             --heap=32g \
             -o "$run_dir" 2>&1 | tee -a "$LOGFILE"
 
-        fork1=$(python3 -c "import json; d=json.load(open('$run_dir/rbac_decideOnceBlocking_8t_fork1.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
-        fork2=$(python3 -c "import json; d=json.load(open('$run_dir/rbac_decideOnceBlocking_8t_fork2.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
+        fork1=$(python3 -c "import json; d=json.load(open('$run_dir/baseline_decideOnceBlocking_8t_fork1.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
+        fork2=$(python3 -c "import json; d=json.load(open('$run_dir/baseline_decideOnceBlocking_8t_fork2.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
         mean=$(( (fork1 + fork2) / 2 ))
         if [ "$REFERENCE_OPS" -gt 0 ]; then
             diff_pct=$(python3 -c "print(f'{($mean - $REFERENCE_OPS) / $REFERENCE_OPS * 100:+.1f}')")
@@ -101,7 +101,7 @@ for wi in "${WARMUP_ITERS_SWEEP[@]}"; do
 done
 
 log "================================================================"
-log "  Rigour Sweep Complete"
+log "  Warmup Calibration Complete"
 log "  Summary: $SUMMARY"
 log "================================================================"
 log ""

@@ -314,7 +314,7 @@ if [ "$PROFILE" = "rigorous" ]; then
         echo "  noOp / ${threads}t pinned to CPUs $cpu_range"
         echo "================================================================"
 
-        run_converging "rbac" "noOp" "$threads" "$cpu_range" "AUTO"
+        run_converging "baseline" "noOp" "$threads" "$cpu_range" "AUTO"
         echo ""
     done
 fi

@@ -18,7 +18,7 @@
 #
 
 # SAPL 4 embedded benchmark (JMH forks(1), per scenario, core/thread sweep).
-# Usage: run-embedded-sapl4.sh [quick|base|rigorous] [output-dir]
+# Usage: run-embedded-jvm.sh [quick|base|rigorous] [output-dir]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
@@ -141,7 +141,7 @@ if [ "$PROFILE" = "rigorous" ]; then
         wait_cool
 
         run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
-            --scenario=rbac \
+            --scenario=baseline \
             --method=noOp \
             -t "$threads" \
             --warmup-iterations="$WARMUP_ITERATIONS" \
