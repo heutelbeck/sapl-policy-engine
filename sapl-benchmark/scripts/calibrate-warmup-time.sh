@@ -84,14 +84,13 @@ for wi in "${WARMUP_ITERS_SWEEP[@]}"; do
             --heap=32g \
             -o "$run_dir" 2>&1 | tee -a "$LOGFILE"
 
-        fork1=$(python3 -c "import json; d=json.load(open('$run_dir/baseline_decideOnceBlocking_8t_fork1.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
-        fork2=$(python3 -c "import json; d=json.load(open('$run_dir/baseline_decideOnceBlocking_8t_fork2.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
+        scores=($(python3 "$BENCH_PY" parse-score \
+            "$run_dir/baseline_decideOnceBlocking_8t_fork1.json" \
+            "$run_dir/baseline_decideOnceBlocking_8t_fork2.json"))
+        fork1=${scores[0]}
+        fork2=${scores[1]}
         mean=$(( (fork1 + fork2) / 2 ))
-        if [ "$REFERENCE_OPS" -gt 0 ]; then
-            diff_pct=$(python3 -c "print(f'{($mean - $REFERENCE_OPS) / $REFERENCE_OPS * 100:+.1f}')")
-        else
-            diff_pct="N/A"
-        fi
+        diff_pct=$(python3 "$BENCH_PY" ref-diff "$mean" "$REFERENCE_OPS")
 
         echo "$wi,$wt,$fork1,$fork2,$mean,$diff_pct" >> "$SUMMARY"
         log ""

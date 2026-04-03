@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 #
 # Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
@@ -17,8 +16,10 @@
 # limitations under the License.
 #
 
-# Summarize latency benchmark results into summary.csv and summary.md.
-# Usage: summarize-latency.sh <results-directory>
+# Experiment: RSocket server benchmarks
+# Scenarios x P-core counts x connection counts x virtual threads
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec python3 "$SCRIPT_DIR/lib/bench.py" summarize-latency "${1:?Usage: summarize-latency.sh <results-directory>}"
+SCENARIOS=(baseline rbac hospital-1 hospital-5 hospital-50 hospital-100)
+CORE_SWEEP=(1 2 4 6 8)
+CONN_SWEEP=(32 64)
+RSOCKET_VT=256

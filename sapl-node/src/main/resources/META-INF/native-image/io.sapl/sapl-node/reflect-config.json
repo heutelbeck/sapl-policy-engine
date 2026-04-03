@@ -360,6 +360,12 @@
     "allDeclaredFields": true
   },
   {
+    "name": "com.github.benmanes.caffeine.cache.SSMS",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "io.sapl.attributes.libraries.TimePolicyInformationPoint",
     "allDeclaredMethods": true,
     "queryAllDeclaredMethods": true

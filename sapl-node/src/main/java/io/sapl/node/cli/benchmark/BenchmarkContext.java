@@ -46,7 +46,11 @@ import tools.jackson.databind.json.JsonMapper;
  * for built-in RBAC preset)
  * @param configType DIRECTORY, BUNDLES, or RBAC
  */
-public record BenchmarkContext(String subscriptionJson, @Nullable String policiesPath, String configType) {
+public record BenchmarkContext(
+        String subscriptionJson,
+        @Nullable String subscriptionsJson,
+        @Nullable String policiesPath,
+        String configType) {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
@@ -72,7 +76,7 @@ public record BenchmarkContext(String subscriptionJson, @Nullable String policie
      * @return a self-contained benchmark context requiring no external files
      */
     public static BenchmarkContext rbacDefault() {
-        return new BenchmarkContext(RBAC_SUBSCRIPTION, null, RBAC_CONFIG_TYPE);
+        return new BenchmarkContext(RBAC_SUBSCRIPTION, null, null, RBAC_CONFIG_TYPE);
     }
 
     /**

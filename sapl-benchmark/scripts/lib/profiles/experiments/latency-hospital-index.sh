@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 #
 # Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
@@ -17,8 +16,16 @@
 # limitations under the License.
 #
 
-# Summarize latency benchmark results into summary.csv and summary.md.
-# Usage: summarize-latency.sh <results-directory>
+# Experiment: hospital indexing strategy x unrolling matrix
+# NAIVE vs CANONICAL vs AUTO, with and without IN-operator unrolling
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec python3 "$SCRIPT_DIR/lib/bench.py" summarize-latency "${1:?Usage: summarize-latency.sh <results-directory>}"
+SEEDS=1
+SCALING_FACTORS=(5 50 100 300)
+APPS=(hospital)
+INDEXING_SWEEP=(NAIVE CANONICAL AUTO)
+UNROLL_SWEEP=(false true)
+GC_SWEEP=(default)
+
+# Latency experiments use looser convergence
+WARMUP_TIME=10
+CONVERGENCE_THRESHOLD=50

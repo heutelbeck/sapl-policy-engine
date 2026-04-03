@@ -84,26 +84,28 @@ for mt in "${MEASURE_SWEEP[@]}"; do
         --heap=32g \
         -o "$run_dir" 2>&1 | tee -a "$LOGFILE"
 
-    scores=""
+    fork_files=""
     for i in $(seq 1 $FORKS); do
-        s=$(python3 -c "import json; d=json.load(open('$run_dir/baseline_decideOnceBlocking_8t_fork${i}.json'))[0]; print(f\"{d['primaryMetric']['score']:.0f}\")" 2>/dev/null || echo "0")
-        scores="$scores $s"
+        fork_files="$fork_files $run_dir/baseline_decideOnceBlocking_8t_fork${i}.json"
     done
+    scores=($(python3 "$BENCH_PY" parse-score $fork_files))
 
-    python3 -c "
-import math
-scores = [int(x) for x in '$scores'.split() if int(x) > 0]
-n = len(scores)
-mean = sum(scores) / n
-std = math.sqrt(sum((x - mean)**2 for x in scores) / (n - 1)) if n > 1 else 0
-cov = (std / mean * 100) if mean > 0 else 0
-ref = $REFERENCE_OPS
-diff = (mean - ref) / ref * 100
-vals = ','.join(str(s) for s in scores)
-while vals.count(',') < 2:
-    vals += ',0'
-print(f'$mt,{vals},{mean:.0f},{cov:.2f},{diff:+.1f}')
-" >> "$SUMMARY"
+    scores_csv=$(IFS=,; echo "${scores[*]}")
+    while [ "$(echo "$scores_csv" | tr -cd ',' | wc -c)" -lt 2 ]; do
+        scores_csv="$scores_csv,0"
+    done
+    total=0
+    count=0
+    for s in "${scores[@]}"; do
+        if [ "$s" -gt 0 ] 2>/dev/null; then
+            total=$((total + s))
+            count=$((count + 1))
+        fi
+    done
+    mean=$((count > 0 ? total / count : 0))
+    cov=$(python3 "$BENCH_PY" cov "${scores[@]}")
+    diff_pct=$(python3 "$BENCH_PY" ref-diff "$mean" "$REFERENCE_OPS")
+    echo "$mt,$scores_csv,$mean,$cov,$diff_pct" >> "$SUMMARY"
 
     log ""
 done

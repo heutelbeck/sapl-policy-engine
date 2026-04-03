@@ -74,30 +74,38 @@ class ScenarioFactory {
 
     private static final Scenario BASELINE = new Scenario("baseline", () -> List.of("""
             policy "baseline"
-            permit
+            deny
             """), Value.EMPTY_OBJECT, ALGORITHM, AuthorizationSubscription.of("alice", "read", "document"),
-            AuthorizationDecision.PERMIT);
+            AuthorizationDecision.DENY);
 
-    private static final Scenario RBAC = new Scenario("rbac", () -> List.of("""
+    private static final String RBAC_POLICY = """
             policy "RBAC"
             permit
                 { "type" : resource.type, "action": action } in permissions[(subject.role)];
-            """), (ObjectValue) ValueJsonMarshaller.json("""
+            """;
+
+    private static final ObjectValue RBAC_VARIABLES = (ObjectValue) ValueJsonMarshaller.json("""
             {
               "permissions": {
                 "dev":  [{"type":"foo123","action":"write"},{"type":"foo123","action":"read"}],
                 "test": [{"type":"foo123","action":"read"}]
               }
             }
-            """), ALGORITHM, MAPPER.readValue("""
-            {
-              "subject":  {"username":"bob","role":"test"},
-              "action":   "write",
-              "resource": {"type":"foo123"}
-            }
-            """, AuthorizationSubscription.class), AuthorizationDecision.DENY);
+            """);
 
-    private static final Scenario[] STATIC_SCENARIOS = { BASELINE, RBAC };
+    private static final Scenario RBAC_OPA = new Scenario("rbac-opa", () -> List.of(RBAC_POLICY), RBAC_VARIABLES,
+            ALGORITHM, MAPPER.readValue("""
+                    {
+                      "subject":  {"username":"bob","role":"test"},
+                      "action":   "write",
+                      "resource": {"type":"foo123"}
+                    }
+                    """, AuthorizationSubscription.class), AuthorizationDecision.DENY);
+
+    private static final Scenario RBAC = new Scenario("rbac", () -> List.of(RBAC_POLICY), RBAC_VARIABLES, ALGORITHM,
+            buildRbacSubscriptions(), null);
+
+    private static final Scenario[] STATIC_SCENARIOS = { BASELINE, RBAC_OPA, RBAC };
 
     private static final Map<String, Scenario> STATIC_MAP = Arrays.stream(STATIC_SCENARIOS)
             .collect(Collectors.toUnmodifiableMap(Scenario::name, Function.identity()));
@@ -200,6 +208,31 @@ class ScenarioFactory {
         for (int i = 0; i < policies.size(); i++) {
             Files.writeString(directory.resolve("policy-%04d.sapl".formatted(i + 1)), policies.get(i));
         }
+    }
+
+    private static List<AuthorizationSubscription> buildRbacSubscriptions() {
+        val      subs      = new ArrayList<AuthorizationSubscription>();
+        String[] users     = { "alice", "bob" };
+        String[] roles     = { "dev", "test" };
+        String[] actions   = { "read", "write" };
+        String[] resources = { "foo123", "bar456" };
+
+        for (val user : users) {
+            for (val role : roles) {
+                for (val action : actions) {
+                    for (val resource : resources) {
+                        subs.add(MAPPER.readValue("""
+                                {
+                                  "subject":  {"username":"%s","role":"%s"},
+                                  "action":   "%s",
+                                  "resource": {"type":"%s"}
+                                }
+                                """.formatted(user, role, action, resource), AuthorizationSubscription.class));
+                    }
+                }
+            }
+        }
+        return subs;
     }
 
 }

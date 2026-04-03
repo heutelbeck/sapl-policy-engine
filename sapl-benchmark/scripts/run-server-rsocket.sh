@@ -20,17 +20,18 @@
 # SAPL 4 RSocket server benchmark using sapl loadtest.
 # Sweeps: runtime (JVM/native) x scenarios x P-core counts x connection counts.
 # Client always runs from JVM JAR (needs full Java RSocket stack).
-# Usage: run-server-rsocket.sh [quick|base|rigorous] [output-dir]
+# Usage: run-server-rsocket.sh [quick|full] [output-dir]
 
 export LC_NUMERIC=C
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
-PROFILE=${1:-quick}
+QUALITY=${1:-quick}
 OUTPUT_DIR=${2:-$SCRIPT_DIR/../results}
 
-profile_defaults "$PROFILE"
+load_quality "$QUALITY"
+load_experiment "server-rsocket"
 log_env
 
 if [ ! -f "$SAPL_NODE_JAR" ]; then
@@ -52,34 +53,6 @@ for scenario in "${SCENARIOS[@]}"; do
 done
 echo ""
 
-# Convergence helpers (same as run-embedded-native.sh)
-compute_cov() {
-    python3 -c "
-import math, sys
-vals = [float(x) for x in sys.argv[1:]]
-n = len(vals)
-if n < 2:
-    print('999.99')
-    sys.exit()
-mean = sum(vals) / n
-std = math.sqrt(sum((v - mean)**2 for v in vals) / (n - 1))
-print(f'{std / mean * 100:.2f}')
-" "$@"
-}
-
-check_convergence() {
-    local window=$1
-    shift
-    local vals=("$@")
-    local n=${#vals[@]}
-    if [ "$n" -lt "$window" ]; then
-        echo "false"
-        return
-    fi
-    local recent=("${vals[@]:$((n - window))}")
-    local cov=$(compute_cov "${recent[@]}")
-    python3 -c "print('true' if $cov <= $CONVERGENCE_THRESHOLD else 'false')"
-}
 
 run_converging_rsocket() {
     local scenario=$1
@@ -123,26 +96,13 @@ run_converging_rsocket() {
         fi
 
         local fork_json="$outdir/${prefix}_fork${fork_index}.json"
-        python3 -c "
-import json
-data = [{
-    'benchmark': 'rsocket-decide-once',
-    'mode': 'thrpt',
-    'transport': 'rsocket',
-    'cores': $pcores,
-    'connections': $connections,
-    'vtPerConnection': $vt,
-    'warmupSeconds': 5,
-    'measurementTime': '$WRK_MEASURE_TIME s',
-    'params': {'scenarioName': '$scenario'},
-    'primaryMetric': {
-        'score': $throughput,
-        'scoreUnit': 'req/s'
-    }
-}]
-with open('$fork_json', 'w') as f:
-    json.dump(data, f, indent=4)
-"
+        python3 "$BENCH_PY" write-fork-json \
+            --output "$fork_json" --score "$throughput" --unit "req/s" \
+            --benchmark rsocket-decide-once --mode thrpt --transport rsocket \
+            --cores "$pcores" --connections "$connections" \
+            --vt-per-connection "$vt" --warmup-seconds 5 \
+            --measurement-time "${WRK_MEASURE_TIME} s" \
+            --scenario "$scenario"
 
         local n=${#throughputs[@]}
         local cov="N/A"
@@ -172,42 +132,18 @@ with open('$fork_json', 'w') as f:
     fi
 
     local csv="$outdir/${prefix}.csv"
-    python3 -c "
-import math
-vals = [float(x) for x in '${throughputs[*]}'.split()]
-n = len(vals)
-mean = sum(vals) / n
-std = math.sqrt(sum((v - mean)**2 for v in vals) / (n - 1)) if n > 1 else 0
-cov = std / mean * 100 if mean > 0 else 0
-
-latency_str = '${last_latency}'
-latency_comments = ''
-if latency_str and ':' in latency_str:
-    parts = latency_str.split(':')
-    if len(parts) == 5 and all(p for p in parts):
-        latency_comments = f'''# Latency p50 (ns): {parts[0]}
-# Latency p90 (ns): {parts[1]}
-# Latency p99 (ns): {parts[2]}
-# Latency p99.9 (ns): {parts[3]}
-# Latency max (ns): {parts[4]}
-'''
-
-print(f'''# SAPL 4.0 Server RSocket Benchmark Results
-# Scenario: $scenario
-# Cores: $pcores P-cores
-# Connections: $connections
-# VT/connection: $vt
-# Warmup: 5s (built-in per fork)
-# Measurement: ${WRK_MEASURE_TIME}s
-# Convergence: CoV < ${CONVERGENCE_THRESHOLD}% over $CONVERGENCE_WINDOW forks
-# Mean: {mean:.2f} req/s
-# StdDev: {std:.2f} req/s
-# CoV: {cov:.2f}%
-# Forks: {n}
-{latency_comments}fork,throughput_req_s''')
-for i, v in enumerate(vals, 1):
-    print(f'{i},{v:.2f}')
-" > "$csv"
+    python3 "$BENCH_PY" write-csv \
+        --output "$csv" \
+        --throughputs "$(IFS=,; echo "${throughputs[*]}")" \
+        --title "SAPL 4.0 Server RSocket Benchmark Results" \
+        --unit throughput_req_s \
+        --scenario "$scenario" --cores "$pcores" --connections "$connections" \
+        --vt-per-connection "$vt" \
+        --warmup "5s (built-in per fork)" \
+        --measurement "${WRK_MEASURE_TIME}s" \
+        --convergence-threshold "$CONVERGENCE_THRESHOLD" \
+        --convergence-window "$CONVERGENCE_WINDOW" \
+        ${last_latency:+--latency "$last_latency"}
 
     echo "    Result: $csv"
     return 0
@@ -241,7 +177,7 @@ for runtime in "${RUNTIMES[@]}"; do
 
     echo "================================================================"
     echo "  SAPL 4 RSocket Server Benchmark ($runtime)"
-    echo "  Profile:     $PROFILE"
+    echo "  Profile:     $QUALITY"
     echo "  Scenarios:   ${SCENARIOS[*]}"
     echo "  Cores:       ${CORE_SWEEP[*]}"
     echo "  Connections: ${CONN_SWEEP[*]}"
@@ -306,6 +242,8 @@ for runtime in "${RUNTIMES[@]}"; do
             stop_server
         done
     done
+
+    python3 "$BENCH_PY" summarize "$OUTDIR"
 done
 
 echo "================================================================"

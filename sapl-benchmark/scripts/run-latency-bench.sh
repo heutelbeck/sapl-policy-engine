@@ -20,104 +20,29 @@
 # Latency benchmark: measures p50/p90/p99/p99.9 across scenarios and scaling
 # factors with multiple random entity graphs per data point.
 #
-# Profiles:
-#   quick              - github, 3 seeds, 2 scaling factors, validates end-to-end
-#   rigorous           - cedar scenarios, 200 seeds, 7 scaling factors
-#   hospital-scaling   - hospital, 1 seed, sweeps 5 to 300 departments (170-9905 policies)
-#   hospital-index     - hospital, 1 seed, NAIVE vs CANONICAL vs AUTO comparison
-#   hospital-unroll    - hospital, 1 seed, NAIVE/CANONICAL/AUTO x unroll/no-unroll
-#
-# Usage: run-latency-bench.sh [profile] [output-dir]
+# Usage: run-latency-bench.sh [quick|full] [experiment] [output-dir]
+# Experiments: latency-cedar, latency-hospital-scaling, latency-hospital-index
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
-PROFILE=${1:-quick}
-OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/latency-${PROFILE}-$(timestamp)}
+QUALITY=${1:-quick}
+EXPERIMENT=${2:-latency-cedar}
+OUTPUT_DIR=${3:-$SCRIPT_DIR/../results/latency-${EXPERIMENT}-$(timestamp)}
+
+load_quality "$QUALITY"
+load_experiment "$EXPERIMENT"
+
+# Quick mode caps seeds and scaling factors for fast validation
+if [ "$QUALITY" = "quick" ]; then
+    SEEDS=$((SEEDS < 3 ? SEEDS : 3))
+    SCALING_FACTORS=("${SCALING_FACTORS[@]:0:2}")
+fi
 
 log_env
 
-# Defaults (profiles override these)
-GC_SWEEP=(default)
-INDEXING_SWEEP=(AUTO)
-UNROLL_SWEEP=(false)
-
-case "$PROFILE" in
-    quick)
-        SEEDS=3
-        SCALING_FACTORS=(5 50)
-        APPS=(github)
-        INDEXING_SWEEP=(AUTO)
-        WARMUP_ITERATIONS=1
-        WARMUP_TIME=10
-        MEASUREMENT_TIME=10
-        CONVERGENCE_THRESHOLD=50
-        CONVERGENCE_WINDOW=2
-        MAX_FORKS=2
-        COOL_TARGET=90
-        ;;
-    rigorous)
-        SEEDS=200
-        SCALING_FACTORS=(5 10 15 20 30 40 50)
-        APPS=(tinytodo gdrive github)
-        INDEXING_SWEEP=(AUTO)
-        WARMUP_ITERATIONS=1
-        WARMUP_TIME=10
-        MEASUREMENT_TIME=10
-        CONVERGENCE_THRESHOLD=50
-        CONVERGENCE_WINDOW=2
-        MAX_FORKS=2
-        COOL_TARGET=80
-        ;;
-    hospital-scaling)
-        SEEDS=1
-        SCALING_FACTORS=(5 10 25 50 100 150 200 250 300)
-        APPS=(hospital)
-        INDEXING_SWEEP=(AUTO)
-        WARMUP_ITERATIONS=1
-        WARMUP_TIME=10
-        MEASUREMENT_TIME=10
-        CONVERGENCE_THRESHOLD=50
-        CONVERGENCE_WINDOW=2
-        MAX_FORKS=2
-        COOL_TARGET=90
-        ;;
-    hospital-index)
-        SEEDS=1
-        SCALING_FACTORS=(5 50 100 300)
-        APPS=(hospital)
-        INDEXING_SWEEP=(NAIVE CANONICAL AUTO)
-        WARMUP_ITERATIONS=1
-        WARMUP_TIME=10
-        MEASUREMENT_TIME=10
-        CONVERGENCE_THRESHOLD=50
-        CONVERGENCE_WINDOW=2
-        MAX_FORKS=2
-        COOL_TARGET=90
-        ;;
-    hospital-unroll)
-        SEEDS=1
-        SCALING_FACTORS=(5 50 100 300)
-        APPS=(hospital)
-        INDEXING_SWEEP=(NAIVE CANONICAL AUTO)
-        UNROLL_SWEEP=(false true)
-        WARMUP_ITERATIONS=1
-        WARMUP_TIME=10
-        MEASUREMENT_TIME=10
-        CONVERGENCE_THRESHOLD=50
-        CONVERGENCE_WINDOW=2
-        MAX_FORKS=2
-        COOL_TARGET=90
-        ;;
-    *)
-        echo "Unknown profile: $PROFILE"
-        echo "Available: quick, rigorous, hospital-scaling, hospital-index, hospital-unroll"
-        exit 1
-        ;;
-esac
-
 RUN_TIMESTAMP=$(timestamp)
-OUTDIR="$OUTPUT_DIR/latency-${PROFILE}-${RUN_TIMESTAMP}"
+OUTDIR="$OUTPUT_DIR/latency-${EXPERIMENT}-${QUALITY}-${RUN_TIMESTAMP}"
 mkdir -p "$OUTDIR"
 
 TOTAL_STEPS=$(( ${#APPS[@]} * ${#SCALING_FACTORS[@]} * ${#GC_SWEEP[@]} * ${#INDEXING_SWEEP[@]} * ${#UNROLL_SWEEP[@]} * SEEDS ))
@@ -125,7 +50,8 @@ CURRENT_STEP=0
 
 echo "================================================================"
 echo "  Latency Benchmark"
-echo "  Profile:         $PROFILE"
+echo "  Quality:         $QUALITY"
+echo "  Experiment:      $EXPERIMENT"
 echo "  Applications:    ${APPS[*]}"
 echo "  Scaling factors: ${SCALING_FACTORS[*]}"
 echo "  Seeds:           $SEEDS"

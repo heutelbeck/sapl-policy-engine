@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 #
 # Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
@@ -17,8 +16,17 @@
 # limitations under the License.
 #
 
-# Summarize latency benchmark results into summary.csv and summary.md.
-# Usage: summarize-latency.sh <results-directory>
+# Quality profile: full
+# Credible numbers, pragmatic runtime. 30-60 minutes per experiment.
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec python3 "$SCRIPT_DIR/lib/bench.py" summarize-latency "${1:?Usage: summarize-latency.sh <results-directory>}"
+WARMUP_ITERATIONS=1
+WARMUP_TIME=3
+MEASUREMENT_TIME=30
+CONVERGENCE_THRESHOLD=2
+CONVERGENCE_WINDOW=3
+MAX_FORKS=5
+COOL_TARGET=60
+WRK_WARMUP_TIME=3
+WRK_MEASURE_TIME=30
+WRK_CONVERGE=true
+LATENCY=true

@@ -36,79 +36,36 @@ OPA_BINARY="${OPA_BINARY:-opa}"
 CONFIG_DIR="${CONFIG_DIR:-/tmp/sapl-benchmark-policies}"
 
 COOL_TARGET=50
+BENCH_PY="$SCRIPT_DIR/lib/bench.py"
 
 # ---------------------------------------------------------------------------
-# Profile defaults
+# Profile loading
 # ---------------------------------------------------------------------------
 
-profile_defaults() {
-    local profile=${1:-quick}
-    case "$profile" in
-        quick)
-            WARMUP_ITERATIONS=1
-            WARMUP_TIME=3
-            MEASUREMENT_TIME=10
-            CONVERGENCE_THRESHOLD=10
-            CONVERGENCE_WINDOW=2
-            MAX_FORKS=2
-            WRK_WARMUP_TIME=3
-            WRK_MEASURE_TIME=10
-            WRK_CONVERGE=true
-            COOL_TARGET=60
-            CORE_SWEEP=(1 2 4 6 8)
-            CONN_SWEEP=(128)
-            THREAD_SWEEP=(1 2 4 8)
-            RSOCKET_VT=256
-            SCENARIOS=(baseline hospital-1 hospital-5 hospital-50 hospital-100)
-            METHODS=(decideOnceBlocking)
-            INDEXING_SWEEP=(AUTO)
-            LATENCY=true
-            ;;
-        base)
-            WARMUP_ITERATIONS=1
-            WARMUP_TIME=3
-            MEASUREMENT_TIME=30
-            CONVERGENCE_THRESHOLD=2
-            CONVERGENCE_WINDOW=3
-            MAX_FORKS=5
-            WRK_WARMUP_TIME=3
-            WRK_MEASURE_TIME=30
-            WRK_CONVERGE=true
-            COOL_TARGET=60
-            CORE_SWEEP=(1 2 4 6 8)
-            CONN_SWEEP=(32 64)
-            THREAD_SWEEP=(1 2 4 8)
-            RSOCKET_VT=256
-            SCENARIOS=(baseline hospital-1 hospital-5 hospital-50 hospital-100)
-            METHODS=(decideOnceBlocking)
-            INDEXING_SWEEP=(NAIVE CANONICAL)
-            LATENCY=true
-            ;;
-        rigorous)
-            WARMUP_ITERATIONS=1
-            WARMUP_TIME=3
-            MEASUREMENT_TIME=30
-            CONVERGENCE_THRESHOLD=2
-            CONVERGENCE_WINDOW=3
-            MAX_FORKS=50
-            WRK_WARMUP_TIME=3
-            WRK_MEASURE_TIME=30
-            WRK_CONVERGE=true
-            CORE_SWEEP=(1 2 4 6 8)
-            CONN_SWEEP=(32 64 128 256)
-            THREAD_SWEEP=(1 2 4 8)
-            RSOCKET_VT=256
-            SCENARIOS=(baseline hospital-1 hospital-5 hospital-50 hospital-100)
-            METHODS=(decideOnceBlocking)
-            INDEXING_SWEEP=(NAIVE CANONICAL)
-            LATENCY=true
-            ;;
-        *)
-            echo "Unknown profile: $profile. Use quick, base, or rigorous."
-            exit 1
-            ;;
-    esac
-    echo "Profile: $profile"
+PROFILES_DIR="${SCRIPT_DIR}/lib/profiles"
+
+load_quality() {
+    local quality=${1:-quick}
+    local file="$PROFILES_DIR/quality/${quality}.sh"
+    if [ ! -f "$file" ]; then
+        echo "Unknown quality profile: $quality"
+        echo "Available: $(ls "$PROFILES_DIR/quality/" | sed 's/\.sh$//' | tr '\n' ' ')"
+        exit 1
+    fi
+    source "$file"
+    echo "Quality: $quality"
+}
+
+load_experiment() {
+    local experiment=$1
+    local file="$PROFILES_DIR/experiments/${experiment}.sh"
+    if [ ! -f "$file" ]; then
+        echo "Unknown experiment profile: $experiment"
+        echo "Available: $(ls "$PROFILES_DIR/experiments/" | sed 's/\.sh$//' | tr '\n' ' ')"
+        exit 1
+    fi
+    source "$file"
+    echo "Experiment: $experiment"
 }
 
 # ---------------------------------------------------------------------------
@@ -309,6 +266,19 @@ export_scenario() {
 }
 
 # ---------------------------------------------------------------------------
+# Statistics (delegates to bench.py)
+# ---------------------------------------------------------------------------
+
+compute_cov() {
+    python3 "$BENCH_PY" cov "$@"
+}
+
+check_convergence() {
+    local window=$1; shift
+    python3 "$BENCH_PY" converged --window "$window" --threshold "$CONVERGENCE_THRESHOLD" "$@"
+}
+
+# ---------------------------------------------------------------------------
 # wrk helpers
 # ---------------------------------------------------------------------------
 
@@ -349,14 +319,7 @@ parse_wrk_rps() {
 }
 
 wrk_latency_to_ns() {
-    local val="$1"
-    python3 -c "
-v = '$val'
-if v.endswith('us'): print(int(float(v[:-2]) * 1000))
-elif v.endswith('ms'): print(int(float(v[:-2]) * 1000000))
-elif v.endswith('s'): print(int(float(v[:-1]) * 1000000000))
-else: print(0)
-"
+    python3 "$BENCH_PY" latency-to-ns "$1"
 }
 
 parse_wrk_latency() {

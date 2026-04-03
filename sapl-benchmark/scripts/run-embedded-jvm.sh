@@ -18,25 +18,26 @@
 #
 
 # SAPL 4 embedded benchmark (JMH forks(1), per scenario, core/thread sweep).
-# Usage: run-embedded-jvm.sh [quick|base|rigorous] [output-dir]
+# Usage: run-embedded-jvm.sh [quick|full] [output-dir]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
-PROFILE=${1:-quick}
-OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/$PROFILE-$(timestamp)}
+QUALITY=${1:-quick}
+OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/${QUALITY}-$(timestamp)}
 
-profile_defaults "$PROFILE"
+load_quality "$QUALITY"
+load_experiment "embedded"
 log_env
 
 RUN_TIMESTAMP=$(timestamp)
-OUTDIR="$OUTPUT_DIR/embedded-sapl4-jvm-${PROFILE}-${RUN_TIMESTAMP}"
+OUTDIR="$OUTPUT_DIR/embedded-jvm-${QUALITY}-${RUN_TIMESTAMP}"
 mkdir -p "$OUTDIR"
 
 # Count total steps
 MAIN_STEPS=$(( ${#INDEXING_SWEEP[@]} * ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
 EXTRA_STEPS=0
-if [ "$PROFILE" = "rigorous" ]; then
+if [ "$QUALITY" = "full" ]; then
     EXTRA_STEPS=$(( ${#SCENARIOS[@]} * ${#THREAD_SWEEP[@]} + ${#THREAD_SWEEP[@]} ))
 fi
 TOTAL_STEPS=$(( MAIN_STEPS + EXTRA_STEPS ))
@@ -44,7 +45,7 @@ CURRENT_STEP=0
 
 echo "================================================================"
 echo "  SAPL 4 Embedded Benchmark (JMH forks(1))"
-echo "  Profile:   $PROFILE"
+echo "  Profile:   $QUALITY"
 echo "  Scenarios: ${SCENARIOS[*]}"
 echo "  Methods:   ${METHODS[*]}"
 echo "  Indexing:  ${INDEXING_SWEEP[*]}"
@@ -93,7 +94,7 @@ for indexing in "${INDEXING_SWEEP[@]}"; do
     done
 done
 
-if [ "$PROFILE" = "rigorous" ]; then
+if [ "$QUALITY" = "full" ]; then
     for indexing in "${INDEXING_SWEEP[@]}"; do
         for scenario in "${SCENARIOS[@]}"; do
             for threads in "${THREAD_SWEEP[@]}"; do
@@ -157,6 +158,8 @@ if [ "$PROFILE" = "rigorous" ]; then
         echo ""
     done
 fi
+
+python3 "$BENCH_PY" summarize "$OUTDIR"
 
 echo "================================================================"
 echo "  SAPL 4 Embedded Complete"

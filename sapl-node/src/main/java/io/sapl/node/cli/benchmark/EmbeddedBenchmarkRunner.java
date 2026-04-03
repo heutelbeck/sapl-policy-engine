@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -78,9 +79,9 @@ public class EmbeddedBenchmarkRunner {
         PDPComponents components = null;
         try {
             components = ctx.buildEmbeddedPdp();
-            val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
-            val subscription = mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class);
-            val methods      = resolveMethods(components.pdp(), subscription, cfg.benchmarks());
+            val mapper        = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+            val subscriptions = loadSubscriptions(ctx, mapper);
+            val methods       = resolveMethods(components.pdp(), subscriptions, cfg.benchmarks());
 
             val results = cfg.machineReadable() ? measureMachineReadable(methods, cfg, threads, out)
                     : measureInteractive(methods, cfg, threads, out);
@@ -182,11 +183,26 @@ public class EmbeddedBenchmarkRunner {
         writeJsonResults(rawResults, cfg, threads, cfg.output().resolve(fileName), err);
     }
 
+    private static AuthorizationSubscription[] loadSubscriptions(BenchmarkContext ctx, JsonMapper mapper) {
+        if (ctx.subscriptionsJson() != null) {
+            AuthorizationSubscription[] list = mapper.readValue(ctx.subscriptionsJson(),
+                    AuthorizationSubscription[].class);
+            if (list.length > 0) {
+                return list;
+            }
+        }
+        return new AuthorizationSubscription[] {
+                mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class) };
+    }
+
     private static Map<String, BenchmarkMethod> resolveMethods(PolicyDecisionPoint pdp,
-            AuthorizationSubscription subscription, List<String> filter) {
-        val all = new LinkedHashMap<String, BenchmarkMethod>();
-        all.put("decideOnceBlocking", new BenchmarkMethod(() -> pdp.decideOnceBlocking(subscription), 1));
-        all.put("decideStreamFirst", new BenchmarkMethod(() -> pdp.decide(subscription).blockFirst(), 1));
+            AuthorizationSubscription[] subscriptions, List<String> filter) {
+        val                                 index   = new AtomicInteger(0);
+        Supplier<AuthorizationSubscription> nextSub = () -> subscriptions[Integer
+                .remainderUnsigned(index.getAndIncrement(), subscriptions.length)];
+        val                                 all     = new LinkedHashMap<String, BenchmarkMethod>();
+        all.put("decideOnceBlocking", new BenchmarkMethod(() -> pdp.decideOnceBlocking(nextSub.get()), 1));
+        all.put("decideStreamFirst", new BenchmarkMethod(() -> pdp.decide(nextSub.get()).blockFirst(), 1));
 
         if (filter == null || filter.isEmpty()) {
             return all;

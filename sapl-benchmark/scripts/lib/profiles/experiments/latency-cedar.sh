@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 #
 # Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
@@ -17,8 +16,16 @@
 # limitations under the License.
 #
 
-# Summarize latency benchmark results into summary.csv and summary.md.
-# Usage: summarize-latency.sh <results-directory>
+# Experiment: Cedar OOPSLA equivalent latency benchmarks
+# 200 seeds x 7 scaling factors x 3 Cedar scenarios
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec python3 "$SCRIPT_DIR/lib/bench.py" summarize-latency "${1:?Usage: summarize-latency.sh <results-directory>}"
+SEEDS=200
+SCALING_FACTORS=(5 10 15 20 30 40 50)
+APPS=(tinytodo gdrive github)
+INDEXING_SWEEP=(AUTO)
+UNROLL_SWEEP=(false)
+GC_SWEEP=(default)
+
+# Latency experiments use looser convergence (many seeds average out noise)
+WARMUP_TIME=10
+CONVERGENCE_THRESHOLD=50

@@ -166,7 +166,8 @@ public class BenchmarkCommand implements Callable<Integer> {
         if (resolved == null) {
             return null;
         }
-        return new BenchmarkContext(subJson, resolved.path(), resolved.configType().name());
+        String subsJson = loadSubscriptionsJson(resolved.path());
+        return new BenchmarkContext(subJson, subsJson, resolved.path(), resolved.configType().name());
     }
 
     private List<BenchmarkResult> runAllBenchmarks(BenchmarkContext ctx, BenchmarkRunConfig runCfg, PrintWriter out,
@@ -181,5 +182,20 @@ public class BenchmarkCommand implements Callable<Integer> {
             allResults.addAll(threadResults);
         }
         return allResults;
+    }
+
+    private static String loadSubscriptionsJson(String policyPath) {
+        if (policyPath == null) {
+            return null;
+        }
+        val subscriptionsFile = java.nio.file.Path.of(policyPath).resolve("subscriptions.json");
+        try {
+            if (Files.exists(subscriptionsFile)) {
+                return Files.readString(subscriptionsFile);
+            }
+        } catch (IOException e) {
+            // fall through to single subscription
+        }
+        return null;
     }
 }

@@ -19,15 +19,16 @@
 
 # SAPL 4 embedded native benchmark (timing loops, convergence via re-invocation).
 # Uses sapl-benchmark-sapl4 JAR to export scenarios, then runs the native binary.
-# Usage: run-embedded-native.sh [quick|base|rigorous] [output-dir]
+# Usage: run-embedded-native.sh [quick|full] [output-dir]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
-PROFILE=${1:-quick}
-OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/$PROFILE-$(timestamp)}
+QUALITY=${1:-quick}
+OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/${QUALITY}-$(timestamp)}
 
-profile_defaults "$PROFILE"
+load_quality "$QUALITY"
+load_experiment "embedded"
 log_env
 
 if [ ! -x "$SAPL_NATIVE" ]; then
@@ -37,14 +38,14 @@ if [ ! -x "$SAPL_NATIVE" ]; then
 fi
 
 RUN_TIMESTAMP=$(timestamp)
-OUTDIR="$OUTPUT_DIR/embedded-sapl4-native-${PROFILE}-${RUN_TIMESTAMP}"
+OUTDIR="$OUTPUT_DIR/embedded-native-${QUALITY}-${RUN_TIMESTAMP}"
 SCENARIO_DIR="/tmp/sapl-benchmark-scenarios"
 rm -rf "$SCENARIO_DIR"
 mkdir -p "$OUTDIR" "$SCENARIO_DIR"
 
 echo "================================================================"
 echo "  SAPL 4 Embedded Native Benchmark"
-echo "  Profile:   $PROFILE"
+echo "  Profile:   $QUALITY"
 echo "  Binary:    $SAPL_NATIVE"
 echo "  Scenarios: ${SCENARIOS[*]}"
 echo "  Methods:   ${METHODS[*]}"
@@ -66,35 +67,6 @@ for indexing in "${INDEXING_SWEEP[@]}"; do
 done
 echo ""
 
-# Convergence helpers
-compute_cov() {
-    python3 -c "
-import math, sys
-vals = [float(x) for x in sys.argv[1:]]
-n = len(vals)
-if n < 2:
-    print('999.99')
-    sys.exit()
-mean = sum(vals) / n
-std = math.sqrt(sum((v - mean)**2 for v in vals) / (n - 1))
-print(f'{std / mean * 100:.2f}')
-" "$@"
-}
-
-check_convergence() {
-    local window=$1
-    shift
-    local vals=("$@")
-    local n=${#vals[@]}
-    if [ "$n" -lt "$window" ]; then
-        echo "false"
-        return
-    fi
-    local recent=("${vals[@]:$((n - window))}")
-    local cov=$(compute_cov "${recent[@]}")
-    local converged=$(python3 -c "print('true' if $cov <= $CONVERGENCE_THRESHOLD else 'false')")
-    echo "$converged"
-}
 
 run_single_fork() {
     local scenario=$1
@@ -159,25 +131,13 @@ run_converging() {
         fi
 
         local fork_json="$OUTDIR/${prefix}_fork${fork_index}.json"
-        python3 -c "
-import json
-data = [{
-    'benchmark': '$method',
-    'mode': 'thrpt',
-    'threads': $threads,
-    'runtime': 'native',
-    'warmupIterations': $WARMUP_ITERATIONS,
-    'warmupTime': '$WARMUP_TIME s',
-    'measurementTime': '$MEASUREMENT_TIME s',
-    'params': {'scenarioName': '$scenario'},
-    'primaryMetric': {
-        'score': $throughput,
-        'scoreUnit': 'ops/s'
-    }
-}]
-with open('$fork_json', 'w') as f:
-    json.dump(data, f, indent=4)
-"
+        python3 "$BENCH_PY" write-fork-json \
+            --output "$fork_json" --score "$throughput" --unit "ops/s" \
+            --benchmark "$method" --mode thrpt --threads "$threads" \
+            --runtime native --warmup-iterations "$WARMUP_ITERATIONS" \
+            --warmup-time "${WARMUP_TIME} s" \
+            --measurement-time "${MEASUREMENT_TIME} s" \
+            --scenario "$scenario"
 
         local n=${#throughputs[@]}
         local cov="N/A"
@@ -207,42 +167,19 @@ with open('$fork_json', 'w') as f:
     fi
 
     local csv="$OUTDIR/${prefix}.csv"
-    python3 -c "
-import math
-vals = [float(x) for x in '${throughputs[*]}'.split()]
-n = len(vals)
-mean = sum(vals) / n
-std = math.sqrt(sum((v - mean)**2 for v in vals) / (n - 1)) if n > 1 else 0
-cov = std / mean * 100 if mean > 0 else 0
-
-latency_line = '${last_latency}'
-latency_comments = ''
-if latency_line.startswith('LATENCY:'):
-    parts = latency_line.split(':')
-    if len(parts) == 6:
-        latency_comments = f'''# Latency p50 (ns): {parts[1]}
-# Latency p90 (ns): {parts[2]}
-# Latency p99 (ns): {parts[3]}
-# Latency p99.9 (ns): {parts[4]}
-# Latency max (ns): {parts[5]}
-'''
-
-print(f'''# SAPL 4.0 Native Benchmark Results
-# Scenario: $scenario
-# Method: $method
-# Threads: $threads
-# Runtime: native
-# Warmup: $WARMUP_ITERATIONS x ${WARMUP_TIME}s
-# Measurement: ${MEASUREMENT_TIME}s
-# Convergence: CoV < ${CONVERGENCE_THRESHOLD}% over $CONVERGENCE_WINDOW forks
-# Mean: {mean:.2f} ops/s
-# StdDev: {std:.2f} ops/s
-# CoV: {cov:.2f}%
-# Forks: {n}
-{latency_comments}fork,throughput_ops_s''')
-for i, v in enumerate(vals, 1):
-    print(f'{i},{v:.2f}')
-" > "$csv"
+    local latency_arg="${last_latency#LATENCY:}"
+    python3 "$BENCH_PY" write-csv \
+        --output "$csv" \
+        --throughputs "$(IFS=,; echo "${throughputs[*]}")" \
+        --title "SAPL 4.0 Native Benchmark Results" \
+        --unit throughput_ops_s \
+        --scenario "$scenario" --method "$method" --threads "$threads" \
+        --runtime native \
+        --warmup "${WARMUP_ITERATIONS} x ${WARMUP_TIME}s" \
+        --measurement "${MEASUREMENT_TIME}s" \
+        --convergence-threshold "$CONVERGENCE_THRESHOLD" \
+        --convergence-window "$CONVERGENCE_WINDOW" \
+        ${latency_arg:+--latency "$latency_arg"}
 
     echo "    Result: $csv"
     return 0
@@ -251,7 +188,7 @@ for i, v in enumerate(vals, 1):
 # Count total steps
 MAIN_STEPS=$(( ${#INDEXING_SWEEP[@]} * ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
 EXTRA_STEPS=0
-if [ "$PROFILE" = "rigorous" ]; then
+if [ "$QUALITY" = "full" ]; then
     EXTRA_STEPS=$(( ${#SCENARIOS[@]} * ${#THREAD_SWEEP[@]} + ${#THREAD_SWEEP[@]} ))
 fi
 TOTAL_STEPS=$(( MAIN_STEPS + EXTRA_STEPS ))
@@ -283,7 +220,7 @@ for indexing in "${INDEXING_SWEEP[@]}"; do
     done
 done
 
-if [ "$PROFILE" = "rigorous" ]; then
+if [ "$QUALITY" = "full" ]; then
     for indexing in "${INDEXING_SWEEP[@]}"; do
         for scenario in "${SCENARIOS[@]}"; do
             for threads in "${THREAD_SWEEP[@]}"; do
@@ -318,6 +255,8 @@ if [ "$PROFILE" = "rigorous" ]; then
         echo ""
     done
 fi
+
+python3 "$BENCH_PY" summarize "$OUTDIR"
 
 echo "================================================================"
 echo "  SAPL 4 Embedded Native Complete"
