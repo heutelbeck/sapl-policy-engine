@@ -434,7 +434,7 @@ public class ExamplesCollection {
 
                         // Must also satisfy compartment requirement (need-to-know)
                         // Subject's departments must contain at least one of the resource's required departments
-                        array.containsAny(subject.departments, resource.required_departments);
+                        resource.required_departments any in subject.departments;
                     """, """
                     policy "compartmentalized write access"
                     permit
@@ -443,7 +443,7 @@ public class ExamplesCollection {
                         subject.clearance_level <= resource.classification_level;
 
                         // Compartment check for write operations
-                        array.containsAny(subject.departments, resource.required_departments);
+                        resource.required_departments any in subject.departments;
                     """), new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), """
                     {
                       "subject": {
@@ -512,11 +512,11 @@ public class ExamplesCollection {
 
                         // Find which COI classes contain any of the previously accessed entities
                         var accessedCoiClasses = coiClasses[?(
-                            array.containsAny(@.entities, previouslyAccessedEntities)
+                            previouslyAccessedEntities any in @.entities
                         )].conflict_class;
 
                         // Check if there's overlap between requested and accessed COI classes
-                        var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
+                        var conflictExists = accessedCoiClasses any in requestedCoiClasses;
 
                         // DENY if: conflict detected AND attempting to access a different entity
                         // ALLOW if: no conflict OR accessing the same entity again
@@ -601,11 +601,11 @@ public class ExamplesCollection {
 
                         // Find which COI classes contain any of the previously accessed entities
                         var accessedCoiClasses = coiClasses[?(
-                            array.containsAny(@.entities, previouslyAccessedEntities)
+                            previouslyAccessedEntities any in @.entities
                         )].conflict_class;
 
                         // Check if there's overlap between requested and accessed COI classes
-                        var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
+                        var conflictExists = accessedCoiClasses any in requestedCoiClasses;
 
                         // DENY if: conflict detected AND attempting to access a different entity
                         // ALLOW if: no conflict OR accessing the same entity again

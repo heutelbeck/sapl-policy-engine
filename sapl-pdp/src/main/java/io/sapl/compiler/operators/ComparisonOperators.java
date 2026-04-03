@@ -18,11 +18,13 @@
 package io.sapl.compiler.operators;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 /**
  * Comparison operations for SAPL expression evaluation.
@@ -33,7 +35,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ComparisonOperators {
 
-    private static final String ERROR_IN_TYPE_MISMATCH = "'in' operator supports value lookup in arrays or objects, "
+    private static final String ERROR_ANY_ALL_IN_LHS_MUST_BE_ARRAY = "'any in'/'all in': left-hand side must be an array, but got: %s.";
+    private static final String ERROR_IN_TYPE_MISMATCH             = "'in' operator supports value lookup in arrays or objects, "
             + "as well as substring matching with two strings. But got: %s in %s.";
 
     /**
@@ -60,6 +63,46 @@ public class ComparisonOperators {
      * <li>Substring matching in strings</li>
      * </ul>
      */
+    /**
+     * {@code needles any in haystack} - true if at least one element of needles
+     * is contained in haystack.
+     */
+    public static Value anyIn(Value needles, Value haystack, SourceLocation location) {
+        if (!(needles instanceof ArrayValue arr)) {
+            return Value.errorAt(location, ERROR_ANY_ALL_IN_LHS_MUST_BE_ARRAY, needles.getClass().getSimpleName());
+        }
+        for (int i = 0; i < arr.size(); i++) {
+            val result = isContainedIn(arr.get(i), haystack, location);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (Value.TRUE.equals(result)) {
+                return Value.TRUE;
+            }
+        }
+        return Value.FALSE;
+    }
+
+    /**
+     * {@code needles all in haystack} - true if all elements of needles are
+     * contained in haystack.
+     */
+    public static Value allIn(Value needles, Value haystack, SourceLocation location) {
+        if (!(needles instanceof ArrayValue arr)) {
+            return Value.errorAt(location, ERROR_ANY_ALL_IN_LHS_MUST_BE_ARRAY, needles.getClass().getSimpleName());
+        }
+        for (int i = 0; i < arr.size(); i++) {
+            val result = isContainedIn(arr.get(i), haystack, location);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (Value.FALSE.equals(result)) {
+                return Value.FALSE;
+            }
+        }
+        return Value.TRUE;
+    }
+
     public static Value isContainedIn(Value needle, Value haystack, SourceLocation location) {
         return switch (haystack) {
         case ArrayValue array                                                      ->

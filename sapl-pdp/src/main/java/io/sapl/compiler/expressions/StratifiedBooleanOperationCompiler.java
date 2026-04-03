@@ -217,13 +217,17 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            if (p1.evaluate(ctx) instanceof BooleanValue(var b1)) {
+            val v1 = p1.evaluate(ctx);
+            if (v1 instanceof ErrorValue) {
+                return v1;
+            }
+            if (v1 instanceof BooleanValue(var b1)) {
                 if (!b1) {
                     return Value.FALSE;
                 }
                 return asBoolean(p2.evaluate(ctx), location);
             }
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, p1.getClass().getSimpleName());
+            return Value.errorAt(location, ERROR_TYPE_MISMATCH, v1.getClass().getSimpleName());
         }
 
         @Override
@@ -248,13 +252,17 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            if (p1.evaluate(ctx) instanceof BooleanValue(var b1)) {
+            val v1 = p1.evaluate(ctx);
+            if (v1 instanceof ErrorValue) {
+                return v1;
+            }
+            if (v1 instanceof BooleanValue(var b1)) {
                 if (b1) {
                     return Value.TRUE;
                 }
                 return asBoolean(p2.evaluate(ctx), location);
             }
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, p1.getClass().getSimpleName());
+            return Value.errorAt(location, ERROR_TYPE_MISMATCH, v1.getClass().getSimpleName());
         }
 
         @Override

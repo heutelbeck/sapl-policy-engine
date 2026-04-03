@@ -92,6 +92,22 @@ class StratifiedBooleanOperationCompilerTests {
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains(expectedError);
         }
+
+        @Test
+        @DisplayName("unknown function error propagates through && instead of type mismatch")
+        void whenUnknownFunctionInAndThenErrorMentionsFunctionName() {
+            var result = evaluateExpression("nonexisting.fn(subject) && subject.x");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("nonexisting.fn");
+        }
+
+        @Test
+        @DisplayName("unknown function error propagates through || instead of type mismatch")
+        void whenUnknownFunctionInOrThenErrorMentionsFunctionName() {
+            var result = evaluateExpression("nonexisting.fn(subject) || subject.x");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("nonexisting.fn");
+        }
     }
 
     @Nested

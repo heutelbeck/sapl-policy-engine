@@ -53,6 +53,7 @@ import io.sapl.grammar.antlr.SAPLParser.ConditionStepContext;
 import io.sapl.grammar.antlr.SAPLParser.EagerAndContext;
 import io.sapl.grammar.antlr.SAPLParser.EagerOrContext;
 import io.sapl.grammar.antlr.SAPLParser.EqualityContext;
+import io.sapl.grammar.antlr.SAPLParser.HasExpressionContext;
 import io.sapl.grammar.antlr.SAPLParser.ExclusiveOrContext;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionStepContext;
@@ -258,13 +259,24 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
 
     @Override
     public String visitEquality(EqualityContext ctx) {
-        if (ctx.comparison().size() == 1) {
-            return visit(ctx.comparison(0));
+        if (ctx.hasExpression().size() == 1) {
+            return visit(ctx.hasExpression(0));
         }
-        val left  = visit(ctx.comparison(0));
-        val right = visit(ctx.comparison(1));
+        val left  = visit(ctx.hasExpression(0));
+        val right = visit(ctx.hasExpression(1));
         val op    = findOperatorToken(ctx);
         return left + " " + op + " " + right;
+    }
+
+    @Override
+    public String visitHasExpression(HasExpressionContext ctx) {
+        if (ctx.HAS() == null) {
+            return visit(ctx.comparison(0));
+        }
+        val left     = visit(ctx.comparison(0));
+        val right    = visit(ctx.comparison(1));
+        val modifier = ctx.ANY() != null ? " has any " : ctx.ALL() != null ? " has all " : " has ";
+        return left + modifier + right;
     }
 
     @Override
@@ -274,7 +286,13 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         }
         val left  = visit(ctx.addition(0));
         val right = visit(ctx.addition(1));
-        val op    = findOperatorToken(ctx);
+        if (ctx.ANY() != null) {
+            return left + " any in " + right;
+        }
+        if (ctx.ALL() != null) {
+            return left + " all in " + right;
+        }
+        val op = findOperatorToken(ctx);
         return left + " " + op + " " + right;
     }
 

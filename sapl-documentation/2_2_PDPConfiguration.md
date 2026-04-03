@@ -45,6 +45,12 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
     "defaultDecision": "DENY",
     "errorHandling": "ABSTAIN"
   },
+  "compilerFlags": {
+    "indexing": "AUTO",
+    "unrollInOperator": false,
+    "minPoliciesForCanonical": 10,
+    "minSharingForCanonical": 1.5
+  },
   "variables": {
     "tenantId": "acme-corp",
     "featureFlags": {
@@ -62,6 +68,13 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 ```
 
 The `algorithm` object is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY`, `DENY`, `PROPAGATE`). The `variables` and `secrets` sections are also optional.
+
+The `compilerFlags` object is optional. All fields within it are optional and default to the values shown above:
+
+- `indexing` - policy index strategy: `AUTO` (heuristic selection), `NAIVE` (linear scan), or `CANONICAL` (count-and-eliminate algorithm). Default: `AUTO`.
+- `unrollInOperator` - when `true`, transforms `EXPR in [a, b, c]` into equality chains for improved index matching. Default: `false`.
+- `minPoliciesForCanonical` - minimum policy count before `AUTO` mode considers the canonical index. Default: `10`.
+- `minSharingForCanonical` - minimum predicate sharing ratio for `AUTO` mode to keep the canonical index. Default: `1.5`.
 
 The `configurationId` is a version identifier for the configuration. It appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact policy set that produced them. For bundles, this field is **required**. For directory and resource sources, it is optional and auto-generated from the source path and content hash when absent.
 

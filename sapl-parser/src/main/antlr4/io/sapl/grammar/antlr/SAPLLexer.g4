@@ -35,6 +35,9 @@ FALSE       : 'false';
 NULL        : 'null';
 UNDEFINED   : 'undefined';
 IN          : 'in';
+HAS         : 'has';
+ANY         : 'any';
+ALL         : 'all';
 EACH        : 'each';
 FOR         : 'for';
 

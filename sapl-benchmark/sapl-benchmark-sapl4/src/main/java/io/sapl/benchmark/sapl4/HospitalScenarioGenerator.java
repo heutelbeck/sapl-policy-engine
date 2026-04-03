@@ -262,7 +262,7 @@ public class HospitalScenarioGenerator {
      * Generates a department-scoped permit policy.
      * <p>
      * Structure: subject.role == R AND resource.type == T AND action check
-     * AND resource.department == D AND closed[(subject.id)][(D)] != undefined.
+     * AND resource.department == D AND memberOf[(subject.id)] has D.
      * <p>
      * The action check is either {@code action == "X"} (single action) or
      * {@code action in ["X", "Y", ...]} (multi-action IN-list).
@@ -279,8 +279,8 @@ public class HospitalScenarioGenerator {
                     resource.type == "%s";
                     %s;
                     resource.department == "%s";
-                    var closed = graph.transitiveClosureSet(staffGraph);
-                    closed[(subject.id)][("%s")] != undefined;
+                    var memberOf = graph.transitiveClosureSet(staffGraph);
+                    memberOf[(subject.id)] has "%s";
                 """.formatted(dept, role, perm.resourceType(), role, perm.resourceType(), actionCondition, deptId,
                 deptId);
     }

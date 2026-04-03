@@ -234,11 +234,48 @@ Except for the unary operators, multiple operators with the same precedence (e.g
    `exp1 in exp2`
 
    The expression evaluates to `true` if the array `exp2` evaluates to contains the result of evaluating `exp1`. Otherwise, the expression evaluates to `false`.
-5. Precedence and Associativity
 
-   Comparison operators (`<`, `>`, `<=`, `>=`, `in`) have precedence **7**. Equality operators (`==`, `!=`, `=~`) have precedence **6**. This is important for combining them with logical operators (see below).
+5. `any in` / `all in` (collection membership)
+
+   The `in` operator can be prefixed with `any` or `all` to check multiple values at once. The left-hand side must be an array:
+
+   `exp1 any in exp2` evaluates to `true` if at least one element of `exp1` is contained in `exp2`. Evaluates to `false` if `exp1` is empty.
+
+   `exp1 all in exp2` evaluates to `true` if every element of `exp1` is contained in `exp2`. Evaluates to `true` if `exp1` is empty (vacuously true).
+
+   ```
+   subject.roles any in resource.requiredRoles
+   ["read", "write"] all in subject.permissions
+   ```
+
+6. Precedence and Associativity
+
+   Comparison operators (`<`, `>`, `<=`, `>=`, `in`, `any in`, `all in`) have precedence **7**. The `has` operator (see below) has precedence **6.5**. Equality operators (`==`, `!=`, `=~`) have precedence **6**. This is important for combining them with logical operators (see below).
 
    All comparison and equality operators are **non-associative**, i.e., an expression may not contain multiple comparison operators (like `3 < var < 5`). However, they can be combined with logical operators which have a different precedence (thus, the faulty example could be replaced by `3 < var && var < 5`).
+
+### Key Membership Operator
+
+The `has` operator checks whether an object contains a key or keys.
+
+1. `exp1 has exp2` evaluates to `true` if the object `exp1` contains the string key `exp2`. Non-object left-hand sides (arrays, strings, numbers, booleans, null, undefined) return `false`. The right-hand side must be a string; non-string values produce an error. If either side is `undefined`, the result is `false`.
+
+2. `exp1 has any exp2` evaluates to `true` if the object `exp1` contains at least one key from the string array `exp2`. Returns `false` for an empty array.
+
+3. `exp1 has all exp2` evaluates to `true` if the object `exp1` contains all keys from the string array `exp2`. Returns `true` for an empty array (vacuously true).
+
+```
+// Single key check
+closureResult has "dept_0"
+
+// Any key from array
+user.permissions has any ["read", "write", "admin"]
+
+// All keys required
+config has all ["host", "port", "protocol"]
+```
+
+The `has` operator has precedence **6.5** (between comparison and equality). This means `obj has "key" == true` parses as `(obj has "key") == true`.
 
 ### Logical Operators
 

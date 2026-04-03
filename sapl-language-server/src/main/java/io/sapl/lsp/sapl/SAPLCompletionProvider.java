@@ -89,7 +89,8 @@ public class SAPLCompletionProvider {
     private static final Set<String> BODY_STATEMENT_KEYWORDS = Set.of("var");
 
     // Expression-only keywords (inside any expression context)
-    private static final Set<String> EXPRESSION_KEYWORDS = Set.of("true", "false", "null", "undefined", "in", "each");
+    private static final Set<String> EXPRESSION_KEYWORDS = Set.of("true", "false", "null", "undefined", "in", "has",
+            "any", "all", "each");
 
     // Subscription variables available in expressions
     private static final Set<String> SUBSCRIPTION_VARIABLES = Set.of("subject", "action", "resource", "environment");

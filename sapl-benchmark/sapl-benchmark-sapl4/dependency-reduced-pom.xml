@@ -28,6 +28,11 @@
         <configuration>
           <annotationProcessorPaths>
             <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+            <path>
               <groupId>org.openjdk.jmh</groupId>
               <artifactId>jmh-generator-annprocess</artifactId>
               <version>${jmh.version}</version>
@@ -82,6 +87,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.44</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-test</artifactId>
       <version>4.0.0-SNAPSHOT</version>
@@ -118,6 +129,18 @@
         <exclusion>
           <artifactId>junit-jupiter-engine</artifactId>
           <groupId>org.junit.jupiter</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.7</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>byte-buddy</artifactId>
+          <groupId>net.bytebuddy</groupId>
         </exclusion>
       </exclusions>
     </dependency>

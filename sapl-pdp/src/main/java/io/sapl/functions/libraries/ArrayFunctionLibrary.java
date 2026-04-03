@@ -60,18 +60,8 @@ public class ArrayFunctionLibrary {
 
             ## Access Control Patterns
 
-            Check if a user possesses required permissions from a set. Verify that subjects hold
-            all mandatory roles before granting access.
-
-            ```sapl
-            policy "require_admin_or_editor"
-            permit action == "modify_content";
-                var required = ["admin", "editor"];
-                array.containsAny(subject.roles, required);
-            ```
-
             Combine permissions from multiple sources when evaluating group memberships or
-            inherited roles.
+            inherited roles using set operations.
 
             ```sapl
             policy "aggregate_permissions"
@@ -79,7 +69,7 @@ public class ArrayFunctionLibrary {
                 var direct = subject.directPermissions;
                 var inherited = subject.groupPermissions;
                 var allOfSubjectsPermissions = array.union(direct, inherited);
-                array.containsAll(allOfSubjectsPermissions, ["read", "write"]);
+                allOfSubjectsPermissions contains each ["read", "write"];
             ```
 
             Find common capabilities between user privileges and resource requirements to
@@ -89,7 +79,7 @@ public class ArrayFunctionLibrary {
             policy "intersection_access"
             permit
                 var allowed = array.intersect(subject.capabilities, resource.requirements);
-                !array.isEmpty(allowed);
+                standard.length(allowed) > 0;
             obligation
                 {
                     "type": "limit_operations",
@@ -218,7 +208,7 @@ public class ArrayFunctionLibrary {
                 var granted = subject.grantedPermissions;
                 var revoked = subject.revokedPermissions;
                 var effective = array.difference(granted, revoked);
-                array.containsAll(effective, resource.requiredPermissions);
+                effective contains each resource.requiredPermissions;
             ```
             """, schema = RETURNS_ARRAY)
     public static Value difference(ArrayValue array1, ArrayValue array2) {
@@ -258,7 +248,7 @@ public class ArrayFunctionLibrary {
             policy "example"
             permit
                 var all = array.union(subject.directPermissions, subject.groupPermissions);
-                array.containsAll(all, ["read", "write"]);
+                all contains each ["read", "write"];
             ```
             """, schema = RETURNS_ARRAY)
     public static Value union(ArrayValue... arrays) {
@@ -347,87 +337,6 @@ public class ArrayFunctionLibrary {
         }
 
         return createArrayFromElements(result);
-    }
-
-    /**
-     * Checks if an array contains at least one element from another array.
-     *
-     * @param array
-     * array to search in
-     * @param elements
-     * elements to search for
-     *
-     * @return Value.TRUE if any element was found
-     */
-    @Function(docs = """
-            ```array.containsAny(ARRAY array, ARRAY elements)```
-
-            Returns true if the array contains at least one element from the elements array.
-            Returns false if no elements are found or if the elements array is empty.
-
-            Parameters:
-            - array: Array to search in
-            - elements: Elements to search for
-
-            Returns: Boolean indicating whether any element was found
-
-            Example - check if user has any admin role:
-            ```sapl
-            policy "example"
-            permit action == "admin_panel";
-                var adminRoles = ["superadmin", "admin", "moderator"];
-                array.containsAny(subject.roles, adminRoles);
-            ```
-            """, schema = RETURNS_BOOLEAN)
-    public static Value containsAny(ArrayValue array, ArrayValue elements) {
-        val arraySet = new HashSet<>(array);
-        for (val element : elements) {
-            if (arraySet.contains(element)) {
-                return Value.TRUE;
-            }
-        }
-        return Value.FALSE;
-    }
-
-    /**
-     * Checks if an array contains all elements from another array.
-     *
-     * @param array
-     * array to search in
-     * @param elements
-     * elements that must all be present
-     *
-     * @return Value.TRUE if all elements were found
-     */
-    @Function(docs = """
-            ```array.containsAll(ARRAY array, ARRAY elements)```
-
-            Returns true if the array contains all elements from the elements array. The elements
-            do not need to appear in the same order. Returns true if the elements array is empty.
-
-            Parameters:
-            - array: Array to search in
-            - elements: Elements that must all be present
-
-            Returns: Boolean indicating whether all elements were found
-
-            Example - verify user has all required permissions:
-            ```sapl
-            policy "example"
-            permit action == "publish_article";
-                var required = ["write", "publish", "notify"];
-                array.containsAll(subject.permissions, required);
-            ```
-            """, schema = RETURNS_BOOLEAN)
-    public static Value containsAll(ArrayValue array, ArrayValue elements) {
-        val arraySet = new HashSet<>(array);
-
-        for (val element : elements) {
-            if (!arraySet.contains(element)) {
-                return Value.FALSE;
-            }
-        }
-        return Value.TRUE;
     }
 
     /**
@@ -613,38 +522,6 @@ public class ArrayFunctionLibrary {
     }
 
     /**
-     * Returns the number of elements in an array.
-     *
-     * @param array
-     * array to measure
-     *
-     * @return element count
-     */
-    @Function(docs = """
-            ```array.size(ARRAY value)```
-
-            Returns the number of elements in the array.
-
-            Parameters:
-            - value: Array to measure
-
-            Returns: Integer count of elements
-
-            Example:
-            ```sapl
-            policy "example"
-            permit
-                array.size(subject.roles) >= 2;
-            ```
-            """, schema = """
-            {
-              "type": "integer"
-            }""")
-    public static Value size(ArrayValue array) {
-        return Value.of(array.size());
-    }
-
-    /**
      * Returns an array with its elements in reversed order.
      *
      * @param array
@@ -713,35 +590,6 @@ public class ArrayFunctionLibrary {
             }
         }
         return Value.TRUE;
-    }
-
-    /**
-     * Checks if an array is empty.
-     *
-     * @param array
-     * array to test
-     *
-     * @return Value.TRUE if array has no elements
-     */
-    @Function(docs = """
-            ```array.isEmpty(ARRAY array)```
-
-            Returns true if the array has no elements.
-
-            Parameters:
-            - array: Array to test
-
-            Returns: Boolean indicating whether array is empty
-
-            Example:
-            ```sapl
-            policy "example"
-            permit
-                !array.isEmpty(subject.permissions);
-            ```
-            """, schema = RETURNS_BOOLEAN)
-    public static Value isEmpty(ArrayValue array) {
-        return Value.of(array.isEmpty());
     }
 
     /**

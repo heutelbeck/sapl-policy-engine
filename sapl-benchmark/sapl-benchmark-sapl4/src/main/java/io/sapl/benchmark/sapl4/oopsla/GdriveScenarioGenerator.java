@@ -80,13 +80,13 @@ public class GdriveScenarioGenerator {
             // Policy 0: View access grants read permission.
             // Cedar: resource in principal.documentsAndFoldersWithViewAccess
             // The View entity is an ancestor of docs/folders in the entity hierarchy.
-            // closed[(resource)] contains the resource's ancestors; we check if the
+            // canReach[(resource)] contains the resource's ancestors; we check if the
             // user's View entity is among them.
             policy "view-access-read"
             permit
                 action == "read";
-                var closed = graph.transitiveClosureSet(entityGraph);
-                closed[(resource)][(users[(subject)].documentsAndFoldersWithViewAccess)] != undefined;
+                var canReach = graph.transitiveClosureSet(entityGraph);
+                canReach[(resource)] has users[(subject)].documentsAndFoldersWithViewAccess;
             """, """
             // Policy 1: Public documents can be read by anyone.
             // Cedar: resource.isPublic

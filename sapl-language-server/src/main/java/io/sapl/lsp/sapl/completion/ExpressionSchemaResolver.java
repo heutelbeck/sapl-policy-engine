@@ -205,11 +205,11 @@ class ExpressionSchemaResolver {
         }
 
         var equality = eagerAnd.equality(0);
-        if (equality.comparison().isEmpty()) {
+        if (equality.hasExpression().isEmpty()) {
             return null;
         }
 
-        var comparison = equality.comparison(0);
+        var comparison = equality.hasExpression(0).comparison(0);
         if (comparison.addition().isEmpty()) {
             return null;
         }

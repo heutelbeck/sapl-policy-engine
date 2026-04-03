@@ -135,11 +135,15 @@ eagerAnd
     ;
 
 equality
-    : comparison ((EQ | NEQ | REGEX) comparison)?
+    : hasExpression ((EQ | NEQ | REGEX) hasExpression)?
+    ;
+
+hasExpression
+    : comparison (HAS (ANY | ALL)? comparison)?
     ;
 
 comparison
-    : addition ((LT | LE | GT | GE | IN) addition)?
+    : addition ((LT | LE | GT | GE | (ANY | ALL)? IN) addition)?
     ;
 
 addition

@@ -101,9 +101,9 @@ public class TinytodoScenarioGenerator {
                         action == "GetList";
                         // The following operation is folded at compile-time once and can be shared between policies
                         // via SAPL's data deduplication.
-                        var closed = graph.transitiveClosureSet(entityGraph);
+                        var memberOf = graph.transitiveClosureSet(entityGraph);
                         var list = lists[(resource)];
-                        closed[(subject)][(list.readers)] != undefined || closed[(subject)][(list.editors)] != undefined;
+                        memberOf[(subject)] has list.readers || memberOf[(subject)] has list.editors;
                     """,
             """
                     // Policy 3: A user can modify a list (UpdateList, CreateTask, UpdateTask, DeleteTask)
@@ -124,8 +124,8 @@ public class TinytodoScenarioGenerator {
                     policy "editor-modify"
                     permit
                         action in ["UpdateList", "CreateTask", "UpdateTask", "DeleteTask"];
-                        var closed = graph.transitiveClosureSet(entityGraph);
-                        closed[(subject)][(lists[(resource)].editors)] != undefined;
+                        var memberOf = graph.transitiveClosureSet(entityGraph);
+                        memberOf[(subject)] has lists[(resource)].editors;
                     """);
 
     // Cedar Policies 4-5 are commented out in the original Cedar benchmark.

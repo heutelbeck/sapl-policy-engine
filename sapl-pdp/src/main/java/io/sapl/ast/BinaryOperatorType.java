@@ -42,6 +42,12 @@ public enum BinaryOperatorType {
     GT,
     GE,
     IN,
+    ANY_IN,
+    ALL_IN,
+    // Key membership
+    HAS_ONE,
+    HAS_ANY,
+    HAS_ALL,
     // Arithmetic
     ADD,
     SUB,

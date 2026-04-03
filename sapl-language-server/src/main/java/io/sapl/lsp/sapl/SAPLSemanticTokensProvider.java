@@ -88,8 +88,8 @@ class SAPLSemanticTokensProvider {
         case SAPLLexer.IMPORT, SAPLLexer.AS, SAPLLexer.SET, SAPLLexer.FOR, SAPLLexer.POLICY, SAPLLexer.PERMIT,
                 SAPLLexer.DENY, SAPLLexer.VAR, SAPLLexer.SCHEMA, SAPLLexer.ENFORCED, SAPLLexer.OBLIGATION,
                 SAPLLexer.ADVICE, SAPLLexer.TRANSFORM, SAPLLexer.TRUE, SAPLLexer.FALSE, SAPLLexer.NULL,
-                SAPLLexer.UNDEFINED, SAPLLexer.IN,
-                SAPLLexer.EACH                                                                                                                                                                                                                                                                                                                      ->
+                SAPLLexer.UNDEFINED, SAPLLexer.IN, SAPLLexer.HAS, SAPLLexer.ANY, SAPLLexer.ALL,
+                SAPLLexer.EACH                                                                                                                                                                                                                                                                                                                                                                   ->
             SAPLSemanticTokenTypes.KEYWORD;
 
         // Combining algorithm keywords

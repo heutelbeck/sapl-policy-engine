@@ -25,12 +25,14 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
+import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;
+import io.sapl.compiler.operators.HasOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -44,6 +46,11 @@ import static io.sapl.ast.BinaryOperatorType.DIV;
 import static io.sapl.ast.BinaryOperatorType.EQ;
 import static io.sapl.ast.BinaryOperatorType.GE;
 import static io.sapl.ast.BinaryOperatorType.GT;
+import static io.sapl.ast.BinaryOperatorType.HAS_ALL;
+import static io.sapl.ast.BinaryOperatorType.HAS_ANY;
+import static io.sapl.ast.BinaryOperatorType.HAS_ONE;
+import static io.sapl.ast.BinaryOperatorType.ALL_IN;
+import static io.sapl.ast.BinaryOperatorType.ANY_IN;
 import static io.sapl.ast.BinaryOperatorType.IN;
 import static io.sapl.ast.BinaryOperatorType.LE;
 import static io.sapl.ast.BinaryOperatorType.LT;
@@ -72,7 +79,11 @@ public class BinaryOperationCompiler {
             Map.entry(EQ, (a, b, location) -> ComparisonOperators.equals(a, b)),
             Map.entry(NE, (a, b, location) -> ComparisonOperators.notEquals(a, b)),
             // Membership
-            Map.entry(IN, ComparisonOperators::isContainedIn),
+            Map.entry(IN, ComparisonOperators::isContainedIn), Map.entry(ANY_IN, ComparisonOperators::anyIn),
+            Map.entry(ALL_IN, ComparisonOperators::allIn),
+            // Key membership (has operator)
+            Map.entry(HAS_ONE, HasOperators::hasOne), Map.entry(HAS_ANY, HasOperators::hasAny),
+            Map.entry(HAS_ALL, HasOperators::hasAll),
             // XOR (the only non-short-circuit boolean operator)
             Map.entry(XOR, BooleanOperators::xor));
 
@@ -91,6 +102,12 @@ public class BinaryOperationCompiler {
             if (unrolled != null) {
                 return unrolled;
             }
+        }
+
+        if ((operatorType == ANY_IN || operatorType == ALL_IN) && binaryOperation.left() instanceof ArrayExpression arr
+                && arr.elements().size() == 1) {
+            return compile(new BinaryOperator(IN, arr.elements().getFirst(), binaryOperation.right(),
+                    binaryOperation.location()), ctx);
         }
 
         if (operatorType.isBooleanAndOr()) {

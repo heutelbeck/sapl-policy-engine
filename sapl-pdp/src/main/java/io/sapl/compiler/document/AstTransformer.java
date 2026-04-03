@@ -132,6 +132,7 @@ import io.sapl.grammar.antlr.SAPLParser.FirstContext;
 import io.sapl.grammar.antlr.SAPLParser.FunctionBasicContext;
 import io.sapl.grammar.antlr.SAPLParser.FunctionIdentifierContext;
 import io.sapl.grammar.antlr.SAPLParser.GroupBasicContext;
+import io.sapl.grammar.antlr.SAPLParser.HasExpressionContext;
 import io.sapl.grammar.antlr.SAPLParser.HeadAttributeFinderDotStepContext;
 import io.sapl.grammar.antlr.SAPLParser.IdPairKeyContext;
 import io.sapl.grammar.antlr.SAPLParser.IdentifierBasicContext;
@@ -556,7 +557,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitEquality(EqualityContext ctx) {
-        val operands = ctx.comparison();
+        val operands = ctx.hasExpression();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
@@ -572,6 +573,28 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (ctx.NEQ() != null)
             return BinaryOperatorType.NE;
         return BinaryOperatorType.REGEX;
+    }
+
+    @Override
+    public AstNode visitHasExpression(HasExpressionContext ctx) {
+        val operands = ctx.comparison();
+        if (ctx.HAS() == null) {
+            return visit(operands.getFirst());
+        }
+        val left  = expr(operands.getFirst());
+        val right = expr(operands.get(1));
+        val op    = toHasOp(ctx);
+        return new BinaryOperator(op, left, right, fromContext(ctx));
+    }
+
+    private static BinaryOperatorType toHasOp(HasExpressionContext ctx) {
+        if (ctx.ANY() != null) {
+            return BinaryOperatorType.HAS_ANY;
+        }
+        if (ctx.ALL() != null) {
+            return BinaryOperatorType.HAS_ALL;
+        }
+        return BinaryOperatorType.HAS_ONE;
     }
 
     @Override
@@ -595,6 +618,10 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             return BinaryOperatorType.GT;
         if (ctx.GE() != null)
             return BinaryOperatorType.GE;
+        if (ctx.ANY() != null)
+            return BinaryOperatorType.ANY_IN;
+        if (ctx.ALL() != null)
+            return BinaryOperatorType.ALL_IN;
         return BinaryOperatorType.IN;
     }
 
