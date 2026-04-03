@@ -28,10 +28,10 @@
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-SAPL_NODE_JAR="${SAPL_NODE_JAR:-$SCRIPT_DIR/../../sapl-node/target/sapl-node-4.0.0-SNAPSHOT.jar}"
-SAPL_NATIVE="${SAPL_NATIVE:-$SCRIPT_DIR/../../sapl-node/target/sapl}"
-SAPL4_BENCH_JAR="${SAPL4_BENCH_JAR:-$SCRIPT_DIR/../sapl-benchmark-sapl4/target/sapl-benchmark-sapl4-4.0.0-SNAPSHOT.jar}"
-SAPL3_BENCH_JAR="${SAPL3_BENCH_JAR:-$SCRIPT_DIR/../sapl-benchmark-sapl3/target/sapl-benchmark-sapl3-4.0.0-SNAPSHOT.jar}"
+BIN_DIR="${BIN_DIR:-$SCRIPT_DIR/../bin}"
+SAPL_NODE_JAR="${SAPL_NODE_JAR:-$BIN_DIR/sapl-node.jar}"
+SAPL_NATIVE="${SAPL_NATIVE:-$BIN_DIR/sapl}"
+SAPL4_BENCH_JAR="${SAPL4_BENCH_JAR:-$BIN_DIR/sapl-benchmark-sapl4.jar}"
 OPA_BINARY="${OPA_BINARY:-opa}"
 CONFIG_DIR="${CONFIG_DIR:-/tmp/sapl-benchmark-policies}"
 
@@ -143,9 +143,15 @@ pkg_temp() {
 
 wait_cool() {
     local target=${1:-$COOL_TARGET}
-    if [ -z "${TEMP_SENSOR:-}" ]; then return; fi
+    if [ -z "${TEMP_SENSOR:-}" ]; then
+        echo "  Thermal: no sensor detected"
+        return
+    fi
     local temp=$(pkg_temp)
-    if [ "$temp" -le "$target" ]; then return; fi
+    if [ "$temp" -le "$target" ]; then
+        echo "  Thermal: ${temp}C (target: ${target}C)"
+        return
+    fi
     echo -n "  Cooling to ${target}C (${temp}C)... "
     while [ "$(pkg_temp)" -gt "$target" ]; do sleep 1; done
     echo "$(pkg_temp)C"

@@ -114,8 +114,11 @@ Profiles are split into **quality** (how rigorously to measure) and **experiment
 ### Build
 
 ```bash
-mvn package -pl sapl-benchmark/sapl-benchmark-sapl4 -am -DskipTests -q
+./scripts/build-nix.sh       # JVM JARs + native image (recommended)
+./scripts/build.sh           # JVM JARs only (native skipped if no GraalVM)
 ```
+
+All binaries are copied to `sapl-benchmark/bin/` where the run scripts expect them. This directory survives `mvn clean`.
 
 ### Embedded (JMH forks(1), flat classpath)
 
@@ -142,12 +145,18 @@ mvn package -pl sapl-benchmark/sapl-benchmark-sapl4 -am -DskipTests -q
 ./scripts/run-server-rsocket.sh full /path/to/results
 ```
 
-### Latency (seeds x scaling factors)
+### Latency JVM (seeds x scaling factors, JMH SampleTime)
 
 ```bash
-./scripts/run-latency-bench.sh quick latency-cedar /path/to/results
-./scripts/run-latency-bench.sh full latency-hospital-scaling /path/to/results
-./scripts/run-latency-bench.sh full latency-hospital-index /path/to/results
+./scripts/run-latency-jvm.sh quick latency-cedar /path/to/results
+./scripts/run-latency-jvm.sh full latency-hospital-scaling /path/to/results
+```
+
+### Latency native (seeds x scaling factors, HdrHistogram)
+
+```bash
+./scripts/run-latency-native.sh quick latency-cedar /path/to/results
+./scripts/run-latency-native.sh full latency-hospital-index /path/to/results
 ```
 
 Quick mode caps seeds to 3 and scaling factors to the first 2 values.
@@ -171,7 +180,13 @@ Produces `summary.csv` (machine-readable, includes 95% CI bounds) and `summary.m
 ## Scripts
 
 ```
+bin/                               # stable build output (created by build.sh)
+  sapl-node.jar                    # Spring Boot fat JAR
+  sapl-benchmark-sapl4.jar         # JMH benchmark runner
+  sapl                             # native binary (optional)
 scripts/
+  build.sh                         # build all binaries into bin/
+  build-nix.sh                     # convenience: enters GraalVM Nix shell + build.sh
   lib/
     bench.py                     # statistics, convergence, CSV/JSON I/O, aggregation
     common.sh                    # env detection, pinning, thermal, server lifecycle
@@ -185,7 +200,8 @@ scripts/
   run-embedded-native.sh         # native binary benchmark
   run-server-http.sh             # HTTP server benchmark via wrk
   run-server-rsocket.sh          # RSocket server benchmark
-  run-latency-bench.sh           # latency across seeds and scaling factors
+  run-latency-jvm.sh             # JVM latency across seeds and scaling factors
+  run-latency-native.sh          # native latency across seeds and scaling factors
   calibrate-warmup-time.sh       # find minimum warmup (run once)
   calibrate-measurement-time.sh  # find minimum measurement duration (run once)
   summarize-latency.sh           # aggregate latency results

@@ -155,7 +155,7 @@ CURRENT_STEP=0
 
 for runtime in "${RUNTIMES[@]}"; do
     RUN_TIMESTAMP=$(timestamp)
-    OUTDIR="$OUTPUT_DIR/server-http-${runtime}-${PROFILE}-${RUN_TIMESTAMP}"
+    OUTDIR="$OUTPUT_DIR/server-http-${runtime}-${QUALITY}-${RUN_TIMESTAMP}"
 
     mkdir -p "$OUTDIR"
 
@@ -185,8 +185,12 @@ for runtime in "${RUNTIMES[@]}"; do
             stop_server
             wait_cool
 
-            echo "  Starting $runtime server: $scenario on CPUs $cpu_range"
-            taskset -c "$cpu_range" $SERVER_CMD server \
+            echo "  Starting $runtime server: $scenario on CPUs $cpu_range (${pcores} P-cores)"
+            local server_cmd="$SERVER_CMD"
+            if [ "$runtime" = "jvm" ]; then
+                server_cmd="java -XX:ActiveProcessorCount=$((pcores * 2)) -jar $SAPL_NODE_JAR"
+            fi
+            taskset -c "$cpu_range" $server_cmd server \
                 --io.sapl.node.allow-no-auth=true \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \

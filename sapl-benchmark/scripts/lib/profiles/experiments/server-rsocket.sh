@@ -19,7 +19,7 @@
 # Experiment: RSocket server benchmarks
 # Scenarios x P-core counts x connection counts x virtual threads
 
-SCENARIOS=(baseline rbac hospital-1 hospital-5 hospital-50 hospital-100)
-CORE_SWEEP=(1 2 4 6 8)
+SCENARIOS=(baseline rbac hospital-1 hospital-100 hospital-300)
+CORE_SWEEP=(1 4 8)
 CONN_SWEEP=(32 64)
 RSOCKET_VT=256

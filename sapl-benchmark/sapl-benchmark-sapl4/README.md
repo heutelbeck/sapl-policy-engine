@@ -99,7 +99,8 @@ Located in `sapl-benchmark/scripts/`. All scripts use `lib/common.sh` for CPU pi
 ### Latency Benchmark
 
 ```bash
-scripts/run-latency-bench.sh [profile] [output-dir]
+scripts/run-latency-jvm.sh [quick|full] [experiment] [output-dir]
+scripts/run-latency-native.sh [quick|full] [experiment] [output-dir]
 ```
 
 | Profile | Apps | Scaling | Seeds | Indexing | Unroll | Purpose |

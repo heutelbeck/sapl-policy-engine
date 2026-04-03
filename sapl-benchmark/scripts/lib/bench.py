@@ -216,10 +216,12 @@ def write_csv_report(path, title, unit, throughputs, metadata, latency_str=None)
     lines.append(f"# CoV: {cov:.2f}%")
     lines.append(f"# Forks: {len(throughputs)}")
 
+    LATENCY_LABELS = {"p50": "p50", "p90": "p90", "p99": "p99", "p999": "p99.9", "max": "max"}
+
     if latency_str:
         latency = parse_latency_str(latency_str)
         for key, value in latency.items():
-            label = f"p{key[1:]}" if key.startswith("p") else key
+            label = LATENCY_LABELS.get(key, key)
             lines.append(f"# Latency {label} (ns): {value}")
 
     lines.append(f"fork,{unit}")
@@ -285,7 +287,7 @@ def summarize_latency_results(results_dir):
                     percentiles["p50"].append(int(line.split(": ")[1]))
                 elif line.startswith("# Latency p90"):
                     percentiles["p90"].append(int(line.split(": ")[1]))
-                elif line.startswith("# Latency p99.9"):
+                elif line.startswith("# Latency p99.9") or line.startswith("# Latency p999"):
                     percentiles["p999"].append(int(line.split(": ")[1]))
                 elif line.startswith("# Latency p99 ") or line.startswith("# Latency p99:"):
                     percentiles["p99"].append(int(line.split(": ")[1]))

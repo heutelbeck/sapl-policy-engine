@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
@@ -16,9 +17,8 @@
 # limitations under the License.
 #
 
-# Experiment: HTTP server benchmarks via wrk
-# Scenarios x P-core counts x connection counts
+# Convenience wrapper: enters the OPA Nix shell and runs the OPA comparison.
+# Usage: run-server-opa-comparison-nix.sh [quick|full] [output-dir]
 
-SCENARIOS=(baseline rbac hospital-1 hospital-100 hospital-300)
-CORE_SWEEP=(1 4 8)
-CONN_SWEEP=(32 64)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec nix develop "$SCRIPT_DIR/opa" --command "$SCRIPT_DIR/run-server-opa-comparison.sh" "$@"

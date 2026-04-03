@@ -674,6 +674,9 @@ jobs:
           cp sapl-node/README.md staging/windows/
           cd staging/windows && zip -q "../../release/sapl-${VERSION}-windows-amd64.zip" ./* && cd ../..
 
+          # JVM fat JAR
+          cp sapl-node/target/sapl-node-*.jar "release/sapl-node-${VERSION}.jar"
+
           # macOS (tar.gz) - only available on tag builds
           if [ -f artifacts/macos/sapl ]; then
             cp artifacts/macos/sapl staging/macos/sapl
@@ -731,12 +734,14 @@ jobs:
             ### Downloads
             | Platform | Archive |
             |----------|---------|
+            | JVM (all platforms) | `sapl-node-${{ needs.version-check.outputs.version }}.jar` |
             | Linux x86_64 | `sapl-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
             | Linux ARM64 | `sapl-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
             | Windows x86_64 | `sapl-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
 
-            Each archive contains the `sapl` binary, `LICENSE`, and `README.md`.
-            macOS builds are included in tagged releases only.
+            Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
+            The JVM JAR is a Spring Boot fat JAR that runs on any platform with Java 21+.
+            macOS native builds are included in tagged releases only.
 
             ### Linux Packages
             | Format | x86_64 | ARM64 |
@@ -769,17 +774,19 @@ jobs:
           body: |
             ## SAPL Node ${{ github.ref_name }}
 
-            Native executables for the SAPL PDP Node server.
+            SAPL PDP Node server and CLI.
 
             ### Downloads
             | Platform | Archive |
             |----------|---------|
+            | JVM (all platforms) | `sapl-node-${{ needs.version-check.outputs.version }}.jar` |
             | Linux x86_64 | `sapl-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
             | Linux ARM64 | `sapl-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
             | macOS ARM64 | `sapl-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
             | Windows x86_64 | `sapl-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
 
-            Each archive contains the `sapl` binary, `LICENSE`, and `README.md`.
+            The JVM JAR is a Spring Boot fat JAR that runs on any platform with Java 21+.
+            Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
 
             ### Linux Packages
             | Format | x86_64 | ARM64 |
