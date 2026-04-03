@@ -69,22 +69,29 @@ public class RSocketLoadGenerator {
      * @param out writer for progress output
      * @return the benchmark result with throughput and latency distribution
      */
-    public static BenchmarkResult run(String host, int port, byte[] protoPayload, int connections, int vtPerConnection,
-            int warmupSeconds, int measureSeconds, PrintWriter out) {
+    public static BenchmarkResult run(String host, int port, String socketPath, byte[] protoPayload, int connections,
+            int vtPerConnection, int warmupSeconds, int measureSeconds, PrintWriter out) {
         val routeBytes = ROUTE.getBytes(StandardCharsets.UTF_8);
         val totalVTs   = connections * vtPerConnection;
         val sockets    = new ArrayList<RSocket>(connections);
 
         try {
             for (int i = 0; i < connections; i++) {
-                val rsocket = RSocketConnector.create().connect(TcpClientTransport.create(host, port)).block();
+                val transport = socketPath != null
+                        ? TcpClientTransport.create(reactor.netty.tcp.TcpClient.create()
+                                .remoteAddress(() -> new io.netty.channel.unix.DomainSocketAddress(socketPath)))
+                        : TcpClientTransport.create(host, port);
+                val rsocket   = RSocketConnector.create().connect(transport).block();
+                val endpoint  = socketPath != null ? "unix://" + socketPath : "rsocket://" + host + ":" + port;
                 if (rsocket == null || rsocket.isDisposed()) {
-                    out.println("  ERROR: Failed to connect to rsocket://" + host + ":" + port);
+                    out.println("  ERROR: Failed to connect to " + endpoint);
                     return emptyResult(connections, vtPerConnection);
                 }
                 sockets.add(rsocket);
             }
-            out.printf("  Connected %d socket(s), %d VT/conn = %d total%n", connections, vtPerConnection, totalVTs);
+            val endpoint = socketPath != null ? "unix://" + socketPath : host + ":" + port;
+            out.printf("  Connected %d socket(s) to %s, %d VT/conn = %d total%n", connections, endpoint,
+                    vtPerConnection, totalVTs);
 
             if (warmupSeconds > 0) {
                 warmupUntilConverged(sockets, protoPayload, routeBytes, vtPerConnection, out);

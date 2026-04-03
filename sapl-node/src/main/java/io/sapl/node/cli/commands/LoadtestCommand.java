@@ -111,6 +111,9 @@ public class LoadtestCommand implements Callable<Integer> {
     @Option(names = "--port", defaultValue = "7000", description = "RSocket server port (default: ${DEFAULT-VALUE})")
     int rsocketPort;
 
+    @Option(names = "--socket-path", description = "Unix domain socket path for RSocket (alternative to host/port)")
+    String socketPath;
+
     @Option(names = "--concurrency", defaultValue = "64", description = "Concurrent in-flight requests for HTTP (default: ${DEFAULT-VALUE})")
     int concurrency;
 
@@ -173,10 +176,14 @@ public class LoadtestCommand implements Callable<Integer> {
                 ctx = LoadtestContext.rsocket(rsocketHost, rsocketPort, connections, vtPerConnection, warmupSeconds,
                         measureSeconds, timestamp, label);
                 if (!machineReadable) {
-                    out.println("RSocket load test: rsocket://%s:%d".formatted(rsocketHost, rsocketPort));
+                    if (socketPath != null) {
+                        out.println("RSocket load test: unix://%s".formatted(socketPath));
+                    } else {
+                        out.println("RSocket load test: rsocket://%s:%d".formatted(rsocketHost, rsocketPort));
+                    }
                 }
-                result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, protoPayload, connections, vtPerConnection,
-                        warmupSeconds, measureSeconds, progressOut);
+                result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, socketPath, protoPayload, connections,
+                        vtPerConnection, warmupSeconds, measureSeconds, progressOut);
             } else {
                 val body = mapper.writeValueAsString(subscription).getBytes(StandardCharsets.UTF_8);
                 ctx = LoadtestContext.http(url, concurrency, warmupSeconds, measureSeconds, timestamp, label);

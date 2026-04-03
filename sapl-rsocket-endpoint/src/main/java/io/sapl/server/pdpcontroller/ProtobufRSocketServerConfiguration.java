@@ -50,9 +50,10 @@ public class ProtobufRSocketServerConfiguration {
     @Bean
     ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:false}") boolean enabled,
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
+            @Value("${sapl.pdp.rsocket.socket-path:#{null}}") @Nullable String socketPath,
             @Value("${sapl.pdp.rsocket.max-connection-lifetime:#{null}}") @Nullable Duration maxConnectionLifetime,
             MultiTenantPolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
-        return new ProtobufRSocketServerLifecycle(enabled, port, maxConnectionLifetime, pdp, authenticator);
+        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxConnectionLifetime, pdp, authenticator);
     }
 
 }

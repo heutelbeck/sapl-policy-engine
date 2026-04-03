@@ -17,11 +17,15 @@
  */
 package io.sapl.server.pdpcontroller;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.SmartLifecycle;
 
+import io.netty.channel.unix.DomainSocketAddress;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
@@ -29,6 +33,7 @@ import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import reactor.netty.tcp.TcpServer;
 
 /**
  * Manages the lifecycle of the protobuf RSocket PDP server. Participates in
@@ -44,6 +49,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
     private final boolean                                  enabled;
     private final int                                      port;
+    private final @Nullable String                         socketPath;
     private final @Nullable Duration                       maxConnectionLifetime;
     private final MultiTenantPolicyDecisionPoint           pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
@@ -64,10 +70,15 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         if (maxConnectionLifetime != null) {
             log.info("RSocket max connection lifetime: {}", maxConnectionLifetime);
         }
-        val acceptor = new ProtobufRSocketAcceptor(pdp, authenticator, maxConnectionLifetime);
-        server  = RSocketServer.create(acceptor).bindNow(TcpServerTransport.create(port));
+        val acceptor  = new ProtobufRSocketAcceptor(pdp, authenticator, maxConnectionLifetime);
+        val transport = socketPath != null ? createUnixTransport(socketPath) : TcpServerTransport.create(port);
+        server  = RSocketServer.create(acceptor).bindNow(transport);
         running = true;
-        log.info("Protobuf RSocket PDP server started on port {}", port);
+        if (socketPath != null) {
+            log.info("Protobuf RSocket PDP server started on Unix socket {}", socketPath);
+        } else {
+            log.info("Protobuf RSocket PDP server started on port {}", port);
+        }
     }
 
     @Override
@@ -77,7 +88,23 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             server.dispose();
             server = null;
         }
+        if (socketPath != null) {
+            deleteSocketFile(socketPath);
+        }
         running = false;
+    }
+
+    private static TcpServerTransport createUnixTransport(String path) {
+        deleteSocketFile(path);
+        return TcpServerTransport.create(TcpServer.create().bindAddress(() -> new DomainSocketAddress(path)));
+    }
+
+    private static void deleteSocketFile(String path) {
+        try {
+            Files.deleteIfExists(Path.of(path));
+        } catch (IOException e) {
+            // best effort cleanup
+        }
     }
 
     @Override

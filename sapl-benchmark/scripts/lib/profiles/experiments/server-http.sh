@@ -21,4 +21,4 @@
 
 SCENARIOS=(baseline rbac hospital-1 hospital-100 hospital-300)
 CORE_SWEEP=(1 4 8)
-CONN_SWEEP=(32 64)
+CONN_SWEEP=(32 64 128 256)

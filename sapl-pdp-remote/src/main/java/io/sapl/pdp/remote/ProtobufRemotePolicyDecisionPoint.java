@@ -305,6 +305,18 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         /**
+         * Connect via Unix domain socket instead of TCP.
+         * Requires Netty native transport (epoll on Linux, kqueue on macOS).
+         *
+         * @param path the socket file path
+         * @return this builder
+         */
+        public Builder socketPath(String path) {
+            tcpClient = tcpClient.remoteAddress(() -> new io.netty.channel.unix.DomainSocketAddress(path));
+            return this;
+        }
+
+        /**
          * Configure basic authentication via RSocket setup frame metadata.
          *
          * @param username the username

@@ -54,14 +54,17 @@ done
 echo ""
 
 
+UDS_SOCKET="/tmp/sapl-bench.sock"
+
 run_converging_rsocket() {
     local scenario=$1
     local pcores=$2
     local connections=$3
     local vt=$4
     local outdir=$5
+    local transport=$6
     local sub_file="$SCENARIO_DIR/$scenario/subscription.json"
-    local prefix="${scenario}_${pcores}p_${connections}c${vt}vt"
+    local prefix="${scenario}_${transport}_${pcores}p_${connections}c${vt}vt"
     local client_cpu=$(client_cpus)
 
     local throughputs=()
@@ -71,14 +74,13 @@ run_converging_rsocket() {
         wait_cool
 
         local output
-        output=$(run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
-            --rsocket --host 127.0.0.1 --port 7000 \
-            -f "$sub_file" \
-            --connections "$connections" \
-            --vt-per-connection "$vt" \
-            --warmup-seconds 5 \
-            --measurement-seconds "$WRK_MEASURE_TIME" \
-            --machine-readable 2>/dev/null)
+        local loadtest_args="--rsocket -f $sub_file --connections $connections --vt-per-connection $vt --warmup-seconds 5 --measurement-seconds $WRK_MEASURE_TIME --machine-readable"
+        if [ "$transport" = "uds" ]; then
+            loadtest_args="$loadtest_args --socket-path $UDS_SOCKET"
+        else
+            loadtest_args="$loadtest_args --host 127.0.0.1 --port 7000"
+        fi
+        output=$(run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest $loadtest_args 2>/dev/null)
 
         local throughput
         throughput=$(echo "$output" | grep '^THROUGHPUT:' | head -1 | cut -d: -f2)
@@ -161,93 +163,107 @@ if [ ${#RUNTIMES[@]} -eq 0 ]; then
     exit 1
 fi
 
-TOTAL_STEPS=$(( ${#RUNTIMES[@]} * ${#SCENARIOS[@]} * ${#CORE_SWEEP[@]} * ${#CONN_SWEEP[@]} ))
+TRANSPORT_SWEEP=${TRANSPORT_SWEEP:-(tcp)}
+TOTAL_STEPS=$(( ${#RUNTIMES[@]} * ${#TRANSPORT_SWEEP[@]} * ${#SCENARIOS[@]} * ${#CORE_SWEEP[@]} * ${#CONN_SWEEP[@]} ))
 CURRENT_STEP=0
 
 for runtime in "${RUNTIMES[@]}"; do
-    RUN_TIMESTAMP=$(timestamp)
-    OUTDIR="$OUTPUT_DIR/server-rsocket-${runtime}-${QUALITY}-${RUN_TIMESTAMP}"
-    mkdir -p "$OUTDIR"
+    for transport in "${TRANSPORT_SWEEP[@]}"; do
+        RUN_TIMESTAMP=$(timestamp)
+        OUTDIR="$OUTPUT_DIR/server-rsocket-${transport}-${runtime}-${QUALITY}-${RUN_TIMESTAMP}"
+        mkdir -p "$OUTDIR"
 
-    if [ "$runtime" = "jvm" ]; then
-        SERVER_CMD="java -jar $SAPL_NODE_JAR"
-    else
-        SERVER_CMD="$SAPL_NATIVE"
-    fi
+        echo "================================================================"
+        echo "  SAPL 4 RSocket Server Benchmark ($runtime / $transport)"
+        echo "  Quality:     $QUALITY"
+        echo "  Transport:   $transport"
+        echo "  Scenarios:   ${SCENARIOS[*]}"
+        echo "  Cores:       ${CORE_SWEEP[*]}"
+        echo "  Connections: ${CONN_SWEEP[*]}"
+        echo "  VT/conn:     $RSOCKET_VT"
+        echo "  Measure:     ${WRK_MEASURE_TIME}s"
+        echo "  Converg:     CoV < ${CONVERGENCE_THRESHOLD}% over ${CONVERGENCE_WINDOW} forks (max ${MAX_FORKS})"
+        echo "  Total:       $TOTAL_STEPS runs across all runtimes/transports"
+        echo "  Output:      $OUTDIR"
+        echo "================================================================"
+        echo ""
 
-    echo "================================================================"
-    echo "  SAPL 4 RSocket Server Benchmark ($runtime)"
-    echo "  Profile:     $QUALITY"
-    echo "  Scenarios:   ${SCENARIOS[*]}"
-    echo "  Cores:       ${CORE_SWEEP[*]}"
-    echo "  Connections: ${CONN_SWEEP[*]}"
-    echo "  VT/conn:     $RSOCKET_VT"
-    echo "  Measure:     ${WRK_MEASURE_TIME}s"
-    echo "  Converg:     CoV < ${CONVERGENCE_THRESHOLD}% over ${CONVERGENCE_WINDOW} forks (max ${MAX_FORKS})"
-    echo "  Total:       $TOTAL_STEPS runs across all runtimes"
-    echo "  Output:      $OUTDIR"
-    echo "================================================================"
-    echo ""
+        for scenario in "${SCENARIOS[@]}"; do
+            for pcores in "${CORE_SWEEP[@]}"; do
+                cpu_range=$(server_cpus "$pcores")
 
-    for scenario in "${SCENARIOS[@]}"; do
-        for pcores in "${CORE_SWEEP[@]}"; do
-            cpu_range=$(server_cpus "$pcores")
-
-            stop_server
-            wait_cool
-
-            echo "  Starting $runtime server (RSocket): $scenario on CPUs $cpu_range (${pcores} P-cores)"
-            server_cmd="$SERVER_CMD"
-            if [ "$runtime" = "jvm" ]; then
-                server_cmd="java -XX:ActiveProcessorCount=$((pcores * 2)) -jar $SAPL_NODE_JAR"
-            fi
-            taskset -c "$cpu_range" $server_cmd server \
-                --io.sapl.node.allow-no-auth=true \
-                --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
-                --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
-                --logging.level.root=WARN \
-                --sapl.pdp.rsocket.enabled=true \
-                --sapl.pdp.rsocket.port=7000 \
-                >/dev/null 2>&1 &
-            SERVER_PID=$!
-
-            max_wait=30
-            started=false
-            for i in $(seq 1 $max_wait); do
-                if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
-                    if ss -tln | grep -q ":7000 " 2>/dev/null; then
-                        echo "  Server started (PID $SERVER_PID, HTTP + RSocket)"
-                        started=true
-                        break
-                    fi
-                fi
-                sleep 1
-            done
-
-            if ! $started; then
-                echo "  ERROR: Server did not start within ${max_wait}s, skipping"
                 stop_server
-                continue
-            fi
+                wait_cool
 
-            for connections in "${CONN_SWEEP[@]}"; do
-                CURRENT_STEP=$((CURRENT_STEP + 1))
-                pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+                server_cmd="java -XX:ActiveProcessorCount=$((pcores * 2)) -jar $SAPL_NODE_JAR"
+                if [ "$runtime" = "native" ]; then
+                    server_cmd="$SAPL_NATIVE"
+                fi
 
-                echo "================================================================"
-                echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-                echo "  $runtime / $scenario / ${pcores}P / ${connections}c x ${RSOCKET_VT}vt"
-                echo "================================================================"
+                rsocket_args="--sapl.pdp.rsocket.enabled=true"
+                if [ "$transport" = "uds" ]; then
+                    rsocket_args="$rsocket_args --sapl.pdp.rsocket.socket-path=$UDS_SOCKET"
+                    echo "  Starting $runtime server (RSocket UDS): $scenario on CPUs $cpu_range (${pcores} P-cores)"
+                else
+                    rsocket_args="$rsocket_args --sapl.pdp.rsocket.port=7000"
+                    echo "  Starting $runtime server (RSocket TCP): $scenario on CPUs $cpu_range (${pcores} P-cores)"
+                fi
 
-                run_converging_rsocket "$scenario" "$pcores" "$connections" "$RSOCKET_VT" "$OUTDIR"
-                echo ""
+                taskset -c "$cpu_range" $server_cmd server \
+                    --io.sapl.node.allow-no-auth=true \
+                    --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
+                    --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
+                    --logging.level.root=WARN \
+                    $rsocket_args \
+                    >/dev/null 2>&1 &
+                SERVER_PID=$!
+
+                max_wait=30
+                started=false
+                for i in $(seq 1 $max_wait); do
+                    if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
+                        if [ "$transport" = "uds" ]; then
+                            if [ -S "$UDS_SOCKET" ]; then
+                                echo "  Server started (PID $SERVER_PID, UDS: $UDS_SOCKET)"
+                                started=true
+                                break
+                            fi
+                        else
+                            if ss -tln | grep -q ":7000 " 2>/dev/null; then
+                                echo "  Server started (PID $SERVER_PID, TCP port 7000)"
+                                started=true
+                                break
+                            fi
+                        fi
+                    fi
+                    sleep 1
+                done
+
+                if ! $started; then
+                    echo "  ERROR: Server did not start within ${max_wait}s, skipping"
+                    stop_server
+                    continue
+                fi
+
+                for connections in "${CONN_SWEEP[@]}"; do
+                    CURRENT_STEP=$((CURRENT_STEP + 1))
+                    pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+
+                    echo "================================================================"
+                    echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
+                    echo "  $runtime / $transport / $scenario / ${pcores}P / ${connections}c x ${RSOCKET_VT}vt"
+                    echo "================================================================"
+
+                    run_converging_rsocket "$scenario" "$pcores" "$connections" "$RSOCKET_VT" "$OUTDIR" "$transport"
+                    echo ""
+                done
+
+                stop_server
             done
-
-            stop_server
         done
-    done
 
-    python3 "$BENCH_PY" summarize "$OUTDIR"
+        python3 "$BENCH_PY" summarize "$OUTDIR"
+    done
 done
 
 echo "================================================================"
