@@ -41,18 +41,19 @@ class EmbeddedBenchmarkRunnerTests {
             .toAbsolutePath().toString();
 
     private static BenchmarkRunConfig interactiveConfig(List<String> benchmarks, boolean latency) {
-        return new BenchmarkRunConfig(1, 1, 1, 1, List.of(1), benchmarks, latency, false, null, "20260323-120000");
+        return new BenchmarkRunConfig(1, 1, 1, 1, List.of(1), benchmarks, latency, false, null, null,
+                "20260323-120000");
     }
 
     private static BenchmarkRunConfig machineReadableConfig(List<String> benchmarks, boolean latency) {
-        return new BenchmarkRunConfig(1, 1, 1, 1, List.of(1), benchmarks, latency, true, null, "20260323-120000");
+        return new BenchmarkRunConfig(1, 1, 1, 1, List.of(1), benchmarks, latency, true, null, null, "20260323-120000");
     }
 
     private static BenchmarkContext createContext() {
         val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         val subscription = AuthorizationSubscription.of("alice", "eat", "apple");
         val subJson      = mapper.writeValueAsString(subscription);
-        return new BenchmarkContext(subJson, TEST_POLICIES_DIR, "DIRECTORY");
+        return new BenchmarkContext(subJson, null, TEST_POLICIES_DIR, "DIRECTORY");
     }
 
     private record RunOutput(String stdout, String stderr, List<BenchmarkResult> results) {}
@@ -196,7 +197,7 @@ class EmbeddedBenchmarkRunnerTests {
         @Test
         @DisplayName("non-existent policy directory returns empty results in interactive mode")
         void whenInvalidPolicyDir_thenEmptyResults() {
-            val output = runBenchmark(new BenchmarkContext("{}", "/nonexistent/path", "DIRECTORY"),
+            val output = runBenchmark(new BenchmarkContext("{}", null, "/nonexistent/path", "DIRECTORY"),
                     interactiveConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).isNotNull().isEmpty();
         }
@@ -204,7 +205,7 @@ class EmbeddedBenchmarkRunnerTests {
         @Test
         @DisplayName("malformed subscription returns empty results in interactive mode")
         void whenMalformedSubscription_thenFailsGracefully() {
-            val output = runBenchmark(new BenchmarkContext("not json", TEST_POLICIES_DIR, "DIRECTORY"),
+            val output = runBenchmark(new BenchmarkContext("not json", null, TEST_POLICIES_DIR, "DIRECTORY"),
                     interactiveConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).satisfiesAnyOf(r -> assertThat(r).isNull(), r -> assertThat(r).isEmpty());
         }
@@ -212,7 +213,7 @@ class EmbeddedBenchmarkRunnerTests {
         @Test
         @DisplayName("non-existent policy directory returns empty results in machine-readable mode")
         void whenInvalidPolicyDirMachineReadable_thenEmptyResults() {
-            val output = runBenchmark(new BenchmarkContext("{}", "/nonexistent/path", "DIRECTORY"),
+            val output = runBenchmark(new BenchmarkContext("{}", null, "/nonexistent/path", "DIRECTORY"),
                     machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).isNotNull().isEmpty();
         }
@@ -220,7 +221,7 @@ class EmbeddedBenchmarkRunnerTests {
         @Test
         @DisplayName("malformed subscription returns empty results in machine-readable mode")
         void whenMalformedSubscriptionMachineReadable_thenFailsGracefully() {
-            val output = runBenchmark(new BenchmarkContext("not json", TEST_POLICIES_DIR, "DIRECTORY"),
+            val output = runBenchmark(new BenchmarkContext("not json", null, TEST_POLICIES_DIR, "DIRECTORY"),
                     machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).satisfiesAnyOf(r -> assertThat(r).isNull(), r -> assertThat(r).isEmpty());
         }

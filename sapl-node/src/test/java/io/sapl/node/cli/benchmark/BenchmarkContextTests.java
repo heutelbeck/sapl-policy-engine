@@ -36,7 +36,7 @@ class BenchmarkContextTests {
         @Test
         @DisplayName("preserves all fields through JSON serialization")
         void whenRoundTrip_thenAllFieldsPreserved() {
-            val original     = new BenchmarkContext("{\"subject\":\"alice\"}", "/tmp/policies", "DIRECTORY");
+            val original     = new BenchmarkContext("{\"subject\":\"alice\"}", null, "/tmp/policies", "DIRECTORY");
             val deserialized = BenchmarkContext.fromJson(original.toJson());
             assertThat(deserialized).satisfies(ctx -> {
                 assertThat(ctx.subscriptionJson()).isEqualTo("{\"subject\":\"alice\"}");
@@ -48,7 +48,7 @@ class BenchmarkContextTests {
         @Test
         @DisplayName("preserves BUNDLES config type")
         void whenBundlesType_thenPreservedInRoundTrip() {
-            val original     = new BenchmarkContext("{}", "/bundles", "BUNDLES");
+            val original     = new BenchmarkContext("{}", null, "/bundles", "BUNDLES");
             val deserialized = BenchmarkContext.fromJson(original.toJson());
             assertThat(deserialized.configType()).isEqualTo("BUNDLES");
         }
