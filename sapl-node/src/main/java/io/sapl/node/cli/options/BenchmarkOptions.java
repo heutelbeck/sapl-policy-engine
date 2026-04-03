@@ -55,4 +55,7 @@ public class BenchmarkOptions {
     @Option(names = "--machine-readable", defaultValue = "false", description = "Output single-line parseable results for script integration")
     public boolean machineReadable;
 
+    @Option(names = "--output-prefix", description = "Filename prefix for output files (e.g., scenario_indexing)")
+    public String outputPrefix;
+
 }

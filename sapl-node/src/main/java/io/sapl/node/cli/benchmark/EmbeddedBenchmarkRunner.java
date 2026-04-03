@@ -83,10 +83,12 @@ public class EmbeddedBenchmarkRunner {
             val subscriptions = loadSubscriptions(ctx, mapper);
             val methods       = resolveMethods(components.pdp(), subscriptions, cfg.benchmarks());
 
-            val results = cfg.machineReadable() ? measureMachineReadable(methods, cfg, threads, out)
-                    : measureInteractive(methods, cfg, threads, out);
+            val results = cfg.machineReadable() ? measureMachineReadable(methods, cfg, threads, out, err)
+                    : measureInteractive(methods, cfg, threads, out, err);
 
-            writeJsonOutput(results, cfg, threads, err);
+            if (!cfg.machineReadable()) {
+                writeJsonOutput(results, cfg, threads, err);
+            }
             return results;
         } catch (Exception e) {
             err.println(ERROR_BENCHMARK_FAILED.formatted(e.getMessage()));
@@ -99,7 +101,7 @@ public class EmbeddedBenchmarkRunner {
     }
 
     private static List<BenchmarkResult> measureMachineReadable(Map<String, BenchmarkMethod> methods,
-            BenchmarkRunConfig cfg, int threads, PrintWriter out) {
+            BenchmarkRunConfig cfg, int threads, PrintWriter out, PrintWriter err) {
         val results = new ArrayList<BenchmarkResult>();
         for (val entry : methods.entrySet()) {
             val bm = entry.getValue();
@@ -109,7 +111,7 @@ public class EmbeddedBenchmarkRunner {
             val opsCount   = runThroughputIteration(cfg.measurementTimeSeconds(), threads, bm.method())
                     * bm.opsPerInvocation();
             val throughput = (double) opsCount / cfg.measurementTimeSeconds();
-            val latency    = measureLatency(cfg, threads, bm.method());
+            val latency    = measureLatency(cfg, threads, bm.method(), entry.getKey(), err);
 
             out.println(String.format(Locale.US, "THROUGHPUT:%.2f", throughput));
             if (latency != null) {
@@ -124,7 +126,7 @@ public class EmbeddedBenchmarkRunner {
     }
 
     private static List<BenchmarkResult> measureInteractive(Map<String, BenchmarkMethod> methods,
-            BenchmarkRunConfig cfg, int threads, PrintWriter out) {
+            BenchmarkRunConfig cfg, int threads, PrintWriter out, PrintWriter err) {
         out.println("SAPL Embedded Benchmark (quick assessment)");
         out.println("This measures policy evaluation speed in the current process.");
         out.println("For rigorous results with JIT isolation, use sapl-benchmark-sapl4.");
@@ -145,7 +147,7 @@ public class EmbeddedBenchmarkRunner {
 
             val iterationData = runPhase("Iteration", cfg.measurementIterations(), cfg.measurementTimeSeconds(),
                     threads, bm, out, true);
-            val latency       = measureLatency(cfg, threads, bm.method());
+            val latency       = measureLatency(cfg, threads, bm.method(), entry.getKey(), err);
 
             if (latency != null) {
                 out.println("Latency pass...");
@@ -159,15 +161,74 @@ public class EmbeddedBenchmarkRunner {
         return results;
     }
 
-    private static BenchmarkResult.Latency measureLatency(BenchmarkRunConfig cfg, int threads,
-            Supplier<Object> method) {
+    private static BenchmarkResult.Latency measureLatency(BenchmarkRunConfig cfg, int threads, Supplier<Object> method,
+            String methodName, PrintWriter err) {
         if (!cfg.latency()) {
             return null;
         }
         System.gc();
         val histogram = new Histogram(3_600_000_000_000L, 3);
         runLatencyIteration(cfg.measurementTimeSeconds(), threads, method, histogram);
+        if (cfg.output() != null) {
+            writeLatencyJson(histogram, methodName, threads, cfg, err);
+        }
         return latencyFromHistogram(histogram);
+    }
+
+    private static void writeLatencyJson(Histogram histogram, String methodName, int threads, BenchmarkRunConfig cfg,
+            PrintWriter err) {
+        val mean   = histogram.getMean();
+        val stddev = histogram.getStdDeviation();
+        val n      = histogram.getTotalCount();
+        val sem    = n > 0 ? stddev / Math.sqrt(n) : 0.0;
+        val t      = n > 1 ? 1.96 : 12.706;
+        val margin = t * sem;
+
+        val percentiles = new LinkedHashMap<String, Object>();
+        percentiles.put("0.0", (double) histogram.getMinValue());
+        percentiles.put("50.0", (double) histogram.getValueAtPercentile(50.0));
+        percentiles.put("90.0", (double) histogram.getValueAtPercentile(90.0));
+        percentiles.put("95.0", (double) histogram.getValueAtPercentile(95.0));
+        percentiles.put("99.0", (double) histogram.getValueAtPercentile(99.0));
+        percentiles.put("99.9", (double) histogram.getValueAtPercentile(99.9));
+        percentiles.put("99.99", (double) histogram.getValueAtPercentile(99.99));
+        percentiles.put("99.999", (double) histogram.getValueAtPercentile(99.999));
+        percentiles.put("99.9999", (double) histogram.getValueAtPercentile(99.9999));
+        percentiles.put("100.0", (double) histogram.getMaxValue());
+
+        val rawHistogram = new ArrayList<List<Number>>();
+        for (val entry : histogram.recordedValues()) {
+            rawHistogram.add(List.of((double) entry.getValueIteratedTo(), entry.getCountAtValueIteratedTo()));
+        }
+
+        val metric = new LinkedHashMap<String, Object>();
+        metric.put("score", mean);
+        metric.put("scoreError", margin);
+        metric.put("scoreConfidence", List.of(mean - margin, mean + margin));
+        metric.put("scoreUnit", "ns/op");
+        metric.put("scorePercentiles", percentiles);
+        metric.put("rawDataHistogram", List.of(List.of(rawHistogram)));
+
+        val record = new LinkedHashMap<String, Object>();
+        record.put("benchmark", methodName);
+        record.put("mode", "sample");
+        record.put("threads", threads);
+        record.put("runtime", "native");
+        record.put("forks", 1);
+        record.put("warmupIterations", cfg.warmupIterations());
+        record.put("warmupTime", cfg.warmupTimeSeconds() + " s");
+        record.put("measurementIterations", 1);
+        record.put("measurementTime", cfg.measurementTimeSeconds() + " s");
+        record.put("primaryMetric", metric);
+
+        val prefix = cfg.outputPrefix() != null ? cfg.outputPrefix() + "_" : "";
+        val path   = cfg.output().resolve(prefix + methodName + "_" + threads + "t_latency.json");
+        try {
+            val mapper = JsonMapper.builder().build();
+            Files.writeString(path, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(List.of(record)));
+        } catch (IOException e) {
+            err.println(WARN_JSON_WRITE_FAILED.formatted(e.getMessage()));
+        }
     }
 
     private static void writeJsonOutput(List<BenchmarkResult> results, BenchmarkRunConfig cfg, int threads,

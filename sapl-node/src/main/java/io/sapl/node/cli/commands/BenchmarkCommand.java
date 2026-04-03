@@ -134,7 +134,7 @@ public class BenchmarkCommand implements Callable<Integer> {
                 return 1;
             }
 
-            if (runCfg.output() != null) {
+            if (runCfg.output() != null && !runCfg.machineReadable()) {
                 BenchmarkReportWriter.writeReports(allResults, ctx, runCfg, "timing loop", runCfg.output(), err);
             }
             return 0;

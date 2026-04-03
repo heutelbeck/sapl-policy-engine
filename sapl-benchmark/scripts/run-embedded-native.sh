@@ -93,6 +93,8 @@ run_single_fork() {
         --warmup-time="$WARMUP_TIME" \
         --measurement-iterations=1 \
         --measurement-time="$MEASUREMENT_TIME" \
+        -o "$OUTDIR" \
+        --output-prefix="${scenario}_${indexing}" \
         $latency_flag 2>/dev/null)
 
     echo "$output"

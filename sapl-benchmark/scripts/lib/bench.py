@@ -408,7 +408,8 @@ def summarize_results(results_dir):
     """
     results_path = Path(results_dir)
     csv_files = sorted(results_path.glob("*.csv"))
-    csv_files = [f for f in csv_files if f.name != "summary.csv"]
+    csv_files = [f for f in csv_files
+                 if f.name != "summary.csv" and not f.name.endswith("_report.csv")]
 
     if not csv_files:
         print(f"No CSV result files found in {results_dir}")

@@ -51,6 +51,7 @@ public record BenchmarkRunConfig(
         boolean latency,
         boolean machineReadable,
         @Nullable Path output,
+        @Nullable String outputPrefix,
         String timestamp) {
 
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
@@ -66,7 +67,7 @@ public record BenchmarkRunConfig(
         val benchmarks = List.of(opts.benchmark);
         return new BenchmarkRunConfig(opts.warmupIterations, opts.warmupTimeSeconds, opts.measurementIterations,
                 opts.measurementTimeSeconds, List.of(opts.threads), benchmarks, opts.latency, opts.machineReadable,
-                opts.output, ts);
+                opts.output, opts.outputPrefix, ts);
     }
 
     /**
