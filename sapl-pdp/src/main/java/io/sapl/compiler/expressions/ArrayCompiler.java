@@ -178,10 +178,12 @@ public class ArrayCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof CategorizedExpressions r && Arrays.equals(valueIndices, r.valueIndices)
-                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
-                    && Arrays.equals(pureOperators, r.pureOperators) && Arrays.equals(streamIndices, r.streamIndices)
-                    && Arrays.equals(streams, r.streams) && totalCount == r.totalCount);
+            return this == o
+                    || (o instanceof CategorizedExpressions(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
+                            && totalCount == oTotal);
         }
     }
 
@@ -324,10 +326,12 @@ public class ArrayCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof SingleStreamArray r && Arrays.equals(valueIndices, r.valueIndices)
-                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
-                    && Arrays.equals(pureOperators, r.pureOperators) && streamIndex == r.streamIndex
-                    && Objects.equals(streamOp, r.streamOp) && totalElements == r.totalElements);
+            return this == o
+                    || (o instanceof SingleStreamArray(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreamOp, var oTotal)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && streamIndex == oStreamIdx && Objects.equals(streamOp, oStreamOp)
+                            && totalElements == oTotal);
         }
     }
 
@@ -405,10 +409,12 @@ public class ArrayCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof MultiStreamArray r && Arrays.equals(valueIndices, r.valueIndices)
-                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
-                    && Arrays.equals(pureOperators, r.pureOperators) && Arrays.equals(streamIndices, r.streamIndices)
-                    && Arrays.equals(streams, r.streams) && totalElements == r.totalElements);
+            return this == o
+                    || (o instanceof MultiStreamArray(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
+                            && totalElements == oTotal);
         }
 
         private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
@@ -420,8 +426,8 @@ public class ArrayCompiler {
 
             @Override
             public boolean equals(Object o) {
-                return this == o || (o instanceof CombinedStreams r && Arrays.equals(values, r.values)
-                        && Objects.equals(traces, r.traces));
+                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
+                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
             }
         }
     }

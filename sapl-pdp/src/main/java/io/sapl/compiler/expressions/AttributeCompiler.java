@@ -180,12 +180,14 @@ public class AttributeCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof AllPureAttribute r && Objects.equals(attributeName, r.attributeName)
-                    && Objects.equals(entityValue, r.entityValue) && Objects.equals(pdpData, r.pdpData)
-                    && Objects.equals(entityPure, r.entityPure) && Arrays.equals(valueIndices, r.valueIndices)
-                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
-                    && Arrays.equals(pureOperators, r.pureOperators) && totalArgs == r.totalArgs
-                    && Objects.equals(options, r.options) && head == r.head && Objects.equals(location, r.location));
+            return this == o
+                    || (o instanceof AllPureAttribute(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oTotal, var oOpts, var oHead, var oLoc)
+                            && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
+                            && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && totalArgs == oTotal && Objects.equals(options, oOpts) && head == oHead
+                            && Objects.equals(location, oLoc));
         }
 
         @Override
@@ -243,12 +245,13 @@ public class AttributeCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof EntityStreamAttribute r && Objects.equals(attributeName, r.attributeName)
-                    && Objects.equals(pdpData, r.pdpData) && Objects.equals(entityStream, r.entityStream)
-                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
-                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
-                    && totalArgs == r.totalArgs && Objects.equals(options, r.options) && head == r.head
-                    && Objects.equals(location, r.location));
+            return this == o
+                    || (o instanceof EntityStreamAttribute(var oName, var oPdp, var oEntityStream, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oTotal, var oOpts, var oHead, var oLoc)
+                            && Objects.equals(attributeName, oName) && Objects.equals(pdpData, oPdp)
+                            && Objects.equals(entityStream, oEntityStream) && Arrays.equals(valueIndices, oValIdx)
+                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
+                            && Arrays.equals(pureOperators, oPureOps) && totalArgs == oTotal
+                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc));
         }
 
         @Override
@@ -309,13 +312,14 @@ public class AttributeCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof SingleStreamAttribute r && Objects.equals(attributeName, r.attributeName)
-                    && Objects.equals(entityValue, r.entityValue) && Objects.equals(pdpData, r.pdpData)
-                    && Objects.equals(entityPure, r.entityPure) && Arrays.equals(valueIndices, r.valueIndices)
-                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
-                    && Arrays.equals(pureOperators, r.pureOperators) && streamIndex == r.streamIndex
-                    && Objects.equals(argStream, r.argStream) && totalArgs == r.totalArgs
-                    && Objects.equals(options, r.options) && head == r.head && Objects.equals(location, r.location));
+            return this == o
+                    || (o instanceof SingleStreamAttribute(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oArgStream, var oTotal, var oOpts, var oHead, var oLoc)
+                            && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
+                            && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && streamIndex == oStreamIdx && Objects.equals(argStream, oArgStream) && totalArgs == oTotal
+                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc));
         }
 
         @Override
@@ -382,13 +386,15 @@ public class AttributeCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof MultiStreamAttribute r && Objects.equals(attributeName, r.attributeName)
-                    && Objects.equals(entityValue, r.entityValue) && Objects.equals(pdpData, r.pdpData)
-                    && Objects.equals(entityPure, r.entityPure) && Arrays.equals(valueIndices, r.valueIndices)
-                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
-                    && Arrays.equals(pureOperators, r.pureOperators) && Arrays.equals(streamIndices, r.streamIndices)
-                    && Arrays.equals(streams, r.streams) && totalArgs == r.totalArgs
-                    && Objects.equals(options, r.options) && head == r.head && Objects.equals(location, r.location));
+            return this == o
+                    || (o instanceof MultiStreamAttribute(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oOpts, var oHead, var oLoc)
+                            && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
+                            && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
+                            && totalArgs == oTotal && Objects.equals(options, oOpts) && head == oHead
+                            && Objects.equals(location, oLoc));
         }
 
         @Override
@@ -452,8 +458,8 @@ public class AttributeCompiler {
 
             @Override
             public boolean equals(Object o) {
-                return this == o || (o instanceof CombinedStreams r && Arrays.equals(values, r.values)
-                        && Objects.equals(traces, r.traces));
+                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
+                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
             }
         }
     }

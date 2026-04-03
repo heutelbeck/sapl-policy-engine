@@ -88,18 +88,19 @@ record CanonicalIndexData(
 
     @Override
     public boolean equals(Object o) {
-        return this == o || (o instanceof CanonicalIndexData r && Objects.equals(predicateOrder, r.predicateOrder)
-                && Arrays.equals(predicateOriginalIndices, r.predicateOriginalIndices)
-                && numberOfConjunctions == r.numberOfConjunctions
-                && Arrays.equals(numberOfLiteralsInConjunction, r.numberOfLiteralsInConjunction)
-                && Arrays.equals(numberOfFormulasWithConjunction, r.numberOfFormulasWithConjunction)
-                && Arrays.deepEquals(conjunctionToFormulaIndices, r.conjunctionToFormulaIndices)
-                && Arrays.deepEquals(formulaConjunctionIndices, r.formulaConjunctionIndices)
-                && Arrays.equals(falseForTruePredicate, r.falseForTruePredicate)
-                && Arrays.equals(falseForFalsePredicate, r.falseForFalsePredicate)
-                && Arrays.equals(conjunctionsWithPredicate, r.conjunctionsWithPredicate)
-                && Arrays.deepEquals(relatedFormulas, r.relatedFormulas) && Objects.equals(formulas, r.formulas)
-                && Objects.equals(formulaDocuments, r.formulaDocuments));
+        return this == o
+                || (o instanceof CanonicalIndexData(var oPredOrder, var oPredOrigIdx, var oNumConj, var oNumLitsInConj, var oNumFormulasWithConj, var oConjToFormIdx, var oFormConjIdx, var oFalseForTrue, var oFalseForFalse, var oConjWithPred, var oRelFormulas, var oFormulas, var oFormDocs)
+                        && Objects.equals(predicateOrder, oPredOrder)
+                        && Arrays.equals(predicateOriginalIndices, oPredOrigIdx) && numberOfConjunctions == oNumConj
+                        && Arrays.equals(numberOfLiteralsInConjunction, oNumLitsInConj)
+                        && Arrays.equals(numberOfFormulasWithConjunction, oNumFormulasWithConj)
+                        && Arrays.deepEquals(conjunctionToFormulaIndices, oConjToFormIdx)
+                        && Arrays.deepEquals(formulaConjunctionIndices, oFormConjIdx)
+                        && Arrays.equals(falseForTruePredicate, oFalseForTrue)
+                        && Arrays.equals(falseForFalsePredicate, oFalseForFalse)
+                        && Arrays.equals(conjunctionsWithPredicate, oConjWithPred)
+                        && Arrays.deepEquals(relatedFormulas, oRelFormulas) && Objects.equals(formulas, oFormulas)
+                        && Objects.equals(formulaDocuments, oFormDocs));
     }
 
     /**

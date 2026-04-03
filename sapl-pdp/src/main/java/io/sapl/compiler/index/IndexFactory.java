@@ -27,7 +27,7 @@ import lombok.val;
 
 /**
  * Creates a {@link PolicyIndex} based on the configured
- * {@link IndexingStrategy}.
+ * {@link io.sapl.api.pdp.IndexingStrategy}.
  */
 @UtilityClass
 public class IndexFactory {

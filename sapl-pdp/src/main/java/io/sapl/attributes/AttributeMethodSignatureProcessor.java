@@ -37,7 +37,9 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @UtilityClass
 public class AttributeMethodSignatureProcessor {
@@ -423,24 +425,24 @@ public class AttributeMethodSignatureProcessor {
 
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(minArgCount, hasVarArgs, hasEntityParam, hasAttributeAccessContextParam,
+            return Objects.hash(minArgCount, hasVarArgs, hasEntityParam, hasAttributeAccessContextParam,
                     methodParameterCount, parameterTypes, varArgsParameterType,
-                    java.util.Arrays.hashCode(fixedParamErrorTemplates), exactArgCountError, minArgCountError,
+                    Arrays.hashCode(fixedParamErrorTemplates), exactArgCountError, minArgCountError,
                     varArgErrorTemplate);
         }
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof InvocationConfig r && minArgCount == r.minArgCount
-                    && hasVarArgs == r.hasVarArgs && hasEntityParam == r.hasEntityParam
-                    && hasAttributeAccessContextParam == r.hasAttributeAccessContextParam
-                    && methodParameterCount == r.methodParameterCount
-                    && java.util.Objects.equals(parameterTypes, r.parameterTypes)
-                    && java.util.Objects.equals(varArgsParameterType, r.varArgsParameterType)
-                    && java.util.Arrays.equals(fixedParamErrorTemplates, r.fixedParamErrorTemplates)
-                    && java.util.Objects.equals(exactArgCountError, r.exactArgCountError)
-                    && java.util.Objects.equals(minArgCountError, r.minArgCountError)
-                    && java.util.Objects.equals(varArgErrorTemplate, r.varArgErrorTemplate));
+            return this == o
+                    || (o instanceof InvocationConfig(var oMinArgCount, var oHasVarArgs, var oHasEntityParam, var oHasAttrCtxParam, var oMethodParamCount, var oParamTypes, var oVarArgsParamType, var oFixedParamErrors, var oExactArgError, var oMinArgError, var oVarArgError)
+                            && minArgCount == oMinArgCount && hasVarArgs == oHasVarArgs
+                            && hasEntityParam == oHasEntityParam && hasAttributeAccessContextParam == oHasAttrCtxParam
+                            && methodParameterCount == oMethodParamCount && Objects.equals(parameterTypes, oParamTypes)
+                            && Objects.equals(varArgsParameterType, oVarArgsParamType)
+                            && Arrays.equals(fixedParamErrorTemplates, oFixedParamErrors)
+                            && Objects.equals(exactArgCountError, oExactArgError)
+                            && Objects.equals(minArgCountError, oMinArgError)
+                            && Objects.equals(varArgErrorTemplate, oVarArgError));
         }
     }
 

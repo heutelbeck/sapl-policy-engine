@@ -30,7 +30,9 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Processes annotated methods to create optimized function specifications. Uses
@@ -299,21 +301,22 @@ public class MethodSignatureProcessor {
 
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(minArgCount, hasVarArgs, methodParameterCount, parameterTypes,
-                    varArgsParameterType, java.util.Arrays.hashCode(fixedParamErrorTemplates), exactArgCountError,
-                    minArgCountError, varArgErrorTemplate);
+            return Objects.hash(minArgCount, hasVarArgs, methodParameterCount, parameterTypes, varArgsParameterType,
+                    Arrays.hashCode(fixedParamErrorTemplates), exactArgCountError, minArgCountError,
+                    varArgErrorTemplate);
         }
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof InvocationConfig r && minArgCount == r.minArgCount
-                    && hasVarArgs == r.hasVarArgs && methodParameterCount == r.methodParameterCount
-                    && java.util.Objects.equals(parameterTypes, r.parameterTypes)
-                    && java.util.Objects.equals(varArgsParameterType, r.varArgsParameterType)
-                    && java.util.Arrays.equals(fixedParamErrorTemplates, r.fixedParamErrorTemplates)
-                    && java.util.Objects.equals(exactArgCountError, r.exactArgCountError)
-                    && java.util.Objects.equals(minArgCountError, r.minArgCountError)
-                    && java.util.Objects.equals(varArgErrorTemplate, r.varArgErrorTemplate));
+            return this == o
+                    || (o instanceof InvocationConfig(var oMinArgCount, var oHasVarArgs, var oMethodParamCount, var oParamTypes, var oVarArgsParamType, var oFixedParamErrors, var oExactArgError, var oMinArgError, var oVarArgError)
+                            && minArgCount == oMinArgCount && hasVarArgs == oHasVarArgs
+                            && methodParameterCount == oMethodParamCount && Objects.equals(parameterTypes, oParamTypes)
+                            && Objects.equals(varArgsParameterType, oVarArgsParamType)
+                            && Arrays.equals(fixedParamErrorTemplates, oFixedParamErrors)
+                            && Objects.equals(exactArgCountError, oExactArgError)
+                            && Objects.equals(minArgCountError, oMinArgError)
+                            && Objects.equals(varArgErrorTemplate, oVarArgError));
         }
     }
 }

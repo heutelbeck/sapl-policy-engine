@@ -340,11 +340,13 @@ public class FunctionCallCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof SingleStreamFunction r && Objects.equals(functionName, r.functionName)
-                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
-                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
-                    && streamIndex == r.streamIndex && Objects.equals(argStream, r.argStream)
-                    && totalArgs == r.totalArgs && Objects.equals(location, r.location));
+            return this == o
+                    || (o instanceof SingleStreamFunction(var oName, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oArgStream, var oTotal, var oLoc)
+                            && Objects.equals(functionName, oName) && Arrays.equals(valueIndices, oValIdx)
+                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
+                            && Arrays.equals(pureOperators, oPureOps) && streamIndex == oStreamIdx
+                            && Objects.equals(argStream, oArgStream) && totalArgs == oTotal
+                            && Objects.equals(location, oLoc));
         }
     }
 
@@ -403,11 +405,13 @@ public class FunctionCallCompiler {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || (o instanceof MultiStreamFunction r && Objects.equals(functionName, r.functionName)
-                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
-                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
-                    && Arrays.equals(streamIndices, r.streamIndices) && Arrays.equals(streams, r.streams)
-                    && totalArgs == r.totalArgs && Objects.equals(location, r.location));
+            return this == o
+                    || (o instanceof MultiStreamFunction(var oName, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oLoc)
+                            && Objects.equals(functionName, oName) && Arrays.equals(valueIndices, oValIdx)
+                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
+                            && Arrays.equals(pureOperators, oPureOps) && Arrays.equals(streamIndices, oStreamIdx)
+                            && Arrays.equals(streams, oStreams) && totalArgs == oTotal
+                            && Objects.equals(location, oLoc));
         }
 
         private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
@@ -419,8 +423,8 @@ public class FunctionCallCompiler {
 
             @Override
             public boolean equals(Object o) {
-                return this == o || (o instanceof CombinedStreams r && Arrays.equals(values, r.values)
-                        && Objects.equals(traces, r.traces));
+                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
+                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
             }
         }
     }
