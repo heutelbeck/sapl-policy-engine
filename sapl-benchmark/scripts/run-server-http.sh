@@ -186,7 +186,7 @@ for runtime in "${RUNTIMES[@]}"; do
             wait_cool
 
             echo "  Starting $runtime server: $scenario on CPUs $cpu_range (${pcores} P-cores)"
-            local server_cmd="$SERVER_CMD"
+            server_cmd="$SERVER_CMD"
             if [ "$runtime" = "jvm" ]; then
                 server_cmd="java -XX:ActiveProcessorCount=$((pcores * 2)) -jar $SAPL_NODE_JAR"
             fi

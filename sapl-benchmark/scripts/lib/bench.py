@@ -429,11 +429,19 @@ def summarize_results(results_dir):
         csv_stem = f.stem
         latency_ci = _find_latency_json(results_path, csv_stem)
 
+        # For server benchmarks, use cores/connections instead of threads
+        cores = meta.get("Cores", "")
+        connections = meta.get("Connections", "")
+        if cores and connections:
+            config = f"{cores}P/{connections}c"
+        else:
+            config = meta.get("Threads", "?")
+
         rows.append({
             "scenario": meta.get("Scenario", "?"),
             "method": meta.get("Method", "?"),
-            "threads": meta.get("Threads", "?"),
-            "indexing": meta.get("Indexing", "?"),
+            "threads": config,
+            "indexing": meta.get("Indexing", meta.get("Runtime", "?")),
             "mean_ops": mean_thrpt,
             "ci_lower": ci_lower,
             "ci_upper": ci_upper,
@@ -448,7 +456,17 @@ def summarize_results(results_dir):
             "deny": meta.get("Decisions DENY", ""),
         })
 
-    rows.sort(key=lambda r: (r["scenario"], r["method"], int(r["threads"])))
+    def _sort_key(r):
+        val = r["threads"]
+        if "P/" in str(val):
+            parts = str(val).replace("P/", " ").replace("c", "").split()
+            return (r["scenario"], r["method"], int(parts[0]), int(parts[1]))
+        try:
+            return (r["scenario"], r["method"], int(val), 0)
+        except (ValueError, TypeError):
+            return (r["scenario"], r["method"], 0, 0)
+
+    rows.sort(key=_sort_key)
 
     csv_out = results_path / "summary.csv"
     md_out = results_path / "summary.md"
