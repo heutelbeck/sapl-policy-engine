@@ -76,7 +76,8 @@ public class DefaultFunctionBroker implements FunctionBroker {
     }
 
     public DefaultFunctionBroker(int functionCacheSize) {
-        this.functionCache = Caffeine.newBuilder().maximumSize(functionCacheSize).build();
+        this.functionCache = functionCacheSize > 0 ? Caffeine.newBuilder().maximumSize(functionCacheSize).build()
+                : null;
     }
 
     @Getter
@@ -199,6 +200,9 @@ public class DefaultFunctionBroker implements FunctionBroker {
     public Value evaluateFunction(FunctionInvocation invocation) {
         if (invocation == null) {
             throw new IllegalArgumentException(ERROR_INVOCATION_NULL);
+        }
+        if (functionCache == null) {
+            return invokeFunction(invocation);
         }
         return functionCache.get(invocation, this::invokeFunction);
     }
