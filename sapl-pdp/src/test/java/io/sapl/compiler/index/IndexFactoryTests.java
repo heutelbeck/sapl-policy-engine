@@ -23,6 +23,8 @@ import java.util.stream.Stream;
 import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
+import io.sapl.compiler.index.mdd.MddPolicyIndex;
+import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +52,7 @@ class IndexFactoryTests {
     static Stream<Arguments> whenStrategyThenCorrectImplementation() {
         return Stream.of(arguments(IndexingStrategy.NAIVE, NaivePolicyIndex.class),
                 arguments(IndexingStrategy.CANONICAL, CanonicalPolicyIndex.class),
+                arguments(IndexingStrategy.MDD, MddPolicyIndex.class),
                 arguments(IndexingStrategy.AUTO, NaivePolicyIndex.class));
     }
 

@@ -72,7 +72,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
     private static final String ERROR_EXPECTED_START_OBJECT_FLAGS  = "Expected START_OBJECT for compilerFlags.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
-    private static final String ERROR_INVALID_INDEXING_STRATEGY    = "Invalid indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL.";
+    private static final String ERROR_INVALID_INDEXING_STRATEGY    = "Invalid indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL, MDD.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();

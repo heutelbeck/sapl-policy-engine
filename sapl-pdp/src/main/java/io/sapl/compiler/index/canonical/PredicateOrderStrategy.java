@@ -23,7 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import io.sapl.compiler.index.ConjunctiveClause;
+import io.sapl.compiler.index.dnf.ConjunctiveClause;
 import io.sapl.api.model.IndexPredicate;
 import lombok.experimental.UtilityClass;
 import lombok.val;

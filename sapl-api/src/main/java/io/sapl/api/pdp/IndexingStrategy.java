@@ -29,6 +29,9 @@ public enum IndexingStrategy {
     NAIVE,
 
     /** Count-and-eliminate algorithm from the SACMAT '21 paper. */
-    CANONICAL
+    CANONICAL,
+
+    /** Multi-Valued Decision Diagram: ternary decision DAG traversal. */
+    MDD
 
 }

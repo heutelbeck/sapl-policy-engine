@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.index;
+package io.sapl.compiler.index.dnf;
 
 import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanExpression.And;
@@ -31,7 +31,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.index.DnfNormalizer.normalize;
+import static io.sapl.compiler.index.dnf.DnfNormalizer.normalize;
 import static io.sapl.compiler.index.IndexTestFixtures.atom;
 import static io.sapl.compiler.index.IndexTestFixtures.negativeLiteral;
 import static io.sapl.compiler.index.IndexTestFixtures.positiveLiteral;
