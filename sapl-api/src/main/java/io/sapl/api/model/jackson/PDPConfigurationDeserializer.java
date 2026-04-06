@@ -25,7 +25,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CompilerFlags;
-import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 
@@ -72,7 +71,6 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
     private static final String ERROR_EXPECTED_START_OBJECT_FLAGS  = "Expected START_OBJECT for compilerFlags.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
-    private static final String ERROR_INVALID_INDEXING_STRATEGY    = "Invalid indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL, MDD.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
@@ -140,14 +138,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             parser.nextToken();
 
             switch (flagName) {
-            case "indexing"                -> {
-                try {
-                    indexing = IndexingStrategy.valueOf(parser.getString().toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    return context.reportInputMismatch(CompilerFlags.class,
-                            ERROR_INVALID_INDEXING_STRATEGY.formatted(parser.getString()));
-                }
-            }
+            case "indexing"                -> indexing = parser.getString().toUpperCase();
             case "unrollInOperator"        -> unrollInOperator = parser.getBooleanValue();
             case "minPoliciesForCanonical" -> minPoliciesForCanonical = parser.getIntValue();
             case "minSharingForCanonical"  -> minSharingForCanonical = parser.getDoubleValue();

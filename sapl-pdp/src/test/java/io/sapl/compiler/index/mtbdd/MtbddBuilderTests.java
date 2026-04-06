@@ -37,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("MtbddBuilder - per-formula MTBDD construction")
 class MtbddBuilderTests {
 
+    private static final boolean PRINT_RESULTS = false;
+
     record BuildResult(MtbddNode root, VariableOrder order, UniqueTable table) {}
 
     @Nested
@@ -48,8 +50,8 @@ class MtbddBuilderTests {
         void whenTrueThenMatched() {
             val result = buildSingle(new Constant(true));
             printFormula("true", result);
-            assertThat(result.root()).isInstanceOf(Terminal.class);
-            assertThat(((Terminal) result.root()).matched().get(0)).isTrue();
+            assertThat(result.root()).isInstanceOf(Terminal.class)
+                    .satisfies(n -> assertThat(((Terminal) n).matched().get(0)).isTrue());
         }
 
         @Test
@@ -66,7 +68,7 @@ class MtbddBuilderTests {
     class AtomTests {
 
         @Test
-        @DisplayName("atom produces decision with matched/empty/errored leaves")
+        @DisplayName("atom produces decision with matched/empty/empty leaves")
         void whenAtomThenDecisionNode() {
             val result = buildSingle(atom(1L));
             printFormula("p1", result);
@@ -77,13 +79,13 @@ class MtbddBuilderTests {
                 assertThat(d.trueChild()).isInstanceOf(Terminal.class);
                 assertThat(((Terminal) d.trueChild()).matched().get(0)).isTrue();
                 assertThat(d.falseChild()).isSameAs(UniqueTable.EMPTY);
-                assertThat(d.errorChild()).isInstanceOf(Terminal.class);
-                assertThat(((Terminal) d.errorChild()).errored().get(0)).isTrue();
+                // Error edge -> EMPTY: errors tracked externally by evaluator
+                assertThat(d.errorChild()).isSameAs(UniqueTable.EMPTY);
             });
         }
 
         @Test
-        @DisplayName("negated atom swaps true/false children")
+        @DisplayName("negated atom swaps true/false children, error still empty")
         void whenNegatedAtomThenSwapped() {
             val result = buildSingle(new Not(atom(1L)));
             printFormula("NOT p1", result);
@@ -92,7 +94,7 @@ class MtbddBuilderTests {
                 val d = (Decision) n;
                 assertThat(d.trueChild()).isSameAs(UniqueTable.EMPTY);
                 assertThat(((Terminal) d.falseChild()).matched().get(0)).isTrue();
-                assertThat(((Terminal) d.errorChild()).errored().get(0)).isTrue();
+                assertThat(d.errorChild()).isSameAs(UniqueTable.EMPTY);
             });
         }
 
@@ -111,17 +113,17 @@ class MtbddBuilderTests {
     class OrTests {
 
         @Test
-        @DisplayName("p1 OR p2: matched if either true, error is terminal")
+        @DisplayName("p1 OR p2: matched if either true")
         void whenOrThenMatchedOnEither() {
             val result = buildSingle(new Or(atom(1L), atom(2L)), atom(1L), atom(2L));
             printFormula("p1 OR p2", result);
 
-            val root = (Decision) result.root();
-            assertThat(root.level()).isZero();
-            assertThat(((Terminal) root.trueChild()).matched().get(0)).isTrue();
-            assertThat(root.falseChild()).isInstanceOf(Decision.class);
-            assertThat(root.errorChild()).isInstanceOf(Terminal.class);
-            assertThat(((Terminal) root.errorChild()).errored().get(0)).isTrue();
+            assertThat(result.root()).isInstanceOf(Decision.class).satisfies(n -> {
+                val root = (Decision) n;
+                assertThat(root.level()).isZero();
+                assertThat(((Terminal) root.trueChild()).matched().get(0)).isTrue();
+                assertThat(root.falseChild()).isInstanceOf(Decision.class);
+            });
         }
 
         @Test
@@ -129,8 +131,8 @@ class MtbddBuilderTests {
         void whenOrWithTrueThenMatched() {
             val result = buildSingle(new Or(atom(1L), new Constant(true)));
             printFormula("p1 OR true", result);
-            assertThat(result.root()).isInstanceOf(Terminal.class);
-            assertThat(((Terminal) result.root()).matched().get(0)).isTrue();
+            assertThat(result.root()).isInstanceOf(Terminal.class)
+                    .satisfies(n -> assertThat(((Terminal) n).matched().get(0)).isTrue());
         }
 
         @Test
@@ -148,17 +150,18 @@ class MtbddBuilderTests {
     class AndTests {
 
         @Test
-        @DisplayName("p1 AND p2: matched only if both true, error is terminal")
+        @DisplayName("p1 AND p2: matched only if both true, error edge is empty")
         void whenAndThenMatchedOnBoth() {
             val result = buildSingle(new And(atom(1L), atom(2L)), atom(1L), atom(2L));
             printFormula("p1 AND p2", result);
 
-            val root = (Decision) result.root();
-            assertThat(root.level()).isZero();
-            assertThat(root.trueChild()).isInstanceOf(Decision.class);
-            assertThat(root.falseChild()).isSameAs(UniqueTable.EMPTY);
-            assertThat(root.errorChild()).isInstanceOf(Terminal.class);
-            assertThat(((Terminal) root.errorChild()).errored().get(0)).isTrue();
+            assertThat(result.root()).isInstanceOf(Decision.class).satisfies(n -> {
+                val root = (Decision) n;
+                assertThat(root.level()).isZero();
+                assertThat(root.trueChild()).isInstanceOf(Decision.class);
+                assertThat(root.falseChild()).isSameAs(UniqueTable.EMPTY);
+                assertThat(root.errorChild()).isSameAs(UniqueTable.EMPTY);
+            });
         }
 
         @Test
@@ -213,11 +216,7 @@ class MtbddBuilderTests {
         void whenMixedFormulaThenCorrectStructure() {
             val expr   = new Or(new And(atom(1L), atom(2L)), atom(3L));
             val result = buildSingle(expr, atom(1L), atom(2L), atom(3L));
-
-            System.out.println("\n=== (p1 AND p2) OR p3 ===");
-            System.out.println(MtbddPrinter.print(result.root(), result.order()));
-            System.out.println("Unique table size: " + result.table().size());
-
+            printFormula("(p1 AND p2) OR p3", result);
             assertThat(result.root()).isInstanceOf(Decision.class);
         }
 
@@ -226,11 +225,7 @@ class MtbddBuilderTests {
         void whenNegatedConjunctionAndAtomThenCorrect() {
             val expr   = new And(new Not(new And(atom(1L), atom(2L))), atom(3L));
             val result = buildSingle(expr, atom(1L), atom(2L), atom(3L));
-
-            System.out.println("\n=== NOT(p1 AND p2) AND p3 ===");
-            System.out.println(MtbddPrinter.print(result.root(), result.order()));
-            System.out.println("Unique table size: " + result.table().size());
-
+            printFormula("NOT(p1 AND p2) AND p3", result);
             assertThat(result.root()).isInstanceOf(Decision.class);
         }
     }
@@ -248,8 +243,11 @@ class MtbddBuilderTests {
     }
 
     private static void printFormula(String label, BuildResult result) {
+        if (!PRINT_RESULTS) {
+            return;
+        }
         System.out.println("\n=== " + label + " ===");
-        System.out.println(MtbddPrinter.print(result.root(), result.order()));
+        System.out.println(result.root().toTree(result.order()));
     }
 
 }

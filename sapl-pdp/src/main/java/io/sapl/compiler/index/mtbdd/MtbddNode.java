@@ -18,6 +18,10 @@
 package io.sapl.compiler.index.mtbdd;
 
 import java.util.BitSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
+
+import lombok.val;
 
 /**
  * A node in a Multi-Terminal Binary Decision Diagram (MTBDD) extended
@@ -33,22 +37,80 @@ import java.util.BitSet;
  * nodes are always the same object, enabling identity-based caching
  * in the Apply algorithm.
  */
-public sealed interface MtbddNode {
+sealed interface MtbddNode {
 
     /**
-     * A leaf node carrying the sets of matched and errored formula
-     * indices along this path.
+     * Renders this MTBDD as an indented ASCII tree with level numbers.
+     * Shared nodes (DAG edges) are shown as back-references.
+     *
+     * @return multi-line tree representation
+     */
+    default String toTree() {
+        return toTree(null);
+    }
+
+    /**
+     * Renders this MTBDD as an indented ASCII tree with predicate labels
+     * from the given variable order.
+     *
+     * @param order variable order for predicate labels (null uses level numbers)
+     * @return multi-line tree representation
+     */
+    default String toTree(VariableOrder order) {
+        val output  = new StringBuilder();
+        val nodeIds = new IdentityHashMap<MtbddNode, Integer>();
+        renderNode(this, "", true, "", output, nodeIds, order);
+        return output.toString();
+    }
+
+    private static void renderNode(MtbddNode node, String prefix, boolean isLast, String edgeLabel,
+            StringBuilder output, Map<MtbddNode, Integer> nodeIds, VariableOrder order) {
+        val connector  = isLast ? "`-- " : "|-- ";
+        val nextPrefix = prefix + (isLast ? "    " : "|   ");
+        val label      = edgeLabel.isEmpty() ? "" : edgeLabel + " ";
+
+        if (nodeIds.containsKey(node)) {
+            output.append(prefix).append(connector).append(label).append("-> #").append(nodeIds.get(node)).append('\n');
+            return;
+        }
+
+        val id = nodeIds.size();
+        nodeIds.put(node, id);
+
+        switch (node) {
+        case Terminal(var matched)                                              -> {
+            if (matched.isEmpty()) {
+                output.append(prefix).append(connector).append(label).append("#").append(id).append(" EMPTY\n");
+            } else {
+                output.append(prefix).append(connector).append(label).append("#").append(id).append(" matched=")
+                        .append(matched).append('\n');
+            }
+        }
+        case Decision(var level, var trueChild, var falseChild, var errorChild) -> {
+            val predicateLabel = order != null ? "p" + order.predicateAt(level).semanticHash() : "level" + level;
+            output.append(prefix).append(connector).append(label).append("#").append(id).append(" ")
+                    .append(predicateLabel).append("?\n");
+            renderNode(trueChild, nextPrefix, false, "T:", output, nodeIds, order);
+            renderNode(falseChild, nextPrefix, false, "F:", output, nodeIds, order);
+            renderNode(errorChild, nextPrefix, true, "E:", output, nodeIds, order);
+        }
+        }
+    }
+
+    /**
+     * A leaf node carrying the set of matched formula indices along
+     * this path. Error handling is external - the evaluator tracks
+     * errored formulas via {@link VariableOrder#erroredFormulas(int)}.
      *
      * @param matched formulas whose applicability is satisfied
-     * @param errored formulas whose applicability encountered an error
      */
-    record Terminal(BitSet matched, BitSet errored) implements MtbddNode {
+    record Terminal(BitSet matched) implements MtbddNode {
 
         /**
-         * @return true if no formulas are matched or errored
+         * @return true if no formulas are matched
          */
-        public boolean isEmpty() {
-            return matched.isEmpty() && errored.isEmpty();
+        boolean isEmpty() {
+            return matched.isEmpty();
         }
     }
 

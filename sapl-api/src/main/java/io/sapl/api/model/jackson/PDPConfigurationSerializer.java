@@ -95,7 +95,7 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
 
     private void serializeCompilerFlags(CompilerFlags flags, JsonGenerator generator) {
         generator.writeStartObject();
-        generator.writeStringProperty("indexing", flags.indexing().name());
+        generator.writeStringProperty("indexing", flags.indexing());
         generator.writeBooleanProperty("unrollInOperator", flags.unrollInOperator());
         generator.writeNumberProperty("minPoliciesForCanonical", flags.minPoliciesForCanonical());
         generator.writeNumberProperty("minSharingForCanonical", flags.minSharingForCanonical());

@@ -26,7 +26,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CompilerFlags;
-import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import lombok.experimental.UtilityClass;
@@ -108,7 +107,6 @@ public class PDPConfigurationLoader {
     private static final String ERROR_FAILED_TO_READ_PDP_JSON         = "Failed to read pdp.json from '%s'.";
     private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT    = "Failed to read SAPL document '%s'.";
     private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
-    private static final String ERROR_INVALID_INDEXING_STRATEGY       = "Invalid indexing strategy in pdp.json: '%s'. Valid values: AUTO, NAIVE, CANONICAL.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED       = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED      = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
     private static final String ERROR_SHA256_NOT_AVAILABLE            = "SHA-256 algorithm not available.";
@@ -352,12 +350,7 @@ public class PDPConfigurationLoader {
         var maxPolicyDocuments      = defaults.maxPolicyDocuments();
 
         if (flagsNode.has("indexing")) {
-            val value = flagsNode.get("indexing").asString();
-            try {
-                indexing = IndexingStrategy.valueOf(value.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new PDPConfigurationException(ERROR_INVALID_INDEXING_STRATEGY.formatted(value), e);
-            }
+            indexing = flagsNode.get("indexing").asString().toUpperCase();
         }
         if (flagsNode.has("unrollInOperator")) {
             unrollInOperator = flagsNode.get("unrollInOperator").asBoolean();

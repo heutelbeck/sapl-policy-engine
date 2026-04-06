@@ -29,7 +29,9 @@ import io.sapl.api.SaplVersion;
  * All fields are optional in pdp.json; missing fields default to
  * {@link #defaults()}.
  *
- * @param indexing policy index strategy
+ * @param indexing policy index strategy name (e.g., "AUTO", "NAIVE",
+ * "CANONICAL", "MTBDD").
+ * Resolved to an implementation by the index factory in sapl-pdp.
  * @param unrollInOperator whether to unroll {@code EXPR in [a, b, c]} into
  * equality chains for improved index matching
  * @param minPoliciesForCanonical minimum policy count before AUTO mode
@@ -40,7 +42,7 @@ import io.sapl.api.SaplVersion;
  * a directory or bundle. Safety limit against excessive file counts.
  */
 public record CompilerFlags(
-        IndexingStrategy indexing,
+        String indexing,
         boolean unrollInOperator,
         int minPoliciesForCanonical,
         double minSharingForCanonical,
@@ -56,7 +58,7 @@ public record CompilerFlags(
      * 10 policies / 1.5 sharing ratio, 10000 max documents)
      */
     public static CompilerFlags defaults() {
-        return new CompilerFlags(IndexingStrategy.AUTO, false, 10, 1.5, DEFAULT_MAX_POLICY_DOCUMENTS);
+        return new CompilerFlags("AUTO", false, 10, 1.5, DEFAULT_MAX_POLICY_DOCUMENTS);
     }
 
 }

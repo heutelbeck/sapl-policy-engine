@@ -19,7 +19,6 @@ package io.sapl.benchmark.sapl4;
 
 import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.IndexingStrategy;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -214,8 +213,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         }
         try {
             var resolvedScenario = ScenarioFactory.create(scenario, seed);
-            var flags            = new CompilerFlags(IndexingStrategy.valueOf(indexing.toUpperCase()), unroll, 10, 1.5,
-                    10_000);
+            var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10, 1.5, 10_000);
             var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
@@ -483,8 +481,7 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     private Map<Decision, Integer> countDecisions() {
         var resolvedScenario = ScenarioFactory.create(scenario, seed);
-        var flags            = new CompilerFlags(IndexingStrategy.valueOf(indexing.toUpperCase()), unroll, 10, 1.5,
-                10_000);
+        var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10, 1.5, 10_000);
         var components       = resolvedScenario.buildPdp(flags);
         var pdp              = components.pdp();
         var counts           = new EnumMap<Decision, Integer>(Decision.class);

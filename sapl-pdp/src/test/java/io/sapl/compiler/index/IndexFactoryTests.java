@@ -21,27 +21,27 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import io.sapl.api.pdp.CompilerFlags;
-import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
-import io.sapl.compiler.index.mdd.MddPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static io.sapl.compiler.index.IndexTestFixtures.stubDocument;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("IndexFactory")
 class IndexFactoryTests {
 
-    @ParameterizedTest(name = "{0} -> {1}")
     @MethodSource
-    void whenStrategyThenCorrectImplementation(IndexingStrategy strategy, Class<?> expectedType) {
+    @ParameterizedTest(name = "{0} -> {1}")
+    void whenStrategyThenCorrectImplementation(String strategy, Class<?> expectedType) {
         val docs = List.of(stubDocument("p1"));
         val ctx  = SaplTesting.compilationContext();
         ctx.setCompilerFlags(new CompilerFlags(strategy, false, 10, 1.5, 10_000));
@@ -50,10 +50,17 @@ class IndexFactoryTests {
     }
 
     static Stream<Arguments> whenStrategyThenCorrectImplementation() {
-        return Stream.of(arguments(IndexingStrategy.NAIVE, NaivePolicyIndex.class),
-                arguments(IndexingStrategy.CANONICAL, CanonicalPolicyIndex.class),
-                arguments(IndexingStrategy.MDD, MddPolicyIndex.class),
-                arguments(IndexingStrategy.AUTO, NaivePolicyIndex.class));
+        return Stream.of(arguments("NAIVE", NaivePolicyIndex.class), arguments("CANONICAL", CanonicalPolicyIndex.class),
+                arguments("AUTO", NaivePolicyIndex.class));
+    }
+
+    @Test
+    @DisplayName("unknown strategy throws")
+    void whenUnknownStrategyThenThrows() {
+        val docs = List.of(stubDocument("p1"));
+        val ctx  = SaplTesting.compilationContext();
+        ctx.setCompilerFlags(new CompilerFlags("BOGUS", false, 10, 1.5, 10_000));
+        assertThatThrownBy(() -> IndexFactory.createIndex(docs, ctx)).isInstanceOf(IllegalArgumentException.class);
     }
 
 }

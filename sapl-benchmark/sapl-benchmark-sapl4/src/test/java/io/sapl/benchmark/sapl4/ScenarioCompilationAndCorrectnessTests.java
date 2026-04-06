@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 
 import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.IndexingStrategy;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -87,8 +86,8 @@ class ScenarioCompilationAndCorrectnessTests {
         @MethodSource("io.sapl.benchmark.sapl4.ScenarioCompilationAndCorrectnessTests#scenarioArguments")
         void whenDifferentIndexThenSameDecisions(String scenarioName, long seed) {
             val scenario = ScenarioFactory.create(scenarioName, seed);
-            val naive    = new CompilerFlags(IndexingStrategy.NAIVE, false, 10, 1.5, 10_000);
-            val canon    = new CompilerFlags(IndexingStrategy.CANONICAL, false, 10, 1.5, 10_000);
+            val naive    = new CompilerFlags("NAIVE", false, 10, 1.5, 10_000);
+            val canon    = new CompilerFlags("CANONICAL", false, 10, 1.5, 10_000);
 
             val naiveComponents = scenario.buildPdp(naive);
             val canonComponents = scenario.buildPdp(canon);

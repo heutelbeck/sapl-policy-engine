@@ -41,8 +41,8 @@ class UniqueTable {
 
     private static final BitSet EMPTY_BITSET = new BitSet();
 
-    /** Shared empty terminal: no formulas matched or errored. */
-    static final Terminal EMPTY = new Terminal(EMPTY_BITSET, EMPTY_BITSET);
+    /** Shared empty terminal: no formulas matched. */
+    static final Terminal EMPTY = new Terminal(EMPTY_BITSET);
 
     private final Map<Terminal, Terminal> terminals = new HashMap<>();
     private final Map<Decision, Decision> decisions = new HashMap<>();
@@ -52,17 +52,16 @@ class UniqueTable {
     }
 
     /**
-     * Returns the canonical terminal for the given matched and errored sets.
+     * Returns the canonical terminal for the given matched formula set.
      *
      * @param matched formulas satisfied along this path
-     * @param errored formulas that encountered errors along this path
      * @return the interned terminal node
      */
-    Terminal terminal(BitSet matched, BitSet errored) {
-        if (matched.isEmpty() && errored.isEmpty()) {
+    Terminal terminal(BitSet matched) {
+        if (matched.isEmpty()) {
             return EMPTY;
         }
-        val candidate = new Terminal(matched, errored);
+        val candidate = new Terminal(matched);
         return terminals.computeIfAbsent(candidate, k -> k);
     }
 

@@ -17,17 +17,18 @@
  */
 package io.sapl.compiler.index.mtbdd;
 
+import java.util.BitSet;
+
 import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanExpression.And;
 import io.sapl.api.model.BooleanExpression.Atom;
 import io.sapl.api.model.BooleanExpression.Constant;
 import io.sapl.api.model.BooleanExpression.Not;
 import io.sapl.api.model.BooleanExpression.Or;
+import io.sapl.compiler.index.mtbdd.MtbddNode.Decision;
 import io.sapl.compiler.index.mtbdd.MtbddNode.Terminal;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-
-import java.util.BitSet;
 
 /**
  * Builds individual MTBDD diagrams from {@link BooleanExpression} trees.
@@ -67,54 +68,45 @@ class MtbddBuilder {
         // Tag this formula with its index so it can be identified after merging
         val formulaTag = new BitSet();
         formulaTag.set(formulaIndex);
-        val empty = new BitSet();
 
-        // The two possible leaf outcomes for this formula
-        val matched = table.terminal(formulaTag, empty);
-        val errored = table.terminal(empty, formulaTag);
+        val matched = table.terminal(formulaTag);
 
-        return build(table, order, expression, matched, errored);
+        return build(table, order, expression, matched);
     }
 
     /**
      * Recursively converts a boolean expression into an MTBDD.
      * <p>
-     * The matched/errored terminals are the same for all recursion
-     * levels within one formula - they identify THIS formula in the
-     * combined diagram later.
+     * Error edges go to EMPTY: this formula is not matched on error paths.
+     * The evaluator handles error tracking externally via the precomputed
+     * erroredFormulas array in VariableOrder.
      */
     private static MtbddNode build(UniqueTable table, VariableOrder order, BooleanExpression expression,
-            Terminal matched, Terminal errored) {
+            Terminal matched) {
         return switch (expression) {
-        // Constant true: formula always satisfied
-        // Constant false: formula never satisfied
         case Constant(var value) -> value ? matched : UniqueTable.EMPTY;
 
-        // Single predicate: 3-way branch.
-        // True -> formula satisfied, False -> formula not satisfied, Error -> formula
-        // errored (terminal)
+        // Error edge -> EMPTY: formula not matched, evaluator records the error
+        // separately
         case Atom(var predicate) -> {
             val level = order.levelOf(predicate);
-            yield table.decision(level, matched, UniqueTable.EMPTY, errored);
+            yield table.decision(level, matched, UniqueTable.EMPTY, UniqueTable.EMPTY);
         }
 
-        // Negation: delegate to buildNot which inverts true/false semantics
-        case Not(var operand) -> buildNot(table, order, operand, matched, errored);
+        case Not(var operand) -> buildNot(table, order, operand, matched);
 
-        // Disjunction: formula is satisfied if ANY operand is satisfied
         case Or(var operands) -> {
-            var result = build(table, order, operands.getFirst(), matched, errored);
+            var result = build(table, order, operands.getFirst(), matched);
             for (var i = 1; i < operands.size(); i++) {
-                result = or(table, result, build(table, order, operands.get(i), matched, errored));
+                result = or(table, result, build(table, order, operands.get(i), matched));
             }
             yield result;
         }
 
-        // Conjunction: formula is satisfied only if ALL operands are satisfied
         case And(var operands) -> {
-            var result = build(table, order, operands.getFirst(), matched, errored);
+            var result = build(table, order, operands.getFirst(), matched);
             for (var i = 1; i < operands.size(); i++) {
-                result = and(table, result, build(table, order, operands.get(i), matched, errored));
+                result = and(table, result, build(table, order, operands.get(i), matched));
             }
             yield result;
         }
@@ -123,40 +115,34 @@ class MtbddBuilder {
 
     /**
      * Builds the MTBDD for the negation of an expression.
-     * <p>
-     * For atoms, true/false are swapped.
-     * For compound expressions, De Morgan's laws apply.
-     * Error semantics are unchanged - errors are terminal regardless of negation.
+     * True/false swapped for atoms, De Morgan for compound expressions.
      */
     private static MtbddNode buildNot(UniqueTable table, VariableOrder order, BooleanExpression operand,
-            Terminal matched, Terminal errored) {
+            Terminal matched) {
         return switch (operand) {
         case Constant(var value) -> value ? UniqueTable.EMPTY : matched;
 
-        // NOT(predicate): satisfied when predicate is FALSE (inverted), error still
-        // terminal
         case Atom(var predicate) -> {
             val level = order.levelOf(predicate);
-            yield table.decision(level, UniqueTable.EMPTY, matched, errored);
+            yield table.decision(level, UniqueTable.EMPTY, matched, UniqueTable.EMPTY);
         }
 
-        // Double negation elimination
-        case Not(var inner) -> build(table, order, inner, matched, errored);
+        case Not(var inner) -> build(table, order, inner, matched);
 
         // De Morgan: NOT(a OR b) = NOT(a) AND NOT(b)
         case Or(var operands) -> {
-            var result = buildNot(table, order, operands.getFirst(), matched, errored);
+            var result = buildNot(table, order, operands.getFirst(), matched);
             for (var i = 1; i < operands.size(); i++) {
-                result = and(table, result, buildNot(table, order, operands.get(i), matched, errored));
+                result = and(table, result, buildNot(table, order, operands.get(i), matched));
             }
             yield result;
         }
 
         // De Morgan: NOT(a AND b) = NOT(a) OR NOT(b)
         case And(var operands) -> {
-            var result = buildNot(table, order, operands.getFirst(), matched, errored);
+            var result = buildNot(table, order, operands.getFirst(), matched);
             for (var i = 1; i < operands.size(); i++) {
-                result = or(table, result, buildNot(table, order, operands.get(i), matched, errored));
+                result = or(table, result, buildNot(table, order, operands.get(i), matched));
             }
             yield result;
         }
@@ -166,93 +152,69 @@ class MtbddBuilder {
     /**
      * Combines two sub-expression MTBDDs with OR semantics for a single formula.
      * <p>
-     * Canonical error semantics: match-only and error-only terminals absorb.
-     * A matched formula is decided (no further predicates matter). An errored
-     * formula is decided (error kills the formula). Only used during per-formula
-     * construction where all BDDs represent the same single formula.
+     * Non-empty terminal absorbs: formula is already satisfied on this path.
+     * Only used during per-formula construction.
      */
-    private static MtbddNode or(UniqueTable table, MtbddNode a, MtbddNode b) {
-        if (a == b) {
-            return a;
+    private static MtbddNode or(UniqueTable table, MtbddNode left, MtbddNode right) {
+        if (left == right) {
+            return left;
         }
-        if (a == UniqueTable.EMPTY) {
-            return b;
+        if (left == UniqueTable.EMPTY) {
+            return right;
         }
-        if (b == UniqueTable.EMPTY) {
-            return a;
+        if (right == UniqueTable.EMPTY) {
+            return left;
         }
-        // Match-only terminal absorbs: OR is satisfied, no further checks needed
-        if (isMatchOnly(a)) {
-            return a;
+        // Non-empty terminal absorbs: OR satisfied, no further checks needed
+        if (left instanceof Terminal t && !t.isEmpty()) {
+            return left;
         }
-        if (isMatchOnly(b)) {
-            return b;
-        }
-        // Error-only terminal absorbs: formula is errored, canonical semantics
-        if (isErrorOnly(a)) {
-            return a;
-        }
-        if (isErrorOnly(b)) {
-            return b;
+        if (right instanceof Terminal t && !t.isEmpty()) {
+            return right;
         }
 
-        // At least one decision node - recurse on the topmost variable
-        val topLevel = Math.min(levelOf(a), levelOf(b));
-        val ac       = childrenAt(a, topLevel);
-        val bc       = childrenAt(b, topLevel);
+        val topLevel      = Math.min(levelOf(left), levelOf(right));
+        val leftChildren  = childrenAt(left, topLevel);
+        val rightChildren = childrenAt(right, topLevel);
 
-        return table.decision(topLevel, or(table, ac[0], bc[0]), or(table, ac[1], bc[1]), or(table, ac[2], bc[2]));
+        return table.decision(topLevel, or(table, leftChildren[0], rightChildren[0]),
+                or(table, leftChildren[1], rightChildren[1]), or(table, leftChildren[2], rightChildren[2]));
     }
 
     /**
      * Combines two sub-expression MTBDDs with AND semantics for a single formula.
      * <p>
-     * Canonical error semantics: EMPTY and error-only terminals absorb.
+     * EMPTY absorbs (AND with unsatisfied = unsatisfied).
+     * Non-empty terminal is identity (AND with satisfied = the other side decides).
      * Only used during per-formula construction.
      */
-    private static MtbddNode and(UniqueTable table, MtbddNode a, MtbddNode b) {
-        if (a == b) {
-            return a;
+    private static MtbddNode and(UniqueTable table, MtbddNode left, MtbddNode right) {
+        if (left == right) {
+            return left;
         }
-        // EMPTY absorbs: AND with unsatisfied = unsatisfied
-        if (a == UniqueTable.EMPTY || b == UniqueTable.EMPTY) {
+        if (left == UniqueTable.EMPTY || right == UniqueTable.EMPTY) {
             return UniqueTable.EMPTY;
         }
-        // Error-only terminal absorbs: formula is errored, canonical semantics
-        if (isErrorOnly(a)) {
-            return a;
+        // Non-empty terminal is identity for AND: the other side decides
+        if (left instanceof Terminal t && !t.isEmpty()) {
+            return right;
         }
-        if (isErrorOnly(b)) {
-            return b;
-        }
-        // Match-only terminal is identity for AND: the other side decides
-        if (isMatchOnly(a)) {
-            return b;
-        }
-        if (isMatchOnly(b)) {
-            return a;
+        if (right instanceof Terminal t && !t.isEmpty()) {
+            return left;
         }
 
-        // At least one decision node - recurse on the topmost variable
-        val topLevel = Math.min(levelOf(a), levelOf(b));
-        val ac       = childrenAt(a, topLevel);
-        val bc       = childrenAt(b, topLevel);
+        val topLevel      = Math.min(levelOf(left), levelOf(right));
+        val leftChildren  = childrenAt(left, topLevel);
+        val rightChildren = childrenAt(right, topLevel);
 
-        return table.decision(topLevel, and(table, ac[0], bc[0]), and(table, ac[1], bc[1]), and(table, ac[2], bc[2]));
-    }
-
-    private static boolean isMatchOnly(MtbddNode node) {
-        return node instanceof Terminal(var matched, var errored) && !matched.isEmpty() && errored.isEmpty();
-    }
-
-    private static boolean isErrorOnly(MtbddNode node) {
-        return node instanceof Terminal(var matched, var errored) && matched.isEmpty() && !errored.isEmpty();
+        return table.decision(topLevel, and(table, leftChildren[0], rightChildren[0]),
+                and(table, leftChildren[1], rightChildren[1]), and(table, leftChildren[2], rightChildren[2]));
     }
 
     private static int levelOf(MtbddNode node) {
         return switch (node) {
-        case Terminal ignored     -> Integer.MAX_VALUE;
-        case MtbddNode.Decision d -> d.level();
+        case Terminal ignored -> Integer.MAX_VALUE;
+        case Decision d       -> d.level();
         };
     }
 
@@ -262,7 +224,7 @@ class MtbddBuilder {
      * itself for all three edges.
      */
     private static MtbddNode[] childrenAt(MtbddNode node, int level) {
-        if (node instanceof MtbddNode.Decision(int nodeLevel, MtbddNode trueChild, MtbddNode falseChild, MtbddNode errorChild)
+        if (node instanceof Decision(int nodeLevel, MtbddNode trueChild, MtbddNode falseChild, MtbddNode errorChild)
                 && nodeLevel == level) {
             return new MtbddNode[] { trueChild, falseChild, errorChild };
         }

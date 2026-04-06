@@ -49,6 +49,8 @@ import lombok.val;
  */
 class VariableOrder {
 
+    private static final String ERROR_PREDICATE_NOT_IN_ORDER = "Predicate not in variable order: %s";
+
     private final List<IndexPredicate>         predicates;
     private final Map<IndexPredicate, Integer> predicateToLevel;
     private final BitSet[]                     erroredFormulasPerPredicate;
@@ -69,20 +71,20 @@ class VariableOrder {
      * @return the computed variable order
      */
     static VariableOrder fromExpressions(List<BooleanExpression> expressions) {
-        val formulaCount         = new HashMap<IndexPredicate, Integer>();
-        val formulasPerPredicate = new HashMap<IndexPredicate, BitSet>();
+        val formulaCountPerPredicate = new HashMap<IndexPredicate, Integer>();
+        val formulasPerPredicate     = new HashMap<IndexPredicate, BitSet>();
 
         for (var formulaIndex = 0; formulaIndex < expressions.size(); formulaIndex++) {
             val predicatesInFormula = new HashSet<IndexPredicate>();
             collectPredicates(expressions.get(formulaIndex), predicatesInFormula);
             for (val predicate : predicatesInFormula) {
-                formulaCount.merge(predicate, 1, Integer::sum);
+                formulaCountPerPredicate.merge(predicate, 1, Integer::sum);
                 formulasPerPredicate.computeIfAbsent(predicate, k -> new BitSet()).set(formulaIndex);
             }
         }
 
-        val sortedPredicates = new ArrayList<>(formulaCount.keySet());
-        sortedPredicates.sort(Comparator.comparingInt((IndexPredicate p) -> -formulaCount.get(p))
+        val sortedPredicates = new ArrayList<>(formulaCountPerPredicate.keySet());
+        sortedPredicates.sort(Comparator.comparingInt((IndexPredicate p) -> -formulaCountPerPredicate.get(p))
                 .thenComparingLong(IndexPredicate::semanticHash));
 
         val numberOfPredicates = sortedPredicates.size();
@@ -104,7 +106,7 @@ class VariableOrder {
     int levelOf(IndexPredicate predicate) {
         val level = predicateToLevel.get(predicate);
         if (level == null) {
-            throw new IllegalArgumentException("Predicate not in variable order: " + predicate);
+            throw new IllegalArgumentException(ERROR_PREDICATE_NOT_IN_ORDER.formatted(predicate));
         }
         return level;
     }

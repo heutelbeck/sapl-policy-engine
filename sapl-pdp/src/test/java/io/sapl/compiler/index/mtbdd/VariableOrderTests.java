@@ -37,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("VariableOrder")
 class VariableOrderTests {
 
+    private static final boolean PRINT_RESULTS = false;
+
     @Nested
     @DisplayName("ordering by formula frequency")
     class FrequencyOrderingTests {
@@ -52,12 +54,7 @@ class VariableOrderTests {
 
             val order = VariableOrder.fromExpressions(expressions);
 
-            System.out.println("\n=== Variable Order (frequency) ===");
-            System.out.println("f0: p1");
-            System.out.println("f1: p1 OR p2");
-            System.out.println("f2: p1 AND p2 AND p3");
-            System.out.println();
-            printOrder(order);
+            printOrder("frequency: f0=p1, f1=p1 OR p2, f2=p1 AND p2 AND p3", order);
 
             assertThat(order.levelOf(predicate(1L))).isZero();       // p1: 3 formulas -> level 0
             assertThat(order.levelOf(predicate(2L))).isEqualTo(1);   // p2: 2 formulas -> level 1
@@ -73,11 +70,7 @@ class VariableOrderTests {
 
             val order = VariableOrder.fromExpressions(expressions);
 
-            System.out.println("\n=== Variable Order (tie-breaking) ===");
-            System.out.println("f0: p10 OR p20");
-            System.out.println("f1: p10 OR p20");
-            System.out.println();
-            printOrder(order);
+            printOrder("tie-breaking: f0=p10 OR p20, f1=p10 OR p20", order);
 
             // Both appear in 2 formulas, so ordered by hash: 10 < 20
             assertThat(order.levelOf(predicate(10L))).isZero();
@@ -94,12 +87,7 @@ class VariableOrderTests {
 
             val order = VariableOrder.fromExpressions(expressions);
 
-            System.out.println("\n=== Variable Order (negation) ===");
-            System.out.println("f0: p1");
-            System.out.println("f1: NOT p1");
-            System.out.println("f2: p2");
-            System.out.println();
-            printOrder(order);
+            printOrder("negation: f0=p1, f1=NOT p1, f2=p2", order);
 
             assertThat(order.levelOf(predicate(1L))).isZero();       // p1: 2 formulas
             assertThat(order.levelOf(predicate(2L))).isEqualTo(1);   // p2: 1 formula
@@ -116,12 +104,7 @@ class VariableOrderTests {
 
             val order = VariableOrder.fromExpressions(expressions);
 
-            System.out.println("\n=== Variable Order (dedup within formula) ===");
-            System.out.println("f0: p1 AND p1");
-            System.out.println("f1: p2");
-            System.out.println("f2: p2");
-            System.out.println();
-            printOrder(order);
+            printOrder("dedup: f0=p1 AND p1, f1=p2, f2=p2", order);
 
             assertThat(order.levelOf(predicate(2L))).isZero();       // p2: 2 formulas
             assertThat(order.levelOf(predicate(1L))).isEqualTo(1);   // p1: 1 formula
@@ -187,14 +170,7 @@ class VariableOrderTests {
 
             val order = VariableOrder.fromExpressions(expressions);
 
-            System.out.println("\n=== Variable Order (hospital-like) ===");
-            System.out.println("f0: role(p1) AND resource-A(p3)");
-            System.out.println("f1: role(p1) AND resource-B(p4)");
-            System.out.println("f2: role(p1) AND dept(p2) AND resource-C(p5)");
-            System.out.println("f3: role(p1) AND dept(p2) AND resource-D(p6)");
-            System.out.println("f4: dept(p2) AND resource-D(p6)");
-            System.out.println();
-            printOrder(order);
+            printOrder("hospital-like: role(p1) x4, dept(p2) x3, resource-D(p6) x2, rest x1", order);
 
             // p1 (role): 4 formulas -> level 0
             // p2 (dept): 3 formulas -> level 1
@@ -206,7 +182,11 @@ class VariableOrderTests {
         }
     }
 
-    private static void printOrder(VariableOrder order) {
+    private static void printOrder(String header, VariableOrder order) {
+        if (!PRINT_RESULTS) {
+            return;
+        }
+        System.out.println("\n=== " + header + " ===");
         for (var level = 0; level < order.size(); level++) {
             val predicate = order.predicateAt(level);
             System.out.printf("  level %d: p%d (hash=%d)%n", level, predicate.semanticHash(), predicate.semanticHash());

@@ -22,33 +22,54 @@ import java.util.List;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
-import io.sapl.compiler.index.mdd.MddPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
- * Creates a {@link PolicyIndex} based on the configured
- * {@link io.sapl.api.pdp.IndexingStrategy}.
+ * Creates a {@link PolicyIndex} based on the indexing strategy name
+ * from the compiler flags.
  */
 @UtilityClass
 public class IndexFactory {
 
+    private static final String ERROR_UNKNOWN_STRATEGY = "Unknown indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL, MTBDD.";
+
     /**
-     * Creates a policy index for the given documents using the strategy and
-     * compiler flags from the compilation context.
+     * Available indexing strategies. Internal to the index factory -
+     * the public API uses a plain string in CompilerFlags.
+     */
+    enum IndexingStrategy {
+        AUTO,
+        NAIVE,
+        CANONICAL,
+        MTBDD
+    }
+
+    /**
+     * Creates a policy index for the given documents using the strategy
+     * name from the compilation context's compiler flags.
      *
      * @param documents the compiled documents to index
      * @param ctx the compilation context containing the indexing strategy
      * @return a policy index
      */
     public static PolicyIndex createIndex(List<CompiledDocument> documents, CompilationContext ctx) {
-        return switch (ctx.getCompilerFlags().indexing()) {
+        val strategy = parseStrategy(ctx.getCompilerFlags().indexing());
+        return switch (strategy) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
         case CANONICAL -> CanonicalPolicyIndex.create(documents);
-        case MDD       -> MddPolicyIndex.create(documents);
+        case MTBDD     -> throw new UnsupportedOperationException("MTBDD index not yet wired");
         case AUTO      -> autoSelect(documents, ctx);
         };
+    }
+
+    private static IndexingStrategy parseStrategy(String name) {
+        try {
+            return IndexingStrategy.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(ERROR_UNKNOWN_STRATEGY.formatted(name), e);
+        }
     }
 
     private static PolicyIndex autoSelect(List<CompiledDocument> documents, CompilationContext ctx) {
