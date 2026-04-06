@@ -41,14 +41,26 @@ public class MtbddPrinter {
      * @return the rendered tree string
      */
     public static String print(MtbddNode root) {
+        return print(root, null);
+    }
+
+    /**
+     * Renders the MTBDD with predicate labels from the variable order.
+     *
+     * @param root the root node to print
+     * @param order optional variable order for predicate labels (null uses level
+     * numbers)
+     * @return the rendered tree string
+     */
+    public static String print(MtbddNode root, VariableOrder order) {
         val sb      = new StringBuilder();
         val nodeIds = new IdentityHashMap<MtbddNode, Integer>();
-        printNode(root, "", true, "", sb, nodeIds);
+        printNode(root, "", true, "", sb, nodeIds, order);
         return sb.toString();
     }
 
     private static void printNode(MtbddNode node, String prefix, boolean isLast, String edgeLabel, StringBuilder sb,
-            Map<MtbddNode, Integer> nodeIds) {
+            Map<MtbddNode, Integer> nodeIds, VariableOrder order) {
         val connector  = isLast ? "`-- " : "|-- ";
         val nextPrefix = prefix + (isLast ? "    " : "|   ");
         val label      = edgeLabel.isEmpty() ? "" : edgeLabel + " ";
@@ -77,11 +89,12 @@ public class MtbddPrinter {
             }
         }
         case Decision(var level, var trueChild, var falseChild, var errorChild) -> {
-            sb.append(prefix).append(connector).append(label).append("#").append(id).append(" p").append(level)
+            val predicateLabel = order != null ? "p" + order.predicateAt(level).semanticHash() : "level" + level;
+            sb.append(prefix).append(connector).append(label).append("#").append(id).append(" ").append(predicateLabel)
                     .append("?\n");
-            printNode(trueChild, nextPrefix, false, "T:", sb, nodeIds);
-            printNode(falseChild, nextPrefix, false, "F:", sb, nodeIds);
-            printNode(errorChild, nextPrefix, true, "E:", sb, nodeIds);
+            printNode(trueChild, nextPrefix, false, "T:", sb, nodeIds, order);
+            printNode(falseChild, nextPrefix, false, "F:", sb, nodeIds, order);
+            printNode(errorChild, nextPrefix, true, "E:", sb, nodeIds, order);
         }
         }
     }

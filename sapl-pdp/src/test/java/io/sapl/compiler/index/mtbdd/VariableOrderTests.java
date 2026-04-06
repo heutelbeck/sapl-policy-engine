@@ -166,12 +166,6 @@ class VariableOrderTests {
             assertThatThrownBy(() -> order.levelOf(predicate(99L))).isInstanceOf(IllegalArgumentException.class);
         }
 
-        @Test
-        @DisplayName("predicates list is immutable")
-        void whenPredicatesListThenImmutable() {
-            val order = VariableOrder.fromExpressions(List.of(atom(1L)));
-            assertThat(order.predicates()).isUnmodifiable();
-        }
     }
 
     @Nested

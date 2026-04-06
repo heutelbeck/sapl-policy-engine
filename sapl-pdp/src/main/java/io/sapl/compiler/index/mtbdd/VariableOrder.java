@@ -18,6 +18,8 @@
 package io.sapl.compiler.index.mtbdd;
 
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,10 +51,14 @@ class VariableOrder {
 
     private final List<IndexPredicate>         predicates;
     private final Map<IndexPredicate, Integer> predicateToLevel;
+    private final BitSet[]                     erroredFormulasPerPredicate;
 
-    private VariableOrder(List<IndexPredicate> predicates, Map<IndexPredicate, Integer> predicateToLevel) {
-        this.predicates       = predicates;
-        this.predicateToLevel = predicateToLevel;
+    private VariableOrder(List<IndexPredicate> predicates,
+            Map<IndexPredicate, Integer> predicateToLevel,
+            BitSet[] erroredFormulasPerPredicate) {
+        this.predicates                  = predicates;
+        this.predicateToLevel            = predicateToLevel;
+        this.erroredFormulasPerPredicate = erroredFormulasPerPredicate;
     }
 
     /**
@@ -63,28 +69,32 @@ class VariableOrder {
      * @return the computed variable order
      */
     static VariableOrder fromExpressions(List<BooleanExpression> expressions) {
-        val formulaCount = new HashMap<IndexPredicate, Integer>();
+        val formulaCount         = new HashMap<IndexPredicate, Integer>();
+        val formulasPerPredicate = new HashMap<IndexPredicate, BitSet>();
 
-        for (val expression : expressions) {
+        for (var formulaIndex = 0; formulaIndex < expressions.size(); formulaIndex++) {
             val predicatesInFormula = new HashSet<IndexPredicate>();
-            collectPredicates(expression, predicatesInFormula);
+            collectPredicates(expressions.get(formulaIndex), predicatesInFormula);
             for (val predicate : predicatesInFormula) {
                 formulaCount.merge(predicate, 1, Integer::sum);
+                formulasPerPredicate.computeIfAbsent(predicate, k -> new BitSet()).set(formulaIndex);
             }
         }
 
-        val sorted = new ArrayList<>(formulaCount.entrySet());
-        sorted.sort(Map.Entry.<IndexPredicate, Integer>comparingByValue().reversed()
-                .thenComparingLong(e -> e.getKey().semanticHash()));
+        val sortedPredicates = new ArrayList<>(formulaCount.keySet());
+        sortedPredicates.sort(Comparator.comparingInt((IndexPredicate p) -> -formulaCount.get(p))
+                .thenComparingLong(IndexPredicate::semanticHash));
 
-        val predicates       = new ArrayList<IndexPredicate>(sorted.size());
-        val predicateToLevel = new HashMap<IndexPredicate, Integer>(sorted.size());
-        for (val entry : sorted) {
-            predicateToLevel.put(entry.getKey(), predicates.size());
-            predicates.add(entry.getKey());
+        val numberOfPredicates = sortedPredicates.size();
+        val predicateToLevel   = new HashMap<IndexPredicate, Integer>(numberOfPredicates);
+        val erroredFormulas    = new BitSet[numberOfPredicates];
+        for (var level = 0; level < numberOfPredicates; level++) {
+            val predicate = sortedPredicates.get(level);
+            predicateToLevel.put(predicate, level);
+            erroredFormulas[level] = formulasPerPredicate.get(predicate);
         }
 
-        return new VariableOrder(List.copyOf(predicates), Map.copyOf(predicateToLevel));
+        return new VariableOrder(sortedPredicates, predicateToLevel, erroredFormulas);
     }
 
     /**
@@ -118,6 +128,17 @@ class VariableOrder {
      */
     List<IndexPredicate> predicates() {
         return predicates;
+    }
+
+    /**
+     * Returns the set of formula indices that are killed when the
+     * predicate at the given level errors during evaluation.
+     *
+     * @param level the predicate level
+     * @return formulas referencing this predicate
+     */
+    BitSet erroredFormulas(int level) {
+        return erroredFormulasPerPredicate[level];
     }
 
     private static void collectPredicates(BooleanExpression expression, HashSet<IndexPredicate> result) {
