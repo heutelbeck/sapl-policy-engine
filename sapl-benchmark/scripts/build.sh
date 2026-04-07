@@ -68,7 +68,6 @@ if command -v native-image &>/dev/null; then
     cp "$REPO_ROOT/sapl-node/target/sapl" "$BIN_DIR/sapl"
     chmod +x "$BIN_DIR/sapl"
     echo "  sapl (native)              $(du -h "$BIN_DIR/sapl" | cut -f1)"
-fi
 
 else
     echo ""
