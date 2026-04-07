@@ -22,6 +22,8 @@ import java.io.Serializable;
 import java.util.List;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 
 /**
  * Immutable configuration for a Policy Decision Point.
@@ -29,8 +31,8 @@ import io.sapl.api.SaplVersion;
  * @param pdpId the PDP identifier
  * @param configurationId the configuration version identifier
  * @param combiningAlgorithm the policy combining algorithm
- * @param compilerFlags compiler tuning flags (indexing, unrolling, thresholds);
- * defaults to {@link CompilerFlags#defaults()} when not specified in pdp.json
+ * @param compilerOptions opaque compiler options (indexing strategy,
+ * tuning parameters). Each consumer reads the keys it understands.
  * @param saplDocuments the SAPL document source strings
  * @param data PDP-level variables and secrets
  */
@@ -38,21 +40,20 @@ public record PDPConfiguration(
         String pdpId,
         String configurationId,
         CombiningAlgorithm combiningAlgorithm,
-        CompilerFlags compilerFlags,
+        ObjectValue compilerOptions,
         List<String> saplDocuments,
         PdpData data) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Convenience constructor defaulting compiler flags to
-     * {@link CompilerFlags#defaults()}.
+     * Convenience constructor defaulting compiler options to empty.
      */
     public PDPConfiguration(String pdpId,
             String configurationId,
             CombiningAlgorithm combiningAlgorithm,
             List<String> saplDocuments,
             PdpData data) {
-        this(pdpId, configurationId, combiningAlgorithm, CompilerFlags.defaults(), saplDocuments, data);
+        this(pdpId, configurationId, combiningAlgorithm, Value.EMPTY_OBJECT, saplDocuments, data);
     }
 }

@@ -21,11 +21,11 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import lombok.experimental.UtilityClass;
@@ -92,9 +92,9 @@ import java.util.stream.Stream;
 @UtilityClass
 public class PDPConfigurationLoader {
 
-    private static final String FIELD_COMPILER_FLAGS = "compilerFlags";
-    private static final String PDP_JSON             = "pdp.json";
-    private static final String SAPL_EXTENSION       = ".sapl";
+    private static final String FIELD_COMPILER_OPTIONS = "compilerOptions";
+    private static final String PDP_JSON               = "pdp.json";
+    private static final String SAPL_EXTENSION         = ".sapl";
 
     private static final int  DEFAULT_MAX_FILE_COUNT   = 10_000;
     private static final long MAX_TOTAL_SIZE_BYTES     = 10L * 1024 * 1024;
@@ -150,15 +150,14 @@ public class PDPConfigurationLoader {
     public static PDPConfiguration loadFromDirectory(Path path, String pdpId) {
         val pdpJsonPath  = path.resolve(PDP_JSON);
         val pdpJson      = loadPdpJson(pdpJsonPath);
-        val maxDocuments = pdpJson.compilerFlags() != null ? pdpJson.compilerFlags().maxPolicyDocuments()
-                : DEFAULT_MAX_FILE_COUNT;
+        val maxDocuments = getMaxPolicyDocuments(pdpJson.compilerOptions());
         val saplContents = loadSaplDocumentsAsMap(path, maxDocuments);
         val documents    = new ArrayList<>(saplContents.values());
 
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path, pdpJson, saplContents);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerFlags(), documents,
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
                 new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -192,7 +191,7 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateResourceConfigurationId(sourcePath, pdpJson, saplDocuments);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerFlags(), documents,
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
                 new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -227,7 +226,7 @@ public class PDPConfigurationLoader {
         }
 
         val documents = new ArrayList<>(saplDocuments.values());
-        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.compilerFlags(),
+        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.compilerOptions(),
                 documents, new PdpData(pdpJson.variables(), pdpJson.secrets()));
     }
 
@@ -325,43 +324,33 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            val compilerFlags = parseCompilerFlags(node);
+            val compilerOptions = parseCompilerOptions(node);
 
             val variables = parseValueSection(node, "variables");
             val secrets   = parseValueSection(node, "secrets");
 
-            return new PdpJsonContent(algorithm, compilerFlags, configurationId, variables, secrets);
+            return new PdpJsonContent(algorithm, compilerOptions, configurationId, variables, secrets);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
     }
 
-    private static CompilerFlags parseCompilerFlags(JsonNode node) {
-        if (!node.has(FIELD_COMPILER_FLAGS)) {
-            return CompilerFlags.defaults();
+    private static ObjectValue parseCompilerOptions(JsonNode node) {
+        if (node.has(FIELD_COMPILER_OPTIONS)) {
+            return parseValueSection(node, FIELD_COMPILER_OPTIONS);
         }
-        val flagsNode = node.get(FIELD_COMPILER_FLAGS);
-        val defaults  = CompilerFlags.defaults();
+        if (node.has("compilerFlags")) {
+            return parseValueSection(node, "compilerFlags");
+        }
+        return Value.EMPTY_OBJECT;
+    }
 
-        var indexing            = defaults.indexing();
-        var unrollInOperator   = defaults.unrollInOperator();
-        var maxPolicyDocuments = defaults.maxPolicyDocuments();
-        var indexParameters    = defaults.indexParameters();
-
-        if (flagsNode.has("indexing")) {
-            indexing = flagsNode.get("indexing").asString().toUpperCase();
+    private static int getMaxPolicyDocuments(ObjectValue options) {
+        val value = options.get("maxPolicyDocuments");
+        if (value instanceof NumberValue(var number)) {
+            return number.intValue();
         }
-        if (flagsNode.has("unrollInOperator")) {
-            unrollInOperator = flagsNode.get("unrollInOperator").asBoolean();
-        }
-        if (flagsNode.has("maxPolicyDocuments")) {
-            maxPolicyDocuments = flagsNode.get("maxPolicyDocuments").asInt();
-        }
-        if (flagsNode.has("indexParameters")) {
-            indexParameters = parseValueSection(flagsNode, "indexParameters");
-        }
-
-        return new CompilerFlags(indexing, unrollInOperator, maxPolicyDocuments, indexParameters);
+        return DEFAULT_MAX_FILE_COUNT;
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {
@@ -420,7 +409,7 @@ public class PDPConfigurationLoader {
 
     private record PdpJsonContent(
             CombiningAlgorithm algorithm,
-            CompilerFlags compilerFlags,
+            ObjectValue compilerOptions,
             String configurationId,
             ObjectValue variables,
             ObjectValue secrets) {
@@ -429,7 +418,7 @@ public class PDPConfigurationLoader {
                 String configurationId,
                 ObjectValue variables,
                 ObjectValue secrets) {
-            this(algorithm, CompilerFlags.defaults(), configurationId, variables, secrets);
+            this(algorithm, Value.EMPTY_OBJECT, configurationId, variables, secrets);
         }
     }
 

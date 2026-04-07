@@ -31,7 +31,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CompilerFlags;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.DocumentCompiler;
@@ -53,14 +53,14 @@ class SemanticAnalysisDiagnosticTests {
     @ParameterizedTest(name = "hospital-{0}")
     void whenHospitalThenAnalyzeGrouping(int departments) {
         val scenario = ScenarioFactory.create("hospital-" + departments, 42L);
-        val flags    = new CompilerFlags("NAIVE", false, 10_000, Value.EMPTY_OBJECT);
+        val flags    = ObjectValue.builder().put("indexing", Value.of("NAIVE")).build();
 
         // Build PDP to get the function/attribute brokers, then compile documents
         // ourselves
         val components = scenario.buildPdp(flags);
         val pdpData    = new PdpData(scenario.variables(), Value.EMPTY_OBJECT);
         val ctx        = new CompilationContext(pdpData, components.functionBroker(), components.attributeBroker());
-        ctx.setCompilerFlags(flags);
+        ctx.setCompilerOptions(flags);
 
         val policies  = scenario.policies().get();
         val documents = new ArrayList<CompiledDocument>();
@@ -111,7 +111,7 @@ class SemanticAnalysisDiagnosticTests {
         }
 
         // Build the SMTDD - validates it completes without blowup
-        SmtddBuilder.build(result, booleanExpressions, allPredicatesPerFormula);
+        SmtddBuilder.build(result, booleanExpressions, allPredicatesPerFormula, 0);
     }
 
     private static void collectPredicates(BooleanExpression expression, List<IndexPredicate> result) {

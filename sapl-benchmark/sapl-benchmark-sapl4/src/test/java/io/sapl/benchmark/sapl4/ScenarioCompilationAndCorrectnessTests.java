@@ -21,7 +21,8 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.stream.Stream;
 
-import io.sapl.api.pdp.CompilerFlags;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +54,7 @@ class ScenarioCompilationAndCorrectnessTests {
         @MethodSource("io.sapl.benchmark.sapl4.ScenarioCompilationAndCorrectnessTests#scenarioArguments")
         void whenScenarioThenCompilesAndNoIndeterminate(String scenarioName, long seed) {
             val scenario = ScenarioFactory.create(scenarioName, seed);
-            val flags    = CompilerFlags.defaults();
+            val flags    = Value.EMPTY_OBJECT;
 
             val components = scenario.buildPdp(flags);
             val pdp        = components.pdp();
@@ -86,9 +87,9 @@ class ScenarioCompilationAndCorrectnessTests {
         @MethodSource("io.sapl.benchmark.sapl4.ScenarioCompilationAndCorrectnessTests#scenarioArguments")
         void whenDifferentIndexThenSameDecisions(String scenarioName, long seed) {
             val scenario = ScenarioFactory.create(scenarioName, seed);
-            val naive    = new CompilerFlags("NAIVE", false, 10_000, Value.EMPTY_OBJECT);
-            val canon    = new CompilerFlags("CANONICAL", false, 10_000, Value.EMPTY_OBJECT);
-            val smtdd    = new CompilerFlags("SMTDD", false, 10_000, Value.EMPTY_OBJECT);
+            val naive    = ObjectValue.builder().put("indexing", Value.of("NAIVE")).build();
+            val canon    = ObjectValue.builder().put("indexing", Value.of("CANONICAL")).build();
+            val smtdd    = ObjectValue.builder().put("indexing", Value.of("SMTDD")).build();
 
             val naiveComponents = scenario.buildPdp(naive);
             val canonComponents = scenario.buildPdp(canon);

@@ -22,7 +22,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -77,12 +76,13 @@ public record Scenario(
     /**
      * Builds an embedded PDP configured for this scenario.
      *
-     * @param compilerFlags compiler flags including indexing strategy
+     * @param compilerOptions compiler options including indexing strategy
      * @return the PDP components (caller must dispose)
      */
-    PDPComponents buildPdp(CompilerFlags compilerFlags) {
+    PDPComponents buildPdp(ObjectValue compilerOptions) {
         val pdpData          = new PdpData(variables, Value.EMPTY_OBJECT);
-        val pdpConfiguration = new PDPConfiguration("default", name, algorithm, compilerFlags, policies.get(), pdpData);
+        val pdpConfiguration = new PDPConfiguration("default", name, algorithm, compilerOptions, policies.get(),
+                pdpData);
         return PolicyDecisionPointBuilder.withDefaults().withConfiguration(pdpConfiguration).build();
     }
 

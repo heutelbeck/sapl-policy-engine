@@ -38,7 +38,7 @@ import lombok.val;
  */
 @Getter
 @RequiredArgsConstructor
-class EqualityGroup {
+public class EqualityGroup {
 
     private final PureOperator        sharedOperand;
     private final Map<Value, BitSet>  equalsFormulas      = new HashMap<>();

@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -44,7 +45,7 @@ public class IndexFactory {
 
     /**
      * Available indexing strategies. Internal to the index factory -
-     * the public API uses a plain string in CompilerFlags.
+     * the public API uses a plain string in compilerOptions.
      */
     enum IndexingStrategy {
         AUTO,
@@ -63,14 +64,14 @@ public class IndexFactory {
      * @return a policy index
      */
     private static final int    DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
-    private static final int    DEFAULT_MAX_INDEX_NODES          = 500_000;
-    private static final String PARAM_MIN_POLICIES_FOR_INDEXING  = "minPoliciesForIndexing";
-    private static final String PARAM_MAX_INDEX_NODES            = "maxIndexNodes";
+    private static final int    DEFAULT_MAX_INDEX_NODES           = 500_000;
+    private static final String PARAM_MIN_POLICIES_FOR_INDEXING   = "minPoliciesForIndexing";
+    private static final String PARAM_MAX_INDEX_NODES             = "maxIndexNodes";
 
     public static PolicyIndex createIndex(List<CompiledDocument> documents, CompilationContext ctx) {
-        val strategy        = parseStrategy(ctx.getCompilerFlags().indexing());
-        val indexParameters = ctx.getCompilerFlags().indexParameters();
-        val maxNodes        = getIntParam(indexParameters, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
+        val options  = ctx.getCompilerOptions();
+        val strategy = parseStrategy(getStringParam(options, "indexing", "AUTO"));
+        val maxNodes = getIntParam(options, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
         return switch (strategy) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
         case CANONICAL -> CanonicalPolicyIndex.create(documents);
@@ -89,10 +90,9 @@ public class IndexFactory {
     }
 
     private static PolicyIndex autoSelect(List<CompiledDocument> documents, CompilationContext ctx) {
-        val indexParameters     = ctx.getCompilerFlags().indexParameters();
-        val minPolicies = getIntParam(indexParameters, PARAM_MIN_POLICIES_FOR_INDEXING,
-                DEFAULT_MIN_POLICIES_FOR_INDEXING);
-        val maxNodes    = getIntParam(indexParameters, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
+        val options     = ctx.getCompilerOptions();
+        val minPolicies = getIntParam(options, PARAM_MIN_POLICIES_FOR_INDEXING, DEFAULT_MIN_POLICIES_FOR_INDEXING);
+        val maxNodes    = getIntParam(options, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
 
         if (documents.size() < minPolicies) {
             return NaivePolicyIndex.create(documents);
@@ -105,10 +105,18 @@ public class IndexFactory {
         return CanonicalPolicyIndex.create(documents);
     }
 
-    private static int getIntParam(ObjectValue params, String key, int defaultValue) {
-        val value = params.get(key);
+    private static int getIntParam(ObjectValue options, String key, int defaultValue) {
+        val value = options.get(key);
         if (value instanceof NumberValue(var number)) {
             return number.intValue();
+        }
+        return defaultValue;
+    }
+
+    private static String getStringParam(ObjectValue options, String key, String defaultValue) {
+        val value = options.get(key);
+        if (value instanceof TextValue(var text)) {
+            return text;
         }
         return defaultValue;
     }

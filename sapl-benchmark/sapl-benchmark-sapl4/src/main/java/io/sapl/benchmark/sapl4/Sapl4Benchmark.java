@@ -17,7 +17,8 @@
  */
 package io.sapl.benchmark.sapl4;
 
-import io.sapl.api.pdp.CompilerFlags;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.Decision;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
@@ -213,7 +214,8 @@ class Sapl4Benchmark implements Callable<Integer> {
         }
         try {
             var resolvedScenario = ScenarioFactory.create(scenario, seed);
-            var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10_000, Value.EMPTY_OBJECT);
+            var flags            = ObjectValue.builder().put("indexing", Value.of(indexing.toUpperCase()))
+                    .put("unrollInOperator", Value.of(unroll)).build();
             var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
@@ -481,7 +483,8 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     private Map<Decision, Integer> countDecisions() {
         var resolvedScenario = ScenarioFactory.create(scenario, seed);
-        var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10_000, Value.EMPTY_OBJECT);
+        var flags            = ObjectValue.builder().put("indexing", Value.of(indexing.toUpperCase()))
+                .put("unrollInOperator", Value.of(unroll)).build();
         var components       = resolvedScenario.buildPdp(flags);
         var pdp              = components.pdp();
         var counts           = new EnumMap<Decision, Integer>(Decision.class);

@@ -22,7 +22,6 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CompilerFlags;
 import io.sapl.api.pdp.PDPConfiguration;
 
 import java.util.List;
@@ -78,8 +77,10 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeName("combiningAlgorithm");
         serializeCombiningAlgorithm(configuration.combiningAlgorithm(), generator);
 
-        generator.writeName("compilerFlags");
-        serializeCompilerFlags(configuration.compilerFlags(), generator);
+        if (!configuration.compilerOptions().isEmpty()) {
+            generator.writeName("compilerOptions");
+            valueSerializer.serialize(configuration.compilerOptions(), generator, serializers);
+        }
 
         generator.writeName("saplDocuments");
         serializeStringList(configuration.saplDocuments(), generator);
@@ -90,18 +91,6 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeName("secrets");
         serializeValueMap(configuration.data().secrets(), generator, serializers);
 
-        generator.writeEndObject();
-    }
-
-    private void serializeCompilerFlags(CompilerFlags flags, JsonGenerator generator) {
-        generator.writeStartObject();
-        generator.writeStringProperty("indexing", flags.indexing());
-        generator.writeBooleanProperty("unrollInOperator", flags.unrollInOperator());
-        generator.writeNumberProperty("maxPolicyDocuments", flags.maxPolicyDocuments());
-        if (!flags.indexParameters().isEmpty()) {
-            generator.writePropertyName("indexParameters");
-            valueSerializer.serialize(flags.indexParameters(), generator, null);
-        }
         generator.writeEndObject();
     }
 

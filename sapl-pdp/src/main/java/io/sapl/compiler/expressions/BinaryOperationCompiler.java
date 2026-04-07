@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -97,7 +98,8 @@ public class BinaryOperationCompiler {
             return SubtemplateCompiler.compile(binaryOperation, ctx);
         }
 
-        if (ctx.getCompilerFlags().unrollInOperator() && operatorType == IN) {
+        if (ctx.getCompilerOptions().getOrDefault("unrollInOperator", Value.FALSE) instanceof BooleanValue(var unroll)
+                && unroll && operatorType == IN) {
             val unrolled = InArrayUnrollingCompiler.tryCompile(binaryOperation, ctx);
             if (unrolled != null) {
                 return unrolled;
