@@ -18,20 +18,21 @@
 #
 
 # SAPL 4 embedded benchmark (JMH forks(1), per scenario, core/thread sweep).
-# Usage: run-embedded-jvm.sh [quick|full] [output-dir]
+# Usage: run-embedded-jvm.sh [quick|full] [output-dir] [experiment]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 QUALITY=${1:-quick}
 OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/${QUALITY}-$(timestamp)}
+EXPERIMENT=${3:-embedded}
 
 load_quality "$QUALITY"
-load_experiment "embedded"
+load_experiment "$EXPERIMENT"
 log_env
 
 RUN_TIMESTAMP=$(timestamp)
-OUTDIR="$OUTPUT_DIR/embedded-jvm-${QUALITY}-${RUN_TIMESTAMP}"
+OUTDIR="$OUTPUT_DIR/${EXPERIMENT}-jvm-${QUALITY}-${RUN_TIMESTAMP}"
 mkdir -p "$OUTDIR"
 
 # Count total steps
