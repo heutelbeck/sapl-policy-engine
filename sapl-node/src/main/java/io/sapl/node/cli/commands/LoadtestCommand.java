@@ -123,6 +123,12 @@ public class LoadtestCommand implements Callable<Integer> {
     @Option(names = "--vt-per-connection", defaultValue = "512", description = "Virtual threads per RSocket connection (default: ${DEFAULT-VALUE})")
     int vtPerConnection;
 
+    @Option(names = "--rate", defaultValue = "0", description = "Target request rate in req/s (0 = saturation, default: ${DEFAULT-VALUE})")
+    int rate;
+
+    @Option(names = "--engine", defaultValue = "reactive", description = "Load generator engine: reactive or virtual-threads (default: ${DEFAULT-VALUE})")
+    String engine;
+
     @Option(names = "--warmup-seconds", defaultValue = "5", description = "Warmup duration in seconds (default: ${DEFAULT-VALUE})")
     int warmupSeconds;
 
@@ -183,14 +189,15 @@ public class LoadtestCommand implements Callable<Integer> {
                     }
                 }
                 result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, socketPath, protoPayload, connections,
-                        vtPerConnection, warmupSeconds, measureSeconds, progressOut);
+                        vtPerConnection, warmupSeconds, measureSeconds, rate, useVirtualThreads(), progressOut);
             } else {
                 val body = mapper.writeValueAsString(subscription).getBytes(StandardCharsets.UTF_8);
                 ctx = LoadtestContext.http(url, concurrency, warmupSeconds, measureSeconds, timestamp, label);
                 if (!machineReadable) {
                     out.println("HTTP load test: %s".formatted(url));
                 }
-                result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, progressOut);
+                result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, rate,
+                        useVirtualThreads(), progressOut);
             }
 
             val results = new ArrayList<BenchmarkResult>();
@@ -241,5 +248,9 @@ public class LoadtestCommand implements Callable<Integer> {
         out.printf(Locale.US, "    p99.9: %,.0f us%n", latency.p999() / 1000.0);
         out.printf(Locale.US, "    max:   %,.0f us%n", latency.max() / 1000.0);
         out.flush();
+    }
+
+    private boolean useVirtualThreads() {
+        return "virtual-threads".equalsIgnoreCase(engine);
     }
 }

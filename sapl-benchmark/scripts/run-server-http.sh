@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 
-# SAPL 4 HTTP server benchmark using wrk.
+# SAPL 4 HTTP server benchmark using wrk2.
 # Sweeps: runtime (JVM/native) x scenarios x P-core counts x connection counts.
 # Usage: run-server-http.sh [quick|full] [output-dir]
 
@@ -34,7 +34,7 @@ load_experiment "server-http"
 log_env
 
 if ! $HAS_WRK; then
-    echo "ERROR: wrk not found. Install wrk to run HTTP server benchmarks."
+    echo "ERROR: wrk2 not found. Install wrk2 to run HTTP server benchmarks."
     exit 1
 fi
 
@@ -70,7 +70,7 @@ run_converging_wrk() {
         wait_cool
 
         local wrk_output
-        wrk_output=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk -t2 -c"$connections" -d${WRK_MEASURE_TIME}s --latency -s "$LUA_SCRIPT" "$HTTP_URL" 2>&1)
+        wrk_output=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s --latency -s "$LUA_SCRIPT" "$HTTP_URL" 2>&1)
 
         local throughput
         throughput=$(parse_wrk_rps "$wrk_output")

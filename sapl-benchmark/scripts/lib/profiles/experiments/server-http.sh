@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-# Experiment: HTTP server benchmarks via wrk
+# Experiment: HTTP server benchmarks via wrk2
 # Scenarios x P-core counts x connection counts
 
 SCENARIOS=(baseline rbac hospital-1 hospital-100 hospital-300)

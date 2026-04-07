@@ -123,7 +123,7 @@ check_tools() {
     command -v taskset &>/dev/null && PINNING_AVAILABLE=true
 
     HAS_WRK=false
-    command -v wrk &>/dev/null && HAS_WRK=true
+    command -v wrk2 &>/dev/null && HAS_WRK=true
 
     HAS_NATIVE=false
     [ -x "${SAPL_NATIVE}" ] && HAS_NATIVE=true
@@ -285,7 +285,7 @@ check_convergence() {
 }
 
 # ---------------------------------------------------------------------------
-# wrk helpers
+# wrk2 helpers
 # ---------------------------------------------------------------------------
 
 converge_wrk() {
@@ -297,7 +297,7 @@ converge_wrk() {
     local samples=()
 
     for i in $(seq 1 $MAX_WARMUP_ITERS); do
-        local rps=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk -t2 -c"$connections" -d${WRK_WARMUP_TIME}s -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
+        local rps=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_WARMUP_TIME}s -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
         samples+=("$rps")
         local n=${#samples[@]}
         if [ "$n" -ge 3 ]; then
@@ -350,7 +350,7 @@ log_env() {
     echo "  JVM:     $(java -version 2>&1 | head -1)"
     echo "  OS:      $(uname -sr)"
     echo "  Pinning: $($PINNING_AVAILABLE && echo "available" || echo "NOT available")"
-    echo "  wrk:     $($HAS_WRK && wrk --version 2>&1 | head -1 || echo "not found")"
+    echo "  wrk2:    $($HAS_WRK && wrk2 --version 2>&1 | head -1 || echo "not found")"
     echo "  Native:  $($HAS_NATIVE && echo "$SAPL_NATIVE" || echo "not found")"
     echo "  Temp:    $(pkg_temp)C"
     echo ""
