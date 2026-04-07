@@ -27,6 +27,7 @@ import java.util.Map;
 
 import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanExpression.And;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.api.model.BooleanExpression.Atom;
 import io.sapl.api.model.BooleanExpression.Constant;
 import io.sapl.api.model.BooleanExpression.Not;
@@ -106,7 +107,7 @@ class VariableOrder {
     int levelOf(IndexPredicate predicate) {
         val level = predicateToLevel.get(predicate);
         if (level == null) {
-            throw new IllegalArgumentException(ERROR_PREDICATE_NOT_IN_ORDER.formatted(predicate));
+            throw new SaplCompilerException(ERROR_PREDICATE_NOT_IN_ORDER.formatted(predicate));
         }
         return level;
     }

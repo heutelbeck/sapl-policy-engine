@@ -97,8 +97,11 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeStartObject();
         generator.writeStringProperty("indexing", flags.indexing());
         generator.writeBooleanProperty("unrollInOperator", flags.unrollInOperator());
-        generator.writeNumberProperty("minPoliciesForCanonical", flags.minPoliciesForCanonical());
-        generator.writeNumberProperty("minSharingForCanonical", flags.minSharingForCanonical());
+        generator.writeNumberProperty("maxPolicyDocuments", flags.maxPolicyDocuments());
+        if (!flags.indexParameters().isEmpty()) {
+            generator.writePropertyName("indexParameters");
+            valueSerializer.serialize(flags.indexParameters(), generator, null);
+        }
         generator.writeEndObject();
     }
 

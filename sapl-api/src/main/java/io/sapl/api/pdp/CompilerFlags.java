@@ -21,32 +21,33 @@ import java.io.Serial;
 import java.io.Serializable;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 
 /**
- * Compile-time tuning flags for the SAPL policy compiler. Controls indexing
- * strategy, IN-operator unrolling, and AUTO-mode index selection thresholds.
+ * Compile-time tuning flags for the SAPL policy compiler.
+ * <p>
+ * Only generic compiler settings belong here. Index-specific tuning
+ * parameters are passed as an opaque {@link ObjectValue} and interpreted
+ * by the index implementations in sapl-pdp.
  * <p>
  * All fields are optional in pdp.json; missing fields default to
  * {@link #defaults()}.
  *
  * @param indexing policy index strategy name (e.g., "AUTO", "NAIVE",
- * "CANONICAL", "MTBDD").
- * Resolved to an implementation by the index factory in sapl-pdp.
+ * "CANONICAL", "SMTDD"). Resolved by the index factory in sapl-pdp.
  * @param unrollInOperator whether to unroll {@code EXPR in [a, b, c]} into
- * equality chains for improved index matching
- * @param minPoliciesForCanonical minimum policy count before AUTO mode
- * considers the canonical index
- * @param minSharingForCanonical minimum average formulas-per-predicate ratio
- * for AUTO mode to keep the canonical index
+ * equality chains for index matching
  * @param maxPolicyDocuments maximum number of policy documents loaded from
  * a directory or bundle. Safety limit against excessive file counts.
+ * @param indexParameters opaque key-value parameters for index implementations.
+ * Each index strategy reads the keys it understands and ignores the rest.
  */
 public record CompilerFlags(
         String indexing,
         boolean unrollInOperator,
-        int minPoliciesForCanonical,
-        double minSharingForCanonical,
-        int maxPolicyDocuments) implements Serializable {
+        int maxPolicyDocuments,
+        ObjectValue indexParameters) implements Serializable {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
@@ -54,11 +55,11 @@ public record CompilerFlags(
     private static final int DEFAULT_MAX_POLICY_DOCUMENTS = 10_000;
 
     /**
-     * @return default compiler flags (AUTO indexing, no unrolling, thresholds
-     * 10 policies / 1.5 sharing ratio, 10000 max documents)
+     * @return default compiler flags (AUTO indexing, no unrolling,
+     * 10000 max documents, empty index parameters)
      */
     public static CompilerFlags defaults() {
-        return new CompilerFlags("AUTO", false, 10, 1.5, DEFAULT_MAX_POLICY_DOCUMENTS);
+        return new CompilerFlags("AUTO", false, DEFAULT_MAX_POLICY_DOCUMENTS, Value.EMPTY_OBJECT);
     }
 
 }

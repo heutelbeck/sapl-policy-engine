@@ -126,29 +126,26 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             return context.reportInputMismatch(CompilerFlags.class, ERROR_EXPECTED_START_OBJECT_FLAGS);
         }
 
-        val defaults                = CompilerFlags.defaults();
-        var indexing                = defaults.indexing();
-        var unrollInOperator        = defaults.unrollInOperator();
-        var minPoliciesForCanonical = defaults.minPoliciesForCanonical();
-        var minSharingForCanonical  = defaults.minSharingForCanonical();
-        var maxPolicyDocuments      = defaults.maxPolicyDocuments();
+        val defaults           = CompilerFlags.defaults();
+        var indexing            = defaults.indexing();
+        var unrollInOperator   = defaults.unrollInOperator();
+        var maxPolicyDocuments = defaults.maxPolicyDocuments();
+        var indexParameters    = defaults.indexParameters();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val flagName = parser.currentName();
             parser.nextToken();
 
             switch (flagName) {
-            case "indexing"                -> indexing = parser.getString().toUpperCase();
-            case "unrollInOperator"        -> unrollInOperator = parser.getBooleanValue();
-            case "minPoliciesForCanonical" -> minPoliciesForCanonical = parser.getIntValue();
-            case "minSharingForCanonical"  -> minSharingForCanonical = parser.getDoubleValue();
-            case "maxPolicyDocuments"      -> maxPolicyDocuments = parser.getIntValue();
-            default                        -> parser.skipChildren();
+            case "indexing"         -> indexing = parser.getString().toUpperCase();
+            case "unrollInOperator" -> unrollInOperator = parser.getBooleanValue();
+            case "maxPolicyDocuments" -> maxPolicyDocuments = parser.getIntValue();
+            case "indexParameters"  -> indexParameters = (ObjectValue) valueDeserializer.deserialize(parser, context);
+            default                 -> parser.skipChildren();
             }
         }
 
-        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical,
-                maxPolicyDocuments);
+        return new CompilerFlags(indexing, unrollInOperator, maxPolicyDocuments, indexParameters);
     }
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {

@@ -65,7 +65,7 @@ public class EmbeddedPdpBenchmark {
     public void setup() {
         val scenario = ScenarioFactory.create(scenarioName, Long.parseLong(seed));
         val flags    = new CompilerFlags(indexingStrategy.toUpperCase(), Boolean.parseBoolean(unrollInOperator), 10,
-                1.5, 10_000);
+                1.5, 10_000, 0);
         components    = scenario.buildPdp(flags);
         pdp           = components.pdp();
         subscriptions = scenario.subscriptions().toArray(AuthorizationSubscription[]::new);

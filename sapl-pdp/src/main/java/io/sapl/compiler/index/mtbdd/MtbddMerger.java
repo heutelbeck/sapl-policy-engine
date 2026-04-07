@@ -18,7 +18,7 @@
 package io.sapl.compiler.index.mtbdd;
 
 import java.util.BitSet;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 import io.sapl.compiler.index.mtbdd.MtbddNode.Decision;
@@ -33,23 +33,16 @@ import lombok.val;
  * independent. A terminal in the merged diagram carries BitSets with
  * bits from multiple formulas.
  * <p>
- * The merge uses a computed table (cache) keyed by node identity pairs
- * to avoid recomputing the same (nodeA, nodeB) combination. This is
- * the Apply algorithm that makes MTBDD merging polynomial in the
- * diagram sizes rather than exponential in the number of variables.
+ * The merge uses a computed table (cache) keyed by node identity to
+ * avoid recomputing the same (left, right) combination. Since nodes
+ * are interned by the UniqueTable, identity comparison (==) is
+ * equivalent to structural equality.
  */
 @UtilityClass
 class MtbddMerger {
 
     /**
      * Merges two MTBDDs with union semantics.
-     * <p>
-     * For each path through the merged diagram, the terminal contains
-     * the union of matched formulas from both inputs and the union of
-     * errored formulas from both inputs.
-     * <p>
-     * No absorption: formulas in different inputs are independent.
-     * Formula 0 being matched does not suppress formula 1's error edges.
      *
      * @param table the shared unique table
      * @param left first MTBDD
@@ -57,12 +50,12 @@ class MtbddMerger {
      * @return merged MTBDD
      */
     static MtbddNode merge(UniqueTable table, MtbddNode left, MtbddNode right) {
-        val cache = new HashMap<Long, MtbddNode>();
+        val cache = new IdentityHashMap<MtbddNode, IdentityHashMap<MtbddNode, MtbddNode>>();
         return mergeRecursive(table, left, right, cache);
     }
 
     private static MtbddNode mergeRecursive(UniqueTable table, MtbddNode left, MtbddNode right,
-            Map<Long, MtbddNode> cache) {
+            Map<MtbddNode, IdentityHashMap<MtbddNode, MtbddNode>> cache) {
         if (left == right) {
             return left;
         }
@@ -74,19 +67,21 @@ class MtbddMerger {
         }
 
         // Check cache: have we merged this exact pair before?
-        val cacheKey = cacheKey(left, right);
-        val cached   = cache.get(cacheKey);
-        if (cached != null) {
-            return cached;
+        val innerMap = cache.get(left);
+        if (innerMap != null) {
+            val cached = innerMap.get(right);
+            if (cached != null) {
+                return cached;
+            }
         }
 
         val result = computeMerge(table, left, right, cache);
-        cache.put(cacheKey, result);
+        cache.computeIfAbsent(left, k -> new IdentityHashMap<>()).put(right, result);
         return result;
     }
 
     private static MtbddNode computeMerge(UniqueTable table, MtbddNode left, MtbddNode right,
-            Map<Long, MtbddNode> cache) {
+            Map<MtbddNode, IdentityHashMap<MtbddNode, MtbddNode>> cache) {
         // Both terminals: union of matched formula sets
         if (left instanceof Terminal(BitSet matchedLeft) && right instanceof Terminal(BitSet matchedRight)) {
             val combined = (BitSet) matchedLeft.clone();
@@ -104,15 +99,6 @@ class MtbddMerger {
         val errorChild = mergeRecursive(table, leftChildren[2], rightChildren[2], cache);
 
         return table.decision(topLevel, trueChild, falseChild, errorChild);
-    }
-
-    /**
-     * Cache key from identity hash codes of both nodes. Since nodes are
-     * interned, identity hash is stable and unique per structural node.
-     * Packing two 32-bit hashes into one long avoids a Pair object allocation.
-     */
-    private static long cacheKey(MtbddNode left, MtbddNode right) {
-        return ((long) System.identityHashCode(left) << 32) | (System.identityHashCode(right) & 0xFFFFFFFFL);
     }
 
     private static int levelOf(MtbddNode node) {

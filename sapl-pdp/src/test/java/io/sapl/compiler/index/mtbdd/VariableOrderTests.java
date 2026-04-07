@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import static io.sapl.compiler.index.IndexTestFixtures.atom;
 import static io.sapl.compiler.index.IndexTestFixtures.predicate;
 import static org.assertj.core.api.Assertions.assertThat;
+import io.sapl.compiler.expressions.SaplCompilerException;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("VariableOrder")
@@ -146,7 +148,7 @@ class VariableOrderTests {
         @DisplayName("unknown predicate throws")
         void whenUnknownPredicateThenThrows() {
             val order = VariableOrder.fromExpressions(List.of(atom(1L)));
-            assertThatThrownBy(() -> order.levelOf(predicate(99L))).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> order.levelOf(predicate(99L))).isInstanceOf(SaplCompilerException.class);
         }
 
     }

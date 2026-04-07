@@ -151,7 +151,7 @@ public class BinaryOperationCompiler {
         };
     }
 
-    record BinaryPurePure(
+    public record BinaryPurePure(
             BinaryOperatorType opType,
             BinaryOperation op,
             PureOperator lp,
@@ -178,7 +178,7 @@ public class BinaryOperationCompiler {
         }
     }
 
-    record BinaryValuePure(
+    public record BinaryValuePure(
             BinaryOperatorType opType,
             BinaryOperation op,
             Value lv,

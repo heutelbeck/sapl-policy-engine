@@ -78,32 +78,38 @@ class ScenarioCompilationAndCorrectnessTests {
     }
 
     @Nested
-    @DisplayName("NAIVE and CANONICAL produce identical decisions")
+    @DisplayName("NAIVE, CANONICAL and SMTDD produce identical decisions")
     class IndexConsistency {
 
-        @DisplayName("NAIVE and CANONICAL agree on every subscription")
+        @DisplayName("all indexes agree on every subscription")
         @ParameterizedTest(name = "{0} seed={1}")
         @MethodSource("io.sapl.benchmark.sapl4.ScenarioCompilationAndCorrectnessTests#scenarioArguments")
         void whenDifferentIndexThenSameDecisions(String scenarioName, long seed) {
             val scenario = ScenarioFactory.create(scenarioName, seed);
-            val naive    = new CompilerFlags("NAIVE", false, 10, 1.5, 10_000);
-            val canon    = new CompilerFlags("CANONICAL", false, 10, 1.5, 10_000);
+            val naive    = new CompilerFlags("NAIVE", false, 10_000, Value.EMPTY_OBJECT);
+            val canon    = new CompilerFlags("CANONICAL", false, 10_000, Value.EMPTY_OBJECT);
+            val smtdd    = new CompilerFlags("SMTDD", false, 10_000, Value.EMPTY_OBJECT);
 
             val naiveComponents = scenario.buildPdp(naive);
             val canonComponents = scenario.buildPdp(canon);
+            val smtddComponents = scenario.buildPdp(smtdd);
             val naivePdp        = naiveComponents.pdp();
             val canonPdp        = canonComponents.pdp();
+            val smtddPdp        = smtddComponents.pdp();
 
             val subs = scenario.subscriptions();
             for (int i = 0; i < subs.size(); i++) {
                 val sub           = subs.get(i);
                 val naiveDecision = naivePdp.decideOnceBlocking(sub).decision();
                 val canonDecision = canonPdp.decideOnceBlocking(sub).decision();
-                assertThat(canonDecision).as("subscription[%d] %s", i, sub).isEqualTo(naiveDecision);
+                val smtddDecision = smtddPdp.decideOnceBlocking(sub).decision();
+                assertThat(canonDecision).as("CANONICAL vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
+                assertThat(smtddDecision).as("SMTDD vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
             }
 
             naiveComponents.dispose();
             canonComponents.dispose();
+            smtddComponents.dispose();
         }
     }
 

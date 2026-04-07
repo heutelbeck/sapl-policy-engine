@@ -213,7 +213,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         }
         try {
             var resolvedScenario = ScenarioFactory.create(scenario, seed);
-            var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10, 1.5, 10_000);
+            var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10_000, Value.EMPTY_OBJECT);
             var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
@@ -481,7 +481,7 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     private Map<Decision, Integer> countDecisions() {
         var resolvedScenario = ScenarioFactory.create(scenario, seed);
-        var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10, 1.5, 10_000);
+        var flags            = new CompilerFlags(indexing.toUpperCase(), unroll, 10_000, Value.EMPTY_OBJECT);
         var components       = resolvedScenario.buildPdp(flags);
         var pdp              = components.pdp();
         var counts           = new EnumMap<Decision, Integer>(Decision.class);

@@ -343,11 +343,10 @@ public class PDPConfigurationLoader {
         val flagsNode = node.get(FIELD_COMPILER_FLAGS);
         val defaults  = CompilerFlags.defaults();
 
-        var indexing                = defaults.indexing();
-        var unrollInOperator        = defaults.unrollInOperator();
-        var minPoliciesForCanonical = defaults.minPoliciesForCanonical();
-        var minSharingForCanonical  = defaults.minSharingForCanonical();
-        var maxPolicyDocuments      = defaults.maxPolicyDocuments();
+        var indexing            = defaults.indexing();
+        var unrollInOperator   = defaults.unrollInOperator();
+        var maxPolicyDocuments = defaults.maxPolicyDocuments();
+        var indexParameters    = defaults.indexParameters();
 
         if (flagsNode.has("indexing")) {
             indexing = flagsNode.get("indexing").asString().toUpperCase();
@@ -355,18 +354,14 @@ public class PDPConfigurationLoader {
         if (flagsNode.has("unrollInOperator")) {
             unrollInOperator = flagsNode.get("unrollInOperator").asBoolean();
         }
-        if (flagsNode.has("minPoliciesForCanonical")) {
-            minPoliciesForCanonical = flagsNode.get("minPoliciesForCanonical").asInt();
-        }
-        if (flagsNode.has("minSharingForCanonical")) {
-            minSharingForCanonical = flagsNode.get("minSharingForCanonical").numberValue().doubleValue();
-        }
         if (flagsNode.has("maxPolicyDocuments")) {
             maxPolicyDocuments = flagsNode.get("maxPolicyDocuments").asInt();
         }
+        if (flagsNode.has("indexParameters")) {
+            indexParameters = parseValueSection(flagsNode, "indexParameters");
+        }
 
-        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical,
-                maxPolicyDocuments);
+        return new CompilerFlags(indexing, unrollInOperator, maxPolicyDocuments, indexParameters);
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {
