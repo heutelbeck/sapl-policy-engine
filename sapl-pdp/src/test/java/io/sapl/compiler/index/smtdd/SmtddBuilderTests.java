@@ -34,12 +34,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.compiler.index.IndexSizeLimitExceededException;
+
 import static io.sapl.compiler.index.IndexTestFixtures.configurablePredicate;
 import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.eqPredicate;
 import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.extractPredicates;
 import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.nePredicate;
 import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("SmtddBuilder - diagram construction")
 class SmtddBuilderTests {
@@ -84,6 +87,9 @@ class SmtddBuilderTests {
             }
 
             assertThat(root).isInstanceOf(EqualityBranch.class);
+            // All branch children should be terminals (no binary predicates)
+            val branch = (EqualityBranch) root;
+            assertThat(branch.branches().values()).allSatisfy(child -> assertThat(child).isInstanceOf(Terminal.class));
         }
 
         @Test
@@ -104,6 +110,9 @@ class SmtddBuilderTests {
             }
 
             assertThat(root).isInstanceOf(EqualityBranch.class);
+            // At least one child branch should be another EqualityBranch (nested)
+            val outerBranch = (EqualityBranch) root;
+            assertThat(outerBranch.branches().values()).anyMatch(child -> child instanceof EqualityBranch);
         }
     }
 
@@ -238,6 +247,25 @@ class SmtddBuilderTests {
             }
 
             assertThat(root).isNotInstanceOf(Terminal.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("node limit enforcement")
+    class NodeLimitTests {
+
+        @Test
+        @DisplayName("exceeding maxIndexNodes throws IndexSizeLimitExceededException")
+        void whenNodeLimitExceededThenThrows() {
+            // Two formulas with distinct binary predicates forces merge, creating
+            // new nodes. A limit of 1 is immediately exceeded.
+            val expressions          = List.<BooleanExpression>of(new Atom(configurablePredicate(1L)),
+                    new Atom(configurablePredicate(2L)));
+            val predicatesPerFormula = extractPredicates(expressions);
+            val analysis             = SemanticVariableOrder.analyze(predicatesPerFormula);
+
+            assertThatThrownBy(() -> SmtddBuilder.build(analysis, expressions, predicatesPerFormula, 1))
+                    .isInstanceOf(IndexSizeLimitExceededException.class).hasMessageContaining("exceeds limit");
         }
     }
 

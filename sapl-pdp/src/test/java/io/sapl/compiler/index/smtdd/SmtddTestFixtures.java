@@ -35,6 +35,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
+import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
 import io.sapl.compiler.policy.policybody.BooleanGuardCompiler.PureBooleanTypeCheck;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -67,6 +68,32 @@ class SmtddTestFixtures {
         val typeCheckedOperator = new PureBooleanTypeCheck(neOperator, TEST_LOCATION, true, false,
                 "Expected boolean but got: %s");
         return new IndexPredicate(hash, typeCheckedOperator);
+    }
+
+    /**
+     * Creates a BinaryPureValue IN predicate: pureOperand IN collection.
+     * The collection is the constant (right-hand value).
+     */
+    public static IndexPredicate inPredicate(PureOperator operand, Value collection) {
+        val hash        = operand.semanticHash() * 31 + collection.hashCode() + 2;
+        val inOperator  = new BinaryPureValue(BinaryOperatorType.IN, (leftVal, rightVal, loc) -> Value.FALSE, operand,
+                collection, TEST_LOCATION, operand.isDependingOnSubscription(), false);
+        val typeChecked = new PureBooleanTypeCheck(inOperator, TEST_LOCATION, true, false,
+                "Expected boolean but got: %s");
+        return new IndexPredicate(hash, typeChecked);
+    }
+
+    /**
+     * Creates a BinaryValuePure HAS_ONE predicate: container HAS pureOperand.
+     * The container (object) is the constant (left-hand value).
+     */
+    public static IndexPredicate hasPredicate(PureOperator operand, Value container) {
+        val hash        = operand.semanticHash() * 31 + container.hashCode() + 3;
+        val hasOperator = new BinaryValuePure(BinaryOperatorType.HAS_ONE, (leftVal, rightVal, loc) -> Value.FALSE,
+                container, operand, TEST_LOCATION, operand.isDependingOnSubscription(), false);
+        val typeChecked = new PureBooleanTypeCheck(hasOperator, TEST_LOCATION, true, false,
+                "Expected boolean but got: %s");
+        return new IndexPredicate(hash, typeChecked);
     }
 
     public static PureOperator stubOperand(long hash) {

@@ -42,6 +42,14 @@ class SmtddUniqueTable {
         terminals.put(EMPTY, EMPTY);
     }
 
+    /**
+     * Returns the canonical terminal for the given matched formulas. Empty
+     * bitsets always return the shared {@link #EMPTY} instance. Equal
+     * bitsets are interned to the same object for identity-based caching.
+     *
+     * @param matched formula indices satisfied along this path
+     * @return the interned terminal node
+     */
     Terminal terminal(BitSet matched) {
         if (matched.isEmpty()) {
             return EMPTY;
@@ -50,6 +58,18 @@ class SmtddUniqueTable {
         return terminals.computeIfAbsent(candidate, k -> k);
     }
 
+    /**
+     * Returns the canonical binary decision node for the given children.
+     * If all three children are the same object, the redundant node is
+     * collapsed and the shared child is returned directly. Structurally
+     * equal decisions are interned to the same instance.
+     *
+     * @param level predicate index in the binary variable order
+     * @param trueChild child when predicate is true
+     * @param falseChild child when predicate is false
+     * @param errorChild child when predicate errors
+     * @return the interned decision node, or the child if redundant
+     */
     SmtddNode binaryDecision(int level, SmtddNode trueChild, SmtddNode falseChild, SmtddNode errorChild) {
         if (trueChild == falseChild && falseChild == errorChild) {
             return trueChild;

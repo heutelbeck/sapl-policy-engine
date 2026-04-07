@@ -37,6 +37,16 @@ class BinaryVariableOrder {
     private final Map<IndexPredicate, Integer> predicateToLevel;
     private final BitSet[]                     erroredFormulasPerPredicate;
 
+    /**
+     * Creates a variable order from the remaining (non-equality) predicates.
+     * Predicates are sorted by descending formula frequency so that
+     * high-discrimination predicates appear near the root, reducing
+     * average traversal depth. Ties are broken by semantic hash for
+     * deterministic ordering.
+     *
+     * @param remainingPredicates predicates not handled by equality groups
+     * @param formulasPerPredicate formula indices referencing each predicate
+     */
     BinaryVariableOrder(List<IndexPredicate> remainingPredicates,
             Map<IndexPredicate, List<Integer>> formulasPerPredicate) {
         val sorted = new ArrayList<>(remainingPredicates);

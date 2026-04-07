@@ -18,23 +18,20 @@
 package io.sapl.compiler.index.smtdd;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.IndexPredicate;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
-import io.sapl.ast.BinaryOperatorType;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
 import io.sapl.compiler.policy.policybody.BooleanGuardCompiler.PureBooleanTypeCheck;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
@@ -49,6 +46,7 @@ import lombok.val;
  * Remaining predicates (non-equality, PureOperator==PureOperator, or
  * ungroupable) are kept as individual binary predicates.
  */
+@UtilityClass
 public class SemanticVariableOrder {
 
     /**
@@ -111,19 +109,7 @@ public class SemanticVariableOrder {
         // Phase 1: classify each predicate into its equality group or ungroupable
         for (var formulaIndex = 0; formulaIndex < formulaPredicates.size(); formulaIndex++) {
             for (val predicate : formulaPredicates.get(formulaIndex)) {
-                val eqInfo = extractEqualityInfo(predicate.operator());
-
-                if (eqInfo != null) {
-                    val operandHash = eqInfo.pureOperand().semanticHash();
-                    val group       = groupsByOperandHash.computeIfAbsent(operandHash,
-                            k -> new EqualityGroup(eqInfo.pureOperand()));
-
-                    if (eqInfo.negated()) {
-                        group.addExclude(eqInfo.constantValue(), formulaIndex, predicate);
-                    } else {
-                        group.addEquals(eqInfo.constantValue(), formulaIndex, predicate);
-                    }
-                } else {
+                if (!classifyIntoGroup(predicate, formulaIndex, groupsByOperandHash)) {
                     ungroupablePredicateFormulas.computeIfAbsent(predicate, k -> new ArrayList<>()).add(formulaIndex);
                 }
             }
@@ -154,22 +140,101 @@ public class SemanticVariableOrder {
         return new AnalysisResult(equalityGroups, remainingPredicates, ungroupablePredicateFormulas);
     }
 
-    private record EqualityInfo(PureOperator pureOperand, Value constantValue, boolean negated) {}
+    /**
+     * Attempts to classify a predicate into an equality group. Returns true
+     * if the predicate was grouped, false if it should be treated as a
+     * remaining binary predicate.
+     */
+    private static boolean classifyIntoGroup(IndexPredicate predicate, int formulaIndex,
+            Map<Long, EqualityGroup> groupsByOperandHash) {
+        val operator = unwrapTypeCheck(predicate.operator());
+        if (operator instanceof BinaryPureValue pv) {
+            return classifyBinaryPureValue(pv, pv.lp(), pv.rv(), predicate, formulaIndex, groupsByOperandHash);
+        }
+        if (operator instanceof BinaryValuePure vp) {
+            return classifyBinaryValuePure(vp, vp.rp(), vp.lv(), predicate, formulaIndex, groupsByOperandHash);
+        }
+        return false;
+    }
 
-    private static EqualityInfo extractEqualityInfo(PureOperator operator) {
-        // Unwrap PureBooleanTypeCheck wrapper added by BooleanGuardCompiler
+    private static boolean classifyBinaryPureValue(BinaryPureValue op, PureOperator pureOperand, Value constant,
+            IndexPredicate predicate, int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
+        return switch (op.opType()) {
+        case EQ -> addSingleConstant(pureOperand, constant, false, predicate, formulaIndex, groupsByOperandHash);
+        case NE -> addSingleConstant(pureOperand, constant, true, predicate, formulaIndex, groupsByOperandHash);
+        case IN -> addInConstants(pureOperand, constant, predicate, formulaIndex, groupsByOperandHash);
+        default -> false;
+        };
+    }
+
+    private static boolean classifyBinaryValuePure(BinaryValuePure op, PureOperator pureOperand, Value constant,
+            IndexPredicate predicate, int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
+        // Note: for ValuePure, pureOperand=rp and constant=lv (swapped from source
+        // order)
+        // IN: constant IN pureOperator means collection is dynamic - not groupable
+        // HAS_ONE: constant has pureOperator means "is pureOp's result a key of
+        // constant?" - groupable
+        return switch (op.opType()) {
+        case EQ      -> addSingleConstant(pureOperand, constant, false, predicate, formulaIndex, groupsByOperandHash);
+        case NE      -> addSingleConstant(pureOperand, constant, true, predicate, formulaIndex, groupsByOperandHash);
+        case HAS_ONE -> addHasConstants(pureOperand, constant, predicate, formulaIndex, groupsByOperandHash);
+        default      -> false;
+        };
+    }
+
+    private static boolean addSingleConstant(PureOperator pureOperand, Value constant, boolean negated,
+            IndexPredicate predicate, int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
+        val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
+                k -> new EqualityGroup(pureOperand));
+        if (negated) {
+            group.addExclude(constant, formulaIndex, predicate);
+        } else {
+            group.addEquals(constant, formulaIndex, predicate);
+        }
+        return true;
+    }
+
+    private static boolean addHasConstants(PureOperator pureOperand, Value container, IndexPredicate predicate,
+            int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
+        // CONST has PureOp: the operator evaluates to a key, check against constant's
+        // keys
+        if (container instanceof ObjectValue object) {
+            val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
+                    k -> new EqualityGroup(pureOperand));
+            for (val key : object.keySet()) {
+                group.addEquals(Value.of(key), formulaIndex, predicate);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean addInConstants(PureOperator pureOperand, Value collection, IndexPredicate predicate,
+            int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
+        if (collection instanceof ArrayValue array) {
+            val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
+                    k -> new EqualityGroup(pureOperand));
+            for (var i = 0; i < array.size(); i++) {
+                group.addEquals(array.get(i), formulaIndex, predicate);
+            }
+            return true;
+        }
+        if (collection instanceof ObjectValue object) {
+            val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
+                    k -> new EqualityGroup(pureOperand));
+            for (val value : object.values()) {
+                group.addEquals(value, formulaIndex, predicate);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static PureOperator unwrapTypeCheck(PureOperator operator) {
         if (operator instanceof PureBooleanTypeCheck typeCheck) {
-            return extractEqualityInfo(typeCheck.operator());
+            return typeCheck.operator();
         }
-        if (operator instanceof BinaryPureValue pv
-                && (pv.opType() == BinaryOperatorType.EQ || pv.opType() == BinaryOperatorType.NE)) {
-            return new EqualityInfo(pv.lp(), pv.rv(), pv.opType() == BinaryOperatorType.NE);
-        }
-        if (operator instanceof BinaryValuePure vp
-                && (vp.opType() == BinaryOperatorType.EQ || vp.opType() == BinaryOperatorType.NE)) {
-            return new EqualityInfo(vp.rp(), vp.lv(), vp.opType() == BinaryOperatorType.NE);
-        }
-        return null;
+        return operator;
     }
 
 }
