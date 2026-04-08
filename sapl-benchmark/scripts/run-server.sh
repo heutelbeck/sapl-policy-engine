@@ -99,7 +99,7 @@ run_http_converging() {
     for fork_index in $(seq 1 "$MAX_FORKS"); do
         wait_cool
         local wrk_output
-        wrk_output=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s --latency -s "$LUA_SCRIPT" "$HTTP_URL" 2>&1)
+        wrk_output=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s -R 10000000 --latency -s "$LUA_SCRIPT" "$HTTP_URL" 2>&1)
         local throughput
         throughput=$(parse_wrk_rps "$wrk_output")
         if [ -z "$throughput" ] || [ "$throughput" = "0.00" ]; then

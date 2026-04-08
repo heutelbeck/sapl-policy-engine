@@ -159,8 +159,8 @@ for runtime in "${RUNTIMES[@]}"; do
         SERVER_PID=$!
 
         # Wait for both HTTP health and RSocket port
-        local max_wait=60
-        local started=false
+        max_wait=60
+        started=false
         for i in $(seq 1 $max_wait); do
             if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
                 if ss -tln | grep -q ":7000 " 2>/dev/null; then
@@ -180,7 +180,7 @@ for runtime in "${RUNTIMES[@]}"; do
 
         # Warmup the server with a saturation burst
         echo "  Warming up server..."
-        local client_cpu=$(client_cpus)
+        client_cpu=$(client_cpus)
         run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
             --rsocket --host localhost --port 7000 \
             --connections "$RSOCKET_CONNECTIONS" \
@@ -192,11 +192,11 @@ for runtime in "${RUNTIMES[@]}"; do
         # Rate sweep
         for rate in "${RATE_STEPS[@]}"; do
             CURRENT_STEP=$((CURRENT_STEP + 1))
-            local pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+            pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
             echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / $rate req/s"
             wait_cool
 
-            local prefix="${scenario}_${runtime}_${rate}r"
+            prefix="${scenario}_${runtime}_${rate}r"
 
             run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
                 --rsocket --host localhost --port 7000 \
@@ -214,11 +214,11 @@ for runtime in "${RUNTIMES[@]}"; do
 
         # Saturation reference
         CURRENT_STEP=$((CURRENT_STEP + 1))
-        local pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+        pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
         echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / saturation"
         wait_cool
 
-        local prefix="${scenario}_${runtime}_saturation"
+        prefix="${scenario}_${runtime}_saturation"
         run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
             --rsocket --host localhost --port 7000 \
             --connections "$RSOCKET_CONNECTIONS" \

@@ -297,7 +297,7 @@ converge_wrk() {
     local samples=()
 
     for i in $(seq 1 $MAX_WARMUP_ITERS); do
-        local rps=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_WARMUP_TIME}s -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
+        local rps=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_WARMUP_TIME}s -R 10000000 -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
         samples+=("$rps")
         local n=${#samples[@]}
         if [ "$n" -ge 3 ]; then

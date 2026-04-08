@@ -115,7 +115,7 @@ run_wrk_sweep() {
                 wait_cool
 
                 local wrk_output
-                wrk_output=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s --latency -s "$lua" "$url" 2>&1)
+                wrk_output=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s -R 10000000 --latency -s "$lua" "$url" 2>&1)
 
                 local throughput
                 throughput=$(parse_wrk_rps "$wrk_output")
@@ -229,7 +229,7 @@ for pcores in "${CORE_SWEEP[@]}"; do
         for fork_index in $(seq 1 "$MAX_FORKS"); do
             wait_cool
 
-            wrk_output=$(SUBSCRIPTION_FILE="$OPA_SUB" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s --latency -s "$OPA_LUA" "$OPA_URL" 2>&1)
+            wrk_output=$(SUBSCRIPTION_FILE="$OPA_SUB" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s -R 10000000 --latency -s "$OPA_LUA" "$OPA_URL" 2>&1)
             throughput=$(parse_wrk_rps "$wrk_output")
 
             if [ -z "$throughput" ] || [ "$throughput" = "0.00" ]; then
@@ -348,7 +348,7 @@ for runtime in "${SAPL_RUNTIMES[@]}"; do
             for fork_index in $(seq 1 "$MAX_FORKS"); do
                 wait_cool
 
-                wrk_output=$(SUBSCRIPTION_FILE="$SAPL_SUB" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s --latency -s "$SAPL_LUA" "$SAPL_URL" 2>&1)
+                wrk_output=$(SUBSCRIPTION_FILE="$SAPL_SUB" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_MEASURE_TIME}s -R 10000000 --latency -s "$SAPL_LUA" "$SAPL_URL" 2>&1)
                 throughput=$(parse_wrk_rps "$wrk_output")
 
                 if [ -z "$throughput" ] || [ "$throughput" = "0.00" ]; then
